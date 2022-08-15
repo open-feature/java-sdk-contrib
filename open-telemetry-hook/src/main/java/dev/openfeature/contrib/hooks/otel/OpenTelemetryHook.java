@@ -17,7 +17,7 @@ public class OpenTelemetryHook {
 
     /** 
      * A test method.
-     * @return boolean
+     * @return {boolean}
      */
     public static boolean test() {
         OpenFeatureAPI.getInstance().setProvider(new NoOpProvider());
