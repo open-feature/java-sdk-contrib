@@ -5,13 +5,15 @@
       "release-type": "maven",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
-      "versioning": "default"
+      "versioning": "default",
+      "release-as": "0.1.0"
     },
     "open-telemetry-hook": {
       "release-type": "maven",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
-      "versioning": "default"
+      "versioning": "default",
+      "release-as": "0.1.0"
     }
   }
 }
