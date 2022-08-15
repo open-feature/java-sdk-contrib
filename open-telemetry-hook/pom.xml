@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>dev.openfeature.contrib</groupId>
+		<artifactId>java-sdk-contrib</artifactId>
+		<version>0.0.0</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<groupId>dev.openfeature.hooks</groupId>
+	<artifactId>otel</artifactId>
+	<version>0.0.1${version.modifier}</version>
+	<name>open-telemetry-hook</name>
+	<description>Open Telemetry Hook</description>
+
+	<properties>
+		<!-- override no-deploy rule from parent -->
+		<maven.deploy.skip>false</maven.deploy.skip>
+	</properties>
+
+	<dependencies>
+		<!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
+	</dependencies>
+
+</project>

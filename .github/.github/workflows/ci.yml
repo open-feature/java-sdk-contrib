@@ -1,0 +1,12 @@
+name: CI
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        # publish with SNAPSHOT version modifier from pom
+        run: mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy

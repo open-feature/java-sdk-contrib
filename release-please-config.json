@@ -1,0 +1,17 @@
+{
+  "bootstrap-sha": "7f952896c6b15b1dd55f86dc6538b257e658f0b3",
+  "packages": {
+    "flagd-provider": {
+      "release-type": "maven",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default"
+    },
+    "open-telemetry-hook": {
+      "release-type": "maven",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default"
+    }
+  }
+}

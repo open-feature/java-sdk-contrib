@@ -1,0 +1,35 @@
+on:
+  push:
+    branches:
+      - main
+name: Run Release Please
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+
+    # Release-please creates a PR that tracks all changes
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          command: manifest
+          token: ${{secrets.GITHUB_TOKEN}}
+          default-branch: main
+
+      # The logic below handles the maven publication:
+      - name: Checkout Repository
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: actions/checkout@v3
+
+      - name: Configure GPG Key
+        run: |
+          echo -n "$GPG_SIGNING_KEY" | base64 --decode | gpg --import
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+
+      # Release Please has already incremented versions and published tags, so we just need to publish.
+      # Our maven config will only publish versions that do not already exist.
+      - name: Publish
+        if: ${{ steps.release.outputs.releases_created }}
+        run: |
+          mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy -Dversion.modifier=''
