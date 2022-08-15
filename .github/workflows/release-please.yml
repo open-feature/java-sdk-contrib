@@ -54,7 +54,7 @@ jobs:
       - name: Maven Verify Deploy
         if: ${{ steps.release.outputs.releases_created }}
         run: |
-          mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy -Dversion.modifier=''
+          mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
