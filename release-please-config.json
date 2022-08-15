@@ -1,5 +1,5 @@
 {
-  "bootstrap-sha": "7f952896c6b15b1dd55f86dc6538b257e658f0b3",
+  "bootstrap-sha": "637e3b41b3b73aa11b7ea51b555d6952b51eb60e",
   "packages": {
     "flagd-provider": {
       "release-type": "maven",
