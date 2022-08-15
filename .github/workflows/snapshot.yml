@@ -1,10 +1,6 @@
-name: CI
+name: snapshot
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
+  push:
     branches:
       - main
 
@@ -14,7 +10,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
       - name: Set up JDK 18
         uses: actions/setup-java@v3
         with:
@@ -31,10 +26,19 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Configure GPG Key
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: |
           echo -n "$GPG_SIGNING_KEY" | base64 --decode | gpg --import
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
-      - name: Maven Verify
-        run: mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify
+      - name: Maven Verify Deploy
+        run: |
+          if [ ${{ github.event.pull_request.head.repo.full_name }} = ${{ github.repository }} ]; then
+            mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy
+          else
+            mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy -Dgpg.skip
+          fi
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}

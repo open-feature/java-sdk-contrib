@@ -10,8 +10,19 @@
 	<groupId>dev.openfeature.providers</groupId>
 	<artifactId>flagd</artifactId>
 	<version>0.0.1${version.modifier}</version>
+
 	<name>flagd</name>
 	<description>FlagD provider for Java</description>
+	<url>https://openfeature.dev</url>
+
+	<developers>
+		<developer>
+			<id>toddbaert</id>
+			<name>Todd Baert</name>
+			<organization>OpenFeature</organization>
+			<url>https://openfeature.dev/</url>
+		</developer>
+	</developers>
 
 	<properties>
 		<!-- override no-deploy rule from parent -->

@@ -10,8 +10,19 @@
 	<groupId>dev.openfeature.hooks</groupId>
 	<artifactId>otel</artifactId>
 	<version>0.0.1${version.modifier}</version>
+
 	<name>open-telemetry-hook</name>
 	<description>Open Telemetry Hook</description>
+	<url>https://openfeature.dev</url>
+
+	<developers>
+		<developer>
+			<id>toddbaert</id>
+			<name>Todd Baert</name>
+			<organization>OpenFeature</organization>
+			<url>https://openfeature.dev/</url>
+		</developer>
+	</developers>
 
 	<properties>
 		<!-- override no-deploy rule from parent -->

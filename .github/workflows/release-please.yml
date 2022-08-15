@@ -21,7 +21,29 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
         uses: actions/checkout@v3
 
+      - name: Checkout Repository
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 18
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: "18"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Cache local Maven repository
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Configure GPG Key
+        if: ${{ steps.release.outputs.releases_created }}
         run: |
           echo -n "$GPG_SIGNING_KEY" | base64 --decode | gpg --import
         env:
@@ -29,7 +51,10 @@ jobs:
 
       # Release Please has already incremented versions and published tags, so we just need to publish.
       # Our maven config will only publish versions that do not already exist.
-      - name: Publish
+      - name: Maven Verify Deploy
         if: ${{ steps.release.outputs.releases_created }}
         run: |
           mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy -Dversion.modifier=''
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
