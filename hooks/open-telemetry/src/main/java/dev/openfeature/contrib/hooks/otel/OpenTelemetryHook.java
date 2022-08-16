@@ -16,7 +16,7 @@ public class OpenTelemetryHook {
     }
 
     /** 
-     * A test method....
+     * A test method.
      * @return {boolean}
      */
     public static boolean test() {
