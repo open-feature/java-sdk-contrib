@@ -16,11 +16,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up JDK 18
+        if: ${{ steps.release.outputs.releases_created }}
         uses: actions/setup-java@v3
         with:
           java-version: "18"
           distribution: "temurin"
           cache: maven
+          server-id: ossrh
+          server-username: OSSRH_USERNAME
+          server-password: OSSRH_PASSWORD
 
       - name: Cache local Maven repository
         uses: actions/cache@v2
@@ -37,4 +41,7 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
       - name: Maven Verify
-        run: mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify -Dsettings.security=release/settings-security.xml
+        run: mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
