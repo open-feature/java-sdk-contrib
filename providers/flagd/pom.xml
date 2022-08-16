@@ -5,14 +5,14 @@
 		<groupId>dev.openfeature.contrib</groupId>
 		<artifactId>java-sdk-contrib</artifactId>
 		<version>0.0.0</version>
-		<relativePath>../pom.xml</relativePath>
+		<relativePath>../../pom.xml</relativePath>
 	</parent>
-	<groupId>dev.openfeature.hooks</groupId>
-	<artifactId>otel</artifactId>
+	<groupId>dev.openfeature.providers</groupId>
+	<artifactId>flagd</artifactId>
 	<version>0.1.1-SNAPSHOT</version>
 
-	<name>open-telemetry-hook</name>
-	<description>Open Telemetry Hook</description>
+	<name>flagd</name>
+	<description>FlagD provider for Java</description>
 	<url>https://openfeature.dev</url>
 
 	<developers>
