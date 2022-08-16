@@ -37,4 +37,4 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
       - name: Maven Verify
-        run: mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify
+        run: mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify -Dsettings.security=release/settings-security.xml
