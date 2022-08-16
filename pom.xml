@@ -8,8 +8,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>open-telemetry-hook</module>
-        <module>flagd-provider</module>
+        <module>hooks/open-telemetry</module>
+        <module>providers/flagd</module>
     </modules>
 
     <scm>
