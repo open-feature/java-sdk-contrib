@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.hooks.otel;
+package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.javasdk.Client;
 import dev.openfeature.javasdk.NoOpProvider;
@@ -7,22 +7,23 @@ import dev.openfeature.javasdk.OpenFeatureAPI;
 /** 
  * A placeholder.
  */
-public class OpenTelemetryHook {
-    
+public class FlagdProvider {
+
     /** 
-     * Create a new OpenTelemetryHook instance.
+     * Create a new FlagdProvider instance.
      */
-    public OpenTelemetryHook() {
+    public FlagdProvider() {
     }
 
     /** 
-     * A test method.
+     * A test method.,,
+     * 
      * @return {boolean}
      */
     public static boolean test() {
         OpenFeatureAPI.getInstance().setProvider(new NoOpProvider());
         Client client = OpenFeatureAPI.getInstance().getClient();
-        return client.getBooleanValue("test2", true);
+        return client.getBooleanValue("test", true);
     }
 
 }

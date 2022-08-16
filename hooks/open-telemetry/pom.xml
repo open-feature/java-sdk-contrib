@@ -5,11 +5,11 @@
 		<groupId>dev.openfeature.contrib</groupId>
 		<artifactId>java-sdk-contrib</artifactId>
 		<version>0.0.0</version>
-		<relativePath>../pom.xml</relativePath>
+		<relativePath>../../pom.xml</relativePath>
 	</parent>
-	<groupId>dev.openfeature.hooks</groupId>
+	<groupId>dev.openfeature.contrib.hooks</groupId>
 	<artifactId>otel</artifactId>
-	<version>0.1.1-SNAPSHOT</version>
+	<version>0.2.0</version>
 
 	<name>open-telemetry-hook</name>
 	<description>Open Telemetry Hook</description>
