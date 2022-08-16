@@ -33,6 +33,14 @@
             <version>0.0.3</version>
         </dependency>
 
+        <!-- provided -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- test -->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -121,13 +129,13 @@
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.31</version>
+                        <version>10.3.2</version>
                     </dependency>
                 </dependencies>
                 <executions>
                     <execution>
                         <id>validate</id>
-                        <phase>validate</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
@@ -138,7 +146,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.13.0</version>
+                <configuration>
+                    <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
+                </configuration>
                 <executions>
                     <execution>
                         <id>run-pmd</id>
@@ -223,21 +233,24 @@
                 <version>3.4.0</version>
                 <configuration>
                     <failOnWarnings>true</failOnWarnings>
+                    <excludePackageNames>dev.openfeature.flagd.grpc</excludePackageNames>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>vet-javadoc</id>
-                        <phase>validate</phase>
+                        <id>attach-javadocs</id>
+                        <phase>compile</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <id>attach-javadocs</id>
+                        <id>vet-javadoc</id>
+                        <phase>verify</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
                     </execution>
+
                 </executions>
             </plugin>
             <!-- end source & javadoc -->
@@ -250,7 +263,7 @@
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
-                        <phase>verify</phase>
+                        <phase>install</phase>
                         <goals>
                             <goal>sign</goal>
                         </goals>
