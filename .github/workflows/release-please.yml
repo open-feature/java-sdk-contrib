@@ -32,6 +32,9 @@ jobs:
           java-version: "18"
           distribution: "temurin"
           cache: maven
+          server-id: ossrh
+          server-username: OSSRH_USERNAME
+          server-password: OSSRH_PASSWORD
 
       - name: Cache local Maven repository
         if: ${{ steps.release.outputs.releases_created }}
