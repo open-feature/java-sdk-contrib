@@ -28,7 +28,15 @@
         <dependency>
             <groupId>dev.openfeature</groupId>
             <artifactId>javasdk</artifactId>
-            <version>0.0.3</version>
+            <version>0.1.0</version>
+        </dependency>
+
+        <!-- provided -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- test -->
@@ -119,13 +127,13 @@
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.31</version>
+                        <version>10.3.2</version>
                     </dependency>
                 </dependencies>
                 <executions>
                     <execution>
                         <id>validate</id>
-                        <phase>validate</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
@@ -136,7 +144,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.13.0</version>
+                <configuration>
+                    <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
+                </configuration>
                 <executions>
                     <execution>
                         <id>run-pmd</id>
@@ -221,6 +231,7 @@
                 <version>3.4.0</version>
                 <configuration>
                     <failOnWarnings>true</failOnWarnings>
+                    <excludePackageNames>dev.openfeature.flagd.grpc</excludePackageNames>
                 </configuration>
                 <executions>
                     <execution>

@@ -4,20 +4,21 @@ import dev.openfeature.javasdk.Client;
 import dev.openfeature.javasdk.NoOpProvider;
 import dev.openfeature.javasdk.OpenFeatureAPI;
 
-/** 
+/**
  * A placeholder.
  */
 public class OpenTelemetryHook {
-    
-    /** 
+
+    /**
      * Create a new OpenTelemetryHook instance.
      */
-    public OpenTelemetryHook() {
+    private OpenTelemetryHook() {
     }
 
-    /** 
-     * A test method...
-     * @return {boolean}
+    /**
+     * A test.
+     *
+     * @return boolean
      */
     public static boolean test() {
         OpenFeatureAPI.getInstance().setProvider(new NoOpProvider());
