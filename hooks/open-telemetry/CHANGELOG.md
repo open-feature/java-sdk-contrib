@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.0...dev.openfeature.contrib.hooks.otel-v0.2.1) (2022-08-16)
+
+
+### Bug Fixes
+
+* update javadoc ([#63](https://github.com/open-feature/java-sdk-contrib/issues/63)) ([3a4b7d8](https://github.com/open-feature/java-sdk-contrib/commit/3a4b7d83e2272d43e252f6a1201c4e3a7aee4330))
+
 ## 0.2.0 (2022-08-16)
 
 
