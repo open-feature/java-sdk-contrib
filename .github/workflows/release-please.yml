@@ -32,6 +32,9 @@ jobs:
           java-version: "18"
           distribution: "temurin"
           cache: maven
+          server-id: ossrh
+          server-username: OSSRH_USERNAME
+          server-password: OSSRH_PASSWORD
 
       - name: Cache local Maven repository
         if: ${{ steps.release.outputs.releases_created }}
@@ -54,7 +57,7 @@ jobs:
       - name: Maven Verify Deploy
         if: ${{ steps.release.outputs.releases_created }}
         run: |
-          mvn --no-transfer-progress --batch-mode --settings release/m2-settings.xml verify deploy
+          mvn --batch-mode --settings release/m2-settings.xml verify deploy
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
