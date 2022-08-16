@@ -5,6 +5,13 @@
 
 ### Bug Fixes
 
+* update javadoc ([#51](https://github.com/open-feature/java-sdk-contrib/issues/51)) ([86357c1](https://github.com/open-feature/java-sdk-contrib/commit/86357c1aec5fec443dc96661bf9e5c3edb100808))
+
+## 0.2.0 (2022-08-16)
+
+
+### Bug Fixes
+
 * update javadoc ([#49](https://github.com/open-feature/java-sdk-contrib/issues/49)) ([32db62b](https://github.com/open-feature/java-sdk-contrib/commit/32db62b599d5e446f33e314bebcbed951efa5039))
 
 ## 0.2.0 (2022-08-16)
