@@ -3,19 +3,17 @@
   "packages": {
     "providers/flagd": {
       "package-name": "dev.openfeature.contrib.providers.flagd",
-      "release-type": "maven",
+      "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
-      "versioning": "default",
-      "release-as": "0.2.0"
+      "versioning": "default"
     },
     "hooks/open-telemetry": {
       "package-name": "dev.openfeature.contrib.hooks.otel",
-      "release-type": "maven",
+      "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
-      "versioning": "default",
-      "release-as": "0.2.0"
+      "versioning": "default"
     }
   }
 }
