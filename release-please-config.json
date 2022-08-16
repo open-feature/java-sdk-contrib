@@ -1,17 +1,21 @@
 {
-  "bootstrap-sha": "637e3b41b3b73aa11b7ea51b555d6952b51eb60e",
+  "bootstrap-sha": "5b1c87955b5d66b993f943161b72b30c398c1537",
   "packages": {
-    "flagd-provider": {
+    "providers/flagd": {
+      "package-name": "dev.openfeature.contrib.providers.flagd",
       "release-type": "maven",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
-      "versioning": "default"
+      "versioning": "default",
+      "release-as": "0.2.0"
     },
-    "open-telemetry-hook": {
+    "hooks/open-telemetry": {
+      "package-name": "dev.openfeature.contrib.hooks.otel",
       "release-type": "maven",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
-      "versioning": "default"
+      "versioning": "default",
+      "release-as": "0.2.0"
     }
   }
 }
