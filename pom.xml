@@ -8,8 +8,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>open-telemetry-hook</module>
-        <module>flagd-provider</module>
+        <module>hooks/open-telemetry</module>
+        <module>providers/flagd</module>
     </modules>
 
     <scm>
@@ -197,10 +197,9 @@
                 </executions>
                 <configuration>
                     <skip>${maven.deploy.skip}</skip>
-                    <repository>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</repository>
-                    <serverId>ossrh</serverId>
+                    <repository>https://repo1.maven.org/maven2</repository>
                     <snapshotRepository>https://s01.oss.sonatype.org/content/repositories/snapshots</snapshotRepository>
-                    <serverId>ossrh</serverId>
+                    <snapshotServerId>ossrh</snapshotServerId>
                 </configuration>
             </plugin>
 
@@ -259,6 +258,20 @@
                 </executions>
             </plugin>
             <!-- end sign -->
+
+            <!-- Begin publish to maven central -->
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.13</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+            <!-- End publish to maven central -->
         </plugins>
     </build>
 
@@ -272,5 +285,4 @@
             <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
-
 </project>
