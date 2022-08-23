@@ -3,8 +3,12 @@ package dev.openfeature.contrib.providers.flagd;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
+import dev.openfeature.flagd.grpc.Schema;
 import org.apache.commons.lang3.EnumUtils;
-import org.apache.commons.lang3.NotImplementedException;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
@@ -33,7 +37,7 @@ import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
  */
 @Slf4j
 public class FlagdProvider implements FeatureProvider {
-
+    final Gson gson = new Gson();
     private ServiceBlockingStub serviceStub;
     static final String PROVIDER_NAME = "flagD Provider";
 
@@ -143,7 +147,35 @@ public class FlagdProvider implements FeatureProvider {
     @Override
     public <T> ProviderEvaluation<T> getObjectEvaluation(String key, T defaultValue,
         EvaluationContext ctx, FlagEvaluationOptions options) {
-        throw new NotImplementedException();
+        Schema.ResolveObjectRequest request = Schema.ResolveObjectRequest.newBuilder()
+                .setFlagKey(key)
+                .setContext(this.convertContext(ctx))
+                .build();
+
+        Schema.ResolveObjectResponse response = this.serviceStub.resolveObject(request);
+        JsonFormat.Printer printer = JsonFormat.printer();
+        String jsonVal = null;
+        try {
+            jsonVal = printer.print(response.getValue());
+        } catch (InvalidProtocolBufferException e) {
+            return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
+                    .errorCode("Deserialized invalid protobuf")
+                    .reason(Reason.ERROR)
+                    .build();
+        }
+        try {
+            T val = (T) gson.fromJson(jsonVal, defaultValue.getClass());
+            return ProviderEvaluation.<T>builder()
+                    .value(val)
+                    .build();
+        } catch (JsonSyntaxException e) {
+            return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
+                    .errorCode("Unable to serialize into provided object type " + defaultValue.getClass())
+                    .reason(Reason.ERROR)
+                    .build();
+        }
     }
 
     // Map FlagD reasons to Java SDK reasons.
