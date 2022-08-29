@@ -266,6 +266,7 @@
                 <version>1.6.13</version>
                 <extensions>true</extensions>
                 <configuration>
+                    <skipLocalStaging>true</skipLocalStaging>
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
