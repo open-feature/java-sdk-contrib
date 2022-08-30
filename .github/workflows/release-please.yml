@@ -53,11 +53,18 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
       # Release Please has already incremented versions and published tags, so we just need to publish.
-      # Our maven config will only publish versions that do not already exist.
       - name: Maven Verify Deploy
         if: ${{ steps.release.outputs.releases_created }}
+        # The nexus-staging-maven-plugin doesn't follow maven conventions. It stages all the projects with the last submodule: https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment
+        # This means there's no way to skip publishing of a particular module in a multi-module build, so we iterate over each module and publish them individually,
+        # letting exists-maven-plugin skip the nexus-staging-maven-plugin's entire deploy goal if the artifact exists.
         run: |
-          mvn --batch-mode --settings release/m2-settings.xml verify deploy
+          modules=($(cat pom.xml | grep "<module>" | sed 's/\s*<.*>\(.*\)<.*>/\1/'))
+
+          for module in "${modules[@]}"
+          do
+              mvn --batch-mode --projects $module --settings release/m2-settings.xml  clean deploy
+          done
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
