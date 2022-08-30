@@ -16,7 +16,7 @@ public class FlagdProvider {
     }
 
     /** 
-     * A test method...
+     * A test method.
      * 
      * @return {boolean}
      */
