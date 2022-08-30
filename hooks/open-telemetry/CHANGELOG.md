@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.1...dev.openfeature.contrib.hooks.otel-v0.2.2) (2022-08-30)
+
+
+### Bug Fixes
+
+* build issue with single publish ([#77](https://github.com/open-feature/java-sdk-contrib/issues/77)) ([1e57216](https://github.com/open-feature/java-sdk-contrib/commit/1e5721628cf5e637f75ca7074ee01e3c9d9ec7e2))
+
 ## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.0...dev.openfeature.contrib.hooks.otel-v0.2.1) (2022-08-16)
 
 
