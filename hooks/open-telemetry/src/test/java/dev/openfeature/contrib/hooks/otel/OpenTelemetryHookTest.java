@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 class OpenTelemetryHookTest {
 
     @Test
-    @DisplayName("a simple test!")
+    @DisplayName("a simple test")
     void test() {
         assertThat(OpenTelemetryHook.test()).isEqualTo(true);
     }
