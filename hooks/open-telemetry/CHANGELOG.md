@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.4...dev.openfeature.contrib.hooks.otel-v0.2.5) (2022-08-30)
+
+
+### Bug Fixes
+
+* use read ossrh repo for exists plugin ([#87](https://github.com/open-feature/java-sdk-contrib/issues/87)) ([bda2651](https://github.com/open-feature/java-sdk-contrib/commit/bda265194e4a94a2d220b8ef400a0703cb32c235))
+
 ## [0.2.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.3...dev.openfeature.contrib.hooks.otel-v0.2.4) (2022-08-30)
 
 

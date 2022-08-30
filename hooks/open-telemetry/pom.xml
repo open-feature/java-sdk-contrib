@@ -9,7 +9,7 @@
 	</parent>
 	<groupId>dev.openfeature.contrib.hooks</groupId>
 	<artifactId>otel</artifactId>
-	<version>0.2.4</version> <!--x-release-please-version -->
+	<version>0.2.5</version> <!--x-release-please-version -->
 
 	<name>open-telemetry-hook</name>
 	<description>Open Telemetry Hook</description>
