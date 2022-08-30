@@ -195,7 +195,7 @@
                 </executions>
                 <configuration>
                     <skip>${maven.deploy.skip}</skip>
-                    <repository>https://repo1.maven.org/maven2</repository>
+                    <repository>https://s01.oss.sonatype.org/service/local/repositories/releases/content</repository>
                     <snapshotRepository>https://s01.oss.sonatype.org/content/repositories/snapshots</snapshotRepository>
                     <snapshotServerId>ossrh</snapshotServerId>
                 </configuration>

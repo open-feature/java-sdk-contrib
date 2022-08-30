@@ -60,7 +60,6 @@ jobs:
         # letting exists-maven-plugin skip the nexus-staging-maven-plugin's entire deploy goal if the artifact exists.
         run: |
           modules=($(cat pom.xml | grep "<module>" | sed 's/\s*<.*>\(.*\)<.*>/\1/'))
-
           for module in "${modules[@]}"
           do
               mvn --batch-mode --projects $module --settings release/m2-settings.xml  clean deploy
