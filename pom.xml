@@ -224,13 +224,6 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>vet-javadoc</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                    <execution>
                         <id>attach-javadocs</id>
                         <goals>
                             <goal>jar</goal>
@@ -248,7 +241,7 @@
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
-                        <phase>deploy</phase>
+                        <phase>install</phase>
                         <goals>
                             <goal>sign</goal>
                         </goals>
