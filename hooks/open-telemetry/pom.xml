@@ -24,11 +24,6 @@
 		</developer>
 	</developers>
 
-	<properties>
-		<!-- override no-deploy rule from parent -->
-		<maven.deploy.skip>false</maven.deploy.skip>
-	</properties>
-
 	<dependencies>
 		<!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
 	</dependencies>
