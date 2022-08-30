@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.2.1...dev.openfeature.contrib.providers.flagd-v0.2.2) (2022-08-30)
+
+
+### Bug Fixes
+
+* build issue with single publish ([#75](https://github.com/open-feature/java-sdk-contrib/issues/75)) ([6b2a8a5](https://github.com/open-feature/java-sdk-contrib/commit/6b2a8a541ed94b8b35f506fde396ca9227cb54c5))
+
 ## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.2.0...dev.openfeature.contrib.providers.flagd-v0.2.1) (2022-08-16)
 
 
