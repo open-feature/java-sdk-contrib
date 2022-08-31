@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.2.3...dev.openfeature.contrib.providers.flagd-v0.2.4) (2022-08-31)
+
+
+### Features
+
+* add flagd provider implementation ([#66](https://github.com/open-feature/java-sdk-contrib/issues/66)) ([8d299c4](https://github.com/open-feature/java-sdk-contrib/commit/8d299c41ad0bef8c3e81cc3c50932f1ee254c644))
+
 ## [0.2.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.2.2...dev.openfeature.contrib.providers.flagd-v0.2.3) (2022-08-30)
 
 
