@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -12,6 +13,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveFloatResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveIntResponse;
@@ -145,11 +147,12 @@ class FlagdProviderTest {
             }};
         final String STRUCT_ATTR_INNER_VALUE = "struct-inner-value";
         final Structure STRUCT_ATTR_VALUE = new Structure().add(STRUCT_ATTR_INNER_KEY, STRUCT_ATTR_INNER_VALUE);
+        final String STATIC = "STATIC";
 
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
             .setValue(true)
             .setVariant(BOOL_VARIANT)
-            .setReason(DEFAULT.toString())
+            .setReason(STATIC.toString())
             .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
@@ -177,6 +180,23 @@ class FlagdProviderTest {
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false, context);
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
-        assertEquals(DEFAULT, booleanDetails.getReason());
+        assertEquals(DEFAULT, booleanDetails.getReason());          // reason should be converted from STATIC -> DEFAULT
+    }
+
+    @Test
+    void reason_mapped_correctly_if_unknown() {
+        ResolveBooleanResponse badReasonResponse = ResolveBooleanResponse.newBuilder()
+            .setValue(true)
+            .setVariant(BOOL_VARIANT)
+            .setReason("NOT_A_REAL_REASON") // set an invalid reason string
+            .build();
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class))).thenReturn(badReasonResponse);
+
+        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock));
+
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false, new EvaluationContext());
+        assertEquals(Reason.UNKNOWN, booleanDetails.getReason()); // reason should be converted to UNKNOWN
     }
 }
