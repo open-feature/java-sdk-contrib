@@ -29,6 +29,7 @@ import dev.openfeature.javasdk.Value;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
 
+
 /**
  * OpenFeature provider for flagd.
  */
@@ -37,7 +38,9 @@ public class FlagdProvider implements FeatureProvider {
 
     private ServiceBlockingStub serviceStub;
     static final String PROVIDER_NAME = "flagD Provider";
-
+    static final int DEFAULT_PORT = 8013;
+    static final String DEFAULT_HOST = "localhost"; 
+    
     /**
      * Create a new FlagdProvider instance.
      *
@@ -60,7 +63,7 @@ public class FlagdProvider implements FeatureProvider {
      * Create a new FlagdProvider instance.
      */
     public FlagdProvider() {
-        this(Protocol.HTTP, "localhost", 8013);
+        this(Protocol.HTTP, DEFAULT_HOST, DEFAULT_PORT);
     }
 
     /**
