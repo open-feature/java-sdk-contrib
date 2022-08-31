@@ -16,6 +16,14 @@ This repo uses _Release Please_ to release packages. Release Please sets up a ru
 
 ## Developing
 
+### Requirements
+
+Though we target Java 8, Java 18 is recommended for the tooling, plugins, etc. Maven 3.8+ is recommended.
+
+### Testing
+
+Run `mvn verify` to test, generate javadoc, and check style. If this passes locally, the CI will generally pass.
+
 ### Adding a module
 
 1. Create a [standard directory structure](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) in the appropriate folder (`hooks/`, `providers/`).
