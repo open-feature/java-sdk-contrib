@@ -26,18 +26,22 @@
 
     <dependencies>
         <dependency>
+        <!-- provided -->    
             <groupId>dev.openfeature</groupId>
             <artifactId>javasdk</artifactId>
-            <version>0.1.0</version>
+            <!-- 0.1.0 or greater -->
+            <version>[0.1,)</version> 
+            <!-- use the version provided at runtime -->
+            <scope>provided</scope>
         </dependency>
 
-        <!-- provided -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.24</version>
             <scope>provided</scope>
         </dependency>
+        <!-- end provided -->
 
         <!-- test -->
         <dependency>
@@ -94,6 +98,7 @@
             <version>1.8.1</version>
             <scope>test</scope>
         </dependency>
+        <!-- end test -->
     </dependencies>
 
     <build>
