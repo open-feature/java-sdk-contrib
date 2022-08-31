@@ -45,9 +45,9 @@ public class FlagdProvider implements FeatureProvider {
      * @param host     flagd host, defaults to localhost
      * @param port     flagd port, defaults to 8013
      */
-    public FlagdProvider(String protocol, String host, int port) {
+    public FlagdProvider(Protocol protocol, String host, int port) {
         
-        this("https".equalsIgnoreCase(protocol) 
+        this(Protocol.HTTPS == protocol 
             ? ServiceGrpc.newBlockingStub(ManagedChannelBuilder.forAddress(host, port)
                 .useTransportSecurity()
                 .build()) :
@@ -60,7 +60,7 @@ public class FlagdProvider implements FeatureProvider {
      * Create a new FlagdProvider instance.
      */
     public FlagdProvider() {
-        this("http", "localhost", 8013);
+        this(Protocol.HTTP, "localhost", 8013);
     }
 
     /**
