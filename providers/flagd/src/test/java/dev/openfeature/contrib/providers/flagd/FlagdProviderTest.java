@@ -121,8 +121,9 @@ class FlagdProviderTest {
         assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
         assertEquals(DEFAULT, floatDetails.getReason());
 
-        FlagEvaluationDetails<Structure> objectDetails = api.getClient().getObjectDetails(FLAG_KEY, new Structure());
-        assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asMap().get(INNER_STRUCT_KEY).asString());
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY, new Value());
+        assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
+            .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT, objectDetails.getReason());
     }
@@ -196,7 +197,8 @@ class FlagdProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock));
 
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false, new EvaluationContext());
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient()
+            .getBooleanDetails(FLAG_KEY, false, new EvaluationContext());
         assertEquals(Reason.UNKNOWN, booleanDetails.getReason()); // reason should be converted to UNKNOWN
     }
 }

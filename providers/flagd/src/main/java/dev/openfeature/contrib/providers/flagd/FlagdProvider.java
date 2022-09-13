@@ -145,14 +145,14 @@ public class FlagdProvider implements FeatureProvider {
     }
 
     @Override
-    public ProviderEvaluation<Structure> getObjectEvaluation(String key, Structure defaultValue,
+    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue,
         EvaluationContext ctx) {
         ResolveObjectRequest request = ResolveObjectRequest.newBuilder()
             .setFlagKey(key)
             .setContext(this.convertContext(ctx))
             .build();
         ResolveObjectResponse r = this.serviceStub.resolveObject(request);
-        return ProviderEvaluation.<Structure>builder()
+        return ProviderEvaluation.<Value>builder()
             .value(this.convertObjectResponse(r.getValue()))
             .variant(r.getVariant())
             .reason(this.mapReason(r.getReason()))
@@ -174,10 +174,10 @@ public class FlagdProvider implements FeatureProvider {
     }
 
     /**
-     * Recursively convert protobuf structure to openfeature structure.
+     * Recursively convert protobuf structure to openfeature value.
      */
-    private Structure convertObjectResponse(com.google.protobuf.Struct protobuf) {
-        return new Structure(this.convertProtobufMap(protobuf.getFieldsMap()).asStructure().asMap());
+    private Value convertObjectResponse(com.google.protobuf.Struct protobuf) {
+        return this.convertProtobufMap(protobuf.getFieldsMap());
     }
 
     /**
@@ -268,9 +268,7 @@ public class FlagdProvider implements FeatureProvider {
             builder.setBoolValue(value.asBoolean());
         } else if (value.isString()) {
             builder.setStringValue(value.asString());
-        } else if (value.isInteger()) {
-            builder.setNumberValue(Double.valueOf(value.asInteger()));
-        }  else if (value.isDouble()) {
+        } else if (value.isNumber()) {
             builder.setNumberValue(value.asDouble());
         } else {
             builder.setNullValue(null);
@@ -290,7 +288,7 @@ public class FlagdProvider implements FeatureProvider {
         } else if (protobuf.hasNumberValue()) {
             value = new Value(protobuf.getNumberValue());
         } else {
-            value = new Value((Boolean) null);
+            value = new Value();
         }
         return value;
     }

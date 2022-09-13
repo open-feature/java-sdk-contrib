@@ -29,8 +29,8 @@
         <!-- provided -->    
             <groupId>dev.openfeature</groupId>
             <artifactId>javasdk</artifactId>
-            <!-- 0.1.0 or greater -->
-            <version>[0.1,)</version> 
+            <!-- 0.2.0 or greater -->
+            <version>[0.2,)</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
         </dependency>
