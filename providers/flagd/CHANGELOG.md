@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.2.4...dev.openfeature.contrib.providers.flagd-v0.3.0) (2022-09-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* update sdk, absorb changes (#97)
+
+### Features
+
+* update sdk, absorb changes ([#97](https://github.com/open-feature/java-sdk-contrib/issues/97)) ([ef1d4fe](https://github.com/open-feature/java-sdk-contrib/commit/ef1d4fe2692d74a973a13b33a0617b2a8b295559))
+
 ## [0.2.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.2.3...dev.openfeature.contrib.providers.flagd-v0.2.4) (2022-08-31)
 
 
