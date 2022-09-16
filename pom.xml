@@ -19,6 +19,12 @@
 			<url>https://openfeature.dev/</url>
 		</developer>
 	</developers>
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
 
     <modules>
         <module>hooks/open-telemetry</module>
