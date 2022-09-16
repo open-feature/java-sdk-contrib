@@ -3,9 +3,22 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>dev.openfeature.contrib</groupId>
-    <artifactId>java-sdk-contrib</artifactId>
-    <version>0.0.0</version>
+    <artifactId>parent</artifactId>
+    <version>0.0.1</version>
     <packaging>pom</packaging>
+
+    <name>java-sdk-contrib</name>
+	<description>Contrib parent</description>
+	<url>https://openfeature.dev</url>
+
+	<developers>
+		<developer>
+			<id>toddbaert</id>
+			<name>Todd Baert</name>
+			<organization>OpenFeature</organization>
+			<url>https://openfeature.dev/</url>
+		</developer>
+	</developers>
 
     <modules>
         <module>hooks/open-telemetry</module>
