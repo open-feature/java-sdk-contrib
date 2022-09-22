@@ -34,12 +34,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Configure GPG Key
-        run: |
-          echo -n "$GPG_SIGNING_KEY" | base64 --decode | gpg --import
-        env:
-          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-
       - name: Maven Verify
         run: mvn --batch-mode --settings release/m2-settings.xml verify
         env:
