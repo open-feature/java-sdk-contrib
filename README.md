@@ -39,8 +39,8 @@ Sample pom.xml:
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>dev.openfeature.contrib</groupId>
-		<artifactId>java-sdk-contrib</artifactId>
-		<version>0.0.0</version>
+		<artifactId>parent</artifactId>		
+		<version><!-- current parent pom version --></version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<groupId>dev.openfeature.contrib.${providers | hooks | etc}</groupId>

@@ -3,9 +3,28 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>dev.openfeature.contrib</groupId>
-    <artifactId>java-sdk-contrib</artifactId>
-    <version>0.0.0</version>
+    <artifactId>parent</artifactId>
+    <version>0.0.2</version>
     <packaging>pom</packaging>
+
+    <name>java-sdk-contrib</name>
+	<description>Contrib parent</description>
+	<url>https://openfeature.dev</url>
+
+	<developers>
+		<developer>
+			<id>toddbaert</id>
+			<name>Todd Baert</name>
+			<organization>OpenFeature</organization>
+			<url>https://openfeature.dev/</url>
+		</developer>
+	</developers>
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
 
     <modules>
         <module>hooks/open-telemetry</module>
@@ -29,8 +48,8 @@
         <!-- provided -->    
             <groupId>dev.openfeature</groupId>
             <artifactId>javasdk</artifactId>
-            <!-- 0.1.0 or greater -->
-            <version>[0.1,)</version> 
+            <!-- 0.2.0 or greater -->
+            <version>[0.2,)</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
         </dependency>

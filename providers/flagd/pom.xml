@@ -3,13 +3,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>dev.openfeature.contrib</groupId>
-		<artifactId>java-sdk-contrib</artifactId>
-		<version>0.0.0</version>
+		<artifactId>parent</artifactId>
+		<version>0.0.2</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<groupId>dev.openfeature.contrib.providers</groupId>
 	<artifactId>flagd</artifactId>
-	<version>0.2.4</version> <!--x-release-please-version -->
+	<version>0.3.2</version> <!--x-release-please-version -->
 
 	<name>flagd</name>
 	<description>FlagD provider for Java</description>

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.7...dev.openfeature.contrib.hooks.otel-v0.2.8) (2022-09-16)
+
+
+### Bug Fixes
+
+* update parent pom ref ([#104](https://github.com/open-feature/java-sdk-contrib/issues/104)) ([1882854](https://github.com/open-feature/java-sdk-contrib/commit/1882854775a881314ae75a178b2c354669b2619a))
+
+## [0.2.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.6...dev.openfeature.contrib.hooks.otel-v0.2.7) (2022-09-16)
+
+
+### Bug Fixes
+
+* publish parent pom ([#101](https://github.com/open-feature/java-sdk-contrib/issues/101)) ([b05f604](https://github.com/open-feature/java-sdk-contrib/commit/b05f604e393126e14cc6849760d5a29a3a3c7484))
+
+## [0.2.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.5...dev.openfeature.contrib.hooks.otel-v0.2.6) (2022-09-16)
+
+
+### Features
+
+* add flagd provider implementation ([#66](https://github.com/open-feature/java-sdk-contrib/issues/66)) ([8d299c4](https://github.com/open-feature/java-sdk-contrib/commit/8d299c41ad0bef8c3e81cc3c50932f1ee254c644))
+
 ## [0.2.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.2.4...dev.openfeature.contrib.hooks.otel-v0.2.5) (2022-08-30)
 
 

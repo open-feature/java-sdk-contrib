@@ -24,7 +24,7 @@ public class GoFeatureFlagUser {
      * @return GoFeatureFlagUser format for GO Feature Flag
      */
     public static GoFeatureFlagUser fromEvaluationContext(EvaluationContext ctx) {
-        String key = ctx.getTargetingKey(); //TODO: tester si on a une key, sinon on hash le context
+        String key = ctx.getTargetingKey();
         Value anonymousValue = ctx.getValue("anonymous");
         boolean anonymous = anonymousValue != null && anonymousValue.isBoolean() ? anonymousValue.asBoolean() : false;
         Map<String, Object> custom = ctx.asObjectMap();
