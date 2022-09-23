@@ -211,6 +211,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private Value objectToValue(Object object) {
         if (object instanceof Value) {
             return (Value) object;
+        } else if (object == null) {
+            return null;
         } else if (object instanceof String) {
             return new Value((String) object);
         } else if (object instanceof Boolean) {
@@ -234,13 +236,13 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     }
 
     /**
-     * mapToStructure transform a map comming from a JSON Object to a Structure type
+     * mapToStructure transform a map coming from a JSON Object to a Structure type
      *
      * @param map - JSON object return by the API
      * @return a Structure object in the SDK format
      */
     private Structure mapToStructure(Map<String, Object> map) {
         return new Structure(
-                map.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
+                map.entrySet().stream().filter(e -> e.getValue() != null).collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
     }
 }

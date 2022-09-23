@@ -12,6 +12,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.gofeatureflag.provider.exception.InvalidEndpoint;
 import org.gofeatureflag.provider.exception.InvalidOptions;
+import org.gofeatureflag.provider.exception.InvalidTargetingKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -229,7 +230,7 @@ class GoFeatureFlagProviderTest {
     void should_resolve_a_valid_value_flag_with_TARGETING_MATCH_reason() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Value> res = g.getObjectEvaluation("object_key", null, this.evaluationContext);
-        Value want = new Value(new Structure().add("test", "test1").add("test2", false).add("test3", 123.3));
+        Value want = new Value(new Structure().add("test", "test1").add("test2", false).add("test3", 123.3).add("test4",1));
         assertEquals(want, res.getValue());
         assertEquals("", res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH, res.getReason());
@@ -258,6 +259,12 @@ class GoFeatureFlagProviderTest {
 
     @Test
     void should_resolve_a_valid_value_flag_with_a_list() throws InvalidOptions {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        assertThrows(InvalidTargetingKey.class,() -> g.getObjectEvaluation("list_key", null, new EvaluationContext()));
+    }
+
+    @Test
+    void should_throw_an_error_if_no_targeting_key() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Value> res = g.getObjectEvaluation("list_key", null, this.evaluationContext);
         Value want = new Value(new ArrayList<>(
