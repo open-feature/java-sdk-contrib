@@ -1,4 +1,4 @@
-package org.gofeatureflag.provider.exception;
+package dev.openfeature.contrib.providers.gofeatureflag.exception;
 
 import lombok.experimental.StandardException;
 

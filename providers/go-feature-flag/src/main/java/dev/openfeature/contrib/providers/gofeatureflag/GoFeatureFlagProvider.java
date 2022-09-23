@@ -1,19 +1,33 @@
-package org.gofeatureflag.provider;
+package dev.openfeature.contrib.providers.gofeatureflag;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import dev.openfeature.javasdk.*;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRequest;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.javasdk.ErrorCode;
+import dev.openfeature.javasdk.EvaluationContext;
+import dev.openfeature.javasdk.FeatureProvider;
+import dev.openfeature.javasdk.Hook;
+import dev.openfeature.javasdk.Metadata;
+import dev.openfeature.javasdk.ProviderEvaluation;
+import dev.openfeature.javasdk.Reason;
+import dev.openfeature.javasdk.Structure;
+import dev.openfeature.javasdk.Value;
 import dev.openfeature.javasdk.exceptions.FlagNotFoundError;
 import dev.openfeature.javasdk.exceptions.GeneralError;
 import dev.openfeature.javasdk.exceptions.OpenFeatureError;
 import dev.openfeature.javasdk.exceptions.TypeMismatchError;
-import okhttp3.*;
-import org.gofeatureflag.provider.bean.GoFeatureFlagRequest;
-import org.gofeatureflag.provider.bean.GoFeatureFlagResponse;
-import org.gofeatureflag.provider.bean.GoFeatureFlagUser;
-import org.gofeatureflag.provider.exception.InvalidEndpoint;
-import org.gofeatureflag.provider.exception.InvalidOptions;
+import okhttp3.ConnectionPool;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -33,6 +47,11 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
 
+    /**
+     * Constructor of the provider
+     * @param options - options to configure the provider
+     * @throws InvalidOptions - if options are invalid
+     */
     public GoFeatureFlagProvider(GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.validateInputOptions(options);
         this.endpoint = options.getEndpoint();

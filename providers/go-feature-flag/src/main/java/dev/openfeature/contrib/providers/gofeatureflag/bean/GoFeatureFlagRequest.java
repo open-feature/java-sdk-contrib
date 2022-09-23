@@ -1,4 +1,4 @@
-package org.gofeatureflag.provider.bean;
+package dev.openfeature.contrib.providers.gofeatureflag.bean;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

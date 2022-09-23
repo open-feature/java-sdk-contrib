@@ -1,6 +1,13 @@
-package org.gofeatureflag.provider;
+package dev.openfeature.contrib.providers.gofeatureflag;
 
-import dev.openfeature.javasdk.*;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTargetingKey;
+import dev.openfeature.javasdk.EvaluationContext;
+import dev.openfeature.javasdk.ProviderEvaluation;
+import dev.openfeature.javasdk.Reason;
+import dev.openfeature.javasdk.Structure;
+import dev.openfeature.javasdk.Value;
 import dev.openfeature.javasdk.exceptions.FlagNotFoundError;
 import dev.openfeature.javasdk.exceptions.GeneralError;
 import dev.openfeature.javasdk.exceptions.TypeMismatchError;
@@ -10,9 +17,6 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.gofeatureflag.provider.exception.InvalidEndpoint;
-import org.gofeatureflag.provider.exception.InvalidOptions;
-import org.gofeatureflag.provider.exception.InvalidTargetingKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,9 +31,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GoFeatureFlagProviderTest {
-    private MockWebServer server;
-    private HttpUrl baseUrl;
-    private EvaluationContext evaluationContext;
     // Dispatcher is the configuration of the mock server to test the provider.
     final Dispatcher dispatcher = new Dispatcher() {
         @SneakyThrows
@@ -47,6 +48,9 @@ class GoFeatureFlagProviderTest {
             return new MockResponse().setResponseCode(404);
         }
     };
+    private MockWebServer server;
+    private HttpUrl baseUrl;
+    private EvaluationContext evaluationContext;
 
     @BeforeEach
     void beforeEach() throws IOException {
@@ -65,7 +69,7 @@ class GoFeatureFlagProviderTest {
         this.evaluationContext.add("rate", 3.14);
         this.evaluationContext.add("age", 30);
         this.evaluationContext.add("company_info", new Structure().add("name", "my_company").add("size", 120));
-        List<Value> labels = new ArrayList<Value>();
+        List<Value> labels = new ArrayList<>();
         labels.add(new Value("pro"));
         labels.add(new Value("beta"));
         this.evaluationContext.add("labels", labels);
@@ -230,7 +234,7 @@ class GoFeatureFlagProviderTest {
     void should_resolve_a_valid_value_flag_with_TARGETING_MATCH_reason() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Value> res = g.getObjectEvaluation("object_key", null, this.evaluationContext);
-        Value want = new Value(new Structure().add("test", "test1").add("test2", false).add("test3", 123.3).add("test4",1));
+        Value want = new Value(new Structure().add("test", "test1").add("test2", false).add("test3", 123.3).add("test4", 1));
         assertEquals(want, res.getValue());
         assertEquals("", res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH, res.getReason());
@@ -260,7 +264,7 @@ class GoFeatureFlagProviderTest {
     @Test
     void should_resolve_a_valid_value_flag_with_a_list() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
-        assertThrows(InvalidTargetingKey.class,() -> g.getObjectEvaluation("list_key", null, new EvaluationContext()));
+        assertThrows(InvalidTargetingKey.class, () -> g.getObjectEvaluation("list_key", null, new EvaluationContext()));
     }
 
     @Test
