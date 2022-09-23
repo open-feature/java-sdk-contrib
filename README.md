@@ -29,7 +29,7 @@ Run `mvn verify` to test, generate javadoc, and check style. If this passes loca
 1. Create a [standard directory structure](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) in the appropriate folder (`hooks/`, `providers/`).
 1. Create a new `pom.xml` in the root of your new module. It must inherit from the parent POM, which implements the javadoc, testing, publishing, and other boilerplate. Be sure to add `<!--x-release-please-version -->` on the line specifying the module version, so our release tooling can update it (see sample pom below).
 1. Add the new package to `release-please-config.json`.
-1. Add the new module to the <modules>...</modules> section in the parent `pom.xml`.
+1. Add the new module to the `<modules>...</modules>` section in the parent `pom.xml`.
 
 Sample pom.xml:
 ```xml
