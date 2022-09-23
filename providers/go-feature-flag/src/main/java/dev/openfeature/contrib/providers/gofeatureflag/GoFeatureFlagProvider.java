@@ -39,6 +39,9 @@ import java.util.stream.Collectors;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 
+/**
+ * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
+ */
 public class GoFeatureFlagProvider implements FeatureProvider {
     private static final String NAME = "GO Feature Flag Provider";
     private static final ObjectMapper requestMapper = new ObjectMapper();
@@ -48,7 +51,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private OkHttpClient httpClient;
 
     /**
-     * Constructor of the provider
+     * Constructor of the provider.
+     *
      * @param options - options to configure the provider
      * @throws InvalidOptions - if options are invalid
      */
@@ -77,7 +81,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     }
 
     /**
-     * initializeProvider is initializing the different class element used by the provider
+     * initializeProvider is initializing the different class element used by the provider.
      *
      * @param options - Options used while creating the provider
      */
@@ -113,32 +117,42 @@ public class GoFeatureFlagProvider implements FeatureProvider {
 
 
     @Override
-    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Boolean> getBooleanEvaluation(
+            String key, Boolean defaultValue, EvaluationContext evaluationContext
+    ) {
         return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Boolean.class);
     }
 
     @Override
-    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext evaluationContext) {
+    public ProviderEvaluation<String> getStringEvaluation(
+            String key, String defaultValue, EvaluationContext evaluationContext
+    ) {
         return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, String.class);
     }
 
     @Override
-    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Integer> getIntegerEvaluation(
+            String key, Integer defaultValue, EvaluationContext evaluationContext
+    ) {
         return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Integer.class);
     }
 
     @Override
-    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Double> getDoubleEvaluation(
+            String key, Double defaultValue, EvaluationContext evaluationContext
+    ) {
         return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Double.class);
     }
 
     @Override
-    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Value> getObjectEvaluation(
+            String key, Value defaultValue, EvaluationContext evaluationContext
+    ) {
         return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Value.class);
     }
 
     /**
-     * resolveEvaluationGoFeatureFlagProxy is calling the GO Feature Flag API to retrieve the flag value
+     * resolveEvaluationGoFeatureFlagProxy is calling the GO Feature Flag API to retrieve the flag value.
      *
      * @param key          - name of the feature flag
      * @param defaultValue - value used if something is not working as expected
@@ -147,7 +161,9 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      * @return a ProviderEvaluation that contains the open-feature response
      * @throws OpenFeatureError - if an error happen
      */
-    private <T> ProviderEvaluation<T> resolveEvaluationGoFeatureFlagProxy(String key, T defaultValue, EvaluationContext ctx, Class<? extends Object> expectedType) throws OpenFeatureError {
+    private <T> ProviderEvaluation<T> resolveEvaluationGoFeatureFlagProxy(
+            String key, T defaultValue, EvaluationContext ctx, Class<? extends Object> expectedType)
+            throws OpenFeatureError {
         try {
             GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(ctx);
             GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<T>(user, defaultValue);
@@ -162,14 +178,17 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             Request request = new Request.Builder()
                     .url(url)
                     .addHeader("Content-Type", "application/json")
-                    .post(RequestBody.create(requestMapper.writeValueAsBytes(goffRequest), MediaType.get("application/json; charset=utf-8")))
+                    .post(RequestBody.create(
+                            requestMapper.writeValueAsBytes(goffRequest),
+                            MediaType.get("application/json; charset=utf-8")))
                     .build();
 
             try (Response response = this.httpClient.newCall(request).execute()) {
                 if (response.code() >= HTTP_BAD_REQUEST) {
                     throw new GeneralError("impossible to contact GO Feature Flag relay proxy instance");
                 }
-                GoFeatureFlagResponse<T> goffResp = responseMapper.readValue(response.body().string(), GoFeatureFlagResponse.class);
+                GoFeatureFlagResponse<T> goffResp =
+                        responseMapper.readValue(response.body().string(), GoFeatureFlagResponse.class);
 
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
                     // we don't set a variant since we are using the default value, and we are not able to know
@@ -181,17 +200,18 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                     throw new FlagNotFoundError("Flag " + key + " was not found in your configuration");
                 }
 
-                boolean isPrimitive = expectedType == Boolean.class ||
-                        expectedType == String.class ||
-                        expectedType == Integer.class ||
-                        expectedType == Double.class;
+                boolean isPrimitive = expectedType == Boolean.class
+                        || expectedType == String.class
+                        || expectedType == Integer.class
+                        || expectedType == Double.class;
 
                 // Convert the value received from the API.
                 T flagValue = isPrimitive
                         ? goffResp.getValue() : (T) objectToValue(goffResp.getValue());
 
                 if (flagValue.getClass() != expectedType) {
-                    throw new TypeMismatchError("Flag value " + key + " had unexpected type " + flagValue.getClass() + ", expected " + expectedType + ".");
+                    throw new TypeMismatchError("Flag value " + key + " had unexpected type "
+                                                        + flagValue.getClass() + ", expected " + expectedType + ".");
                 }
 
                 return ProviderEvaluation.<T>builder()
@@ -209,8 +229,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
 
 
     /**
-     * mapReason is mapping the reason in string received by the API
-     * to our internal SDK reason enum.
+     * mapReason is mapping the reason in string received by the API to our internal SDK reason enum.
      *
      * @param reason - string of the reason received from the API
      * @return an item from the enum
@@ -258,13 +277,15 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     }
 
     /**
-     * mapToStructure transform a map coming from a JSON Object to a Structure type
+     * mapToStructure transform a map coming from a JSON Object to a Structure type.
      *
      * @param map - JSON object return by the API
      * @return a Structure object in the SDK format
      */
     private Structure mapToStructure(Map<String, Object> map) {
         return new Structure(
-                map.entrySet().stream().filter(e -> e.getValue() != null).collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
+                map.entrySet().stream()
+                        .filter(e -> e.getValue() != null)
+                        .collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
     }
 }

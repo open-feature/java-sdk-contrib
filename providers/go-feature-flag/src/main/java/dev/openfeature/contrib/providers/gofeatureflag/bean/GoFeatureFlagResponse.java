@@ -4,6 +4,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * GoFeatureFlagResponse is the response returned by the relay proxy.
+ *
+ * @param <T> The type of the response.
+ */
 @Getter
 @Setter
 @ToString

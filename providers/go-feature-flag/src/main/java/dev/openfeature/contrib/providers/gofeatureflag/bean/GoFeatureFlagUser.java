@@ -10,6 +10,9 @@ import lombok.Getter;
 
 import java.util.Map;
 
+/**
+ * GoFeatureFlagUser is the representation of a user for GO Feature Flag.
+ */
 @Builder
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -20,7 +23,7 @@ public class GoFeatureFlagUser {
     private final Map<String, Object> custom;
 
     /**
-     * fromEvaluationContext is transforming the evaluationContext into a GoFeatureFlagUser
+     * fromEvaluationContext is transforming the evaluationContext into a GoFeatureFlagUser.
      *
      * @param ctx - EvaluationContext from open-feature
      * @return GoFeatureFlagUser format for GO Feature Flag

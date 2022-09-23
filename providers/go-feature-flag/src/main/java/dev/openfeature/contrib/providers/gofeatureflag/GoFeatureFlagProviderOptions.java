@@ -3,6 +3,9 @@ package dev.openfeature.contrib.providers.gofeatureflag;
 import lombok.Builder;
 import lombok.Getter;
 
+/**
+ * GoFeatureFlagProviderOptions contains the options to initialise the provider.
+ */
 @Builder
 public class GoFeatureFlagProviderOptions {
 
