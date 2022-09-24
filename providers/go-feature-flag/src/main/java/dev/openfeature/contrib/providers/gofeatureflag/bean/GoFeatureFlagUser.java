@@ -1,13 +1,12 @@
 package dev.openfeature.contrib.providers.gofeatureflag.bean;
 
-
-import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTargetingKey;
 import dev.openfeature.javasdk.EvaluationContext;
 import dev.openfeature.javasdk.Value;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -15,7 +14,6 @@ import java.util.Map;
  */
 @Builder
 @Getter
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class GoFeatureFlagUser {
     private static final String anonymousFieldName = "anonymous";
     private final String key;
@@ -35,8 +33,8 @@ public class GoFeatureFlagUser {
         }
 
         Value anonymousValue = ctx.getValue(anonymousFieldName);
-        boolean anonymous = anonymousValue != null && anonymousValue.isBoolean() ? anonymousValue.asBoolean() : false;
-        Map<String, Object> custom = ctx.asObjectMap();
+        boolean anonymous = anonymousValue.asBoolean();
+        Map<String, Object> custom = new HashMap<>(ctx.asObjectMap());
         if (ctx.getValue(anonymousFieldName) != null) {
             custom.remove(anonymousFieldName);
         }

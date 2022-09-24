@@ -273,10 +273,10 @@ class GoFeatureFlagProviderTest {
         ProviderEvaluation<Value> res = g.getObjectEvaluation("list_key", null, this.evaluationContext);
         Value want = new Value(new ArrayList<>(
                 Arrays.asList(new Value("test"),
-                        new Value("test1"),
-                        new Value("test2"),
-                        new Value("false"),
-                        new Value("test3"))));
+                              new Value("test1"),
+                              new Value("test2"),
+                              new Value("false"),
+                              new Value("test3"))));
         assertEquals(want, res.getValue());
         assertEquals("", res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH, res.getReason());

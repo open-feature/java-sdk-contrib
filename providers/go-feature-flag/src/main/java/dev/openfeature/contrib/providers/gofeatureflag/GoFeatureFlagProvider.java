@@ -28,12 +28,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -46,7 +46,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private static final String NAME = "GO Feature Flag Provider";
     private static final ObjectMapper requestMapper = new ObjectMapper();
     private static final ObjectMapper responseMapper = new ObjectMapper();
-    private final String endpoint;
+    private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
 
@@ -58,7 +58,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      */
     public GoFeatureFlagProvider(GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.validateInputOptions(options);
-        this.endpoint = options.getEndpoint();
         this.initializeProvider(options);
     }
 
@@ -85,7 +84,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      *
      * @param options - Options used while creating the provider
      */
-    private void initializeProvider(GoFeatureFlagProviderOptions options) {
+    private void initializeProvider(GoFeatureFlagProviderOptions options) throws InvalidEndpoint {
         // Register JavaTimeModule to be able to deserialized java.time.Instant Object
         requestMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         requestMapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -103,6 +102,11 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 .writeTimeout(timeout, TimeUnit.MILLISECONDS)
                 .connectionPool(new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.MILLISECONDS))
                 .build();
+
+        this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
+        if (this.parsedEndpoint == null) {
+            throw new InvalidEndpoint();
+        }
     }
 
     @Override
@@ -162,13 +166,13 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      * @throws OpenFeatureError - if an error happen
      */
     private <T> ProviderEvaluation<T> resolveEvaluationGoFeatureFlagProxy(
-            String key, T defaultValue, EvaluationContext ctx, Class<? extends Object> expectedType)
-            throws OpenFeatureError {
+            String key, T defaultValue, EvaluationContext ctx, Class<?> expectedType
+    ) throws OpenFeatureError {
         try {
             GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(ctx);
             GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<T>(user, defaultValue);
-            HttpUrl url = Objects.requireNonNull(HttpUrl.parse(this.endpoint))
-                    .newBuilder()
+
+            HttpUrl url = this.parsedEndpoint.newBuilder()
                     .addEncodedPathSegment("v1")
                     .addEncodedPathSegment("feature")
                     .addEncodedPathSegment(key)
@@ -187,8 +191,11 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 if (response.code() >= HTTP_BAD_REQUEST) {
                     throw new GeneralError("impossible to contact GO Feature Flag relay proxy instance");
                 }
-                GoFeatureFlagResponse<T> goffResp =
-                        responseMapper.readValue(response.body().string(), GoFeatureFlagResponse.class);
+
+                ResponseBody responseBody = response.body();
+                String body = responseBody != null ? responseBody.string() : "";
+                GoFeatureFlagResponse goffResp =
+                        responseMapper.readValue(body, GoFeatureFlagResponse.class);
 
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
                     // we don't set a variant since we are using the default value, and we are not able to know
@@ -200,14 +207,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                     throw new FlagNotFoundError("Flag " + key + " was not found in your configuration");
                 }
 
-                boolean isPrimitive = expectedType == Boolean.class
-                        || expectedType == String.class
-                        || expectedType == Integer.class
-                        || expectedType == Double.class;
-
                 // Convert the value received from the API.
-                T flagValue = isPrimitive
-                        ? goffResp.getValue() : (T) objectToValue(goffResp.getValue());
+                T flagValue = convertValue(goffResp.getValue(), expectedType);
 
                 if (flagValue.getClass() != expectedType) {
                     throw new TypeMismatchError("Flag value " + key + " had unexpected type "
@@ -242,6 +243,26 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         }
     }
 
+
+    /**
+     * convertValue is converting the object return by the proxy response in the right type.
+     *
+     * @param value        - The value we have received
+     * @param expectedType - the type we expect for this value
+     * @param <T>          the type we want to convert to.
+     * @return A converted object
+     */
+    private <T> T convertValue(Object value, Class<?> expectedType) {
+        boolean isPrimitive = expectedType == Boolean.class
+                || expectedType == String.class
+                || expectedType == Integer.class
+                || expectedType == Double.class;
+
+        if (isPrimitive) {
+            return (T) value;
+        }
+        return (T) objectToValue(value);
+    }
 
     /**
      * objectToValue is wrapping an object into a Value.
