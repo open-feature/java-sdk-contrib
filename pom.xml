@@ -29,6 +29,7 @@
     <modules>
         <module>hooks/open-telemetry</module>
         <module>providers/flagd</module>
+        <module>providers/go-feature-flag</module>
     </modules>
 
     <scm>
@@ -45,7 +46,7 @@
 
     <dependencies>
         <dependency>
-        <!-- provided -->    
+        <!-- provided -->
             <groupId>dev.openfeature</groupId>
             <artifactId>javasdk</artifactId>
             <!-- 0.2.0 or greater -->
