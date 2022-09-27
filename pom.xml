@@ -42,6 +42,8 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
         <junit.jupiter.version>5.8.1</junit.jupiter.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
@@ -169,6 +171,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.19.0</version>
                 <configuration>
                     <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
                 </configuration>
@@ -253,14 +256,18 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.4.0</version>
+                <version>3.4.1</version>
                 <configuration>
                     <failOnWarnings>true</failOnWarnings>
-                    <excludePackageNames>dev.openfeature.flagd.grpc</excludePackageNames>
+                    <sourceFileExcludes>
+                        <sourceFileExclude>**/GoFeatureFlagProviderOptions.java</sourceFileExclude>
+                    </sourceFileExcludes>
+                    <excludePackageNames>dev.openfeature.flagd.grpc,dev.openfeature.contrib.providers.gofeatureflag.exception,dev.openfeature.contrib.providers.gofeatureflag.bean</excludePackageNames>
                 </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
+                        <phase>verify</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
