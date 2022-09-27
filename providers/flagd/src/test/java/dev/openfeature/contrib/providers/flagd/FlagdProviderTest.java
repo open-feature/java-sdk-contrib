@@ -148,12 +148,12 @@ class FlagdProviderTest {
             }};
         final String STRUCT_ATTR_INNER_VALUE = "struct-inner-value";
         final Structure STRUCT_ATTR_VALUE = new Structure().add(STRUCT_ATTR_INNER_KEY, STRUCT_ATTR_INNER_VALUE);
-        final String STATIC = "STATIC";
+        final String DEFAULT_STRING = "DEFAULT";
 
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
             .setValue(true)
             .setVariant(BOOL_VARIANT)
-            .setReason(STATIC.toString())
+            .setReason(DEFAULT_STRING.toString())
             .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
