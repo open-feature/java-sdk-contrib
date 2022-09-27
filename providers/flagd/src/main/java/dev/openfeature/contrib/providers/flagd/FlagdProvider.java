@@ -160,16 +160,11 @@ public class FlagdProvider implements FeatureProvider {
     }
 
     // Map FlagD reasons to Java SDK reasons.
-    private Reason mapReason(String flagDreason) {
-        if (!EnumUtils.isValidEnum(Reason.class, flagDreason)) {
-            // until we have "STATIC" in the spec and SDK, we map STATIC to DEFAULT
-            if ("STATIC".equals(flagDreason)) {
-                return Reason.DEFAULT;
-            } else {
-                return Reason.UNKNOWN;
-            }
+    private Reason mapReason(String flagdReason) {
+        if (!EnumUtils.isValidEnum(Reason.class, flagdReason)) {
+            return Reason.UNKNOWN;
         } else {
-            return Reason.valueOf(flagDreason);
+            return Reason.valueOf(flagdReason);
         }
     }
 
