@@ -30,8 +30,11 @@ Run `mvn verify` to test, generate javadoc, and check style. If this passes loca
 1. Create a new `pom.xml` in the root of your new module. It must inherit from the parent POM, which implements the javadoc, testing, publishing, and other boilerplate. Be sure to add `<!--x-release-please-version -->` on the line specifying the module version, so our release tooling can update it (see sample pom below).
 1. Add the new package to `release-please-config.json`.
 1. Add the new module to the `<modules>...</modules>` section in the parent `pom.xml`.
+1. Add a `version.txt` file with a version matching that in your new `pom.xml`, e.g. `0.0.1`.
+2. If you care to release a pre 1.0.0 version, add the same version above to `.release-please-manifest.json`. Failing to do this will release a `1.0.0` initial release.
 
 Sample pom.xml:
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -43,6 +46,7 @@ Sample pom.xml:
 		<version><!-- current parent pom version --></version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
+	<!-- The group id MUST start with dev.openfeature, or publishing will fail. OpenFeature has verified ownership of this (reversed) domain. -->
 	<groupId>dev.openfeature.contrib.${providers | hooks | etc}</groupId>
 	<artifactId>module</artifactId>
 	<version>0.0.1</version> <!--x-release-please-version -->
