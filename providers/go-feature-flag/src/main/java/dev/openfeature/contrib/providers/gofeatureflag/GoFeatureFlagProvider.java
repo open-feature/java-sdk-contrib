@@ -61,7 +61,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         this.initializeProvider(options);
     }
 
-
     /**
      * validateInputOptions is validating the different options provided when creating the provider.
      *
