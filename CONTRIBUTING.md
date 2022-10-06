@@ -15,7 +15,7 @@ As in the Java-SDK, we target Java 8. The parent POM configures this automatical
 1. Add the new package to `release-please-config.json`.
 1. Add the new module to the `<modules>...</modules>` section in the parent `pom.xml`.
 1. Add a `version.txt` file with a version matching that in your new `pom.xml`, e.g. `0.0.1`.
-2. If you care to release a pre 1.0.0 version, add the same version above to `.release-please-manifest.json`. Failing to do this will release a `1.0.0` initial release.
+1. If you care to release a pre 1.0.0 version, add the same version above to `.release-please-manifest.json`. Failing to do this will release a `1.0.0` initial release.
 
 Sample pom.xml:
 
