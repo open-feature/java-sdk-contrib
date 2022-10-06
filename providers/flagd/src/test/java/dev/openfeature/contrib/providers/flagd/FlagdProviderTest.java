@@ -20,12 +20,14 @@ import dev.openfeature.flagd.grpc.Schema.ResolveIntResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveObjectResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveStringResponse;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
-import dev.openfeature.javasdk.EvaluationContext;
-import dev.openfeature.javasdk.FlagEvaluationDetails;
-import dev.openfeature.javasdk.OpenFeatureAPI;
-import dev.openfeature.javasdk.Reason;
-import dev.openfeature.javasdk.Structure;
-import dev.openfeature.javasdk.Value;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
+import dev.openfeature.sdk.Value;
 
 class FlagdProviderTest {
 
@@ -40,7 +42,7 @@ class FlagdProviderTest {
     static final Double DOUBLE_VALUE = .5d;
     static final String INNER_STRUCT_KEY = "inner_key";
     static final String INNER_STRUCT_VALUE = "inner_value";
-    static final Structure OBJECT_VALUE = new Structure() {{
+    static final Structure OBJECT_VALUE = new MutableStructure() {{
             add(INNER_STRUCT_KEY, INNER_STRUCT_VALUE);
         }};
     static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE = com.google.protobuf.Struct.newBuilder()
@@ -104,28 +106,28 @@ class FlagdProviderTest {
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false);
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
-        assertEquals(DEFAULT, booleanDetails.getReason());
+        assertEquals(DEFAULT.toString(), booleanDetails.getReason());
 
         FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY, "wrong");
         assertEquals(STRING_VALUE, stringDetails.getValue());
         assertEquals(STRING_VARIANT, stringDetails.getVariant());
-        assertEquals(DEFAULT, stringDetails.getReason());
+        assertEquals(DEFAULT.toString(), stringDetails.getReason());
 
         FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY, 0);
         assertEquals(INT_VALUE, intDetails.getValue());
         assertEquals(INT_VARIANT, intDetails.getVariant());
-        assertEquals(DEFAULT, intDetails.getReason());
+        assertEquals(DEFAULT.toString(), intDetails.getReason());
         
         FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY, 0.1);
         assertEquals(DOUBLE_VALUE, floatDetails.getValue());
         assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
-        assertEquals(DEFAULT, floatDetails.getReason());
+        assertEquals(DEFAULT.toString(), floatDetails.getReason());
 
         FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY, new Value());
         assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
             .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
-        assertEquals(DEFAULT, objectDetails.getReason());
+        assertEquals(DEFAULT.toString(), objectDetails.getReason());
     }
 
     @Test
@@ -147,7 +149,7 @@ class FlagdProviderTest {
                 add(new Value(1));
             }};
         final String STRUCT_ATTR_INNER_VALUE = "struct-inner-value";
-        final Structure STRUCT_ATTR_VALUE = new Structure().add(STRUCT_ATTR_INNER_KEY, STRUCT_ATTR_INNER_VALUE);
+        final Structure STRUCT_ATTR_VALUE = new MutableStructure().add(STRUCT_ATTR_INNER_KEY, STRUCT_ATTR_INNER_VALUE);
         final String DEFAULT_STRING = "DEFAULT";
 
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
@@ -170,7 +172,7 @@ class FlagdProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock));
         
-        EvaluationContext context = new EvaluationContext();
+        MutableContext context = new MutableContext();
         context.add(BOOLEAN_ATTR_KEY, BOOLEAN_ATTR_VALUE);
         context.add(INT_ATTR_KEY, INT_ATTR_VALUE);
         context.add(DOUBLE_ATTR_KEY, DOUBLE_ATTR_VALUE);
@@ -181,15 +183,16 @@ class FlagdProviderTest {
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false, context);
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
-        assertEquals(DEFAULT, booleanDetails.getReason());          // reason should be converted from STATIC -> DEFAULT
+        assertEquals(DEFAULT.toString(), booleanDetails.getReason());
     }
 
+    //TODO: update this to be able unknown codes
     @Test
     void reason_mapped_correctly_if_unknown() {
         ResolveBooleanResponse badReasonResponse = ResolveBooleanResponse.newBuilder()
             .setValue(true)
             .setVariant(BOOL_VARIANT)
-            .setReason("NOT_A_REAL_REASON") // set an invalid reason string
+            .setReason("UNKNOWN") // set an invalid reason string
             .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
@@ -198,7 +201,7 @@ class FlagdProviderTest {
         OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient()
-            .getBooleanDetails(FLAG_KEY, false, new EvaluationContext());
-        assertEquals(Reason.UNKNOWN, booleanDetails.getReason()); // reason should be converted to UNKNOWN
+            .getBooleanDetails(FLAG_KEY, false, new MutableContext());
+        assertEquals(Reason.UNKNOWN.toString(), booleanDetails.getReason()); // reason should be converted to UNKNOWN
     }
 }

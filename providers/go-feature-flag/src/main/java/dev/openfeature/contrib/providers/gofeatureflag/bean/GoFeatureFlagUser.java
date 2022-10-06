@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.providers.gofeatureflag.bean;
 
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTargetingKey;
-import dev.openfeature.javasdk.EvaluationContext;
-import dev.openfeature.javasdk.Value;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.Value;
 import lombok.Builder;
 import lombok.Getter;
 

@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag.exception;
 
-import dev.openfeature.javasdk.ErrorCode;
-import dev.openfeature.javasdk.exceptions.OpenFeatureError;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import lombok.experimental.StandardException;
 
 /**

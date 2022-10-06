@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.hooks.otel;
 
-import dev.openfeature.javasdk.Client;
-import dev.openfeature.javasdk.NoOpProvider;
-import dev.openfeature.javasdk.OpenFeatureAPI;
+import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.NoOpProvider;
+import dev.openfeature.sdk.OpenFeatureAPI;
 
 /** 
  * A placeholder.
