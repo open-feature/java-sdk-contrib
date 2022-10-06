@@ -81,9 +81,14 @@ Use `mvn --projects {MODULE PATH} clean verify` to test/audit/lint just a single
 
 As described in the [README](./README.md), this project uses release-please, and semantic versioning.
 Breaking changes should be identified by using a semantic PR title.
+
+## Dependencies
+
+Keep dependencies to a minimum, especially `compile` dependencies. Do not include dependencies specific to your module in the parent, add them to your module's `POM.xml`.
+The Java-SDK should be a _provided_ dependency of your module, the parent POM takes care of this automatically.
 Keep in mind, one version of the Java-SDK is used for all modules.
 
-### VS Code config
+## VS Code config
 
 To use vscode, install the standard [Java language support extension by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.java).
 
