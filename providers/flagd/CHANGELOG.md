@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.4.0...dev.openfeature.contrib.providers.flagd-v0.4.1) (2022-10-13)
+
+
+### Bug Fixes
+
+* update-parent-pom ([#120](https://github.com/open-feature/java-sdk-contrib/issues/120)) ([d8ac4bd](https://github.com/open-feature/java-sdk-contrib/commit/d8ac4bdba6b5d9efb98ea641d50337f0e3ba3139))
+
 ## [0.4.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.3.2...dev.openfeature.contrib.providers.flagd-v0.4.0) (2022-10-13)
 
 
