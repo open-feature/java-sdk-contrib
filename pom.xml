@@ -51,7 +51,7 @@
             <!-- provided -->
             <groupId>dev.openfeature</groupId>
             <artifactId>sdk</artifactId>
-            <!-- 0.2.0 or greater -->
+            <!-- 0.3.0 or greater -->
             <version>[0.3,)</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
