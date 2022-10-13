@@ -48,12 +48,11 @@
 
     <dependencies>
         <dependency>
-        <!-- provided -->
+            <!-- provided -->
             <groupId>dev.openfeature</groupId>
             <artifactId>sdk</artifactId>
             <!-- 0.2.0 or greater -->
-         	<!-- THIS IS A VERSION THAT ONLY EXISTS ON TODD's MACHINE, BUILD FROM main-->
-            <version>[0.2.999,)</version>
+            <version>[0.3,)</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
         </dependency>
