@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.0.3...dev.openfeature.contrib.providers.go-feature-flag-v0.1.0) (2022-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* udpate to sdk 0.3.0
+* update to sdk 0.3.0 (#116)
+
+### Features
+
+* udpate to sdk 0.3.0 ([8933bb9](https://github.com/open-feature/java-sdk-contrib/commit/8933bb9b4521e44572b67e6784fd7ce6c541d7b8))
+* update to sdk 0.3.0 ([#116](https://github.com/open-feature/java-sdk-contrib/issues/116)) ([8933bb9](https://github.com/open-feature/java-sdk-contrib/commit/8933bb9b4521e44572b67e6784fd7ce6c541d7b8))
+
 ## [0.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.0.2...dev.openfeature.contrib.providers.go-feature-flag-v0.0.3) (2022-09-27)
 
 
