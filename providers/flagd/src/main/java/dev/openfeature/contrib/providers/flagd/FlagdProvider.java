@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.EnumUtils;
-
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveFloatRequest;
@@ -19,13 +17,12 @@ import dev.openfeature.flagd.grpc.Schema.ResolveStringRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveStringResponse;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
-import dev.openfeature.javasdk.EvaluationContext;
-import dev.openfeature.javasdk.FeatureProvider;
-import dev.openfeature.javasdk.Metadata;
-import dev.openfeature.javasdk.ProviderEvaluation;
-import dev.openfeature.javasdk.Reason;
-import dev.openfeature.javasdk.Structure;
-import dev.openfeature.javasdk.Value;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.Metadata;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Value;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
 
@@ -97,7 +94,7 @@ public class FlagdProvider implements FeatureProvider {
         return ProviderEvaluation.<Boolean>builder()
             .value(r.getValue())
             .variant(r.getVariant())
-            .reason(this.mapReason(r.getReason()))
+            .reason(r.getReason())
             .build();
     }
 
@@ -110,7 +107,7 @@ public class FlagdProvider implements FeatureProvider {
         ResolveStringResponse r = this.serviceStub.resolveString(request);
         return ProviderEvaluation.<String>builder().value(r.getValue())
             .variant(r.getVariant())
-            .reason(this.mapReason(r.getReason()))
+            .reason(r.getReason())
             .build();
     }
 
@@ -125,7 +122,7 @@ public class FlagdProvider implements FeatureProvider {
         return ProviderEvaluation.<Double>builder()
             .value(r.getValue())
             .variant(r.getVariant())
-            .reason(this.mapReason(r.getReason()))
+            .reason(r.getReason())
             .build();
     }
 
@@ -140,7 +137,7 @@ public class FlagdProvider implements FeatureProvider {
         return ProviderEvaluation.<Integer>builder()
             .value((int) r.getValue())
             .variant(r.getVariant())
-            .reason(this.mapReason(r.getReason()))
+            .reason(r.getReason())
             .build();
     }
 
@@ -155,17 +152,8 @@ public class FlagdProvider implements FeatureProvider {
         return ProviderEvaluation.<Value>builder()
             .value(this.convertObjectResponse(r.getValue()))
             .variant(r.getVariant())
-            .reason(this.mapReason(r.getReason()))
+            .reason(r.getReason())
             .build();
-    }
-
-    // Map FlagD reasons to Java SDK reasons.
-    private Reason mapReason(String flagdReason) {
-        if (!EnumUtils.isValidEnum(Reason.class, flagdReason)) {
-            return Reason.UNKNOWN;
-        } else {
-            return Reason.valueOf(flagdReason);
-        }
     }
 
     /**
@@ -233,7 +221,7 @@ public class FlagdProvider implements FeatureProvider {
             com.google.protobuf.Value value = map.get(key);
             values.put(key, this.convertAny(value));
         });
-        return new Value(new Structure(values));
+        return new Value(new MutableStructure(values));
     }
 
     /**

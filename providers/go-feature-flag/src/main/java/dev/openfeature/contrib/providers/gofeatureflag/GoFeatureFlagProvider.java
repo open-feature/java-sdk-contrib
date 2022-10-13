@@ -1,34 +1,6 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRequest;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
-import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
-import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
-import dev.openfeature.javasdk.ErrorCode;
-import dev.openfeature.javasdk.EvaluationContext;
-import dev.openfeature.javasdk.FeatureProvider;
-import dev.openfeature.javasdk.Hook;
-import dev.openfeature.javasdk.Metadata;
-import dev.openfeature.javasdk.ProviderEvaluation;
-import dev.openfeature.javasdk.Reason;
-import dev.openfeature.javasdk.Structure;
-import dev.openfeature.javasdk.Value;
-import dev.openfeature.javasdk.exceptions.FlagNotFoundError;
-import dev.openfeature.javasdk.exceptions.GeneralError;
-import dev.openfeature.javasdk.exceptions.OpenFeatureError;
-import dev.openfeature.javasdk.exceptions.TypeMismatchError;
-import okhttp3.ConnectionPool;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -37,7 +9,37 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRequest;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.Hook;
+import dev.openfeature.sdk.Metadata;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
+import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.GeneralError;
+import dev.openfeature.sdk.exceptions.OpenFeatureError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import okhttp3.ConnectionPool;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 /**
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
@@ -199,7 +201,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
                     // we don't set a variant since we are using the default value, and we are not able to know
                     // which variant it is.
-                    return ProviderEvaluation.<T>builder().value(defaultValue).reason(Reason.DISABLED).build();
+                    return ProviderEvaluation.<T>builder().value(defaultValue).reason(Reason.DISABLED.toString())
+                    .build();
                 }
 
                 if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {
@@ -215,8 +218,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 }
 
                 return ProviderEvaluation.<T>builder()
-                        .errorCode(goffResp.getErrorCode())
-                        .reason(mapReason(goffResp.getReason()))
+                        .reason(goffResp.getReason())
                         .value(flagValue)
                         .variant(goffResp.getVariationType())
                         .build();
@@ -226,22 +228,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             throw new GeneralError("unknown error while retrieving flag " + key);
         }
     }
-
-
-    /**
-     * mapReason is mapping the reason in string received by the API to our internal SDK reason enum.
-     *
-     * @param reason - string of the reason received from the API
-     * @return an item from the enum
-     */
-    private Reason mapReason(String reason) {
-        try {
-            return Reason.valueOf(reason);
-        } catch (IllegalArgumentException e) {
-            return Reason.UNKNOWN;
-        }
-    }
-
 
     /**
      * convertValue is converting the object return by the proxy response in the right type.
@@ -303,7 +289,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      * @return a Structure object in the SDK format
      */
     private Structure mapToStructure(Map<String, Object> map) {
-        return new Structure(
+        return new MutableStructure(
                 map.entrySet().stream()
                         .filter(e -> e.getValue() != null)
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
