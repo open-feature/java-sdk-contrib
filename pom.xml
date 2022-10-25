@@ -4,7 +4,7 @@
 
     <groupId>dev.openfeature.contrib</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.3</version>
+    <version>0.1.0</version>
     <packaging>pom</packaging>
 
     <name>java-sdk-contrib</name>
@@ -51,8 +51,8 @@
             <!-- provided -->
             <groupId>dev.openfeature</groupId>
             <artifactId>sdk</artifactId>
-            <!-- 0.3.0 or greater -->
-            <version>[0.3,)</version>
+            <!-- 1.0 <= v < 2.0 -->
+            <version>[1.0,2.0)</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
         </dependency>
