@@ -2,7 +2,7 @@
 
 ## System Requirements
 
-Java 18 is recommended for the tooling, plugins, etc. Maven 3.8+ is recommended.
+Java 8+ is required for the tooling, plugins, etc. Maven 3.8+ is recommended.
 
 ## Compilation target(s)
 

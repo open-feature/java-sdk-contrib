@@ -25,12 +25,12 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
         uses: actions/checkout@v3
 
-      - name: Set up JDK 18
+      - name: Set up JDK 8
         if: ${{ steps.release.outputs.releases_created }}
         uses: actions/setup-java@v3
         with:
-          java-version: "18"
-          distribution: "temurin"
+          java-version: '8'
+          distribution: 'temurin'
           cache: maven
           server-id: ossrh
           server-username: OSSRH_USERNAME
