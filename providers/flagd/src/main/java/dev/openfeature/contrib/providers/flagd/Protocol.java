@@ -1,6 +1,9 @@
 package dev.openfeature.contrib.providers.flagd;
 
-enum Protocol {
+/**
+ * Protocol for gRPC connect.
+ */
+public enum Protocol {
     HTTP,
     HTTPS
 } 
