@@ -301,8 +301,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      */
     private Structure mapToStructure(Map<String, Object> map) {
         return new MutableStructure(
-                map.keySet().stream()
-                        .filter(e -> map.get(e) != null)
-                        .collect(Collectors.toMap(e -> e, e -> objectToValue(map.get(e)))));
+                map.entrySet().stream()
+                        .filter(e -> e.getValue() != null)
+                        .collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
     }
 }
