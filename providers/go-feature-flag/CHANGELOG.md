@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.0...dev.openfeature.contrib.providers.go-feature-flag-v0.2.1) (2022-11-17)
+
+
+### Bug Fixes
+
+* GO Feature Flag provider fix issues + compatible with SDK 0.1.0 ([#132](https://github.com/open-feature/java-sdk-contrib/issues/132)) ([046947d](https://github.com/open-feature/java-sdk-contrib/commit/046947dc58fa717d0bfa6d5c516261fe79fd9e9e))
+
 ## [0.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.1.1...dev.openfeature.contrib.providers.go-feature-flag-v0.2.0) (2022-10-27)
 
 
