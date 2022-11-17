@@ -31,8 +31,10 @@ public class GoFeatureFlagUser {
         if (key == null || "".equals(key)) {
             throw new InvalidTargetingKey();
         }
-
         Value anonymousValue = ctx.getValue(anonymousFieldName);
+        if (anonymousValue == null) {
+            anonymousValue = new Value(Boolean.FALSE);
+        }
         boolean anonymous = anonymousValue.asBoolean();
         Map<String, Object> custom = new HashMap<>(ctx.asObjectMap());
         if (ctx.getValue(anonymousFieldName) != null) {

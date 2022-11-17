@@ -1,9 +1,5 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -32,6 +28,8 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class GoFeatureFlagProviderTest {
     // Dispatcher is the configuration of the mock server to test the provider.
@@ -138,15 +136,17 @@ class GoFeatureFlagProviderTest {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
         assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
     }
 
     @Test
-    void should_return_unknown_reason_if_not_exists_in_SDK() throws InvalidOptions {
+    void should_return_custom_reason_if_returned_by_relay_proxy() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("unknown_reason", false, this.evaluationContext);
         assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals("CUSTOM_REASON", res.getReason());
         assertEquals("True", res.getVariant());
     }
@@ -170,6 +170,7 @@ class GoFeatureFlagProviderTest {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<String> res = g.getStringEvaluation("string_key", "defaultValue", this.evaluationContext);
         assertEquals("CC0000", res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
     }
@@ -193,6 +194,7 @@ class GoFeatureFlagProviderTest {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Integer> res = g.getIntegerEvaluation("integer_key", 1200, this.evaluationContext);
         assertEquals(100, res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
     }
@@ -216,6 +218,7 @@ class GoFeatureFlagProviderTest {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Double> res = g.getDoubleEvaluation("double_key", 1200.25, this.evaluationContext);
         assertEquals(100.25, res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
     }
@@ -234,6 +237,7 @@ class GoFeatureFlagProviderTest {
         ProviderEvaluation<Value> res = g.getObjectEvaluation("object_key", null, this.evaluationContext);
         Value want = new Value(new MutableStructure().add("test", "test1").add("test2", false).add("test3", 123.3).add("test4", 1));
         assertEquals(want, res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
     }
@@ -244,6 +248,7 @@ class GoFeatureFlagProviderTest {
         ProviderEvaluation<Value> res = g.getObjectEvaluation("string_key", null, this.evaluationContext);
         Value want = new Value("CC0000");
         assertEquals(want, res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
     }
@@ -274,6 +279,7 @@ class GoFeatureFlagProviderTest {
                               new Value("false"),
                               new Value("test3"))));
         assertEquals(want, res.getValue());
+        assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
     }
