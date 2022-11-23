@@ -20,7 +20,7 @@ A feature flag daemon with a Unix philosophy.
 The `FlagdProvider` communicates with flagd via the gRPC protocol. Instantiate a new FlagdProvider instance, and configure the OpenFeature SDK to use it:
 
 ```java
-FlagdProvider provider = new FlagdProvider(Protocol.HTTP, "localhost", 8013);
+FlagdProvider provider = new FlagdProvider();
 OpenFeatureAPI.getInstance().setProvider(provider);
 ```
 
