@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.1...dev.openfeature.contrib.providers.flagd-v0.5.2) (2022-11-23)
+
+
+### Features
+
+* flagd-provider ssl, socket, deadline, env support ([#134](https://github.com/open-feature/java-sdk-contrib/issues/134)) ([34ac374](https://github.com/open-feature/java-sdk-contrib/commit/34ac3747f86987cca23d6f22bf32c7c5fffa91c3))
+
 ## [0.5.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.0...dev.openfeature.contrib.providers.flagd-v0.5.1) (2022-11-16)
 
 
