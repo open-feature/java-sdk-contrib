@@ -182,10 +182,10 @@ public class FlagdProvider implements FeatureProvider {
     /**
      * Sets how long to wait for an evaluation. 
      *
-     * @param deadlineMs time to wait before gRPC call is cancelled. Defaults to 10ms.
+     * @param deadlineMs time to wait before gRPC call is cancelled. Defaults to 500ms.
      * @return FlagdProvider
      */
-    FlagdProvider setDeadline(long deadlineMs) {
+    public FlagdProvider setDeadline(long deadlineMs) {
         this.deadline = deadlineMs;
         return this;
     }
