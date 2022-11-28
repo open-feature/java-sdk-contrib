@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.2...dev.openfeature.contrib.providers.flagd-v0.5.3) (2022-11-28)
+
+
+### Bug Fixes
+
+* make deadline setter public ([#137](https://github.com/open-feature/java-sdk-contrib/issues/137)) ([4a787ed](https://github.com/open-feature/java-sdk-contrib/commit/4a787edd361ba61e95313c8708fdee9fc63fddcc))
+
 ## [0.5.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.1...dev.openfeature.contrib.providers.flagd-v0.5.2) (2022-11-23)
 
 
