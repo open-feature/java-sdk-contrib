@@ -63,6 +63,15 @@
             <version>1.18.24</version>
             <scope>provided</scope>
         </dependency>
+        
+        <dependency>
+            <!-- used so that lombok can generate suppressions for spotbugs. It needs to find it on the relevant classpath -->
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs</artifactId>
+            <version>4.7.3</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- end provided -->
 
         <!-- test -->
