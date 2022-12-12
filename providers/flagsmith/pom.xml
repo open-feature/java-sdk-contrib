@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.openfeature.contrib</groupId>
+        <artifactId>parent</artifactId>
+        <version>0.1.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>dev.openfeature.contrib.providers</groupId>
+    <artifactId>flagsmith</artifactId>
+    <version>0.2.1</version> <!--x-release-please-version -->
+
+    <name>flagsmith</name>
+    <description>Flagsmith provider for Java</description>
+    <url>https://flagsmith.com</url>
+
+    <developers>
+        <developer>
+            <id>ajhelsby</id>
+            <name>Andrew Helsby</name>
+            <organization>Flagsmith</organization>
+            <url>https://flagsmith.com</url>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.flagsmith</groupId>
+            <artifactId>flagsmith-java-client</artifactId>
+            <version>5.0.0</version>
+        </dependency>
+    </dependencies>
+</project>
