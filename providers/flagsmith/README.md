@@ -1,0 +1,1 @@
+# Flagsmith OpenFeature Java Provider

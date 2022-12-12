@@ -10,3 +10,6 @@ target
 
 # vscode stuff
 .vscode/
+
+# IntelliJ files
+*.iml
