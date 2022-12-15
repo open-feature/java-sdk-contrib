@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagsmith</artifactId>
-    <version>0.2.1</version> <!--x-release-please-version -->
+    <version>0.0.1</version> <!--x-release-please-version -->
 
     <name>flagsmith</name>
     <description>Flagsmith provider for Java</description>
@@ -26,6 +26,7 @@
     </developers>
 
     <dependencies>
+        <!-- Inherits dev.openfeature.javasdk and the test dependencies from the parent pom -->
         <dependency>
             <groupId>com.flagsmith</groupId>
             <artifactId>flagsmith-java-client</artifactId>
