@@ -61,6 +61,12 @@
 			<version>6.0.53</version>
 			<scope>provided</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-collections4</artifactId>
+			<version>4.4</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -86,13 +92,14 @@
               <goal>exec</goal>
             </goals>
 						<configuration>
-							<!-- run: git submodule update \-\-init \-\-recursive -->
+							<!-- run: git submodule update \-\-init \-\-recursive \-\-remote -->
 							<executable>git</executable>
 							<arguments>
 								<argument>submodule</argument>
 								<argument>update</argument>
 								<argument>--init</argument>
 								<argument>--recursive</argument>
+								<argument>--remote</argument>
 							</arguments>
 						</configuration>
           </execution>
