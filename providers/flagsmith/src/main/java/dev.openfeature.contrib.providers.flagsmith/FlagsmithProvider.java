@@ -1,9 +1,6 @@
 package dev.openfeature.contrib.providers.flagsmith;
 
 import com.flagsmith.FlagsmithClient;
-import com.flagsmith.config.FlagsmithCacheConfig;
-import com.flagsmith.config.FlagsmithConfig;
-import com.flagsmith.config.Retry;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.Flags;
@@ -25,13 +22,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * FlagsmithProvider is the JAVA provider implementation for the feature flag solution Flagsmith.
+ */
 class FlagsmithProvider implements FeatureProvider {
 
     private static final String NAME = "Flagsmith Provider";
     private static FlagsmithClient flagsmith;
 
     public FlagsmithProvider(FlagsmithProviderOptions options) {
-        this.initializeProvider(options);
+        FlagsmithClientConfigurer.validateOptions(options);
+        flagsmith = FlagsmithClientConfigurer.initializeProvider(options);
     }
 
     @Override
@@ -74,6 +75,20 @@ class FlagsmithProvider implements FeatureProvider {
         return resolveFlagsmithEvaluation(key, defaultValue, evaluationContext, Object.class);
     }
 
+    /**
+     * Using the Flagsmith SDK this method resolves any type of flag into
+     * a ProviderEvaluation. Since Flagsmith's sdk is agnostic of type
+     * the flag needs to be cast to the correct type for OpenFeature's
+     * ProviderEvaluation object.
+     *
+     * @param key          the string identifier for the flag being resolved
+     * @param defaultValue the backup value if the flag can't be resolved
+     * @param ctx          an EvaluationContext object with flag evaluation options
+     * @param expectedType the expected data type of the flag as a class
+     * @param <T>          the data type of the flag
+     * @return a ProviderEvaluation object for the given flag type
+     * @throws OpenFeatureError
+     */
     private <T> ProviderEvaluation<T> resolveFlagsmithEvaluation(
         String key, T defaultValue, EvaluationContext ctx, Class<?> expectedType
     ) throws OpenFeatureError {
@@ -84,8 +99,8 @@ class FlagsmithProvider implements FeatureProvider {
         try {
 
             Flags flags = Objects.isNull(ctx.getTargetingKey()) || ctx.getTargetingKey().isEmpty()
-                ? this.flagsmith.getEnvironmentFlags()
-                : this.flagsmith.getIdentityFlags(ctx.getTargetingKey());
+                ? flagsmith.getEnvironmentFlags()
+                : flagsmith.getIdentityFlags(ctx.getTargetingKey());
             // Check if the flag is enabled, return default value if not
             if (!flags.isFeatureEnabled(key)) {
                 return ProviderEvaluation.<T>builder()
@@ -116,6 +131,17 @@ class FlagsmithProvider implements FeatureProvider {
         return buildEvaluation(flagValue, errorCode, reason, variationType);
     }
 
+    /**
+     * Build a ProviderEvaluation object from the results provided by the
+     * Flagsmith sdk.
+     *
+     * @param flagValue     the resolved flag either retrieved or set to the default
+     * @param errorCode     error type for failed flag resolution, null if no issue
+     * @param reason        description of issue resolving flag, null if no issue
+     * @param variationType contains the name of the variation used for this flag
+     * @param <T>           the data type of the flag
+     * @return a ProviderEvaluation object for the given flag type
+     */
     private <T> ProviderEvaluation<T> buildEvaluation(
         T flagValue, ErrorCode errorCode, Reason reason, String variationType) {
         ProviderEvaluation.ProviderEvaluationBuilder providerEvaluationBuilder =
@@ -136,132 +162,11 @@ class FlagsmithProvider implements FeatureProvider {
     }
 
     /**
-     * initializeProvider is initializing the different class element used by the provider.
+     * The method convertValue is converting the object return by the Flagsmith client.
      *
-     * @param options the options used to create the provider
-     */
-    private void initializeProvider(FlagsmithProviderOptions options) {
-        FlagsmithClient.Builder flagsmithBuilder = FlagsmithClient
-            .newBuilder();
-
-        // Set main configuration settings
-        if (options.getApiKey() != null) {
-            flagsmithBuilder.setApiKey(options.getApiKey());
-        }
-
-        if (options.getHeaders() != null && !options.getHeaders().isEmpty()) {
-            flagsmithBuilder.withCustomHttpHeaders(options.getHeaders());
-        }
-
-        if (options.getEnvFlagsCacheKey() != null) {
-            FlagsmithCacheConfig flagsmithCacheConfig = initializeCacheConfig(options);
-            flagsmithBuilder.withCache(flagsmithCacheConfig);
-        }
-
-        FlagsmithConfig flagsmithConfig = initializeConfig(options);
-        flagsmithBuilder.withConfiguration(flagsmithConfig);
-
-        this.flagsmith = flagsmithBuilder.build();
-    }
-
-    /**
-     * Sets the cache related configuration for the provider using
-     * the FlagsmithCacheConfig builder.
-     *
-     * @param options the options used to create the provider
-     * @return a FlagsmithCacheConfig object containing the FlagsmithClient cache options
-     */
-    private FlagsmithCacheConfig initializeCacheConfig(FlagsmithProviderOptions options) {
-        FlagsmithCacheConfig.Builder flagsmithCacheConfig = FlagsmithCacheConfig.newBuilder();
-
-        // Set cache configuration settings
-        if (options.getEnvFlagsCacheKey() != null) {
-            flagsmithCacheConfig.enableEnvLevelCaching(options.getEnvFlagsCacheKey());
-        }
-
-        if (options.getExpireCacheAfterWrite() != 0
-            && options.getExpireCacheAfterWriteTimeUnit() != null) {
-            flagsmithCacheConfig.expireAfterAccess(
-                options.getExpireCacheAfterWrite(),
-                options.getExpireCacheAfterWriteTimeUnit());
-        }
-
-        if (options.getExpireCacheAfterAccess() != 0
-            && options.getExpireCacheAfterAccessTimeUnit() != null) {
-            flagsmithCacheConfig.expireAfterAccess(
-                options.getExpireCacheAfterAccess(),
-                options.getExpireCacheAfterAccessTimeUnit());
-        }
-
-        if (options.getMaxCacheSize() != 0) {
-            flagsmithCacheConfig.maxSize(options.getMaxCacheSize());
-        }
-
-        return flagsmithCacheConfig.build();
-    }
-
-    /**
-     * Set the configuration options for the FlagsmithClient using
-     * the FlagsmithConfig builder.
-     *
-     * @param options The options used to create the provider
-     * @return a FlagsmithConfig object with the FlagsmithClient settings
-     */
-    private FlagsmithConfig initializeConfig(FlagsmithProviderOptions options) {
-        FlagsmithConfig.Builder flagsmithConfig = FlagsmithConfig.newBuilder();
-
-        // Set client level configuration settings
-        if (options.getBaseUri() != null) {
-            flagsmithConfig.baseUri(options.getBaseUri());
-        }
-
-        if (options.getConnectTimeout() != 0) {
-            flagsmithConfig.connectTimeout(options.getConnectTimeout());
-        }
-
-        if (options.getWriteTimeout() != 0) {
-            flagsmithConfig.writeTimeout(options.getWriteTimeout());
-        }
-
-        if (options.getReadTimeout() != 0) {
-            flagsmithConfig.readTimeout(options.getReadTimeout());
-        }
-
-        if (options.getSslSocketFactory() != null && options.getTrustManager() != null) {
-            flagsmithConfig
-                .sslSocketFactory(options.getSslSocketFactory(), options.getTrustManager());
-        }
-
-        if (options.getHttpInterceptor() != null) {
-            flagsmithConfig.addHttpInterceptor(options.getHttpInterceptor());
-        }
-
-        if (options.getRetries() != 0) {
-            flagsmithConfig.retries(new Retry(options.getRetries()));
-        }
-
-        if (options.isLocalEvaluation()) {
-            flagsmithConfig.withLocalEvaluation(options.isLocalEvaluation());
-        }
-
-        if (options.getEnvironmentRefreshIntervalSeconds() != 0) {
-            flagsmithConfig.withEnvironmentRefreshIntervalSeconds(options
-                .getEnvironmentRefreshIntervalSeconds());
-        }
-
-        if (options.isEnableAnalytics()) {
-            flagsmithConfig.withEnableAnalytics(options.isEnableAnalytics());
-        }
-
-        return flagsmithConfig.build();
-    }
-
-    /**
-     * convertValue is converting the object return by the Flagsmith client.
-     *
-     * @param value        The value we have received
+     * @param value        the value we have received
      * @param expectedType the type we expect for this value
-     * @param <T>          the type we want to convert to.
+     * @param <T>          the type we want to convert to
      * @return A converted object
      */
     private <T> T convertValue(Object value, Class<?> expectedType) {
@@ -277,7 +182,7 @@ class FlagsmithProvider implements FeatureProvider {
     }
 
     /**
-     * objectToValue is wrapping an object into a Value.
+     * The method objectToValue is wrapping an object into a Value.
      *
      * @param object the object you want to wrap
      * @return the wrapped object
@@ -313,9 +218,9 @@ class FlagsmithProvider implements FeatureProvider {
     }
 
     /**
-     * mapToStructure transform a map coming from a JSON Object to a Structure type.
+     * The method mapToStructure transform a map coming from a JSON Object to a Structure type.
      *
-     * @param map - JSON object return by the API
+     * @param map a JSON object return by the SDK
      * @return a Structure object in the SDK format
      */
     private Structure mapToStructure(Map<String, Object> map) {
