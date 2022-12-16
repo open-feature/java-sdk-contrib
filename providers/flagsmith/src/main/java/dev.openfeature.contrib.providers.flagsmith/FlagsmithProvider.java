@@ -22,6 +22,7 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 class FlagsmithProvider implements FeatureProvider {
@@ -52,7 +53,7 @@ class FlagsmithProvider implements FeatureProvider {
     @Override
     public ProviderEvaluation<String> getStringEvaluation(
         String key, String defaultValue, EvaluationContext evaluationContext) {
-        return resolveFlagsmithEvaluation(key, defaultValue, evaluationContext, Boolean.class);
+        return resolveFlagsmithEvaluation(key, defaultValue, evaluationContext, String.class);
     }
 
     @Override
@@ -82,7 +83,7 @@ class FlagsmithProvider implements FeatureProvider {
         String variationType = "";
         try {
 
-            Flags flags = ctx.getTargetingKey() == null
+            Flags flags = Objects.isNull(ctx.getTargetingKey()) || ctx.getTargetingKey().isEmpty()
                 ? this.flagsmith.getEnvironmentFlags()
                 : this.flagsmith.getIdentityFlags(ctx.getTargetingKey());
             // Check if the flag is enabled, return default value if not
@@ -112,12 +113,26 @@ class FlagsmithProvider implements FeatureProvider {
             errorCode = ErrorCode.GENERAL;
         }
 
-        return ProviderEvaluation.<T>builder()
-                                 .errorCode(errorCode)
-                                 .reason(reason.name())
-                                 .value(flagValue)
-                                 .variant(variationType)
-                                 .build();
+        return buildEvaluation(flagValue, errorCode, reason, variationType);
+    }
+
+    private <T> ProviderEvaluation<T> buildEvaluation(
+        T flagValue, ErrorCode errorCode, Reason reason, String variationType) {
+        ProviderEvaluation.ProviderEvaluationBuilder providerEvaluationBuilder =
+            ProviderEvaluation.<T>builder()
+                              .value(flagValue);
+
+        if (errorCode != null) {
+            providerEvaluationBuilder.errorCode(errorCode);
+        }
+        if (reason != null) {
+            providerEvaluationBuilder.reason(reason.name());
+        }
+        if (variationType != null) {
+            providerEvaluationBuilder.variant(variationType);
+        }
+
+        return providerEvaluationBuilder.build();
     }
 
     /**
@@ -134,12 +149,14 @@ class FlagsmithProvider implements FeatureProvider {
             flagsmithBuilder.setApiKey(options.getApiKey());
         }
 
-        if (!options.getHeaders().isEmpty()) {
+        if (options.getHeaders() != null && !options.getHeaders().isEmpty()) {
             flagsmithBuilder.withCustomHttpHeaders(options.getHeaders());
         }
 
-        FlagsmithCacheConfig flagsmithCacheConfig = initializeCacheConfig(options);
-        flagsmithBuilder.withCache(flagsmithCacheConfig);
+        if (options.getEnvFlagsCacheKey() != null) {
+            FlagsmithCacheConfig flagsmithCacheConfig = initializeCacheConfig(options);
+            flagsmithBuilder.withCache(flagsmithCacheConfig);
+        }
 
         FlagsmithConfig flagsmithConfig = initializeConfig(options);
         flagsmithBuilder.withConfiguration(flagsmithConfig);

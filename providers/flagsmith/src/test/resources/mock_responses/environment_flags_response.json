@@ -1,0 +1,70 @@
+{
+  "api_key": "B62qaMZNwfiqT76p38ggrQ",
+  "project": {
+    "name": "Test project",
+    "organisation": {
+      "feature_analytics": false,
+      "name": "Test Org",
+      "id": 1,
+      "persist_trait_data": true,
+      "stop_serving_flags": false
+    },
+    "id": 1,
+    "hide_disabled_flags": false,
+    "segments": [
+      {
+        "id": 1,
+        "name": "Test segment",
+        "rules": [
+          {
+            "type": "ALL",
+            "rules": [
+              {
+                "type": "ALL",
+                "rules": [],
+                "conditions": [
+                  {
+                    "operator": "EQUAL",
+                    "property_": "foo",
+                    "value": "bar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "segment_overrides": [],
+  "id": 1,
+  "feature_states": [
+
+    {
+      "multivariate_feature_state_values": [],
+      "feature_state_value": "true",
+      "id": 1,
+      "featurestate_uuid": "40eb539d-3713-4720-bbd4-829dbef10d51",
+      "feature": {
+        "name": "true_key",
+        "type": "STANDARD",
+        "id": 1
+      },
+      "segment_id": null,
+      "enabled": true
+    },
+    {
+      "multivariate_feature_state_values": [],
+      "feature_state_value": "false",
+      "id": 1,
+      "featurestate_uuid": "40eb549d-3713-4720-bbd4-829dbef10d51",
+      "feature": {
+        "name": "false_key",
+        "type": "STANDARD",
+        "id": 2
+      },
+      "segment_id": null,
+      "enabled": true
+    }
+  ]
+}
