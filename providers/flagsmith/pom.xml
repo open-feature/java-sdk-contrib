@@ -32,5 +32,27 @@
             <artifactId>flagsmith-java-client</artifactId>
             <version>5.0.0</version>
         </dependency>
+
+        <!-- test -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.0.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>4.0.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.0.1</version>
+            <scope>compile</scope>
+        </dependency>
+
     </dependencies>
+
 </project>
