@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +31,7 @@ import dev.openfeature.flagd.grpc.Schema.ResolveObjectResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveStringResponse;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
+import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
@@ -37,7 +39,6 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import io.grpc.ManagedChannel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -79,11 +80,14 @@ class FlagdProviderTest {
     void path_arg_should_build_domain_socket_with_correct_path() {
         final String path = "/some/path";
 
-        ServiceBlockingStub mockStub = mock(ServiceBlockingStub.class);
+        ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
+        ServiceStub mockStub = mock(ServiceStub.class);
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(ManagedChannel.class)))
+            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any())) // why does any(ManagedChannel.class) fail?
+                    .thenReturn(mockBlockingStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(mockStub);
 
             try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
@@ -92,8 +96,7 @@ class FlagdProviderTest {
                         EpollEventLoopGroup.class,
                         (mock, context) -> {
                         })) {
-                    mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                            .forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
+                    when(NettyChannelBuilder.forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
                     new FlagdProvider(path);
 
                     // verify path matches
@@ -101,7 +104,7 @@ class FlagdProviderTest {
                             .forAddress(argThat((DomainSocketAddress d) -> {
                                 assertEquals(d.path(), path); // path should match
                                 return true;
-                            })));
+                            })), times(2));
                 }
             }
         }
@@ -113,11 +116,14 @@ class FlagdProviderTest {
 
         new EnvironmentVariables("FLAGD_SOCKET_PATH", path).execute(() -> {
 
-            ServiceBlockingStub mockStub = mock(ServiceBlockingStub.class);
+            ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
+            ServiceStub mockStub = mock(ServiceStub.class);
             NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
             try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(ManagedChannel.class)))
+                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any()))
+                        .thenReturn(mockBlockingStub);
+                mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                         .thenReturn(mockStub);
 
                 try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(
@@ -135,7 +141,7 @@ class FlagdProviderTest {
                         mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
                                 .forAddress(argThat((DomainSocketAddress d) -> {
                                     return d.path() == path;
-                                })));
+                                })), times(2));
                     }
                 }
             }
@@ -147,11 +153,14 @@ class FlagdProviderTest {
         final String host = "host.com";
         final int port = 1234;
 
-        ServiceBlockingStub mockStub = mock(ServiceBlockingStub.class);
+        ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
+        ServiceStub mockStub = mock(ServiceStub.class);
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(ManagedChannel.class)))
+            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any()))
+                    .thenReturn(mockBlockingStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(mockStub);
 
             try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
@@ -162,7 +171,7 @@ class FlagdProviderTest {
 
                 // verify host/port matches
                 mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                        .forAddress(host, port));
+                        .forAddress(host, port), times(2));
             }
         }
     }
@@ -173,11 +182,14 @@ class FlagdProviderTest {
         final int port = 4321;
 
         new EnvironmentVariables("FLAGD_HOST", host, "FLAGD_PORT", String.valueOf(port)).execute(() -> {
-            ServiceBlockingStub mockStub = mock(ServiceBlockingStub.class);
+            ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
+            ServiceStub mockStub = mock(ServiceStub.class);
             NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
     
             try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(ManagedChannel.class)))
+                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any()))
+                        .thenReturn(mockBlockingStub);
+                mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                         .thenReturn(mockStub);
     
                 try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(
@@ -189,7 +201,7 @@ class FlagdProviderTest {
 
                     // verify host/port matches
                     mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                            .forAddress(host, port));
+                            .forAddress(host, port), times(2));
                 }
             }
         });
@@ -228,6 +240,7 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -241,7 +254,8 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock
                 .resolveObject(argThat(x -> FLAG_KEY.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
-        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru",
+            100, 5 ));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false);
         assertTrue(booleanDetails.getValue());
@@ -268,6 +282,21 @@ class FlagdProviderTest {
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT.toString(), objectDetails.getReason());
+    }
+
+    @Test
+    void resolvers_cache_responses_if_static_and_event_stream_alive() {
+        do_resolvers_cache_responses(FlagdProvider.STATIC_REASON, true, true);
+    }
+
+    @Test
+    void resolvers_should_not_cache_responses_if_not_static() {
+        do_resolvers_cache_responses(DEFAULT.toString(), true, false);
+    }
+
+    @Test
+    void resolvers_should_not_cache_responses_if_event_stream_not_alive() {
+        do_resolvers_cache_responses(FlagdProvider.STATIC_REASON, false, false);
     }
 
     @Test
@@ -301,6 +330,7 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.resolveBoolean(argThat(
@@ -315,7 +345,8 @@ class FlagdProviderTest {
                                 .getStringValue()))))
                 .thenReturn(booleanResponse);
 
-        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru",
+        100, 5));
 
         MutableContext context = new MutableContext();
         context.add(BOOLEAN_ATTR_KEY, BOOLEAN_ATTR_VALUE);
@@ -340,11 +371,12 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                         .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class))).thenReturn(badReasonResponse);
 
-        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock);
+        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
         provider.setDeadline(deadline);
         OpenFeatureAPI.getInstance().setProvider(provider);
 
@@ -362,11 +394,12 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                         .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class))).thenReturn(badReasonResponse);
 
-        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient()
                 .getBooleanDetails(FLAG_KEY, false, new MutableContext());
@@ -380,5 +413,92 @@ class FlagdProviderTest {
         when(mockChannelBuilder.usePlaintext()).thenReturn(mockChannelBuilder);
         when(mockChannelBuilder.build()).thenReturn(null);
         return mockChannelBuilder;
+    }
+
+    private void do_resolvers_cache_responses(String reason, Boolean eventStreamAlive, Boolean shouldCache) {
+        String expectedReason = FlagdProvider.CACHED_REASON;
+        if (!shouldCache) {
+            expectedReason = reason;
+        }
+
+        ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
+                .setValue(true)
+                .setVariant(BOOL_VARIANT)
+                .setReason(reason)
+                .build();
+
+        ResolveStringResponse stringResponse = ResolveStringResponse.newBuilder()
+                .setValue(STRING_VALUE)
+                .setVariant(STRING_VARIANT)
+                .setReason(reason)
+                .build();
+
+        ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
+                .setValue(INT_VALUE)
+                .setVariant(INT_VARIANT)
+                .setReason(reason)
+                .build();
+
+        ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
+                .setValue(DOUBLE_VALUE)
+                .setVariant(DOUBLE_VARIANT)
+                .setReason(reason)
+                .build();
+
+        ResolveObjectResponse objectResponse = ResolveObjectResponse.newBuilder()
+                .setValue(PROTOBUF_STRUCTURE_VALUE)
+                .setVariant(OBJECT_VARIANT)
+                .setReason(reason)
+                .build();
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock
+                .resolveBoolean(argThat(x -> FLAG_KEY.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+        when(serviceBlockingStubMock
+                .resolveFloat(argThat(x -> FLAG_KEY.equals(x.getFlagKey())))).thenReturn(floatResponse);
+        when(serviceBlockingStubMock
+                .resolveInt(argThat(x -> FLAG_KEY.equals(x.getFlagKey())))).thenReturn(intResponse);
+        when(serviceBlockingStubMock
+                .resolveString(argThat(x -> FLAG_KEY.equals(x.getFlagKey())))).thenReturn(stringResponse);
+        when(serviceBlockingStubMock
+                .resolveObject(argThat(x -> FLAG_KEY.equals(x.getFlagKey())))).thenReturn(objectResponse);
+
+        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
+        provider.setEventStreamAlive(eventStreamAlive); // caching only available when event stream is alive
+        OpenFeatureAPI.getInstance().setProvider(provider);
+
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false);
+        booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false); // should retrieve from cache on second invocation
+        assertTrue(booleanDetails.getValue());
+        assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
+        assertEquals(expectedReason, booleanDetails.getReason());
+
+        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY, "wrong");
+        stringDetails = api.getClient().getStringDetails(FLAG_KEY, "wrong");
+        assertEquals(STRING_VALUE, stringDetails.getValue());
+        assertEquals(STRING_VARIANT, stringDetails.getVariant());
+        assertEquals(expectedReason, stringDetails.getReason());
+
+        FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY, 0);
+        intDetails = api.getClient().getIntegerDetails(FLAG_KEY, 0);
+        assertEquals(INT_VALUE, intDetails.getValue());
+        assertEquals(INT_VARIANT, intDetails.getVariant());
+        assertEquals(expectedReason, intDetails.getReason());
+
+        FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY, 0.1);
+        floatDetails = api.getClient().getDoubleDetails(FLAG_KEY, 0.1);
+        assertEquals(DOUBLE_VALUE, floatDetails.getValue());
+        assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
+        assertEquals(expectedReason, floatDetails.getReason());
+
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY, new Value());
+        objectDetails = api.getClient().getObjectDetails(FLAG_KEY, new Value());
+        assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
+                .asMap().get(INNER_STRUCT_KEY).asString());
+        assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
+        assertEquals(expectedReason, objectDetails.getReason());
     }
 }

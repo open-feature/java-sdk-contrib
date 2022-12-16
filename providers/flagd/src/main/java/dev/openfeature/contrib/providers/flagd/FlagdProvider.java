@@ -38,6 +38,7 @@ import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.map.LRUMap;
@@ -63,11 +64,14 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     static final String SOCKET_PATH_ENV_VAR_NAME = "FLAGD_SOCKET_PATH";
     static final String SERVER_CERT_PATH_ENV_VAR_NAME = "FLAGD_SERVER_CERT_PATH";
     static final String CACHE_ENV_VAR_NAME = "FLAGD_CACHE";
+    static final String MAX_CACHE_SIZE_ENV_VAR_NAME = "FLAGD_MAX_CACHE_SIZE";
+    static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
 
     static final String STATIC_REASON = "STATIC";
     static final String CACHED_REASON = "CACHED";
 
     static final String LRU_CACHE = "lru";
+    static final String DISABLED = "disabled";
     static final String DEFAULT_CACHE = LRU_CACHE;
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
 
@@ -101,8 +105,9 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this(
             buildServiceBlockingStub(null, null, null, null, socketPath),
             buildServiceStub(null, null, null, null, socketPath),
-            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE), DEFAULT_MAX_CACHE_SIZE,
-            DEFAULT_MAX_EVENT_STREAM_RETRIES
+            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
+            fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
+            fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES)
         );
     }
 
@@ -137,8 +142,9 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this(
             buildServiceBlockingStub(host, port, tls, certPath, null),
             buildServiceStub(host, port, tls, certPath, null),
-            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE), DEFAULT_MAX_CACHE_SIZE,
-            DEFAULT_MAX_EVENT_STREAM_RETRIES
+            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
+            fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
+            fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES)
         );
     }
 
@@ -172,8 +178,9 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this(
             buildServiceBlockingStub(null, null, null, null, null),
             buildServiceStub(null, null, null, null, null),
-            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE), DEFAULT_MAX_CACHE_SIZE,
-            DEFAULT_MAX_EVENT_STREAM_RETRIES
+            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
+            fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
+            fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES)
         );
     }
 
@@ -184,7 +191,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.eventStreamAlive = false;
         if (cache != null) {
             initCache(cache, maxCacheSize);
-            this.cacheEnabled = true;
         }
         this.maxEventStreamRetries = maxEventStreamRetries;
         this.handleEvents();
@@ -201,10 +207,14 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                     new LRUMap<String, ProviderEvaluation<Integer>>(maxSize));
                 this.objectCache = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<Value>>(maxSize));
                 break;
+            case DISABLED:
+                return;
             default:
                 initCache(DEFAULT_CACHE, maxSize);
                 return;
         }
+
+        this.cacheEnabled = true;
     }
 
     private Boolean cacheAvailable() {
@@ -564,6 +574,15 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     private static String fallBackToEnvOrDefault(String key, String defaultValue) {
         return System.getenv(key) != null ? System.getenv(key) : defaultValue;
+    }
+
+    private static int fallBackToEnvOrDefault(String key, int defaultValue) {
+        try {
+            int value = System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : defaultValue;
+            return value;
+        } catch (Exception e) {
+            return defaultValue;
+        }
     }
 
     private void handleEvents() {
