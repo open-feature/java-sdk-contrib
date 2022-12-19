@@ -1,0 +1,113 @@
+[
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1447,
+      "type": "STANDARD",
+      "name": "true_key"
+    },
+    "feature_state_value": true
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1448,
+      "type": "STANDARD",
+      "name": "false_key"
+    },
+    "feature_state_value": false
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1449,
+      "type": "STANDARD",
+      "name": "string_key"
+    },
+    "feature_state_value": "string_value"
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1450,
+      "type": "STANDARD",
+      "name": "int_key"
+    },
+    "feature_state_value": 1
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1451,
+      "type": "STANDARD",
+      "name": "double_key"
+    },
+    "feature_state_value": 3.141
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1452,
+      "type": "STANDARD",
+      "name": "object_key"
+    },
+    "feature_state_value": {
+      "name":"json"
+    }
+  },{
+    "enabled": false,
+    "feature": {
+      "id": 1453,
+      "type": "STANDARD",
+      "name": "true_key_disabled"
+    },
+    "feature_state_value": true
+  },
+  {
+    "enabled": false,
+    "feature": {
+      "id": 1454,
+      "type": "STANDARD",
+      "name": "false_key_disabled"
+    },
+    "feature_state_value": false
+  },
+  {
+    "enabled": false,
+    "feature": {
+      "id": 1455,
+      "type": "STANDARD",
+      "name": "string_key_disabled"
+    },
+    "feature_state_value": "string_value"
+  },
+  {
+    "enabled": false,
+    "feature": {
+      "id": 1456,
+      "type": "STANDARD",
+      "name": "int_key_disabled"
+    },
+    "feature_state_value": 1
+  },
+  {
+    "enabled": false,
+    "feature": {
+      "id": 1457,
+      "type": "STANDARD",
+      "name": "double_key_disabled"
+    },
+    "feature_state_value": 3.141
+  },
+  {
+    "enabled": false,
+    "feature": {
+      "id": 1458,
+      "type": "STANDARD",
+      "name": "object_key_disabled"
+    },
+    "feature_state_value": {
+      "name":"json"
+    }
+  }
+]

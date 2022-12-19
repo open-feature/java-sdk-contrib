@@ -3,11 +3,12 @@ package dev.openfeature.contrib.providers.flagsmith;
 import com.flagsmith.FlagsmithClient;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.Retry;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptions;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptions;
 
 /**
  * FlagsmithClientConfigurer helps set up and validate the options for the FlagsmithClient
- * used by the FlagsmithProvider class
+ * used by the FlagsmithProvider class.
  */
 public class FlagsmithClientConfigurer {
 
@@ -18,15 +19,20 @@ public class FlagsmithClientConfigurer {
      * @param options the options used to create the provider
      */
     public static void validateOptions(FlagsmithProviderOptions options) {
-        if (options.getApiKey() == null) {
+        if (options == null) {
+            throw new InvalidOptions("No options provided");
+        }
+
+        if (options.getApiKey() == null || options.getApiKey().isEmpty()) {
             throw new InvalidOptions("Flagsmith API key has not been set.");
         }
 
         if (options.getEnvFlagsCacheKey() == null
             && (options.getExpireCacheAfterWrite() != 0
             || options.getExpireCacheAfterAccess() != 0
-            || options.getMaxCacheSize() != 0)) {
-            throw new InvalidOptions(
+            || options.getMaxCacheSize() != 0
+            || options.isRecordCacheStats())) {
+            throw new InvalidCacheOptions(
                 "No Flagsmith cache key provided but other cache settings have been set."
             );
         }
@@ -92,6 +98,10 @@ public class FlagsmithClientConfigurer {
 
         if (options.getMaxCacheSize() != 0) {
             flagsmithCacheConfig.maxSize(options.getMaxCacheSize());
+        }
+
+        if (options.isRecordCacheStats()) {
+            flagsmithCacheConfig.recordStats();
         }
 
         return flagsmithCacheConfig.build();

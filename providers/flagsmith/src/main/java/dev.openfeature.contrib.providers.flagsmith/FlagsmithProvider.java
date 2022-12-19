@@ -1,7 +1,6 @@
 package dev.openfeature.contrib.providers.flagsmith;
 
 import com.flagsmith.FlagsmithClient;
-import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.Flags;
 import dev.openfeature.sdk.ErrorCode;
@@ -72,7 +71,7 @@ class FlagsmithProvider implements FeatureProvider {
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(
         String key, Value defaultValue, EvaluationContext evaluationContext) {
-        return resolveFlagsmithEvaluation(key, defaultValue, evaluationContext, Object.class);
+        return resolveFlagsmithEvaluation(key, defaultValue, evaluationContext, Value.class);
     }
 
     /**
@@ -102,7 +101,16 @@ class FlagsmithProvider implements FeatureProvider {
                 ? flagsmith.getEnvironmentFlags()
                 : flagsmith.getIdentityFlags(ctx.getTargetingKey());
             // Check if the flag is enabled, return default value if not
-            if (!flags.isFeatureEnabled(key)) {
+            Boolean isFlagEnabled = flags.isFeatureEnabled(key);
+            if (isFlagEnabled == null) {
+                return ProviderEvaluation.<T>builder()
+                                         .value(defaultValue)
+                                         .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                                         .reason(Reason.ERROR.name())
+                                         .build();
+            }
+
+            if (!isFlagEnabled) {
                 return ProviderEvaluation.<T>builder()
                                          .value(defaultValue)
                                          .reason(Reason.DISABLED.name())
@@ -118,14 +126,8 @@ class FlagsmithProvider implements FeatureProvider {
                     + flagValue.getClass() + ", expected " + expectedType + ".");
             }
 
-        } catch (FlagsmithApiError flagsmithApiError) {
-            flagValue = defaultValue;
-            reason = Reason.ERROR;
-            errorCode = ErrorCode.PARSE_ERROR;
-        } catch (FlagsmithClientError flagsmithClientError) {
-            flagValue = defaultValue;
-            reason = Reason.ERROR;
-            errorCode = ErrorCode.GENERAL;
+        } catch (FlagsmithClientError flagsmithApiError) {
+            return buildEvaluation(defaultValue, ErrorCode.GENERAL, Reason.ERROR, null);
         }
 
         return buildEvaluation(flagValue, errorCode, reason, variationType);
