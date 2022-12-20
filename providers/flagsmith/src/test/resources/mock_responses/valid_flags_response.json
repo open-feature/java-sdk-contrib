@@ -109,5 +109,23 @@
     "feature_state_value": {
       "name":"json"
     }
+  },
+  {
+    "enabled": false,
+    "feature": {
+      "id": 1459,
+      "type": "STANDARD",
+      "name": "list_key_disabled"
+    },
+    "feature_state_value": ["not_string_1", "not_string_2"]
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1460,
+      "type": "STANDARD",
+      "name": "list_key"
+    },
+    "feature_state_value": ["string_1", "string_2"]
   }
 ]

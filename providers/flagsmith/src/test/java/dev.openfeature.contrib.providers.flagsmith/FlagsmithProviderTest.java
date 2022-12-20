@@ -10,11 +10,13 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +49,11 @@ public class FlagsmithProviderTest {
             if (request.getPath().startsWith("/flags/")) {
                 return new MockResponse()
                     .setBody(readMockResponse("valid_flags_response.json"))
+                    .addHeader("Content-Type", "application/json");
+            }
+            if (request.getPath().startsWith("/identities/")) {
+                return new MockResponse()
+                    .setBody(readMockResponse("valid_identity_response.json"))
                     .addHeader("Content-Type", "application/json");
             }
             return new MockResponse().setResponseCode(404);
@@ -197,6 +204,30 @@ public class FlagsmithProviderTest {
 
     @SneakyThrows
     @ParameterizedTest
+    @MethodSource("provideKeysForFlagResolution")
+    void shouldResolveIdentityFlagCorrectlyWithCorrectFlagType(
+        String key, String methodName, Class<?> expectedType, String flagsmithResult) {
+        // Given
+        Object result = null;
+        EvaluationContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey("my-identity");
+
+        // When
+        Method method = flagsmithProvider.getClass()
+                                         .getMethod(methodName, String.class, expectedType, EvaluationContext.class);
+        result = method.invoke(flagsmithProvider, key, null, evaluationContext);
+
+        // Then
+        ProviderEvaluation<Object> evaluation = (ProviderEvaluation<Object>) result;
+        String resultString = getResultString(evaluation.getValue(), expectedType);
+
+        assertEquals(flagsmithResult, resultString);
+        assertNull(evaluation.getErrorCode());
+        assertNull(evaluation.getReason());
+    }
+
+    @SneakyThrows
+    @ParameterizedTest
     @MethodSource("provideDisabledKeysForFlagResolution")
     void shouldNotResolveFlagIfFlagIsInactiveInFlagsmithInsteadUsingDefaultValue(
         String key, String methodName, Class<?> expectedType, String defaultValueString) {
@@ -260,7 +291,13 @@ public class FlagsmithProviderTest {
         String resultString = "";
         if (expectedType == Value.class) {
             Value value = (Value) responseValue;
-            return new ObjectMapper().writeValueAsString(value.asStructure().asMap());
+            try {
+                Map<String, Object> structure = value.asStructure().asObjectMap();
+                return new ObjectMapper().writeValueAsString(structure);
+            } catch (ClassCastException cce) {
+                Map<String, Value> structure = value.asStructure().asMap();
+                return new ObjectMapper().writeValueAsString(structure);
+            }
         } else {
             return responseValue.toString();
         }
