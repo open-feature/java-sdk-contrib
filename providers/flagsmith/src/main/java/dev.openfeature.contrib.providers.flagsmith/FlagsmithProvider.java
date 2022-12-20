@@ -98,7 +98,7 @@ class FlagsmithProvider implements FeatureProvider {
      * @param expectedType the expected data type of the flag as a class
      * @param <T>          the data type of the flag
      * @return a ProviderEvaluation object for the given flag type
-     * @throws OpenFeatureError
+     * @throws OpenFeatureError when flag evaluation fails
      */
     private <T> ProviderEvaluation<T> resolveFlagsmithEvaluation(
         String key, T defaultValue, EvaluationContext ctx, Class<?> expectedType
@@ -193,8 +193,8 @@ class FlagsmithProvider implements FeatureProvider {
 
         if (flagValue.getClass() != expectedType) {
             try {
-               flagValue = mapJsonNodes(flagValue, expectedType);
-            } catch (FlagsmithJsonException fje){
+                flagValue = mapJsonNodes(flagValue, expectedType);
+            } catch (FlagsmithJsonException fje) {
                 log.warn(fje.getMessage());
                 throw new TypeMismatchError("Flag value had an unexpected type "
                     + flagValue.getClass() + ", expected " + expectedType + ".");
@@ -253,20 +253,20 @@ class FlagsmithProvider implements FeatureProvider {
      * @return A converted object
      */
     private <T> T mapJsonNodes(T value, Class<?> expectedType) {
-        if (value.getClass() == BooleanNode.class && expectedType == Boolean.class){
-            return (T)Boolean.valueOf(((BooleanNode) value).asBoolean());
+        if (value.getClass() == BooleanNode.class && expectedType == Boolean.class) {
+            return (T) Boolean.valueOf(((BooleanNode) value).asBoolean());
         }
         if (value.getClass() == TextNode.class && expectedType == String.class) {
-            return (T)((TextNode) value).asText();
+            return (T) ((TextNode) value).asText();
         }
         if (value.getClass() == IntNode.class && expectedType == Integer.class) {
-            return (T)Integer.valueOf(((IntNode) value).asInt());
+            return (T) Integer.valueOf(((IntNode) value).asInt());
         }
         if (value.getClass() == DoubleNode.class && expectedType == Double.class) {
-            return (T)Double.valueOf(((DoubleNode) value).asDouble());
+            return (T) Double.valueOf(((DoubleNode) value).asDouble());
         }
         if (value.getClass() == ObjectNode.class && expectedType == Value.class) {
-            return (T)objectToValue((Object) value);
+            return (T) objectToValue((Object) value);
         }
         throw new FlagsmithJsonException("Json object could not be cast to primitive type");
     }

@@ -5,7 +5,7 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.Getter;
 
 /**
- * A Flagsmith provider exception is the main exception for the provider
+ * A Flagsmith provider exception is the main exception for the provider.
  */
 @Getter
 public class FlagsmithProviderException extends GeneralError {
