@@ -150,7 +150,7 @@ public class FlagsmithProviderTest {
     @Test
     void shouldInitializeProviderWhenAllOptionsSet() {
         HashMap<String, String> headers =
-            new HashMap<>() {{
+            new HashMap<String, String>() {{
                 put("header", "string");
             }};
         FlagsmithProviderOptions options =
