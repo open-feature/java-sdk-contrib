@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagsmith;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import lombok.Builder;
@@ -11,6 +13,7 @@ import okhttp3.Interceptor;
 /**
  * FlagsmithProviderOptions contains the options to initialise the Flagsmith provider.
  */
+@SuppressFBWarnings(value = { "EI_EXPOSE_REP", "EI_EXPOSE_REP2" }, justification = "The headers need to be mutable")
 @Builder
 @Getter
 class FlagsmithProviderOptions {
