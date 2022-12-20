@@ -1,1 +1,54 @@
 # Flagsmith OpenFeature Java Provider
+
+![Experimental](https://img.shields.io/badge/experimental-breaking%20changes%20allowed-yellow)
+
+Flagsmith provides an all-in-one platform for developing, implementing, and managing your feature flags.
+
+## Installation
+<!-- x-release-please-start-version -->
+```xml
+<dependency>
+  <groupId>dev.openfeature.contrib.providers</groupId>
+  <artifactId>flagsmith</artifactId>
+  <version>0.0.1</version>
+</dependency>
+```
+<!-- x-release-please-end-version -->
+
+## Usage
+
+The `FlagsmithProvider` communicates with Flagsmith using the Flagsmith java sdk. Information on the 
+sdk can be found in the Flagsmith documentaiton here https://docs.flagsmith.com/clients/server-side. 
+The following code snippet shows how to initialize the `FlagsmithProvider`:
+```java
+FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                                                           .apiKey("API_KEY")
+                                                           .build();
+FlagsmithProvider provider = new FlagdProvider();
+OpenFeatureAPI.getInstance().setProvider(provider);
+```
+
+Options can be defined using the FlagsmithProviderOptions builder. Below are all the options:
+
+| Option name | Type    | Default   | Description
+| ----------- | ------- | --------- | ---------
+| apiKey      | String  |  | Your API Token. Note that this is either the `Environment API` key or the `Server Side SDK Token`
+| headers      | HashMap<String, String>  |  | Add custom headers which will be sent with each network request to the Flagsmith API.
+| envFlagsCacheKey      | String  |  | Enable in-memory caching for the Flagsmith API.
+| expireCacheAfterWriteTimeUnit      | TimeUnit  |  | 
+| expireCacheAfterWrite      | int  |  | 
+| expireCacheAfterAccessTimeUnit      | TimeUnit  |  | 
+| expireCacheAfterAccess      | int  |  | 
+| maxCacheSize      | int  |  | 
+| recordCacheStats      | boolean  | false | 
+| baseUri      | String  | https://edge.api.flagsmith.com/api/v1/ | Override the default Flagsmith API URL if you are self-hosting.
+| connectTimeout      | int  | 2000 | The network timeout in milliseconds.
+| writeTimeout      | int  | 5000 | The network timeout in milliseconds when writing.
+| readTimeout      | int  | 5000 | The network timeout in milliseconds when reading.
+| sslSocketFactory      | SSLSocketFactory  |  | Override the sslSocketFactory.
+| trustManager      | X509TrustManager  |  | X509TrustManager used when overriding the sslSocketFactory.
+| httpInterceptor      | Interceptor  |  | Add a custom HTTP interceptor in the form of an okhttp3.Interceptor object.
+| retries      | int  | 3 | Add a custom com.flagsmith.config.Retry object to configure the backoff / retry configuration.
+| localEvaluation      | boolean  | false | Controls which mode to run in; local or remote evaluation.
+| environmentRefreshIntervalSeconds      | int  | 60 | Set environment refresh rate with polling manager.
+| enableAnalytics      | boolean  | false | Controls whether Flag Analytics data is sent to the Flagsmith API
