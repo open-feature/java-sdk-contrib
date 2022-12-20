@@ -1,8 +1,16 @@
 package dev.openfeature.contrib.providers.flagsmith;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.node.ValueNode;
 import com.flagsmith.FlagsmithClient;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.Flags;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.FlagsmithJsonException;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
@@ -16,14 +24,18 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * FlagsmithProvider is the JAVA provider implementation for the feature flag solution Flagsmith.
  */
+@Slf4j
 class FlagsmithProvider implements FeatureProvider {
 
     private static final String NAME = "Flagsmith Provider";
@@ -99,6 +111,7 @@ class FlagsmithProvider implements FeatureProvider {
 
             Flags flags = Objects.isNull(ctx.getTargetingKey()) || ctx.getTargetingKey().isEmpty()
                 ? flagsmith.getEnvironmentFlags()
+                // Todo add traits when attributes are added to context
                 : flagsmith.getIdentityFlags(ctx.getTargetingKey());
             // Check if the flag is enabled, return default value if not
             Boolean isFlagEnabled = flags.isFeatureEnabled(key);
@@ -120,11 +133,6 @@ class FlagsmithProvider implements FeatureProvider {
             Object value = flags.getFeatureValue(key);
             // Convert the value received from Flagsmith.
             flagValue = convertValue(value, expectedType);
-
-            if (flagValue.getClass() != expectedType) {
-                throw new TypeMismatchError("Flag value " + key + " had unexpected type "
-                    + flagValue.getClass() + ", expected " + expectedType + ".");
-            }
 
         } catch (FlagsmithClientError flagsmithApiError) {
             return buildEvaluation(defaultValue, ErrorCode.GENERAL, Reason.ERROR, null);
@@ -166,7 +174,7 @@ class FlagsmithProvider implements FeatureProvider {
     /**
      * The method convertValue is converting the object return by the Flagsmith client.
      *
-     * @param value        the value we have received
+     * @param value        the value we have received from Flagsmith
      * @param expectedType the type we expect for this value
      * @param <T>          the type we want to convert to
      * @return A converted object
@@ -176,11 +184,23 @@ class FlagsmithProvider implements FeatureProvider {
             || expectedType == String.class
             || expectedType == Integer.class
             || expectedType == Double.class;
-
+        T flagValue;
         if (isPrimitive) {
-            return (T) value;
+            flagValue = (T) value;
+        } else {
+            flagValue = (T) objectToValue(value);
         }
-        return (T) objectToValue(value);
+
+        if (flagValue.getClass() != expectedType) {
+            try {
+               flagValue = mapJsonNodes(flagValue, expectedType);
+            } catch (FlagsmithJsonException fje){
+                log.warn(fje.getMessage());
+                throw new TypeMismatchError("Flag value had an unexpected type "
+                    + flagValue.getClass() + ", expected " + expectedType + ".");
+            }
+        }
+        return flagValue;
     }
 
     /**
@@ -189,6 +209,7 @@ class FlagsmithProvider implements FeatureProvider {
      * @param object the object you want to wrap
      * @return the wrapped object
      */
+    @SneakyThrows
     private Value objectToValue(Object object) {
         if (object instanceof Value) {
             return (Value) object;
@@ -213,10 +234,41 @@ class FlagsmithProvider implements FeatureProvider {
             return new Value((Instant) object);
         } else if (object instanceof Map) {
             return new Value(mapToStructure((Map<String, Object>) object));
+        } else if (object instanceof ObjectNode) {
+            ObjectNode objectNode = (ObjectNode) object;
+            return objectToValue(new ObjectMapper().convertValue(objectNode, Object.class));
         } else {
             throw new TypeMismatchError("Flag value " + object + " had unexpected type "
                 + object.getClass() + ".");
         }
+    }
+
+    /**
+     * When using identity flags the objects are returned as json nodes. This
+     * method converts the nodes to primitive type objects.
+     *
+     * @param value        the value we have received from Flagsmith
+     * @param expectedType the type we expect for this value
+     * @param <T>          the type we want to convert to
+     * @return A converted object
+     */
+    private <T> T mapJsonNodes(T value, Class<?> expectedType) {
+        if (value.getClass() == BooleanNode.class && expectedType == Boolean.class){
+            return (T)Boolean.valueOf(((BooleanNode) value).asBoolean());
+        }
+        if (value.getClass() == TextNode.class && expectedType == String.class) {
+            return (T)((TextNode) value).asText();
+        }
+        if (value.getClass() == IntNode.class && expectedType == Integer.class) {
+            return (T)Integer.valueOf(((IntNode) value).asInt());
+        }
+        if (value.getClass() == DoubleNode.class && expectedType == Double.class) {
+            return (T)Double.valueOf(((DoubleNode) value).asDouble());
+        }
+        if (value.getClass() == ObjectNode.class && expectedType == Value.class) {
+            return (T)objectToValue((Object) value);
+        }
+        throw new FlagsmithJsonException("Json object could not be cast to primitive type");
     }
 
     /**
