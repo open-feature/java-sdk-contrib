@@ -28,9 +28,9 @@ public class FlagsmithClientConfigurer {
         }
 
         if (options.getEnvFlagsCacheKey() == null
-            && (options.getExpireCacheAfterWrite() != 0
-            || options.getExpireCacheAfterAccess() != 0
-            || options.getMaxCacheSize() != 0
+            && (options.getExpireCacheAfterWrite() > -1
+            || options.getExpireCacheAfterAccess() > -1
+            || options.getMaxCacheSize() > -1
             || options.isRecordCacheStats())) {
             throw new InvalidCacheOptions(
                 "No Flagsmith cache key provided but other cache settings have been set."
@@ -82,21 +82,21 @@ public class FlagsmithClientConfigurer {
             flagsmithCacheConfig.enableEnvLevelCaching(options.getEnvFlagsCacheKey());
         }
 
-        if (options.getExpireCacheAfterWrite() != 0
+        if (options.getExpireCacheAfterWrite() > -1
             && options.getExpireCacheAfterWriteTimeUnit() != null) {
             flagsmithCacheConfig.expireAfterAccess(
                 options.getExpireCacheAfterWrite(),
                 options.getExpireCacheAfterWriteTimeUnit());
         }
 
-        if (options.getExpireCacheAfterAccess() != 0
+        if (options.getExpireCacheAfterAccess() > -1
             && options.getExpireCacheAfterAccessTimeUnit() != null) {
             flagsmithCacheConfig.expireAfterAccess(
                 options.getExpireCacheAfterAccess(),
                 options.getExpireCacheAfterAccessTimeUnit());
         }
 
-        if (options.getMaxCacheSize() != 0) {
+        if (options.getMaxCacheSize() > -1) {
             flagsmithCacheConfig.maxSize(options.getMaxCacheSize());
         }
 
@@ -124,15 +124,15 @@ public class FlagsmithClientConfigurer {
             flagsmithConfig.baseUri(options.getBaseUri());
         }
 
-        if (options.getConnectTimeout() != 0) {
+        if (options.getConnectTimeout() > -1) {
             flagsmithConfig.connectTimeout(options.getConnectTimeout());
         }
 
-        if (options.getWriteTimeout() != 0) {
+        if (options.getWriteTimeout() > -1) {
             flagsmithConfig.writeTimeout(options.getWriteTimeout());
         }
 
-        if (options.getReadTimeout() != 0) {
+        if (options.getReadTimeout() > -1) {
             flagsmithConfig.readTimeout(options.getReadTimeout());
         }
 
@@ -145,7 +145,7 @@ public class FlagsmithClientConfigurer {
             flagsmithConfig.addHttpInterceptor(options.getHttpInterceptor());
         }
 
-        if (options.getRetries() != 0) {
+        if (options.getRetries() > -1) {
             flagsmithConfig.retries(new Retry(options.getRetries()));
         }
 
@@ -153,7 +153,7 @@ public class FlagsmithClientConfigurer {
             flagsmithConfig.withLocalEvaluation(options.isLocalEvaluation());
         }
 
-        if (options.getEnvironmentRefreshIntervalSeconds() != 0) {
+        if (options.getEnvironmentRefreshIntervalSeconds() > -1) {
             flagsmithConfig.withEnvironmentRefreshIntervalSeconds(options
                 .getEnvironmentRefreshIntervalSeconds());
         }

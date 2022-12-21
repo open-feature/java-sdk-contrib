@@ -35,12 +35,12 @@ Options can be defined using the FlagsmithProviderOptions builder. Below are all
 | apiKey      | String  |  | Your API Token. Note that this is either the `Environment API` key or the `Server Side SDK Token`
 | headers      | HashMap<String, String>  |  | Add custom headers which will be sent with each network request to the Flagsmith API.
 | envFlagsCacheKey      | String  |  | Enable in-memory caching for the Flagsmith API.
-| expireCacheAfterWriteTimeUnit      | TimeUnit  |  | 
-| expireCacheAfterWrite      | int  |  | 
-| expireCacheAfterAccessTimeUnit      | TimeUnit  |  | 
-| expireCacheAfterAccess      | int  |  | 
-| maxCacheSize      | int  |  | 
-| recordCacheStats      | boolean  | false | 
+| expireCacheAfterWriteTimeUnit      | TimeUnit  | TimeUnit.MINUTES | The time unit used for cache expiry after write.
+| expireCacheAfterWrite      | int  | -1 | The integer time for cache expiry after write.
+| expireCacheAfterAccessTimeUnit      | TimeUnit  | TimeUnit.MINUTES | The time unit used for cache expiry after reading.
+| expireCacheAfterAccess      | int  | -1 | The integer time for cache expiry after reading.
+| maxCacheSize      | int  | -1 | The maximum size of the cache in MB.
+| recordCacheStats      | boolean  | false | Whether cache statistics should be recorded.
 | baseUri      | String  | https://edge.api.flagsmith.com/api/v1/ | Override the default Flagsmith API URL if you are self-hosting.
 | connectTimeout      | int  | 2000 | The network timeout in milliseconds.
 | writeTimeout      | int  | 5000 | The network timeout in milliseconds when writing.
