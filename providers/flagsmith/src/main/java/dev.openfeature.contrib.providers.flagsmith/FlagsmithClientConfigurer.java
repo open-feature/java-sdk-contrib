@@ -3,8 +3,8 @@ package dev.openfeature.contrib.providers.flagsmith;
 import com.flagsmith.FlagsmithClient;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.Retry;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptions;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptions;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsExceptions;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsExceptions;
 
 /**
  * FlagsmithClientConfigurer helps set up and validate the options for the FlagsmithClient
@@ -18,13 +18,13 @@ public class FlagsmithClientConfigurer {
      *
      * @param options the options used to create the provider
      */
-    public static void validateOptions(FlagsmithProviderOptions options) {
+    private static void validateOptions(FlagsmithProviderOptions options) {
         if (options == null) {
-            throw new InvalidOptions("No options provided");
+            throw new InvalidOptionsExceptions("No options provided");
         }
 
         if (options.getApiKey() == null || options.getApiKey().isEmpty()) {
-            throw new InvalidOptions("Flagsmith API key has not been set.");
+            throw new InvalidOptionsExceptions("Flagsmith API key has not been set.");
         }
 
         if (options.getEnvFlagsCacheKey() == null
@@ -32,7 +32,7 @@ public class FlagsmithClientConfigurer {
             || options.getExpireCacheAfterAccess() > -1
             || options.getMaxCacheSize() > -1
             || options.isRecordCacheStats())) {
-            throw new InvalidCacheOptions(
+            throw new InvalidCacheOptionsExceptions(
                 "No Flagsmith cache key provided but other cache settings have been set."
             );
         }
@@ -44,9 +44,11 @@ public class FlagsmithClientConfigurer {
      * @param options the options used to create the provider
      */
     static FlagsmithClient initializeProvider(FlagsmithProviderOptions options) {
+
+        validateOptions(options);
+
         FlagsmithClient.Builder flagsmithBuilder = FlagsmithClient
             .newBuilder();
-
         // Set main configuration settings
         if (options.getApiKey() != null) {
             flagsmithBuilder.setApiKey(options.getApiKey());

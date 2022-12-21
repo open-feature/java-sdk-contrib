@@ -42,7 +42,6 @@ class FlagsmithProvider implements FeatureProvider {
 
     public FlagsmithProvider(FlagsmithProviderOptions options) {
         this.options = options;
-        FlagsmithClientConfigurer.validateOptions(options);
         flagsmith = FlagsmithClientConfigurer.initializeProvider(options);
     }
 
@@ -206,12 +205,7 @@ class FlagsmithProvider implements FeatureProvider {
             || expectedType == String.class
             || expectedType == Integer.class
             || expectedType == Double.class;
-        T flagValue;
-        if (isPrimitive) {
-            flagValue = (T) value;
-        } else {
-            flagValue = (T) objectToValue(value);
-        }
+        T flagValue = isPrimitive ? (T) value : (T) objectToValue(value);
 
         if (flagValue.getClass() != expectedType) {
             try {

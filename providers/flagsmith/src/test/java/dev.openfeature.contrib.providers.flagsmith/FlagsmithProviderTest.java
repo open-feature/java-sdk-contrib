@@ -2,8 +2,8 @@ package dev.openfeature.contrib.providers.flagsmith;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptions;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptions;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsExceptions;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsExceptions;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.MutableContext;
@@ -147,13 +147,13 @@ public class FlagsmithProviderTest {
     @ParameterizedTest
     @MethodSource("invalidOptions")
     void shouldThrowAnExceptionWhenOptionsInvalid(FlagsmithProviderOptions options) {
-        assertThrows(InvalidOptions.class, () -> new FlagsmithProvider(options));
+        assertThrows(InvalidOptionsExceptions.class, () -> new FlagsmithProvider(options));
     }
 
     @ParameterizedTest
     @MethodSource("invalidCacheOptions")
     void shouldThrowAnExceptionWhenCacheOptionsInvalid(FlagsmithProviderOptions options) {
-        assertThrows(InvalidCacheOptions.class, () -> new FlagsmithProvider(options));
+        assertThrows(InvalidCacheOptionsExceptions.class, () -> new FlagsmithProvider(options));
     }
 
     @SneakyThrows
