@@ -69,7 +69,7 @@ class FlagsmithProvider implements FeatureProvider {
             //Todo once sdk has been updated to 5.1.2 these checks won't be relevant
             Boolean isFlagEnabled = flags.isFeatureEnabled(key);
             Boolean value = isFlagEnabled == null ? Boolean.FALSE : isFlagEnabled;
-            Reason reason = isFlagEnabled != null || isFlagEnabled ? null : Reason.DISABLED;
+            Reason reason = isFlagEnabled != null && isFlagEnabled ? null : Reason.DISABLED;
             return buildEvaluation(value, null, reason, null);
         } catch (FlagsmithClientError flagsmithClientError) {
             return buildEvaluation(defaultValue, ErrorCode.GENERAL, Reason.ERROR, null);
