@@ -3,40 +3,14 @@ package dev.openfeature.contrib.providers.flagsmith;
 import com.flagsmith.FlagsmithClient;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.Retry;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsExceptions;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsExceptions;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsException;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsException;
 
 /**
  * FlagsmithClientConfigurer helps set up and validate the options for the FlagsmithClient
  * used by the FlagsmithProvider class.
  */
 public class FlagsmithClientConfigurer {
-
-    /**
-     * Check the options that have been provided to see if there are any issues.
-     * Exceptions will be thrown if there are issues found with the options.
-     *
-     * @param options the options used to create the provider
-     */
-    private static void validateOptions(FlagsmithProviderOptions options) {
-        if (options == null) {
-            throw new InvalidOptionsExceptions("No options provided");
-        }
-
-        if (options.getApiKey() == null || options.getApiKey().isEmpty()) {
-            throw new InvalidOptionsExceptions("Flagsmith API key has not been set.");
-        }
-
-        if (options.getEnvFlagsCacheKey() == null
-            && (options.getExpireCacheAfterWrite() > -1
-            || options.getExpireCacheAfterAccess() > -1
-            || options.getMaxCacheSize() > -1
-            || options.isRecordCacheStats())) {
-            throw new InvalidCacheOptionsExceptions(
-                "No Flagsmith cache key provided but other cache settings have been set."
-            );
-        }
-    }
 
     /**
      * initializeProvider is initializing the different class element used by the provider.
@@ -165,5 +139,31 @@ public class FlagsmithClientConfigurer {
         }
 
         return flagsmithConfig.build();
+    }
+
+    /**
+     * Check the options that have been provided to see if there are any issues.
+     * Exceptions will be thrown if there are issues found with the options.
+     *
+     * @param options the options used to create the provider
+     */
+    private static void validateOptions(FlagsmithProviderOptions options) {
+        if (options == null) {
+            throw new InvalidOptionsException("No options provided");
+        }
+
+        if (options.getApiKey() == null || options.getApiKey().isEmpty()) {
+            throw new InvalidOptionsException("Flagsmith API key has not been set.");
+        }
+
+        if (options.getEnvFlagsCacheKey() == null
+            && (options.getExpireCacheAfterWrite() > -1
+            || options.getExpireCacheAfterAccess() > -1
+            || options.getMaxCacheSize() > -1
+            || options.isRecordCacheStats())) {
+            throw new InvalidCacheOptionsException(
+                "No Flagsmith cache key provided but other cache settings have been set."
+            );
+        }
     }
 }
