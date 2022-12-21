@@ -20,13 +20,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
+import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.QueueDispatcher;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -35,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class FlagsmithProviderTest {
 
     public static MockWebServer mockFlagsmithServer;
@@ -52,6 +55,11 @@ public class FlagsmithProviderTest {
             if (request.getPath().startsWith("/identities/")) {
                 return new MockResponse()
                     .setBody(readMockResponse("valid_identity_response.json"))
+                    .addHeader("Content-Type", "application/json");
+            }
+            if (request.getPath().startsWith("/environment-document/")) {
+                return new MockResponse()
+                    .setBody(readMockResponse("environment-document.json"))
                     .addHeader("Content-Type", "application/json");
             }
             return new MockResponse().setResponseCode(404);
@@ -114,7 +122,7 @@ public class FlagsmithProviderTest {
         );
     }
 
-    @BeforeEach
+    @BeforeAll
     void setUp() throws IOException {
         mockFlagsmithServer = new MockWebServer();
         mockFlagsmithServer.setDispatcher(this.dispatcher);
@@ -131,7 +139,7 @@ public class FlagsmithProviderTest {
         flagsmithProvider = new FlagsmithProvider(options);
     }
 
-    @AfterEach
+    @AfterAll
     void tearDown() throws IOException {
         mockFlagsmithServer.shutdown();
     }
@@ -156,17 +164,20 @@ public class FlagsmithProviderTest {
         assertThrows(InvalidCacheOptionsException.class, () -> new FlagsmithProvider(options));
     }
 
-    @SneakyThrows
     @Test
     void shouldInitializeProviderWhenAllOptionsSet() {
         HashMap<String, String> headers =
             new HashMap<String, String>() {{
                 put("header", "string");
             }};
+
         FlagsmithProviderOptions options =
             FlagsmithProviderOptions.builder()
                                     .apiKey("ser.API_KEY")
-                                    .baseUri("http://localhost.com")
+                                    .baseUri(String
+                                        .format("http://localhost:%s",
+                                            mockFlagsmithServer
+                                                .getPort()))
                                     .headers(headers)
                                     .envFlagsCacheKey("CACHE_KEY")
                                     .expireCacheAfterWriteTimeUnit(TimeUnit.MINUTES)
@@ -174,8 +185,8 @@ public class FlagsmithProviderTest {
                                     .expireCacheAfterAccessTimeUnit(TimeUnit.MINUTES)
                                     .expireCacheAfterAccess(1)
                                     .maxCacheSize(1)
-                                    .httpInterceptor(null)
                                     .recordCacheStats(true)
+                                    .httpInterceptor(null)
                                     .connectTimeout(1)
                                     .writeTimeout(1)
                                     .readTimeout(1)
@@ -183,6 +194,7 @@ public class FlagsmithProviderTest {
                                     .localEvaluation(true)
                                     .environmentRefreshIntervalSeconds(1)
                                     .enableAnalytics(true)
+                                    .usingBooleanConfigValue(false)
                                     .build();
         assertDoesNotThrow(() -> new FlagsmithProvider(options));
     }
@@ -284,14 +296,15 @@ public class FlagsmithProviderTest {
         String resultString = getResultString(result.getValue(), Boolean.class);
 
         assertEquals("true", resultString);
-        assertEquals(ErrorCode.FLAG_NOT_FOUND, result.getErrorCode());
+        assertEquals(ErrorCode.GENERAL, result.getErrorCode());
         assertEquals(Reason.ERROR.name(), result.getReason());
     }
 
     @SneakyThrows
     @ParameterizedTest
     @MethodSource("provideBooleanKeysForEnabledFlagResolution")
-    void shouldResolveBooleanFlagUsingEnabledField(String key, String flagsmithResult, String reason) {
+    void shouldResolveBooleanFlagUsingEnabledField(
+        String key, String flagsmithResult, String reason) {
         // Given
         FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
                                                                    .apiKey("API_KEY")

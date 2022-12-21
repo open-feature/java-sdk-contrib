@@ -65,11 +65,9 @@ class FlagsmithProvider implements FeatureProvider {
         // Otherwise the enabled field will be used as the boolean flag value
         try {
             Flags flags = getFlags(evaluationContext);
-            //Todo once sdk has been updated to 5.1.2 these checks won't be relevant
-            Boolean isFlagEnabled = flags.isFeatureEnabled(key);
-            Boolean value = isFlagEnabled == null ? Boolean.FALSE : isFlagEnabled;
-            Reason reason = isFlagEnabled != null && isFlagEnabled ? null : Reason.DISABLED;
-            return buildEvaluation(value, null, reason, null);
+            boolean isFlagEnabled = flags.isFeatureEnabled(key);
+            Reason reason = isFlagEnabled ? null : Reason.DISABLED;
+            return buildEvaluation(isFlagEnabled, null, reason, null);
         } catch (FlagsmithClientError flagsmithClientError) {
             return buildEvaluation(defaultValue, ErrorCode.GENERAL, Reason.ERROR, null);
         }
@@ -142,11 +140,7 @@ class FlagsmithProvider implements FeatureProvider {
 
             Flags flags = getFlags(ctx);
             // Check if the flag is enabled, return default value if not
-            Boolean isFlagEnabled = flags.isFeatureEnabled(key);
-            if (isFlagEnabled == null) {
-                return buildEvaluation(defaultValue, ErrorCode.FLAG_NOT_FOUND, Reason.ERROR, null);
-            }
-
+            boolean isFlagEnabled = flags.isFeatureEnabled(key);
             if (!isFlagEnabled) {
                 return buildEvaluation(defaultValue, null, Reason.DISABLED, null);
             }
