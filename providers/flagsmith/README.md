@@ -24,7 +24,7 @@ The following code snippet shows how to initialize the `FlagsmithProvider`:
 FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
                                                            .apiKey("API_KEY")
                                                            .build();
-FlagsmithProvider provider = new FlagdProvider();
+FlagsmithProvider provider = new FlagsmithProvider();
 OpenFeatureAPI.getInstance().setProvider(provider);
 ```
 
