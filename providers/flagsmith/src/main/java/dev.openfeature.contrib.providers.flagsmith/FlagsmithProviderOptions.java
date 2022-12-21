@@ -13,8 +13,8 @@ import okhttp3.Interceptor;
 /**
  * FlagsmithProviderOptions contains the options to initialise the Flagsmith provider.
  */
-@SuppressFBWarnings(value = { "EI_EXPOSE_REP", "EI_EXPOSE_REP2" }, justification = "The headers need to be mutable")
-@Builder
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"}, justification = "The headers need to be mutable")
+@Builder(toBuilder = true)
 @Getter
 class FlagsmithProviderOptions {
 
@@ -42,45 +42,83 @@ class FlagsmithProviderOptions {
      */
     private String envFlagsCacheKey;
 
+    /**
+     * The time unit used for cache expiry after write.
+     * Optional
+     * Default: TimeUnit.MINUTES
+     */
     private TimeUnit expireCacheAfterWriteTimeUnit;
 
-    private int expireCacheAfterWrite;
+    /**
+     * The integer time for cache expiry after write.
+     * Optional
+     * Default: -1
+     */
+    @Builder.Default
+    private int expireCacheAfterWrite = -1;
 
+    /**
+     * The time unit used for cache expiry after reading.
+     * Optional
+     * Default: TimeUnit.MINUTES
+     */
     private TimeUnit expireCacheAfterAccessTimeUnit;
 
-    private int expireCacheAfterAccess;
+    /**
+     * The integer time for cache expiry after reading.
+     * Optional
+     * Default: -1
+     */
+    @Builder.Default
+    private int expireCacheAfterAccess = -1;
 
-    private int maxCacheSize;
+    /**
+     * The maximum size of the cache in MB.
+     * Optional
+     * Default: -1
+     */
+    @Builder.Default
+    private int maxCacheSize = -1;
 
-    private boolean recordCacheStats;
+    /**
+     * Whether cache statistics should be recorded.
+     * Optional
+     * Default: false
+     */
+    @Builder.Default
+    private boolean recordCacheStats = false;
 
     /**
      * Override the default Flagsmith API URL if you are self-hosting.
      * Optional.
      * Default: https://edge.api.flagsmith.com/api/v1/
      */
-    private String baseUri;
+    @Builder.Default
+    private String baseUri = "https://edge.api.flagsmith.com/api/v1/";
 
     /**
      * The network timeout in milliseconds.
      * See https://square.github.io/okhttp/4.x/okhttp/okhttp3/ for details
      * Defaults: 2000
      */
-    private int connectTimeout;
+    @Builder.Default
+    private int connectTimeout = 2000;
 
     /**
      * The network timeout in milliseconds when writing.
      * See https://square.github.io/okhttp/4.x/okhttp/okhttp3/ for details
      * Defaults: 5000
      */
-    private int writeTimeout;
+    @Builder.Default
+    private int writeTimeout = 5000;
 
     /**
      * The network timeout in milliseconds when reading.
      * See https://square.github.io/okhttp/4.x/okhttp/okhttp3/ for details
      * Defaults: 5000
      */
-    private int readTimeout;
+    @Builder.Default
+    private int readTimeout = 5000;
 
     /**
      * Override the sslSocketFactory
@@ -108,14 +146,16 @@ class FlagsmithProviderOptions {
      * Optional.
      * Default: 3
      */
-    private int retries;
+    @Builder.Default
+    private int retries = 3;
 
     /**
      * Controls which mode to run in; local or remote evaluation.
      * Optional.
      * Default: false.
      */
-    private boolean localEvaluation;
+    @Builder.Default
+    private boolean localEvaluation = false;
 
     /**
      * Set environment refresh rate with polling manager.
@@ -123,7 +163,7 @@ class FlagsmithProviderOptions {
      * Optional.
      * Default: 60
      */
-    private int environmentRefreshIntervalSeconds;
+    private int environmentRefreshIntervalSeconds = 60;
 
     /**
      * Controls whether Flag Analytics data is sent to the Flagsmith API
@@ -131,5 +171,6 @@ class FlagsmithProviderOptions {
      * Optional.
      * Default: false
      */
-    private boolean enableAnalytics;
+    @Builder.Default
+    private boolean enableAnalytics = false;
 }
