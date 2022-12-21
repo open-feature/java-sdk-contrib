@@ -5,7 +5,8 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.Getter;
 
 /**
- * A Flagsmith provider exception is the main exception for the provider.
+ * FlagsmithJsonException is the super Exception used when the json returned by
+ * Flagsmith can't be mapped to OpenFeature Value objects.
  */
 @Getter
 public class FlagsmithJsonException extends GeneralError {

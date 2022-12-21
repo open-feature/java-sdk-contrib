@@ -2,8 +2,8 @@ package dev.openfeature.contrib.providers.flagsmith;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsExceptions;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsExceptions;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsException;
+import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsException;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.MutableContext;
@@ -27,6 +27,7 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -35,9 +36,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class FlagsmithProviderTest {
 
-    public static MockWebServer mockFlagsmithClient;
+    public static MockWebServer mockFlagsmithServer;
     public static FlagsmithProvider flagsmithProvider;
 
     final QueueDispatcher dispatcher = new QueueDispatcher() {
@@ -116,15 +118,15 @@ public class FlagsmithProviderTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        mockFlagsmithClient = new MockWebServer();
-        mockFlagsmithClient.setDispatcher(this.dispatcher);
-        mockFlagsmithClient.start();
+        mockFlagsmithServer = new MockWebServer();
+        mockFlagsmithServer.setDispatcher(this.dispatcher);
+        mockFlagsmithServer.start();
 
         FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
                                                                    .apiKey("API_KEY")
                                                                    .baseUri(String
                                                                        .format("http://localhost:%s",
-                                                                           mockFlagsmithClient
+                                                                           mockFlagsmithServer
                                                                                .getPort()))
                                                                    .usingBooleanConfigValue(true)
                                                                    .build();
@@ -133,7 +135,7 @@ public class FlagsmithProviderTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        mockFlagsmithClient.shutdown();
+        mockFlagsmithServer.shutdown();
     }
 
     @Test
@@ -147,13 +149,13 @@ public class FlagsmithProviderTest {
     @ParameterizedTest
     @MethodSource("invalidOptions")
     void shouldThrowAnExceptionWhenOptionsInvalid(FlagsmithProviderOptions options) {
-        assertThrows(InvalidOptionsExceptions.class, () -> new FlagsmithProvider(options));
+        assertThrows(InvalidOptionsException.class, () -> new FlagsmithProvider(options));
     }
 
     @ParameterizedTest
     @MethodSource("invalidCacheOptions")
     void shouldThrowAnExceptionWhenCacheOptionsInvalid(FlagsmithProviderOptions options) {
-        assertThrows(InvalidCacheOptionsExceptions.class, () -> new FlagsmithProvider(options));
+        assertThrows(InvalidCacheOptionsException.class, () -> new FlagsmithProvider(options));
     }
 
     @SneakyThrows
@@ -297,7 +299,7 @@ public class FlagsmithProviderTest {
                                                                    .apiKey("API_KEY")
                                                                    .baseUri(String
                                                                        .format("http://localhost:%s",
-                                                                           mockFlagsmithClient
+                                                                           mockFlagsmithServer
                                                                                .getPort()))
                                                                    .build();
         FlagsmithProvider booleanFlagsmithProvider = new FlagsmithProvider(options);

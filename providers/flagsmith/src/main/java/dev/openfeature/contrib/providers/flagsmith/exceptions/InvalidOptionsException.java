@@ -4,15 +4,14 @@ import dev.openfeature.sdk.ErrorCode;
 import lombok.Getter;
 
 /**
- * InvalidOptions is the super Exception used when we have a configuration exception.
+ * InvalidOptionsException is the super Exception used when we have a configuration exception.
  */
 @Getter
-public class InvalidCacheOptionsExceptions extends FlagsmithProviderException {
+public class InvalidOptionsException extends FlagsmithProviderException {
     private static final long serialVersionUID = 1L;
     private final ErrorCode errorCode = ErrorCode.GENERAL;
 
-    public InvalidCacheOptionsExceptions(String message) {
+    public InvalidOptionsException(String message) {
         super(message);
     }
-
 }
