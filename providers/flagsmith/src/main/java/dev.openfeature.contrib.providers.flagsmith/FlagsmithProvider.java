@@ -202,13 +202,8 @@ class FlagsmithProvider implements FeatureProvider {
         T flagValue = isPrimitive ? (T) value : (T) objectToValue(value);
 
         if (flagValue.getClass() != expectedType) {
-            try {
-                flagValue = mapJsonNodes(flagValue, expectedType);
-            } catch (FlagsmithJsonException fje) {
-                log.warn(fje.getMessage());
-                throw new TypeMismatchError("Flag value had an unexpected type "
-                    + flagValue.getClass() + ", expected " + expectedType + ".");
-            }
+            throw new TypeMismatchError("Flag value had an unexpected type "
+                + flagValue.getClass() + ", expected " + expectedType + ".");
         }
         return flagValue;
     }
@@ -251,34 +246,6 @@ class FlagsmithProvider implements FeatureProvider {
             throw new TypeMismatchError("Flag value " + object + " had unexpected type "
                 + object.getClass() + ".");
         }
-    }
-
-    /**
-     * When using identity flags the objects are returned as json nodes. This
-     * method converts the nodes to primitive type objects.
-     *
-     * @param value        the value we have received from Flagsmith
-     * @param expectedType the type we expect for this value
-     * @param <T>          the type we want to convert to
-     * @return A converted object
-     */
-    private <T> T mapJsonNodes(T value, Class<?> expectedType) {
-        if (value.getClass() == BooleanNode.class && expectedType == Boolean.class) {
-            return (T) Boolean.valueOf(((BooleanNode) value).asBoolean());
-        }
-        if (value.getClass() == TextNode.class && expectedType == String.class) {
-            return (T) ((TextNode) value).asText();
-        }
-        if (value.getClass() == IntNode.class && expectedType == Integer.class) {
-            return (T) Integer.valueOf(((IntNode) value).asInt());
-        }
-        if (value.getClass() == DoubleNode.class && expectedType == Double.class) {
-            return (T) Double.valueOf(((DoubleNode) value).asDouble());
-        }
-        if (value.getClass() == ObjectNode.class && expectedType == Value.class) {
-            return (T) objectToValue((Object) value);
-        }
-        throw new FlagsmithJsonException("Json object could not be cast to primitive type");
     }
 
     /**
