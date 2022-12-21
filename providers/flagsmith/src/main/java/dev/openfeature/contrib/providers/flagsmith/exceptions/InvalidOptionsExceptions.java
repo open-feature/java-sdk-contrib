@@ -7,12 +7,11 @@ import lombok.Getter;
  * InvalidOptions is the super Exception used when we have a configuration exception.
  */
 @Getter
-public class InvalidCacheOptions extends FlagsmithProviderException {
+public class InvalidOptionsExceptions extends FlagsmithProviderException {
     private static final long serialVersionUID = 1L;
     private final ErrorCode errorCode = ErrorCode.GENERAL;
 
-    public InvalidCacheOptions(String message) {
+    public InvalidOptionsExceptions(String message) {
         super(message);
     }
-
 }
