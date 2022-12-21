@@ -20,27 +20,32 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
-import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.QueueDispatcher;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class FlagsmithProviderTest {
 
     public static MockWebServer mockFlagsmithServer;
+    public static MockWebServer mockFlagsmithErrorServer;
     public static FlagsmithProvider flagsmithProvider;
 
     final QueueDispatcher dispatcher = new QueueDispatcher() {
@@ -127,6 +132,8 @@ public class FlagsmithProviderTest {
         mockFlagsmithServer = new MockWebServer();
         mockFlagsmithServer.setDispatcher(this.dispatcher);
         mockFlagsmithServer.start();
+        mockFlagsmithErrorServer = new MockWebServer();
+        mockFlagsmithErrorServer.start();
 
         FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
                                                                    .apiKey("API_KEY")
@@ -142,29 +149,11 @@ public class FlagsmithProviderTest {
     @AfterAll
     void tearDown() throws IOException {
         mockFlagsmithServer.shutdown();
+        mockFlagsmithErrorServer.shutdown();
     }
 
     @Test
-    void shouldGetMetadataAndValidateName() {
-        assertEquals("Flagsmith Provider", new FlagsmithProvider(FlagsmithProviderOptions.builder()
-                                                                                         .apiKey("API_KEY")
-                                                                                         .build())
-            .getMetadata().getName());
-    }
-
-    @ParameterizedTest
-    @MethodSource("invalidOptions")
-    void shouldThrowAnExceptionWhenOptionsInvalid(FlagsmithProviderOptions options) {
-        assertThrows(InvalidOptionsException.class, () -> new FlagsmithProvider(options));
-    }
-
-    @ParameterizedTest
-    @MethodSource("invalidCacheOptions")
-    void shouldThrowAnExceptionWhenCacheOptionsInvalid(FlagsmithProviderOptions options) {
-        assertThrows(InvalidCacheOptionsException.class, () -> new FlagsmithProvider(options));
-    }
-
-    @Test
+    @Order(1)
     void shouldInitializeProviderWhenAllOptionsSet() {
         HashMap<String, String> headers =
             new HashMap<String, String>() {{
@@ -197,6 +186,26 @@ public class FlagsmithProviderTest {
                                     .usingBooleanConfigValue(false)
                                     .build();
         assertDoesNotThrow(() -> new FlagsmithProvider(options));
+    }
+
+    @Test
+    void shouldGetMetadataAndValidateName() {
+        assertEquals("Flagsmith Provider", new FlagsmithProvider(FlagsmithProviderOptions.builder()
+                                                                                         .apiKey("API_KEY")
+                                                                                         .build())
+            .getMetadata().getName());
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidOptions")
+    void shouldThrowAnExceptionWhenOptionsInvalid(FlagsmithProviderOptions options) {
+        assertThrows(InvalidOptionsException.class, () -> new FlagsmithProvider(options));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidCacheOptions")
+    void shouldThrowAnExceptionWhenCacheOptionsInvalid(FlagsmithProviderOptions options) {
+        assertThrows(InvalidCacheOptionsException.class, () -> new FlagsmithProvider(options));
     }
 
     @SneakyThrows
@@ -325,6 +334,53 @@ public class FlagsmithProviderTest {
         assertEquals(flagsmithResult, resultString);
         assertNull(result.getErrorCode());
         assertEquals(reason, result.getReason());
+    }
+
+    @SneakyThrows
+    @Test
+    void shouldNotResolveBooleanFlagUsingEnabledIfFlagNotFound() {
+        // Given
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                                                                   .apiKey("API_KEY")
+                                                                   .baseUri(String
+                                                                       .format("http://localhost:%s",
+                                                                           mockFlagsmithErrorServer
+                                                                               .getPort()))
+                                                                   .build();
+        FlagsmithProvider booleanFlagsmithProvider = new FlagsmithProvider(options);
+
+        // When
+        ProviderEvaluation<Boolean> result =
+            booleanFlagsmithProvider.getBooleanEvaluation("true_key", false, new MutableContext());
+
+        // Then
+        assertFalse(result.getValue());
+        assertEquals(ErrorCode.GENERAL, result.getErrorCode());
+        assertEquals(Reason.ERROR.name(), result.getReason());
+    }
+
+    @SneakyThrows
+    @Test
+    void shouldNotResolveBooleanFlagValueIfFlagNotFound() {
+        // Given
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                                                                   .apiKey("API_KEY")
+                                                                   .baseUri(String
+                                                                       .format("http://localhost:%s",
+                                                                           mockFlagsmithErrorServer
+                                                                               .getPort()))
+                                                                   .usingBooleanConfigValue(false)
+                                                                   .build();
+        FlagsmithProvider booleanFlagsmithProvider = new FlagsmithProvider(options);
+
+        // When
+        ProviderEvaluation<Boolean> result =
+            booleanFlagsmithProvider.getBooleanEvaluation("true_key", false, new MutableContext());
+
+        // Then
+        assertFalse(result.getValue());
+        assertEquals(ErrorCode.GENERAL, result.getErrorCode());
+        assertEquals(Reason.ERROR.name(), result.getReason());
     }
 
     private String readMockResponse(String filename) throws IOException {
