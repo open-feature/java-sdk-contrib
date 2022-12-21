@@ -82,6 +82,15 @@ public class FlagsmithProviderTest {
         );
     }
 
+    private static Stream<Arguments> provideBooleanKeysForEnabledFlagResolution() {
+        return Stream.of(
+            Arguments.of("true_key", "true", null),
+            Arguments.of("false_key", "true", null),
+            Arguments.of("true_key_disabled", "false", Reason.DISABLED.name()),
+            Arguments.of("false_key_disabled", "false", Reason.DISABLED.name())
+        );
+    }
+
     private static Stream<Arguments> invalidOptions() {
         return Stream.of(
             null,
@@ -117,6 +126,7 @@ public class FlagsmithProviderTest {
                                                                        .format("http://localhost:%s",
                                                                            mockFlagsmithClient
                                                                                .getPort()))
+                                                                   .usingBooleanConfigValue(true)
                                                                    .build();
         flagsmithProvider = new FlagsmithProvider(options);
     }
@@ -267,7 +277,8 @@ public class FlagsmithProviderTest {
         EvaluationContext evaluationContext = new MutableContext();
 
         // When
-        ProviderEvaluation<Boolean> result = flagsmithProvider.getBooleanEvaluation(key, true, new MutableContext());
+        ProviderEvaluation<Boolean> result = flagsmithProvider
+            .getBooleanEvaluation(key, true, new MutableContext());
 
         // Then
         String resultString = getResultString(result.getValue(), Boolean.class);
@@ -275,6 +286,32 @@ public class FlagsmithProviderTest {
         assertEquals("true", resultString);
         assertEquals(ErrorCode.FLAG_NOT_FOUND, result.getErrorCode());
         assertEquals(Reason.ERROR.name(), result.getReason());
+    }
+
+    @SneakyThrows
+    @ParameterizedTest
+    @MethodSource("provideBooleanKeysForEnabledFlagResolution")
+    void shouldResolveBooleanFlagUsingEnabledField(String key, String flagsmithResult, String reason) {
+        // Given
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                                                                   .apiKey("API_KEY")
+                                                                   .baseUri(String
+                                                                       .format("http://localhost:%s",
+                                                                           mockFlagsmithClient
+                                                                               .getPort()))
+                                                                   .build();
+        FlagsmithProvider booleanFlagsmithProvider = new FlagsmithProvider(options);
+
+        // When
+        ProviderEvaluation<Boolean> result =
+            booleanFlagsmithProvider.getBooleanEvaluation(key, true, new MutableContext());
+
+        // Then
+        String resultString = getResultString(result.getValue(), Boolean.class);
+
+        assertEquals(flagsmithResult, resultString);
+        assertNull(result.getErrorCode());
+        assertEquals(reason, result.getReason());
     }
 
     private String readMockResponse(String filename) throws IOException {

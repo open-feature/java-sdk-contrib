@@ -38,8 +38,10 @@ class FlagsmithProvider implements FeatureProvider {
 
     private static final String NAME = "Flagsmith Provider";
     private static FlagsmithClient flagsmith;
+    private FlagsmithProviderOptions options;
 
     public FlagsmithProvider(FlagsmithProviderOptions options) {
+        this.options = options;
         FlagsmithClientConfigurer.validateOptions(options);
         flagsmith = FlagsmithClientConfigurer.initializeProvider(options);
     }
@@ -57,7 +59,21 @@ class FlagsmithProvider implements FeatureProvider {
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(
         String key, Boolean defaultValue, EvaluationContext evaluationContext) {
-        return resolveFlagsmithEvaluation(key, defaultValue, evaluationContext, Boolean.class);
+        // When isUsingBooleanConfigValue the feature_state_value will be used as the flag value
+        if (this.options.isUsingBooleanConfigValue()) {
+            return resolveFlagsmithEvaluation(key, defaultValue, evaluationContext, Boolean.class);
+        }
+        // Otherwise the enabled field will be used as the boolean flag value
+        try {
+            Flags flags = getFlags(evaluationContext);
+            //Todo once sdk has been updated to 5.1.2 these checks won't be relevant
+            Boolean isFlagEnabled = flags.isFeatureEnabled(key);
+            Boolean value = isFlagEnabled == null ? Boolean.FALSE : isFlagEnabled;
+            Reason reason = isFlagEnabled ? null : Reason.DISABLED;
+            return buildEvaluation(value, null, reason, null);
+        } catch (FlagsmithClientError flagsmithClientError) {
+            return buildEvaluation(defaultValue, ErrorCode.GENERAL, Reason.ERROR, null);
+        }
     }
 
     @Override
@@ -85,6 +101,24 @@ class FlagsmithProvider implements FeatureProvider {
     }
 
     /**
+     * Get all the flags for a given environment or identity. The Method will use
+     * getEnvironmentFlags from the Flagsmith sdk if no targeting key is provided
+     * in the EvaluationContext. If a targeting key is provided then the
+     * getIdentityFlags method will be used.
+     *
+     * @param ctx an EvaluationContext object with flag evaluation options
+     * @return a Flagsmith Flags object with all the respective flags
+     * @throws FlagsmithClientError Thrown when there are issue retrieving the flags
+     *                              from Flagsmith
+     */
+    private Flags getFlags(EvaluationContext ctx) throws FlagsmithClientError {
+        return Objects.isNull(ctx.getTargetingKey()) || ctx.getTargetingKey().isEmpty()
+            ? flagsmith.getEnvironmentFlags()
+            // Todo add traits when attributes are added to context
+            : flagsmith.getIdentityFlags(ctx.getTargetingKey());
+    }
+
+    /**
      * Using the Flagsmith SDK this method resolves any type of flag into
      * a ProviderEvaluation. Since Flagsmith's sdk is agnostic of type
      * the flag needs to be cast to the correct type for OpenFeature's
@@ -107,25 +141,15 @@ class FlagsmithProvider implements FeatureProvider {
         String variationType = "";
         try {
 
-            Flags flags = Objects.isNull(ctx.getTargetingKey()) || ctx.getTargetingKey().isEmpty()
-                ? flagsmith.getEnvironmentFlags()
-                // Todo add traits when attributes are added to context
-                : flagsmith.getIdentityFlags(ctx.getTargetingKey());
+            Flags flags = getFlags(ctx);
             // Check if the flag is enabled, return default value if not
             Boolean isFlagEnabled = flags.isFeatureEnabled(key);
             if (isFlagEnabled == null) {
-                return ProviderEvaluation.<T>builder()
-                                         .value(defaultValue)
-                                         .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                                         .reason(Reason.ERROR.name())
-                                         .build();
+                return buildEvaluation(defaultValue, ErrorCode.FLAG_NOT_FOUND, Reason.ERROR, null);
             }
 
             if (!isFlagEnabled) {
-                return ProviderEvaluation.<T>builder()
-                                         .value(defaultValue)
-                                         .reason(Reason.DISABLED.name())
-                                         .build();
+                return buildEvaluation(defaultValue, null, Reason.DISABLED, null);
             }
 
             Object value = flags.getFeatureValue(key);
