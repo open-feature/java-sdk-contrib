@@ -52,3 +52,4 @@ Options can be defined using the FlagsmithProviderOptions builder. Below are all
 | localEvaluation      | boolean  | false | Controls which mode to run in; local or remote evaluation.
 | environmentRefreshIntervalSeconds      | int  | 60 | Set environment refresh rate with polling manager.
 | enableAnalytics      | boolean  | false | Controls whether Flag Analytics data is sent to the Flagsmith API
+| usingBooleanConfigValue      | boolean  | false | Determines whether to resolve a feature value as a boolean or use the isFeatureEnabled as the flag itself. These values will be false and true respectively.

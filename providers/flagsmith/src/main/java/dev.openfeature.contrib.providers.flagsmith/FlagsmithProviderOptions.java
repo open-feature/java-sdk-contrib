@@ -173,4 +173,14 @@ class FlagsmithProviderOptions {
      */
     @Builder.Default
     private boolean enableAnalytics = false;
+
+    /**
+     * Determines whether to resolve a feature value as a boolean or use
+     * the isFeatureEnabled as the flag itself. These values will be false
+     * and true respectively.
+     * Optional.
+     * Default: false
+     */
+    @Builder.Default
+    private boolean usingBooleanConfigValue = false;
 }
