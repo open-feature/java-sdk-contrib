@@ -7,12 +7,15 @@ evaluation to a span as a span event. This can be used to determine the impact a
 enabling enhanced observability use cases, such as A/B testing or progressive feature releases.
 
 ## Installation
-
+<!-- x-release-please-start-version -->
+```xml
+    <dependency>
+        <groupId>dev.openfeature.contrib.hooks</groupId>
+        <artifactId>otel</artifactId>
+        <version>0.4.0</version>
+    </dependency>
 ```
-    <groupId>dev.openfeature.contrib.hooks</groupId>
-	<artifactId>otel</artifactId>
-	<version>0.4.0</version> 
-```
+<!-- x-release-please-end-version -->
 
 ## Usage
 

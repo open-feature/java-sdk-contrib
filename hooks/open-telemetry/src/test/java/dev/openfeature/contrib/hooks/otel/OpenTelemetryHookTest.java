@@ -64,13 +64,13 @@ class OpenTelemetryHookTest {
     void should_add_event_in_span_during_after_method_execution() {
         FlagEvaluationDetails<String> details = FlagEvaluationDetails.<String>builder()
                 .variant("test_variant")
-                .value("variant passed")
+                .value("variant_value")
                 .build();
         mockedSpan.when(Span::current).thenReturn(span);
         openTelemetryHook.after(hookContext, details, null);
         Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
                 providerNameAttributeKey, "test provider",
-                variantAttributeKey, "\"variant passed\"");
+                variantAttributeKey, "variant_value");
         verify(span).addEvent("feature_flag", expectedAttr);
     }
 
@@ -86,7 +86,7 @@ class OpenTelemetryHookTest {
                 .build();
         FlagEvaluationDetails<String> details = FlagEvaluationDetails.<String>builder()
                 .variant(null)
-                .value("variant passed")
+                .value("variant_value")
                 .build();
         mockedSpan.when(Span::current).thenReturn(null);
         openTelemetryHook.after(hookContext, details, null);

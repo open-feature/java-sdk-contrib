@@ -1,13 +1,11 @@
 package dev.openfeature.contrib.hooks.otel;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import lombok.SneakyThrows;
 
 import java.util.Map;
 
@@ -25,8 +23,6 @@ public class OpenTelemetryHook implements Hook {
 
     private static final String EVENT_NAME = "feature_flag";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     /**
      * Create a new OpenTelemetryHook instance.
      */
@@ -40,11 +36,10 @@ public class OpenTelemetryHook implements Hook {
      * @param details Information about how the flag was resolved, including any resolved values.
      * @param hints  An immutable mapping of data for users to communicate to the hooks.
      */
-    @SneakyThrows
     @Override
     public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         Span currentSpan = Span.current();
-        String value = details.getValue() != null ? getValue(details.getValue()) : "";
+        String value = details.getValue() != null ? details.getValue().toString() : "";
         if (currentSpan != null) {
             Attributes attributes = Attributes.of(
                     flagKeyAttributeKey, ctx.getFlagKey(),
@@ -70,10 +65,5 @@ public class OpenTelemetryHook implements Hook {
                     providerNameAttributeKey, ctx.getProviderMetadata().getName());
             currentSpan.recordException(error, attributes);
         }
-    }
-
-    @SneakyThrows
-    private String getValue(Object value) {
-        return objectMapper.writeValueAsString(value);
     }
 }
