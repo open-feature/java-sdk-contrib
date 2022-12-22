@@ -50,11 +50,6 @@ class FlagsmithProvider implements FeatureProvider {
     }
 
     @Override
-    public List<Hook> getProviderHooks() {
-        return FeatureProvider.super.getProviderHooks();
-    }
-
-    @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(
         String key, Boolean defaultValue, EvaluationContext evaluationContext) {
         // When isUsingBooleanConfigValue the feature_state_value will be used as the flag value

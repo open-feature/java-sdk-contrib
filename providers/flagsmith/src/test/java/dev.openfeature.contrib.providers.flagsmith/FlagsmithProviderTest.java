@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsException;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsException;
-import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
@@ -26,14 +25,13 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.QueueDispatcher;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -125,14 +123,14 @@ public class FlagsmithProviderTest {
         );
     }
 
-    @BeforeAll
+    @BeforeEach
     void setUp() throws IOException {
         mockFlagsmithServer = new MockWebServer();
         mockFlagsmithServer.setDispatcher(this.dispatcher);
         mockFlagsmithServer.start();
 
         // Error server will always result in FlagsmithApiError's used for
-        // tests that need to handle that type of error
+        // tests that need to handle this type of error
         mockFlagsmithErrorServer = new MockWebServer();
         mockFlagsmithErrorServer.start();
 
@@ -148,7 +146,7 @@ public class FlagsmithProviderTest {
         flagsmithProvider = new FlagsmithProvider(options);
     }
 
-    @AfterAll
+    @AfterEach
     void tearDown() throws IOException {
         mockFlagsmithServer.shutdown();
         mockFlagsmithErrorServer.shutdown();
