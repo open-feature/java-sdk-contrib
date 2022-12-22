@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.3...dev.openfeature.contrib.providers.flagd-v0.5.4) (2022-12-22)
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.grpc:grpc-netty to v1.51.1 ([#163](https://github.com/open-feature/java-sdk-contrib/issues/163)) ([49a0249](https://github.com/open-feature/java-sdk-contrib/commit/49a024931058b47f93f1159e7f1938c389ed83e9))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.51.0 ([#156](https://github.com/open-feature/java-sdk-contrib/issues/156)) ([c76f6fd](https://github.com/open-feature/java-sdk-contrib/commit/c76f6fdc71801dffe872019ebff95b37768b0cd2))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.51.1 ([#164](https://github.com/open-feature/java-sdk-contrib/issues/164)) ([1cc26ae](https://github.com/open-feature/java-sdk-contrib/commit/1cc26ae5e4afca0972a55b150efca9928b22d510))
+* **deps:** update dependency io.grpc:grpc-stub to v1.51.1 ([#158](https://github.com/open-feature/java-sdk-contrib/issues/158)) ([3960500](https://github.com/open-feature/java-sdk-contrib/commit/39605008f245c38a36b999d7b005ec010eb23059))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.86.final ([#165](https://github.com/open-feature/java-sdk-contrib/issues/165)) ([c4946af](https://github.com/open-feature/java-sdk-contrib/commit/c4946af8fb5d93db5d7927f0a3eb5878b93fe754))
+
 ## [0.5.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.2...dev.openfeature.contrib.providers.flagd-v0.5.3) (2022-11-28)
 
 

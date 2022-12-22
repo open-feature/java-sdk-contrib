@@ -1,1 +1,1 @@
-{"providers/flagd":"0.5.3","hooks/open-telemetry":"0.4.0","providers/go-feature-flag":"0.2.1"}
+{"providers/flagd":"0.5.4","hooks/open-telemetry":"1.0.0","providers/go-feature-flag":"0.2.2"}
