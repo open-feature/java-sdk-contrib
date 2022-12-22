@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd;
 
 import java.util.Map;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.sdk.ProviderEvaluation;
 import com.google.protobuf.Value;
@@ -9,6 +10,7 @@ import com.google.protobuf.Value;
 /**
  * EventStreamObserver handles events emitted by flagd.
  */
+@Slf4j
 public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private EventStreamCallback callback;
     private Boolean cacheEnabled;
@@ -18,9 +20,8 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     private Map<String, ProviderEvaluation<Integer>> integerCache;
     private Map<String, ProviderEvaluation<dev.openfeature.sdk.Value>> objectCache;
 
-
-    static final String CONFIGURATION_CHANGE = "configuration_change";
-    static final String PROVIDER_READY = "provider_ready";
+    private static final String configurationChange = "configuration_change";
+    private static final String providerReady = "provider_ready";
 
     EventStreamObserver(
         Boolean cacheEnabled, Map<String, ProviderEvaluation<Boolean>> booleanCache,
@@ -40,27 +41,27 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     @Override
     public void onNext(EventStreamResponse value) {
         switch (value.getType()) {
-            case CONFIGURATION_CHANGE:
+            case configurationChange:
                 this.handleConfigurationChangeEvent(value);
                 break;
-            case PROVIDER_READY:
+            case providerReady:
                 this.handleProviderReadyEvent();
                 break;
             default:
-                // log
+                log.warn("unhandled event type {}", value.getType());
                 return;
         }
     }
 
     @Override
     public void onError(Throwable t) {
-        t.printStackTrace();
+        log.error("event stream", t);
         this.purgeCache();
         this.callback.setEventStreamAlive(false);
         try {
             this.callback.restartEventStream();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("restart event stream", e);
         }
     }
 

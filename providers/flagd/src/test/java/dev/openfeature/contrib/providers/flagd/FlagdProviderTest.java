@@ -39,6 +39,7 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -85,7 +86,7 @@ class FlagdProviderTest {
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any())) // why does any(ManagedChannel.class) fail?
+            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                     .thenReturn(mockBlockingStub);
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(mockStub);
@@ -121,7 +122,7 @@ class FlagdProviderTest {
             NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
             try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any()))
+                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                         .thenReturn(mockBlockingStub);
                 mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                         .thenReturn(mockStub);
@@ -158,7 +159,7 @@ class FlagdProviderTest {
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any()))
+            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                     .thenReturn(mockBlockingStub);
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(mockStub);
@@ -187,7 +188,7 @@ class FlagdProviderTest {
             NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
     
             try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any()))
+                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                         .thenReturn(mockBlockingStub);
                 mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                         .thenReturn(mockStub);

@@ -38,7 +38,6 @@ import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.map.LRUMap;
@@ -198,7 +197,10 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     private void initCache(String cache, int maxSize) {
         switch (cache) {
+            case DISABLED:
+                return;
             case LRU_CACHE:
+            default:
                 this.booleanCache = Collections.synchronizedMap(
                     new LRUMap<String, ProviderEvaluation<Boolean>>(maxSize));
                 this.stringCache = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<String>>(maxSize));
@@ -206,12 +208,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 this.integerCache = Collections.synchronizedMap(
                     new LRUMap<String, ProviderEvaluation<Integer>>(maxSize));
                 this.objectCache = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<Value>>(maxSize));
-                break;
-            case DISABLED:
-                return;
-            default:
-                initCache(DEFAULT_CACHE, maxSize);
-                return;
         }
 
         this.cacheEnabled = true;
