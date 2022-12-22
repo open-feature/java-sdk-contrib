@@ -24,9 +24,7 @@ public class FlagsmithClientConfigurer {
         FlagsmithClient.Builder flagsmithBuilder = FlagsmithClient
             .newBuilder();
         // Set main configuration settings
-        if (options.getApiKey() != null) {
-            flagsmithBuilder.setApiKey(options.getApiKey());
-        }
+        flagsmithBuilder.setApiKey(options.getApiKey());
 
         if (options.getHeaders() != null && !options.getHeaders().isEmpty()) {
             flagsmithBuilder.withCustomHttpHeaders(options.getHeaders());

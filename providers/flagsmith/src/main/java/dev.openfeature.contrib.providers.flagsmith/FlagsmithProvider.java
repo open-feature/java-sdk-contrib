@@ -1,15 +1,12 @@
 package dev.openfeature.contrib.providers.flagsmith;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.DoubleNode;
-import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.flagsmith.FlagsmithClient;
+import com.flagsmith.exceptions.FeatureNotFoundError;
+import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.Flags;
-import dev.openfeature.contrib.providers.flagsmith.exceptions.FlagsmithJsonException;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
@@ -20,6 +17,8 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.time.Instant;
@@ -69,7 +68,7 @@ class FlagsmithProvider implements FeatureProvider {
             Reason reason = isFlagEnabled ? null : Reason.DISABLED;
             return buildEvaluation(isFlagEnabled, null, reason, null);
         } catch (FlagsmithClientError flagsmithClientError) {
-            return buildEvaluation(defaultValue, ErrorCode.GENERAL, Reason.ERROR, null);
+            throw new GeneralError(flagsmithClientError.getMessage());
         }
     }
 
@@ -111,8 +110,7 @@ class FlagsmithProvider implements FeatureProvider {
     private Flags getFlags(EvaluationContext ctx) throws FlagsmithClientError {
         return Objects.isNull(ctx.getTargetingKey()) || ctx.getTargetingKey().isEmpty()
             ? flagsmith.getEnvironmentFlags()
-            // Todo add traits when attributes are added to context
-            : flagsmith.getIdentityFlags(ctx.getTargetingKey());
+            : flagsmith.getIdentityFlags(ctx.getTargetingKey(), ctx.asObjectMap());
     }
 
     /**
@@ -149,8 +147,10 @@ class FlagsmithProvider implements FeatureProvider {
             // Convert the value received from Flagsmith.
             flagValue = convertValue(value, expectedType);
 
+        } catch (FeatureNotFoundError featureNotFoundError) {
+            throw new FlagNotFoundError(String.format("Could not find flag with key %s", key));
         } catch (FlagsmithClientError flagsmithApiError) {
-            return buildEvaluation(defaultValue, ErrorCode.GENERAL, Reason.ERROR, null);
+            throw new GeneralError(flagsmithApiError.getMessage());
         }
 
         return buildEvaluation(flagValue, errorCode, reason, variationType);
