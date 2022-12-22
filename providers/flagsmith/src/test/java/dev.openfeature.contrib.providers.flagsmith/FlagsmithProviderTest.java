@@ -26,11 +26,8 @@ import okhttp3.mockwebserver.QueueDispatcher;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -40,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class FlagsmithProviderTest {
 
@@ -132,8 +128,12 @@ public class FlagsmithProviderTest {
         mockFlagsmithServer = new MockWebServer();
         mockFlagsmithServer.setDispatcher(this.dispatcher);
         mockFlagsmithServer.start();
+
+        // Error server will always result in FlagsmithApiError's used for
+        // tests that need to handle that type of error
         mockFlagsmithErrorServer = new MockWebServer();
         mockFlagsmithErrorServer.start();
+
 
         FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
                                                                    .apiKey("API_KEY")
@@ -153,7 +153,6 @@ public class FlagsmithProviderTest {
     }
 
     @Test
-    @Order(1)
     void shouldInitializeProviderWhenAllOptionsSet() {
         HashMap<String, String> headers =
             new HashMap<String, String>() {{
@@ -170,15 +169,15 @@ public class FlagsmithProviderTest {
                                     .headers(headers)
                                     .envFlagsCacheKey("CACHE_KEY")
                                     .expireCacheAfterWriteTimeUnit(TimeUnit.MINUTES)
-                                    .expireCacheAfterWrite(1)
+                                    .expireCacheAfterWrite(10000)
                                     .expireCacheAfterAccessTimeUnit(TimeUnit.MINUTES)
-                                    .expireCacheAfterAccess(1)
+                                    .expireCacheAfterAccess(10000)
                                     .maxCacheSize(1)
                                     .recordCacheStats(true)
                                     .httpInterceptor(null)
-                                    .connectTimeout(1)
-                                    .writeTimeout(1)
-                                    .readTimeout(1)
+                                    .connectTimeout(10000)
+                                    .writeTimeout(10000)
+                                    .readTimeout(10000)
                                     .retries(1)
                                     .localEvaluation(true)
                                     .environmentRefreshIntervalSeconds(1)
