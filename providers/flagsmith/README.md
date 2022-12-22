@@ -1,29 +1,34 @@
 # Flagsmith OpenFeature Java Provider
-
 ![Experimental](https://img.shields.io/badge/experimental-breaking%20changes%20allowed-yellow)
-
+[![Download](https://img.shields.io/maven-central/v/com.flagsmith/flagsmith-java-client)](https://mvnrepository.com/artifact/com.flagsmith/flagsmith-java-client)
 Flagsmith provides an all-in-one platform for developing, implementing, and managing your feature flags.
 
 ## Installation
+
 <!-- x-release-please-start-version -->
+
 ```xml
+
 <dependency>
-  <groupId>dev.openfeature.contrib.providers</groupId>
-  <artifactId>flagsmith</artifactId>
-  <version>0.0.1</version>
+    <groupId>dev.openfeature.contrib.providers</groupId>
+    <artifactId>flagsmith</artifactId>
+    <version>0.0.1</version>
 </dependency>
 ```
+
 <!-- x-release-please-end-version -->
 
 ## Usage
 
-The `FlagsmithProvider` communicates with Flagsmith using the Flagsmith java sdk. Information on the 
-sdk can be found in the Flagsmith documentaiton here https://docs.flagsmith.com/clients/server-side. 
-The following code snippet shows how to initialize the `FlagsmithProvider`:
+The `FlagsmithProvider` communicates with Flagsmith using the Flagsmith java sdk. Information on the sdk can be found in
+the Flagsmith documentaiton here https://docs.flagsmith.com/clients/server-side. The following code snippet shows how to
+initialize the `FlagsmithProvider`:
+
 ```java
 FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
-                                                           .apiKey("API_KEY")
-                                                           .build();
+    .apiKey("API_KEY")
+    .build();
+
 FlagsmithProvider provider = new FlagsmithProvider();
 OpenFeatureAPI.getInstance().setProvider(provider);
 ```
@@ -53,3 +58,23 @@ Options can be defined using the FlagsmithProviderOptions builder. Below are all
 | environmentRefreshIntervalSeconds      | int  | 60 | Set environment refresh rate with polling manager.
 | enableAnalytics      | boolean  | false | Controls whether Flag Analytics data is sent to the Flagsmith API
 | usingBooleanConfigValue      | boolean  | false | Determines whether to resolve a feature value as a boolean or use the isFeatureEnabled as the flag itself. These values will be false and true respectively.
+
+### Identity flags
+
+In order to use specific identity flags, a targeting key must be provided in the EvaluationContext provided to the flag
+evaluation method. An example of this can be seen below:
+
+```java
+FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+    .apiKey("API_KEY")
+    .build();
+
+FlagsmithProvider provider = new FlagsmithProvider();
+OpenFeatureAPI.getInstance().setProvider(provider);
+
+EvaluationContext evaluationContext = new MutableContext();
+evaluationContext.setTargetingKey("my-identity");
+
+Client client = api.getClient();
+boolean flag = client.getBooleanValue("key", false);
+```
