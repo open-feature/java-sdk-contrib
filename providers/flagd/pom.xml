@@ -92,7 +92,7 @@
               <goal>exec</goal>
             </goals>
 						<configuration>
-							<!-- run: git submodule update \-\-init \-\-recursive \-\-remote -->
+							<!-- run: git submodule update \-\-init \-\-recursive -->
 							<executable>git</executable>
 							<arguments>
 								<argument>submodule</argument>
