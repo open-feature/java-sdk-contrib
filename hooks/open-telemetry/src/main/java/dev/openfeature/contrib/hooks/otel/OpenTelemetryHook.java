@@ -15,13 +15,13 @@ import java.util.Map;
  */
 public class OpenTelemetryHook implements Hook {
 
-    private final AttributeKey<String> flagKeyAttributeKey = AttributeKey.stringKey("feature_flag.flag_key");
-
-    private final AttributeKey<String> providerNameAttributeKey = AttributeKey.stringKey("feature_flag.provider_name");
-
-    private final AttributeKey<String> variantAttributeKey = AttributeKey.stringKey("feature_flag.variant");
-
     private static final String EVENT_NAME = "feature_flag";
+
+    private final AttributeKey<String> flagKeyAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".flag_key");
+
+    private final AttributeKey<String> providerNameAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".provider_name");
+
+    private final AttributeKey<String> variantAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".variant");
 
     /**
      * Create a new OpenTelemetryHook instance.
@@ -32,19 +32,19 @@ public class OpenTelemetryHook implements Hook {
     /**
      * Records the event in the current span after the successful flag evaluation.
      *
-     * @param ctx Information about the particular flag evaluation
+     * @param ctx     Information about the particular flag evaluation
      * @param details Information about how the flag was resolved, including any resolved values.
-     * @param hints  An immutable mapping of data for users to communicate to the hooks.
+     * @param hints   An immutable mapping of data for users to communicate to the hooks.
      */
     @Override
     public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         Span currentSpan = Span.current();
-        String value = details.getValue() != null ? details.getValue().toString() : "";
         if (currentSpan != null) {
+            String variant = details.getVariant() != null ? details.getVariant() : String.valueOf(details.getValue());
             Attributes attributes = Attributes.of(
                     flagKeyAttributeKey, ctx.getFlagKey(),
                     providerNameAttributeKey, ctx.getProviderMetadata().getName(),
-                    variantAttributeKey, value);
+                    variantAttributeKey, variant);
             currentSpan.addEvent(EVENT_NAME, attributes);
         }
     }

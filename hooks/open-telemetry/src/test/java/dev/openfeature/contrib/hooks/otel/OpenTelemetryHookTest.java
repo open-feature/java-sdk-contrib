@@ -70,6 +70,20 @@ class OpenTelemetryHookTest {
         openTelemetryHook.after(hookContext, details, null);
         Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
                 providerNameAttributeKey, "test provider",
+                variantAttributeKey, "test_variant");
+        verify(span).addEvent("feature_flag", expectedAttr);
+    }
+
+    @Test
+    @DisplayName("attribute should fallback to value field when variant is null")
+    void attribute_should_fallback_to_value_field_when_variant_is_null() {
+        FlagEvaluationDetails<String> details = FlagEvaluationDetails.<String>builder()
+                .value("variant_value")
+                .build();
+        mockedSpan.when(Span::current).thenReturn(span);
+        openTelemetryHook.after(hookContext, details, null);
+        Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
+                providerNameAttributeKey, "test provider",
                 variantAttributeKey, "variant_value");
         verify(span).addEvent("feature_flag", expectedAttr);
     }
