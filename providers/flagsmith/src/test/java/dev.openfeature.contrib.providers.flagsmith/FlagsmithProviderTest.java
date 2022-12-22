@@ -11,6 +11,8 @@ import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -237,8 +239,9 @@ public class FlagsmithProviderTest {
         String key, String methodName, Class<?> expectedType, String flagsmithResult) {
         // Given
         Object result = null;
-        EvaluationContext evaluationContext = new MutableContext();
+        MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey("my-identity");
+        evaluationContext.add("trait1", "value1");
 
         // When
         Method method = flagsmithProvider.getClass()
@@ -289,23 +292,16 @@ public class FlagsmithProviderTest {
         assertEquals(Reason.DISABLED.name(), evaluation.getReason());
     }
 
-    @SneakyThrows
     @Test
     void shouldNotResolveFlagIfExceptionThrownInFlagsmithInsteadUsingDefaultValue() {
         // Given
         String key = "missing_key";
         EvaluationContext evaluationContext = new MutableContext();
-
-        // When
-        ProviderEvaluation<Boolean> result = flagsmithProvider
-            .getBooleanEvaluation(key, true, new MutableContext());
-
-        // Then
-        String resultString = getResultString(result.getValue(), Boolean.class);
-
-        assertEquals("true", resultString);
-        assertEquals(ErrorCode.GENERAL, result.getErrorCode());
-        assertEquals(Reason.ERROR.name(), result.getReason());
+        assertThrows(
+            FlagNotFoundError.class,
+            () -> flagsmithProvider
+                .getBooleanEvaluation(key, true, new MutableContext())
+        );
     }
 
     @SneakyThrows
@@ -335,32 +331,8 @@ public class FlagsmithProviderTest {
         assertEquals(reason, result.getReason());
     }
 
-    @SneakyThrows
     @Test
-    void shouldNotResolveBooleanFlagUsingEnabledIfFlagNotFound() {
-        // Given
-        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
-                                                                   .apiKey("API_KEY")
-                                                                   .baseUri(String
-                                                                       .format("http://localhost:%s",
-                                                                           mockFlagsmithErrorServer
-                                                                               .getPort()))
-                                                                   .build();
-        FlagsmithProvider booleanFlagsmithProvider = new FlagsmithProvider(options);
-
-        // When
-        ProviderEvaluation<Boolean> result =
-            booleanFlagsmithProvider.getBooleanEvaluation("true_key", false, new MutableContext());
-
-        // Then
-        assertFalse(result.getValue());
-        assertEquals(ErrorCode.GENERAL, result.getErrorCode());
-        assertEquals(Reason.ERROR.name(), result.getReason());
-    }
-
-    @SneakyThrows
-    @Test
-    void shouldNotResolveBooleanFlagValueIfFlagNotFound() {
+    void shouldNotResolveBooleanFlagValueIfFlagsmithErrorThrown() {
         // Given
         FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
                                                                    .apiKey("API_KEY")
@@ -373,13 +345,36 @@ public class FlagsmithProviderTest {
         FlagsmithProvider booleanFlagsmithProvider = new FlagsmithProvider(options);
 
         // When
-        ProviderEvaluation<Boolean> result =
-            booleanFlagsmithProvider.getBooleanEvaluation("true_key", false, new MutableContext());
+        assertThrows(
+            GeneralError.class,
+            () ->
+                booleanFlagsmithProvider.getBooleanEvaluation(
+                    "true_key", false, new MutableContext()
+                )
+        );
+    }
 
-        // Then
-        assertFalse(result.getValue());
-        assertEquals(ErrorCode.GENERAL, result.getErrorCode());
-        assertEquals(Reason.ERROR.name(), result.getReason());
+    @Test
+    void shouldNotResolveFlagValueIfFlagsmithErrorThrown() {
+        // Given
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                                                                   .apiKey("API_KEY")
+                                                                   .baseUri(String
+                                                                       .format("http://localhost:%s",
+                                                                           mockFlagsmithErrorServer
+                                                                               .getPort()))
+                                                                   .usingBooleanConfigValue(true)
+                                                                   .build();
+        FlagsmithProvider booleanFlagsmithProvider = new FlagsmithProvider(options);
+
+        // When
+        assertThrows(
+            GeneralError.class,
+            () ->
+                booleanFlagsmithProvider.getBooleanEvaluation(
+                    "true_key", false, new MutableContext()
+                )
+        );
     }
 
     private String readMockResponse(String filename) throws IOException {
