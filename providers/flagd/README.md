@@ -63,4 +63,4 @@ The provider attempts to establish a connection to flagd's event stream (up to 5
 
 On invocation of a flag evaluation (if caching is available) an attempt is made to retrieve the entry from cache, if found the flag is returned with reason `CACHED`.
 
-By default, the provider is configured to use [least recently used (lru)](https://commons.apache.org/proper/commons-collections/apidocs/org/apache/commons/collections4/map/LRUMap.html) caching with up to 1000 entries per flag type.
+By default, the provider is configured to use [least recently used (lru)](https://commons.apache.org/proper/commons-collections/apidocs/org/apache/commons/collections4/map/LRUMap.html) caching with up to 1000 entries.

@@ -40,8 +40,6 @@ import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.collections4.map.LRUMap;
-import java.util.Collections;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 
@@ -81,13 +79,8 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     private ServiceBlockingStub serviceBlockingStub;
     private ServiceStub serviceStub;
 
-    private Boolean cacheEnabled;
     private Boolean eventStreamAlive;
-    private Map<String, ProviderEvaluation<Boolean>> booleanCache;
-    private Map<String, ProviderEvaluation<String>> stringCache;
-    private Map<String, ProviderEvaluation<Double>> doubleCache;
-    private Map<String, ProviderEvaluation<Integer>> integerCache;
-    private Map<String, ProviderEvaluation<Value>> objectCache;
+    private FlagdCache cache;
 
     private int eventStreamAttempt = 1;
     private int eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
@@ -115,7 +108,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      *
      * @param socketPath            unix socket path
      * @param cache                 caching implementation to use (lru)
-     * @param maxCacheSize          limit of the number of cached values for each type of flag
+     * @param maxCacheSize          limit of the number of cached values
      * @param maxEventStreamRetries limit of the number of attempts to connect to flagd's event stream,
      *                              on successful connection the attempts are reset
      */
@@ -156,7 +149,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      * @param certPath              path for server certificate, defaults to null to, using
      *                              system certs
      * @param cache                 caching implementation to use (lru)
-     * @param maxCacheSize          limit of the number of cached values for each type of flag
+     * @param maxCacheSize          limit of the number of cached values
      * @param maxEventStreamRetries limit of the number of attempts to connect to flagd's event stream,
      *                              on successful connection the attempts are reset
      *
@@ -188,35 +181,15 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.serviceBlockingStub = serviceBlockingStub;
         this.serviceStub = serviceStub;
         this.eventStreamAlive = false;
-        if (cache != null) {
-            initCache(cache, maxCacheSize);
-        }
+        this.cache = new FlagdCache(cache, maxCacheSize);
         this.maxEventStreamRetries = maxEventStreamRetries;
         this.handleEvents();
-    }
-
-    private void initCache(String cache, int maxSize) {
-        switch (cache) {
-            case DISABLED:
-                return;
-            case LRU_CACHE:
-            default:
-                this.booleanCache = Collections.synchronizedMap(
-                    new LRUMap<String, ProviderEvaluation<Boolean>>(maxSize));
-                this.stringCache = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<String>>(maxSize));
-                this.doubleCache = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<Double>>(maxSize));
-                this.integerCache = Collections.synchronizedMap(
-                    new LRUMap<String, ProviderEvaluation<Integer>>(maxSize));
-                this.objectCache = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<Value>>(maxSize));
-        }
-
-        this.cacheEnabled = true;
     }
 
     private Boolean cacheAvailable() {
         Lock l = this.lock.readLock();
         l.lock();
-        Boolean available = this.cacheEnabled && this.eventStreamAlive;
+        Boolean available = this.cache.getEnabled() && this.eventStreamAlive;
         l.unlock();
 
         return available;
@@ -237,10 +210,14 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             EvaluationContext ctx) {
         
         if (this.cacheAvailable()) {
-            ProviderEvaluation<Boolean> fromCache = this.booleanCache.get(key);
+            ProviderEvaluation<Value> fromCache = this.cache.get(key);
             if (fromCache != null) {
-                fromCache.setReason(CACHED_REASON);
-                return fromCache;
+                ProviderEvaluation<Boolean> result = ProviderEvaluation.<Boolean>builder()
+                    .value(fromCache.getValue().asBoolean())
+                    .variant(fromCache.getVariant())
+                    .reason(CACHED_REASON)
+                    .build();
+                return result;
             }
         }
 
@@ -258,7 +235,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
 
         if (this.isEvaluationCacheable(result)) {
-            this.booleanCache.put(key, result);
+            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
+                .value(new Value(r.getValue()))
+                .variant(r.getVariant())
+                .reason(r.getReason())
+                .build();
+            this.cache.put(key, value);
         }
         
         return result;
@@ -269,10 +251,14 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             EvaluationContext ctx) {
         
         if (this.cacheAvailable()) {
-            ProviderEvaluation<String> fromCache = this.stringCache.get(key);
+            ProviderEvaluation<Value> fromCache = this.cache.get(key);
             if (fromCache != null) {
-                fromCache.setReason(CACHED_REASON);
-                return fromCache;
+                ProviderEvaluation<String> result = ProviderEvaluation.<String>builder()
+                    .value(fromCache.getValue().asString())
+                    .variant(fromCache.getVariant())
+                    .reason(CACHED_REASON)
+                    .build();
+                return result;
             }
         }
 
@@ -287,7 +273,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 .build();
 
         if (this.isEvaluationCacheable(result)) {
-            this.stringCache.put(key, result);
+            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
+                .value(new Value(r.getValue()))
+                .variant(r.getVariant())
+                .reason(r.getReason())
+                .build();
+            this.cache.put(key, value);
         }
         
         return result;
@@ -298,10 +289,14 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             EvaluationContext ctx) {
 
         if (this.cacheAvailable()) {
-            ProviderEvaluation<Double> fromCache = this.doubleCache.get(key);
+            ProviderEvaluation<Value> fromCache = this.cache.get(key);
             if (fromCache != null) {
-                fromCache.setReason(CACHED_REASON);
-                return fromCache;
+                ProviderEvaluation<Double> result = ProviderEvaluation.<Double>builder()
+                    .value(fromCache.getValue().asDouble())
+                    .variant(fromCache.getVariant())
+                    .reason(CACHED_REASON)
+                    .build();
+                return result;
             }
         }
 
@@ -318,7 +313,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 .build();
 
         if (this.isEvaluationCacheable(result)) {
-            this.doubleCache.put(key, result);
+            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
+                .value(new Value(r.getValue()))
+                .variant(r.getVariant())
+                .reason(r.getReason())
+                .build();
+            this.cache.put(key, value);
         }
         
         return result;
@@ -329,10 +329,14 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             EvaluationContext ctx) {
         
         if (this.cacheAvailable()) {
-            ProviderEvaluation<Integer> fromCache = this.integerCache.get(key);
+            ProviderEvaluation<Value> fromCache = this.cache.get(key);
             if (fromCache != null) {
-                fromCache.setReason(CACHED_REASON);
-                return fromCache;
+                ProviderEvaluation<Integer> result = ProviderEvaluation.<Integer>builder()
+                    .value(fromCache.getValue().asInteger())
+                    .variant(fromCache.getVariant())
+                    .reason(CACHED_REASON)
+                    .build();
+                return result;
             }
         }
         
@@ -349,7 +353,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 .build();
 
         if (this.isEvaluationCacheable(result)) {
-            this.integerCache.put(key, result);
+            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
+                .value(new Value(result.getValue()))
+                .variant(r.getVariant())
+                .reason(r.getReason())
+                .build();
+            this.cache.put(key, value);
         }
         
         return result;
@@ -360,7 +369,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             EvaluationContext ctx) {
         
         if (this.cacheAvailable()) {
-            ProviderEvaluation<Value> fromCache = this.objectCache.get(key);
+            ProviderEvaluation<Value> fromCache = this.cache.get(key);
             if (fromCache != null) {
                 fromCache.setReason(CACHED_REASON);
                 return fromCache;
@@ -380,7 +389,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 .build();
 
         if (this.isEvaluationCacheable(result)) {
-            this.objectCache.put(key, result);
+            this.cache.put(key, result);
         }
         
         return result;
@@ -583,8 +592,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     private void handleEvents() {
         StreamObserver<EventStreamResponse> responseObserver = 
-            new EventStreamObserver(this.cacheEnabled, this.booleanCache, this.stringCache,
-                this.doubleCache, this.integerCache, this.objectCache, this);
+            new EventStreamObserver(this.cache, this);
         this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
     }
 
@@ -614,7 +622,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     public void restartEventStream() throws Exception {
         this.eventStreamAttempt++;
         if (this.eventStreamAttempt > this.maxEventStreamRetries) {
-            // log
+            log.error("failed to connect to event stream, exhausted retries");
             return;
         }
         this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;

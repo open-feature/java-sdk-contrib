@@ -4,7 +4,6 @@ import java.util.Map;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
-import dev.openfeature.sdk.ProviderEvaluation;
 import com.google.protobuf.Value;
 
 /**
@@ -13,28 +12,13 @@ import com.google.protobuf.Value;
 @Slf4j
 public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private EventStreamCallback callback;
-    private Boolean cacheEnabled;
-    private Map<String, ProviderEvaluation<Boolean>> booleanCache;
-    private Map<String, ProviderEvaluation<String>> stringCache;
-    private Map<String, ProviderEvaluation<Double>> doubleCache;
-    private Map<String, ProviderEvaluation<Integer>> integerCache;
-    private Map<String, ProviderEvaluation<dev.openfeature.sdk.Value>> objectCache;
+    private FlagdCache cache;
 
     private static final String configurationChange = "configuration_change";
     private static final String providerReady = "provider_ready";
 
-    EventStreamObserver(
-        Boolean cacheEnabled, Map<String, ProviderEvaluation<Boolean>> booleanCache,
-        Map<String, ProviderEvaluation<String>> stringCache, Map<String, ProviderEvaluation<Double>> doubleCache,
-        Map<String, ProviderEvaluation<Integer>> integerCache,
-        Map<String, ProviderEvaluation<dev.openfeature.sdk.Value>> objectCache, EventStreamCallback callback
-    ) {
-        this.cacheEnabled = cacheEnabled;
-        this.booleanCache = booleanCache;
-        this.stringCache = stringCache;
-        this.doubleCache = doubleCache;
-        this.integerCache = integerCache;
-        this.objectCache = objectCache;
+    EventStreamObserver(FlagdCache cache, EventStreamCallback callback) {
+        this.cache = cache;
         this.callback = callback;
     }
 
@@ -56,7 +40,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     @Override
     public void onError(Throwable t) {
         log.error("event stream", t);
-        this.purgeCache();
+        this.cache.clear();
         this.callback.setEventStreamAlive(false);
         try {
             this.callback.restartEventStream();
@@ -67,12 +51,12 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
 
     @Override
     public void onCompleted() {
-        this.purgeCache();
+        this.cache.clear();
         this.callback.setEventStreamAlive(false);
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
-        if (!this.cacheEnabled) {
+        if (!this.cache.getEnabled()) {
             return;
         }
 
@@ -80,23 +64,11 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         Value flagKeyValue = data.get("flagKey");
         String flagKey = flagKeyValue.getStringValue();
 
-        this.booleanCache.remove(flagKey);
-        this.stringCache.remove(flagKey);
-        this.doubleCache.remove(flagKey);
-        this.integerCache.remove(flagKey);
-        this.objectCache.remove(flagKey);
+        this.cache.remove(flagKey);
     }
 
     private void handleProviderReadyEvent() {
-        this.purgeCache();
+        this.cache.clear();
         this.callback.setEventStreamAlive(true);
-    }
-    
-    private void purgeCache() {
-        this.booleanCache.clear();
-        this.stringCache.clear();
-        this.doubleCache.clear();
-        this.integerCache.clear();
-        this.objectCache.clear();
     }
 }
