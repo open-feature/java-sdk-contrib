@@ -32,7 +32,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
                 this.handleProviderReadyEvent();
                 break;
             default:
-                log.warn("unhandled event type {}", value.getType());
+                log.debug("unhandled event type {}", value.getType());
                 return;
         }
     }
