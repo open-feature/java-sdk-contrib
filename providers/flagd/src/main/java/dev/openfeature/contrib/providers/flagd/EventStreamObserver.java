@@ -61,10 +61,12 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         }
 
         Map<String, Value> data = value.getData().getFieldsMap();
-        Value flagKeyValue = data.get("flagKey");
-        String flagKey = flagKeyValue.getStringValue();
+        Value flagsValue = data.get("flags");
+        Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
 
-        this.cache.remove(flagKey);
+        for (String flagKey : flags.keySet()) {
+            this.cache.remove(flagKey);
+        }
     }
 
     private void handleProviderReadyEvent() {
