@@ -16,6 +16,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
 
     private static final String configurationChange = "configuration_change";
     private static final String providerReady = "provider_ready";
+    private static final String flagsKey = "flags";
 
     EventStreamObserver(FlagdCache cache, EventStreamCallback callback) {
         this.cache = cache;
@@ -61,7 +62,12 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         }
 
         Map<String, Value> data = value.getData().getFieldsMap();
-        Value flagsValue = data.get("flags");
+        Value flagsValue = data.get(flagsKey);
+        if (flagsValue == null) {
+            this.cache.clear();
+            return;
+        }
+
         Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
 
         for (String flagKey : flags.keySet()) {
