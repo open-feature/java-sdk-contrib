@@ -16,7 +16,7 @@ This repo uses _Release Please_ to release packages. Release Please sets up a ru
 
 ### Software Bill of Materials (SBOM)
 
-We now publish SBOMs with all of our releases. You can find them in Maven Central alongside the artifacts.
+We publish SBOMs with all of our releases. You can find them in Maven Central alongside the artifacts.
 
 ## Contributing
 
