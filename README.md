@@ -14,6 +14,10 @@ The project includes:
 
 This repo uses _Release Please_ to release packages. Release Please sets up a running PR that tracks all changes for the library components, and maintains the versions according to [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/), generated when [PRs are merged](https://github.com/amannn/action-semantic-pull-request). When Release Please's running PR is merged, any changed artifacts are published.
 
+### Software Bill of Materials (SBOM)
+
+We publish SBOMs with all of our releases. You can find them in Maven Central alongside the artifacts.
+
 ## Contributing
 
 see: [CONTRIBUTING.md](./CONTRIBUTING.md)
