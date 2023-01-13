@@ -1,0 +1,35 @@
+{
+  "updated_at": "2022-11-11T11:21:25.465890+00:00",
+  "feature_states": [
+    {
+      "multivariate_feature_state_values": [],
+      "feature_state_value": null,
+      "feature": {
+        "name": "single_feature",
+        "type": "STANDARD",
+        "id": 35352
+      },
+      "feature_segment": null,
+      "django_id": 188032,
+      "featurestate_uuid": "a439ceca-be34-47b2-aed2-0880c58d00c2",
+      "enabled": false
+    }
+  ],
+  "allow_client_traits": true,
+  "project": {
+    "name": "Test project create",
+    "organisation": {
+      "feature_analytics": false,
+      "name": "Test Org",
+      "id": 18,
+      "persist_trait_data": true,
+      "stop_serving_flags": false
+    },
+    "id": 7720,
+    "hide_disabled_flags": false,
+    "enable_realtime_updates": false,
+    "segments": []
+  },
+  "api_key": "ser.API_KEY",
+  "id": 18141
+}

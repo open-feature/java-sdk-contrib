@@ -4,3 +4,6 @@
 
 # Go Feature Flag
 /providers/go-feature-flag/     @thomaspoignant
+
+# Flagsmith
+providers/flagsmith             @ajhelsby

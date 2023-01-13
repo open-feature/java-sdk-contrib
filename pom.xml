@@ -29,6 +29,7 @@
     <modules>
         <module>hooks/open-telemetry</module>
         <module>providers/flagd</module>
+        <module>providers/flagsmith</module>
         <module>providers/go-feature-flag</module>
     </modules>
 
