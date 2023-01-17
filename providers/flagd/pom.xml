@@ -30,7 +30,7 @@
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty</artifactId>
-			<version>1.52.0</version>
+			<version>1.52.1</version>
 		</dependency>
 
 		<dependency>
