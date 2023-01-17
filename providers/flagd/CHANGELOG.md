@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.4...dev.openfeature.contrib.providers.flagd-v0.5.5) (2023-01-17)
+
+
+### Features
+
+* flagd caching ([#168](https://github.com/open-feature/java-sdk-contrib/issues/168)) ([528504f](https://github.com/open-feature/java-sdk-contrib/commit/528504fa0562ffa5f3d12dcd5d69e355ea542f11))
+
+
+### Bug Fixes
+
+* allow flagd-provider cache to be disabled ([#201](https://github.com/open-feature/java-sdk-contrib/issues/201)) ([f505b83](https://github.com/open-feature/java-sdk-contrib/commit/f505b83d0f29f7d59eb7bea999d5a8bc441706ef))
+* **deps:** update dependency io.grpc:grpc-netty to v1.52.0 ([#189](https://github.com/open-feature/java-sdk-contrib/issues/189)) ([246e837](https://github.com/open-feature/java-sdk-contrib/commit/246e8376246776518dc0995bfa2999ec29537f92))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.52.0 ([#190](https://github.com/open-feature/java-sdk-contrib/issues/190)) ([283744b](https://github.com/open-feature/java-sdk-contrib/commit/283744b007e28b570587d7658a9cc9a12335dc69))
+* **deps:** update dependency io.grpc:grpc-stub to v1.52.0 ([#191](https://github.com/open-feature/java-sdk-contrib/issues/191)) ([7245a91](https://github.com/open-feature/java-sdk-contrib/commit/7245a91a8f137bc2fc146449025fa6c5b4422c2f))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.87.final ([#192](https://github.com/open-feature/java-sdk-contrib/issues/192)) ([bb6775f](https://github.com/open-feature/java-sdk-contrib/commit/bb6775f69c6c95fde27ee5abddf5f851c01cdc52))
+
 ## [0.5.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.3...dev.openfeature.contrib.providers.flagd-v0.5.4) (2022-12-22)
 
 
