@@ -12,7 +12,7 @@ Flagsmith provides an all-in-one platform for developing, implementing, and mana
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagsmith</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 

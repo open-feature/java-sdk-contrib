@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v1.0.0...dev.openfeature.contrib.hooks.otel-v1.0.1) (2023-01-17)
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.22.0 ([#182](https://github.com/open-feature/java-sdk-contrib/issues/182)) ([9f20baf](https://github.com/open-feature/java-sdk-contrib/commit/9f20baf24da9d9a0e728ebbee5a84b9f661b8f3a))
+
 ## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v0.4.0...dev.openfeature.contrib.hooks.otel-v1.0.0) (2022-12-22)
 
 
