@@ -12,12 +12,16 @@ import java.util.Collections;
  */
 public class FlagdCache {
     private Map<String,ProviderEvaluation<Value>> store;
-    private Boolean enabled;
+    private Boolean enabled = false;
 
     static final String LRU_CACHE = "lru";
     static final String DISABLED = "disabled";
 
     FlagdCache(String cache, int maxCacheSize) {
+        if (cache == null) {
+            return;
+        }
+
         switch (cache) {
             case DISABLED:
                 return;
