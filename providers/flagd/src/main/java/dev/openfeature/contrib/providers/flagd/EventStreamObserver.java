@@ -41,7 +41,9 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     @Override
     public void onError(Throwable t) {
         log.error("event stream", t);
-        this.cache.clear();
+        if (this.cache.getEnabled()) {
+            this.cache.clear();
+        }
         this.callback.setEventStreamAlive(false);
         try {
             this.callback.restartEventStream();
@@ -52,7 +54,9 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
 
     @Override
     public void onCompleted() {
-        this.cache.clear();
+        if (this.cache.getEnabled()) {
+            this.cache.clear();
+        }
         this.callback.setEventStreamAlive(false);
     }
 
@@ -76,7 +80,9 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     }
 
     private void handleProviderReadyEvent() {
-        this.cache.clear();
         this.callback.setEventStreamAlive(true);
+        if (this.cache.getEnabled()) {
+            this.cache.clear();
+        }
     }
 }
