@@ -46,6 +46,14 @@
             <version>4.10.0</version>
             <scope>test</scope>
         </dependency>
+        
+        <!-- required for com.squareup.okhttp3.mockwebserver -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>1.8.0</version>
+            <scope>test</scope>
+         </dependency>
 
     </dependencies>
 
