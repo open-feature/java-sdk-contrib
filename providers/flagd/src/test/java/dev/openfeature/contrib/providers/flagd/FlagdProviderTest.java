@@ -625,4 +625,110 @@ class FlagdProviderTest {
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(expectedReason, objectDetails.getReason());
     }
+    
+    @Test
+    void disabled_cache() {
+        ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
+                .setValue(true)
+                .setVariant(BOOL_VARIANT)
+                .setReason(FlagdProvider.STATIC_REASON)
+                .build();
+
+        ResolveStringResponse stringResponse = ResolveStringResponse.newBuilder()
+                .setValue(STRING_VALUE)
+                .setVariant(STRING_VARIANT)
+                .setReason(FlagdProvider.STATIC_REASON)
+                .build();
+
+        ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
+                .setValue(INT_VALUE)
+                .setVariant(INT_VARIANT)
+                .setReason(FlagdProvider.STATIC_REASON)
+                .build();
+
+        ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
+                .setValue(DOUBLE_VALUE)
+                .setVariant(DOUBLE_VARIANT)
+                .setReason(FlagdProvider.STATIC_REASON)
+                .build();
+
+        ResolveObjectResponse objectResponse = ResolveObjectResponse.newBuilder()
+                .setValue(PROTOBUF_STRUCTURE_VALUE)
+                .setVariant(OBJECT_VARIANT)
+                .setReason(FlagdProvider.STATIC_REASON)
+                .build();
+
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+        when(serviceBlockingStubMock
+                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey())))).thenReturn(floatResponse);
+        when(serviceBlockingStubMock
+                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey())))).thenReturn(intResponse);
+        when(serviceBlockingStubMock
+                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey())))).thenReturn(stringResponse);
+        when(serviceBlockingStubMock
+                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
+
+        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, null, 0, 1);
+        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
+        verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
+
+        provider.setEventStreamAlive(true);
+        OpenFeatureAPI.getInstance().setProvider(provider);
+
+        HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
+        HashMap<String, com.google.protobuf.Value> structMap = new HashMap<String, com.google.protobuf.Value>();
+
+        flagsMap.put("foo", com.google.protobuf.Value.newBuilder().setStringValue("foo").build()); // assert that a configuration_change event works
+
+        structMap.put("flags", com.google.protobuf.Value.newBuilder().
+                setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
+
+        EventStreamResponse eResponse = EventStreamResponse.newBuilder()
+                .setType("configuration_change")
+                .setData(Struct.newBuilder().putAllFields(structMap).build())
+                .build();
+        
+        // should not cache results
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
+        FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
+        FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+
+        // should not cause a change of state
+        streamObserverCaptor.getValue().onNext(eResponse);
+
+        // assert values are not cached
+        booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+        assertTrue(booleanDetails.getValue());
+        assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
+        assertEquals(FlagdProvider.STATIC_REASON, booleanDetails.getReason());
+
+        stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
+        assertEquals(STRING_VALUE, stringDetails.getValue());
+        assertEquals(STRING_VARIANT, stringDetails.getVariant());
+        assertEquals(FlagdProvider.STATIC_REASON, stringDetails.getReason());
+
+        intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
+        assertEquals(INT_VALUE, intDetails.getValue());
+        assertEquals(INT_VARIANT, intDetails.getVariant());
+        assertEquals(FlagdProvider.STATIC_REASON, intDetails.getReason());
+
+        floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
+        assertEquals(DOUBLE_VALUE, floatDetails.getValue());
+        assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
+        assertEquals(FlagdProvider.STATIC_REASON, floatDetails.getReason());
+
+        objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+        assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
+                .asMap().get(INNER_STRUCT_KEY).asString());
+        assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
+        assertEquals(FlagdProvider.STATIC_REASON, objectDetails.getReason());
+    }
 }
