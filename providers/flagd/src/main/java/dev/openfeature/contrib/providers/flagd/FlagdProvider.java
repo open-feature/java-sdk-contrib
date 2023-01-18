@@ -638,6 +638,8 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     /**
      * Call .wait() on this to block until the event stream is alive.
+     * Can be used in instances where the provider being connected to the event stream is a prerequisite
+     * to execution (e.g. testing). Not necessary for standard usage.
      *
      * @return eventStreamAliveSync
      */
