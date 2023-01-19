@@ -87,6 +87,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     private int maxEventStreamRetries = DEFAULT_MAX_EVENT_STREAM_RETRIES;
 
     private ReadWriteLock lock = new ReentrantReadWriteLock();
+    private Object eventStreamAliveSync;
 
     /**
      * Create a new FlagdProvider instance.
@@ -183,6 +184,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.eventStreamAlive = false;
         this.cache = new FlagdCache(cache, maxCacheSize);
         this.maxEventStreamRetries = maxEventStreamRetries;
+        this.eventStreamAliveSync = new Object();
         this.handleEvents();
     }
 
@@ -603,6 +605,9 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             l.lock();
             this.eventStreamAlive = alive;
             if (alive) {
+                synchronized (this.eventStreamAliveSync) {
+                    this.eventStreamAliveSync.notify(); // notify any waiters that the event stream is alive
+                }
                 // reset attempts on successful connection
                 this.eventStreamAttempt = 1;
                 this.eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
@@ -629,5 +634,16 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         Thread.sleep(this.eventStreamRetryBackoff);
 
         this.handleEvents();
+    }
+
+    /**
+     * Call .wait() on this to block until the event stream is alive.
+     * Can be used in instances where the provider being connected to the event stream is a prerequisite
+     * to execution (e.g. testing). Not necessary for standard usage.
+     *
+     * @return eventStreamAliveSync
+     */
+    public Object getEventStreamAliveSync() {
+        return this.eventStreamAliveSync;
     }
 }
