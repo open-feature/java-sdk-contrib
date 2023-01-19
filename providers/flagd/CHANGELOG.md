@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.5...dev.openfeature.contrib.providers.flagd-v0.5.6) (2023-01-19)
+
+
+### Features
+
+* exposed eventStreamAliveSync to allow application authors to block until event stream is alive ([6ab8521](https://github.com/open-feature/java-sdk-contrib/commit/6ab8521f4d88160c32ef528397d53678005c39f7))
+* exposed eventStreamAliveSync to allow application authors to block until event stream is alive ([#204](https://github.com/open-feature/java-sdk-contrib/issues/204)) ([6ab8521](https://github.com/open-feature/java-sdk-contrib/commit/6ab8521f4d88160c32ef528397d53678005c39f7))
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.grpc:grpc-netty to v1.52.1 ([#196](https://github.com/open-feature/java-sdk-contrib/issues/196)) ([8eebdb1](https://github.com/open-feature/java-sdk-contrib/commit/8eebdb1a539b98b09b54a763821df869b64d24d7))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.52.1 ([#197](https://github.com/open-feature/java-sdk-contrib/issues/197)) ([9821865](https://github.com/open-feature/java-sdk-contrib/commit/98218659811372faf3e3bcc753c494db3a546a1a))
+* **deps:** update dependency io.grpc:grpc-stub to v1.52.1 ([#198](https://github.com/open-feature/java-sdk-contrib/issues/198)) ([6fb0f45](https://github.com/open-feature/java-sdk-contrib/commit/6fb0f4552f9a2d5a35205c661019d95131fe91f2))
+
 ## [0.5.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.4...dev.openfeature.contrib.providers.flagd-v0.5.5) (2023-01-17)
 
 
