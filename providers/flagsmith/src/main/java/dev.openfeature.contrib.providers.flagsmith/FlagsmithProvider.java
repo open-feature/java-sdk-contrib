@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FlagsmithProvider implements FeatureProvider {
 
     private static final String NAME = "Flagsmith Provider";
-    private static FlagsmithClient flagsmith;
+    private FlagsmithClient flagsmith;
     private FlagsmithProviderOptions options;
 
     public FlagsmithProvider(FlagsmithProviderOptions options) {
