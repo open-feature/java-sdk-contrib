@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.3...dev.openfeature.contrib.providers.flagsmith-v0.0.4) (2023-02-07)
+
+
+### Bug Fixes
+
+* make flagsmith classes public ([#213](https://github.com/open-feature/java-sdk-contrib/issues/213)) ([137497a](https://github.com/open-feature/java-sdk-contrib/commit/137497aaa7e8d70c5488a79ef74b6700877f78dd))
+
 ## [0.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.2...dev.openfeature.contrib.providers.flagsmith-v0.0.3) (2023-01-19)
 
 
