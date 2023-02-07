@@ -31,10 +31,10 @@ import lombok.extern.slf4j.Slf4j;
  * FlagsmithProvider is the JAVA provider implementation for the feature flag solution Flagsmith.
  */
 @Slf4j
-class FlagsmithProvider implements FeatureProvider {
+public class FlagsmithProvider implements FeatureProvider {
 
     private static final String NAME = "Flagsmith Provider";
-    private static FlagsmithClient flagsmith;
+    private FlagsmithClient flagsmith;
     private FlagsmithProviderOptions options;
 
     public FlagsmithProvider(FlagsmithProviderOptions options) {

@@ -16,7 +16,7 @@ import okhttp3.Interceptor;
 @SuppressFBWarnings(value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"}, justification = "The headers need to be mutable")
 @Builder(toBuilder = true)
 @Getter
-class FlagsmithProviderOptions {
+public class FlagsmithProviderOptions {
 
     /**
      * Your API Token.
