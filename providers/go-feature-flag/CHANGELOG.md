@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.2...dev.openfeature.contrib.providers.go-feature-flag-v0.2.3) (2023-02-07)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.14.2 ([#207](https://github.com/open-feature/java-sdk-contrib/issues/207)) ([b5f0d3d](https://github.com/open-feature/java-sdk-contrib/commit/b5f0d3daa2a19a7b51648a6644eba9973f154be6))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.14.2 ([#208](https://github.com/open-feature/java-sdk-contrib/issues/208)) ([7c1ff7a](https://github.com/open-feature/java-sdk-contrib/commit/7c1ff7a731e7ce13126095e7d239709445929e5f))
+
 ## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.1...dev.openfeature.contrib.providers.go-feature-flag-v0.2.2) (2022-12-22)
 
 
