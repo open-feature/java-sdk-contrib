@@ -11,7 +11,7 @@ import java.util.Collections;
  * Exposes caching mechanism for flag evaluations.
  */
 public class FlagdCache {
-    private Map<String,ProviderEvaluation<Value>> store;
+    private Map<String,ProviderEvaluation<? extends Object>> store;
     private Boolean enabled = false;
 
     static final String LRU_CACHE = "lru";
@@ -27,7 +27,7 @@ public class FlagdCache {
                 return;
             case LRU_CACHE:
             default:
-                this.store = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<Value>>(maxCacheSize));
+                this.store = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<? extends Object>>(maxCacheSize));
         }
 
         this.enabled = true;
@@ -37,11 +37,11 @@ public class FlagdCache {
         return this.enabled;
     }
 
-    public void put(String key, ProviderEvaluation<Value> value) {
+    public void put(String key, ProviderEvaluation<? extends Object> value) {
         this.store.put(key, value);
     }
 
-    public ProviderEvaluation<Value> get(String key) {
+    public ProviderEvaluation<? extends Object> get(String key) {
         return this.store.get(key);
     }
 
