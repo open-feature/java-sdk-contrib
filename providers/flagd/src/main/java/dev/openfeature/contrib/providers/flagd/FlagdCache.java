@@ -1,11 +1,11 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.Value;
-
-import java.util.Map;
-import org.apache.commons.collections4.map.LRUMap;
 import java.util.Collections;
+import java.util.Map;
+
+import org.apache.commons.collections4.map.LRUMap;
+
+import dev.openfeature.sdk.ProviderEvaluation;
 
 /**
  * Exposes caching mechanism for flag evaluations.
