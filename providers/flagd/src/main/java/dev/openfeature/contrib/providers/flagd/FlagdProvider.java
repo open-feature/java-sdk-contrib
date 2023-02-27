@@ -15,7 +15,6 @@ import javax.net.ssl.SSLException;
 
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
-import com.google.protobuf.Struct;
 
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
@@ -273,7 +272,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
         return this.resolve(key, ctx, request,
                 this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)::resolveObject,
-                (Object value) -> this.convertObjectResponse((Struct) value));
+                (Object value) -> this.convertObjectResponse((com.google.protobuf.Struct) value));
     }
 
     /**
@@ -535,7 +534,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         ResT response = resolverRef.apply((ReqT) req);
 
         // parse the response
-        ValT value = converter == null ? (this.getField(response, VALUE_FIELD))
+        ValT value = converter == null ? this.getField(response, VALUE_FIELD)
                 : converter.convert(this.getField(response, VALUE_FIELD));
         ProviderEvaluation<ValT> result = (ProviderEvaluation<ValT>) ProviderEvaluation.<ValT>builder()
                 .value(value)
@@ -562,6 +561,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     // a converter lambda
     @FunctionalInterface
     private interface Convert<OutT extends Object, InT extends Object> {
-        abstract OutT convert(InT value);
+        OutT convert(InT value);
     }
 }
