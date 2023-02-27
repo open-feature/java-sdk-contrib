@@ -27,7 +27,8 @@ public class FlagdCache {
                 return;
             case LRU_CACHE:
             default:
-                this.store = Collections.synchronizedMap(new LRUMap<String, ProviderEvaluation<? extends Object>>(maxCacheSize));
+                this.store = Collections
+                        .synchronizedMap(new LRUMap<String, ProviderEvaluation<? extends Object>>(maxCacheSize));
         }
 
         this.enabled = true;
