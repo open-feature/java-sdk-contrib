@@ -8,20 +8,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLException;
 
+import com.google.protobuf.Descriptors.FieldDescriptor;
+import com.google.protobuf.Message;
+
+import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
+import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveFloatRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveFloatResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveIntRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveIntResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveObjectRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveObjectResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveStringRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveStringResponse;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
@@ -39,9 +40,6 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
 import lombok.extern.slf4j.Slf4j;
-
-import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
-import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 
 /**
  * OpenFeature provider for flagd.
@@ -66,6 +64,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     static final String STATIC_REASON = "STATIC";
     static final String CACHED_REASON = "CACHED";
+
+    static final String FLAG_KEY_FIELD = "flag_key";
+    static final String CONTEXT_FIELD = "context";
+    static final String VARIANT_FIELD = "variant";
+    static final String VALUE_FIELD = "value";
+    static final String REASON_FIELD = "reason";
 
     static final String LRU_CACHE = "lru";
     static final String DISABLED = "disabled";
@@ -96,12 +100,11 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      */
     public FlagdProvider(String socketPath) {
         this(
-            buildServiceBlockingStub(null, null, null, null, socketPath),
-            buildServiceStub(null, null, null, null, socketPath),
-            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
-            fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
-            fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES)
-        );
+                buildServiceBlockingStub(null, null, null, null, socketPath),
+                buildServiceStub(null, null, null, null, socketPath),
+                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
+                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
+                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
     }
 
     /**
@@ -110,15 +113,15 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      * @param socketPath            unix socket path
      * @param cache                 caching implementation to use (lru)
      * @param maxCacheSize          limit of the number of cached values
-     * @param maxEventStreamRetries limit of the number of attempts to connect to flagd's event stream,
+     * @param maxEventStreamRetries limit of the number of attempts to connect to
+     *                              flagd's event stream,
      *                              on successful connection the attempts are reset
      */
     public FlagdProvider(String socketPath, String cache, int maxCacheSize, int maxEventStreamRetries) {
         this(
-            buildServiceBlockingStub(null, null, null, null, socketPath),
-            buildServiceStub(null, null, null, null, socketPath),
-            cache, maxCacheSize, maxEventStreamRetries
-        );
+                buildServiceBlockingStub(null, null, null, null, socketPath),
+                buildServiceStub(null, null, null, null, socketPath),
+                cache, maxCacheSize, maxEventStreamRetries);
     }
 
     /**
@@ -133,12 +136,11 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      */
     public FlagdProvider(String host, int port, boolean tls, String certPath) {
         this(
-            buildServiceBlockingStub(host, port, tls, certPath, null),
-            buildServiceStub(host, port, tls, certPath, null),
-            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
-            fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
-            fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES)
-        );
+                buildServiceBlockingStub(host, port, tls, certPath, null),
+                buildServiceStub(host, port, tls, certPath, null),
+                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
+                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
+                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
     }
 
     /**
@@ -147,21 +149,22 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      * @param host                  flagd server host, defaults to "localhost"
      * @param port                  flagd server port, defaults to 8013
      * @param tls                   use TLS, defaults to false
-     * @param certPath              path for server certificate, defaults to null to, using
+     * @param certPath              path for server certificate, defaults to null
+     *                              to, using
      *                              system certs
      * @param cache                 caching implementation to use (lru)
      * @param maxCacheSize          limit of the number of cached values
-     * @param maxEventStreamRetries limit of the number of attempts to connect to flagd's event stream,
+     * @param maxEventStreamRetries limit of the number of attempts to connect to
+     *                              flagd's event stream,
      *                              on successful connection the attempts are reset
      *
      */
     public FlagdProvider(String host, int port, boolean tls, String certPath, String cache,
-        int maxCacheSize, int maxEventStreamRetries) {
+            int maxCacheSize, int maxEventStreamRetries) {
         this(
-            buildServiceBlockingStub(host, port, tls, certPath, null),
-            buildServiceStub(host, port, tls, certPath, null),
-            cache, maxCacheSize, maxEventStreamRetries
-        );
+                buildServiceBlockingStub(host, port, tls, certPath, null),
+                buildServiceStub(host, port, tls, certPath, null),
+                cache, maxCacheSize, maxEventStreamRetries);
     }
 
     /**
@@ -169,16 +172,15 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      */
     public FlagdProvider() {
         this(
-            buildServiceBlockingStub(null, null, null, null, null),
-            buildServiceStub(null, null, null, null, null),
-            fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
-            fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
-            fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES)
-        );
+                buildServiceBlockingStub(null, null, null, null, null),
+                buildServiceStub(null, null, null, null, null),
+                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
+                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
+                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
     }
 
     FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache,
-        int maxCacheSize, int maxEventStreamRetries) {
+            int maxCacheSize, int maxEventStreamRetries) {
         this.serviceBlockingStub = serviceBlockingStub;
         this.serviceStub = serviceStub;
         this.eventStreamAlive = false;
@@ -188,13 +190,29 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.handleEvents();
     }
 
-    private Boolean cacheAvailable() {
-        Lock l = this.lock.readLock();
-        l.lock();
-        Boolean available = this.cache.getEnabled() && this.eventStreamAlive;
-        l.unlock();
+    @Override
+    public void restartEventStream() throws Exception {
+        this.eventStreamAttempt++;
+        if (this.eventStreamAttempt > this.maxEventStreamRetries) {
+            log.error("failed to connect to event stream, exhausted retries");
+            return;
+        }
+        this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
+        Thread.sleep(this.eventStreamRetryBackoff);
 
-        return available;
+        this.handleEvents();
+    }
+
+    /**
+     * Call .wait() on this to block until the event stream is alive.
+     * Can be used in instances where the provider being connected to the event
+     * stream is a prerequisite
+     * to execution (e.g. testing). Not necessary for standard usage.
+     *
+     * @return eventStreamAliveSync
+     */
+    public Object getEventStreamAliveSync() {
+        return this.eventStreamAliveSync;
     }
 
     @Override
@@ -210,197 +228,58 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue,
             EvaluationContext ctx) {
-        
-        if (this.cacheAvailable()) {
-            ProviderEvaluation<Value> fromCache = this.cache.get(key);
-            if (fromCache != null) {
-                ProviderEvaluation<Boolean> result = ProviderEvaluation.<Boolean>builder()
-                    .value(fromCache.getValue().asBoolean())
-                    .variant(fromCache.getVariant())
-                    .reason(CACHED_REASON)
-                    .build();
-                return result;
-            }
-        }
 
-        ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder()
-                .setFlagKey(key)
-                .setContext(this.convertContext(ctx))
-                .build();
-        ResolveBooleanResponse r = this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                .resolveBoolean(request);
-        ProviderEvaluation<Boolean> result = ProviderEvaluation.<Boolean>builder()
-                .value(r.getValue())
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
+        ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
 
-
-        if (this.isEvaluationCacheable(result)) {
-            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
-                .value(new Value(r.getValue()))
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
-            this.cache.put(key, value);
-        }
-        
-        return result;
+        return this.resolve(key, ctx, request,
+                this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)::resolveBoolean, null);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue,
             EvaluationContext ctx) {
-        
-        if (this.cacheAvailable()) {
-            ProviderEvaluation<Value> fromCache = this.cache.get(key);
-            if (fromCache != null) {
-                ProviderEvaluation<String> result = ProviderEvaluation.<String>builder()
-                    .value(fromCache.getValue().asString())
-                    .variant(fromCache.getVariant())
-                    .reason(CACHED_REASON)
-                    .build();
-                return result;
-            }
-        }
+        ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
 
-        ResolveStringRequest request = ResolveStringRequest.newBuilder()
-                .setFlagKey(key)
-                .setContext(this.convertContext(ctx)).build();
-        ResolveStringResponse r = this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                .resolveString(request);
-        ProviderEvaluation<String> result = ProviderEvaluation.<String>builder().value(r.getValue())
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
-
-        if (this.isEvaluationCacheable(result)) {
-            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
-                .value(new Value(r.getValue()))
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
-            this.cache.put(key, value);
-        }
-        
-        return result;
+        return this.resolve(key, ctx, request,
+                this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)::resolveString, null);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue,
             EvaluationContext ctx) {
+        ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
 
-        if (this.cacheAvailable()) {
-            ProviderEvaluation<Value> fromCache = this.cache.get(key);
-            if (fromCache != null) {
-                ProviderEvaluation<Double> result = ProviderEvaluation.<Double>builder()
-                    .value(fromCache.getValue().asDouble())
-                    .variant(fromCache.getVariant())
-                    .reason(CACHED_REASON)
-                    .build();
-                return result;
-            }
-        }
-
-        ResolveFloatRequest request = ResolveFloatRequest.newBuilder()
-                .setFlagKey(key)
-                .setContext(this.convertContext(ctx))
-                .build();
-        ResolveFloatResponse r = this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                .resolveFloat(request);
-        ProviderEvaluation<Double> result = ProviderEvaluation.<Double>builder()
-                .value(r.getValue())
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
-
-        if (this.isEvaluationCacheable(result)) {
-            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
-                .value(new Value(r.getValue()))
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
-            this.cache.put(key, value);
-        }
-        
-        return result;
+        return this.resolve(key, ctx, request,
+                this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)::resolveFloat, null);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue,
             EvaluationContext ctx) {
-        
-        if (this.cacheAvailable()) {
-            ProviderEvaluation<Value> fromCache = this.cache.get(key);
-            if (fromCache != null) {
-                ProviderEvaluation<Integer> result = ProviderEvaluation.<Integer>builder()
-                    .value(fromCache.getValue().asInteger())
-                    .variant(fromCache.getVariant())
-                    .reason(CACHED_REASON)
-                    .build();
-                return result;
-            }
-        }
-        
-        ResolveIntRequest request = ResolveIntRequest.newBuilder()
-                .setFlagKey(key)
-                .setContext(this.convertContext(ctx))
-                .build();
-        ResolveIntResponse r = this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                .resolveInt(request);
-        ProviderEvaluation<Integer> result = ProviderEvaluation.<Integer>builder()
-                .value((int) r.getValue())
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
 
-        if (this.isEvaluationCacheable(result)) {
-            ProviderEvaluation<Value> value = ProviderEvaluation.<Value>builder()
-                .value(new Value(result.getValue()))
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
-            this.cache.put(key, value);
-        }
-        
-        return result;
+        ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
+
+        return this.resolve(key, ctx, request,
+                this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)::resolveInt,
+                (Object value) -> ((Long) value).intValue());
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue,
             EvaluationContext ctx) {
-        
-        if (this.cacheAvailable()) {
-            ProviderEvaluation<Value> fromCache = this.cache.get(key);
-            if (fromCache != null) {
-                fromCache.setReason(CACHED_REASON);
-                return fromCache;
-            }
-        }
-        
-        ResolveObjectRequest request = ResolveObjectRequest.newBuilder()
-                .setFlagKey(key)
-                .setContext(this.convertContext(ctx))
-                .build();
-        ResolveObjectResponse r = this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                .resolveObject(request);
-        ProviderEvaluation<Value> result = ProviderEvaluation.<Value>builder()
-                .value(this.convertObjectResponse(r.getValue()))
-                .variant(r.getVariant())
-                .reason(r.getReason())
-                .build();
 
-        if (this.isEvaluationCacheable(result)) {
-            this.cache.put(key, result);
-        }
-        
-        return result;
+        ResolveObjectRequest request = ResolveObjectRequest.newBuilder().buildPartial();
+
+        return this.resolve(key, ctx, request,
+                this.serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)::resolveObject,
+                (Object value) -> this.convertObjectResponse((com.google.protobuf.Struct) value));
     }
 
     /**
-     * Sets how long to wait for an evaluation. 
+     * Sets how long to wait for an evaluation.
      *
-     * @param deadlineMs time to wait before gRPC call is cancelled. Defaults to 500ms.
+     * @param deadlineMs time to wait before gRPC call is cancelled. Defaults to
+     *                   500ms.
      * @return FlagdProvider
      */
     public FlagdProvider setDeadline(long deadlineMs) {
@@ -530,7 +409,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     }
 
     private static NettyChannelBuilder channelBuilder(String host, Integer port, Boolean tls, String certPath,
-        String socketPath) {
+            String socketPath) {
         host = host != null ? host : fallBackToEnvOrDefault(HOST_ENV_VAR_NAME, DEFAULT_HOST);
         port = port != null ? port : Integer.parseInt(fallBackToEnvOrDefault(PORT_ENV_VAR_NAME, DEFAULT_PORT));
         tls = tls != null ? tls : Boolean.parseBoolean(fallBackToEnvOrDefault(TLS_ENV_VAR_NAME, DEFAULT_TLS));
@@ -570,12 +449,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     }
 
     private static ServiceBlockingStub buildServiceBlockingStub(String host, Integer port, Boolean tls, String certPath,
-        String socketPath) {
+            String socketPath) {
         return ServiceGrpc.newBlockingStub(channelBuilder(host, port, tls, certPath, socketPath).build());
     }
 
     private static ServiceStub buildServiceStub(String host, Integer port, Boolean tls, String certPath,
-        String socketPath) {
+            String socketPath) {
         return ServiceGrpc.newStub(channelBuilder(host, port, tls, certPath, socketPath).build());
     }
 
@@ -593,8 +472,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     }
 
     private void handleEvents() {
-        StreamObserver<EventStreamResponse> responseObserver = 
-            new EventStreamObserver(this.cache, this);
+        StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(this.cache, this);
         this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
     }
 
@@ -623,27 +501,66 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         return reason != null && reason.equals(STATIC_REASON) && this.cacheAvailable();
     }
 
-    @Override
-    public void restartEventStream() throws Exception {
-        this.eventStreamAttempt++;
-        if (this.eventStreamAttempt > this.maxEventStreamRetries) {
-            log.error("failed to connect to event stream, exhausted retries");
-            return;
-        }
-        this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
-        Thread.sleep(this.eventStreamRetryBackoff);
+    private Boolean cacheAvailable() {
+        Lock l = this.lock.readLock();
+        l.lock();
+        Boolean available = this.cache.getEnabled() && this.eventStreamAlive;
+        l.unlock();
 
-        this.handleEvents();
+        return available;
+    }
+    
+    // a generic resolve method that takes a resolverRef and an optional converter lambda to transform the result
+    private <ValT extends Object, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
+            String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
+            Convert<ValT, Object> converter) {
+
+        // return from cache if available and item is present
+        if (this.cacheAvailable()) {
+            ProviderEvaluation<? extends Object> fromCache = this.cache.get(key);
+            if (fromCache != null) {
+                fromCache.setReason(CACHED_REASON);
+                return (ProviderEvaluation<ValT>) fromCache;
+            }
+        }
+
+        // build the gRPC request
+        Message req = request.newBuilderForType()
+                .setField(this.getFieldDescriptor(request, FLAG_KEY_FIELD), (Object) key)
+                .setField(this.getFieldDescriptor(request, CONTEXT_FIELD), this.convertContext(ctx))
+                .build();
+
+        // run the referenced resolver method
+        ResT response = resolverRef.apply((ReqT) req);
+
+        // parse the response
+        ValT value = converter == null ? this.getField(response, VALUE_FIELD)
+                : converter.convert(this.getField(response, VALUE_FIELD));
+        ProviderEvaluation<ValT> result = (ProviderEvaluation<ValT>) ProviderEvaluation.<ValT>builder()
+                .value(value)
+                .variant(this.getField(response, VARIANT_FIELD))
+                .reason(this.getField(response, REASON_FIELD))
+                .build();
+
+        // cache if cache enabled
+        if (this.isEvaluationCacheable(result)) {
+            this.cache.put(key, result);
+        }
+
+        return (ProviderEvaluation<ValT>) result;
     }
 
-    /**
-     * Call .wait() on this to block until the event stream is alive.
-     * Can be used in instances where the provider being connected to the event stream is a prerequisite
-     * to execution (e.g. testing). Not necessary for standard usage.
-     *
-     * @return eventStreamAliveSync
-     */
-    public Object getEventStreamAliveSync() {
-        return this.eventStreamAliveSync;
+    private <T> T getField(Message message, String name) {
+        return (T) message.getField(this.getFieldDescriptor(message, name));
+    }
+
+    private FieldDescriptor getFieldDescriptor(Message message, String name) {
+        return message.getDescriptorForType().findFieldByName(name);
+    }
+
+    // a converter lambda
+    @FunctionalInterface
+    private interface Convert<OutT extends Object, InT extends Object> {
+        OutT convert(InT value);
     }
 }
