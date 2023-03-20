@@ -1,0 +1,16 @@
+{
+  "should-have-dessert?": {"if": [
+    {"or": [
+      {"in": [{"var": "userId"}, [1,2,3,4]]},
+      {"in": [{"var": "category"}, ["pies", "cakes"]]},
+    ]},
+    true,
+    false
+  ]},
+  "many-types": {"if": [
+    {"var": "bool"}, true,
+    {"var": "string"}, "yes",
+    {"var": "double"}, 4.2,
+    2
+  ]}
+}

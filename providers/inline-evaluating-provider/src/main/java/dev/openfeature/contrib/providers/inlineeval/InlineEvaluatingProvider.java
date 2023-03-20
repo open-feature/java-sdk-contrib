@@ -49,13 +49,14 @@ public class InlineEvaluatingProvider implements FeatureProvider {
     public ProviderEvaluation<Value> getObjectEvaluation(String s, Value value, EvaluationContext evaluationContext) {
         // we can't use the common implementation because we need to convert to-and-from Value objects.
         throw new UnsupportedOperationException("Haven't gotten there yet.");
+//        return evalRuleForKey(key, _default, ctx, (o) -> o);
     }
 
     private <T> ProviderEvaluation<T> evalRuleForKey(String key, T _default, EvaluationContext ctx) {
         return evalRuleForKey(key, _default, ctx, (o) -> (T) o);
     }
     private <T> ProviderEvaluation<T> evalRuleForKey(String key, T _default, EvaluationContext ctx, Function<Object, T> resultToType) {
-        var rule = fetcher.getRuleForKey(key);
+        String rule = fetcher.getRuleForKey(key);
         if (rule == null) {
             return ProviderEvaluation.<T>builder()
                     .value(_default)
