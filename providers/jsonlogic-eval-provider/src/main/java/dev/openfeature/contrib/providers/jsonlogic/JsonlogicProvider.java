@@ -7,6 +7,9 @@ import io.github.jamsesso.jsonlogic.JsonLogicException;
 
 import java.util.function.Function;
 
+/**
+ * A provider which evaluates JsonLogic rules provided by a {@link RuleFetcher}.
+ */
 public class JsonlogicProvider implements FeatureProvider {
     private final JsonLogic logic;
     private final RuleFetcher fetcher;
@@ -32,41 +35,42 @@ public class JsonlogicProvider implements FeatureProvider {
     }
 
     @Override
-    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean _default, EvaluationContext ctx) {
-        return evalRuleForKey(key, _default, ctx);
+    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
+        return evalRuleForKey(key, defaultValue, ctx);
     }
 
     @Override
-    public ProviderEvaluation<String> getStringEvaluation(String key, String _default, EvaluationContext ctx) {
-        return evalRuleForKey(key, _default, ctx);
+    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
+        return evalRuleForKey(key, defaultValue, ctx);
     }
 
     @Override
-    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer _default, EvaluationContext ctx) {
+    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         // jsonlogic only returns doubles, not integers.
-        return evalRuleForKey(key, _default, ctx, (o) -> ((Double) o).intValue());
+        return evalRuleForKey(key, defaultValue, ctx, (o) -> ((Double) o).intValue());
     }
 
     @Override
-    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double _default, EvaluationContext ctx) {
-        return evalRuleForKey(key, _default, ctx);
+    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
+        return evalRuleForKey(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String s, Value value, EvaluationContext evaluationContext) {
         // we can't use the common implementation because we need to convert to-and-from Value objects.
         throw new UnsupportedOperationException("Haven't gotten there yet.");
-//        return evalRuleForKey(key, _default, ctx, (o) -> o);
     }
 
-    private <T> ProviderEvaluation<T> evalRuleForKey(String key, T _default, EvaluationContext ctx) {
-        return evalRuleForKey(key, _default, ctx, (o) -> (T) o);
+    private <T> ProviderEvaluation<T> evalRuleForKey(String key, T defaultValue, EvaluationContext ctx) {
+        return evalRuleForKey(key, defaultValue, ctx, (o) -> (T) o);
     }
-    private <T> ProviderEvaluation<T> evalRuleForKey(String key, T _default, EvaluationContext ctx, Function<Object, T> resultToType) {
+
+    private <T> ProviderEvaluation<T> evalRuleForKey(
+            String key, T defaultValue, EvaluationContext ctx, Function<Object, T> resultToType) {
         String rule = fetcher.getRuleForKey(key);
         if (rule == null) {
             return ProviderEvaluation.<T>builder()
-                    .value(_default)
+                    .value(defaultValue)
                     .reason("Unable to find rules for the given key")
                     .build();
         }

@@ -10,6 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
 
+/**
+ * A {@link RuleFetcher} which reads in the rules from a file. It assumes that the keys are the flag keys and the
+ * values are the json logic rules.
+ */
 public class FileBasedFetcher implements RuleFetcher {
     private final Logger log;
     JSONObject rules;
@@ -30,5 +34,6 @@ public class FileBasedFetcher implements RuleFetcher {
         return null;
     }
 
-    @Override public void initialize(EvaluationContext initialContext) {}
+    @Override public void initialize(EvaluationContext initialContext) {
+    }
 }
