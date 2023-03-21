@@ -227,7 +227,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
 
             }
         } catch (IOException e) {
-            throw new GeneralError("unknown error while retrieving flag " + key);
+            throw new GeneralError("unknown error while retrieving flag " + key, e);
         }
     }
 
