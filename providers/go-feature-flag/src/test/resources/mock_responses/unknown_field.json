@@ -1,0 +1,11 @@
+{
+  "trackEvents": true,
+  "variationType": "True",
+  "failed": false,
+  "version": 0,
+  "reason": "TARGETING_MATCH",
+  "errorCode": "",
+  "value": true,
+  "unknown_field": true,
+  "unknown_field2": "unknown_field2"
+}
