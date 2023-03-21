@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.3...dev.openfeature.contrib.providers.go-feature-flag-v0.2.4) (2023-03-21)
+
+
+### Bug Fixes
+
+* attach original exception when throwing a general error ([#247](https://github.com/open-feature/java-sdk-contrib/issues/247)) ([cc5d7e5](https://github.com/open-feature/java-sdk-contrib/commit/cc5d7e56b9aecba075fc1515e035e9fc77bb1c9f))
+* issue on unknown field ([#246](https://github.com/open-feature/java-sdk-contrib/issues/246)) ([2b7163a](https://github.com/open-feature/java-sdk-contrib/commit/2b7163a3f1392251d7268efa5751156ba8c93694))
+
 ## [0.2.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.2...dev.openfeature.contrib.providers.go-feature-flag-v0.2.3) (2023-02-07)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.6...dev.openfeature.contrib.providers.flagd-v0.5.7) (2023-03-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.grpc:grpc-netty to v1.53.0 ([#216](https://github.com/open-feature/java-sdk-contrib/issues/216)) ([ca8f68f](https://github.com/open-feature/java-sdk-contrib/commit/ca8f68f123d0468978f9991e3eb302b92fab1ab8))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.53.0 ([#217](https://github.com/open-feature/java-sdk-contrib/issues/217)) ([5323e1d](https://github.com/open-feature/java-sdk-contrib/commit/5323e1d90aab62a7721bd524dd4906f6f729b2f4))
+* **deps:** update dependency io.grpc:grpc-stub to v1.53.0 ([#218](https://github.com/open-feature/java-sdk-contrib/issues/218)) ([e711e8c](https://github.com/open-feature/java-sdk-contrib/commit/e711e8c33f6ecfb5b2507dbd66f5f6e0a70789c0))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.88.final ([#222](https://github.com/open-feature/java-sdk-contrib/issues/222)) ([51dc9ee](https://github.com/open-feature/java-sdk-contrib/commit/51dc9ee092ecf3903853c9324595d294d1b540ee))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.89.final ([#224](https://github.com/open-feature/java-sdk-contrib/issues/224)) ([4406441](https://github.com/open-feature/java-sdk-contrib/commit/440644114a9c1d66214f0d9590892c57fef54f76))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.90.final ([#240](https://github.com/open-feature/java-sdk-contrib/issues/240)) ([20635f6](https://github.com/open-feature/java-sdk-contrib/commit/20635f64ee7528aa45cb6c692d48f00e857a655f))
+
 ## [0.5.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.5...dev.openfeature.contrib.providers.flagd-v0.5.6) (2023-01-19)
 
 
