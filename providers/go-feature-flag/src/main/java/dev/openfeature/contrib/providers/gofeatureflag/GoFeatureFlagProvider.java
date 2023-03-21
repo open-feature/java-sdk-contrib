@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -44,7 +46,8 @@ import java.util.stream.Collectors;
 public class GoFeatureFlagProvider implements FeatureProvider {
     private static final String NAME = "GO Feature Flag Provider";
     private static final ObjectMapper requestMapper = new ObjectMapper();
-    private static final ObjectMapper responseMapper = new ObjectMapper();
+    private static final ObjectMapper responseMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
@@ -197,7 +200,10 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
                     // we don't set a variant since we are using the default value, and we are not able to know
                     // which variant it is.
-                    return ProviderEvaluation.<T>builder().value(defaultValue).reason(Reason.DISABLED.name()).build();
+                    return ProviderEvaluation.<T>builder()
+                            .value(defaultValue)
+                            .variant(goffResp.getVariationType())
+                            .reason(Reason.DISABLED.name()).build();
                 }
 
                 if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {

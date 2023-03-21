@@ -284,6 +284,16 @@ class GoFeatureFlagProviderTest {
         assertEquals("True", res.getVariant());
     }
 
+    @Test
+    void should_not_fail_if_receive_an_unknown_field_in_response() throws InvalidOptions {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("unknown_field", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
+        assertEquals("True", res.getVariant());
+    }
+
     private String readMockResponse(String filename) throws IOException {
         String file = getClass().getClassLoader().getResource("mock_responses/" + filename).getFile();
         byte[] bytes = Files.readAllBytes(Paths.get(file));
