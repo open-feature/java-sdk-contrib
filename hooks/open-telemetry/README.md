@@ -12,7 +12,7 @@ enabling enhanced observability use cases, such as A/B testing or progressive fe
     <dependency>
         <groupId>dev.openfeature.contrib.hooks</groupId>
         <artifactId>otel</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </dependency>
 ```
 <!-- x-release-please-end-version -->
