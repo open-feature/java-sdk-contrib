@@ -1,6 +1,9 @@
 # These owners will be the default owners for everything in
 # the repo. Unless a later match takes precedence
-*                               @toddbaert @kavindu-dodan
+#
+# Managed by Peribolos: https://github.com/open-feature/community/blob/main/config/open-feature/sdk-java/workgroup.yaml
+#
+* @open-feature/sdk-java-maintainers
 
 # Go Feature Flag
 /providers/go-feature-flag/     @thomaspoignant
