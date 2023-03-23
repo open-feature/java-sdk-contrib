@@ -4,9 +4,3 @@
 # Managed by Peribolos: https://github.com/open-feature/community/blob/main/config/open-feature/sdk-java/workgroup.yaml
 #
 * @open-feature/sdk-java-maintainers
-
-# Go Feature Flag
-/providers/go-feature-flag/     @thomaspoignant
-
-# Flagsmith
-/providers/flagsmith             @ajhelsby
