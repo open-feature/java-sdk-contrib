@@ -9,4 +9,4 @@
 /providers/go-feature-flag/     @thomaspoignant
 
 # Flagsmith
-providers/flagsmith             @ajhelsby
+/providers/flagsmith             @ajhelsby
