@@ -7,7 +7,7 @@ import io.github.jamsesso.jsonlogic.JsonLogicException;
 
 import java.util.function.Function;
 
-public class InlineEvaluatingProvider implements FeatureProvider {
+public class JsonlogicProvider implements FeatureProvider {
     private final JsonLogic logic;
     private final RuleFetcher fetcher;
 
@@ -16,7 +16,12 @@ public class InlineEvaluatingProvider implements FeatureProvider {
         fetcher.initialize(initialContext);
     }
 
-    public InlineEvaluatingProvider(JsonLogic logic, RuleFetcher fetcher) {
+    public JsonlogicProvider(RuleFetcher fetcher) {
+        this.logic = new JsonLogic();
+        this.fetcher = fetcher;
+    }
+
+    public JsonlogicProvider(JsonLogic logic, RuleFetcher fetcher) {
         this.logic = logic;
         this.fetcher = fetcher;
     }

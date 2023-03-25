@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-class InlineEvaluatingProviderTest {
+class JsonlogicProviderTest {
     @Test
     public void demonstrateJsonLogic() throws Exception {
         // if specific id matches or category is in valid set, yes. Otherwise, no.
@@ -42,7 +42,7 @@ class InlineEvaluatingProviderTest {
 
     @Test public void providerTest() throws Exception {
         URL v = this.getClass().getResource("/test-rules.json");
-        InlineEvaluatingProvider iep = new InlineEvaluatingProvider(new JsonLogic(), new FileBasedFetcher(v.toURI()));
+        JsonlogicProvider iep = new JsonlogicProvider(new FileBasedFetcher(v.toURI()));
         ImmutableContext evalCtx = new ImmutableContext(Collections.singletonMap("userId", new Value(2)));
 
         ProviderEvaluation<Boolean> result = iep.getBooleanEvaluation("should-have-dessert?", false, evalCtx);
@@ -51,7 +51,7 @@ class InlineEvaluatingProviderTest {
 
     @Test public void missingKey() throws Exception {
         URL v = this.getClass().getResource("/test-rules.json");
-        InlineEvaluatingProvider iep = new InlineEvaluatingProvider(new JsonLogic(), new FileBasedFetcher(v.toURI()));
+        JsonlogicProvider iep = new JsonlogicProvider(new FileBasedFetcher(v.toURI()));
 
         ProviderEvaluation<Boolean> result = iep.getBooleanEvaluation("missingKey", false, null);
         assertEquals("Unable to find rules for the given key", result.getReason());
@@ -59,7 +59,7 @@ class InlineEvaluatingProviderTest {
 
     @Test public void callsFetcherInitialize() {
         RuleFetcher mockFetcher = mock(RuleFetcher.class);
-        InlineEvaluatingProvider iep = new InlineEvaluatingProvider(new JsonLogic(), mockFetcher);
+        JsonlogicProvider iep = new JsonlogicProvider(mockFetcher);
         iep.initialize(null);
         verify(mockFetcher).initialize(any());
     }
