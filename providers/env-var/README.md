@@ -18,7 +18,7 @@ Environment Variables provider allows you to read feature flags from the [proces
 
 ## Usage
 
-`EnvVarProvider` doesn't have eny options.
+`EnvVarProvider` doesn't have any options.
 Just create an instance and use it as a provider:
 
 ```java
