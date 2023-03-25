@@ -31,7 +31,7 @@
         <module>providers/flagd</module>
         <module>providers/flagsmith</module>
         <module>providers/go-feature-flag</module>
-        <module>providers/inline-evaluating-provider</module>
+        <module>providers/jsonlogic-eval-provider</module>
         <module>providers/env-var</module>
     </modules>
 

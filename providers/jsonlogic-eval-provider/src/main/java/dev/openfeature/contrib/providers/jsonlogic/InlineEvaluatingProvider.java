@@ -1,6 +1,7 @@
-package dev.openfeature.contrib.providers.inlineeval;
+package dev.openfeature.contrib.providers.jsonlogic;
 
 import dev.openfeature.sdk.*;
+import dev.openfeature.sdk.exceptions.ParseError;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 
@@ -10,7 +11,8 @@ public class InlineEvaluatingProvider implements FeatureProvider {
     private final JsonLogic logic;
     private final RuleFetcher fetcher;
 
-    void initialize(EvaluationContext initialContext) {
+
+    public void initialize(EvaluationContext initialContext) {
         fetcher.initialize(initialContext);
     }
 
@@ -69,7 +71,7 @@ public class InlineEvaluatingProvider implements FeatureProvider {
                     .value(resultToType.apply(this.logic.apply(rule, ctx.asObjectMap())))
                     .build();
         } catch (JsonLogicException e) {
-            throw new RuntimeException(e);
+            throw new ParseError(e);
         }
     }
 }

@@ -9,7 +9,7 @@
     </parent>
     <!-- The group id MUST start with dev.openfeature, or publishing will fail. OpenFeature has verified ownership of this (reversed) domain. -->
     <groupId>dev.openfeature.contrib.providers</groupId>
-    <artifactId>inline-evaluating-provider</artifactId>
+    <artifactId>jsonlogic-eval-provider</artifactId>
     <version>0.0.1</version> <!--x-release-please-version -->
 
     <name>inline-evaluating-provider</name>

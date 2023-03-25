@@ -1,6 +1,8 @@
-package dev.openfeature.contrib.providers.inlineeval;
+package dev.openfeature.contrib.providers.jsonlogic;
 
 import dev.openfeature.sdk.EvaluationContext;
+
+import javax.annotation.Nullable;
 
 public interface RuleFetcher {
 
@@ -16,5 +18,6 @@ public interface RuleFetcher {
      * @param key The key to fetch logic for
      * @return json logic rules or null
      */
+    @Nullable
     String getRuleForKey(String key);
 }
