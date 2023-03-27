@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.7...dev.openfeature.contrib.providers.flagd-v0.5.8) (2023-03-27)
+
+
+### Bug Fixes
+
+* [flagd]NPE of flagd due to null context value ([#259](https://github.com/open-feature/java-sdk-contrib/issues/259)) ([3ed5166](https://github.com/open-feature/java-sdk-contrib/commit/3ed5166144a9ea55ef6dd4ed21663b6fb663076f))
+* **deps:** update dependency io.grpc:grpc-netty to v1.54.0 ([#251](https://github.com/open-feature/java-sdk-contrib/issues/251)) ([a7450a8](https://github.com/open-feature/java-sdk-contrib/commit/a7450a88e2f485243197d8a4952959b6977b28cd))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.54.0 ([#252](https://github.com/open-feature/java-sdk-contrib/issues/252)) ([559ddae](https://github.com/open-feature/java-sdk-contrib/commit/559ddaefc809fdaa13ebd77173d477d1aa35b86b))
+* **deps:** update dependency io.grpc:grpc-stub to v1.54.0 ([#253](https://github.com/open-feature/java-sdk-contrib/issues/253)) ([984776a](https://github.com/open-feature/java-sdk-contrib/commit/984776a1bb735639112d905411bf5bccd21395ec))
+
 ## [0.5.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.6...dev.openfeature.contrib.providers.flagd-v0.5.7) (2023-03-21)
 
 
