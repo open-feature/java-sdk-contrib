@@ -16,6 +16,7 @@ import javax.net.ssl.SSLException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
 
+import com.google.protobuf.NullValue;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
@@ -386,7 +387,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         } else if (value.isNumber()) {
             builder.setNumberValue(value.asDouble());
         } else {
-            builder.setNullValue(null);
+            builder.setNullValue(NullValue.NULL_VALUE);
         }
         return builder.build();
     }
@@ -509,7 +510,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
         return available;
     }
-    
+
     // a generic resolve method that takes a resolverRef and an optional converter lambda to transform the result
     private <ValT extends Object, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,

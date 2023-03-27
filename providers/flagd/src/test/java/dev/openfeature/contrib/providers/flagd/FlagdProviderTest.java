@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -373,6 +374,36 @@ class FlagdProviderTest {
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(DEFAULT.toString(), booleanDetails.getReason());
+    }
+
+    @Test
+    // Validates null handling - https://github.com/open-feature/java-sdk-contrib/issues/258
+    void null_context_handling(){
+        // given
+        final String flagA = "flagA";
+        final boolean defaultVariant = false;
+        final boolean expectedVariant = true;
+
+        final MutableContext context = new MutableContext();
+        context.add("key", (String) null);
+
+        final ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        final ServiceStub serviceStubMock = mock(ServiceStub.class);
+
+        // when
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.resolveBoolean(any()))
+                .thenReturn(ResolveBooleanResponse.newBuilder().setValue(expectedVariant).build());
+
+        OpenFeatureAPI.getInstance()
+                .setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 10, 1));
+
+        // then
+        final Boolean evaluation = api.getClient().getBooleanValue(flagA, defaultVariant, context);
+
+        assertNotEquals(evaluation, defaultVariant);
+        assertEquals(evaluation, expectedVariant);
     }
 
     @Test
