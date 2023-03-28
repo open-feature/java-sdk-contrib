@@ -3,5 +3,5 @@
   "hooks/open-telemetry": "1.0.2",
   "providers/go-feature-flag": "0.2.4",
   "providers/flagsmith": "0.0.4",
-  "providers/env-var": "0.0.1"
+  "providers/env-var": "0.0.2"
 }
