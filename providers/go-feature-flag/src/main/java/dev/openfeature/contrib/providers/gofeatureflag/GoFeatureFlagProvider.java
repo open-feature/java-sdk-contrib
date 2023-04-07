@@ -191,12 +191,12 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                             requestMapper.writeValueAsBytes(goffRequest),
                             MediaType.get("application/json; charset=utf-8")));
 
-            if(this.apiKey!=null && !"".equals(this.apiKey)){
+            if (this.apiKey != null && !"".equals(this.apiKey)) {
                 reqBuilder.addHeader("Authorization", "Bearer " + this.apiKey);
             }
 
             try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                if (response.code() == HTTP_UNAUTHORIZED){
+                if (response.code() == HTTP_UNAUTHORIZED) {
                     throw new GeneralError("invalid token used to contact GO Feature Flag relay proxy instance");
                 }
                 if (response.code() >= HTTP_BAD_REQUEST) {
