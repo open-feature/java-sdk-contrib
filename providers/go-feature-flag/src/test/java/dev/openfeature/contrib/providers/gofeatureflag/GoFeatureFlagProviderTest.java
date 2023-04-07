@@ -40,6 +40,9 @@ class GoFeatureFlagProviderTest {
             if (request.getPath().contains("fail_500")) {
                 return new MockResponse().setResponseCode(500);
             }
+            if (request.getPath().contains("fail_401")) {
+                return new MockResponse().setResponseCode(401);
+            }
             if (request.getPath().startsWith("/v1/feature/")) {
                 String flagName = request.getPath().replace("/v1/feature/", "").replace("/eval", "");
                 return new MockResponse()
@@ -117,6 +120,17 @@ class GoFeatureFlagProviderTest {
     void should_throw_an_error_if_endpoint_not_available() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         assertThrows(GeneralError.class, () -> g.getBooleanEvaluation("fail_500", false, this.evaluationContext));
+    }
+
+    @Test
+    void should_throw_an_error_if_invalid_api_key() throws InvalidOptions {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(
+                GoFeatureFlagProviderOptions.builder()
+                        .endpoint(this.baseUrl.toString())
+                        .timeout(1000)
+                        .apiKey("invalid_api_key")
+                        .build());
+        assertThrows(GeneralError.class, () -> g.getBooleanEvaluation("fail_401", false, this.evaluationContext));
     }
 
     @Test
