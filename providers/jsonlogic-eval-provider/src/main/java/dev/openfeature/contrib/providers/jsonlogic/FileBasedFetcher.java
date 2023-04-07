@@ -18,6 +18,11 @@ public class FileBasedFetcher implements RuleFetcher {
     private final Logger log;
     JSONObject rules;
 
+    /**
+     * Create a file based fetcher give a file URI
+     * @param filename URI to a given file.
+     * @throws IOException
+     */
     public FileBasedFetcher(URI filename) throws IOException {
         this.log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
         String jsonData = String.join("", Files.readAllLines(Paths.get(filename)));
