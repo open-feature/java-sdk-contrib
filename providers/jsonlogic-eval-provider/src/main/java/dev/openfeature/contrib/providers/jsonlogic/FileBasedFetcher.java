@@ -19,9 +19,9 @@ public class FileBasedFetcher implements RuleFetcher {
     JSONObject rules;
 
     /**
-     * Create a file based fetcher give a file URI
+     * Create a file based fetcher give a file URI.
      * @param filename URI to a given file.
-     * @throws IOException
+     * @throws IOException when we can't load the file correctly
      */
     public FileBasedFetcher(URI filename) throws IOException {
         this.log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
