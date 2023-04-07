@@ -9,11 +9,16 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A {@link RuleFetcher} which reads in the rules from a file. It assumes that the keys are the flag keys and the
  * values are the json logic rules.
  */
+@SuppressFBWarnings(
+        value = "PATH_TRAVERSAL_IN",
+        justification = "This is expected to read files based on user input"
+)
 public class FileBasedFetcher implements RuleFetcher {
     private final Logger log;
     JSONObject rules;
