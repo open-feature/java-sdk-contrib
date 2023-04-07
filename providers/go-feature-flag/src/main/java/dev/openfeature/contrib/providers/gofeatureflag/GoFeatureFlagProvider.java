@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,6 +52,9 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
+
+    // apiKey contains the token to use while calling GO Feature Flag relay proxy
+    private String apiKey;
 
     /**
      * Constructor of the provider.
@@ -108,6 +112,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         if (this.parsedEndpoint == null) {
             throw new InvalidEndpoint();
         }
+        this.apiKey = options.getApiKey();
     }
 
     @Override
@@ -179,15 +184,21 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                     .addEncodedPathSegment("eval")
                     .build();
 
-            Request request = new Request.Builder()
+            Request.Builder reqBuilder = new Request.Builder()
                     .url(url)
                     .addHeader("Content-Type", "application/json")
                     .post(RequestBody.create(
                             requestMapper.writeValueAsBytes(goffRequest),
-                            MediaType.get("application/json; charset=utf-8")))
-                    .build();
+                            MediaType.get("application/json; charset=utf-8")));
 
-            try (Response response = this.httpClient.newCall(request).execute()) {
+            if(this.apiKey!=null && !"".equals(this.apiKey)){
+                reqBuilder.addHeader("Authorization", "Bearer " + this.apiKey);
+            }
+
+            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
+                if (response.code() == HTTP_UNAUTHORIZED){
+                    throw new GeneralError("invalid token used to contact GO Feature Flag relay proxy instance");
+                }
                 if (response.code() >= HTTP_BAD_REQUEST) {
                     throw new GeneralError("impossible to contact GO Feature Flag relay proxy instance");
                 }
