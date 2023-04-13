@@ -54,7 +54,8 @@ class JsonlogicProviderTest {
         JsonlogicProvider iep = new JsonlogicProvider(new FileBasedFetcher(v.toURI()));
 
         ProviderEvaluation<Boolean> result = iep.getBooleanEvaluation("missingKey", false, null);
-        assertEquals("Unable to find rules for the given key", result.getReason());
+        assertEquals("Unable to find rules for the given key", result.getErrorMessage());
+        assertEquals("ERROR", result.getReason());
     }
 
     @Test public void callsFetcherInitialize() {

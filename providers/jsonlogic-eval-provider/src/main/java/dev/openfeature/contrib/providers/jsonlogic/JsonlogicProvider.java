@@ -71,7 +71,8 @@ public class JsonlogicProvider implements FeatureProvider {
         if (rule == null) {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
-                    .reason("Unable to find rules for the given key")
+                    .reason(Reason.ERROR.toString())
+                    .errorMessage("Unable to find rules for the given key")
                     .build();
         }
 
