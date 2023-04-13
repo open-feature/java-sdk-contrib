@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.jsonlogic;
 
 import dev.openfeature.sdk.EvaluationContext;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -9,7 +10,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A {@link RuleFetcher} which reads in the rules from a file. It assumes that the keys are the flag keys and the
@@ -20,7 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         justification = "This is expected to read files based on user input"
 )
 public class FileBasedFetcher implements RuleFetcher {
-    private final static Logger log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
+    private static final Logger log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
     private final JSONObject rules;
 
     /**
