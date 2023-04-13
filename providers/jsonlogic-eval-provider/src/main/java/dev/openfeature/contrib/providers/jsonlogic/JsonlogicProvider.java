@@ -31,7 +31,7 @@ public class JsonlogicProvider implements FeatureProvider {
 
     @Override
     public Metadata getMetadata() {
-        return null;
+        return () -> "JsonLogicProvider(" + this.fetcher.getClass().getName() + ")";
     }
 
     @Override
