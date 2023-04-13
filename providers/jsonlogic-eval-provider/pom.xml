@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.openfeature.contrib</groupId>
+        <artifactId>parent</artifactId>
+        <version>0.1.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <!-- The group id MUST start with dev.openfeature, or publishing will fail. OpenFeature has verified ownership of this (reversed) domain. -->
+    <groupId>dev.openfeature.contrib.providers</groupId>
+    <artifactId>jsonlogic-eval-provider</artifactId>
+    <version>0.0.1</version> <!--x-release-please-version -->
+
+    <name>inline-evaluating-provider</name>
+    <description>Allows for evaluating rules on the client without synchronous calls to a backend</description>
+    <url>https://openfeature.dev</url>
+
+    <developers>
+        <developer>
+            <id>justinabrahms</id>
+            <name>Justin Abrahms</name>
+            <organization>OpenFeature</organization>
+            <url>https://openfeature.dev/</url>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.jamsesso</groupId>
+            <artifactId>json-logic-java</artifactId>
+            <version>1.0.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20230227</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <version>4.7.3</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- plugins your module needs (in addition to those inherited from parent) -->
+        </plugins>
+    </build>
+
+</project>

@@ -1,0 +1,7 @@
+{"if": [{"var": "bool"}, true,
+  {"if": [{"var": "string"}, "yes",
+    {"if": [{"var": "double"}, 4.2,
+      2
+    ]}
+  ]}
+]}
