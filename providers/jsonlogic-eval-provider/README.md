@@ -1,6 +1,6 @@
 # JSONLogic Evaluation Provider
 
-This provider does inline evaluation (e.g. no hot-path remote calls) based on JSONLogic. This should allow you to 
+This provider does inline evaluation (e.g. no hot-path remote calls) based on [JSONLogic](https://jsonlogic.com/). This should allow you to 
 achieve low latency flag evaluation.
 
 ## Installation
