@@ -20,8 +20,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         justification = "This is expected to read files based on user input"
 )
 public class FileBasedFetcher implements RuleFetcher {
-    private final Logger log;
-    JSONObject rules;
+    private final static Logger log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
+    private final JSONObject rules;
 
     /**
      * Create a file based fetcher give a file URI.
@@ -29,7 +29,6 @@ public class FileBasedFetcher implements RuleFetcher {
      * @throws IOException when we can't load the file correctly
      */
     public FileBasedFetcher(URI filename) throws IOException {
-        this.log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
         String jsonData = String.join("", Files.readAllLines(Paths.get(filename)));
         rules = new JSONObject(jsonData);
     }
