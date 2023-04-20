@@ -299,6 +299,77 @@ class FlagdProviderTest {
     }
 
     @Test
+    void zero_value() {
+        ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
+                .setVariant(BOOL_VARIANT)
+                .setReason(DEFAULT.toString())
+                .build();
+
+        ResolveStringResponse stringResponse = ResolveStringResponse.newBuilder()
+                .setVariant(STRING_VARIANT)
+                .setReason(DEFAULT.toString())
+                .build();
+
+        ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
+                .setVariant(INT_VARIANT)
+                .setReason(DEFAULT.toString())
+                .build();
+
+        ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
+                .setVariant(DOUBLE_VARIANT)
+                .setReason(DEFAULT.toString())
+                .build();
+
+        ResolveObjectResponse objectResponse = ResolveObjectResponse.newBuilder()
+                .setVariant(OBJECT_VARIANT)
+                .setReason(DEFAULT.toString())
+                .build();
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+        when(serviceBlockingStubMock
+                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey())))).thenReturn(floatResponse);
+        when(serviceBlockingStubMock
+                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey())))).thenReturn(intResponse);
+        when(serviceBlockingStubMock
+                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey())))).thenReturn(stringResponse);
+        when(serviceBlockingStubMock
+                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
+
+        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru",
+            100, 5 ));
+
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+        assertEquals(false, booleanDetails.getValue());
+        assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
+        assertEquals(DEFAULT.toString(), booleanDetails.getReason());
+
+        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
+        assertEquals("", stringDetails.getValue());
+        assertEquals(STRING_VARIANT, stringDetails.getVariant());
+        assertEquals(DEFAULT.toString(), stringDetails.getReason());
+
+        FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
+        assertEquals(0, intDetails.getValue());
+        assertEquals(INT_VARIANT, intDetails.getVariant());
+        assertEquals(DEFAULT.toString(), intDetails.getReason());
+
+        FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
+        assertEquals(0.0, floatDetails.getValue());
+        assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
+        assertEquals(DEFAULT.toString(), floatDetails.getReason());
+
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+        assertEquals(new MutableStructure(), objectDetails.getValue().asObject());
+        assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
+        assertEquals(DEFAULT.toString(), objectDetails.getReason());
+    }
+
+    @Test
     void resolvers_cache_responses_if_static_and_event_stream_alive() {
         do_resolvers_cache_responses(FlagdProvider.STATIC_REASON, true, true);
     }
