@@ -1,21 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.net.ssl.SSLException;
-
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
-
 import com.google.protobuf.NullValue;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
@@ -40,7 +26,24 @@ import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.net.ssl.SSLException;
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * OpenFeature provider for flagd.
@@ -81,15 +84,18 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     static final int BASE_EVENT_STREAM_RETRY_BACKOFF_MS = 1000;
 
     private long deadline = DEFAULT_DEADLINE;
+
     private ServiceBlockingStub serviceBlockingStub;
     private ServiceStub serviceStub;
+
+    private Tracer tracer;
 
     private Boolean eventStreamAlive;
     private FlagdCache cache;
 
     private int eventStreamAttempt = 1;
     private int eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
-    private int maxEventStreamRetries = DEFAULT_MAX_EVENT_STREAM_RETRIES;
+    private int maxEventStreamRetries;
 
     private ReadWriteLock lock = new ReentrantReadWriteLock();
     private Object eventStreamAliveSync;
@@ -178,6 +184,17 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
                 fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
                 fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
+    }
+
+    public FlagdProvider(OpenTelemetrySdk telemetrySdk) {
+        this(
+                buildServiceBlockingStub(telemetrySdk),
+                buildServiceStub(null, null, null, null, null),
+                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
+                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
+                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
+
+        this.tracer = telemetrySdk.getTracer("OpenFeature/dev.openfeature.contrib.providers.flagd");
     }
 
     FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache,
@@ -454,6 +471,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         return ServiceGrpc.newBlockingStub(channelBuilder(host, port, tls, certPath, socketPath).build());
     }
 
+    private static ServiceBlockingStub buildServiceBlockingStub(OpenTelemetrySdk sdk) {
+        return ServiceGrpc
+                .newBlockingStub(channelBuilder(null, null, null, null, null)
+                        .intercept(new FlagdGrpcInterceptor(sdk)).build());
+    }
+
     private static ServiceStub buildServiceStub(String host, Integer port, Boolean tls, String certPath,
             String socketPath) {
         return ServiceGrpc.newStub(channelBuilder(host, port, tls, certPath, socketPath).build());
@@ -532,7 +555,21 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 .build();
 
         // run the referenced resolver method
-        ResT response = resolverRef.apply((ReqT) req);
+        final ResT response;
+
+        if (tracer != null){
+            final Span span = tracer.spanBuilder("resolve")
+                    .setSpanKind(SpanKind.CLIENT)
+                    .startSpan();
+            span.setAttribute("feature_flag.key", key);
+            try (Scope scope = span.makeCurrent()) {
+                response = resolverRef.apply((ReqT) req);
+            } finally {
+                span.end();
+            }
+        }else {
+            response = resolverRef.apply((ReqT) req);
+        }
 
         // parse the response
         ValT value = converter == null ? this.getField(response, VALUE_FIELD)
