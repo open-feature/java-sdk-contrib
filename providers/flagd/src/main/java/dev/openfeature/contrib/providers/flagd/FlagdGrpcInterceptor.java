@@ -32,7 +32,7 @@ final class FlagdGrpcInterceptor implements ClientInterceptor {
         final ClientCall<ReqT, RespT> call = channel.newCall(methodDescriptor, callOptions);
 
         return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(call) {
-            @Override public void start(Listener<RespT> responseListener, io.grpc.Metadata headers) {
+            @Override public void start(Listener<RespT> responseListener, Metadata headers) {
                 openTelemetry.getPropagators().getTextMapPropagator().inject(Context.current(), headers, SETTER);
                 super.start(responseListener, headers);
             }
@@ -48,7 +48,7 @@ final class FlagdGrpcInterceptor implements ClientInterceptor {
                 return;
             }
 
-            carrier.put(io.grpc.Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER), value);
+            carrier.put(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER), value);
         }
     }
 }
