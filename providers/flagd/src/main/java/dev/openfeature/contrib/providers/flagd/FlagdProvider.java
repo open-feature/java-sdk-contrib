@@ -186,6 +186,10 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
     }
 
+
+    /**
+     * Create a new FlagdProvider instance with manual telemetry sdk.
+     */
     public FlagdProvider(OpenTelemetrySdk telemetrySdk) {
         this(
                 buildServiceBlockingStub(telemetrySdk),
@@ -557,7 +561,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         // run the referenced resolver method
         final ResT response;
 
-        if (tracer != null){
+        if (tracer != null) {
             final Span span = tracer.spanBuilder("resolve")
                     .setSpanKind(SpanKind.CLIENT)
                     .startSpan();
@@ -567,7 +571,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             } finally {
                 span.end();
             }
-        }else {
+        } else {
             response = resolverRef.apply((ReqT) req);
         }
 
