@@ -26,11 +26,11 @@ import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLException;
@@ -186,19 +186,15 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
     }
 
-
-    /**
-     * Create a new FlagdProvider instance with manual telemetry sdk.
-     */
-    public FlagdProvider(OpenTelemetry openTelemetry) {
+    public FlagdProvider(OpenTelemetrySdk telemetrySdk) {
         this(
-                buildServiceBlockingStub(openTelemetry),
+                buildServiceBlockingStub(telemetrySdk),
                 buildServiceStub(null, null, null, null, null),
                 fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
                 fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
                 fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
 
-        this.tracer = openTelemetry.getTracer("OpenFeature/dev.openfeature.contrib.providers.flagd");
+        this.tracer = telemetrySdk.getTracer("OpenFeature/dev.openfeature.contrib.providers.flagd");
     }
 
     FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache,
@@ -475,10 +471,10 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         return ServiceGrpc.newBlockingStub(channelBuilder(host, port, tls, certPath, socketPath).build());
     }
 
-    private static ServiceBlockingStub buildServiceBlockingStub(OpenTelemetry telemetry) {
+    private static ServiceBlockingStub buildServiceBlockingStub(OpenTelemetrySdk sdk) {
         return ServiceGrpc
                 .newBlockingStub(channelBuilder(null, null, null, null, null)
-                        .intercept(new FlagdGrpcInterceptor(telemetry)).build());
+                        .intercept(new FlagdGrpcInterceptor(sdk)).build());
     }
 
     private static ServiceStub buildServiceStub(String host, Integer port, Boolean tls, String certPath,
@@ -561,18 +557,17 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         // run the referenced resolver method
         final ResT response;
 
-        if (tracer != null) {
+        if (tracer != null){
             final Span span = tracer.spanBuilder("resolve")
                     .setSpanKind(SpanKind.CLIENT)
                     .startSpan();
             span.setAttribute("feature_flag.key", key);
-            span.setAttribute("feature_flag.provider_name", "flagd");
             try (Scope scope = span.makeCurrent()) {
                 response = resolverRef.apply((ReqT) req);
             } finally {
                 span.end();
             }
-        } else {
+        }else {
             response = resolverRef.apply((ReqT) req);
         }
 

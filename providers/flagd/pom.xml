@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.5.8-snapshot</version> <!--x-release-please-version -->
+    <version>0.5.8</version> <!--x-release-please-version -->
 
     <name>flagd</name>
     <description>FlagD provider for Java</description>
@@ -38,7 +38,7 @@
             <!-- we only support unix sockets on linux, via epoll native lib -->
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
-            <version>4.1.92.Final</version>
+            <version>4.1.91.Final</version>
             <!-- TODO: with 5+ (still alpha), arm is support and we should package multiple versions -->
             <classifier>linux-x86_64</classifier>
         </dependency>
@@ -71,7 +71,7 @@
 
         <dependency>
             <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
+            <artifactId>opentelemetry-sdk</artifactId>
             <version>1.25.0</version>
         </dependency>
     </dependencies>
