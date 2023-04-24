@@ -32,7 +32,8 @@ final class FlagdGrpcInterceptor implements ClientInterceptor {
         final ClientCall<ReqT, RespT> call = channel.newCall(methodDescriptor, callOptions);
 
         return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(call) {
-            @Override public void start(Listener<RespT> responseListener, Metadata headers) {
+            @Override
+            public void start(Listener<RespT> responseListener, Metadata headers) {
                 openTelemetry.getPropagators().getTextMapPropagator().inject(Context.current(), headers, SETTER);
                 super.start(responseListener, headers);
             }
@@ -43,7 +44,8 @@ final class FlagdGrpcInterceptor implements ClientInterceptor {
      * Setter implements TextMapSetter with carrier check.
      */
     static class Setter implements TextMapSetter<Metadata> {
-        @Override public void set(@Nullable Metadata carrier, String key, String value) {
+        @Override
+        public void set(@Nullable Metadata carrier, String key, String value) {
             if (carrier == null) {
                 return;
             }

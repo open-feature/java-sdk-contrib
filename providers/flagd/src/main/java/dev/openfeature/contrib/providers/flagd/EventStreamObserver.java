@@ -11,8 +11,8 @@ import com.google.protobuf.Value;
  */
 @Slf4j
 public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
-    private EventStreamCallback callback;
-    private FlagdCache cache;
+    private final EventStreamCallback callback;
+    private final FlagdCache cache;
 
     private static final String configurationChange = "configuration_change";
     private static final String providerReady = "provider_ready";

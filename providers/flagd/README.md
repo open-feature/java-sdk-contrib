@@ -37,6 +37,17 @@ Options can be defined in the constructor or as environment variables, with cons
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE            | int     | 1000      |               |
 | maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES  | int     | 5         |               |
 
+For better flexibility on provider arguments, please use `FLagdOptions` based provider constructor
+
+```java
+FlagdProvider flagdProvider =
+        new FlagdProvider(FlagdOptions.builder()
+                            .host("localhost")
+                            .port(8023)
+                            .telemetrySdk(telemetrySdk).build());
+
+```
+
 ### Unix socket support
 
 Unix socket communication with flag is facilitated via usage of the linux-native `epoll` library on `linux-x86_64` only (ARM support is pending relase of `netty-transport-native-epoll` v5). Unix sockets are not supported on other platforms or architectures.

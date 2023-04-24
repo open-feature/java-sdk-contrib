@@ -7,6 +7,8 @@ import org.apache.commons.collections4.map.LRUMap;
 
 import dev.openfeature.sdk.ProviderEvaluation;
 
+import static dev.openfeature.contrib.providers.flagd.Config.LRU_CACHE;
+
 /**
  * Exposes caching mechanism for flag evaluations.
  */
@@ -14,7 +16,6 @@ public class FlagdCache {
     private Map<String,ProviderEvaluation<? extends Object>> store;
     private Boolean enabled = false;
 
-    static final String LRU_CACHE = "lru";
     static final String DISABLED = "disabled";
 
     FlagdCache(String cache, int maxCacheSize) {
@@ -27,8 +28,7 @@ public class FlagdCache {
                 return;
             case LRU_CACHE:
             default:
-                this.store = Collections
-                        .synchronizedMap(new LRUMap<String, ProviderEvaluation<? extends Object>>(maxCacheSize));
+                this.store = Collections.synchronizedMap(new LRUMap<>(maxCacheSize));
         }
 
         this.enabled = true;
