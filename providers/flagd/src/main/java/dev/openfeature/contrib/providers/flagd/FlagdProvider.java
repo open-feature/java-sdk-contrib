@@ -566,6 +566,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                     .setSpanKind(SpanKind.CLIENT)
                     .startSpan();
             span.setAttribute("feature_flag.key", key);
+            span.setAttribute("feature_flag.provider_name", "flagd");
             try (Scope scope = span.makeCurrent()) {
                 response = resolverRef.apply((ReqT) req);
             } finally {
