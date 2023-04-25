@@ -7,9 +7,9 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ForwardingClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapSetter;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
 
 import javax.annotation.Nullable;
 
@@ -20,9 +20,9 @@ import javax.annotation.Nullable;
 final class FlagdGrpcInterceptor implements ClientInterceptor {
     private static final TextMapSetter<Metadata> SETTER = new Setter();
 
-    private final OpenTelemetrySdk openTelemetry;
+    private final OpenTelemetry openTelemetry;
 
-    FlagdGrpcInterceptor(final OpenTelemetrySdk openTelemetry) {
+    FlagdGrpcInterceptor(final OpenTelemetry openTelemetry) {
         this.openTelemetry = openTelemetry;
     }
 
