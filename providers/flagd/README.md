@@ -44,7 +44,7 @@ FlagdProvider flagdProvider =
         new FlagdProvider(FlagdOptions.builder()
                             .host("localhost")
                             .port(8023)
-                            .telemetrySdk(telemetrySdk).build());
+                            .openTelemetry(openTelemetry).build());
 
 ```
 

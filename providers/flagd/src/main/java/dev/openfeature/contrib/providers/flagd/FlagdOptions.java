@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -79,8 +79,8 @@ public class FlagdOptions {
             fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES);
 
     /**
-     * Inject OpenTelemetrySdk for the library runtime. Providing sdk will initiate distributed tracing for flagd grpc
+     * Inject OpenTelemetry for the library runtime. Providing sdk will initiate distributed tracing for flagd grpc
      * connectivity.
      * */
-    private OpenTelemetrySdk telemetrySdk;
+    private OpenTelemetry openTelemetry;
 }

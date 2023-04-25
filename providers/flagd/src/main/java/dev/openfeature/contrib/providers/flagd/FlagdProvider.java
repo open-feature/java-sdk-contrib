@@ -105,9 +105,9 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         final ManagedChannel channel = nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
-        this.strategy = options.getTelemetrySdk() == null
+        this.strategy = options.getOpenTelemetry() == null
                 ? new SimpleResolving()
-                : new TracedResolving(options.getTelemetrySdk());
+                : new TracedResolving(options.getOpenTelemetry());
 
         this.maxEventStreamRetries = options.getMaxEventStreamRetries();
         this.cache = new FlagdCache(options.getCacheType(), options.getMaxCacheSize());
@@ -517,8 +517,8 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             }
 
             // telemetry interceptor if option is provided
-            if (options.getTelemetrySdk() != null) {
-                builder.intercept(new FlagdGrpcInterceptor(options.getTelemetrySdk()));
+            if (options.getOpenTelemetry() != null) {
+                builder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
             }
 
             return builder.build();

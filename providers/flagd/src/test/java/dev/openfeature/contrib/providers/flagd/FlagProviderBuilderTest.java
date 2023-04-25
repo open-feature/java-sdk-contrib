@@ -25,6 +25,6 @@ public class FlagProviderBuilderTest {
         assertEquals(builder.getCacheType(),DEFAULT_CACHE );
         assertEquals(builder.getMaxCacheSize(), DEFAULT_MAX_CACHE_SIZE);
         assertEquals(builder.getMaxEventStreamRetries(), DEFAULT_MAX_EVENT_STREAM_RETRIES);
-        assertNull(builder.getTelemetrySdk());
+        assertNull(builder.getOpenTelemetry());
     }
 }
