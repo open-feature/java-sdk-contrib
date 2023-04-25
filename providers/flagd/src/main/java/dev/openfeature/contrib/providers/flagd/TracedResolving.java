@@ -7,6 +7,7 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 
+import javax.annotation.Nonnull;
 import java.util.function.Function;
 
 /**
@@ -16,7 +17,7 @@ public class TracedResolving implements ResolveStrategy {
 
     private final Tracer tracer;
 
-    TracedResolving(OpenTelemetry telemetry) {
+    TracedResolving(@Nonnull OpenTelemetry telemetry) {
         this.tracer = telemetry.getTracer("OpenFeature/dev.openfeature.contrib.providers.flagd");
     }
 

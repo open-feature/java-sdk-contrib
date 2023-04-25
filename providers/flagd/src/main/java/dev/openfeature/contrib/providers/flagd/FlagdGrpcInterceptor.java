@@ -11,6 +11,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapSetter;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -22,7 +23,7 @@ final class FlagdGrpcInterceptor implements ClientInterceptor {
 
     private final OpenTelemetry openTelemetry;
 
-    FlagdGrpcInterceptor(final OpenTelemetry openTelemetry) {
+    FlagdGrpcInterceptor(@Nonnull final OpenTelemetry openTelemetry) {
         this.openTelemetry = openTelemetry;
     }
 
