@@ -72,11 +72,6 @@ class FlagdProviderTest {
     static final Double DOUBLE_VALUE = .5d;
     static final String INNER_STRUCT_KEY = "inner_key";
     static final String INNER_STRUCT_VALUE = "inner_value";
-    static final Structure OBJECT_VALUE = new MutableStructure() {
-        {
-            add(INNER_STRUCT_KEY, INNER_STRUCT_VALUE);
-        }
-    };
     static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE = com.google.protobuf.Struct.newBuilder()
             .putFields(INNER_STRUCT_KEY,
                     com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE).build())
@@ -111,14 +106,15 @@ class FlagdProviderTest {
                         (mock, context) -> {
                         })) {
                     when(NettyChannelBuilder.forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
-                    new FlagdProvider(path);
+
+                    new FlagdProvider(FlagdOptions.builder().socketPath(path).build());
 
                     // verify path matches
                     mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
                             .forAddress(argThat((DomainSocketAddress d) -> {
                                 assertEquals(d.path(), path); // path should match
                                 return true;
-                            })), times(2));
+                            })), times(1));
                 }
             }
         }
@@ -182,11 +178,13 @@ class FlagdProviderTest {
 
                 mockStaticChannelBuilder.when(() -> NettyChannelBuilder
                         .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
-                new FlagdProvider(host, port, false, null);
+
+                final FlagdOptions flagdOptions = FlagdOptions.builder().host(host).port(port).tls(false).build();
+                new FlagdProvider(flagdOptions);
 
                 // verify host/port matches
                 mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                        .forAddress(host, port), times(2));
+                        .forAddress(host, port), times(1));
             }
         }
     }
@@ -216,7 +214,8 @@ class FlagdProviderTest {
                     new FlagdProvider();
 
                     // verify host/port matches & called times(= 1 as we rely on reusable channel)
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forAddress(host, port), times(1));
+                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.
+                            forAddress(host, port), times(1));
                 }
             }
         });
