@@ -13,7 +13,7 @@ import java.util.function.Function;
 /**
  * {@link TracedResolving} a request to response resolver with tracing for telemetry.
  */
-public class TracedResolving implements ResolveStrategy {
+class TracedResolving implements ResolveStrategy {
 
     private final Tracer tracer;
 
