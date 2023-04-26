@@ -1,35 +1,8 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.HashMap;
-
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-
 import com.google.protobuf.Struct;
-
-import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
+import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveFloatResponse;
@@ -52,7 +25,34 @@ import io.grpc.stub.StreamObserver;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
+import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class FlagdProviderTest {
 
@@ -149,13 +149,14 @@ class FlagdProviderTest {
                             })) {
                         mockStaticChannelBuilder.when(() -> NettyChannelBuilder
                                 .forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
+
                         new FlagdProvider();
 
-                        //verify path matches
+                        //verify path matches & called times(= 1 as we rely on reusable channel)
                         mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
                                 .forAddress(argThat((DomainSocketAddress d) -> {
                                     return d.path() == path;
-                                })), times(2));
+                                })), times(1));
                     }
                 }
             }
@@ -205,17 +206,17 @@ class FlagdProviderTest {
                         .thenReturn(mockBlockingStub);
                 mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                         .thenReturn(mockStub);
-    
+
                 try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(
                         NettyChannelBuilder.class)) {
-    
+
                     mockStaticChannelBuilder.when(() -> NettyChannelBuilder
                             .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
+
                     new FlagdProvider();
 
-                    // verify host/port matches
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                            .forAddress(host, port), times(2));
+                    // verify host/port matches & called times(= 1 as we rely on reusable channel)
+                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forAddress(host, port), times(1));
                 }
             }
         });
@@ -371,7 +372,7 @@ class FlagdProviderTest {
 
     @Test
     void resolvers_cache_responses_if_static_and_event_stream_alive() {
-        do_resolvers_cache_responses(FlagdProvider.STATIC_REASON, true, true);
+        do_resolvers_cache_responses(STATIC_REASON, true, true);
     }
 
     @Test
@@ -381,7 +382,7 @@ class FlagdProviderTest {
 
     @Test
     void resolvers_should_not_cache_responses_if_event_stream_not_alive() {
-        do_resolvers_cache_responses(FlagdProvider.STATIC_REASON, false, false);
+        do_resolvers_cache_responses(STATIC_REASON, false, false);
     }
 
     @Test
@@ -527,31 +528,31 @@ class FlagdProviderTest {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveStringResponse stringResponse = ResolveStringResponse.newBuilder()
                 .setValue(STRING_VALUE)
                 .setVariant(STRING_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
                 .setValue(INT_VALUE)
                 .setVariant(INT_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
                 .setValue(DOUBLE_VALUE)
                 .setVariant(DOUBLE_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveObjectResponse objectResponse = ResolveObjectResponse.newBuilder()
                 .setValue(PROTOBUF_STRUCTURE_VALUE)
                 .setVariant(OBJECT_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
 
@@ -608,28 +609,28 @@ class FlagdProviderTest {
         booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, booleanDetails.getReason());
+        assertEquals(STATIC_REASON, booleanDetails.getReason());
 
         stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
         assertEquals(STRING_VALUE, stringDetails.getValue());
         assertEquals(STRING_VARIANT, stringDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, stringDetails.getReason());
+        assertEquals(STATIC_REASON, stringDetails.getReason());
 
         intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
         assertEquals(INT_VALUE, intDetails.getValue());
         assertEquals(INT_VARIANT, intDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, intDetails.getReason());
+        assertEquals(STATIC_REASON, intDetails.getReason());
 
         floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
         assertEquals(DOUBLE_VALUE, floatDetails.getValue());
         assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, floatDetails.getReason());
+        assertEquals(STATIC_REASON, floatDetails.getReason());
 
         objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
         assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, objectDetails.getReason());
+        assertEquals(STATIC_REASON, objectDetails.getReason());
     }
 
     private NettyChannelBuilder getMockChannelBuilderSocket() {
@@ -642,7 +643,7 @@ class FlagdProviderTest {
     }
 
     private void do_resolvers_cache_responses(String reason, Boolean eventStreamAlive, Boolean shouldCache) {
-        String expectedReason = FlagdProvider.CACHED_REASON;
+        String expectedReason = CACHED_REASON;
         if (!shouldCache) {
             expectedReason = reason;
         }
@@ -733,31 +734,31 @@ class FlagdProviderTest {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveStringResponse stringResponse = ResolveStringResponse.newBuilder()
                 .setValue(STRING_VALUE)
                 .setVariant(STRING_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
                 .setValue(INT_VALUE)
                 .setVariant(INT_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
                 .setValue(DOUBLE_VALUE)
                 .setVariant(DOUBLE_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
         ResolveObjectResponse objectResponse = ResolveObjectResponse.newBuilder()
                 .setValue(PROTOBUF_STRUCTURE_VALUE)
                 .setVariant(OBJECT_VARIANT)
-                .setReason(FlagdProvider.STATIC_REASON)
+                .setReason(STATIC_REASON)
                 .build();
 
 
@@ -810,27 +811,27 @@ class FlagdProviderTest {
         booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, booleanDetails.getReason());
+        assertEquals(STATIC_REASON, booleanDetails.getReason());
 
         stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
         assertEquals(STRING_VALUE, stringDetails.getValue());
         assertEquals(STRING_VARIANT, stringDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, stringDetails.getReason());
+        assertEquals(STATIC_REASON, stringDetails.getReason());
 
         intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
         assertEquals(INT_VALUE, intDetails.getValue());
         assertEquals(INT_VARIANT, intDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, intDetails.getReason());
+        assertEquals(STATIC_REASON, intDetails.getReason());
 
         floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
         assertEquals(DOUBLE_VALUE, floatDetails.getValue());
         assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, floatDetails.getReason());
+        assertEquals(STATIC_REASON, floatDetails.getReason());
 
         objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
         assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
-        assertEquals(FlagdProvider.STATIC_REASON, objectDetails.getReason());
+        assertEquals(STATIC_REASON, objectDetails.getReason());
     }
 }

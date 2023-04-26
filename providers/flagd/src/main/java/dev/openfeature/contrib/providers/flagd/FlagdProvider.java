@@ -19,6 +19,8 @@ import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -26,11 +28,6 @@ import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Scope;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLException;
@@ -45,66 +42,86 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
+import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
+import static dev.openfeature.contrib.providers.flagd.Config.CACHE_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.CONTEXT_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_CACHE;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_DEADLINE;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
+import static dev.openfeature.contrib.providers.flagd.Config.FLAG_KEY_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.REASON_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.SERVER_CERT_PATH_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.SOCKET_PATH_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
+import static dev.openfeature.contrib.providers.flagd.Config.TLS_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.VALUE_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
+
 /**
  * OpenFeature provider for flagd.
  */
 @Slf4j
+@SuppressWarnings("PMD.TooManyStaticImports")
 public class FlagdProvider implements FeatureProvider, EventStreamCallback {
+    private static final String FLAGD_PROVIDER = "flagD Provider";
 
-    static final String PROVIDER_NAME = "flagD Provider";
-    static final String DEFAULT_PORT = "8013";
-    static final String DEFAULT_TLS = "false";
-    static final String DEFAULT_HOST = "localhost";
-    static final int DEFAULT_DEADLINE = 500;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    static final String HOST_ENV_VAR_NAME = "FLAGD_HOST";
-    static final String PORT_ENV_VAR_NAME = "FLAGD_PORT";
-    static final String TLS_ENV_VAR_NAME = "FLAGD_TLS";
-    static final String SOCKET_PATH_ENV_VAR_NAME = "FLAGD_SOCKET_PATH";
-    static final String SERVER_CERT_PATH_ENV_VAR_NAME = "FLAGD_SERVER_CERT_PATH";
-    static final String CACHE_ENV_VAR_NAME = "FLAGD_CACHE";
-    static final String MAX_CACHE_SIZE_ENV_VAR_NAME = "FLAGD_MAX_CACHE_SIZE";
-    static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
+    private final ServiceBlockingStub serviceBlockingStub;
+    private final ServiceStub serviceStub;
+    private final int maxEventStreamRetries;
+    private final Object eventStreamAliveSync;
+    private final FlagdCache cache;
+    private final ResolveStrategy strategy;
 
-    static final String STATIC_REASON = "STATIC";
-    static final String CACHED_REASON = "CACHED";
-
-    static final String FLAG_KEY_FIELD = "flag_key";
-    static final String CONTEXT_FIELD = "context";
-    static final String VARIANT_FIELD = "variant";
-    static final String VALUE_FIELD = "value";
-    static final String REASON_FIELD = "reason";
-
-    static final String LRU_CACHE = "lru";
-    static final String DISABLED = "disabled";
-    static final String DEFAULT_CACHE = LRU_CACHE;
-    static final int DEFAULT_MAX_CACHE_SIZE = 1000;
-
-    static final int DEFAULT_MAX_EVENT_STREAM_RETRIES = 5;
-    static final int BASE_EVENT_STREAM_RETRY_BACKOFF_MS = 1000;
-
-    private long deadline = DEFAULT_DEADLINE;
-
-    private ServiceBlockingStub serviceBlockingStub;
-    private ServiceStub serviceStub;
-
-    private Tracer tracer;
-
-    private Boolean eventStreamAlive;
-    private FlagdCache cache;
-
+    private boolean eventStreamAlive;
     private int eventStreamAttempt = 1;
     private int eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
-    private int maxEventStreamRetries;
+    private long deadline = DEFAULT_DEADLINE;
 
-    private ReadWriteLock lock = new ReentrantReadWriteLock();
-    private Object eventStreamAliveSync;
+    /**
+     * Create a new FlagdProvider instance with default options.
+     */
+    public FlagdProvider() {
+        this(FlagdOptions.builder().build());
+    }
+
+    /**
+     * Create a new FlagdProvider instance with customized options.
+     *
+     * @param options {@link FlagdOptions} with
+     */
+    public FlagdProvider(final FlagdOptions options) {
+        final ManagedChannel channel = nettyChannel(options);
+        this.serviceStub = ServiceGrpc.newStub(channel);
+        this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
+        this.strategy = options.getOpenTelemetry() == null
+                ? new SimpleResolving()
+                : new TracedResolving(options.getOpenTelemetry());
+
+        this.maxEventStreamRetries = options.getMaxEventStreamRetries();
+        this.cache = new FlagdCache(options.getCacheType(), options.getMaxCacheSize());
+        this.eventStreamAliveSync = new Object();
+        this.handleEvents();
+    }
 
     /**
      * Create a new FlagdProvider instance.
+     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation.
      *
      * @param socketPath unix socket path
      */
+    @Deprecated
     public FlagdProvider(String socketPath) {
         this(
                 buildServiceBlockingStub(null, null, null, null, socketPath),
@@ -116,6 +133,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     /**
      * Create a new FlagdProvider instance.
+     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation.
      *
      * @param socketPath            unix socket path
      * @param cache                 caching implementation to use (lru)
@@ -124,6 +142,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      *                              flagd's event stream,
      *                              on successful connection the attempts are reset
      */
+    @Deprecated
     public FlagdProvider(String socketPath, String cache, int maxCacheSize, int maxEventStreamRetries) {
         this(
                 buildServiceBlockingStub(null, null, null, null, socketPath),
@@ -133,14 +152,15 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     /**
      * Create a new FlagdProvider instance.
+     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation.
      *
      * @param host     flagd server host, defaults to "localhost"
      * @param port     flagd server port, defaults to 8013
      * @param tls      use TLS, defaults to false
      * @param certPath path for server certificate, defaults to null to, using
      *                 system certs
-     *
      */
+    @Deprecated
     public FlagdProvider(String host, int port, boolean tls, String certPath) {
         this(
                 buildServiceBlockingStub(host, port, tls, certPath, null),
@@ -152,6 +172,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     /**
      * Create a new FlagdProvider instance.
+     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation
      *
      * @param host                  flagd server host, defaults to "localhost"
      * @param port                  flagd server port, defaults to 8013
@@ -164,8 +185,8 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      * @param maxEventStreamRetries limit of the number of attempts to connect to
      *                              flagd's event stream,
      *                              on successful connection the attempts are reset
-     *
      */
+    @Deprecated
     public FlagdProvider(String host, int port, boolean tls, String certPath, String cache,
             int maxCacheSize, int maxEventStreamRetries) {
         this(
@@ -174,40 +195,14 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
                 cache, maxCacheSize, maxEventStreamRetries);
     }
 
-    /**
-     * Create a new FlagdProvider instance.
-     */
-    public FlagdProvider() {
-        this(
-                buildServiceBlockingStub(null, null, null, null, null),
-                buildServiceStub(null, null, null, null, null),
-                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
-                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
-                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
-    }
-
-
-    /**
-     * Create a new FlagdProvider instance with manual telemetry sdk.
-     */
-    public FlagdProvider(OpenTelemetry openTelemetry) {
-        this(
-                buildServiceBlockingStub(openTelemetry),
-                buildServiceStub(null, null, null, null, null),
-                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
-                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
-                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
-
-        this.tracer = openTelemetry.getTracer("OpenFeature/dev.openfeature.contrib.providers.flagd");
-    }
-
-    FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache,
-            int maxCacheSize, int maxEventStreamRetries) {
+    FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache, int maxCacheSize,
+                  int maxEventStreamRetries) {
         this.serviceBlockingStub = serviceBlockingStub;
         this.serviceStub = serviceStub;
-        this.eventStreamAlive = false;
-        this.cache = new FlagdCache(cache, maxCacheSize);
+        this.strategy = new SimpleResolving();
+
         this.maxEventStreamRetries = maxEventStreamRetries;
+        this.cache = new FlagdCache(cache, maxCacheSize);
         this.eventStreamAliveSync = new Object();
         this.handleEvents();
     }
@@ -239,12 +234,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     @Override
     public Metadata getMetadata() {
-        return new Metadata() {
-            @Override
-            public String getName() {
-                return PROVIDER_NAME;
-            }
-        };
+        return () -> FLAGD_PROVIDER;
     }
 
     @Override
@@ -307,6 +297,25 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     public FlagdProvider setDeadline(long deadlineMs) {
         this.deadline = deadlineMs;
         return this;
+    }
+
+    @Override
+    public void setEventStreamAlive(boolean alive) {
+        Lock l = this.lock.writeLock();
+        try {
+            l.lock();
+            this.eventStreamAlive = alive;
+            if (alive) {
+                synchronized (this.eventStreamAliveSync) {
+                    this.eventStreamAliveSync.notify(); // notify any waiters that the event stream is alive
+                }
+                // reset attempts on successful connection
+                this.eventStreamAttempt = 1;
+                this.eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
+            }
+        } finally {
+            l.unlock();
+        }
     }
 
     /**
@@ -430,6 +439,10 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         return value;
     }
 
+    /**
+     * Intended to be removed along with multi-option constructors.
+     * */
+    @Deprecated
     private static NettyChannelBuilder channelBuilder(String host, Integer port, Boolean tls, String certPath,
             String socketPath) {
         host = host != null ? host : fallBackToEnvOrDefault(HOST_ENV_VAR_NAME, DEFAULT_HOST);
@@ -470,33 +483,68 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         }
     }
 
+    /**
+     * This method is a helper to build a {@link ManagedChannel} from provided {@link FlagdOptions}.
+     * */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "certificate path is a user input")
+    private static ManagedChannel nettyChannel(final FlagdOptions options) {
+        // we have a socket path specified, build a channel with a unix socket
+        if (options.getSocketPath() != null) {
+            return NettyChannelBuilder
+                    .forAddress(new DomainSocketAddress(options.getSocketPath()))
+                    .eventLoopGroup(new EpollEventLoopGroup())
+                    .channelType(EpollDomainSocketChannel.class)
+                    .usePlaintext()
+                    .build();
+        }
+
+        // build a TCP socket
+        try {
+            final NettyChannelBuilder builder = NettyChannelBuilder.forAddress(options.getHost(), options.getPort());
+            if (options.isTls()) {
+                SslContextBuilder sslContext = GrpcSslContexts.forClient();
+
+                if (options.getCertPath() != null) {
+                    final File file = new File(options.getCertPath());
+                    if (file.exists()) {
+                        sslContext.trustManager(file);
+                    }
+                }
+
+                builder.sslContext(sslContext.build());
+            } else {
+                builder.usePlaintext();
+            }
+
+            // telemetry interceptor if option is provided
+            if (options.getOpenTelemetry() != null) {
+                builder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
+            }
+
+            return builder.build();
+        } catch (SSLException ssle) {
+            SslConfigException sslConfigException = new SslConfigException("Error with SSL configuration.");
+            sslConfigException.initCause(ssle);
+            throw sslConfigException;
+        }
+    }
+
+    /**
+     * Intended to be removed along with multi-option constructors.
+     * */
+    @Deprecated
     private static ServiceBlockingStub buildServiceBlockingStub(String host, Integer port, Boolean tls, String certPath,
             String socketPath) {
         return ServiceGrpc.newBlockingStub(channelBuilder(host, port, tls, certPath, socketPath).build());
     }
 
-    private static ServiceBlockingStub buildServiceBlockingStub(OpenTelemetry telemetry) {
-        return ServiceGrpc
-                .newBlockingStub(channelBuilder(null, null, null, null, null)
-                        .intercept(new FlagdGrpcInterceptor(telemetry)).build());
-    }
-
+    /**
+     * Intended to be removed along with multi-option constructors.
+     * */
+    @Deprecated
     private static ServiceStub buildServiceStub(String host, Integer port, Boolean tls, String certPath,
             String socketPath) {
         return ServiceGrpc.newStub(channelBuilder(host, port, tls, certPath, socketPath).build());
-    }
-
-    private static String fallBackToEnvOrDefault(String key, String defaultValue) {
-        return System.getenv(key) != null ? System.getenv(key) : defaultValue;
-    }
-
-    private static int fallBackToEnvOrDefault(String key, int defaultValue) {
-        try {
-            int value = System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : defaultValue;
-            return value;
-        } catch (Exception e) {
-            return defaultValue;
-        }
     }
 
     private void handleEvents() {
@@ -504,24 +552,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
     }
 
-    @Override
-    public void setEventStreamAlive(Boolean alive) {
-        Lock l = this.lock.writeLock();
-        try {
-            l.lock();
-            this.eventStreamAlive = alive;
-            if (alive) {
-                synchronized (this.eventStreamAliveSync) {
-                    this.eventStreamAliveSync.notify(); // notify any waiters that the event stream is alive
-                }
-                // reset attempts on successful connection
-                this.eventStreamAttempt = 1;
-                this.eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
-            }
-        } finally {
-            l.unlock();
-        }
-    }
 
     private <T> Boolean isEvaluationCacheable(ProviderEvaluation<T> evaluation) {
         String reason = evaluation.getReason();
@@ -538,8 +568,10 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         return available;
     }
 
-    // a generic resolve method that takes a resolverRef and an optional converter lambda to transform the result
-    private <ValT extends Object, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
+    /**
+     * A generic resolve method that takes a resolverRef and an optional converter lambda to transform the result.
+     * */
+    private <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
             Convert<ValT, Object> converter) {
 
@@ -554,35 +586,20 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
         // build the gRPC request
         Message req = request.newBuilderForType()
-                .setField(this.getFieldDescriptor(request, FLAG_KEY_FIELD), (Object) key)
-                .setField(this.getFieldDescriptor(request, CONTEXT_FIELD), this.convertContext(ctx))
+                .setField(getFieldDescriptor(request, FLAG_KEY_FIELD), key)
+                .setField(getFieldDescriptor(request, CONTEXT_FIELD), this.convertContext(ctx))
                 .build();
 
         // run the referenced resolver method
-        final ResT response;
-
-        if (tracer != null) {
-            final Span span = tracer.spanBuilder("resolve")
-                    .setSpanKind(SpanKind.CLIENT)
-                    .startSpan();
-            span.setAttribute("feature_flag.key", key);
-            span.setAttribute("feature_flag.provider_name", "flagd");
-            try (Scope scope = span.makeCurrent()) {
-                response = resolverRef.apply((ReqT) req);
-            } finally {
-                span.end();
-            }
-        } else {
-            response = resolverRef.apply((ReqT) req);
-        }
+        Message response = strategy.resolve(resolverRef, req, key);
 
         // parse the response
-        ValT value = converter == null ? this.getField(response, VALUE_FIELD)
-                : converter.convert(this.getField(response, VALUE_FIELD));
-        ProviderEvaluation<ValT> result = (ProviderEvaluation<ValT>) ProviderEvaluation.<ValT>builder()
+        ValT value = converter == null ? getField(response, VALUE_FIELD)
+                : converter.convert(getField(response, VALUE_FIELD));
+        ProviderEvaluation<ValT> result = ProviderEvaluation.<ValT>builder()
                 .value(value)
-                .variant(this.getField(response, VARIANT_FIELD))
-                .reason(this.getField(response, REASON_FIELD))
+                .variant(getField(response, VARIANT_FIELD))
+                .reason(getField(response, REASON_FIELD))
                 .build();
 
         // cache if cache enabled
@@ -590,18 +607,20 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             this.cache.put(key, result);
         }
 
-        return (ProviderEvaluation<ValT>) result;
+        return result;
     }
 
-    private <T> T getField(Message message, String name) {
-        return (T) message.getField(this.getFieldDescriptor(message, name));
+    private static  <T> T getField(Message message, String name) {
+        return (T) message.getField(getFieldDescriptor(message, name));
     }
 
-    private FieldDescriptor getFieldDescriptor(Message message, String name) {
+    private static FieldDescriptor getFieldDescriptor(Message message, String name) {
         return message.getDescriptorForType().findFieldByName(name);
     }
 
-    // a converter lambda
+    /**
+     * A converter lambda.
+     * */
     @FunctionalInterface
     private interface Convert<OutT extends Object, InT extends Object> {
         OutT convert(InT value);
