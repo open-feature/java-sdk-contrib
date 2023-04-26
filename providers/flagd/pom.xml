@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.5.8-snapshot</version> <!--x-release-please-version -->
+    <version>0.5.9</version> <!--x-release-please-version -->
 
     <name>flagd</name>
     <description>FlagD provider for Java</description>
