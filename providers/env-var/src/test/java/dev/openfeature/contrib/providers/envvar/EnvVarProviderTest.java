@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class EnvVarProviderTest {
+
     @Test
     void shouldThrowOnGetObjectEvaluation() {
         assertThrows(
@@ -181,14 +182,11 @@ class EnvVarProviderTest {
             String variableName,
             String value
     ) {
-        return new EnvVarProvider(new OS() {
-            @Override
-            public String getenv(String name) {
-                if (name.equals(variableName)) {
-                    return value;
-                } else {
-                    return null;
-                }
+        return new EnvVarProvider(name -> {
+            if (name.equals(variableName)) {
+                return value;
+            } else {
+                return null;
             }
         });
     }

@@ -13,14 +13,14 @@ import java.util.function.Function;
 public final class EnvVarProvider implements FeatureProvider {
     private static final String NAME = "Environment Variables Provider";
 
-    private final OS os;
+    private final EnvironmentGateway environmentGateway;
 
     public EnvVarProvider() {
-        os = new OS();
+        this.environmentGateway = new OS();
     }
 
-    public EnvVarProvider(OS os) {
-        this.os = os;
+    public EnvVarProvider(EnvironmentGateway environmentGateway) {
+        this.environmentGateway = environmentGateway;
     }
 
     @Override
@@ -57,7 +57,7 @@ public final class EnvVarProvider implements FeatureProvider {
             String key,
             Function<String, T> parse
     ) {
-        final String value = os.getenv(key);
+        final String value = environmentGateway.getEnvironmentVariable(key);
 
         if (value == null) {
             throw new FlagNotFoundError();
