@@ -2,6 +2,9 @@
 
 ## [0.5.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.8...dev.openfeature.contrib.providers.flagd-v0.5.9) (2023-05-01)
 
+### Deprecated :warning: 
+
+* deprecated existing constructors in favor of builder ([#294](https://github.com/open-feature/java-sdk-contrib/pull/294)) ([428b7d5](https://github.com/open-feature/java-sdk-contrib/commit/428b7d507b39e9e5a5c433160690fe52b2484aa0))
 
 ### Features
 
