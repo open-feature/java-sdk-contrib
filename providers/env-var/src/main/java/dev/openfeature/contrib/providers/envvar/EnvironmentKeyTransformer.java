@@ -13,7 +13,7 @@ import org.apache.commons.text.CaseUtils;
  *
  * <p>This class also supports chaining/combining different transformers incl. self-written ones by providing
  * a transforming function in the constructor. <br>
- * Currently the following transformations are supported out of the box:
+ * Currently, the following transformations are supported out of the box:
  * <ul>
  *     <li>{@link #toLowerCaseTransformer() converting to lower case}</li>
  *     <li>{@link #toUpperCaseTransformer() converting to UPPER CASE}</li>
@@ -29,23 +29,21 @@ import org.apache.commons.text.CaseUtils;
  * <pre>
  * {@code
  * // Definition of the EnvVarProvider:
- * EnvironmentGateway transformingGateway = EnvironmentKeyTransformer
- *     .hyphenCaseToScreamingSnake()
- *     .withSource(new OS());
+ * EnvironmentKeyTransformer transformer = EnvironmentKeyTransformer
+ *     .hyphenCaseToScreamingSnake();
  *
- * FeatureProvider provider = new EnvVarProvider(transformingGateway);
+ * FeatureProvider provider = new EnvVarProvider(transformer);
  * }
  * </pre>
  * 2. chained/composed transformations:
  * <pre>
  * {@code
  * // Definition of the EnvVarProvider:
- * EnvironmentGateway transformingGateway = EnvironmentKeyTransformer
+ * EnvironmentKeyTransformer transformer = EnvironmentKeyTransformer
  *     .toLowerCaseTransformer()
- *     .andThen(EnvironmentKeyTransformer.replaceUnderscoreWithDotTransformer())
- *     .withSource(actualGateway);
+ *     .andThen(EnvironmentKeyTransformer.replaceUnderscoreWithDotTransformer());
  *
- * FeatureProvider provider = new EnvVarProvider(transformingGateway);
+ * FeatureProvider provider = new EnvVarProvider(transformer);
  * }
  * </pre>
  * 3. freely defined transformation function:
@@ -53,15 +51,14 @@ import org.apache.commons.text.CaseUtils;
  * {@code
  *
  * // Definition of the EnvVarProvider:
- * EnvironmentGateway transformingGateway = new EnvironmentKeyTransformer(key -> key.substring(1))
- *     .withSource(actualGateway);
+ * EnvironmentKeyTransformer transformer = new EnvironmentKeyTransformer(key -> "constant");
  *
- * FeatureProvider provider = new EnvVarProvider(transformingGateway);
+ * FeatureProvider provider = new EnvVarProvider(keyTransformer);
  * }
  * </pre>
  */
 @RequiredArgsConstructor
-public class EnvironmentKeyTransformer implements EnvironmentGateway {
+public class EnvironmentKeyTransformer {
 
     private static final UnaryOperator<String> TO_LOWER_CASE = StringUtils::lowerCase;
     private static final UnaryOperator<String> TO_UPPER_CASE = StringUtils::upperCase;
@@ -73,17 +70,12 @@ public class EnvironmentKeyTransformer implements EnvironmentGateway {
 
     private final Function<String, String> transformation;
 
-    @Override
-    public String getEnvironmentVariable(String key) {
+    public String transformKey(String key) {
         return transformation.apply(key);
     }
 
-    public EnvironmentKeyTransformer andThen(EnvironmentGateway another) {
-        return new EnvironmentKeyTransformer(transformation.andThen(another::getEnvironmentVariable));
-    }
-
-    public EnvironmentGateway withSource(EnvironmentGateway another) {
-        return andThen(another);
+    public EnvironmentKeyTransformer andThen(EnvironmentKeyTransformer another) {
+        return new EnvironmentKeyTransformer(transformation.andThen(another::transformKey));
     }
 
     public static EnvironmentKeyTransformer toLowerCaseTransformer() {
@@ -109,5 +101,9 @@ public class EnvironmentKeyTransformer implements EnvironmentGateway {
     public static EnvironmentKeyTransformer hyphenCaseToScreamingSnake() {
         return new EnvironmentKeyTransformer(REPLACE_HYPHEN_WITH_UNDERSCORE)
             .andThen(EnvironmentKeyTransformer.toUpperCaseTransformer());
+    }
+
+    public static EnvironmentKeyTransformer doNothing() {
+        return new EnvironmentKeyTransformer(s -> s);
     }
 }

@@ -14,13 +14,23 @@ public final class EnvVarProvider implements FeatureProvider {
     private static final String NAME = "Environment Variables Provider";
 
     private final EnvironmentGateway environmentGateway;
+    private final EnvironmentKeyTransformer keyTransformer;
 
     public EnvVarProvider() {
-        this.environmentGateway = new OS();
+        this(new OS(), EnvironmentKeyTransformer.doNothing());
     }
 
     public EnvVarProvider(EnvironmentGateway environmentGateway) {
+        this(environmentGateway, EnvironmentKeyTransformer.doNothing());
+    }
+
+    public EnvVarProvider(EnvironmentKeyTransformer keyTransformer) {
+        this(new OS(), keyTransformer);
+    }
+
+    public EnvVarProvider(EnvironmentGateway environmentGateway, EnvironmentKeyTransformer keyTransformer) {
         this.environmentGateway = environmentGateway;
+        this.keyTransformer = keyTransformer;
     }
 
     @Override
@@ -57,7 +67,7 @@ public final class EnvVarProvider implements FeatureProvider {
             String key,
             Function<String, T> parse
     ) {
-        final String value = environmentGateway.getEnvironmentVariable(key);
+        final String value = environmentGateway.getEnvironmentVariable(keyTransformer.transformKey(key));
 
         if (value == null) {
             throw new FlagNotFoundError();

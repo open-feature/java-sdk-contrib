@@ -4,14 +4,13 @@ import dev.openfeature.sdk.*;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.ValueNotConvertableError;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.*;
 
-import java.util.Arrays;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -132,6 +131,33 @@ class EnvVarProviderTest {
                         ParseError.class
                 )
         );
+    }
+
+    @Test
+    @DisplayName("should transform key if configured")
+    void shouldTransformKeyIfConfigured() {
+        String key = "key.transformed";
+        String expected = "key_transformed";
+
+        EnvironmentKeyTransformer transformer = EnvironmentKeyTransformer.replaceDotWithUnderscoreTransformer();
+        EnvironmentGateway gateway = s -> s;
+        EnvVarProvider provider = new EnvVarProvider(gateway, transformer);
+
+        String environmentVariableValue = provider.getStringEvaluation(key, "failed", null).getValue();
+
+        assertThat(environmentVariableValue).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("should use passed-in EnvironmentGateway")
+    void shouldUsePassedInEnvironmentGateway() {
+        EnvironmentGateway testFake = s -> "true";
+
+        EnvVarProvider provider = new EnvVarProvider(testFake);
+
+        boolean actual = provider.getBooleanEvaluation("any key", false, null).getValue();
+
+        assertThat(actual).isTrue();
     }
 
     private <T> DynamicTest evaluationTest(
