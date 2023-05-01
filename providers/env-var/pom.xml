@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>env-var</artifactId>
-    <version>0.0.2</version> <!--x-release-please-version -->
+    <version>0.0.3</version> <!--x-release-please-version -->
 
     <name>env-var</name>
     <description>Environment Variables provider for Java</description>
