@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.9...dev.openfeature.contrib.providers.flagd-v0.5.10) (2023-05-09)
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.grpc:grpc-netty to v1.55.1 ([#308](https://github.com/open-feature/java-sdk-contrib/issues/308)) ([5c64de5](https://github.com/open-feature/java-sdk-contrib/commit/5c64de5959ff872a3958da8896b7881b60788d34))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.55.1 ([#309](https://github.com/open-feature/java-sdk-contrib/issues/309)) ([537307e](https://github.com/open-feature/java-sdk-contrib/commit/537307e65666c6dfb91a715722ba913268f847cd))
+* **deps:** update dependency io.grpc:grpc-stub to v1.55.1 ([#310](https://github.com/open-feature/java-sdk-contrib/issues/310)) ([b16dcd5](https://github.com/open-feature/java-sdk-contrib/commit/b16dcd55077961f53ee59c28f1c6d430f15bdf43))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.26.0 ([#302](https://github.com/open-feature/java-sdk-contrib/issues/302)) ([021f048](https://github.com/open-feature/java-sdk-contrib/commit/021f0483ea0606b5298e8822ac5b8ad656338fcf))
+
 ## [0.5.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.8...dev.openfeature.contrib.providers.flagd-v0.5.9) (2023-05-01)
 
 ### Deprecated :warning: 
