@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.4...dev.openfeature.contrib.providers.flagsmith-v0.0.5) (2023-05-11)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v6 ([#263](https://github.com/open-feature/java-sdk-contrib/issues/263)) ([c3f8ecf](https://github.com/open-feature/java-sdk-contrib/commit/c3f8ecffcebeb0138db84f4c6e21b27571881a1d))
+* **deps:** update dependency com.squareup.okhttp3:okhttp to v4.11.0 ([#290](https://github.com/open-feature/java-sdk-contrib/issues/290)) ([b7be0ec](https://github.com/open-feature/java-sdk-contrib/commit/b7be0ec99be5cd645cf5b5033ad2b1093a45d63e))
+
 ## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.3...dev.openfeature.contrib.providers.flagsmith-v0.0.4) (2023-02-07)
 
 
