@@ -114,7 +114,7 @@ class OpenTelemetryHookTest {
     }
 
     @Test
-    @DisplayName("should record an exception and set error status in span during error method execution")
+    @DisplayName("should record an exception and avoid status changes in span during error method execution")
     void should_record_exception_and_status_in_span_during_error_method_execution() {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(span);
@@ -126,11 +126,10 @@ class OpenTelemetryHookTest {
                 providerNameAttributeKey, "test provider");
 
         verify(span).recordException(runtimeException, expectedAttr);
-        verify(span).setStatus(StatusCode.ERROR);
     }
 
     @Test
-    @DisplayName("span error status must not be set if overridden by option")
+    @DisplayName("span error status must be set if overridden by option")
     void should_record_exception_but_not_status_in_span_with_options() {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(span);
@@ -138,7 +137,7 @@ class OpenTelemetryHookTest {
         OpenTelemetryHook openTelemetryHook =
                 new OpenTelemetryHook(OpenTelemetryHookOptions
                         .builder()
-                        .setErrorStatus(false)
+                        .setErrorStatus(true)
                         .build());
         openTelemetryHook.error(hookContext, runtimeException, null);
 
@@ -146,7 +145,7 @@ class OpenTelemetryHookTest {
                 providerNameAttributeKey, "test provider");
 
         verify(span).recordException(runtimeException, expectedAttr);
-        verify(span, times(0)).setStatus(any());
+        verify(span, times(1)).setStatus(any());
     }
 
     @Test

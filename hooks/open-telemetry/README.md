@@ -50,4 +50,4 @@ Consider following code example for usage,
 
 Options can be provided through `OpenTelemetryHookOptions` based constructor.
 
-- setErrorStatus: Control Span error status. Default is true - Span status is set to Error if an error occurs.
+- setErrorStatus: Control Span error status. Default is false - Span status is unchanged for hook error.

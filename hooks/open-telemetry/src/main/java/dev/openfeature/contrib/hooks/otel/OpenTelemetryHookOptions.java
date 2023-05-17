@@ -11,8 +11,8 @@ import lombok.Getter;
 public class OpenTelemetryHookOptions {
 
     /**
-     * Control Span error status. Default is true - Span status is set to Error if an error occurs.
+     * Control Span error status. Default is false - Span status is unchanged for hook error
      */
     @Builder.Default
-    private boolean setErrorStatus = true;
+    private boolean setErrorStatus = false;
 }
