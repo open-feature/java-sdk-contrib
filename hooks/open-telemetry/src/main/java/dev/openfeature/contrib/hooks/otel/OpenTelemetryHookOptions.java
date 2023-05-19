@@ -14,5 +14,5 @@ public class OpenTelemetryHookOptions {
      * Control Span error status. Default is false - Span status is unchanged for hook error
      */
     @Builder.Default
-    private boolean setErrorStatus = false;
+    private boolean setSpanErrorStatus = false;
 }

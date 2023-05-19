@@ -7,7 +7,6 @@ import dev.openfeature.sdk.MutableContext;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +17,6 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.calls;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -126,6 +124,7 @@ class OpenTelemetryHookTest {
                 providerNameAttributeKey, "test provider");
 
         verify(span).recordException(runtimeException, expectedAttr);
+        verify(span, times(0)).setStatus(any());
     }
 
     @Test
@@ -137,7 +136,7 @@ class OpenTelemetryHookTest {
         OpenTelemetryHook openTelemetryHook =
                 new OpenTelemetryHook(OpenTelemetryHookOptions
                         .builder()
-                        .setErrorStatus(true)
+                        .setSpanErrorStatus(true)
                         .build());
         openTelemetryHook.error(hookContext, runtimeException, null);
 

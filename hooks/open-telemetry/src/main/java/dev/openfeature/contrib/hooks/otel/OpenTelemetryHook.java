@@ -18,7 +18,7 @@ public class OpenTelemetryHook implements Hook {
 
     private static final String EVENT_NAME = "feature_flag";
 
-    private final boolean setErrorStatus;
+    private final boolean setSpanErrorStatus;
 
     private final AttributeKey<String> flagKeyAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".flag_key");
     private final AttributeKey<String> providerNameAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".provider_name");
@@ -35,7 +35,7 @@ public class OpenTelemetryHook implements Hook {
      * Create a new OpenTelemetryHook instance with options.
      */
     public OpenTelemetryHook(OpenTelemetryHookOptions options) {
-        setErrorStatus = options.isSetErrorStatus();
+        setSpanErrorStatus = options.isSetSpanErrorStatus();
     }
 
     /**
@@ -74,7 +74,7 @@ public class OpenTelemetryHook implements Hook {
             return;
         }
 
-        if (setErrorStatus) {
+        if (setSpanErrorStatus) {
             currentSpan.setStatus(StatusCode.ERROR);
         }
 
