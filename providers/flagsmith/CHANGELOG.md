@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.5...dev.openfeature.contrib.providers.flagsmith-v0.0.6) (2023-05-17)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v6.2.0 ([#319](https://github.com/open-feature/java-sdk-contrib/issues/319)) ([db1ab6e](https://github.com/open-feature/java-sdk-contrib/commit/db1ab6e572be2f28e3a00c6b7f0a29bca4334d57))
+
 ## [0.0.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.4...dev.openfeature.contrib.providers.flagsmith-v0.0.5) (2023-05-11)
 
 
