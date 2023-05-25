@@ -44,19 +44,13 @@ import java.util.stream.Collectors;
 
 import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
 import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.CACHE_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.CONTEXT_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_CACHE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_DEADLINE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
 import static dev.openfeature.contrib.providers.flagd.Config.FLAG_KEY_FIELD;
 import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.REASON_FIELD;
 import static dev.openfeature.contrib.providers.flagd.Config.SERVER_CERT_PATH_ENV_VAR_NAME;
@@ -113,86 +107,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.cache = new FlagdCache(options.getCacheType(), options.getMaxCacheSize());
         this.eventStreamAliveSync = new Object();
         this.handleEvents();
-    }
-
-    /**
-     * Create a new FlagdProvider instance.
-     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation.
-     *
-     * @param socketPath unix socket path
-     */
-    @Deprecated
-    public FlagdProvider(String socketPath) {
-        this(
-                buildServiceBlockingStub(null, null, null, null, socketPath),
-                buildServiceStub(null, null, null, null, socketPath),
-                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
-                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
-                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
-    }
-
-    /**
-     * Create a new FlagdProvider instance.
-     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation.
-     *
-     * @param socketPath            unix socket path
-     * @param cache                 caching implementation to use (lru)
-     * @param maxCacheSize          limit of the number of cached values
-     * @param maxEventStreamRetries limit of the number of attempts to connect to
-     *                              flagd's event stream,
-     *                              on successful connection the attempts are reset
-     */
-    @Deprecated
-    public FlagdProvider(String socketPath, String cache, int maxCacheSize, int maxEventStreamRetries) {
-        this(
-                buildServiceBlockingStub(null, null, null, null, socketPath),
-                buildServiceStub(null, null, null, null, socketPath),
-                cache, maxCacheSize, maxEventStreamRetries);
-    }
-
-    /**
-     * Create a new FlagdProvider instance.
-     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation.
-     *
-     * @param host     flagd server host, defaults to "localhost"
-     * @param port     flagd server port, defaults to 8013
-     * @param tls      use TLS, defaults to false
-     * @param certPath path for server certificate, defaults to null to, using
-     *                 system certs
-     */
-    @Deprecated
-    public FlagdProvider(String host, int port, boolean tls, String certPath) {
-        this(
-                buildServiceBlockingStub(host, port, tls, certPath, null),
-                buildServiceStub(host, port, tls, certPath, null),
-                fallBackToEnvOrDefault(CACHE_ENV_VAR_NAME, DEFAULT_CACHE),
-                fallBackToEnvOrDefault(MAX_CACHE_SIZE_ENV_VAR_NAME, DEFAULT_MAX_CACHE_SIZE),
-                fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES));
-    }
-
-    /**
-     * Create a new FlagdProvider instance.
-     * This constructor is deprecated use constructor with {@link FlagdOptions} for flexible instance creation
-     *
-     * @param host                  flagd server host, defaults to "localhost"
-     * @param port                  flagd server port, defaults to 8013
-     * @param tls                   use TLS, defaults to false
-     * @param certPath              path for server certificate, defaults to null
-     *                              to, using
-     *                              system certs
-     * @param cache                 caching implementation to use (lru)
-     * @param maxCacheSize          limit of the number of cached values
-     * @param maxEventStreamRetries limit of the number of attempts to connect to
-     *                              flagd's event stream,
-     *                              on successful connection the attempts are reset
-     */
-    @Deprecated
-    public FlagdProvider(String host, int port, boolean tls, String certPath, String cache,
-            int maxCacheSize, int maxEventStreamRetries) {
-        this(
-                buildServiceBlockingStub(host, port, tls, certPath, null),
-                buildServiceStub(host, port, tls, certPath, null),
-                cache, maxCacheSize, maxEventStreamRetries);
     }
 
     FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache, int maxCacheSize,
