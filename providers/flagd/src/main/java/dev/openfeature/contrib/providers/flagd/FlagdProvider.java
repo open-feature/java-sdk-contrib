@@ -46,20 +46,11 @@ import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_R
 import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
 import static dev.openfeature.contrib.providers.flagd.Config.CONTEXT_FIELD;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_DEADLINE;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
 import static dev.openfeature.contrib.providers.flagd.Config.FLAG_KEY_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.REASON_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.SERVER_CERT_PATH_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.SOCKET_PATH_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.TLS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.VALUE_FIELD;
 import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
 
 /**
  * OpenFeature provider for flagd.
@@ -354,50 +345,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     }
 
     /**
-     * Intended to be removed along with multi-option constructors.
-     * */
-    @Deprecated
-    private static NettyChannelBuilder channelBuilder(String host, Integer port, Boolean tls, String certPath,
-            String socketPath) {
-        host = host != null ? host : fallBackToEnvOrDefault(HOST_ENV_VAR_NAME, DEFAULT_HOST);
-        port = port != null ? port : Integer.parseInt(fallBackToEnvOrDefault(PORT_ENV_VAR_NAME, DEFAULT_PORT));
-        tls = tls != null ? tls : Boolean.parseBoolean(fallBackToEnvOrDefault(TLS_ENV_VAR_NAME, DEFAULT_TLS));
-        certPath = certPath != null ? certPath : fallBackToEnvOrDefault(SERVER_CERT_PATH_ENV_VAR_NAME, null);
-        socketPath = socketPath != null ? socketPath : fallBackToEnvOrDefault(SOCKET_PATH_ENV_VAR_NAME, null);
-
-        // we have a socket path specified, build a channel with a unix socket
-        if (socketPath != null) {
-            return NettyChannelBuilder
-                    .forAddress(new DomainSocketAddress(socketPath))
-                    .eventLoopGroup(new EpollEventLoopGroup())
-                    .channelType(EpollDomainSocketChannel.class)
-                    .usePlaintext();
-        }
-
-        // build a TCP socket
-        try {
-            NettyChannelBuilder builder = NettyChannelBuilder
-                    .forAddress(host, port);
-
-            if (tls) {
-                SslContextBuilder sslContext = GrpcSslContexts.forClient();
-                if (certPath != null) {
-                    sslContext.trustManager(new File(certPath));
-                }
-                builder.sslContext(sslContext.build());
-            } else {
-                builder.usePlaintext();
-            }
-
-            return builder;
-        } catch (SSLException ssle) {
-            SslConfigException sslConfigException = new SslConfigException("Error with SSL configuration.");
-            sslConfigException.initCause(ssle);
-            throw sslConfigException;
-        }
-    }
-
-    /**
      * This method is a helper to build a {@link ManagedChannel} from provided {@link FlagdOptions}.
      * */
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "certificate path is a user input")
@@ -441,24 +388,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             sslConfigException.initCause(ssle);
             throw sslConfigException;
         }
-    }
-
-    /**
-     * Intended to be removed along with multi-option constructors.
-     * */
-    @Deprecated
-    private static ServiceBlockingStub buildServiceBlockingStub(String host, Integer port, Boolean tls, String certPath,
-            String socketPath) {
-        return ServiceGrpc.newBlockingStub(channelBuilder(host, port, tls, certPath, socketPath).build());
-    }
-
-    /**
-     * Intended to be removed along with multi-option constructors.
-     * */
-    @Deprecated
-    private static ServiceStub buildServiceStub(String host, Integer port, Boolean tls, String certPath,
-            String socketPath) {
-        return ServiceGrpc.newStub(channelBuilder(host, port, tls, certPath, socketPath).build());
     }
 
     private void handleEvents() {
