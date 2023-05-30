@@ -3,26 +3,23 @@ package dev.openfeature.contrib.hooks.otel;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 
 import java.util.Map;
 
+import static dev.openfeature.contrib.hooks.otel.OtelCommons.EVENT_NAME;
+import static dev.openfeature.contrib.hooks.otel.OtelCommons.flagKeyAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OtelCommons.providerNameAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OtelCommons.variantAttributeKey;
+
 /**
  * The OpenTelemetry hook provides a way to automatically add a feature flag evaluation to a span as a span event.
  * Refer to <a href="https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/feature-flags.md">OpenTelemetry</a>
  */
 public class OpenTelemetryHook implements Hook {
-
-    private static final String EVENT_NAME = "feature_flag";
-
     private final boolean setSpanErrorStatus;
-
-    private final AttributeKey<String> flagKeyAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".flag_key");
-    private final AttributeKey<String> providerNameAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".provider_name");
-    private final AttributeKey<String> variantAttributeKey = AttributeKey.stringKey(EVENT_NAME + ".variant");
 
     /**
      * Create a new OpenTelemetryHook instance with default options.
