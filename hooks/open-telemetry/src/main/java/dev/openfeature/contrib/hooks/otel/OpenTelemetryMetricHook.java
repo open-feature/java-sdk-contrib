@@ -24,6 +24,7 @@ import static dev.openfeature.contrib.hooks.otel.OtelCommons.variantAttributeKey
 /**
  * OpenTelemetry metric hook records metrics at different {@link Hook} stages.
  */
+@SuppressWarnings("PMD.TooManyStaticImports")
 public class OpenTelemetryMetricHook implements Hook {
 
     private static final String METER_NAME = "go.openfeature.dev";
