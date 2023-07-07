@@ -32,7 +32,7 @@ import static dev.openfeature.contrib.hooks.otel.OtelCommons.variantAttributeKey
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class OpenTelemetryMetricHook implements Hook {
 
-    private static final String METER_NAME = "go.openfeature.dev";
+    private static final String METER_NAME = "java.openfeature.dev";
     private static final String EVALUATION_ACTIVE_COUNT = "feature_flag.evaluation_active_count";
     private static final String EVALUATION_REQUESTS_TOTAL = "feature_flag.evaluation_requests_total";
     private static final String FLAG_EVALUATION_SUCCESS_TOTAL = "feature_flag.evaluation_success_total";
