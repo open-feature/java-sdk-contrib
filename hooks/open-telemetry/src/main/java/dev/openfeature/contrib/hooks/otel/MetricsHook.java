@@ -18,19 +18,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.ERROR_KEY;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.REASON_KEY;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.flagKeyAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.providerNameAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.variantAttributeKey;
-
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.ERROR_KEY;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey;
 
 /**
  * OpenTelemetry metric hook records metrics at different {@link Hook} stages.
  */
 @Slf4j
 @SuppressWarnings("PMD.TooManyStaticImports")
-public class OpenTelemetryMetricHook implements Hook {
+public class MetricsHook implements Hook {
 
     private static final String METER_NAME = "java.openfeature.dev";
     private static final String EVALUATION_ACTIVE_COUNT = "feature_flag.evaluation_active_count";
@@ -47,15 +46,16 @@ public class OpenTelemetryMetricHook implements Hook {
     /**
      * Construct a metric hook by providing an {@link OpenTelemetry} instance.
      */
-    public OpenTelemetryMetricHook(final OpenTelemetry openTelemetry) {
+    public MetricsHook(final OpenTelemetry openTelemetry) {
         this(openTelemetry, Collections.emptyList());
     }
 
     /**
      * Construct a metric hook with {@link OpenTelemetry} instance and a list of {@link DimensionDescription}.
-     * Provided dimensions are attempted to be extracted from flagMetadata attached to {@link FlagEvaluationDetails}.
+     * Provided dimensions are attempted to be extracted from ImmutableMetadata attached to
+     * {@link FlagEvaluationDetails}.
      */
-    public OpenTelemetryMetricHook(final OpenTelemetry openTelemetry, final List<DimensionDescription> dimensions) {
+    public MetricsHook(final OpenTelemetry openTelemetry, final List<DimensionDescription> dimensions) {
         final Meter meter = openTelemetry.getMeter(METER_NAME);
 
         activeFlagEvaluationsCounter =

@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * Represents a Key and Type of dimension.
+ * Represents an OTel dimension(attribute) Key and Type of the dimension.
  */
 @Getter
 @AllArgsConstructor

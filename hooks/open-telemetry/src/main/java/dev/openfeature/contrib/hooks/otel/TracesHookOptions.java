@@ -8,8 +8,7 @@ import lombok.Getter;
  */
 @Builder
 @Getter
-public class OpenTelemetryHookOptions {
-
+public class TracesHookOptions {
     /**
      * Control Span error status. Default is false - Span status is unchanged for hook error
      */

@@ -18,14 +18,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.ERROR_KEY;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.REASON_KEY;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.flagKeyAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.providerNameAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OtelCommons.variantAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.ERROR_KEY;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class OpenTelemetryMetricHookTest {
+class MetricsHookTest {
     private final HookContext<String> commonHookContext = HookContext.<String>builder()
             .flagKey("key")
             .type(FlagValueType.STRING)
@@ -45,8 +45,7 @@ class OpenTelemetryMetricHookTest {
     @Test
     public void before_stage_validation() {
         // given
-        final OpenTelemetryMetricHook metricHook =
-                new OpenTelemetryMetricHook(telemetryExtension.getOpenTelemetry());
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry());
 
         final List<String> metricNames =
                 Arrays.asList("feature_flag.evaluation_active_count", "feature_flag.evaluation_requests_total");
@@ -63,8 +62,7 @@ class OpenTelemetryMetricHookTest {
     @Test
     public void after_stage_validation() {
         // given
-        final OpenTelemetryMetricHook metricHook =
-                new OpenTelemetryMetricHook(telemetryExtension.getOpenTelemetry());
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry());
 
         final FlagEvaluationDetails<String> evaluationDetails = FlagEvaluationDetails.<String>builder()
                 .flagKey("key")
@@ -107,8 +105,7 @@ class OpenTelemetryMetricHookTest {
         dimensionList.add(new DimensionDescription("double", Double.class));
         dimensionList.add(new DimensionDescription("string", String.class));
 
-        final OpenTelemetryMetricHook metricHook =
-                new OpenTelemetryMetricHook(telemetryExtension.getOpenTelemetry(), dimensionList);
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(), dimensionList);
 
         final ImmutableMetadata metadata = ImmutableMetadata.builder()
                 .addBoolean("boolean", true)
@@ -152,8 +149,7 @@ class OpenTelemetryMetricHookTest {
     @Test
     public void error_stage_validation() {
         // given
-        final OpenTelemetryMetricHook metricHook =
-                new OpenTelemetryMetricHook(telemetryExtension.getOpenTelemetry());
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry());
 
         final Exception exception = new Exception("some_exception");
 
@@ -183,9 +179,7 @@ class OpenTelemetryMetricHookTest {
     @Test
     public void finally_stage_validation() {
         // given
-        final OpenTelemetryMetricHook metricHook =
-                new OpenTelemetryMetricHook(telemetryExtension.getOpenTelemetry());
-
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry());
 
         // when
         metricHook.finallyAfter(commonHookContext, null);
