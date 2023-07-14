@@ -55,7 +55,7 @@
             <groupId>dev.openfeature</groupId>
             <artifactId>sdk</artifactId>
             <!-- 1.0 <= v < 2.0 -->
-            <version>[1.0,2.0)</version>
+            <version>[1.4.0,2.0)</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
         </dependency>
