@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-class OpenTelemetryHookTest {
+class TracesHookTest {
     private static MockedStatic<Span> mockedSpan;
 
     @BeforeAll
@@ -60,8 +60,8 @@ class OpenTelemetryHookTest {
                 .build();
         mockedSpan.when(Span::current).thenReturn(span);
 
-        OpenTelemetryHook openTelemetryHook = new OpenTelemetryHook();
-        openTelemetryHook.after(hookContext, details, null);
+        TracesHook tracesHook = new TracesHook();
+        tracesHook.after(hookContext, details, null);
 
         Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
                 providerNameAttributeKey, "test provider",
@@ -79,8 +79,8 @@ class OpenTelemetryHookTest {
         mockedSpan.when(Span::current).thenReturn(span);
 
 
-        OpenTelemetryHook openTelemetryHook = new OpenTelemetryHook();
-        openTelemetryHook.after(hookContext, details, null);
+        TracesHook tracesHook = new TracesHook();
+        tracesHook.after(hookContext, details, null);
 
         Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
                 providerNameAttributeKey, "test provider",
@@ -105,8 +105,8 @@ class OpenTelemetryHookTest {
                 .build();
         mockedSpan.when(Span::current).thenReturn(null);
 
-        OpenTelemetryHook openTelemetryHook = new OpenTelemetryHook();
-        openTelemetryHook.after(hookContext, details, null);
+        TracesHook tracesHook = new TracesHook();
+        tracesHook.after(hookContext, details, null);
 
         verifyNoInteractions(span);
     }
@@ -117,8 +117,8 @@ class OpenTelemetryHookTest {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(span);
 
-        OpenTelemetryHook openTelemetryHook = new OpenTelemetryHook();
-        openTelemetryHook.error(hookContext, runtimeException, null);
+        TracesHook tracesHook = new TracesHook();
+        tracesHook.error(hookContext, runtimeException, null);
 
         Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
                 providerNameAttributeKey, "test provider");
@@ -133,12 +133,12 @@ class OpenTelemetryHookTest {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(span);
 
-        OpenTelemetryHook openTelemetryHook =
-                new OpenTelemetryHook(OpenTelemetryHookOptions
+        TracesHook tracesHook =
+                new TracesHook(TracesHookOptions
                         .builder()
                         .setSpanErrorStatus(true)
                         .build());
-        openTelemetryHook.error(hookContext, runtimeException, null);
+        tracesHook.error(hookContext, runtimeException, null);
 
         Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
                 providerNameAttributeKey, "test provider");
@@ -153,8 +153,8 @@ class OpenTelemetryHookTest {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(null);
 
-        OpenTelemetryHook openTelemetryHook = new OpenTelemetryHook();
-        openTelemetryHook.error(hookContext, runtimeException, null);
+        TracesHook tracesHook = new TracesHook();
+        tracesHook.error(hookContext, runtimeException, null);
 
         verifyNoInteractions(span);
     }
