@@ -1,9 +1,9 @@
 package dev.openfeature.contrib.hooks.otel;
 
 import dev.openfeature.sdk.FlagEvaluationDetails;
-import dev.openfeature.sdk.FlagMetadata;
 import dev.openfeature.sdk.FlagValueType;
 import dev.openfeature.sdk.HookContext;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
@@ -110,7 +110,7 @@ class OpenTelemetryMetricHookTest {
         final OpenTelemetryMetricHook metricHook =
                 new OpenTelemetryMetricHook(telemetryExtension.getOpenTelemetry(), dimensionList);
 
-        final FlagMetadata metadata = FlagMetadata.builder()
+        final ImmutableMetadata metadata = ImmutableMetadata.builder()
                 .addBoolean("boolean", true)
                 .addInteger("integer", 1)
                 .addLong("long", 1L)

@@ -2,9 +2,9 @@ package dev.openfeature.contrib.hooks.otel;
 
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
-import dev.openfeature.sdk.FlagMetadata;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
+import dev.openfeature.sdk.ImmutableMetadata;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -130,7 +130,7 @@ public class OpenTelemetryMetricHook implements Hook {
     /**
      * A helper to derive attributes from {@link DimensionDescription}.
      */
-    private static Attributes attributesFromFlagMetadata(final FlagMetadata flagMetadata,
+    private static Attributes attributesFromFlagMetadata(final ImmutableMetadata flagMetadata,
                                                          final List<DimensionDescription> dimensionDescriptions) {
         final AttributesBuilder builder = Attributes.builder();
 
