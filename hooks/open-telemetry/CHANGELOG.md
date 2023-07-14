@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v1.0.3...dev.openfeature.contrib.hooks.otel-v2.0.0) (2023-07-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* otel metric hook ([#332](https://github.com/open-feature/java-sdk-contrib/issues/332))
+
+### Features
+
+* otel hook improvements ([#312](https://github.com/open-feature/java-sdk-contrib/issues/312)) ([0febd8d](https://github.com/open-feature/java-sdk-contrib/commit/0febd8d01f2464d84117eb7f5fb153d7bb6e37e7))
+* otel metric hook ([#332](https://github.com/open-feature/java-sdk-contrib/issues/332)) ([3cc9310](https://github.com/open-feature/java-sdk-contrib/commit/3cc93109293de1a295ed9da971d89802b0ff1e27))
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.27.0 ([#339](https://github.com/open-feature/java-sdk-contrib/issues/339)) ([dcfa6f1](https://github.com/open-feature/java-sdk-contrib/commit/dcfa6f1f91e582f055fafb98494ef8b66fdcea34))
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.28.0 ([#353](https://github.com/open-feature/java-sdk-contrib/issues/353)) ([1b2c591](https://github.com/open-feature/java-sdk-contrib/commit/1b2c5915e9bb42a470d35189fa1567b73a949553))
+
 ## [1.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v1.0.2...dev.openfeature.contrib.hooks.otel-v1.0.3) (2023-05-11)
 
 
