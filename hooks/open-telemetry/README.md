@@ -1,53 +1,97 @@
-# OpenTelemetry Hook
+# OpenTelemetry Hooks
 
-The OpenTelemetry hook for OpenFeature provides
-a [spec compliant](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/feature-flags.md)
-way to automatically add a feature flag
-evaluation to a span as a span event. This can be used to determine the impact a feature has on a request,
-enabling enhanced observability use cases, such as A/B testing or progressive feature releases.
+The OpenTelemetry hooks for OpenFeature provides [OTel compliant](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/feature-flags.md) hooks for traces and metrics.
+These hooks can be used to determine the impact a feature has on a request, enabling enhanced observability use cases, such as A/B testing or progressive feature releases.
 
 ## Installation
+
 <!-- x-release-please-start-version -->
+
 ```xml
-    <dependency>
-        <groupId>dev.openfeature.contrib.hooks</groupId>
-        <artifactId>otel</artifactId>
-        <version>2.0.0</version>
-    </dependency>
+
+<dependency>
+    <groupId>dev.openfeature.contrib.hooks</groupId>
+    <artifactId>otel</artifactId>
+    <version>2.0.0</version>
+</dependency>
 ```
+
 <!-- x-release-please-end-version -->
 
 ## Usage
 
-OpenFeature provides various ways to register hooks. The location where a hook is registered affects when the hook is
-run. It's recommended to register the `OpenTelemetryHook` globally in most situations, but it's possible to only enable
-the hook on specific clients. You should **never** register the `OpenTelemetryHook` both globally and on a client.
+OpenFeature provides various ways to register hooks. The location _where_ a hook is registered affects _when_ the hook is executed.
+It's recommended to register the hooks globally in most situations, but it's possible to only enable the hook on specific clients.
+
+> You should **never** register the OpenTelemetry hooks both globally and on a client.
+
+### TracesHook
+
+`TracesHook` provides OTel traces and export [span events](https://opentelemetry.io/docs/concepts/signals/traces/#span-events) for each feature flag evaluation.
+The hook implementation is attached to `after`and `error` [hook stages](https://github.com/open-feature/spec/blob/main/specification/sections/04-hooks.md#overview).
+
+Both successful and failed flag evaluations will add a span event named `feature_flag` with evaluation details such as flag key, provider name and variant.
+Failed evaluations can be allowed to set span status to `ERROR`. You can configure this behavior through`TracesHookOptions`.
 
 Consider the following code example for usage,
 
 ```java
-    final Tracer tracer = ... // derive Tracer from OpenTelemetry
-    
-    // Set OpenTelemetry hook globally
-    OpenFeatureAPI.getInstance().addHooks(new OpenTelemetryHook());
+final Tracer tracer=... // derive Tracer from OpenTelemetry
 
-    // OpenFeature client
-    final Client client = api.getClient();    
-     
-    // Derive span from OTEL tracer
-    Span span = tracer.spanBuilder("boolEvalLogic").startSpan();
-    
-    // flag evaluation - Hook's span is derived from current context
-    try(Scope ignored =  span.makeCurrent()) {
-        final Boolean boolEval = client.getBooleanValue(FLAG_KEY, false);
-    } finally {
-        span.end();
-    }
+// Set TracesHook globally
+OpenFeatureAPI.getInstance().addHooks(new TracesHook());
+
+// OpenFeature client
+final Client client=api.getClient();
+
+// Derive span from OTEL tracer
+Span span=tracer.spanBuilder("boolEvalLogic").startSpan();
+
+// Feature flag evaluation - Hook's span is derived from current context
+try(Scope ignored=span.makeCurrent()){
+    final Boolean boolEval=client.getBooleanValue(FLAG_KEY,false);
+}finally{
+    span.end();
+}
 ```
 
+### MetricsHook
 
-### Options
+`MetricsHook` performs metric collection by tapping into various hook stages.
 
-Options can be provided through `OpenTelemetryHookOptions` based constructor.
+Below are the metrics extracted by this hook and dimensions they carry:
 
-- setSpanErrorStatus: Control Span error status. Default is false - Span status is unchanged for flag evaluation error.
+| Metric key                             | Description                     | Unit         | Dimensions                                                    |
+|----------------------------------------|---------------------------------|--------------|---------------------------------------------------------------|
+| feature_flag.evaluation_requests_total | Number of evaluation requests   | {request}    | flag key & provider name                                      |
+| feature_flag.evaluation_success_total  | Flag evaluation successes       | {impression} | flag key, provider name, reason, variant & custom dimensions* |
+| feature_flag.evaluation_error_total    | Flag evaluation errors          | Counter      | flag key, provider name, exception                            |
+| feature_flag.evaluation_active_count   | Active flag evaluations counter | Counter      | flag key                                                      |
+
+Consider the following code example for usage,
+
+```java
+final OpenTelemetry openTelemetry = ... // OpenTelemetry API instance
+
+// Register MetricsHook globally         
+OpenFeatureAPI api = OpenFeatureAPI.getInstance();
+api.addHooks(new MetricsHook(openTelemetry));
+```
+
+#### Recording custom dimensions
+
+You can extract dimension from `ImmutableMetadata` of the `FlagEvaluationDetails` and add them to `feature_flag. evaluation_success_total` metric.
+To use this feature, construct the `MetricsHook` with a list of `DimensionDescription`. 
+You can add dimensions of type `String`, `Integer`, `Long`, `Float`, `Double` & `Boolean`.
+
+```java
+List<DimensionDescription> customDimensions = new ArrayList<>();
+customDimensions.add(new DimensionDescription("metadataA", String.class));
+customDimensions.add(new DimensionDescription("metadataB", Integer.class));
+
+
+OpenFeatureAPI api = OpenFeatureAPI.getInstance();
+
+// Register MetricsHook with custom dimensions
+api.addHooks(new MetricsHook(openTelemetry, customDimensions));
+```
