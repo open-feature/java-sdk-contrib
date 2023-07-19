@@ -36,7 +36,7 @@ class TracesHookTest {
         mockedSpan.close();
     }
 
-    private final AttributeKey<String> flagKeyAttributeKey = AttributeKey.stringKey("feature_flag.flag_key");
+    private final AttributeKey<String> flagKeyAttributeKey = AttributeKey.stringKey("feature_flag.key");
     private final AttributeKey<String> providerNameAttributeKey = AttributeKey.stringKey("feature_flag.provider_name");
     private final AttributeKey<String> variantAttributeKey = AttributeKey.stringKey("feature_flag.variant");
 
