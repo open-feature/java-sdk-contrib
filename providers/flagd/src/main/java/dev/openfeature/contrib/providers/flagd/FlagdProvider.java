@@ -118,7 +118,9 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     @Override
     public void shutdown() {
         try {
-            this.channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+            if(this.channel != null) {
+                this.channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+            }
         } catch (InterruptedException e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
         } finally {

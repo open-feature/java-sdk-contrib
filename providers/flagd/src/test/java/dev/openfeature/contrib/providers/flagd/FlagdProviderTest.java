@@ -20,6 +20,7 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import io.grpc.Channel;
+import io.grpc.Deadline;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.EventLoopGroup;
@@ -557,6 +558,12 @@ class FlagdProviderTest {
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
         ServiceStub serviceStubMock = mock(ServiceStub.class);
+        when(serviceStubMock.withWaitForReady()).thenReturn(serviceStubMock);
+        when(serviceStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceStubMock);
+        when(serviceBlockingStubMock.withWaitForReady()).thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -571,6 +578,7 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
+        provider.initialize(null);
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
@@ -763,6 +771,12 @@ class FlagdProviderTest {
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
         ServiceStub serviceStubMock = mock(ServiceStub.class);
+        when(serviceStubMock.withWaitForReady()).thenReturn(serviceStubMock);
+        when(serviceStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceStubMock);
+        when(serviceBlockingStubMock.withWaitForReady()).thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -777,6 +791,7 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, null, 0, 1);
+        provider.initialize(null);
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
@@ -833,4 +848,5 @@ class FlagdProviderTest {
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(STATIC_REASON, objectDetails.getReason());
     }
+
 }
