@@ -1,10 +1,8 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import java.util.Map;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
-import com.google.protobuf.Value;
 
 /**
  * EventStreamObserver handles events emitted by flagd.
@@ -16,7 +14,6 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
 
     private static final String configurationChange = "configuration_change";
     private static final String providerReady = "provider_ready";
-    private static final String flagsKey = "flags";
 
     EventStreamObserver(FlagdCache cache, EventStreamCallback callback) {
         this.cache = cache;
