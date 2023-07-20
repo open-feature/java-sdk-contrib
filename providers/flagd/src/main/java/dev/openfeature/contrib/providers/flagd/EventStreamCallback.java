@@ -7,4 +7,8 @@ interface EventStreamCallback {
     void setEventStreamAlive(boolean alive);
 
     void restartEventStream() throws Exception;
+
+    void emitSuccessReconnectionEvents();
+
+    void emitConfigurationChangeEvent();
 }

@@ -27,7 +27,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     public void onNext(EventStreamResponse value) {
         switch (value.getType()) {
             case configurationChange:
-                this.handleConfigurationChangeEvent(value);
+                this.handleConfigurationChangeEvent();
                 break;
             case providerReady:
                 this.handleProviderReadyEvent();
@@ -47,6 +47,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         this.callback.setEventStreamAlive(false);
         try {
             this.callback.restartEventStream();
+            this.callback.emitSuccessReconnectionEvents();
         } catch (Exception e) {
             log.error("restart event stream", e);
         }
@@ -60,23 +61,13 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         this.callback.setEventStreamAlive(false);
     }
 
-    private void handleConfigurationChangeEvent(EventStreamResponse value) {
+    private void handleConfigurationChangeEvent() {
+        this.callback.emitConfigurationChangeEvent();
         if (!this.cache.getEnabled()) {
             return;
         }
-
-        Map<String, Value> data = value.getData().getFieldsMap();
-        Value flagsValue = data.get(flagsKey);
-        if (flagsValue == null) {
-            this.cache.clear();
-            return;
-        }
-
-        Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
-
-        for (String flagKey : flags.keySet()) {
-            this.cache.remove(flagKey);
-        }
+        // Always flush the cache when configuration_change event is received
+        this.cache.clear();
     }
 
     private void handleProviderReadyEvent() {

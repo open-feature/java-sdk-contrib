@@ -13,12 +13,7 @@ import dev.openfeature.flagd.grpc.Schema.ResolveStringRequest;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
-import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.FeatureProvider;
-import dev.openfeature.sdk.Metadata;
-import dev.openfeature.sdk.MutableStructure;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
@@ -58,7 +53,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
  */
 @Slf4j
 @SuppressWarnings("PMD.TooManyStaticImports")
-public class FlagdProvider implements FeatureProvider, EventStreamCallback {
+public class FlagdProvider extends EventProvider implements FeatureProvider, EventStreamCallback {
     private static final String FLAGD_PROVIDER = "flagD Provider";
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -116,6 +111,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     @Override
     public void initialize(EvaluationContext evaluationContext) {
         this.serviceBlockingStub = this.serviceBlockingStub.withWaitForReady().withDeadline(Deadline.after(30, TimeUnit.SECONDS));
+        this.serviceStub = this.serviceStub.withWaitForReady().withDeadline(Deadline.after(30, TimeUnit.SECONDS));
         this.handleEvents();
     }
 
@@ -125,6 +121,8 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
             this.channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
+        } finally {
+            this.cache.clear();
         }
     }
 
@@ -139,6 +137,19 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         Thread.sleep(this.eventStreamRetryBackoff);
 
         this.handleEvents();
+    }
+
+    @Override
+    public void emitSuccessReconnectionEvents() {
+        ProviderEventDetails details = ProviderEventDetails.builder().message("reconnection successful").build();
+        this.emitProviderConfigurationChanged(details);
+        this.emitProviderReady(details);
+    }
+
+    @Override
+    public void emitConfigurationChangeEvent() {
+        ProviderEventDetails details = ProviderEventDetails.builder().message("configuration changed").build();
+        this.emitProviderConfigurationChanged(details);
     }
 
     /**
