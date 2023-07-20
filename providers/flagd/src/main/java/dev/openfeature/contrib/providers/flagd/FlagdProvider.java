@@ -110,15 +110,19 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     @Override
     public void initialize(EvaluationContext evaluationContext) {
-        this.serviceBlockingStub = this.serviceBlockingStub.withWaitForReady().withDeadline(Deadline.after(30, TimeUnit.SECONDS));
-        this.serviceStub = this.serviceStub.withWaitForReady().withDeadline(Deadline.after(30, TimeUnit.SECONDS));
+        this.serviceBlockingStub = this.serviceBlockingStub
+                .withWaitForReady()
+                .withDeadline(Deadline.after(30, TimeUnit.SECONDS));
+        this.serviceStub = this.serviceStub
+                .withWaitForReady()
+                .withDeadline(Deadline.after(30, TimeUnit.SECONDS));
         this.handleEvents();
     }
 
     @Override
     public void shutdown() {
         try {
-            if(this.channel != null) {
+            if (this.channel != null) {
                 this.channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
             }
         } catch (InterruptedException e) {
@@ -173,7 +177,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue,
-            EvaluationContext ctx) {
+                                                            EvaluationContext ctx) {
 
         ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
 
@@ -183,7 +187,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue,
-            EvaluationContext ctx) {
+                                                          EvaluationContext ctx) {
         ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
 
         return this.resolve(key, ctx, request,
@@ -192,7 +196,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue,
-            EvaluationContext ctx) {
+                                                          EvaluationContext ctx) {
         ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
 
         return this.resolve(key, ctx, request,
@@ -201,7 +205,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue,
-            EvaluationContext ctx) {
+                                                            EvaluationContext ctx) {
 
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
 
@@ -212,7 +216,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue,
-            EvaluationContext ctx) {
+                                                         EvaluationContext ctx) {
 
         ResolveObjectRequest request = ResolveObjectRequest.newBuilder().buildPartial();
 
@@ -375,7 +379,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     /**
      * This method is a helper to build a {@link ManagedChannel} from provided {@link FlagdOptions}.
-     * */
+     */
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "certificate path is a user input")
     private static ManagedChannel nettyChannel(final FlagdOptions options) {
         // we have a socket path specified, build a channel with a unix socket
@@ -442,7 +446,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     /**
      * A generic resolve method that takes a resolverRef and an optional converter lambda to transform the result.
-     * */
+     */
     private <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
             Convert<ValT, Object> converter) {
@@ -482,7 +486,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
         return result;
     }
 
-    private static  <T> T getField(Message message, String name) {
+    private static <T> T getField(Message message, String name) {
         return (T) message.getField(getFieldDescriptor(message, name));
     }
 
@@ -492,7 +496,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     /**
      * A converter lambda.
-     * */
+     */
     @FunctionalInterface
     private interface Convert<OutT extends Object, InT extends Object> {
         OutT convert(InT value);
