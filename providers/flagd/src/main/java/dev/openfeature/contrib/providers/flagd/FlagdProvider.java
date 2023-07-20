@@ -20,6 +20,7 @@ import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
@@ -62,8 +63,9 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private final ServiceBlockingStub serviceBlockingStub;
-    private final ServiceStub serviceStub;
+    private ServiceBlockingStub serviceBlockingStub;
+    private ServiceStub serviceStub;
+    private ManagedChannel channel;
     private final int maxEventStreamRetries;
     private final Object eventStreamAliveSync;
     private final FlagdCache cache;
@@ -88,6 +90,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      */
     public FlagdProvider(final FlagdOptions options) {
         final ManagedChannel channel = nettyChannel(options);
+        this.channel = channel;
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
         this.strategy = options.getOpenTelemetry() == null
@@ -97,7 +100,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.maxEventStreamRetries = options.getMaxEventStreamRetries();
         this.cache = new FlagdCache(options.getCacheType(), options.getMaxCacheSize());
         this.eventStreamAliveSync = new Object();
-        this.handleEvents();
     }
 
     FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache, int maxCacheSize,
@@ -109,7 +111,21 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.maxEventStreamRetries = maxEventStreamRetries;
         this.cache = new FlagdCache(cache, maxCacheSize);
         this.eventStreamAliveSync = new Object();
+    }
+
+    @Override
+    public void initialize(EvaluationContext evaluationContext) {
+        this.serviceBlockingStub = this.serviceBlockingStub.withWaitForReady().withDeadline(Deadline.after(30, TimeUnit.SECONDS));
         this.handleEvents();
+    }
+
+    @Override
+    public void shutdown() {
+        try {
+            this.channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
+        }
     }
 
     @Override
