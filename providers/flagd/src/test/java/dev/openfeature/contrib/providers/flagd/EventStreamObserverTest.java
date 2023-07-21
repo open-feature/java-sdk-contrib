@@ -1,14 +1,15 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.EventObject;
+import java.util.HashMap;
 
 import static org.mockito.Mockito.*;
 
@@ -38,7 +39,10 @@ class EventStreamObserverTest {
         @Test
         public void Change(){
             Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
+            Struct flagData = mock(Struct.class);
             when(resp.getType()).thenReturn("configuration_change");
+            when(resp.getData()).thenReturn(flagData);
+            when(flagData.getFieldsMap()).thenReturn(new HashMap<>());
             stream.onNext(resp);
             // we notify that the configuration changed
             verify(callback, times(1)).emitConfigurationChangeEvent();
@@ -73,6 +77,39 @@ class EventStreamObserverTest {
             // we do NOT emit any events
             verify(callback, times(0)).emit(eq(ProviderEvent.PROVIDER_READY), any(ProviderEventDetails.class));
             verify(callback, times(0)).emit(eq(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED), any(ProviderEventDetails.class));
+        }
+
+        @Test
+        public void CacheBustingForKnownKeys(){
+            final String key1 = "myKey1";
+            final String key2 = "myKey2";
+
+            Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
+            Struct flagData = mock(Struct.class);
+            Value flagsValue = mock(Value.class);
+            Struct flagsStruct = mock(Struct.class);
+            HashMap<String, Value> fields = new HashMap<>();
+            fields.put(EventStreamObserver.flagsKey, flagsValue);
+            HashMap<String, Value> flags = new HashMap<>();
+            flags.put(key1, null);
+            flags.put(key2, null);
+
+            when(resp.getType()).thenReturn("configuration_change");
+            when(resp.getData()).thenReturn(flagData);
+            when(flagData.getFieldsMap()).thenReturn(fields);
+            when(flagsValue.getStructValue()).thenReturn(flagsStruct);
+            when(flagsStruct.getFieldsMap()).thenReturn(flags);
+
+            stream.onNext(resp);
+            // we notify that the configuration changed
+            verify(callback, times(1)).emitConfigurationChangeEvent();
+            verify(callback, times(1)).emitProviderConfigurationChanged(any(ProviderEventDetails.class));
+            verify(callback, times(1)).emit(eq(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED), any(ProviderEventDetails.class));
+            // we did NOT flush the whole cache
+            verify(cache, atMost(0)).clear();
+            // we only clean the two keys
+            verify(cache, times(1)).remove(eq(key1));
+            verify(cache, times(1)).remove(eq(key2));
         }
     }
 
