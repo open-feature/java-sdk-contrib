@@ -23,6 +23,11 @@
             <organization>go-feature-flag</organization>
             <url>https://gofeatureflag.org</url>
         </developer>
+        <developer>
+            <id>liran2000</id>
+            <name>Liran Mendeovich</name>
+            <url>https://liran2000.github.io</url>
+        </developer>
     </developers>
 
     <dependencies>
@@ -49,6 +54,12 @@
             <artifactId>mockwebserver</artifactId>
             <version>4.11.0</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>32.1.1-jre</version>
         </dependency>
     </dependencies>
 </project>

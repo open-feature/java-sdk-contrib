@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheBuilderSpec;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -48,4 +50,19 @@ public class GoFeatureFlagProviderOptions {
      */
     @Getter
     private String apiKey;
+
+    /**
+     *  (optional) If cache custom configuration is wanted, you should provide
+     *  a cache builder.
+     *  Default: null
+     */
+    @Getter
+    private CacheBuilder cacheBuilder;
+
+    /**
+     * (optional) enable cache value
+     * Default: true
+     */
+    @Getter
+    private Boolean enableCache;
 }
