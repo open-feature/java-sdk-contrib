@@ -518,7 +518,7 @@ class FlagdProviderTest {
 
 
     @Test
-    void invalidate_cache() {
+    void invalidate_cache() throws Exception {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
@@ -731,7 +731,7 @@ class FlagdProviderTest {
     }
     
     @Test
-    void disabled_cache() {
+    void disabled_cache() throws Exception {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
