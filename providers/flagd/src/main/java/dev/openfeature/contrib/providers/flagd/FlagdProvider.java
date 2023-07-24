@@ -13,7 +13,15 @@ import dev.openfeature.flagd.grpc.Schema.ResolveStringRequest;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
-import dev.openfeature.sdk.*;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.EventProvider;
+import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.Metadata;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Value;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
@@ -66,10 +74,10 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     private final FlagdCache cache;
     private final ResolveStrategy strategy;
 
-    private boolean eventStreamAlive;
     private int eventStreamAttempt = 1;
     private int eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
     private long deadline = DEFAULT_DEADLINE;
+    private ProviderState state = ProviderState.NOT_READY;
 
     /**
      * Create a new FlagdProvider instance with default options.
@@ -110,12 +118,6 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     @Override
     public void initialize(EvaluationContext evaluationContext) {
-        this.serviceBlockingStub = this.serviceBlockingStub
-                .withWaitForReady()
-                .withDeadline(Deadline.after(30, TimeUnit.SECONDS));
-        this.serviceStub = this.serviceStub
-                .withWaitForReady()
-                .withDeadline(Deadline.after(30, TimeUnit.SECONDS));
         this.handleEvents();
     }
 
@@ -133,15 +135,25 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     }
 
     @Override
-    public void restartEventStream() throws Exception {
+    public ProviderState getState() {
+        Lock l = this.lock.readLock();
+        try {
+            l.lock();
+            return this.state;
+        } finally {
+            l.unlock();
+        }
+    }
+
+    @Override
+    public void restartEventStream() {
         this.eventStreamAttempt++;
         if (this.eventStreamAttempt > this.maxEventStreamRetries) {
             log.error("failed to connect to event stream, exhausted retries");
+            this.setState(ProviderState.ERROR);
             return;
         }
         this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
-        Thread.sleep(this.eventStreamRetryBackoff);
-
         this.handleEvents();
     }
 
@@ -238,12 +250,12 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     }
 
     @Override
-    public void setEventStreamAlive(boolean alive) {
+    public void setState(ProviderState state) {
         Lock l = this.lock.writeLock();
         try {
             l.lock();
-            this.eventStreamAlive = alive;
-            if (alive) {
+            this.state = state;
+            if (state == ProviderState.READY) {
                 synchronized (this.eventStreamAliveSync) {
                     this.eventStreamAliveSync.notify(); // notify any waiters that the event stream is alive
                 }
@@ -425,7 +437,9 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
 
     private void handleEvents() {
         StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(this.cache, this);
-        this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
+        this.serviceStub.withWaitForReady()
+                .withDeadline(Deadline.after(this.eventStreamRetryBackoff, TimeUnit.MILLISECONDS))
+                .eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
     }
 
 
@@ -438,7 +452,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     private Boolean cacheAvailable() {
         Lock l = this.lock.readLock();
         l.lock();
-        Boolean available = this.cache.getEnabled() && this.eventStreamAlive;
+        Boolean available = this.cache.getEnabled() && this.state == ProviderState.READY;
         l.unlock();
 
         return available;

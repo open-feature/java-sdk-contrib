@@ -26,6 +26,16 @@
     </developers>
 
     <dependencies>
+
+        <!-- override parent definition -->
+        <dependency>
+            <groupId>dev.openfeature</groupId>
+            <artifactId>sdk</artifactId>
+            <version>[1.4,2.0)</version>
+            <scope>provided</scope>
+        </dependency>
+
+
         <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
 
         <dependency>

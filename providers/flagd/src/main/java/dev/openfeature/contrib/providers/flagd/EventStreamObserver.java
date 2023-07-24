@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import java.util.Map;
+
+import dev.openfeature.sdk.ProviderState;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
@@ -44,7 +46,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.callback.setEventStreamAlive(false);
+        this.callback.setState(ProviderState.ERROR);
         try {
             this.callback.restartEventStream();
             this.callback.emitSuccessReconnectionEvents();
@@ -58,7 +60,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.callback.setEventStreamAlive(false);
+        this.callback.setState(ProviderState.ERROR);
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
@@ -81,7 +83,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     }
 
     private void handleProviderReadyEvent() {
-        this.callback.setEventStreamAlive(true);
+        this.callback.setState(ProviderState.READY);
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }

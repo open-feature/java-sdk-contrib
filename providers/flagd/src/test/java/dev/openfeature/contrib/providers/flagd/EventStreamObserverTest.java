@@ -15,7 +15,6 @@ import static org.mockito.Mockito.*;
 
 class EventStreamObserverTest {
 
-
     @Nested
     class EmitEvents {
 
@@ -51,6 +50,7 @@ class EventStreamObserverTest {
             // we flush the cache
             verify(cache, atLeast(1)).clear();
         }
+
         @Test
         public void Ready(){
             Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
@@ -58,6 +58,7 @@ class EventStreamObserverTest {
             stream.onNext(resp);
             verify(callback, times(0)).emit(any(ProviderEvent.class), any(ProviderEventDetails.class));
         }
+
         @Test
         public void Reconnections(){
             stream.onError(new Throwable("error"));
@@ -112,6 +113,4 @@ class EventStreamObserverTest {
             verify(cache, times(1)).remove(eq(key2));
         }
     }
-
-
 }
