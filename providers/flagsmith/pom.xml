@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagsmith</artifactId>
-    <version>0.0.6</version> <!--x-release-please-version -->
+    <version>0.0.7</version> <!--x-release-please-version -->
 
     <name>flagsmith</name>
     <description>Flagsmith provider for Java</description>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.flagsmith</groupId>
             <artifactId>flagsmith-java-client</artifactId>
-            <version>6.2.0</version>
+            <version>7.0.1</version>
         </dependency>
 
         <dependency>

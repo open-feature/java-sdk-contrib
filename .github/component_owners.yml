@@ -1,0 +1,24 @@
+# Keep all in alphabetical order
+components:
+  hooks/open-telemetry:
+    - beeme1mr
+    - Kavindu-Dodan
+    - thiyagu06
+    - toddbaert
+  providers/env-var:
+    - madhead
+    - toddbaert
+  providers/flagd:
+    - beeme1mr
+    - Kavindu-Dodan
+    - toddbaert
+  providers/flagsmith:
+    - ajhelsby
+    - matthewelwell
+  providers/go-feature-flag:
+    - thomaspoignant
+  providers/jsonlogic-eval-provider:
+    - justinabrahms
+
+ignored-authors:
+  - renovate-bot

@@ -63,13 +63,18 @@ public class MetricsHook implements Hook {
                         .build();
 
         evaluationRequestCounter = meter.counterBuilder(EVALUATION_REQUESTS_TOTAL)
-                .setDescription("feature flag evaluation request counter").build();
+                .setDescription("feature flag evaluation request counter")
+                .setUnit("{request}")
+                .build();
 
         evaluationSuccessCounter = meter.counterBuilder(FLAG_EVALUATION_SUCCESS_TOTAL)
-                .setDescription("feature flag evaluation success counter").build();
+                .setDescription("feature flag evaluation success counter")
+                .setUnit("{impression}")
+                .build();
 
         evaluationErrorCounter = meter.counterBuilder(FLAG_EVALUATION_ERROR_TOTAL)
-                .setDescription("feature flag evaluation error counter").build();
+                .setDescription("feature flag evaluation error counter")
+                .build();
 
         dimensionDescriptions = Collections.unmodifiableList(dimensions);
     }
