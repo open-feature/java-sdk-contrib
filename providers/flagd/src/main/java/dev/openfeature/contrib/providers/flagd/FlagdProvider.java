@@ -165,7 +165,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     }
 
     @Override
-    public void restartEventStream() {
+    public void restartEventStream() throws Exception {
         this.eventStreamAttempt++;
         if (this.eventStreamAttempt > this.maxEventStreamRetries) {
             log.error("failed to connect to event stream, exhausted retries");
@@ -173,6 +173,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
             return;
         }
         this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
+        Thread.sleep(this.eventStreamRetryBackoff);
         this.handleEvents();
     }
 
