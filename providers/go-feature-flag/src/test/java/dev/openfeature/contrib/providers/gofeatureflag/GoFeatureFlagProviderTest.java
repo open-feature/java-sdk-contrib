@@ -1,12 +1,14 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.cache.CacheBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 
+import static dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GoFeatureFlagProviderTest {
@@ -46,8 +49,12 @@ class GoFeatureFlagProviderTest {
             if (request.getPath().startsWith("/v1/feature/")) {
                 String flagName = request.getPath().replace("/v1/feature/", "").replace("/eval", "");
                 return new MockResponse()
-                        .setResponseCode(200)
-                        .setBody(readMockResponse(flagName + ".json"));
+                    .setResponseCode(200)
+                    .setBody(readMockResponse(flagName + ".json"));
+            }
+            if (request.getPath().startsWith("/v1/data/collector")) {
+                return new MockResponse()
+                    .setResponseCode(200);
             }
             return new MockResponse().setResponseCode(404);
         }
@@ -149,6 +156,58 @@ class GoFeatureFlagProviderTest {
     void should_resolve_a_valid_boolean_flag_with_TARGETING_MATCH_reason() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
+        assertEquals("True", res.getVariant());
+    }
+
+    @Test
+    void should_resolve_from_cache() throws InvalidOptions {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
+        assertEquals("True", res.getVariant());
+
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(CACHED_REASON, res.getReason());
+        assertEquals("True", res.getVariant());
+    }
+
+    @Test
+    void should_resolve_from_cache_max_size() throws InvalidOptions {
+        CacheBuilder cacheBuilder = CacheBuilder.newBuilder().maximumSize(1);
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).cacheBuilder(cacheBuilder).build());
+        ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
+        assertEquals("True", res.getVariant());
+
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(CACHED_REASON, res.getReason());
+        assertEquals("True", res.getVariant());
+
+        ProviderEvaluation<String> strRes = g.getStringEvaluation("string_key", "defaultValue", this.evaluationContext);
+        assertEquals("CC0000", strRes.getValue());
+        assertNull(strRes.getErrorCode());
+        assertEquals(Reason.TARGETING_MATCH.toString(), strRes.getReason());
+        assertEquals("True", strRes.getVariant());
+
+        strRes = g.getStringEvaluation("string_key", "defaultValue", this.evaluationContext);
+        assertEquals("CC0000", strRes.getValue());
+        assertNull(strRes.getErrorCode());
+        assertEquals(CACHED_REASON, strRes.getReason());
+        assertEquals("True", strRes.getVariant());
+
+        // verify that value previously fetch from cache now not fetched from cache since cache max size is 1, and cache is full.
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
         assertEquals(true, res.getValue());
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
@@ -308,9 +367,24 @@ class GoFeatureFlagProviderTest {
         assertEquals("True", res.getVariant());
     }
 
-    private String readMockResponse(String filename) throws IOException {
-        String file = getClass().getClassLoader().getResource("mock_responses/" + filename).getFile();
-        byte[] bytes = Files.readAllBytes(Paths.get(file));
+    @Test
+    void should_publish_events() throws InvalidOptions {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(3, g.getEventsPublisher().publish());
+
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(2, g.getEventsPublisher().publish());
+
+        assertEquals(0, g.getEventsPublisher().publish());
+    }
+
+    private String readMockResponse(String filename) throws Exception {
+        URL url = getClass().getClassLoader().getResource("mock_responses/" + filename);
+        byte[] bytes = Files.readAllBytes(Paths.get(url.toURI()));
         return new String(bytes);
     }
 }
