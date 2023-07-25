@@ -52,7 +52,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static java.net.HttpURLConnection.*;
-import static org.apache.commons.lang3.BooleanUtils.isFalse;
 
 /**
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
@@ -64,10 +63,11 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    public static final int DEFAULT_CACHE_TTL_MINUTES = 10;
+    public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
+    public static final long DEFAULT_CACHE_TTL_MS = 1000;
     public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
     public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
-    public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 1000;
+    public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 10000;
     protected static final String CACHED_REASON = Reason.CACHED.name();
     protected static final String REASON_SEPARATOR = ", ";
     private HttpUrl parsedEndpoint;
@@ -110,12 +110,12 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             throw new InvalidEndpoint("endpoint is a mandatory field when initializing the provider");
         }
 
-        if (options.getFlushIntervalMinues() != null && options.getFlushIntervalMinues() <= 0) {
-            throw new InvalidOptions("flushIntervalMinues must be larger than 0");
+        if (options.getFlushIntervalMs() != null && options.getFlushIntervalMs() <= 0) {
+            throw new InvalidOptions("flushIntervalMs must be larger than 0");
         }
 
-        if (isFalse(options.getEnableCache()) && options.getFlushIntervalMinues() != null) {
-            throw new InvalidOptions("flushIntervalMinues not used when cache is disabled");
+        if (Boolean.FALSE.equals(options.getEnableCache()) && options.getFlushIntervalMs() != null) {
+            throw new InvalidOptions("flushIntervalMs not used when cache is disabled");
         }
     }
 
@@ -155,9 +155,10 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             } else {
                 this.cache = buildDefaultCache();
             }
-            long flushIntervalMinutes = options.getFlushIntervalMinues() == null ? 1 : options.getFlushIntervalMinues();
+            long flushIntervalMs = options.getFlushIntervalMs() == null
+                ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
             Consumer<List<Event>> publisher = events -> publishEventsQuietly(events);
-            eventsPublisher = new EventsPublisher(publisher, flushIntervalMinutes);
+            eventsPublisher = new EventsPublisher(publisher, flushIntervalMs);
         }
     }
 
@@ -165,7 +166,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         return CacheBuilder.newBuilder()
             .concurrencyLevel(DEFAULT_CACHE_CONCURRENCY_LEVEL)
             .initialCapacity(DEFAULT_CACHE_INITIAL_CAPACITY).maximumSize(DEFAULT_CACHE_MAXIMUM_SIZE)
-            .expireAfterWrite(Duration.ofMinutes(DEFAULT_CACHE_TTL_MINUTES))
+            .expireAfterWrite(Duration.ofMillis(DEFAULT_CACHE_TTL_MS))
             .build();
     }
 
@@ -228,7 +229,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         ProviderEvaluation res = null;
         GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
         if (cache == null) {
-            res = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
+            EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
+            res = proxyRes.getProviderEvaluation();
         } else {
             res = getProviderEvaluationWithCheckCache(key, defaultValue, expectedType, user);
         }
@@ -251,14 +253,19 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             String cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
             res = cache.getIfPresent(cacheKey);
             if (res == null) {
-                res = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
-                cache.put(cacheKey, res);
+                EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(
+                    key, defaultValue, user, expectedType);
+                if (Boolean.TRUE.equals(proxyRes.getCachable())) {
+                    cache.put(cacheKey, proxyRes.getProviderEvaluation());
+                }
+                res = proxyRes.getProviderEvaluation();
             } else {
                 res.setReason(CACHED_REASON);
             }
         } catch (JsonProcessingException e) {
             log.error("Error building key for user", user);
-            res = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
+            EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
+            res = proxyRes.getProviderEvaluation();
         }
         return res;
     }
@@ -273,7 +280,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      * @return a ProviderEvaluation that contains the open-feature response
      * @throws OpenFeatureError - if an error happen
      */
-    private <T> ProviderEvaluation<T> resolveEvaluationGoFeatureFlagProxy(
+    private <T> EvaluationResponse<T> resolveEvaluationGoFeatureFlagProxy(
             String key, T defaultValue, GoFeatureFlagUser user, Class<?> expectedType
     ) throws OpenFeatureError {
         try {
@@ -313,10 +320,13 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
                     // we don't set a variant since we are using the default value, and we are not able to know
                     // which variant it is.
-                    return ProviderEvaluation.<T>builder()
+                    ProviderEvaluation<T> providerEvaluation =  ProviderEvaluation.<T>builder()
                             .value(defaultValue)
                             .variant(goffResp.getVariationType())
                             .reason(Reason.DISABLED.name()).build();
+
+                    return EvaluationResponse.<T>builder()
+                        .providerEvaluation(providerEvaluation).cachable(goffResp.getCacheable()).build();
                 }
 
                 if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {
@@ -331,13 +341,15 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                                                         + flagValue.getClass() + ", expected " + expectedType + ".");
                 }
 
-                return ProviderEvaluation.<T>builder()
-                        .errorCode(mapErrorCode(goffResp.getErrorCode()))
-                        .reason(goffResp.getReason())
-                        .value(flagValue)
-                        .variant(goffResp.getVariationType())
-                        .build();
+                ProviderEvaluation<T> providerEvaluation = ProviderEvaluation.<T>builder()
+                    .errorCode(mapErrorCode(goffResp.getErrorCode()))
+                    .reason(goffResp.getReason())
+                    .value(flagValue)
+                    .variant(goffResp.getVariationType())
+                    .build();
 
+                return EvaluationResponse.<T>builder()
+                    .providerEvaluation(providerEvaluation).cachable(goffResp.getCacheable()).build();
             }
         } catch (IOException e) {
             throw new GeneralError("unknown error while retrieving flag " + key, e);

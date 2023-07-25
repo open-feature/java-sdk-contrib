@@ -22,7 +22,7 @@ public class EventsPublisher<T> {
 
     private List<T> eventsList;
     private Consumer<List<T>> publisher;
-    private long flushIntervalMinues;
+    private long flushIntervalMs;
 
     private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private Lock readLock = readWriteLock.readLock();
@@ -33,15 +33,15 @@ public class EventsPublisher<T> {
     /**
      * Constructor.
      * @param publisher events publisher
-     * @param flushIntervalMinues data flush interval
+     * @param flushIntervalMs data flush interval
      */
-    public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMinues) {
+    public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMs) {
         eventsList = new CopyOnWriteArrayList<>();
         this.publisher = publisher;
-        this.flushIntervalMinues = flushIntervalMinues;
-        log.debug("Scheduling events publishing at fixed rate of {} minutes", flushIntervalMinues);
+        this.flushIntervalMs = flushIntervalMs;
+        log.debug("Scheduling events publishing at fixed rate of {} milliseconds", flushIntervalMs);
         scheduledExecutorService.scheduleAtFixedRate(
-            this::publish, flushIntervalMinues, flushIntervalMinues, TimeUnit.MINUTES);
+            this::publish, flushIntervalMs, flushIntervalMs, TimeUnit.MILLISECONDS);
     }
 
     /**

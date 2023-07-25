@@ -63,7 +63,7 @@ public class GoFeatureFlagProviderOptions {
      * (optional) interval time we publish statistics collection data to the proxy.
      * The parameter is used only if the cache is enabled, otherwise the collection of the data is done directly
      * when calling the evaluation API.
-     * default: 1 minute
+     * default: 1000 ms
      */
-    private Long flushIntervalMinues;
+    private Long flushIntervalMs;
 }
