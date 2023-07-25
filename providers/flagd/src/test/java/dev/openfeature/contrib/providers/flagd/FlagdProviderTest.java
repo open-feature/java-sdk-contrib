@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -787,7 +788,8 @@ class FlagdProviderTest {
         FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, null, 0, 1);
         provider.initialize(null);
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
-        verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
+        // wait up to 5s to let the bg thread to call the event stream
+        verify(serviceStubMock, timeout(5000)).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
         provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);

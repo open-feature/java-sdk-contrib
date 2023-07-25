@@ -24,6 +24,8 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -36,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 import javax.net.ssl.SSLException;
 import java.io.File;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -118,17 +119,20 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     }
 
     @Override
-    public void initialize(EvaluationContext evaluationContext) throws Exception {
+    public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
         try {
-            EventStreamRequest r = EventStreamRequest.getDefaultInstance();
-            Iterator<EventStreamResponse> eventStreamResponseIterator = this.serviceBlockingStub
+            // try a dummy request
+            this.serviceBlockingStub
                     .withWaitForReady()
                     .withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                    .eventStream(r);
-            if(!eventStreamResponseIterator.hasNext()) {
-                throw new Exception("cannot connect");
+                    .resolveBoolean(ResolveBooleanRequest.newBuilder().setFlagKey("ready?").build());
+        } catch (StatusRuntimeException e) {
+            // only return the exception if we don't meet the deadline
+            if (Status.DEADLINE_EXCEEDED.equals(e.getStatus())) {
+                throw e;
             }
         } finally {
+            // try in background to open the event stream
             Executors.newSingleThreadExecutor().submit(this::handleEvents);
         }
     }
@@ -137,12 +141,16 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
     public void shutdown() {
         try {
             if (this.channel != null) {
-                this.channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+                this.channel.shutdown();
+                this.channel.awaitTermination(5, TimeUnit.SECONDS);
             }
         } catch (InterruptedException e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
         } finally {
             this.cache.clear();
+            if (this.channel != null) {
+                this.channel.shutdownNow();
+            }
         }
     }
 
@@ -261,6 +269,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
         return this;
     }
 
+    @Override
     public void setState(ProviderState state) {
         Lock l = this.lock.writeLock();
         try {

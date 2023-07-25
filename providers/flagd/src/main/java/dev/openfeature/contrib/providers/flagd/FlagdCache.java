@@ -1,11 +1,10 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import java.util.Collections;
-import java.util.Map;
-
+import dev.openfeature.sdk.ProviderEvaluation;
 import org.apache.commons.collections4.map.LRUMap;
 
-import dev.openfeature.sdk.ProviderEvaluation;
+import java.util.Collections;
+import java.util.Map;
 
 import static dev.openfeature.contrib.providers.flagd.Config.LRU_CACHE;
 
