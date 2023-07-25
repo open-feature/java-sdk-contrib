@@ -43,6 +43,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -58,9 +59,11 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private static final ObjectMapper requestMapper = new ObjectMapper();
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    public static final int DEFAULT_CONCURRENCY_LEVEL = 1;
-    public static final int DEFAULT_INITIAL_CAPACITY = 100;
-    public static final int DEFAULT_MAXIMUM_SIZE = 1000;
+
+    public static final int DEFAULT_CACHE_TTL_MINUTES = 10;
+    public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
+    public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
+    public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 1000;
     protected static final String CACHED_REASON = Reason.CACHED.name();
     protected static final String REASON_SEPARATOR = ", ";
     private HttpUrl parsedEndpoint;
@@ -142,8 +145,9 @@ public class GoFeatureFlagProvider implements FeatureProvider {
 
     private Cache buildDefaultCache() {
         return CacheBuilder.newBuilder()
-            .concurrencyLevel(DEFAULT_CONCURRENCY_LEVEL)
-            .initialCapacity(DEFAULT_INITIAL_CAPACITY).maximumSize(DEFAULT_MAXIMUM_SIZE)
+            .concurrencyLevel(DEFAULT_CACHE_CONCURRENCY_LEVEL)
+            .initialCapacity(DEFAULT_CACHE_INITIAL_CAPACITY).maximumSize(DEFAULT_CACHE_MAXIMUM_SIZE)
+            .refreshAfterWrite(Duration.ofMinutes(DEFAULT_CACHE_TTL_MINUTES))
             .build();
     }
 
