@@ -1,8 +1,5 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -12,34 +9,22 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRespons
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
-import dev.openfeature.sdk.ErrorCode;
-import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.FeatureProvider;
-import dev.openfeature.sdk.Hook;
-import dev.openfeature.sdk.Metadata;
-import dev.openfeature.sdk.MutableStructure;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Structure;
-import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.*;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
-import okhttp3.ConnectionPool;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import okhttp3.*;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 /**
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
@@ -226,7 +211,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
 
                 if (flagValue.getClass() != expectedType) {
                     throw new TypeMismatchError("Flag value " + key + " had unexpected type "
-                                                        + flagValue.getClass() + ", expected " + expectedType + ".");
+                            + flagValue.getClass() + ", expected " + expectedType + ".");
                 }
 
                 return ProviderEvaluation.<T>builder()
@@ -234,6 +219,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                         .reason(goffResp.getReason())
                         .value(flagValue)
                         .variant(goffResp.getVariationType())
+                        .flagMetadata(this.convertFlagMetadata(goffResp.getMetadata()))
                         .build();
 
             }
@@ -256,6 +242,32 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         }
     }
 
+    /**
+     * convertFlagMetadata is converting the flagMetadata object received from the server
+     * to an ImmutableMetadata format known by Open Feature,
+     *
+     * @param flagMetadata - metadata received from the server
+     * @return a converted metadata object.
+     */
+    private ImmutableMetadata convertFlagMetadata(Map<String, Object> flagMetadata) {
+        ImmutableMetadata.ImmutableMetadataBuilder builder = ImmutableMetadata.builder();
+        flagMetadata.forEach((k, v) -> {
+            if (v instanceof Long) {
+                builder.addLong(k, (Long) v);
+            } else if (v instanceof Integer) {
+                builder.addInteger(k, (Integer) v);
+            } else if (v instanceof Float) {
+                builder.addFloat(k, (Float) v);
+            } else if (v instanceof Double) {
+                builder.addDouble(k, (Double) v);
+            } else if (v instanceof Boolean) {
+                builder.addBoolean(k, (Boolean) v);
+            } else {
+                builder.addString(k, v.toString());
+            }
+        });
+        return builder.build();
+    }
 
     /**
      * convertValue is converting the object return by the proxy response in the right type.

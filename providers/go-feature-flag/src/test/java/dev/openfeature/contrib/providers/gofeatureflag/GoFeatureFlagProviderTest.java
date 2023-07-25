@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import dev.openfeature.sdk.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,11 +15,6 @@ import org.junit.jupiter.api.Test;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTargetingKey;
-import dev.openfeature.sdk.MutableContext;
-import dev.openfeature.sdk.MutableStructure;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
@@ -55,6 +51,12 @@ class GoFeatureFlagProviderTest {
     private MockWebServer server;
     private HttpUrl baseUrl;
     private MutableContext evaluationContext;
+
+    private final static ImmutableMetadata defaultMetadata =
+            ImmutableMetadata.builder()
+                    .addString("pr_link", "https://github.com/thomaspoignant/go-feature-flag/pull/916")
+                    .addInteger("version", 1)
+                    .build();
 
     @BeforeEach
     void beforeEach() throws IOException {
@@ -153,6 +155,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -163,6 +168,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals("CUSTOM_REASON", res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -187,6 +195,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -211,6 +222,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -235,6 +249,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -254,6 +271,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -265,6 +285,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -296,6 +319,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @Test
@@ -306,6 +332,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     private String readMockResponse(String filename) throws IOException {

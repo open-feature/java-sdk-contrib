@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Map;
+
 /**
  * GoFeatureFlagResponse is the response returned by the relay proxy.
  */
@@ -18,6 +20,7 @@ public class GoFeatureFlagResponse {
     private String reason;
     private String errorCode;
     private Object value;
+    private Map<String, Object> metadata;
 }
 
 
