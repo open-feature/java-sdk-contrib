@@ -49,8 +49,12 @@ class GoFeatureFlagProviderTest {
             if (request.getPath().startsWith("/v1/feature/")) {
                 String flagName = request.getPath().replace("/v1/feature/", "").replace("/eval", "");
                 return new MockResponse()
-                        .setResponseCode(200)
-                        .setBody(readMockResponse(flagName + ".json"));
+                    .setResponseCode(200)
+                    .setBody(readMockResponse(flagName + ".json"));
+            }
+            if (request.getPath().startsWith("/v1/data/collector")) {
+                return new MockResponse()
+                    .setResponseCode(200);
             }
             return new MockResponse().setResponseCode(404);
         }
@@ -361,6 +365,21 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+    }
+
+    @Test
+    void should_publish_events() throws InvalidOptions {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(3, g.getEventsPublisher().publish());
+
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(2, g.getEventsPublisher().publish());
+
+        assertEquals(0, g.getEventsPublisher().publish());
     }
 
     private String readMockResponse(String filename) throws Exception {

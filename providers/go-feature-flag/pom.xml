@@ -23,11 +23,6 @@
             <organization>go-feature-flag</organization>
             <url>https://gofeatureflag.org</url>
         </developer>
-        <developer>
-            <id>liran2000</id>
-            <name>Liran Mendeovich</name>
-            <url>https://liran2000.github.io</url>
-        </developer>
     </developers>
 
     <dependencies>
@@ -61,5 +56,18 @@
             <artifactId>guava</artifactId>
             <version>32.1.1-jre</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+
     </dependencies>
 </project>
