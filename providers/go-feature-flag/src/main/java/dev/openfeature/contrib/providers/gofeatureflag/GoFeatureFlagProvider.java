@@ -244,7 +244,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
 
     /**
      * convertFlagMetadata is converting the flagMetadata object received from the server
-     * to an ImmutableMetadata format known by Open Feature,
+     * to an ImmutableMetadata format known by Open Feature.
      *
      * @param flagMetadata - metadata received from the server
      * @return a converted metadata object.
