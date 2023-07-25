@@ -12,7 +12,14 @@ import dev.openfeature.flagd.grpc.Schema.ResolveStringResponse;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
-import dev.openfeature.sdk.*;
+import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
+import dev.openfeature.sdk.Value;
 import io.grpc.Channel;
 import io.grpc.Deadline;
 import io.grpc.netty.NettyChannelBuilder;
@@ -45,7 +52,6 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -788,8 +794,7 @@ class FlagdProviderTest {
         FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, null, 0, 1);
         provider.initialize(null);
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
-        // wait up to 5s to let the bg thread to call the event stream
-        verify(serviceStubMock, timeout(5000)).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
+        verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
         provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);

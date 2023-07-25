@@ -40,7 +40,6 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -133,7 +132,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider, Eve
             }
         } finally {
             // try in background to open the event stream
-            Executors.newSingleThreadExecutor().submit(this::handleEvents);
+            this.handleEvents();
         }
     }
 
