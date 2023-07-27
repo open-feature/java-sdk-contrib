@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.strategy;
 
 import com.google.protobuf.Message;
 
@@ -7,7 +7,7 @@ import java.util.function.Function;
 /**
  * Request to Response resolving strategy.
  * */
-interface ResolveStrategy {
+public interface ResolveStrategy {
     <ReqT extends Message, ResT extends Message> ResT resolve(final Function<ReqT, ResT> resolverRef, final Message req,
                                                               final String key);
 }
