@@ -6,6 +6,7 @@
 ### ⚠ BREAKING CHANGES
 
 * add events support ([#361](https://github.com/open-feature/java-sdk-contrib/issues/361))
+  * require newer SDK version 
 
 ### Features
 
