@@ -32,6 +32,7 @@ import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.ConnectionPool;
 import okhttp3.HttpUrl;
@@ -64,6 +65,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
+    public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
     public static final long DEFAULT_CACHE_TTL_MS = 1000;
     public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
     public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
@@ -117,6 +119,10 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         if (Boolean.FALSE.equals(options.getEnableCache()) && options.getFlushIntervalMs() != null) {
             throw new InvalidOptions("flushIntervalMs not used when cache is disabled");
         }
+
+        if (options.getMaxPendingEvents() != null && options.getMaxPendingEvents() <= 0) {
+            throw new InvalidOptions("maxPendingEvents must be larger than 0");
+        }
     }
 
     /**
@@ -157,8 +163,10 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             }
             long flushIntervalMs = options.getFlushIntervalMs() == null
                 ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
-            Consumer<List<Event>> publisher = events -> publishEventsQuietly(events);
-            eventsPublisher = new EventsPublisher(publisher, flushIntervalMs);
+            int maxPendingEvents = options.getMaxPendingEvents() == null
+                ? DEFAULT_MAX_PENDING_EVENTS : options.getMaxPendingEvents();
+            Consumer<List<Event>> publisher = events -> publishEvents(events);
+            eventsPublisher = new EventsPublisher(publisher, flushIntervalMs, maxPendingEvents);
         }
     }
 
@@ -233,16 +241,16 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             res = proxyRes.getProviderEvaluation();
         } else {
             res = getProviderEvaluationWithCheckCache(key, defaultValue, expectedType, user);
+            eventsPublisher.add(Event.builder()
+                .key(key)
+                .defaultValue(defaultValue)
+                .variation(res.getVariant())
+                .value(res.getValue())
+                .userKey(user.getKey())
+                .creationDate(System.currentTimeMillis())
+                .build()
+            );
         }
-        eventsPublisher.add(Event.builder()
-            .key(key)
-            .defaultValue(defaultValue)
-            .variation(res.getVariant())
-            .value(res.getValue())
-            .userKey(user.getKey())
-            .creationDate(System.currentTimeMillis())
-            .build()
-        );
         return res;
     }
 
@@ -437,15 +445,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
     }
 
-    private void publishEventsQuietly(List<Event> eventsList) {
-        try {
-            publishEvents(eventsList);
-        } catch (Exception e) {
-            log.error("Error publishing events", e);
-        }
-    }
-
-    private void publishEvents(List<Event> eventsList) throws Exception {
+    @SneakyThrows
+    private void publishEvents(List<Event> eventsList) {
         Events events = new Events(eventsList);
         HttpUrl url = this.parsedEndpoint.newBuilder()
             .addEncodedPathSegment("v1")
@@ -475,6 +476,18 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             if (response.code() == HTTP_OK) {
                 log.info("Published {} events successfully: {}", eventsList.size(), response.body());
             }
+        }
+    }
+
+    @Override
+    public void shutdown() {
+        log.info("shutdown");
+        try {
+            if (eventsPublisher != null) {
+                eventsPublisher.shutdown();
+            }
+        } catch (Exception e) {
+            log.error("error publishing events on shutdown", e);
         }
     }
 }

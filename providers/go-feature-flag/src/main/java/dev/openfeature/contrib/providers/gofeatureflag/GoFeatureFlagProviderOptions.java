@@ -66,4 +66,11 @@ public class GoFeatureFlagProviderOptions {
      * default: 1000 ms
      */
     private Long flushIntervalMs;
+
+    /**
+     * (optional) max pending events aggregated before publishing for collection data to the proxy.
+     * When event is added while events collection is full, event is omitted.
+     * default: 10000
+     */
+    private Integer maxPendingEvents;
 }

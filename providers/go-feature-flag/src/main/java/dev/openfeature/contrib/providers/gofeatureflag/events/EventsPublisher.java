@@ -1,11 +1,16 @@
 package dev.openfeature.contrib.providers.gofeatureflag.events;
 
 
+import dev.openfeature.contrib.providers.gofeatureflag.concurrent.ConcurrentUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -20,6 +25,8 @@ import java.util.function.Consumer;
 @Slf4j
 public class EventsPublisher<T> {
 
+    private int maxPendingEvents;
+
     private List<T> eventsList;
     private Consumer<List<T>> publisher;
     private long flushIntervalMs;
@@ -30,15 +37,18 @@ public class EventsPublisher<T> {
 
     private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
+    public AtomicBoolean isShutdown = new AtomicBoolean(false);
+
     /**
      * Constructor.
      * @param publisher events publisher
      * @param flushIntervalMs data flush interval
      */
-    public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMs) {
+    public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMs, int maxPendingEvents) {
         eventsList = new CopyOnWriteArrayList<>();
         this.publisher = publisher;
         this.flushIntervalMs = flushIntervalMs;
+        this.maxPendingEvents = maxPendingEvents;
         log.debug("Scheduling events publishing at fixed rate of {} milliseconds", flushIntervalMs);
         scheduledExecutorService.scheduleAtFixedRate(
             this::publish, flushIntervalMs, flushIntervalMs, TimeUnit.MILLISECONDS);
@@ -49,6 +59,14 @@ public class EventsPublisher<T> {
      * @param event event for adding
      */
     public void add(T event) {
+        if (isShutdown.get()) {
+            log.error("This object was shut down. Omitting event.");
+            return;
+        }
+        if (eventsList.size() >= maxPendingEvents) {
+            log.warn("events collection is full. Omitting event.");
+            return;
+        }
         readLock.lock();
         try {
             eventsList.add(event);
@@ -69,8 +87,8 @@ public class EventsPublisher<T> {
                 log.info("Not publishing, no events");
             } else {
                 log.info("publishing {} events", eventsList.size());
-                publishedEvents = eventsList.size();
                 publisher.accept(new ArrayList<>(eventsList));
+                publishedEvents = eventsList.size();
                 eventsList = new CopyOnWriteArrayList<>();
             }
         } catch (Exception e) {
@@ -79,5 +97,23 @@ public class EventsPublisher<T> {
             writeLock.unlock();
         }
         return publishedEvents;
+    }
+
+    /**
+     * Shutdown.
+     */
+    public void shutdown() {
+        log.info("shutdown");
+        try {
+            log.info("draining remaining events");
+            publish();
+        } catch (Exception e) {
+            log.error("error publishing events on shutdown", e);
+        }
+        try {
+            ConcurrentUtils.shutdownAndAwaitTermination(scheduledExecutorService, 10);
+        } catch (Exception e) {
+            log.error("error publishing events on shutdown", e);
+        }
     }
 }

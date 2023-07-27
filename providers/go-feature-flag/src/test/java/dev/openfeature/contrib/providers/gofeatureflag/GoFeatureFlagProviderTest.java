@@ -35,6 +35,8 @@ import static dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvi
 import static org.junit.jupiter.api.Assertions.*;
 
 class GoFeatureFlagProviderTest {
+    private int publishEventsRequestsReceived = 0;
+
     // Dispatcher is the configuration of the mock server to test the provider.
     final Dispatcher dispatcher = new Dispatcher() {
         @SneakyThrows
@@ -53,8 +55,18 @@ class GoFeatureFlagProviderTest {
                     .setBody(readMockResponse(flagName + ".json"));
             }
             if (request.getPath().startsWith("/v1/data/collector")) {
-                return new MockResponse()
-                    .setResponseCode(200);
+                MockResponse mockResponse = null;
+                if (publishEventsRequestsReceived == 0) {
+
+                    // simulate error on first attempt for retry
+                    mockResponse = new MockResponse()
+                        .setResponseCode(502);
+                } else {
+                    mockResponse = new MockResponse()
+                        .setResponseCode(200);
+                }
+                publishEventsRequestsReceived++;
+                return mockResponse;
             }
             return new MockResponse().setResponseCode(404);
         }
@@ -160,6 +172,27 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+    }
+
+    @Test
+    void should_resolve_a_valid_boolean_flag_with_TARGETING_MATCH_reason_cache_disabled() throws InvalidOptions {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+            .endpoint(this.baseUrl.toString())
+            .timeout(1000)
+            .enableCache(false)
+            .build());
+        ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
+        assertEquals("True", res.getVariant());
+
+        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(true, res.getValue());
+        assertNull(res.getErrorCode());
+        assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
+        assertEquals("True", res.getVariant());
+        g.shutdown();
     }
 
     @Test
@@ -370,16 +403,20 @@ class GoFeatureFlagProviderTest {
     @Test
     void should_publish_events() throws InvalidOptions {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
-        ProviderEvaluation<Boolean> res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
-        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
-        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
-        assertEquals(3, g.getEventsPublisher().publish());
+        g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(0, g.getEventsPublisher().publish(), "first attempt expected to fail");
 
-        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
-        res = g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        // simulate publish on next interval
+        assertEquals(3, g.getEventsPublisher().publish(), "expected to publish all events after retry");
+
+        g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
+        g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
         assertEquals(2, g.getEventsPublisher().publish());
 
         assertEquals(0, g.getEventsPublisher().publish());
+        g.shutdown();
     }
 
     private String readMockResponse(String filename) throws Exception {
