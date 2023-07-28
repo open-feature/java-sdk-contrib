@@ -16,6 +16,8 @@ final class Config {
     static final String CACHE_ENV_VAR_NAME = "FLAGD_CACHE";
     static final String MAX_CACHE_SIZE_ENV_VAR_NAME = "FLAGD_MAX_CACHE_SIZE";
     static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
+    static final String BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME = "FLAGD_RETRY_BACKOFF_MS";
+    static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
 
     static final String STATIC_REASON = "STATIC";
     static final String CACHED_REASON = "CACHED";

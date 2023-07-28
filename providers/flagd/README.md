@@ -45,6 +45,8 @@ variables.
 | cache                 | FLAGD_CACHE                    | string  | lru       | lru,disabled |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int     | 1000      |              |
 | maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int     | 5         |              |
+| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int     | 1000      |              |
+| deadline              | FLAGD_DEADLINE_MS              | int     | 500       |              |
 
 ### OpenTelemetry support
 

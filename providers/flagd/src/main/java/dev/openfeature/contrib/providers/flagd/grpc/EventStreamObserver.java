@@ -1,29 +1,32 @@
 package dev.openfeature.contrib.providers.flagd.grpc;
 
-import java.util.Map;
-
+import com.google.protobuf.Value;
 import dev.openfeature.contrib.providers.flagd.FlagdCache;
+import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.sdk.ProviderState;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
-import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
-import com.google.protobuf.Value;
+
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * EventStreamObserver handles events emitted by flagd.
  */
 @Slf4j
 public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
-    private final EventStreamCallback callback;
+    private final Consumer<ProviderState> setState;
+    private final Runnable reconnectEventStream;
     private final FlagdCache cache;
 
     private static final String configurationChange = "configuration_change";
     private static final String providerReady = "provider_ready";
     static final String flagsKey = "flags";
 
-    public EventStreamObserver(FlagdCache cache, EventStreamCallback callback) {
+    public EventStreamObserver(FlagdCache cache, Consumer<ProviderState> setState, Runnable reconnectEventStream) {
         this.cache = cache;
-        this.callback = callback;
+        this.setState = setState;
+        this.reconnectEventStream = reconnectEventStream;
     }
 
     @Override
@@ -37,7 +40,6 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
                 break;
             default:
                 log.debug("unhandled event type {}", value.getType());
-                return;
         }
     }
 
@@ -47,13 +49,8 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.callback.setState(ProviderState.ERROR);
-        try {
-            this.callback.restartEventStream();
-            this.callback.emitSuccessReconnectionEvents();
-        } catch (Exception e) {
-            log.error("restart event stream", e);
-        }
+        this.setState.accept(ProviderState.ERROR);
+        this.reconnectEventStream.run();
     }
 
     @Override
@@ -61,11 +58,11 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.callback.setState(ProviderState.ERROR);
+        this.setState.accept(ProviderState.ERROR);
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
-        this.callback.emitConfigurationChangeEvent();
+        this.setState.accept(ProviderState.READY);
         if (!this.cache.getEnabled()) {
             return;
         }
@@ -77,14 +74,13 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         }
 
         Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
-
         for (String flagKey : flags.keySet()) {
             this.cache.remove(flagKey);
         }
     }
 
     private void handleProviderReadyEvent() {
-        this.callback.setState(ProviderState.READY);
+        this.setState.accept(ProviderState.READY);
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }

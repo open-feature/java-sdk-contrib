@@ -4,8 +4,12 @@ import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
 
+import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
+import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.CACHE_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.DEADLINE_MS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_CACHE;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_DEADLINE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
@@ -77,6 +81,21 @@ public class FlagdOptions {
     @Builder.Default
     private int maxEventStreamRetries =
             fallBackToEnvOrDefault(MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME, DEFAULT_MAX_EVENT_STREAM_RETRIES);
+
+    /**
+     * Backoff interval in milliseconds.
+     * */
+    @Builder.Default
+    private int retryBackoffMs =
+            fallBackToEnvOrDefault(BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME, BASE_EVENT_STREAM_RETRY_BACKOFF_MS);
+
+
+    /**
+     * Deadline to connect to flagD in milliseconds.
+     * */
+    @Builder.Default
+    private int deadline =
+            fallBackToEnvOrDefault(DEADLINE_MS_ENV_VAR_NAME, DEFAULT_DEADLINE);
 
     /**
      * Inject OpenTelemetry for the library runtime. Providing sdk will initiate distributed tracing for flagd grpc
