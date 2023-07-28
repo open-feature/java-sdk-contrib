@@ -47,7 +47,11 @@
         <junit.jupiter.version>5.10.0</junit.jupiter.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+<<<<<<< HEAD
 
+=======
+        <testcontainers.version>1.18.3</testcontainers.version>
+>>>>>>> 473240e (add smoke test)
     </properties>
 
     <dependencies>
@@ -176,6 +180,18 @@
             <version>7.13.0</version>
             <scope>test</scope>
           </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
         <!-- end test -->
     </dependencies>
 
