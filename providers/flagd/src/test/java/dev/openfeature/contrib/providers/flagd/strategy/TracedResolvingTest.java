@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.strategy;
 
 
 import com.google.protobuf.Message;

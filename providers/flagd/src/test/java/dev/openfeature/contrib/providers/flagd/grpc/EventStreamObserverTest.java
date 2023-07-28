@@ -1,8 +1,9 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.grpc;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.grpc.EventStreamObserver;
+import dev.openfeature.contrib.providers.flagd.FlagdCache;
+import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
@@ -12,7 +13,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class EventStreamObserverTest {
 
