@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
+import dev.openfeature.contrib.providers.flagd.grpc.EventStreamObserver;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;

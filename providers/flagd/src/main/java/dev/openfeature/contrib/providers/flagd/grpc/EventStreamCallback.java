@@ -1,11 +1,11 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.grpc;
 
 import dev.openfeature.sdk.ProviderState;
 
 /**
  * Defines behaviour required of event stream callbacks.
  */
-interface EventStreamCallback {
+public interface EventStreamCallback {
     void setState(ProviderState state);
 
     void restartEventStream() throws Exception;

@@ -1,7 +1,8 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.grpc;
 
 import java.util.Map;
 
+import dev.openfeature.contrib.providers.flagd.FlagdCache;
 import dev.openfeature.sdk.ProviderState;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     private static final String providerReady = "provider_ready";
     static final String flagsKey = "flags";
 
-    EventStreamObserver(FlagdCache cache, EventStreamCallback callback) {
+    public EventStreamObserver(FlagdCache cache, EventStreamCallback callback) {
         this.cache = cache;
         this.callback = callback;
     }
