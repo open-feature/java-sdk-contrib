@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BeanUtils {
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static String buildKey(GoFeatureFlagUser goFeatureFlagUser) throws JsonProcessingException {
         return objectMapper.writeValueAsString(goFeatureFlagUser);
