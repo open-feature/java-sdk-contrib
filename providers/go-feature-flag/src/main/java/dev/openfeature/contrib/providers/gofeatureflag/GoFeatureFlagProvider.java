@@ -16,16 +16,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.events.Events;
 import dev.openfeature.contrib.providers.gofeatureflag.events.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
-import dev.openfeature.sdk.ErrorCode;
-import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.FeatureProvider;
-import dev.openfeature.sdk.Hook;
-import dev.openfeature.sdk.Metadata;
-import dev.openfeature.sdk.MutableStructure;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Structure;
-import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.*;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
@@ -71,7 +62,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
     public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 10000;
     protected static final String CACHED_REASON = Reason.CACHED.name();
-    protected static final String REASON_SEPARATOR = ", ";
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
@@ -85,6 +75,10 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     @Getter(AccessLevel.PROTECTED)
     private EventsPublisher<Event> eventsPublisher;
 
+    private final GoFeatureFlagProviderOptions options;
+
+    private ProviderState state = ProviderState.NOT_READY;
+
     /**
      * Constructor of the provider.
      *
@@ -93,7 +87,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      */
     public GoFeatureFlagProvider(GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.validateInputOptions(options);
-        this.initializeProvider(options);
+        this.options = options;
     }
 
     /**
@@ -125,52 +119,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         }
     }
 
-    /**
-     * initializeProvider is initializing the different class element used by the provider.
-     *
-     * @param options - Options used while creating the provider
-     */
-    private void initializeProvider(GoFeatureFlagProviderOptions options) throws InvalidEndpoint {
-        // Register JavaTimeModule to be able to deserialized java.time.Instant Object
-        requestMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        requestMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        requestMapper.registerModule(new JavaTimeModule());
-
-        // init httpClient to call the GO Feature Flag API
-        int timeout = options.getTimeout() == 0 ? 10000 : options.getTimeout();
-        long keepAliveDuration = options.getKeepAliveDuration() == null ? 7200000 : options.getKeepAliveDuration();
-        int maxIdleConnections = options.getMaxIdleConnections() == 0 ? 1000 : options.getMaxIdleConnections();
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(timeout, TimeUnit.MILLISECONDS)
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .callTimeout(timeout, TimeUnit.MILLISECONDS)
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeout, TimeUnit.MILLISECONDS)
-                .connectionPool(new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.MILLISECONDS))
-                .build();
-
-        this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
-        if (this.parsedEndpoint == null) {
-            throw new InvalidEndpoint();
-        }
-        this.apiKey = options.getApiKey();
-        boolean enableCache = options.getEnableCache() == null || options.getEnableCache();
-        if (enableCache) {
-            if (options.getCacheBuilder() != null) {
-                this.cache = options.getCacheBuilder().build();
-            } else {
-                this.cache = buildDefaultCache();
-            }
-            long flushIntervalMs = options.getFlushIntervalMs() == null
-                ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
-            int maxPendingEvents = options.getMaxPendingEvents() == null
-                ? DEFAULT_MAX_PENDING_EVENTS : options.getMaxPendingEvents();
-            Consumer<List<Event>> publisher = events -> publishEvents(events);
-            eventsPublisher = new EventsPublisher(publisher, flushIntervalMs, maxPendingEvents);
-        }
-    }
-
-    private Cache buildDefaultCache() {
+    private Cache<String, ProviderEvaluation<?>> buildDefaultCache() {
         return CacheBuilder.newBuilder()
             .concurrencyLevel(DEFAULT_CACHE_CONCURRENCY_LEVEL)
             .initialCapacity(DEFAULT_CACHE_INITIAL_CAPACITY).maximumSize(DEFAULT_CACHE_MAXIMUM_SIZE)
@@ -230,11 +179,65 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
         FeatureProvider.super.initialize(evaluationContext);
+
+        // Register JavaTimeModule to be able to deserialized java.time.Instant Object
+        requestMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        requestMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        requestMapper.registerModule(new JavaTimeModule());
+
+        // init httpClient to call the GO Feature Flag API
+        int timeout = options.getTimeout() == 0 ? 10000 : options.getTimeout();
+        long keepAliveDuration = options.getKeepAliveDuration() == null ? 7200000 : options.getKeepAliveDuration();
+        int maxIdleConnections = options.getMaxIdleConnections() == 0 ? 1000 : options.getMaxIdleConnections();
+        this.httpClient = new OkHttpClient.Builder()
+                .connectTimeout(timeout, TimeUnit.MILLISECONDS)
+                .readTimeout(timeout, TimeUnit.MILLISECONDS)
+                .callTimeout(timeout, TimeUnit.MILLISECONDS)
+                .readTimeout(timeout, TimeUnit.MILLISECONDS)
+                .writeTimeout(timeout, TimeUnit.MILLISECONDS)
+                .connectionPool(new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.MILLISECONDS))
+                .build();
+
+        this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
+        if (this.parsedEndpoint == null) {
+            throw new InvalidEndpoint();
+        }
+        this.apiKey = options.getApiKey();
+        boolean enableCache = options.getEnableCache() == null || options.getEnableCache();
+        if (enableCache) {
+            if (options.getCacheBuilder() != null) {
+                this.cache = options.getCacheBuilder().build();
+            } else {
+                this.cache = buildDefaultCache();
+            }
+            long flushIntervalMs = options.getFlushIntervalMs() == null
+                    ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
+            int maxPendingEvents = options.getMaxPendingEvents() == null
+                    ? DEFAULT_MAX_PENDING_EVENTS : options.getMaxPendingEvents();
+            Consumer<List<Event>> publisher = this::publishEvents;
+            eventsPublisher = new EventsPublisher<>(publisher, flushIntervalMs, maxPendingEvents);
+        }
+        state = ProviderState.READY;
+    }
+
+    @Override
+    public ProviderState getState() {
+        return state;
     }
 
     private <T> ProviderEvaluation<T> getEvaluation(
             String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType) {
-        ProviderEvaluation res = null;
+        if (!ProviderState.READY.equals(state)) {
+            ErrorCode errorCode = ErrorCode.PROVIDER_NOT_READY;
+            if (ProviderState.ERROR.equals(state)) {
+                errorCode = ErrorCode.GENERAL;
+            }
+            return ProviderEvaluation.<T>builder()
+                .errorCode(errorCode)
+                .reason(errorCode.name())
+                .build();
+        }
+        ProviderEvaluation<T> res;
         GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
         if (cache == null) {
             EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
@@ -256,7 +259,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
 
     private <T> ProviderEvaluation getProviderEvaluationWithCheckCache(
             String key, T defaultValue, Class<?> expectedType, GoFeatureFlagUser user) {
-        ProviderEvaluation res = null;
+        ProviderEvaluation<?> res;
         try {
             String cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
             res = cache.getIfPresent(cacheKey);
@@ -271,7 +274,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 res.setReason(CACHED_REASON);
             }
         } catch (JsonProcessingException e) {
-            log.error("Error building key for user", user);
+            log.error("Error building key for user", e);
             EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
             res = proxyRes.getProviderEvaluation();
         }
@@ -292,7 +295,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             String key, T defaultValue, GoFeatureFlagUser user, Class<?> expectedType
     ) throws OpenFeatureError {
         try {
-            GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<T>(user, defaultValue);
+            GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<>(user, defaultValue);
 
             HttpUrl url = this.parsedEndpoint.newBuilder()
                     .addEncodedPathSegment("v1")

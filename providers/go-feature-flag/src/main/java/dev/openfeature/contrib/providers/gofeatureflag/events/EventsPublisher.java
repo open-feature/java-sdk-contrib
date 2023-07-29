@@ -25,19 +25,18 @@ import java.util.function.Consumer;
 @Slf4j
 public class EventsPublisher<T> {
 
-    private int maxPendingEvents;
+    private final int maxPendingEvents;
 
     private List<T> eventsList;
-    private Consumer<List<T>> publisher;
-    private long flushIntervalMs;
+    private final Consumer<List<T>> publisher;
 
-    private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    private Lock readLock = readWriteLock.readLock();
-    private Lock writeLock = readWriteLock.writeLock();
+    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private final Lock readLock = readWriteLock.readLock();
+    private final Lock writeLock = readWriteLock.writeLock();
 
-    private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
-    public AtomicBoolean isShutdown = new AtomicBoolean(false);
+    public final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -47,7 +46,6 @@ public class EventsPublisher<T> {
     public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMs, int maxPendingEvents) {
         eventsList = new CopyOnWriteArrayList<>();
         this.publisher = publisher;
-        this.flushIntervalMs = flushIntervalMs;
         this.maxPendingEvents = maxPendingEvents;
         log.debug("Scheduling events publishing at fixed rate of {} milliseconds", flushIntervalMs);
         scheduledExecutorService.scheduleAtFixedRate(

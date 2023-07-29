@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import com.google.common.cache.CacheBuilder;
+import dev.openfeature.sdk.ProviderEvaluation;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -51,7 +52,7 @@ public class GoFeatureFlagProviderOptions {
      *  a cache builder.
      *  Default: null
      */
-    private CacheBuilder cacheBuilder;
+    private CacheBuilder<String, ProviderEvaluation<?>> cacheBuilder;
 
     /**
      * (optional) enable cache value.
