@@ -235,6 +235,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             return ProviderEvaluation.<T>builder()
                 .errorCode(errorCode)
                 .reason(errorCode.name())
+                .value(defaultValue)
                 .build();
         }
         ProviderEvaluation<T> res;
