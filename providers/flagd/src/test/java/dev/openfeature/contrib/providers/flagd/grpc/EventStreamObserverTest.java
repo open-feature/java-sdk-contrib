@@ -7,12 +7,16 @@ import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.ProviderState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
@@ -27,72 +31,62 @@ import static org.mockito.Mockito.when;
 class EventStreamObserverTest {
 
     @Nested
-    class EmitEvents {
+    class StateChange {
 
         FlagdCache cache;
-        FlagdProvider callback;
+        List<ProviderState> states;
         EventStreamObserver stream;
+        Runnable reconnect;
 
         @BeforeEach
         void setUp() {
+            states = new ArrayList<>();
             cache = mock(FlagdCache.class);
+            reconnect = mock(Runnable.class);
             when(cache.getEnabled()).thenReturn(true);
-            callback = mock(FlagdProvider.class);
-            doCallRealMethod().when(callback).emitConfigurationChangeEvent();
-            doCallRealMethod().when(callback).emitSuccessReconnectionEvents();
-            doCallRealMethod().when(callback).emitProviderConfigurationChanged(any(ProviderEventDetails.class));
-            doCallRealMethod().when(callback).emitProviderReady(any(ProviderEventDetails.class));
-            doCallRealMethod().when(callback).emit(any(ProviderEvent.class), any(ProviderEventDetails.class));
-            stream = new EventStreamObserver(cache, callback);
+            stream = new EventStreamObserver(cache, state -> states.add(state), reconnect);
         }
 
         @Test
-        public void Change(){
+        public void Change() {
             Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
             Struct flagData = mock(Struct.class);
             when(resp.getType()).thenReturn("configuration_change");
             when(resp.getData()).thenReturn(flagData);
             when(flagData.getFieldsMap()).thenReturn(new HashMap<>());
             stream.onNext(resp);
-            // we notify that the configuration changed
-            verify(callback, times(1)).emitConfigurationChangeEvent();
-            verify(callback, times(1)).emitProviderConfigurationChanged(any(ProviderEventDetails.class));
-            verify(callback, times(1)).emit(eq(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED), any(ProviderEventDetails.class));
+            // we notify that we are ready
+            assertEquals(1, states.size());
+            assertEquals(ProviderState.READY, states.get(0));
             // we flush the cache
             verify(cache, atLeast(1)).clear();
         }
 
         @Test
-        public void Ready(){
+        public void Ready() {
             Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
             when(resp.getType()).thenReturn("provider_ready");
             stream.onNext(resp);
-            verify(callback, times(0)).emit(any(ProviderEvent.class), any(ProviderEventDetails.class));
+            // we notify that we are ready
+            assertEquals(1, states.size());
+            assertEquals(ProviderState.READY, states.get(0));
+            // no cache was touched
+            verify(cache, atMost(0)).clear();
+            verify(cache, atMost(0)).remove(any());
         }
 
         @Test
-        public void Reconnections(){
+        public void Reconnections() {
             stream.onError(new Throwable("error"));
             // we flush the cache
             verify(cache, atLeast(1)).clear();
-            // we emit PROVIDER_READY and PROVIDER_CONFIGURATION_CHANGED
-            verify(callback, times(1)).emit(eq(ProviderEvent.PROVIDER_READY), any(ProviderEventDetails.class));
-            verify(callback, times(1)).emit(eq(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED), any(ProviderEventDetails.class));
+            // we notify the error
+            assertEquals(1, states.size());
+            assertEquals(ProviderState.ERROR, states.get(0));
         }
 
         @Test
-        public void NotSuccessReconnections() throws Exception {
-            doThrow(new Exception("connection error")).when(callback).restartEventStream();
-            stream.onError(new Throwable("error"));
-            // we flush the cache
-            verify(cache, atLeast(1)).clear();
-            // we do NOT emit any events
-            verify(callback, times(0)).emit(eq(ProviderEvent.PROVIDER_READY), any(ProviderEventDetails.class));
-            verify(callback, times(0)).emit(eq(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED), any(ProviderEventDetails.class));
-        }
-
-        @Test
-        public void CacheBustingForKnownKeys(){
+        public void CacheBustingForKnownKeys() {
             final String key1 = "myKey1";
             final String key2 = "myKey2";
 
@@ -114,9 +108,8 @@ class EventStreamObserverTest {
 
             stream.onNext(resp);
             // we notify that the configuration changed
-            verify(callback, times(1)).emitConfigurationChangeEvent();
-            verify(callback, times(1)).emitProviderConfigurationChanged(any(ProviderEventDetails.class));
-            verify(callback, times(1)).emit(eq(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED), any(ProviderEventDetails.class));
+            assertEquals(1, states.size());
+            assertEquals(ProviderState.READY, states.get(0));
             // we did NOT flush the whole cache
             verify(cache, atMost(0)).clear();
             // we only clean the two keys

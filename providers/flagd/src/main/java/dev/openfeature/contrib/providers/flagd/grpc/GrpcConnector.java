@@ -39,9 +39,9 @@ public class GrpcConnector {
     private final long deadline;
 
     private final FlagdCache cache;
-    private final Consumer<ProviderState> setState;
+    private final Consumer<ProviderState> stateConsumer;
 
-    public GrpcConnector(final FlagdOptions options, final FlagdCache cache, Consumer<ProviderState> setState) {
+    public GrpcConnector(final FlagdOptions options, final FlagdCache cache, Consumer<ProviderState> stateConsumer) {
         this.channel = nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
@@ -50,8 +50,9 @@ public class GrpcConnector {
         this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
         this.deadline = options.getDeadline();
         this.cache = cache;
-        this.setState = setState;
+        this.stateConsumer = stateConsumer;
     }
+
 
     public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
         try {
@@ -104,7 +105,7 @@ public class GrpcConnector {
     }
 
     private void startEventStream() {
-        StreamObserver<Schema.EventStreamResponse> responseObserver = new EventStreamObserver(this.cache, this.setState, this::restartEventStream);
+        StreamObserver<Schema.EventStreamResponse> responseObserver = new EventStreamObserver(this.cache, this.stateConsumer, this::restartEventStream);
         this.serviceStub
                 .eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
     }
@@ -113,7 +114,7 @@ public class GrpcConnector {
         this.eventStreamAttempt++;
         if (this.eventStreamAttempt > this.maxEventStreamRetries) {
             log.error("failed to connect to event stream, exhausted retries");
-            this.setState.accept(ProviderState.ERROR);
+            this.stateConsumer.accept(ProviderState.ERROR);
             return;
         }
         this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;

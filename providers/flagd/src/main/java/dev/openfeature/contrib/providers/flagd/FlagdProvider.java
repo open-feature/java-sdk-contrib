@@ -59,15 +59,12 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
         this.flagResolver = new FlagResolution(this.cache, this.strategy, this::getState);
     }
 
-//    FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache, int maxCacheSize,
-//                  int maxEventStreamRetries) {
-//        this.serviceBlockingStub = serviceBlockingStub;
-//        this.serviceStub = serviceStub;
-//        this.strategy = new SimpleResolving();
-//
-//        this.maxEventStreamRetries = maxEventStreamRetries;
-//        this.cache = new FlagdCache(cache, maxCacheSize);
-//    }
+    FlagdProvider(ResolveStrategy strategy, FlagdCache cache, GrpcConnector grpc, FlagResolution resolution) {
+        this.strategy = strategy;
+        this.cache = cache;
+        this.grpc = grpc;
+        this.flagResolver = resolution;
+    }
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
