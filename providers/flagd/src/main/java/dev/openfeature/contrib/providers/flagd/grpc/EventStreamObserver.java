@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
-    private final Consumer<ProviderState> setState;
+    private final Consumer<ProviderState> stateConsumer;
     private final Runnable reconnectEventStream;
     private final FlagdCache cache;
 
@@ -23,9 +23,15 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     private static final String providerReady = "provider_ready";
     static final String flagsKey = "flags";
 
-    public EventStreamObserver(FlagdCache cache, Consumer<ProviderState> setState, Runnable reconnectEventStream) {
+    /**
+     * Create a gRPC stream that get notified about flag changes.
+     * @param cache cache to update
+     * @param stateConsumer lambda to call for setting the state
+     * @param reconnectEventStream callback for trying to recreate the stream
+     */
+    public EventStreamObserver(FlagdCache cache, Consumer<ProviderState> stateConsumer, Runnable reconnectEventStream) {
         this.cache = cache;
-        this.setState = setState;
+        this.stateConsumer = stateConsumer;
         this.reconnectEventStream = reconnectEventStream;
     }
 
@@ -49,7 +55,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.setState.accept(ProviderState.ERROR);
+        this.stateConsumer.accept(ProviderState.ERROR);
         this.reconnectEventStream.run();
     }
 
@@ -58,11 +64,11 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.setState.accept(ProviderState.ERROR);
+        this.stateConsumer.accept(ProviderState.ERROR);
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
-        this.setState.accept(ProviderState.READY);
+        this.stateConsumer.accept(ProviderState.READY);
         if (!this.cache.getEnabled()) {
             return;
         }
@@ -80,7 +86,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     }
 
     private void handleProviderReadyEvent() {
-        this.setState.accept(ProviderState.READY);
+        this.stateConsumer.accept(ProviderState.READY);
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }

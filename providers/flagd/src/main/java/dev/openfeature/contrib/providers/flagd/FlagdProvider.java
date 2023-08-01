@@ -68,7 +68,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
-        this.grpc.initialize(evaluationContext);
+        this.grpc.initialize();
     }
 
     @Override

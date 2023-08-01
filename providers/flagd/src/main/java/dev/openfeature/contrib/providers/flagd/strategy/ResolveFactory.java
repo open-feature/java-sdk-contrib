@@ -2,7 +2,15 @@ package dev.openfeature.contrib.providers.flagd.strategy;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 
-final public class ResolveFactory {
+/**
+ * Factory to create a ResolveStrategy.
+ */
+public final class ResolveFactory {
+    /**
+     * Factory method to initialize the resolving strategy.
+     * @param options Options.
+     * @return the ResolveStrategy based on the provided options.
+     */
     public static ResolveStrategy getStrategy(FlagdOptions options) {
         if (options.getOpenTelemetry() != null) {
             return new TracedResolving(options.getOpenTelemetry());

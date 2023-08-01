@@ -70,9 +70,8 @@ class EventStreamObserverTest {
             // we notify that we are ready
             assertEquals(1, states.size());
             assertEquals(ProviderState.READY, states.get(0));
-            // no cache was touched
-            verify(cache, atMost(0)).clear();
-            verify(cache, atMost(0)).remove(any());
+            // cache was cleaned
+            verify(cache, atLeast(1)).clear();
         }
 
         @Test

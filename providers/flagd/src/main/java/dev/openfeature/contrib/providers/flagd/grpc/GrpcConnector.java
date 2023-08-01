@@ -4,7 +4,6 @@ import dev.openfeature.contrib.providers.flagd.FlagdCache;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
-import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
@@ -24,7 +23,9 @@ import java.io.File;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-
+/**
+ * Class that abstracts the gRPC communication with flagd.
+ */
 @Slf4j
 public class GrpcConnector {
 
@@ -41,20 +42,30 @@ public class GrpcConnector {
     private final FlagdCache cache;
     private final Consumer<ProviderState> stateConsumer;
 
+    /**
+     * GrpcConnector creates an abstraction over gRPC communication.
+     * @param options options to build the gRPC channel.
+     * @param cache cache to use.
+     * @param stateConsumer lambda to call for setting the state.
+     */
     public GrpcConnector(final FlagdOptions options, final FlagdCache cache, Consumer<ProviderState> stateConsumer) {
         this.channel = nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
         this.maxEventStreamRetries = options.getMaxEventStreamRetries();
         this.startEventStreamRetryBackoff = options.getRetryBackoffMs();
-        this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
+        this.eventStreamRetryBackoff = options.getRetryBackoffMs();
         this.deadline = options.getDeadline();
         this.cache = cache;
         this.stateConsumer = stateConsumer;
     }
 
 
-    public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
+    /**
+     * Initialize the gRPC stream.
+     * @throws RuntimeException if the connection cannot be established.
+     */
+    public void initialize() throws RuntimeException {
         try {
             // try a dummy request
             this.serviceBlockingStub
@@ -70,17 +81,12 @@ public class GrpcConnector {
             // try in background to open the event stream
             this.startEventStream();
         }
-        /**
-         * Evaluate if the following makes sense
-        // we start the event stream and that will eventually configure the state to be ready.
-        // we don't need to block because the SDK run this function in a thread and doesn't join on it.
-        this.startEventStream();
-         =======
-         // Another alternative is to fail the init method on purpose and let the status recover once we are connected.
-         throw new Exception("Connecting in bg");
-         */
     }
 
+    /**
+     * Shuts down all gRPC resources.
+     * @throws Exception is something goes wrong while terminating the communication.
+     */
     public void shutdown() throws Exception {
         try {
             if (this.channel != null) {
@@ -95,17 +101,25 @@ public class GrpcConnector {
         }
     }
 
+    /**
+     * Resets internal state for retrying establishing the stream.
+     */
     public void resetRetryConnection() {
         this.eventStreamAttempt = 1;
         this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
     }
 
+    /**
+     * Provide the object that can be used to resolve Feature Flag values.
+     * @return a {@link ServiceGrpc.ServiceBlockingStub} for running FF resolution.
+     */
     public ServiceGrpc.ServiceBlockingStub getResolver() {
         return serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS);
     }
 
     private void startEventStream() {
-        StreamObserver<Schema.EventStreamResponse> responseObserver = new EventStreamObserver(this.cache, this.stateConsumer, this::restartEventStream);
+        StreamObserver<Schema.EventStreamResponse> responseObserver =
+                new EventStreamObserver(this.cache, this.stateConsumer, this::restartEventStream);
         this.serviceStub
                 .eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
     }

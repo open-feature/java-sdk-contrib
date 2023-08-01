@@ -25,6 +25,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
 import static dev.openfeature.contrib.providers.flagd.Config.VALUE_FIELD;
 import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
 
+@SuppressWarnings("PMD.TooManyStaticImports")
 final class FlagResolution {
 
     private final FlagdCache cache;
