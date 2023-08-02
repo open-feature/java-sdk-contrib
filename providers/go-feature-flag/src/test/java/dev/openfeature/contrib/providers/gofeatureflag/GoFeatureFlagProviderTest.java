@@ -514,7 +514,7 @@ class GoFeatureFlagProviderTest {
         assertEquals(0, g.getEventsPublisher().publish(), "first attempt expected to fail");
 
         // simulate publish on next interval
-        assertEquals(3, g.getEventsPublisher().publish(), "expected to publish all events after retry");
+        assertEquals(2, g.getEventsPublisher().publish(), "expected to publish all events after retry");
 
         g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);
         g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext);

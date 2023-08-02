@@ -70,5 +70,11 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>dev.openfeature</groupId>
+            <artifactId>sdk</artifactId>
+            <version>1.4.1</version>
+        </dependency>
+
     </dependencies>
 </project>
