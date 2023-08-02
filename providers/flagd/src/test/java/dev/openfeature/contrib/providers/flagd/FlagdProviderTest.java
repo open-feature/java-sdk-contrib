@@ -19,6 +19,7 @@ import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.OpenFeatureAPI;
@@ -40,6 +41,7 @@ import org.mockito.MockedStatic;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -253,6 +255,50 @@ class FlagdProviderTest {
         assertEquals(new MutableStructure(), objectDetails.getValue().asObject());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT.toString(), objectDetails.getReason());
+    }
+
+    @Test
+    void test_metadata_from_grpc_response() {
+        // given
+        final Map<String, com.google.protobuf.Value> metadataInput = new HashMap<>();
+
+        com.google.protobuf.Value scope = com.google.protobuf.Value.newBuilder().setStringValue("flagd-scope").build();
+        metadataInput.put("scope", scope);
+
+        com.google.protobuf.Value bool = com.google.protobuf.Value.newBuilder().setBoolValue(true).build();
+        metadataInput.put("boolean", bool);
+
+        com.google.protobuf.Value number = com.google.protobuf.Value.newBuilder().setNumberValue(1).build();
+        metadataInput.put("number", number);
+
+        final Struct metadataStruct = Struct.newBuilder().putAllFields(metadataInput).build();
+
+        ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
+                .setValue(true)
+                .setVariant(BOOL_VARIANT)
+                .setReason(DEFAULT.toString())
+                .setMetadata(metadataStruct)
+                .build();
+
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
+
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+        OpenFeatureAPI.getInstance()
+                .setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5));
+
+        // when
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+
+        // then
+        final ImmutableMetadata metadata = booleanDetails.getFlagMetadata();
+
+        assertEquals("flagd-scope", metadata.getString("scope"));
+        assertEquals(true, metadata.getBoolean("boolean"));
+        assertEquals(1, metadata.getDouble("number"));
     }
 
     @Test
