@@ -7,7 +7,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import dev.openfeature.sdk.*;
+import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +30,11 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class GoFeatureFlagProviderTest {
     // Dispatcher is the configuration of the mock server to test the provider.
