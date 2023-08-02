@@ -47,6 +47,7 @@
         <junit.jupiter.version>5.10.0</junit.jupiter.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
     </properties>
 
     <dependencies>
@@ -161,6 +162,20 @@
             <version>2.0.2</version>
             <scope>test</scope>
           </dependency>
+
+          <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>7.13.0</version>
+            <scope>test</scope>
+          </dependency>
+
+          <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>7.13.0</version>
+            <scope>test</scope>
+          </dependency>
         <!-- end test -->
     </dependencies>
 
@@ -176,6 +191,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
                 <configuration>
+                    <excludes>
+                        <!-- tests to exclude -->
+                        <exclude>${testExclusions}</exclude>
+                    </excludes>
                     <argLine>${surefireArgLine}</argLine>
                 </configuration>
             </plugin>
