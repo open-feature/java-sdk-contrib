@@ -7,5 +7,9 @@
   "errorCode": "",
   "value": true,
   "unknown_field": true,
-  "unknown_field2": "unknown_field2"
+  "unknown_field2": "unknown_field2",
+  "metadata": {
+    "pr_link": "https://github.com/thomaspoignant/go-feature-flag/pull/916",
+    "version": 1
+  }
 }
