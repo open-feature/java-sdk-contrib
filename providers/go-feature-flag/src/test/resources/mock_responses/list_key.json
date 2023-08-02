@@ -11,5 +11,9 @@
     "test2",
     "false",
     "test3"
-  ]
+  ],
+  "metadata": {
+    "pr_link": "https://github.com/thomaspoignant/go-feature-flag/pull/916",
+    "version": 1
+  }
 }

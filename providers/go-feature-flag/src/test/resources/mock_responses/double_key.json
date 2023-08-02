@@ -5,5 +5,9 @@
   "version": 0,
   "reason": "TARGETING_MATCH",
   "errorCode": "",
-  "value": 100.25
+  "value": 100.25,
+  "metadata": {
+    "pr_link": "https://github.com/thomaspoignant/go-feature-flag/pull/916",
+    "version": 1
+  }
 }

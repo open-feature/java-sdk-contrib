@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import java.util.Map;
+
+import dev.openfeature.sdk.ProviderState;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
@@ -16,7 +18,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
 
     private static final String configurationChange = "configuration_change";
     private static final String providerReady = "provider_ready";
-    private static final String flagsKey = "flags";
+    static final String flagsKey = "flags";
 
     EventStreamObserver(FlagdCache cache, EventStreamCallback callback) {
         this.cache = cache;
@@ -44,9 +46,10 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.callback.setEventStreamAlive(false);
+        this.callback.setState(ProviderState.ERROR);
         try {
             this.callback.restartEventStream();
+            this.callback.emitSuccessReconnectionEvents();
         } catch (Exception e) {
             log.error("restart event stream", e);
         }
@@ -57,14 +60,14 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.callback.setEventStreamAlive(false);
+        this.callback.setState(ProviderState.ERROR);
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
+        this.callback.emitConfigurationChangeEvent();
         if (!this.cache.getEnabled()) {
             return;
         }
-
         Map<String, Value> data = value.getData().getFieldsMap();
         Value flagsValue = data.get(flagsKey);
         if (flagsValue == null) {
@@ -80,7 +83,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     }
 
     private void handleProviderReadyEvent() {
-        this.callback.setEventStreamAlive(true);
+        this.callback.setState(ProviderState.READY);
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }

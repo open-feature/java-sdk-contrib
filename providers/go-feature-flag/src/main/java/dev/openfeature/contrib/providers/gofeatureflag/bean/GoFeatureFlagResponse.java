@@ -2,6 +2,8 @@ package dev.openfeature.contrib.providers.gofeatureflag.bean;
 
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * GoFeatureFlagResponse is the response returned by the relay proxy.
  */
@@ -15,6 +17,7 @@ public class GoFeatureFlagResponse {
     private String errorCode;
     private Object value;
     private Boolean cacheable;
+    private Map<String, Object> metadata;
 }
 
 

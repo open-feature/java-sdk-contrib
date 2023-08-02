@@ -9,8 +9,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.cache.CacheBuilder;
-import dev.openfeature.sdk.*;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.ImmutableContext;
 import org.jetbrains.annotations.NotNull;
+import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,9 +34,12 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-
-import static dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider.CACHED_REASON;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class GoFeatureFlagProviderTest {
     private int publishEventsRequestsReceived = 0;
@@ -73,6 +83,12 @@ class GoFeatureFlagProviderTest {
     private MockWebServer server;
     private HttpUrl baseUrl;
     private MutableContext evaluationContext;
+
+    private final static ImmutableMetadata defaultMetadata =
+            ImmutableMetadata.builder()
+                    .addString("pr_link", "https://github.com/thomaspoignant/go-feature-flag/pull/916")
+                    .addInteger("version", 1)
+                    .build();
 
     @BeforeEach
     void beforeEach() throws IOException {
@@ -192,6 +208,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -283,6 +302,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals("CUSTOM_REASON", res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -313,6 +335,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -343,6 +368,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -373,6 +401,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -396,6 +427,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -409,6 +443,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -446,6 +483,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows
@@ -458,6 +498,9 @@ class GoFeatureFlagProviderTest {
         assertNull(res.getErrorCode());
         assertEquals(Reason.TARGETING_MATCH.toString(), res.getReason());
         assertEquals("True", res.getVariant());
+        assertAll("Test flagMetadata",
+                () -> assertEquals(defaultMetadata.getInteger("version"), res.getFlagMetadata().getInteger("version")),
+                () -> assertEquals(defaultMetadata.getString("pr_link"), res.getFlagMetadata().getString("pr_link")));
     }
 
     @SneakyThrows

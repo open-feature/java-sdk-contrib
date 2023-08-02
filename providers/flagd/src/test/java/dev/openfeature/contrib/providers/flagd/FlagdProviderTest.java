@@ -16,10 +16,12 @@ import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import io.grpc.Channel;
+import io.grpc.Deadline;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.EventLoopGroup;
@@ -371,17 +373,17 @@ class FlagdProviderTest {
 
     @Test
     void resolvers_cache_responses_if_static_and_event_stream_alive() {
-        do_resolvers_cache_responses(STATIC_REASON, true, true);
+        do_resolvers_cache_responses(STATIC_REASON, ProviderState.READY, true);
     }
 
     @Test
     void resolvers_should_not_cache_responses_if_not_static() {
-        do_resolvers_cache_responses(DEFAULT.toString(), true, false);
+        do_resolvers_cache_responses(DEFAULT.toString(), ProviderState.READY, false);
     }
 
     @Test
     void resolvers_should_not_cache_responses_if_event_stream_not_alive() {
-        do_resolvers_cache_responses(STATIC_REASON, false, false);
+        do_resolvers_cache_responses(STATIC_REASON, ProviderState.ERROR, false);
     }
 
     @Test
@@ -523,7 +525,7 @@ class FlagdProviderTest {
 
 
     @Test
-    void invalidate_cache() {
+    void invalidate_cache() throws Exception {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
@@ -557,6 +559,12 @@ class FlagdProviderTest {
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
         ServiceStub serviceStubMock = mock(ServiceStub.class);
+        when(serviceStubMock.withWaitForReady()).thenReturn(serviceStubMock);
+        when(serviceStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceStubMock);
+        when(serviceBlockingStubMock.withWaitForReady()).thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -571,10 +579,11 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
+        provider.initialize(null);
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
-        provider.setEventStreamAlive(true);
+        provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
@@ -641,7 +650,7 @@ class FlagdProviderTest {
         return mockChannelBuilder;
     }
 
-    private void do_resolvers_cache_responses(String reason, Boolean eventStreamAlive, Boolean shouldCache) {
+    private void do_resolvers_cache_responses(String reason, ProviderState eventStreamAlive, Boolean shouldCache) {
         String expectedReason = CACHED_REASON;
         if (!shouldCache) {
             expectedReason = reason;
@@ -693,7 +702,7 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
-        provider.setEventStreamAlive(eventStreamAlive); // caching only available when event stream is alive
+        provider.setState(eventStreamAlive); // caching only available when event stream is alive
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
@@ -729,7 +738,7 @@ class FlagdProviderTest {
     }
     
     @Test
-    void disabled_cache() {
+    void disabled_cache() throws Exception {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
@@ -763,6 +772,12 @@ class FlagdProviderTest {
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
         ServiceStub serviceStubMock = mock(ServiceStub.class);
+        when(serviceStubMock.withWaitForReady()).thenReturn(serviceStubMock);
+        when(serviceStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceStubMock);
+        when(serviceBlockingStubMock.withWaitForReady()).thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.withDeadline(any(Deadline.class)))
+                .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -777,10 +792,11 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, null, 0, 1);
+        provider.initialize(null);
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
-        provider.setEventStreamAlive(true);
+        provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
@@ -833,4 +849,5 @@ class FlagdProviderTest {
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(STATIC_REASON, objectDetails.getReason());
     }
+
 }

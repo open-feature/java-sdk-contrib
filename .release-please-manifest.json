@@ -1,5 +1,5 @@
 {
-  "providers/flagd": "0.5.10",
+  "providers/flagd": "0.6.0",
   "hooks/open-telemetry": "2.0.0",
   "providers/go-feature-flag": "0.2.9",
   "providers/flagsmith": "0.0.7",

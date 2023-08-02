@@ -14,13 +14,18 @@ import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -57,22 +62,23 @@ import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
  */
 @Slf4j
 @SuppressWarnings("PMD.TooManyStaticImports")
-public class FlagdProvider implements FeatureProvider, EventStreamCallback {
+public class FlagdProvider extends EventProvider implements FeatureProvider, EventStreamCallback {
     private static final String FLAGD_PROVIDER = "flagD Provider";
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private final ServiceBlockingStub serviceBlockingStub;
-    private final ServiceStub serviceStub;
+    private ServiceBlockingStub serviceBlockingStub;
+    private ServiceStub serviceStub;
+    private ManagedChannel channel;
     private final int maxEventStreamRetries;
     private final Object eventStreamAliveSync;
     private final FlagdCache cache;
     private final ResolveStrategy strategy;
 
-    private boolean eventStreamAlive;
     private int eventStreamAttempt = 1;
     private int eventStreamRetryBackoff = BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
     private long deadline = DEFAULT_DEADLINE;
+    private ProviderState state = ProviderState.NOT_READY;
 
     /**
      * Create a new FlagdProvider instance with default options.
@@ -88,6 +94,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
      */
     public FlagdProvider(final FlagdOptions options) {
         final ManagedChannel channel = nettyChannel(options);
+        this.channel = channel;
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
         this.strategy = options.getOpenTelemetry() == null
@@ -97,7 +104,6 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.maxEventStreamRetries = options.getMaxEventStreamRetries();
         this.cache = new FlagdCache(options.getCacheType(), options.getMaxCacheSize());
         this.eventStreamAliveSync = new Object();
-        this.handleEvents();
     }
 
     FlagdProvider(ServiceBlockingStub serviceBlockingStub, ServiceStub serviceStub, String cache, int maxCacheSize,
@@ -109,7 +115,53 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.maxEventStreamRetries = maxEventStreamRetries;
         this.cache = new FlagdCache(cache, maxCacheSize);
         this.eventStreamAliveSync = new Object();
-        this.handleEvents();
+    }
+
+    @Override
+    public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
+        try {
+            // try a dummy request
+            this.serviceBlockingStub
+                    .withWaitForReady()
+                    .withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
+                    .resolveBoolean(ResolveBooleanRequest.newBuilder().setFlagKey("ready?").build());
+        } catch (StatusRuntimeException e) {
+            // only return the exception if we don't meet the deadline
+            if (Status.DEADLINE_EXCEEDED.equals(e.getStatus())) {
+                throw e;
+            }
+        } finally {
+            // try in background to open the event stream
+            this.handleEvents();
+        }
+    }
+
+    @Override
+    public void shutdown() {
+        try {
+            if (this.channel != null) {
+                this.channel.shutdown();
+                this.channel.awaitTermination(5, TimeUnit.SECONDS);
+            }
+        } catch (InterruptedException e) {
+            log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
+        } finally {
+            this.cache.clear();
+            if (this.channel != null) {
+                this.channel.shutdownNow();
+            }
+        }
+    }
+
+    @Override
+    public ProviderState getState() {
+        Lock l = this.lock.readLock();
+        try {
+            l.lock();
+            return this.state;
+        } finally {
+            l.unlock();
+        }
     }
 
     @Override
@@ -117,12 +169,25 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         this.eventStreamAttempt++;
         if (this.eventStreamAttempt > this.maxEventStreamRetries) {
             log.error("failed to connect to event stream, exhausted retries");
+            this.setState(ProviderState.ERROR);
             return;
         }
         this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
         Thread.sleep(this.eventStreamRetryBackoff);
-
         this.handleEvents();
+    }
+
+    @Override
+    public void emitSuccessReconnectionEvents() {
+        ProviderEventDetails details = ProviderEventDetails.builder().message("reconnection successful").build();
+        this.emitProviderConfigurationChanged(details);
+        this.emitProviderReady(details);
+    }
+
+    @Override
+    public void emitConfigurationChangeEvent() {
+        ProviderEventDetails details = ProviderEventDetails.builder().message("configuration changed").build();
+        this.emitProviderConfigurationChanged(details);
     }
 
     /**
@@ -144,7 +209,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue,
-            EvaluationContext ctx) {
+                                                            EvaluationContext ctx) {
 
         ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
 
@@ -154,7 +219,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue,
-            EvaluationContext ctx) {
+                                                          EvaluationContext ctx) {
         ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
 
         return this.resolve(key, ctx, request,
@@ -163,7 +228,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue,
-            EvaluationContext ctx) {
+                                                          EvaluationContext ctx) {
         ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
 
         return this.resolve(key, ctx, request,
@@ -172,7 +237,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue,
-            EvaluationContext ctx) {
+                                                            EvaluationContext ctx) {
 
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
 
@@ -183,7 +248,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue,
-            EvaluationContext ctx) {
+                                                         EvaluationContext ctx) {
 
         ResolveObjectRequest request = ResolveObjectRequest.newBuilder().buildPartial();
 
@@ -205,12 +270,12 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     }
 
     @Override
-    public void setEventStreamAlive(boolean alive) {
+    public void setState(ProviderState state) {
         Lock l = this.lock.writeLock();
         try {
             l.lock();
-            this.eventStreamAlive = alive;
-            if (alive) {
+            this.state = state;
+            if (state == ProviderState.READY) {
                 synchronized (this.eventStreamAliveSync) {
                     this.eventStreamAliveSync.notify(); // notify any waiters that the event stream is alive
                 }
@@ -346,7 +411,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     /**
      * This method is a helper to build a {@link ManagedChannel} from provided {@link FlagdOptions}.
-     * */
+     */
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "certificate path is a user input")
     private static ManagedChannel nettyChannel(final FlagdOptions options) {
         // we have a socket path specified, build a channel with a unix socket
@@ -392,7 +457,8 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     private void handleEvents() {
         StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(this.cache, this);
-        this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
+        this.serviceStub
+                .eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
     }
 
 
@@ -405,7 +471,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
     private Boolean cacheAvailable() {
         Lock l = this.lock.readLock();
         l.lock();
-        Boolean available = this.cache.getEnabled() && this.eventStreamAlive;
+        Boolean available = this.cache.getEnabled() && this.state == ProviderState.READY;
         l.unlock();
 
         return available;
@@ -413,7 +479,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     /**
      * A generic resolve method that takes a resolverRef and an optional converter lambda to transform the result.
-     * */
+     */
     private <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
             Convert<ValT, Object> converter) {
@@ -453,7 +519,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
         return result;
     }
 
-    private static  <T> T getField(Message message, String name) {
+    private static <T> T getField(Message message, String name) {
         return (T) message.getField(getFieldDescriptor(message, name));
     }
 
@@ -463,7 +529,7 @@ public class FlagdProvider implements FeatureProvider, EventStreamCallback {
 
     /**
      * A converter lambda.
-     * */
+     */
     @FunctionalInterface
     private interface Convert<OutT extends Object, InT extends Object> {
         OutT convert(InT value);

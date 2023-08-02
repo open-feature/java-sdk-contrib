@@ -10,7 +10,7 @@ A feature flag daemon with a Unix philosophy.
 <dependency>
   <groupId>dev.openfeature.contrib.providers</groupId>
   <artifactId>flagd</artifactId>
-  <version>0.5.10</version>
+  <version>0.6.0</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->

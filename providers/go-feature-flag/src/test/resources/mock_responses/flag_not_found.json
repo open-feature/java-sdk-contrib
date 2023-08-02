@@ -5,5 +5,9 @@
   "version": 0,
   "reason": "ERROR",
   "errorCode": "FLAG_NOT_FOUND",
-  "value": "false"
+  "value": "false",
+  "metadata": {
+    "pr_link": "https://github.com/thomaspoignant/go-feature-flag/pull/916",
+    "version": 1
+  }
 }

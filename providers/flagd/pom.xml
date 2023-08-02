@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.5.10</version> <!--x-release-please-version -->
+    <version>0.6.0</version> <!--x-release-please-version -->
 
     <name>flagd</name>
     <description>FlagD provider for Java</description>
@@ -26,19 +26,29 @@
     </developers>
 
     <dependencies>
+
+        <!-- override parent definition -->
+        <dependency>
+            <groupId>dev.openfeature</groupId>
+            <artifactId>sdk</artifactId>
+            <version>[1.4,2.0)</version>
+            <scope>provided</scope>
+        </dependency>
+
+
         <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty</artifactId>
-            <version>1.56.1</version>
+            <version>1.57.0</version>
         </dependency>
 
         <dependency>
             <!-- we only support unix sockets on linux, via epoll native lib -->
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
-            <version>4.1.95.Final</version>
+            <version>4.1.96.Final</version>
             <!-- TODO: with 5+ (still alpha), arm is support and we should package multiple versions -->
             <classifier>linux-x86_64</classifier>
         </dependency>
@@ -46,13 +56,13 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
-            <version>1.56.1</version>
+            <version>1.57.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <version>1.56.1</version>
+            <version>1.57.0</version>
         </dependency>
 
         <dependency>
