@@ -48,10 +48,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
         <testcontainers.version>1.18.3</testcontainers.version>
 >>>>>>> 473240e (add smoke test)
+=======
+>>>>>>> cbcfba4 (remove smoketests in favor of e2e tests)
     </properties>
 
     <dependencies>
