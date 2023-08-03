@@ -231,12 +231,4 @@ public final class FlagResolution {
     private static Descriptors.FieldDescriptor getFieldDescriptor(Message message, String name) {
         return message.getDescriptorForType().findFieldByName(name);
     }
-
-    /**
-     * A converter lambda.
-     */
-    @FunctionalInterface
-    public interface Convert<OutT extends Object, InT extends Object> {
-        OutT convert(InT value);
-    }
 }
