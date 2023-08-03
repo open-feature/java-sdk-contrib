@@ -2,11 +2,8 @@ package dev.openfeature.contrib.providers.flagd.grpc;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.FlagdCache;
-import dev.openfeature.contrib.providers.flagd.FlagdProvider;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.flagd.grpc.Schema;
-import dev.openfeature.sdk.ProviderEvent;
-import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.ProviderState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -20,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
-import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -33,7 +29,7 @@ class EventStreamObserverTest {
     @Nested
     class StateChange {
 
-        FlagdCache cache;
+        Cache cache;
         List<ProviderState> states;
         EventStreamObserver stream;
         Runnable reconnect;
@@ -41,7 +37,7 @@ class EventStreamObserverTest {
         @BeforeEach
         void setUp() {
             states = new ArrayList<>();
-            cache = mock(FlagdCache.class);
+            cache = mock(Cache.class);
             reconnect = mock(Runnable.class);
             when(cache.getEnabled()).thenReturn(true);
             stream = new EventStreamObserver(cache, state -> states.add(state), reconnect);
@@ -94,7 +90,7 @@ class EventStreamObserverTest {
             Value flagsValue = mock(Value.class);
             Struct flagsStruct = mock(Struct.class);
             HashMap<String, Value> fields = new HashMap<>();
-            fields.put(EventStreamObserver.flagsKey, flagsValue);
+            fields.put(EventStreamObserver.FLAGS_KEY, flagsValue);
             HashMap<String, Value> flags = new HashMap<>();
             flags.put(key1, null);
             flags.put(key2, null);

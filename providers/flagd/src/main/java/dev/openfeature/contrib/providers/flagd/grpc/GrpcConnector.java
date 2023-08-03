@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.grpc;
 
-import dev.openfeature.contrib.providers.flagd.FlagdCache;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
@@ -27,6 +27,7 @@ import java.util.function.Consumer;
  * Class that abstracts the gRPC communication with flagd.
  */
 @Slf4j
+@SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
 
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
@@ -39,7 +40,7 @@ public class GrpcConnector {
     private final int startEventStreamRetryBackoff;
     private final long deadline;
 
-    private final FlagdCache cache;
+    private final Cache cache;
     private final Consumer<ProviderState> stateConsumer;
 
     /**
@@ -48,7 +49,7 @@ public class GrpcConnector {
      * @param cache cache to use.
      * @param stateConsumer lambda to call for setting the state.
      */
-    public GrpcConnector(final FlagdOptions options, final FlagdCache cache, Consumer<ProviderState> stateConsumer) {
+    public GrpcConnector(final FlagdOptions options, final Cache cache, Consumer<ProviderState> stateConsumer) {
         this.channel = nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);

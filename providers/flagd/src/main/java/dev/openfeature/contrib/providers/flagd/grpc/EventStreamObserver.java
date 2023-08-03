@@ -1,9 +1,10 @@
 package dev.openfeature.contrib.providers.flagd.grpc;
 
 import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.FlagdCache;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.sdk.ProviderState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,14 +15,15 @@ import java.util.function.Consumer;
  * EventStreamObserver handles events emitted by flagd.
  */
 @Slf4j
+@SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private final Consumer<ProviderState> stateConsumer;
     private final Runnable reconnectEventStream;
-    private final FlagdCache cache;
+    private final Cache cache;
 
-    private static final String configurationChange = "configuration_change";
-    private static final String providerReady = "provider_ready";
-    static final String flagsKey = "flags";
+    private static final String CONFIGURATION_CHANGE = "configuration_change";
+    private static final String PROVIDER_READY = "provider_ready";
+    static final String FLAGS_KEY = "flags";
 
     /**
      * Create a gRPC stream that get notified about flag changes.
@@ -29,7 +31,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
      * @param stateConsumer lambda to call for setting the state
      * @param reconnectEventStream callback for trying to recreate the stream
      */
-    public EventStreamObserver(FlagdCache cache, Consumer<ProviderState> stateConsumer, Runnable reconnectEventStream) {
+    public EventStreamObserver(Cache cache, Consumer<ProviderState> stateConsumer, Runnable reconnectEventStream) {
         this.cache = cache;
         this.stateConsumer = stateConsumer;
         this.reconnectEventStream = reconnectEventStream;
@@ -38,10 +40,10 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
     @Override
     public void onNext(EventStreamResponse value) {
         switch (value.getType()) {
-            case configurationChange:
+            case CONFIGURATION_CHANGE:
                 this.handleConfigurationChangeEvent(value);
                 break;
-            case providerReady:
+            case PROVIDER_READY:
                 this.handleProviderReadyEvent();
                 break;
             default:
@@ -73,7 +75,7 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
             return;
         }
         Map<String, Value> data = value.getData().getFieldsMap();
-        Value flagsValue = data.get(flagsKey);
+        Value flagsValue = data.get(FLAGS_KEY);
         if (flagsValue == null) {
             this.cache.clear();
             return;

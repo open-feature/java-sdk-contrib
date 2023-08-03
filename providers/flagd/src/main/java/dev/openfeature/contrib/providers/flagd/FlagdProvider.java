@@ -1,5 +1,8 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.cache.CacheFactory;
+import dev.openfeature.contrib.providers.flagd.grpc.FlagResolution;
 import dev.openfeature.contrib.providers.flagd.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.strategy.ResolveFactory;
 import dev.openfeature.contrib.providers.flagd.strategy.ResolveStrategy;
@@ -32,7 +35,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private final FlagdCache cache;
+    private final Cache cache;
     private final ResolveStrategy strategy;
     private final GrpcConnector grpc;
     private final FlagResolution flagResolver;
@@ -54,12 +57,12 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      */
     public FlagdProvider(final FlagdOptions options) {
         this.strategy = ResolveFactory.getStrategy(options);
-        this.cache = new FlagdCache(options.getCacheType(), options.getMaxCacheSize());
+        this.cache = CacheFactory.getCache(options);
         this.grpc = new GrpcConnector(options, this.cache, this::setState);
         this.flagResolver = new FlagResolution(this.cache, this.strategy, this::getState);
     }
 
-    FlagdProvider(ResolveStrategy strategy, FlagdCache cache, GrpcConnector grpc, FlagResolution resolution) {
+    FlagdProvider(ResolveStrategy strategy, Cache cache, GrpcConnector grpc, FlagResolution resolution) {
         this.strategy = strategy;
         this.cache = cache;
         this.grpc = grpc;

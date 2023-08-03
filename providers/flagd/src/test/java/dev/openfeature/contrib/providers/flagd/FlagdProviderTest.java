@@ -1,8 +1,10 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import com.google.protobuf.Struct;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.cache.CacheType;
+import dev.openfeature.contrib.providers.flagd.grpc.FlagResolution;
 import dev.openfeature.contrib.providers.flagd.grpc.GrpcConnector;
-import dev.openfeature.contrib.providers.flagd.strategy.ResolveFactory;
 import dev.openfeature.contrib.providers.flagd.strategy.ResolveStrategy;
 import dev.openfeature.contrib.providers.flagd.strategy.SimpleResolving;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
@@ -29,15 +31,11 @@ import io.grpc.Deadline;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.unix.DomainSocketAddress;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,14 +49,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -88,7 +82,7 @@ class FlagdProviderTest {
 
     static OpenFeatureAPI api;
 
-    FlagdCache cache;
+    Cache cache;
     ResolveStrategy strategy = new SimpleResolving();
 
     @BeforeAll
@@ -98,7 +92,7 @@ class FlagdProviderTest {
 
     @BeforeEach
     void setUp() {
-        cache = new FlagdCache("lru", 5);
+        cache = new Cache(CacheType.LRU, 5);
     }
 
     @Test
@@ -686,7 +680,7 @@ class FlagdProviderTest {
             grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {});
         }
         // disable cache
-        cache = new FlagdCache(null, 0);
+        cache = new Cache(null, 0);
         FlagdProvider provider = createProvider(grpc);
         provider.initialize(null);
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);

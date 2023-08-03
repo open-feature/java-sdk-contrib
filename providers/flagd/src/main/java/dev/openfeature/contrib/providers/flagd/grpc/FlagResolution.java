@@ -1,14 +1,16 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.grpc;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.NullValue;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.strategy.ResolveStrategy;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,15 +27,25 @@ import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
 import static dev.openfeature.contrib.providers.flagd.Config.VALUE_FIELD;
 import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
 
+/**
+ * FlagResolution resolves flags from flagd.
+ */
 @SuppressWarnings("PMD.TooManyStaticImports")
-final class FlagResolution {
+@SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
+public final class FlagResolution {
 
-    private final FlagdCache cache;
+    private final Cache cache;
     private final ResolveStrategy strategy;
     private final Supplier<ProviderState> getState;
 
 
-    FlagResolution(FlagdCache cache, ResolveStrategy strategy, Supplier<ProviderState> getState) {
+    /**
+     * Initialize the flag resolution.
+     * @param cache cache to use.
+     * @param strategy resolution strategy to use.
+     * @param getState lambda to call for getting the state.
+     */
+    public FlagResolution(Cache cache, ResolveStrategy strategy, Supplier<ProviderState> getState) {
         this.cache = cache;
         this.strategy = strategy;
         this.getState = getState;
@@ -42,7 +54,7 @@ final class FlagResolution {
     /**
      * Recursively convert protobuf structure to openfeature value.
      */
-    Value convertObjectResponse(com.google.protobuf.Struct protobuf) {
+    public Value convertObjectResponse(com.google.protobuf.Struct protobuf) {
         return this.convertProtobufMap(protobuf.getFieldsMap());
     }
 
@@ -173,7 +185,7 @@ final class FlagResolution {
     /**
      * A generic resolve method that takes a resolverRef and an optional converter lambda to transform the result.
      */
-    <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
+    public <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
             Convert<ValT, Object> converter) {
 
@@ -224,7 +236,7 @@ final class FlagResolution {
      * A converter lambda.
      */
     @FunctionalInterface
-    interface Convert<OutT extends Object, InT extends Object> {
+    public interface Convert<OutT extends Object, InT extends Object> {
         OutT convert(InT value);
     }
 }
