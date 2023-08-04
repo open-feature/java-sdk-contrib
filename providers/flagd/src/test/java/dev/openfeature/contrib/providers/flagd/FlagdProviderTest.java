@@ -59,33 +59,31 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FlagdProviderTest {
+    private static final String FLAG_KEY = "some-key";
+    private static final String FLAG_KEY_BOOLEAN = "some-key-boolean";
+    private static final String FLAG_KEY_INTEGER = "some-key-integer";
+    private static final String FLAG_KEY_DOUBLE = "some-key-double";
+    private static final String FLAG_KEY_STRING = "some-key-string";
+    private static final String FLAG_KEY_OBJECT = "some-key-object";
+    private static final String BOOL_VARIANT = "on";
+    private static final String DOUBLE_VARIANT = "half";
+    private static final String INT_VARIANT = "one-hundred";
+    private static final String STRING_VARIANT = "greeting";
+    private static final String OBJECT_VARIANT = "obj";
+    private static final Reason DEFAULT = Reason.DEFAULT;
+    private static final Integer INT_VALUE = 100;
+    private static final Double DOUBLE_VALUE = .5d;
+    private static final String INNER_STRUCT_KEY = "inner_key";
+    private static final String INNER_STRUCT_VALUE = "inner_value";
+    private static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE =
+            Struct.newBuilder().putFields(INNER_STRUCT_KEY,
+                            com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE).build())
+                    .build();
+    private static final String STRING_VALUE = "hi!";
+    private final ResolveStrategy strategy = new SimpleResolving();
 
-    static final String FLAG_KEY = "some-key";
-    static final String FLAG_KEY_BOOLEAN = "some-key-boolean";
-    static final String FLAG_KEY_INTEGER = "some-key-integer";
-    static final String FLAG_KEY_DOUBLE = "some-key-double";
-    static final String FLAG_KEY_STRING = "some-key-string";
-    static final String FLAG_KEY_OBJECT = "some-key-object";
-    static final String BOOL_VARIANT = "on";
-    static final String DOUBLE_VARIANT = "half";
-    static final String INT_VARIANT = "one-hundred";
-    static final String STRING_VARIANT = "greeting";
-    static final String OBJECT_VARIANT = "obj";
-    static final Reason DEFAULT = Reason.DEFAULT;
-    static final Integer INT_VALUE = 100;
-    static final Double DOUBLE_VALUE = .5d;
-    static final String INNER_STRUCT_KEY = "inner_key";
-    static final String INNER_STRUCT_VALUE = "inner_value";
-    static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE = com.google.protobuf.Struct.newBuilder()
-            .putFields(INNER_STRUCT_KEY,
-                    com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE).build())
-            .build();
-    static final String STRING_VALUE = "hi!";
-
-    static OpenFeatureAPI api;
-
-    Cache cache;
-    ResolveStrategy strategy = new SimpleResolving();
+    private static OpenFeatureAPI api;
+    private Cache cache;
 
     @BeforeAll
     public static void init() {
@@ -284,11 +282,14 @@ class FlagdProviderTest {
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
         ServiceStub serviceStubMock = mock(ServiceStub.class);
 
-        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(
+                serviceBlockingStubMock);
         when(serviceBlockingStubMock
                 .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
-        OpenFeatureAPI.getInstance()
-                .setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5));
+
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
 
         // when
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
@@ -494,18 +495,20 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         GrpcConnector grpc;
-        try(MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
             mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                     .thenReturn(serviceBlockingStubMock);
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(serviceStubMock);
-            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {});
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
+            });
         }
 
         FlagdProvider provider = createProvider(grpc);
 
         provider.initialize(null);
-        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
+        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
+                ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
         //provider.setState(ProviderState.READY);
@@ -632,7 +635,8 @@ class FlagdProviderTest {
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
-        booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false); // should retrieve from cache on second invocation
+        booleanDetails = api.getClient()
+                .getBooleanDetails(FLAG_KEY_BOOLEAN, false); // should retrieve from cache on second invocation
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(expectedReason, booleanDetails.getReason());
@@ -718,18 +722,20 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         GrpcConnector grpc;
-        try(MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
             mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                     .thenReturn(serviceBlockingStubMock);
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(serviceStubMock);
-            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {});
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
+            });
         }
         // disable cache
         cache = new Cache(null, 0);
         FlagdProvider provider = createProvider(grpc);
         provider.initialize(null);
-        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
+        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
+                ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
         //provider.setState(ProviderState.READY);
@@ -738,7 +744,8 @@ class FlagdProviderTest {
         HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
         HashMap<String, com.google.protobuf.Value> structMap = new HashMap<String, com.google.protobuf.Value>();
 
-        flagsMap.put("foo", com.google.protobuf.Value.newBuilder().setStringValue("foo").build()); // assert that a configuration_change event works
+        flagsMap.put("foo", com.google.protobuf.Value.newBuilder().setStringValue("foo")
+                .build()); // assert that a configuration_change event works
 
         structMap.put("flags", com.google.protobuf.Value.newBuilder().
                 setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
