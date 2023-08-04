@@ -200,4 +200,59 @@ class MetricsHookTest {
 
         assertThat(attributes.get(flagKeyAttributeKey)).isEqualTo("key");
     }
+
+    @Test
+    public void hook_option_validation(){
+        // given
+        MetricHookOptions hookOptions = MetricHookOptions.builder()
+                .attributeSetter(metadata -> Attributes.builder()
+                        .put("boolean", metadata.getBoolean("boolean"))
+                        .put("integer", metadata.getInteger("integer"))
+                        .put("long", metadata.getLong("long"))
+                        .put("float", metadata.getFloat("float"))
+                        .put("double", metadata.getDouble("double"))
+                        .put("string", metadata.getString("string"))
+                        .build())
+                .build();
+
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(), hookOptions);
+
+        final ImmutableMetadata metadata = ImmutableMetadata.builder()
+                .addBoolean("boolean", true)
+                .addInteger("integer", 1)
+                .addLong("long", 1L)
+                .addFloat("float", 1.0F)
+                .addDouble("double", 1.0D)
+                .addString("string", "string")
+                .build();
+
+        final FlagEvaluationDetails<String> evaluationDetails = FlagEvaluationDetails.<String>builder()
+                .flagKey("key")
+                .value("value")
+                .variant("variant")
+                .reason("STATIC")
+                .flagMetadata(metadata)
+                .build();
+
+        // when
+        metricHook.after(commonHookContext, evaluationDetails, null);
+        List<MetricData> metrics = telemetryExtension.getMetrics();
+
+        // then
+        assertThat(metrics).hasSize(1);
+
+        final MetricData metricData = metrics.get(0);
+        final Optional<LongPointData> pointData = metricData.getLongSumData().getPoints().stream().findFirst();
+        assertThat(pointData).isPresent();
+
+        final LongPointData longPointData = pointData.get();
+        final Attributes attributes = longPointData.getAttributes();
+
+        assertThat(attributes.get(AttributeKey.stringKey("string"))).isEqualTo("string");
+        assertThat(attributes.get(AttributeKey.doubleKey("double"))).isEqualTo(1.0D);
+        assertThat(attributes.get(AttributeKey.doubleKey("float"))).isEqualTo(1.0F);
+        assertThat(attributes.get(AttributeKey.longKey("long"))).isEqualTo(1L);
+        assertThat(attributes.get(AttributeKey.longKey("integer"))).isEqualTo(1);
+        assertThat(attributes.get(AttributeKey.booleanKey("boolean"))).isEqualTo(true);
+    }
 }

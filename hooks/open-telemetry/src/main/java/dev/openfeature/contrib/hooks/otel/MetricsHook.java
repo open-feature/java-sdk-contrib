@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.ERROR_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
@@ -42,6 +43,7 @@ public class MetricsHook implements Hook {
     private final LongCounter evaluationSuccessCounter;
     private final LongCounter evaluationErrorCounter;
     private final List<DimensionDescription> dimensionDescriptions;
+    private final Function<ImmutableMetadata, Attributes> extractor;
 
     /**
      * Construct a metric hook by providing an {@link OpenTelemetry} instance.
@@ -56,6 +58,13 @@ public class MetricsHook implements Hook {
      * {@link FlagEvaluationDetails}.
      */
     public MetricsHook(final OpenTelemetry openTelemetry, final List<DimensionDescription> dimensions) {
+        this(openTelemetry, MetricHookOptions.builder().setDimensions(dimensions).build());
+    }
+
+    /**
+     * Construct a metric hook with {@link OpenTelemetry} instance and options for the hook.
+     */
+    public MetricsHook(final OpenTelemetry openTelemetry, final MetricHookOptions options) {
         final Meter meter = openTelemetry.getMeter(METER_NAME);
 
         activeFlagEvaluationsCounter =
@@ -76,7 +85,8 @@ public class MetricsHook implements Hook {
                 .setDescription("feature flag evaluation error counter")
                 .build();
 
-        dimensionDescriptions = Collections.unmodifiableList(dimensions);
+        dimensionDescriptions = Collections.unmodifiableList(options.getSetDimensions());
+        extractor = options.getAttributeSetter();
     }
 
 
@@ -108,6 +118,10 @@ public class MetricsHook implements Hook {
 
         if (!dimensionDescriptions.isEmpty()) {
             attributesBuilder.putAll(attributesFromFlagMetadata(details.getFlagMetadata(), dimensionDescriptions));
+        }
+
+        if (extractor != null) {
+            attributesBuilder.putAll(extractor.apply(details.getFlagMetadata()));
         }
 
         evaluationSuccessCounter.add(+1, attributesBuilder.build());
