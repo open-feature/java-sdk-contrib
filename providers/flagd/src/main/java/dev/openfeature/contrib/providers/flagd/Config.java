@@ -30,6 +30,7 @@ public final class Config {
     public static final String VARIANT_FIELD = "variant";
     public static final String VALUE_FIELD = "value";
     public static final String REASON_FIELD = "reason";
+    public static final String METADATA_FIELD = "metadata";
 
     public static final String LRU_CACHE = "lru";
     static final String DEFAULT_CACHE = LRU_CACHE;
