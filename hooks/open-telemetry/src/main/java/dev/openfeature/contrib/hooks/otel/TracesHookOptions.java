@@ -21,7 +21,7 @@ public class TracesHookOptions {
 
     /**
      * Custom callback to derive {@link Attributes} from flag evaluation metadata represented with
-     * {@link ImmutableMetadata}
+     * {@link ImmutableMetadata}.
      */
     private Function<ImmutableMetadata, Attributes> dimensionExtractor;
 }
