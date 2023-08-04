@@ -116,14 +116,14 @@ public final class FlagResolution {
     /**
      * Recursively convert protobuf structure to openfeature value.
      */
-    public static Value convertObjectResponse(com.google.protobuf.Struct protobuf) {
+    public static Value convertObjectResponse(Struct protobuf) {
         return convertProtobufMap(protobuf.getFieldsMap());
     }
 
     /**
      * Recursively convert the Evaluation context to a protobuf structure.
      */
-    private static com.google.protobuf.Struct convertContext(EvaluationContext ctx) {
+    private static Struct convertContext(EvaluationContext ctx) {
         return convertMap(ctx.asMap()).getStructValue();
     }
 
@@ -163,7 +163,7 @@ public final class FlagResolution {
             Value value = map.get(key);
             values.put(key, convertAny(value));
         });
-        com.google.protobuf.Struct struct = com.google.protobuf.Struct.newBuilder()
+        Struct struct = Struct.newBuilder()
                 .putAllFields(values).build();
         return com.google.protobuf.Value.newBuilder().setStructValue(struct).build();
     }
