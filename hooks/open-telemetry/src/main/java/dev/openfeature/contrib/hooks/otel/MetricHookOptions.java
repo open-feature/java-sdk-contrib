@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.hooks.otel;
 
 import dev.openfeature.sdk.ImmutableMetadata;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.common.Attributes;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,6 +15,8 @@ import java.util.function.Function;
  */
 @Builder
 @Getter
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP"}, justification = "Dimension list can be mutable")
+
 public class MetricHookOptions {
 
     /**
