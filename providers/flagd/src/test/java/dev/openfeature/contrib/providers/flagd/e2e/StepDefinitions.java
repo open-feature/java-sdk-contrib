@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.e2e;
 
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.EvaluationContext;
@@ -50,9 +51,10 @@ public class StepDefinitions {
     @BeforeAll()
     @Given("a provider is registered with cache disabled")
     public static void setup() {
+        // set a generous deadline, to prevent timeouts in actions
+        FlagdOptions conf = FlagdOptions.builder().deadline(3000).build();
         // TODO: when the FlagdProvider is updated to support caching, we might need to disable it here for this test to work as expected.
-        FlagdProvider provider = new FlagdProvider();
-        provider.setDeadline(3000); // set a generous deadline, to prevent timeouts in actions
+        FlagdProvider provider = new FlagdProvider(conf);
         OpenFeatureAPI.getInstance().setProvider(provider);
         client = OpenFeatureAPI.getInstance().getClient();
     }

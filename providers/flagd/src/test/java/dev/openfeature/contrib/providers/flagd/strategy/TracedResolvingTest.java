@@ -1,7 +1,8 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.strategy;
 
 
 import com.google.protobuf.Message;
+import dev.openfeature.contrib.providers.flagd.strategy.TracedResolving;
 import dev.openfeature.flagd.grpc.Schema;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;

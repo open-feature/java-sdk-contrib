@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd;
+package dev.openfeature.contrib.providers.flagd.strategy;
 
 import com.google.protobuf.Message;
 import io.opentelemetry.api.OpenTelemetry;
@@ -13,11 +13,11 @@ import java.util.function.Function;
 /**
  * {@link TracedResolving} a request to response resolver with tracing for telemetry.
  */
-class TracedResolving implements ResolveStrategy {
+public class TracedResolving implements ResolveStrategy {
 
     private final Tracer tracer;
 
-    TracedResolving(@Nonnull OpenTelemetry telemetry) {
+    public TracedResolving(@Nonnull OpenTelemetry telemetry) {
         this.tracer = telemetry.getTracer("OpenFeature/dev.openfeature.contrib.providers.flagd");
     }
 
