@@ -16,7 +16,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.events.Events;
 import dev.openfeature.contrib.providers.gofeatureflag.events.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
-import dev.openfeature.contrib.providers.gofeatureflag.exception.NotPresentInCache;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
@@ -264,49 +263,60 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 errorCode = ErrorCode.GENERAL;
             }
             return ProviderEvaluation.<T>builder()
-                    .errorCode(errorCode)
-                    .reason(errorCode.name())
-                    .value(defaultValue)
-                    .build();
+                .errorCode(errorCode)
+                .reason(errorCode.name())
+                .value(defaultValue)
+                .build();
         }
-
+        ProviderEvaluation<T> res;
         GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
         if (cache == null) {
-            // Cache is disabled we return directly the remote evaluation
             EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
-            return proxyRes.getProviderEvaluation();
+            res = proxyRes.getProviderEvaluation();
+        } else {
+            res = getProviderEvaluationWithCheckCache(key, defaultValue, expectedType, user);
         }
+        return res;
+    }
 
-        String cacheKey = null;
+    private <T> ProviderEvaluation getProviderEvaluationWithCheckCache(
+            String key, T defaultValue, Class<?> expectedType, GoFeatureFlagUser user) {
+        ProviderEvaluation<?> res;
         try {
-            cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
-            ProviderEvaluation<?> cacheResponse = cache.getIfPresent(cacheKey);
-            if (cacheResponse == null) {
-                throw new NotPresentInCache(cacheKey);
+            String cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
+            res = cache.getIfPresent(cacheKey);
+            if (res == null) {
+                EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(
+                    key, defaultValue, user, expectedType);
+                if (Boolean.TRUE.equals(proxyRes.getCachable())) {
+                    cache.put(cacheKey, proxyRes.getProviderEvaluation());
+                }
+                res = proxyRes.getProviderEvaluation();
+            } else {
+                res.setReason(CACHED_REASON);
+                addCacheEvaluationEvent(key, defaultValue, user, res);
             }
-            cacheResponse.setReason(CACHED_REASON);
-            eventsPublisher.add(Event.builder()
-                    .key(key)
-                    .kind("feature")
-                    .contextKind(user.isAnonymous() ? "anonymousUser" : "user")
-                    .defaultValue(defaultValue)
-                    .variation(cacheResponse.getVariant())
-                    .value(cacheResponse.getValue())
-                    .userKey(user.getKey())
-                    .creationDate(System.currentTimeMillis())
-                    .build()
-            );
-            return (ProviderEvaluation<T>) cacheResponse;
-        } catch (Exception e) {
-            if (!(e instanceof NotPresentInCache)) {
-                log.error("Error while trying to retrieve from the cache, trying to do a remote evaluation", e);
-            }
-            EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
-            if (Boolean.TRUE.equals(proxyRes.getCachable()) && cacheKey != null) {
-                cache.put(cacheKey, proxyRes.getProviderEvaluation());
-            }
-            return proxyRes.getProviderEvaluation();
+        } catch (JsonProcessingException e) {
+            log.error("Error building key for user", e);
+            EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(
+                key, defaultValue, user, expectedType);
+            res = proxyRes.getProviderEvaluation();
         }
+        return res;
+    }
+
+    private <T> void addCacheEvaluationEvent(String key, T defaultValue, GoFeatureFlagUser user, ProviderEvaluation<?> res) {
+        eventsPublisher.add(Event.builder()
+            .key(key)
+            .kind("feature")
+            .contextKind(user.isAnonymous() ? "anonymousUser" : "user")
+            .defaultValue(defaultValue)
+            .variation(res.getVariant())
+            .value(res.getValue())
+            .userKey(user.getKey())
+            .creationDate(System.currentTimeMillis())
+            .build()
+        );
     }
 
     /**
@@ -517,14 +527,12 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                     .addEncodedPathSegment("collector")
                     .build();
 
-            Request.Builder reqBuilder = null;
-
-            reqBuilder = new Request.Builder()
-                    .url(url)
-                    .addHeader("Content-Type", "application/json")
-                    .post(RequestBody.create(
-                            requestMapper.writeValueAsBytes(events),
-                            MediaType.get("application/json; charset=utf-8")));
+            Request.Builder reqBuilder = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .post(RequestBody.create(
+                    requestMapper.writeValueAsBytes(events),
+                    MediaType.get("application/json; charset=utf-8")));
 
             if (this.apiKey != null && !"".equals(this.apiKey)) {
                 reqBuilder.addHeader("Authorization", "Bearer " + this.apiKey);
