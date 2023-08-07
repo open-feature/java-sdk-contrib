@@ -6,6 +6,7 @@
   "reason": "TARGETING_MATCH",
   "errorCode": "",
   "value": true,
+  "cacheable": true,
   "metadata": {
     "pr_link": "https://github.com/thomaspoignant/go-feature-flag/pull/916",
     "version": 1

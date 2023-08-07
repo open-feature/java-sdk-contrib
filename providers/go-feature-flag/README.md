@@ -4,27 +4,34 @@ GO Feature Flag provider allows you to connect to your [GO Feature Flag relay pr
 
 ## How to use this provider?
 
-To initialize your instance please follow this example:
+To use your instance please follow this example:
 
 ```java
 import dev.openfeature.contrib.providers.gofeatureflag;
 
 // ...
-new GoFeatureFlagProvider(
+FeatureProvider provider = new GoFeatureFlagProvider(
   GoFeatureFlagProviderOptions
   .builder()
   .endpoint("https://my-gofeatureflag-instance.org")
   .timeout(1000)
   .build());
+// ...
+provider.shutdown();
 ```
 
 You will have a new instance ready to be used with your `open-feature` java SDK.
 
 ### Options
 
-| name                     | mandatory | Description                                                                                                    |
-|--------------------------|-----------|----------------------------------------------------------------------------------------------------------------|
-| **`endpoint`**           | `true`    | endpoint contains the DNS of your GO Feature Flag relay proxy _(ex: https://mydomain.com/gofeatureflagproxy/)_ |
-| **`timeout`**            | `false`   | timeout in millisecond we are waiting when calling the go-feature-flag relay proxy API. _(default: 10000)_     |
-| **`maxIdleConnections`** | `false`   | maxIdleConnections is the maximum number of connexions in the connexion pool. _(default: 1000)_                |
-| **`keepAliveDuration`**  | `false`   | keepAliveDuration is the time in millisecond we keep the connexion open. _(default: 7200000 (2 hours))_        |
+| name                     | mandatory | Description                                                                                                                                                                                                                                                                                           |
+|--------------------------|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **`endpoint`**           | `true`    | endpoint contains the DNS of your GO Feature Flag relay proxy _(ex: https://mydomain.com/gofeatureflagproxy/)_                                                                                                                                                                                        |
+| **`timeout`**            | `false`   | timeout in millisecond we are waiting when calling the go-feature-flag relay proxy API. _(default: 10000)_                                                                                                                                                                                            |
+| **`maxIdleConnections`** | `false`   | maxIdleConnections is the maximum number of connexions in the connexion pool. _(default: 1000)_                                                                                                                                                                                                       |
+| **`keepAliveDuration`**  | `false`   | keepAliveDuration is the time in millisecond we keep the connexion open. _(default: 7200000 (2 hours))_                                                                                                                                                                                               |
+| **`apiKey`**             | `false`   | If the relay proxy is configured to authenticate the requests, you should provide an API Key to the provider. Please ask the administrator of the relay proxy to provide an API Key. (This feature is available only if you are using GO Feature Flag relay proxy v1.7.0 or above). _(default: null)_ |
+| **`enableCache`**        | `false`   | enable cache value. _(default: true)_                                                                                                                                                                                                                                                                 |
+| **`cacheBuilder`**       | `false`   | If cache custom configuration is wanted, you should provide a cache builder. _(default: null)_                                                                                                                                                                                                        |
+| **`flushIntervalMs`**    | `false`   | interval time we publish statistics collection data to the proxy. The parameter is used only if the cache is enabled, otherwise the collection of the data is done directly when calling the evaluation API. _(default: 1000 ms)_                                                                     |
+| **`maxPendingEvents`**   | `false`   | max pending events aggregated before publishing for collection data to the proxy. When event is added while events collection is full, event is omitted. _(default: 10000)_                                                                                                                           | 

@@ -1,14 +1,22 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.BeanUtils;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRequest;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
+import dev.openfeature.contrib.providers.gofeatureflag.events.Event;
+import dev.openfeature.contrib.providers.gofeatureflag.events.Events;
+import dev.openfeature.contrib.providers.gofeatureflag.events.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTypeInCache;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
@@ -17,6 +25,7 @@ import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
@@ -24,6 +33,9 @@ import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.ConnectionPool;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -34,29 +46,45 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 /**
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
  */
+@Slf4j
 public class GoFeatureFlagProvider implements FeatureProvider {
+    public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
+    public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
+    public static final long DEFAULT_CACHE_TTL_MS = 1000;
+    public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
+    public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
+    public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 10000;
+    protected static final String CACHED_REASON = Reason.CACHED.name();
     private static final String NAME = "GO Feature Flag Provider";
     private static final ObjectMapper requestMapper = new ObjectMapper();
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final GoFeatureFlagProviderOptions options;
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
-
     // apiKey contains the token to use while calling GO Feature Flag relay proxy
     private String apiKey;
+    @Getter(AccessLevel.PROTECTED)
+    private Cache<String, ProviderEvaluation<?>> cache;
+    @Getter(AccessLevel.PROTECTED)
+    private EventsPublisher<Event> eventsPublisher;
+    private ProviderState state = ProviderState.NOT_READY;
 
     /**
      * Constructor of the provider.
@@ -66,7 +94,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      */
     public GoFeatureFlagProvider(GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.validateInputOptions(options);
-        this.initializeProvider(options);
+        this.options = options;
     }
 
     /**
@@ -84,14 +112,93 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         if (options.getEndpoint() == null || "".equals(options.getEndpoint())) {
             throw new InvalidEndpoint("endpoint is a mandatory field when initializing the provider");
         }
+
+        if (options.getFlushIntervalMs() != null && options.getFlushIntervalMs() <= 0) {
+            throw new InvalidOptions("flushIntervalMs must be larger than 0");
+        }
+
+        if (Boolean.FALSE.equals(options.getEnableCache()) && options.getFlushIntervalMs() != null) {
+            throw new InvalidOptions("flushIntervalMs not used when cache is disabled");
+        }
+
+        if (options.getMaxPendingEvents() != null && options.getMaxPendingEvents() <= 0) {
+            throw new InvalidOptions("maxPendingEvents must be larger than 0");
+        }
     }
 
     /**
-     * initializeProvider is initializing the different class element used by the provider.
+     * buildDefaultCache is building a default cache configuration.
      *
-     * @param options - Options used while creating the provider
+     * @return the default cache configuration
      */
-    private void initializeProvider(GoFeatureFlagProviderOptions options) throws InvalidEndpoint {
+    private Cache<String, ProviderEvaluation<?>> buildDefaultCache() {
+        return CacheBuilder.newBuilder()
+                .concurrencyLevel(DEFAULT_CACHE_CONCURRENCY_LEVEL)
+                .initialCapacity(DEFAULT_CACHE_INITIAL_CAPACITY).maximumSize(DEFAULT_CACHE_MAXIMUM_SIZE)
+                .expireAfterWrite(Duration.ofMillis(DEFAULT_CACHE_TTL_MS))
+                .build();
+    }
+
+    @Override
+    public Metadata getMetadata() {
+        return () -> NAME;
+    }
+
+    @Override
+    public List<Hook> getProviderHooks() {
+        return FeatureProvider.super.getProviderHooks();
+    }
+
+    @Override
+    public ProviderEvaluation<Boolean> getBooleanEvaluation(
+            String key, Boolean defaultValue, EvaluationContext evaluationContext
+    ) {
+        return getEvaluation(key, defaultValue, evaluationContext, Boolean.class);
+    }
+
+    @Override
+    public ProviderEvaluation<String> getStringEvaluation(
+            String key, String defaultValue, EvaluationContext evaluationContext
+    ) {
+        return getEvaluation(key, defaultValue, evaluationContext, String.class);
+    }
+
+    @Override
+    public ProviderEvaluation<Integer> getIntegerEvaluation(
+            String key, Integer defaultValue, EvaluationContext evaluationContext
+    ) {
+        return getEvaluation(key, defaultValue, evaluationContext, Integer.class);
+    }
+
+    @Override
+    public ProviderEvaluation<Double> getDoubleEvaluation(
+            String key, Double defaultValue, EvaluationContext evaluationContext
+    ) {
+        return getEvaluation(key, defaultValue, evaluationContext, Double.class);
+    }
+
+    @Override
+    public ProviderEvaluation<Value> getObjectEvaluation(
+            String key, Value defaultValue, EvaluationContext evaluationContext
+    ) {
+        return getEvaluation(key, defaultValue, evaluationContext, Value.class);
+    }
+
+    /**
+     * buildCacheKey is creating the entry key of the cache.
+     *
+     * @param key     - the name of your feature flag
+     * @param userKey - a representation of your user
+     * @return the cache key
+     */
+    private String buildCacheKey(String key, String userKey) {
+        return key + "," + userKey;
+    }
+
+    @Override
+    public void initialize(EvaluationContext evaluationContext) throws Exception {
+        FeatureProvider.super.initialize(evaluationContext);
+
         // Register JavaTimeModule to be able to deserialized java.time.Instant Object
         requestMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         requestMapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -115,51 +222,110 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             throw new InvalidEndpoint();
         }
         this.apiKey = options.getApiKey();
+        boolean enableCache = options.getEnableCache() == null || options.getEnableCache();
+        if (enableCache) {
+            if (options.getCacheBuilder() != null) {
+                this.cache = options.getCacheBuilder().build();
+            } else {
+                this.cache = buildDefaultCache();
+            }
+            long flushIntervalMs = options.getFlushIntervalMs() == null
+                    ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
+            int maxPendingEvents = options.getMaxPendingEvents() == null
+                    ? DEFAULT_MAX_PENDING_EVENTS : options.getMaxPendingEvents();
+            Consumer<List<Event>> publisher = this::publishEvents;
+            eventsPublisher = new EventsPublisher<>(publisher, flushIntervalMs, maxPendingEvents);
+        }
+        state = ProviderState.READY;
+        log.info("finishing initializing provider, state: {}", state);
     }
 
     @Override
-    public Metadata getMetadata() {
-        return () -> NAME;
+    public ProviderState getState() {
+        return state;
     }
 
-    @Override
-    public List<Hook> getProviderHooks() {
-        return FeatureProvider.super.getProviderHooks();
+    /**
+     * getEvaluation is the function resolving the flag, it will 1st check in the cache and if it is not available
+     * will call the evaluation endpoint to get the value of the flag.
+     *
+     * @param key               - name of the feature flag
+     * @param defaultValue      - value used if something is not working as expected
+     * @param evaluationContext - EvaluationContext used for the request
+     * @param expectedType      - type expected for the value
+     * @param <T>               the type of your evaluation
+     * @return a ProviderEvaluation that contains the open-feature response
+     */
+    @SuppressWarnings("unchecked")
+    private <T> ProviderEvaluation<T> getEvaluation(
+            String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType) {
+        GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
+        try {
+            if (!ProviderState.READY.equals(state)) {
+                ErrorCode errorCode = ErrorCode.PROVIDER_NOT_READY;
+                if (ProviderState.ERROR.equals(state)) {
+                    errorCode = ErrorCode.GENERAL;
+                }
+                return ProviderEvaluation.<T>builder()
+                        .errorCode(errorCode)
+                        .reason(errorCode.name())
+                        .value(defaultValue)
+                        .build();
+            }
+
+            if (cache == null) {
+                return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType)
+                        .getProviderEvaluation();
+            }
+
+            String cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
+            ProviderEvaluation<?> cachedProviderEvaluation = cache.getIfPresent(cacheKey);
+            if (cachedProviderEvaluation == null) {
+                EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(
+                        key, defaultValue, user, expectedType);
+                if (Boolean.TRUE.equals(proxyRes.getCachable())) {
+                    cache.put(cacheKey, proxyRes.getProviderEvaluation());
+                }
+                return proxyRes.getProviderEvaluation();
+            }
+            cachedProviderEvaluation.setReason(CACHED_REASON);
+            addCacheEvaluationEvent(key, defaultValue, user, cachedProviderEvaluation);
+
+            if (cachedProviderEvaluation.getValue().getClass() != expectedType) {
+                throw new InvalidTypeInCache(expectedType, cachedProviderEvaluation.getValue().getClass());
+            }
+            return (ProviderEvaluation<T>) cachedProviderEvaluation;
+        } catch (JsonProcessingException e) {
+            log.error("Error building key for user", e);
+            return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
+        } catch (InvalidTypeInCache e) {
+            log.warn(e.getMessage(), e);
+            return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
+        }
     }
 
-    @Override
-    public ProviderEvaluation<Boolean> getBooleanEvaluation(
-            String key, Boolean defaultValue, EvaluationContext evaluationContext
-    ) {
-        return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Boolean.class);
-    }
-
-    @Override
-    public ProviderEvaluation<String> getStringEvaluation(
-            String key, String defaultValue, EvaluationContext evaluationContext
-    ) {
-        return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, String.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Integer> getIntegerEvaluation(
-            String key, Integer defaultValue, EvaluationContext evaluationContext
-    ) {
-        return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Integer.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Double> getDoubleEvaluation(
-            String key, Double defaultValue, EvaluationContext evaluationContext
-    ) {
-        return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Double.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Value> getObjectEvaluation(
-            String key, Value defaultValue, EvaluationContext evaluationContext
-    ) {
-        return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, evaluationContext, Value.class);
+    /**
+     * addCacheEvaluationEvent is adding an event to the list of event to send to GO Feature Flag.
+     *
+     * @param key                - name of the feature flag
+     * @param defaultValue       - value used if something is not working as expected
+     * @param user               - user (containing EvaluationContext) used for the request
+     * @param providerEvaluation - object containing the evaluation response for openfeature
+     * @param <T>                the type of your evaluation
+     */
+    private <T> void addCacheEvaluationEvent(String key, T defaultValue, GoFeatureFlagUser user,
+                                             ProviderEvaluation<?> providerEvaluation) {
+        eventsPublisher.add(Event.builder()
+                .key(key)
+                .kind("feature")
+                .contextKind(user.isAnonymous() ? "anonymousUser" : "user")
+                .defaultValue(defaultValue)
+                .variation(providerEvaluation.getVariant())
+                .value(providerEvaluation.getValue())
+                .userKey(user.getKey())
+                .creationDate(System.currentTimeMillis())
+                .build()
+        );
     }
 
     /**
@@ -167,17 +333,16 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      *
      * @param key          - name of the feature flag
      * @param defaultValue - value used if something is not working as expected
-     * @param ctx          - EvaluationContext used for the request
+     * @param user         - user (containing EvaluationContext) used for the request
      * @param expectedType - type expected for the value
      * @return a ProviderEvaluation that contains the open-feature response
      * @throws OpenFeatureError - if an error happen
      */
-    private <T> ProviderEvaluation<T> resolveEvaluationGoFeatureFlagProxy(
-            String key, T defaultValue, EvaluationContext ctx, Class<?> expectedType
+    private <T> EvaluationResponse<T> resolveEvaluationGoFeatureFlagProxy(
+            String key, T defaultValue, GoFeatureFlagUser user, Class<?> expectedType
     ) throws OpenFeatureError {
         try {
-            GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(ctx);
-            GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<T>(user, defaultValue);
+            GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<>(user, defaultValue);
 
             HttpUrl url = this.parsedEndpoint.newBuilder()
                     .addEncodedPathSegment("v1")
@@ -213,10 +378,13 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
                     // we don't set a variant since we are using the default value, and we are not able to know
                     // which variant it is.
-                    return ProviderEvaluation.<T>builder()
+                    ProviderEvaluation<T> providerEvaluation = ProviderEvaluation.<T>builder()
                             .value(defaultValue)
                             .variant(goffResp.getVariationType())
                             .reason(Reason.DISABLED.name()).build();
+
+                    return EvaluationResponse.<T>builder()
+                            .providerEvaluation(providerEvaluation).cachable(goffResp.getCacheable()).build();
                 }
 
                 if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {
@@ -231,7 +399,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                             + flagValue.getClass() + ", expected " + expectedType + ".");
                 }
 
-                return ProviderEvaluation.<T>builder()
+                ProviderEvaluation<T> providerEvaluation = ProviderEvaluation.<T>builder()
                         .errorCode(mapErrorCode(goffResp.getErrorCode()))
                         .reason(goffResp.getReason())
                         .value(flagValue)
@@ -239,6 +407,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                         .flagMetadata(this.convertFlagMetadata(goffResp.getMetadata()))
                         .build();
 
+                return EvaluationResponse.<T>builder()
+                        .providerEvaluation(providerEvaluation).cachable(goffResp.getCacheable()).build();
             }
         } catch (IOException e) {
             throw new GeneralError("unknown error while retrieving flag " + key, e);
@@ -350,5 +520,61 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 map.entrySet().stream()
                         .filter(e -> e.getValue() != null)
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
+    }
+
+    /**
+     * publishEvents is calling the GO Feature Flag data/collector api to store the flag usage for analytics.
+     *
+     * @param eventsList - list of the event to send to GO Feature Flag
+     */
+    private void publishEvents(List<Event> eventsList) {
+        try {
+            Events events = new Events(eventsList);
+            HttpUrl url = this.parsedEndpoint.newBuilder()
+                    .addEncodedPathSegment("v1")
+                    .addEncodedPathSegment("data")
+                    .addEncodedPathSegment("collector")
+                    .build();
+
+            Request.Builder reqBuilder = new Request.Builder()
+                    .url(url)
+                    .addHeader("Content-Type", "application/json")
+                    .post(RequestBody.create(
+                            requestMapper.writeValueAsBytes(events),
+                            MediaType.get("application/json; charset=utf-8")));
+
+            if (this.apiKey != null && !"".equals(this.apiKey)) {
+                reqBuilder.addHeader("Authorization", "Bearer " + this.apiKey);
+            }
+
+            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
+                if (response.code() == HTTP_UNAUTHORIZED) {
+                    throw new GeneralError("Unauthorized");
+                }
+                if (response.code() >= HTTP_BAD_REQUEST) {
+                    throw new GeneralError("Bad request: " + response.body());
+                }
+
+                if (response.code() == HTTP_OK) {
+                    log.info("Published {} events successfully: {}", eventsList.size(), response.body());
+                }
+            } catch (IOException e) {
+                throw new GeneralError("Impossible to send the usage data to GO Feature Flag", e);
+            }
+        } catch (JsonProcessingException e) {
+            throw new GeneralError("Impossible to convert data collector events", e);
+        }
+    }
+
+    @Override
+    public void shutdown() {
+        log.info("shutdown");
+        try {
+            if (eventsPublisher != null) {
+                eventsPublisher.shutdown();
+            }
+        } catch (Exception e) {
+            log.error("error publishing events on shutdown", e);
+        }
     }
 }
