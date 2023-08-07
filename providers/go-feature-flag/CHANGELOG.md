@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.10...dev.openfeature.contrib.providers.go-feature-flag-v0.2.11) (2023-08-07)
+
+
+### Features
+
+* ISSUE-658 go-feature-flag sdk - add cache ([#369](https://github.com/open-feature/java-sdk-contrib/issues/369)) ([5e6f4a1](https://github.com/open-feature/java-sdk-contrib/commit/5e6f4a15e3db0250593ba8a93f244161a399efe6))
+
 ## [0.2.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.9...dev.openfeature.contrib.providers.go-feature-flag-v0.2.10) (2023-08-02)
 
 
