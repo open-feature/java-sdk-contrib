@@ -305,7 +305,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         return res;
     }
 
-    private <T> void addCacheEvaluationEvent(String key, T defaultValue, GoFeatureFlagUser user, ProviderEvaluation<?> res) {
+    private <T> void addCacheEvaluationEvent(String key, T defaultValue, GoFeatureFlagUser user,
+                 ProviderEvaluation<?> res) {
         eventsPublisher.add(Event.builder()
             .key(key)
             .kind("feature")
