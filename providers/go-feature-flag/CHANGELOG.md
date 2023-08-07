@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.9...dev.openfeature.contrib.providers.go-feature-flag-v0.2.10) (2023-08-02)
+
+
+### Features
+
+* [go-feature-flag] Support flag metadata ([#367](https://github.com/open-feature/java-sdk-contrib/issues/367)) ([557074e](https://github.com/open-feature/java-sdk-contrib/commit/557074ef6a6bfea1be34fdcc4b055440eca49b17))
+
 ## [0.2.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.8...dev.openfeature.contrib.providers.go-feature-flag-v0.2.9) (2023-05-31)
 
 

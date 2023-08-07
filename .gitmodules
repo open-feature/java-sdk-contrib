@@ -1,3 +1,6 @@
 [submodule "providers/flagd/schemas"]
 	path = providers/flagd/schemas
 	url = https://github.com/open-feature/schemas.git
+[submodule "providers/flagd/test-harness"]
+	path = providers/flagd/test-harness
+	url = https://github.com/open-feature/test-harness.git

@@ -1,6 +1,12 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import com.google.protobuf.Struct;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.cache.CacheType;
+import dev.openfeature.contrib.providers.flagd.grpc.FlagResolution;
+import dev.openfeature.contrib.providers.flagd.grpc.GrpcConnector;
+import dev.openfeature.contrib.providers.flagd.strategy.ResolveStrategy;
+import dev.openfeature.contrib.providers.flagd.strategy.SimpleResolving;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
@@ -13,6 +19,7 @@ import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.OpenFeatureAPI;
@@ -25,19 +32,18 @@ import io.grpc.Deadline;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.unix.DomainSocketAddress;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
 import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
@@ -45,182 +51,48 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FlagdProviderTest {
+    private static final String FLAG_KEY = "some-key";
+    private static final String FLAG_KEY_BOOLEAN = "some-key-boolean";
+    private static final String FLAG_KEY_INTEGER = "some-key-integer";
+    private static final String FLAG_KEY_DOUBLE = "some-key-double";
+    private static final String FLAG_KEY_STRING = "some-key-string";
+    private static final String FLAG_KEY_OBJECT = "some-key-object";
+    private static final String BOOL_VARIANT = "on";
+    private static final String DOUBLE_VARIANT = "half";
+    private static final String INT_VARIANT = "one-hundred";
+    private static final String STRING_VARIANT = "greeting";
+    private static final String OBJECT_VARIANT = "obj";
+    private static final Reason DEFAULT = Reason.DEFAULT;
+    private static final Integer INT_VALUE = 100;
+    private static final Double DOUBLE_VALUE = .5d;
+    private static final String INNER_STRUCT_KEY = "inner_key";
+    private static final String INNER_STRUCT_VALUE = "inner_value";
+    private static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE =
+            Struct.newBuilder().putFields(INNER_STRUCT_KEY,
+                            com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE).build())
+                    .build();
+    private static final String STRING_VALUE = "hi!";
+    private final ResolveStrategy strategy = new SimpleResolving();
 
-    static final String FLAG_KEY = "some-key";
-    static final String FLAG_KEY_BOOLEAN = "some-key-boolean";
-    static final String FLAG_KEY_INTEGER = "some-key-integer";
-    static final String FLAG_KEY_DOUBLE = "some-key-double";
-    static final String FLAG_KEY_STRING = "some-key-string";
-    static final String FLAG_KEY_OBJECT = "some-key-object";
-    static final String BOOL_VARIANT = "on";
-    static final String DOUBLE_VARIANT = "half";
-    static final String INT_VARIANT = "one-hundred";
-    static final String STRING_VARIANT = "greeting";
-    static final String OBJECT_VARIANT = "obj";
-    static final Reason DEFAULT = Reason.DEFAULT;
-    static final Integer INT_VALUE = 100;
-    static final Double DOUBLE_VALUE = .5d;
-    static final String INNER_STRUCT_KEY = "inner_key";
-    static final String INNER_STRUCT_VALUE = "inner_value";
-    static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE = com.google.protobuf.Struct.newBuilder()
-            .putFields(INNER_STRUCT_KEY,
-                    com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE).build())
-            .build();
-    static final String STRING_VALUE = "hi!";
-
-    static OpenFeatureAPI api;
+    private static OpenFeatureAPI api;
+    private Cache cache;
 
     @BeforeAll
     public static void init() {
         api = OpenFeatureAPI.getInstance();
     }
 
-    @Test
-    void path_arg_should_build_domain_socket_with_correct_path() {
-        final String path = "/some/path";
-
-        ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
-        ServiceStub mockStub = mock(ServiceStub.class);
-        NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
-
-        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                    .thenReturn(mockBlockingStub);
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(mockStub);
-
-            try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
-
-                try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup = mockConstruction(
-                        EpollEventLoopGroup.class,
-                        (mock, context) -> {
-                        })) {
-                    when(NettyChannelBuilder.forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
-
-                    new FlagdProvider(FlagdOptions.builder().socketPath(path).build());
-
-                    // verify path matches
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                            .forAddress(argThat((DomainSocketAddress d) -> {
-                                assertEquals(d.path(), path); // path should match
-                                return true;
-                            })), times(1));
-                }
-            }
-        }
-    }
-
-    @Test
-    void no_args_socket_env_should_build_domain_socket_with_correct_path() throws Exception {
-        final String path = "/some/other/path";
-
-        new EnvironmentVariables("FLAGD_SOCKET_PATH", path).execute(() -> {
-
-            ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
-            ServiceStub mockStub = mock(ServiceStub.class);
-            NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
-
-            try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                        .thenReturn(mockBlockingStub);
-                mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                        .thenReturn(mockStub);
-
-                try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(
-                        NettyChannelBuilder.class)) {
-
-                    try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup = mockConstruction(
-                            EpollEventLoopGroup.class,
-                            (mock, context) -> {
-                            })) {
-                        mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                                .forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
-
-                        new FlagdProvider();
-
-                        //verify path matches & called times(= 1 as we rely on reusable channel)
-                        mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                                .forAddress(argThat((DomainSocketAddress d) -> {
-                                    return d.path() == path;
-                                })), times(1));
-                    }
-                }
-            }
-        });
-    }
-
-    @Test
-    void host_and_port_arg_should_build_tcp_socket() {
-        final String host = "host.com";
-        final int port = 1234;
-
-        ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
-        ServiceStub mockStub = mock(ServiceStub.class);
-        NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
-
-        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                    .thenReturn(mockBlockingStub);
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(mockStub);
-
-            try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
-
-                mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                        .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
-
-                final FlagdOptions flagdOptions = FlagdOptions.builder().host(host).port(port).tls(false).build();
-                new FlagdProvider(flagdOptions);
-
-                // verify host/port matches
-                mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                        .forAddress(host, port), times(1));
-            }
-        }
-    }
-
-    @Test
-    void no_args_host_and_port_env_set_should_build_tcp_socket() throws Exception {
-        final String host = "server.com";
-        final int port = 4321;
-
-        new EnvironmentVariables("FLAGD_HOST", host, "FLAGD_PORT", String.valueOf(port)).execute(() -> {
-            ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
-            ServiceStub mockStub = mock(ServiceStub.class);
-            NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
-    
-            try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                        .thenReturn(mockBlockingStub);
-                mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                        .thenReturn(mockStub);
-
-                try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(
-                        NettyChannelBuilder.class)) {
-
-                    mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                            .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
-
-                    new FlagdProvider();
-
-                    // verify host/port matches & called times(= 1 as we rely on reusable channel)
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.
-                            forAddress(host, port), times(1));
-                }
-            }
-        });
+    @BeforeEach
+    void setUp() {
+        cache = new Cache(CacheType.LRU, 5);
     }
 
     @Test
@@ -256,7 +128,7 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
+
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -270,8 +142,10 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
-        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru",
-            100, 5 ));
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+
+        OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
         assertTrue(booleanDetails.getValue());
@@ -298,6 +172,14 @@ class FlagdProviderTest {
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT.toString(), objectDetails.getReason());
+    }
+
+    private FlagdProvider createProvider(GrpcConnector grpc) {
+        return createProvider(grpc, () -> ProviderState.READY);
+    }
+
+    private FlagdProvider createProvider(GrpcConnector grpc, Supplier<ProviderState> getState) {
+        return new FlagdProvider(strategy, cache, grpc, new FlagResolution(cache, strategy, getState));
     }
 
     @Test
@@ -342,8 +224,10 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
-        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru",
-            100, 5 ));
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+
+        OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
         assertEquals(false, booleanDetails.getValue());
@@ -369,6 +253,53 @@ class FlagdProviderTest {
         assertEquals(new MutableStructure(), objectDetails.getValue().asObject());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT.toString(), objectDetails.getReason());
+    }
+
+    @Test
+    void test_metadata_from_grpc_response() {
+        // given
+        final Map<String, com.google.protobuf.Value> metadataInput = new HashMap<>();
+
+        com.google.protobuf.Value scope = com.google.protobuf.Value.newBuilder().setStringValue("flagd-scope").build();
+        metadataInput.put("scope", scope);
+
+        com.google.protobuf.Value bool = com.google.protobuf.Value.newBuilder().setBoolValue(true).build();
+        metadataInput.put("boolean", bool);
+
+        com.google.protobuf.Value number = com.google.protobuf.Value.newBuilder().setNumberValue(1).build();
+        metadataInput.put("number", number);
+
+        final Struct metadataStruct = Struct.newBuilder().putAllFields(metadataInput).build();
+
+        ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
+                .setValue(true)
+                .setVariant(BOOL_VARIANT)
+                .setReason(DEFAULT.toString())
+                .setMetadata(metadataStruct)
+                .build();
+
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        ServiceStub serviceStubMock = mock(ServiceStub.class);
+
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(
+                serviceBlockingStubMock);
+        when(serviceBlockingStubMock
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
+
+        // when
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+
+        // then
+        final ImmutableMetadata metadata = booleanDetails.getFlagMetadata();
+
+        assertEquals("flagd-scope", metadata.getString("scope"));
+        assertEquals(true, metadata.getBoolean("boolean"));
+        assertEquals(1, metadata.getDouble("number"));
     }
 
     @Test
@@ -425,15 +356,17 @@ class FlagdProviderTest {
                         && INT_ATTR_VALUE == x.getContext().getFieldsMap().get(INT_ATTR_KEY).getNumberValue()
                         && DOUBLE_ATTR_VALUE == x.getContext().getFieldsMap().get(DOUBLE_ATTR_KEY).getNumberValue()
                         && LIST_ATTR_VALUE.get(0).asInteger() == x.getContext().getFieldsMap()
-                                .get(LIST_ATTR_KEY).getListValue().getValuesList().get(0).getNumberValue()
+                        .get(LIST_ATTR_KEY).getListValue().getValuesList().get(0).getNumberValue()
                         && x.getContext().getFieldsMap().get(BOOLEAN_ATTR_KEY).getBoolValue()
                         && STRUCT_ATTR_INNER_VALUE.equals(x.getContext().getFieldsMap()
-                                .get(STRUCT_ATTR_KEY).getStructValue().getFieldsMap().get(STRUCT_ATTR_INNER_KEY)
-                                .getStringValue()))))
+                        .get(STRUCT_ATTR_KEY).getStructValue().getFieldsMap().get(STRUCT_ATTR_INNER_KEY)
+                        .getStringValue()))))
                 .thenReturn(booleanResponse);
 
-        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru",
-        100, 5));
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+
+        OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
 
         MutableContext context = new MutableContext();
         context.add(BOOLEAN_ATTR_KEY, BOOLEAN_ATTR_VALUE);
@@ -450,8 +383,8 @@ class FlagdProviderTest {
     }
 
     @Test
-    // Validates null handling - https://github.com/open-feature/java-sdk-contrib/issues/258
-    void null_context_handling(){
+        // Validates null handling - https://github.com/open-feature/java-sdk-contrib/issues/258
+    void null_context_handling() {
         // given
         final String flagA = "flagA";
         final boolean defaultVariant = false;
@@ -469,8 +402,10 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.resolveBoolean(any()))
                 .thenReturn(ResolveBooleanResponse.newBuilder().setValue(expectedVariant).build());
 
-        OpenFeatureAPI.getInstance()
-                .setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 10, 1));
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+
+        OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
 
         // then
         final Boolean evaluation = api.getClient().getBooleanValue(flagA, defaultVariant, context);
@@ -479,28 +414,6 @@ class FlagdProviderTest {
         assertEquals(evaluation, expectedVariant);
     }
 
-    @Test
-    void set_deadline_deadline_send_in_grpc() {
-        long deadline = 1300;
-
-        ResolveBooleanResponse badReasonResponse = ResolveBooleanResponse.newBuilder()
-                .setValue(true)
-                .build();
-
-        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
-        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
-                        .thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class))).thenReturn(badReasonResponse);
-
-        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
-        provider.setDeadline(deadline);
-        OpenFeatureAPI.getInstance().setProvider(provider);
-
-
-        api.getClient().getBooleanDetails(FLAG_KEY, false, new MutableContext());
-        verify(serviceBlockingStubMock).withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
-    }
 
     @Test
     void reason_mapped_correctly_if_unknown() {
@@ -513,10 +426,13 @@ class FlagdProviderTest {
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
         ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
-                        .thenReturn(serviceBlockingStubMock);
+                .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class))).thenReturn(badReasonResponse);
 
-        OpenFeatureAPI.getInstance().setProvider(new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5));
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+
+        OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient()
                 .getBooleanDetails(FLAG_KEY, false, new MutableContext());
@@ -578,12 +494,24 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
-        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
+        GrpcConnector grpc;
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+                    .thenReturn(serviceBlockingStubMock);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
+                    .thenReturn(serviceStubMock);
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
+            });
+        }
+
+        FlagdProvider provider = createProvider(grpc);
+
         provider.initialize(null);
-        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
+        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
+                ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
-        provider.setState(ProviderState.READY);
+        //provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
@@ -602,13 +530,13 @@ class FlagdProviderTest {
                 .setType("configuration_change")
                 .setData(Struct.newBuilder().putAllFields(structMap).build())
                 .build();
-        
+
         // should cache results
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
-        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
-        FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
-        FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
-        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+        FlagEvaluationDetails<Boolean> booleanDetails;
+        FlagEvaluationDetails<String> stringDetails;
+        FlagEvaluationDetails<Integer> intDetails;
+        FlagEvaluationDetails<Double> floatDetails;
+        FlagEvaluationDetails<Value> objectDetails;
 
         // should clear cache
         streamObserverCaptor.getValue().onNext(eResponse);
@@ -687,7 +615,6 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -701,12 +628,15 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
-        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, "lru", 100, 5);
-        provider.setState(eventStreamAlive); // caching only available when event stream is alive
+        GrpcConnector grpc = mock(GrpcConnector.class);
+        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        FlagdProvider provider = createProvider(grpc, () -> eventStreamAlive);
+        //provider.setState(eventStreamAlive); // caching only available when event stream is alive
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
-        booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false); // should retrieve from cache on second invocation
+        booleanDetails = api.getClient()
+                .getBooleanDetails(FLAG_KEY_BOOLEAN, false); // should retrieve from cache on second invocation
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(expectedReason, booleanDetails.getReason());
@@ -736,7 +666,7 @@ class FlagdProviderTest {
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(expectedReason, objectDetails.getReason());
     }
-    
+
     @Test
     void disabled_cache() throws Exception {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
@@ -791,18 +721,31 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
-        FlagdProvider provider = new FlagdProvider(serviceBlockingStubMock, serviceStubMock, null, 0, 1);
+        GrpcConnector grpc;
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+                    .thenReturn(serviceBlockingStubMock);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
+                    .thenReturn(serviceStubMock);
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
+            });
+        }
+        // disable cache
+        cache = new Cache(null, 0);
+        FlagdProvider provider = createProvider(grpc);
         provider.initialize(null);
-        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor = ArgumentCaptor.forClass(StreamObserver.class);
+        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
+                ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
-        provider.setState(ProviderState.READY);
+        //provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
         HashMap<String, com.google.protobuf.Value> structMap = new HashMap<String, com.google.protobuf.Value>();
 
-        flagsMap.put("foo", com.google.protobuf.Value.newBuilder().setStringValue("foo").build()); // assert that a configuration_change event works
+        flagsMap.put("foo", com.google.protobuf.Value.newBuilder().setStringValue("foo")
+                .build()); // assert that a configuration_change event works
 
         structMap.put("flags", com.google.protobuf.Value.newBuilder().
                 setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
@@ -811,7 +754,7 @@ class FlagdProviderTest {
                 .setType("configuration_change")
                 .setData(Struct.newBuilder().putAllFields(structMap).build())
                 .build();
-        
+
         // should not cache results
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
         FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");

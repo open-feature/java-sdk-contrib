@@ -1,6 +1,9 @@
 package dev.openfeature.contrib.providers.flagd;
 
-final class Config {
+/**
+ * Helper class to hold configuration default values.
+ */
+public final class Config {
     static final String DEFAULT_PORT = "8013";
     static final String DEFAULT_TLS = "false";
     static final String DEFAULT_HOST = "localhost";
@@ -16,17 +19,20 @@ final class Config {
     static final String CACHE_ENV_VAR_NAME = "FLAGD_CACHE";
     static final String MAX_CACHE_SIZE_ENV_VAR_NAME = "FLAGD_MAX_CACHE_SIZE";
     static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
+    static final String BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME = "FLAGD_RETRY_BACKOFF_MS";
+    static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
 
-    static final String STATIC_REASON = "STATIC";
-    static final String CACHED_REASON = "CACHED";
+    public static final String STATIC_REASON = "STATIC";
+    public static final String CACHED_REASON = "CACHED";
 
-    static final String FLAG_KEY_FIELD = "flag_key";
-    static final String CONTEXT_FIELD = "context";
-    static final String VARIANT_FIELD = "variant";
-    static final String VALUE_FIELD = "value";
-    static final String REASON_FIELD = "reason";
+    public static final String FLAG_KEY_FIELD = "flag_key";
+    public static final String CONTEXT_FIELD = "context";
+    public static final String VARIANT_FIELD = "variant";
+    public static final String VALUE_FIELD = "value";
+    public static final String REASON_FIELD = "reason";
+    public static final String METADATA_FIELD = "metadata";
 
-    static final String LRU_CACHE = "lru";
+    public static final String LRU_CACHE = "lru";
     static final String DEFAULT_CACHE = LRU_CACHE;
 
     static final int DEFAULT_MAX_EVENT_STREAM_RETRIES = 5;

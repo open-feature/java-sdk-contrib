@@ -11,6 +11,13 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
+    services:
+      # flagd-testbed for flagd-provider e2e tests
+      flagd:
+        image: ghcr.io/open-feature/flagd-testbed:latest
+        ports:
+          - 8013:8013
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3
@@ -31,4 +38,4 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Maven Verify
-        run: mvn --batch-mode clean verify
+        run: mvn --batch-mode --activate-profiles e2e clean verify
