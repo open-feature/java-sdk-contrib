@@ -16,6 +16,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.events.Events;
 import dev.openfeature.contrib.providers.gofeatureflag.events.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTypeInCache;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
@@ -255,68 +256,74 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      * @param <T>               the type of your evaluation
      * @return a ProviderEvaluation that contains the open-feature response
      */
+    @SuppressWarnings("unchecked")
     private <T> ProviderEvaluation<T> getEvaluation(
             String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType) {
-        if (!ProviderState.READY.equals(state)) {
-            ErrorCode errorCode = ErrorCode.PROVIDER_NOT_READY;
-            if (ProviderState.ERROR.equals(state)) {
-                errorCode = ErrorCode.GENERAL;
-            }
-            return ProviderEvaluation.<T>builder()
-                .errorCode(errorCode)
-                .reason(errorCode.name())
-                .value(defaultValue)
-                .build();
-        }
-        ProviderEvaluation<T> res;
         GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
-        if (cache == null) {
-            EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType);
-            res = proxyRes.getProviderEvaluation();
-        } else {
-            res = getProviderEvaluationWithCheckCache(key, defaultValue, expectedType, user);
-        }
-        return res;
-    }
-
-    private <T> ProviderEvaluation getProviderEvaluationWithCheckCache(
-            String key, T defaultValue, Class<?> expectedType, GoFeatureFlagUser user) {
-        ProviderEvaluation<?> res;
         try {
+            if (!ProviderState.READY.equals(state)) {
+                ErrorCode errorCode = ErrorCode.PROVIDER_NOT_READY;
+                if (ProviderState.ERROR.equals(state)) {
+                    errorCode = ErrorCode.GENERAL;
+                }
+                return ProviderEvaluation.<T>builder()
+                        .errorCode(errorCode)
+                        .reason(errorCode.name())
+                        .value(defaultValue)
+                        .build();
+            }
+
+            if (cache == null) {
+                return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
+            }
+
             String cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
-            res = cache.getIfPresent(cacheKey);
-            if (res == null) {
+            ProviderEvaluation<?> cachedProviderEvaluation = cache.getIfPresent(cacheKey);
+            if (cachedProviderEvaluation == null) {
                 EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(
-                    key, defaultValue, user, expectedType);
+                        key, defaultValue, user, expectedType);
                 if (Boolean.TRUE.equals(proxyRes.getCachable())) {
                     cache.put(cacheKey, proxyRes.getProviderEvaluation());
                 }
-                res = proxyRes.getProviderEvaluation();
-            } else {
-                res.setReason(CACHED_REASON);
-                addCacheEvaluationEvent(key, defaultValue, user, res);
+                return proxyRes.getProviderEvaluation();
             }
+            cachedProviderEvaluation.setReason(CACHED_REASON);
+            addCacheEvaluationEvent(key, defaultValue, user, cachedProviderEvaluation);
+
+            if (cachedProviderEvaluation.getValue().getClass() != expectedType) {
+                throw new InvalidTypeInCache(expectedType, cachedProviderEvaluation.getValue().getClass());
+            }
+            return (ProviderEvaluation<T>) cachedProviderEvaluation;
         } catch (JsonProcessingException e) {
             log.error("Error building key for user", e);
-            EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(
-                key, defaultValue, user, expectedType);
-            res = proxyRes.getProviderEvaluation();
+            return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
+        } catch (InvalidTypeInCache e) {
+            log.warn(e.getMessage(), e);
+            return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
         }
-        return res;
     }
 
+    /**
+     * addCacheEvaluationEvent is adding an event to the list of event to send to GO Feature Flag.
+     *
+     * @param key                - name of the feature flag
+     * @param defaultValue       - value used if something is not working as expected
+     * @param user               - user (containing EvaluationContext) used for the request
+     * @param providerEvaluation - object containing the evaluation response for openfeature
+     * @param <T>                the type of your evaluation
+     */
     private <T> void addCacheEvaluationEvent(String key, T defaultValue, GoFeatureFlagUser user,
-                 ProviderEvaluation<?> res) {
+                                             ProviderEvaluation<?> providerEvaluation) {
         eventsPublisher.add(Event.builder()
-            .key(key)
-            .kind("feature")
-            .contextKind(user.isAnonymous() ? "anonymousUser" : "user")
-            .defaultValue(defaultValue)
-            .variation(res.getVariant())
-            .value(res.getValue())
-            .userKey(user.getKey())
-            .creationDate(System.currentTimeMillis())
-            .build()
+                .key(key)
+                .kind("feature")
+                .contextKind(user.isAnonymous() ? "anonymousUser" : "user")
+                .defaultValue(defaultValue)
+                .variation(providerEvaluation.getVariant())
+                .value(providerEvaluation.getValue())
+                .userKey(user.getKey())
+                .creationDate(System.currentTimeMillis())
+                .build()
         );
     }
 
@@ -529,11 +536,11 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                     .build();
 
             Request.Builder reqBuilder = new Request.Builder()
-                .url(url)
-                .addHeader("Content-Type", "application/json")
-                .post(RequestBody.create(
-                    requestMapper.writeValueAsBytes(events),
-                    MediaType.get("application/json; charset=utf-8")));
+                    .url(url)
+                    .addHeader("Content-Type", "application/json")
+                    .post(RequestBody.create(
+                            requestMapper.writeValueAsBytes(events),
+                            MediaType.get("application/json; charset=utf-8")));
 
             if (this.apiKey != null && !"".equals(this.apiKey)) {
                 reqBuilder.addHeader("Authorization", "Bearer " + this.apiKey);
