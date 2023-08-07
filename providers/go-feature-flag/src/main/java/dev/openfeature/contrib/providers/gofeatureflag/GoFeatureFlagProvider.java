@@ -274,7 +274,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             }
 
             if (cache == null) {
-                return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
+                return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType)
+                        .getProviderEvaluation();
             }
 
             String cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
