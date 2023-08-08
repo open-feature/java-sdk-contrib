@@ -111,7 +111,7 @@ OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 api.addHooks(new MetricsHook(openTelemetry, customDimensions));
 ```
 
-Alternatively, you can wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `TracesHookOptions.dimensionExtractor`.
+Alternatively, you can wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `TracesHookOptions.attributeSetter`.
 
 ```java
 final OpenTelemetry openTelemetry = ... // OpenTelemetry API instance
