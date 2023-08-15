@@ -83,17 +83,12 @@ class FlagdProviderTest {
     private final ResolveStrategy strategy = new SimpleResolving();
 
     private static OpenFeatureAPI api;
-    private Cache cache;
 
     @BeforeAll
     public static void init() {
         api = OpenFeatureAPI.getInstance();
     }
 
-    @BeforeEach
-    void setUp() {
-        cache = new Cache(CacheType.LRU, 5);
-    }
 
     @Test
     void resolvers_call_grpc_service_and_return_details() {
@@ -179,7 +174,8 @@ class FlagdProviderTest {
     }
 
     private FlagdProvider createProvider(GrpcConnector grpc, Supplier<ProviderState> getState) {
-        return new FlagdProvider(strategy, cache, grpc, new FlagResolution(cache, strategy, getState));
+        final Cache cache = new Cache(CacheType.LRU, 5);
+        return new FlagdProvider(strategy, grpc, new FlagResolution(cache, strategy, getState));
     }
 
     @Test
@@ -382,8 +378,8 @@ class FlagdProviderTest {
         assertEquals(DEFAULT.toString(), booleanDetails.getReason());
     }
 
+    // Validates null handling - https://github.com/open-feature/java-sdk-contrib/issues/258
     @Test
-        // Validates null handling - https://github.com/open-feature/java-sdk-contrib/issues/258
     void null_context_handling() {
         // given
         final String flagA = "flagA";
@@ -500,6 +496,8 @@ class FlagdProviderTest {
                     .thenReturn(serviceBlockingStubMock);
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(serviceStubMock);
+
+            final Cache cache = new Cache(CacheType.LRU, 5);
             grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
             });
         }
@@ -567,15 +565,6 @@ class FlagdProviderTest {
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(STATIC_REASON, objectDetails.getReason());
-    }
-
-    private NettyChannelBuilder getMockChannelBuilderSocket() {
-        NettyChannelBuilder mockChannelBuilder = mock(NettyChannelBuilder.class);
-        when(mockChannelBuilder.eventLoopGroup(any(EventLoopGroup.class))).thenReturn(mockChannelBuilder);
-        when(mockChannelBuilder.channelType(any(Class.class))).thenReturn(mockChannelBuilder);
-        when(mockChannelBuilder.usePlaintext()).thenReturn(mockChannelBuilder);
-        when(mockChannelBuilder.build()).thenReturn(null);
-        return mockChannelBuilder;
     }
 
     private void do_resolvers_cache_responses(String reason, ProviderState eventStreamAlive, Boolean shouldCache) {
@@ -668,7 +657,7 @@ class FlagdProviderTest {
     }
 
     @Test
-    void disabled_cache() throws Exception {
+    void disabled_cache() {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
@@ -727,22 +716,25 @@ class FlagdProviderTest {
                     .thenReturn(serviceBlockingStubMock);
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(serviceStubMock);
-            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
-            });
+
+            // disabled cache
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), new Cache(null, 0), state -> {});
         }
-        // disable cache
-        cache = new Cache(null, 0);
-        FlagdProvider provider = createProvider(grpc);
+
+        final Cache cache = new Cache(CacheType.DISABLED, 0);
+        final FlagdProvider provider =
+                new FlagdProvider(strategy, grpc, new FlagResolution(cache, strategy, () -> ProviderState.READY));
+
         provider.initialize(null);
+
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
                 ArgumentCaptor.forClass(StreamObserver.class);
         verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
-        //provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);
 
-        HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
-        HashMap<String, com.google.protobuf.Value> structMap = new HashMap<String, com.google.protobuf.Value>();
+        HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<>();
+        HashMap<String, com.google.protobuf.Value> structMap = new HashMap<>();
 
         flagsMap.put("foo", com.google.protobuf.Value.newBuilder().setStringValue("foo")
                 .build()); // assert that a configuration_change event works

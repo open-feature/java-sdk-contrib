@@ -35,11 +35,9 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private final Cache cache;
     private final ResolveStrategy strategy;
     private final GrpcConnector grpc;
     private final FlagResolution flagResolver;
-
 
     private ProviderState state = ProviderState.NOT_READY;
 
@@ -57,14 +55,14 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      */
     public FlagdProvider(final FlagdOptions options) {
         this.strategy = ResolveFactory.getStrategy(options);
-        this.cache = CacheFactory.getCache(options);
-        this.grpc = new GrpcConnector(options, this.cache, this::setState);
-        this.flagResolver = new FlagResolution(this.cache, this.strategy, this::getState);
+
+        final Cache cache = CacheFactory.getCache(options);
+        this.grpc = new GrpcConnector(options, cache, this::setState);
+        this.flagResolver = new FlagResolution(cache, this.strategy, this::getState);
     }
 
-    FlagdProvider(ResolveStrategy strategy, Cache cache, GrpcConnector grpc, FlagResolution resolution) {
+    FlagdProvider(ResolveStrategy strategy, GrpcConnector grpc, FlagResolution resolution) {
         this.strategy = strategy;
-        this.cache = cache;
         this.grpc = grpc;
         this.flagResolver = resolution;
     }
