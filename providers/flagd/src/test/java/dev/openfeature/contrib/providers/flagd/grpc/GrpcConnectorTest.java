@@ -1,7 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.grpc;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
@@ -16,7 +15,13 @@ import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 public class GrpcConnectorTest {
 

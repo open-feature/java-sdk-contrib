@@ -67,23 +67,34 @@ public final class GrpcResolution implements Resolver {
     }
 
 
+    /**
+     * Initialize Grpc resolver.
+     * */
     public void init() {
         this.connector.initialize();
     }
 
+    /**
+     * Shutdown Grpc resolver.
+     * */
     public void shutdown() throws Exception {
         this.connector.shutdown();
     }
 
 
+    /**
+     * Boolean evaluation from grpc resolver.
+     * */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
                                                          EvaluationContext ctx) {
-
         Schema.ResolveBooleanRequest request = Schema.ResolveBooleanRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveBoolean, null);
     }
 
+    /**
+     * String evaluation from grpc resolver.
+     * */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
                                                        EvaluationContext ctx) {
         Schema.ResolveStringRequest request = Schema.ResolveStringRequest.newBuilder().buildPartial();
@@ -91,6 +102,9 @@ public final class GrpcResolution implements Resolver {
         return resolve(key, ctx, request, this.connector.getResolver()::resolveString, null);
     }
 
+    /**
+     * Double evaluation from grpc resolver.
+     * */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
                                                        EvaluationContext ctx) {
         Schema.ResolveFloatRequest request = Schema.ResolveFloatRequest.newBuilder().buildPartial();
@@ -98,6 +112,9 @@ public final class GrpcResolution implements Resolver {
         return resolve(key, ctx, request, this.connector.getResolver()::resolveFloat, null);
     }
 
+    /**
+     * Integer evaluation from grpc resolver.
+     * */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
                                                          EvaluationContext ctx) {
 
@@ -107,13 +124,16 @@ public final class GrpcResolution implements Resolver {
                 (Object value) -> ((Long) value).intValue());
     }
 
+    /**
+     * Object evaluation from grpc resolver.
+     * */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue,
                                                       EvaluationContext ctx) {
 
         Schema.ResolveObjectRequest request = Schema.ResolveObjectRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveObject,
-                (Object value) -> convertObjectResponse((com.google.protobuf.Struct) value));
+                (Object value) -> convertObjectResponse((Struct) value));
     }
 
 

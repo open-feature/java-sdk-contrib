@@ -32,7 +32,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
      * @param stateConsumer        lambda to call for setting the state
      * @param reconnectEventStream callback for trying to recreate the stream
      */
-    EventStreamObserver(Object sync ,Cache cache, Consumer<ProviderState> stateConsumer) {
+    EventStreamObserver(Object sync, Cache cache, Consumer<ProviderState> stateConsumer) {
         this.sync = sync;
         this.cache = cache;
         this.stateConsumer = stateConsumer;
