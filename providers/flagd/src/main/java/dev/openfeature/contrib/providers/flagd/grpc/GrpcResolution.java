@@ -46,20 +46,21 @@ public final class GrpcResolution implements Resolver {
     private final GrpcConnector connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
-    private final Supplier<ProviderState> getState;
+    private final Supplier<ProviderState> stateSupplier;
 
 
     /**
-     * Initialize the flag resolution.
+     * Initialize Grpc resolver.
      *
-     * @param cache    cache to use.
-     * @param strategy resolution strategy to use.
-     * @param getState lambda to call for getting the state.
+     * @param options       flagd options.
+     * @param cache         cache to use.
+     * @param stateSupplier lambda to call for getting the state.
+     * @param stateConsumer lambda to communicate back the state.
      */
-    public GrpcResolution(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> getState,
+    public GrpcResolution(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> stateSupplier,
                           final Consumer<ProviderState> stateConsumer) {
         this.cache = cache;
-        this.getState = getState;
+        this.stateSupplier = stateSupplier;
 
         this.strategy = ResolveFactory.getStrategy(options);
         this.connector = new GrpcConnector(options, cache, stateConsumer);
@@ -170,7 +171,7 @@ public final class GrpcResolution implements Resolver {
     }
 
     private Boolean cacheAvailable() {
-        return this.cache.getEnabled() && ProviderState.READY.equals(this.getState.get());
+        return this.cache.getEnabled() && ProviderState.READY.equals(this.stateSupplier.get());
     }
 
     /**

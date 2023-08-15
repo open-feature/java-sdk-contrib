@@ -60,8 +60,7 @@ public class GrpcConnector {
         this.cache = cache;
         this.stateConsumer = stateConsumer;
     }
-
-
+    
     /**
      * Initialize the gRPC stream.
      * @throws RuntimeException if the connection cannot be established.
@@ -103,19 +102,19 @@ public class GrpcConnector {
     }
 
     /**
-     * Resets internal state for retrying establishing the stream.
-     */
-    public void resetRetryConnection() {
-        this.eventStreamAttempt = 1;
-        this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
-    }
-
-    /**
      * Provide the object that can be used to resolve Feature Flag values.
      * @return a {@link ServiceGrpc.ServiceBlockingStub} for running FF resolution.
      */
     public ServiceGrpc.ServiceBlockingStub getResolver() {
         return serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Resets internal state for retrying establishing the stream.
+     */
+    private void resetRetryConnection() {
+        this.eventStreamAttempt = 1;
+        this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
     }
 
     private void startEventStream() {
