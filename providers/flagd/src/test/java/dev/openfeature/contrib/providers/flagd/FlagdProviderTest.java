@@ -5,8 +5,6 @@ import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.cache.CacheType;
 import dev.openfeature.contrib.providers.flagd.grpc.FlagResolution;
 import dev.openfeature.contrib.providers.flagd.grpc.GrpcConnector;
-import dev.openfeature.contrib.providers.flagd.strategy.ResolveStrategy;
-import dev.openfeature.contrib.providers.flagd.strategy.SimpleResolving;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
@@ -78,7 +76,6 @@ class FlagdProviderTest {
                             com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE).build())
                     .build();
     private static final String STRING_VALUE = "hi!";
-    private final ResolveStrategy strategy = new SimpleResolving();
 
     private static OpenFeatureAPI api;
 
@@ -789,7 +786,7 @@ class FlagdProviderTest {
     private FlagdProvider createProvider(GrpcConnector grpc, Cache cache, Supplier<ProviderState> getState) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
         final FlagResolution flagResolution =
-                new FlagResolution(flagdOptions, cache, strategy, getState, (providerState) -> {
+                new FlagResolution(flagdOptions, cache, getState, (providerState) -> {
                 });
 
         final FlagdProvider provider = new FlagdProvider();

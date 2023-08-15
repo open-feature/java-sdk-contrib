@@ -16,7 +16,7 @@ import java.util.function.Consumer;
  */
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
-public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
+class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private final Consumer<ProviderState> stateConsumer;
     private final Runnable reconnectEventStream;
     private final Cache cache;
@@ -27,11 +27,12 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
 
     /**
      * Create a gRPC stream that get notified about flag changes.
-     * @param cache cache to update
-     * @param stateConsumer lambda to call for setting the state
+     *
+     * @param cache                cache to update
+     * @param stateConsumer        lambda to call for setting the state
      * @param reconnectEventStream callback for trying to recreate the stream
      */
-    public EventStreamObserver(Cache cache, Consumer<ProviderState> stateConsumer, Runnable reconnectEventStream) {
+    EventStreamObserver(Cache cache, Consumer<ProviderState> stateConsumer, Runnable reconnectEventStream) {
         this.cache = cache;
         this.stateConsumer = stateConsumer;
         this.reconnectEventStream = reconnectEventStream;
