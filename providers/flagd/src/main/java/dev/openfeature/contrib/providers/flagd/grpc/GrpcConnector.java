@@ -30,6 +30,7 @@ import java.util.function.Consumer;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
 
+    private final Object sync = new Object();
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
     private final ManagedChannel channel;
@@ -45,8 +46,9 @@ public class GrpcConnector {
 
     /**
      * GrpcConnector creates an abstraction over gRPC communication.
-     * @param options options to build the gRPC channel.
-     * @param cache cache to use.
+     *
+     * @param options       options to build the gRPC channel.
+     * @param cache         cache to use.
      * @param stateConsumer lambda to call for setting the state.
      */
     public GrpcConnector(final FlagdOptions options, final Cache cache, Consumer<ProviderState> stateConsumer) {
@@ -60,9 +62,10 @@ public class GrpcConnector {
         this.cache = cache;
         this.stateConsumer = stateConsumer;
     }
-    
+
     /**
      * Initialize the gRPC stream.
+     *
      * @throws RuntimeException if the connection cannot be established.
      */
     public void initialize() throws RuntimeException {
@@ -79,12 +82,13 @@ public class GrpcConnector {
             }
         } finally {
             // try in background to open the event stream
-            this.startEventStream();
+            new Thread(this::observeEventStream).start();
         }
     }
 
     /**
      * Shuts down all gRPC resources.
+     *
      * @throws Exception is something goes wrong while terminating the communication.
      */
     public void shutdown() throws Exception {
@@ -103,48 +107,48 @@ public class GrpcConnector {
 
     /**
      * Provide the object that can be used to resolve Feature Flag values.
+     *
      * @return a {@link ServiceGrpc.ServiceBlockingStub} for running FF resolution.
      */
     public ServiceGrpc.ServiceBlockingStub getResolver() {
         return serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * Resets internal state for retrying establishing the stream.
-     */
-    private void resetRetryConnection() {
-        this.eventStreamAttempt = 1;
-        this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
-    }
+    private void observeEventStream() {
+        while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
+            StreamObserver<Schema.EventStreamResponse> responseObserver =
+                    new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);
+            this.serviceStub.eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
 
-    private void startEventStream() {
-        StreamObserver<Schema.EventStreamResponse> responseObserver =
-                new EventStreamObserver(this.cache, this::grpcStateConsumer, this::restartEventStream);
-        this.serviceStub
-                .eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
-    }
+            try {
+                synchronized (sync) {
+                    sync.wait();
+                }
+            } catch (InterruptedException e) {
+                log.warn("interruption while waiting for condition", e);
+                return;
+            }
 
-    private void restartEventStream() {
-        this.eventStreamAttempt++;
-        if (this.eventStreamAttempt > this.maxEventStreamRetries) {
-            log.error("failed to connect to event stream, exhausted retries");
-            this.stateConsumer.accept(ProviderState.ERROR);
-            return;
+            this.eventStreamAttempt++;
+            this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
+
+            try {
+                Thread.sleep(this.eventStreamRetryBackoff);
+            } catch (InterruptedException e) {
+                log.debug("failed to block while restarting gRPC Event Stream");
+                return;
+            }
         }
-        this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
-        try {
-            Thread.sleep(this.eventStreamRetryBackoff);
-        } catch (InterruptedException e) {
-            log.debug("Failed to sleep while restarting gRPC Event Stream");
-        }
-        this.startEventStream();
+
+        log.error("failed to connect to event stream, exhausted retries");
+        this.grpcStateConsumer(ProviderState.ERROR);
     }
 
-
-    private void grpcStateConsumer(final ProviderState state){
+    private void grpcStateConsumer(final ProviderState state) {
         // check for readiness
         if (ProviderState.READY.equals(state)) {
-            resetRetryConnection();
+            this.eventStreamAttempt = 1;
+            this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
         }
 
         // chain to initiator

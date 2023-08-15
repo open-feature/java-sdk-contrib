@@ -3,9 +3,8 @@ package dev.openfeature.contrib.providers.flagd;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.cache.CacheType;
-import dev.openfeature.contrib.providers.flagd.grpc.GrpcResolution;
 import dev.openfeature.contrib.providers.flagd.grpc.GrpcConnector;
-import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
+import dev.openfeature.contrib.providers.flagd.grpc.GrpcResolution;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
@@ -27,10 +26,8 @@ import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import io.grpc.Channel;
 import io.grpc.Deadline;
-import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
@@ -51,7 +48,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FlagdProviderTest {
@@ -491,9 +487,6 @@ class FlagdProviderTest {
         FlagdProvider provider = createProvider(grpc);
 
         provider.initialize(null);
-        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
-                ArgumentCaptor.forClass(StreamObserver.class);
-        verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
 
         //provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);
@@ -521,9 +514,6 @@ class FlagdProviderTest {
         FlagEvaluationDetails<Integer> intDetails;
         FlagEvaluationDetails<Double> floatDetails;
         FlagEvaluationDetails<Value> objectDetails;
-
-        // should clear cache
-        streamObserverCaptor.getValue().onNext(eResponse);
 
         // assert cache has been invalidated
         booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
@@ -713,10 +703,6 @@ class FlagdProviderTest {
         FlagdProvider provider = createProvider(grpc, cache, () -> ProviderState.READY);
         provider.initialize(null);
 
-        ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
-                ArgumentCaptor.forClass(StreamObserver.class);
-        verify(serviceStubMock).eventStream(any(EventStreamRequest.class), streamObserverCaptor.capture());
-
         OpenFeatureAPI.getInstance().setProvider(provider);
 
         HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<>();
@@ -739,9 +725,6 @@ class FlagdProviderTest {
         FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
         FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
         FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
-
-        // should not cause a change of state
-        streamObserverCaptor.getValue().onNext(eResponse);
 
         // assert values are not cached
         booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);

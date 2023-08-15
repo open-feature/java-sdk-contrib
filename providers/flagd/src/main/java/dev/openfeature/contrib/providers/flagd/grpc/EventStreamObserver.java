@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private final Consumer<ProviderState> stateConsumer;
-    private final Runnable reconnectEventStream;
+    private final Object sync;
     private final Cache cache;
 
     private static final String CONFIGURATION_CHANGE = "configuration_change";
@@ -32,10 +32,10 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
      * @param stateConsumer        lambda to call for setting the state
      * @param reconnectEventStream callback for trying to recreate the stream
      */
-    EventStreamObserver(Cache cache, Consumer<ProviderState> stateConsumer, Runnable reconnectEventStream) {
+    EventStreamObserver(Object sync ,Cache cache, Consumer<ProviderState> stateConsumer) {
+        this.sync = sync;
         this.cache = cache;
         this.stateConsumer = stateConsumer;
-        this.reconnectEventStream = reconnectEventStream;
     }
 
     @Override
@@ -59,7 +59,9 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
             this.cache.clear();
         }
         this.stateConsumer.accept(ProviderState.ERROR);
-        this.reconnectEventStream.run();
+        synchronized (this.sync) {
+            this.sync.notify();
+        }
     }
 
     @Override

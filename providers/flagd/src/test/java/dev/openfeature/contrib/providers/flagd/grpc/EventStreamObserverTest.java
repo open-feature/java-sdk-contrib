@@ -33,14 +33,16 @@ class EventStreamObserverTest {
         List<ProviderState> states;
         EventStreamObserver stream;
         Runnable reconnect;
+        Object sync;
 
         @BeforeEach
         void setUp() {
             states = new ArrayList<>();
+            sync = new Object();
             cache = mock(Cache.class);
             reconnect = mock(Runnable.class);
             when(cache.getEnabled()).thenReturn(true);
-            stream = new EventStreamObserver(cache, state -> states.add(state), reconnect);
+            stream = new EventStreamObserver(sync, cache, state -> states.add(state));
         }
 
         @Test
