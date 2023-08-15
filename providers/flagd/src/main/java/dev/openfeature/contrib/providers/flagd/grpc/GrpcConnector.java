@@ -120,7 +120,7 @@ public class GrpcConnector {
 
     private void startEventStream() {
         StreamObserver<Schema.EventStreamResponse> responseObserver =
-                new EventStreamObserver(this.cache, this.stateConsumer, this::restartEventStream);
+                new EventStreamObserver(this.cache, this::grpcStateConsumer, this::restartEventStream);
         this.serviceStub
                 .eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
     }
@@ -139,6 +139,17 @@ public class GrpcConnector {
             log.debug("Failed to sleep while restarting gRPC Event Stream");
         }
         this.startEventStream();
+    }
+
+
+    private void grpcStateConsumer(final ProviderState state){
+        // check for readiness
+        if (ProviderState.READY.equals(state)) {
+            resetRetryConnection();
+        }
+
+        // chain to initiator
+        this.stateConsumer.accept(state);
     }
 
     /**

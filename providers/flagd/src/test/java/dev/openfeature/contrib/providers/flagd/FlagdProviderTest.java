@@ -29,15 +29,13 @@ import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import io.grpc.Channel;
 import io.grpc.Deadline;
-import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
-import io.netty.channel.EventLoopGroup;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -167,15 +165,6 @@ class FlagdProviderTest {
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT.toString(), objectDetails.getReason());
-    }
-
-    private FlagdProvider createProvider(GrpcConnector grpc) {
-        return createProvider(grpc, () -> ProviderState.READY);
-    }
-
-    private FlagdProvider createProvider(GrpcConnector grpc, Supplier<ProviderState> getState) {
-        final Cache cache = new Cache(CacheType.LRU, 5);
-        return new FlagdProvider(strategy, grpc, new FlagResolution(cache, strategy, getState));
     }
 
     @Test
@@ -710,6 +699,9 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
+        // disabled cache
+        final Cache cache = new Cache(CacheType.DISABLED, 0);
+
         GrpcConnector grpc;
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
             mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
@@ -717,14 +709,11 @@ class FlagdProviderTest {
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(serviceStubMock);
 
-            // disabled cache
-            grpc = new GrpcConnector(FlagdOptions.builder().build(), new Cache(null, 0), state -> {});
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
+            });
         }
 
-        final Cache cache = new Cache(CacheType.DISABLED, 0);
-        final FlagdProvider provider =
-                new FlagdProvider(strategy, grpc, new FlagResolution(cache, strategy, () -> ProviderState.READY));
-
+        FlagdProvider provider = createProvider(grpc, cache, () -> ProviderState.READY);
         provider.initialize(null);
 
         ArgumentCaptor<StreamObserver<EventStreamResponse>> streamObserverCaptor =
@@ -783,6 +772,41 @@ class FlagdProviderTest {
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(STATIC_REASON, objectDetails.getReason());
+    }
+
+    // test utils
+
+    private FlagdProvider createProvider(GrpcConnector grpc) {
+        return createProvider(grpc, () -> ProviderState.READY);
+    }
+
+    private FlagdProvider createProvider(GrpcConnector grpc, Supplier<ProviderState> getState) {
+        final Cache cache = new Cache(CacheType.LRU, 5);
+
+        return createProvider(grpc, cache, getState);
+    }
+
+    private FlagdProvider createProvider(GrpcConnector grpc, Cache cache, Supplier<ProviderState> getState) {
+        final FlagdOptions flagdOptions = FlagdOptions.builder().build();
+        final FlagResolution flagResolution =
+                new FlagResolution(flagdOptions, cache, strategy, getState, (providerState) -> {
+                });
+
+        final FlagdProvider provider = new FlagdProvider();
+
+        try {
+            Field connector = FlagResolution.class.getDeclaredField("connector");
+            connector.setAccessible(true);
+            connector.set(flagResolution, grpc);
+
+            Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
+            flagResolver.setAccessible(true);
+            flagResolver.set(provider, flagResolution);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        return provider;
     }
 
 }
