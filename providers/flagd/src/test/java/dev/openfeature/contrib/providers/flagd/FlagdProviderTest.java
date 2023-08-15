@@ -3,7 +3,7 @@ package dev.openfeature.contrib.providers.flagd;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.cache.CacheType;
-import dev.openfeature.contrib.providers.flagd.grpc.FlagResolution;
+import dev.openfeature.contrib.providers.flagd.grpc.GrpcResolution;
 import dev.openfeature.contrib.providers.flagd.grpc.GrpcConnector;
 import dev.openfeature.flagd.grpc.Schema.EventStreamRequest;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
@@ -773,32 +773,35 @@ class FlagdProviderTest {
 
     // test utils
 
+    // create provider with given grpc connector
     private FlagdProvider createProvider(GrpcConnector grpc) {
         return createProvider(grpc, () -> ProviderState.READY);
     }
 
+    // create provider with given grpc provider and state supplier
     private FlagdProvider createProvider(GrpcConnector grpc, Supplier<ProviderState> getState) {
         final Cache cache = new Cache(CacheType.LRU, 5);
 
         return createProvider(grpc, cache, getState);
     }
 
+    // create provider with given grpc provider, cache and state supplier
     private FlagdProvider createProvider(GrpcConnector grpc, Cache cache, Supplier<ProviderState> getState) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final FlagResolution flagResolution =
-                new FlagResolution(flagdOptions, cache, getState, (providerState) -> {
+        final GrpcResolution grpcResolution =
+                new GrpcResolution(flagdOptions, cache, getState, (providerState) -> {
                 });
 
         final FlagdProvider provider = new FlagdProvider();
 
         try {
-            Field connector = FlagResolution.class.getDeclaredField("connector");
+            Field connector = GrpcResolution.class.getDeclaredField("connector");
             connector.setAccessible(true);
-            connector.set(flagResolution, grpc);
+            connector.set(grpcResolution, grpc);
 
             Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
             flagResolver.setAccessible(true);
-            flagResolver.set(provider, flagResolution);
+            flagResolver.set(provider, grpcResolution);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }

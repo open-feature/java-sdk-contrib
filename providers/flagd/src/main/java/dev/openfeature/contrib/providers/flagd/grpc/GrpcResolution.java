@@ -41,7 +41,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
  */
 @SuppressWarnings("PMD.TooManyStaticImports")
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
-public final class FlagResolution implements Resolver {
+public final class GrpcResolution implements Resolver {
 
     private final GrpcConnector connector;
     private final Cache cache;
@@ -56,7 +56,7 @@ public final class FlagResolution implements Resolver {
      * @param strategy resolution strategy to use.
      * @param getState lambda to call for getting the state.
      */
-    public FlagResolution(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> getState,
+    public GrpcResolution(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> getState,
                           final Consumer<ProviderState> stateConsumer) {
         this.cache = cache;
         this.getState = getState;
