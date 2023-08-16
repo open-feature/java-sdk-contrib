@@ -115,11 +115,7 @@ public class GrpcConnector {
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
             final StreamObserver<Schema.EventStreamResponse> responseObserver =
                     new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);
-
-            // Event listener with wait for ready but fail with timeouts
-            this.serviceStub
-                    .withWaitForReady()
-                    .eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
+            this.serviceStub.eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
 
             try {
                 synchronized (sync) {
