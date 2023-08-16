@@ -136,7 +136,7 @@ public class GrpcConnector {
             try {
                 Thread.sleep(this.eventStreamRetryBackoff);
             } catch (InterruptedException e) {
-                log.debug("failed to block while restarting gRPC Event Stream");
+                log.debug("failed to sleep while restarting gRPC Event Stream");
                 return;
             }
         }
