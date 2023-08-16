@@ -1,14 +1,12 @@
 package dev.openfeature.contrib.providers.flagd.grpc;
 
-import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.sdk.ProviderState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -42,6 +40,9 @@ public class GrpcConnector {
     private final Cache cache;
     private final Consumer<ProviderState> stateConsumer;
 
+    // Thread responsible for event observation
+    private Thread eventObserverThread;
+
     /**
      * GrpcConnector creates an abstraction over gRPC communication.
      *
@@ -66,22 +67,9 @@ public class GrpcConnector {
      *
      * @throws RuntimeException if the connection cannot be established.
      */
-    public void initialize() throws RuntimeException {
-        try {
-            // try a dummy request
-            this.serviceBlockingStub
-                    .withWaitForReady()
-                    .withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                    .resolveBoolean(Schema.ResolveBooleanRequest.newBuilder().setFlagKey("ready?").build());
-        } catch (StatusRuntimeException e) {
-            // only return the exception if we don't meet the deadline
-            if (Status.DEADLINE_EXCEEDED.equals(e.getStatus())) {
-                throw e;
-            }
-        } finally {
-            // try in background to open the event stream
-            new Thread(this::observeEventStream).start();
-        }
+    public void initialize() {
+        eventObserverThread = new Thread(this::observeEventStream);
+        eventObserverThread.start();
     }
 
     /**
@@ -90,6 +78,11 @@ public class GrpcConnector {
      * @throws Exception is something goes wrong while terminating the communication.
      */
     public void shutdown() throws Exception {
+        // first shutdown the event listener
+        if (this.eventObserverThread != null) {
+            this.eventObserverThread.interrupt();
+        }
+
         try {
             if (this.channel != null) {
                 this.channel.shutdown();
@@ -112,21 +105,30 @@ public class GrpcConnector {
         return serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Event stream observer logic. This contains blocking mechanisms, hence must be run in a dedicated thread.
+     */
     private void observeEventStream() {
         // this is the sync object for event stream listener
         final Object sync = new Object();
 
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
-            StreamObserver<Schema.EventStreamResponse> responseObserver =
+            final StreamObserver<Schema.EventStreamResponse> responseObserver =
                     new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);
-            this.serviceStub.eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
+
+            // Event listener with wait for ready but fail with timeouts
+            this.serviceStub
+                    .withWaitForReady()
+                    .eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
 
             try {
                 synchronized (sync) {
                     sync.wait();
                 }
             } catch (InterruptedException e) {
-                log.warn("interruption while waiting for condition", e);
+                // Interruptions are considered end calls for this observer, hence log and return
+                // Note - this is the most common interruption when shutdown, hence the log level debug
+                log.debug("interruption while waiting for condition", e);
                 return;
             }
 
@@ -136,7 +138,9 @@ public class GrpcConnector {
             try {
                 Thread.sleep(this.eventStreamRetryBackoff);
             } catch (InterruptedException e) {
-                log.debug("failed to sleep while restarting gRPC Event Stream");
+                // Interruptions are considered end calls for this observer, hence log and return
+                log.warn("interrupted while restarting gRPC Event Stream");
+                return;
             }
         }
 
