@@ -27,18 +27,20 @@ import java.util.function.Consumer;
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
+    private final Object sync = new Object();
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
     private final ManagedChannel channel;
     private final int maxEventStreamRetries;
 
-    private int eventStreamAttempt = 1;
-    private int eventStreamRetryBackoff;
     private final int startEventStreamRetryBackoff;
     private final long deadline;
 
     private final Cache cache;
     private final Consumer<ProviderState> stateConsumer;
+
+    private int eventStreamAttempt = 1;
+    private int eventStreamRetryBackoff;
 
     // Thread responsible for event observation
     private Thread eventObserverThread;
@@ -54,6 +56,7 @@ public class GrpcConnector {
         this.channel = nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
+
         this.maxEventStreamRetries = options.getMaxEventStreamRetries();
         this.startEventStreamRetryBackoff = options.getRetryBackoffMs();
         this.eventStreamRetryBackoff = options.getRetryBackoffMs();
@@ -109,9 +112,6 @@ public class GrpcConnector {
      * Event stream observer logic. This contains blocking mechanisms, hence must be run in a dedicated thread.
      */
     private void observeEventStream() {
-        // this is the sync object for event stream listener
-        final Object sync = new Object();
-
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
             final StreamObserver<Schema.EventStreamResponse> responseObserver =
                     new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);

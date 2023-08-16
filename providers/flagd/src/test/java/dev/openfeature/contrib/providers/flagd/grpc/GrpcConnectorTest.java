@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.grpc;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.cache.CacheType;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
@@ -8,22 +10,70 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+
+import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class GrpcConnectorTest {
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2, 3})
+    void validate_retry_calls(int retries) throws NoSuchFieldException, IllegalAccessException {
+        final int backoffMs = 100;
+
+        final FlagdOptions options = FlagdOptions.builder()
+                // shorter backoff for testing
+                .retryBackoffMs(backoffMs)
+                .maxEventStreamRetries(retries)
+                .build();
+
+        final Cache cache = new Cache(CacheType.DISABLED, 0);
+
+        final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
+        doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
+
+        final GrpcConnector connector = new GrpcConnector(options, cache, (state) -> {
+        });
+
+        Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
+        serviceStubField.setAccessible(true);
+        serviceStubField.set(connector, mockStub);
+
+        final Object syncObject = new Object();
+
+        Field syncField = GrpcConnector.class.getDeclaredField("sync");
+        syncField.setAccessible(true);
+        syncField.set(connector, syncObject);
+
+        connector.initialize();
+
+        for (int i = 1; i < retries; i++) {
+            // verify invocation with enough timeout value
+            verify(mockStub, timeout(2L * i * backoffMs).times(i)).eventStream(any(), any());
+
+            synchronized (syncObject) {
+                syncObject.notify();
+            }
+        }
+    }
 
     @Test
     void path_arg_should_build_domain_socket_with_correct_path() {
