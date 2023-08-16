@@ -29,8 +29,6 @@ import java.util.function.Consumer;
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
-
-    private final Object sync = new Object();
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
     private final ManagedChannel channel;
@@ -115,6 +113,9 @@ public class GrpcConnector {
     }
 
     private void observeEventStream() {
+        // this is the sync object for event stream listener
+        final Object sync = new Object();
+
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
             StreamObserver<Schema.EventStreamResponse> responseObserver =
                     new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);

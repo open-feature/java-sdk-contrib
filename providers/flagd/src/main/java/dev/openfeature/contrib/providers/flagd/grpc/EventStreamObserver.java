@@ -28,9 +28,9 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     /**
      * Create a gRPC stream that get notified about flag changes.
      *
+     * @param sync                 synchronization object from caller
      * @param cache                cache to update
      * @param stateConsumer        lambda to call for setting the state
-     * @param reconnectEventStream callback for trying to recreate the stream
      */
     EventStreamObserver(Object sync, Cache cache, Consumer<ProviderState> stateConsumer) {
         this.sync = sync;
@@ -59,9 +59,9 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
             this.cache.clear();
         }
         this.stateConsumer.accept(ProviderState.ERROR);
-        synchronized (this.sync) {
-            this.sync.notify();
-        }
+
+        // handle last call of this stream
+        handleEndOfStream();
     }
 
     @Override
@@ -70,6 +70,9 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
             this.cache.clear();
         }
         this.stateConsumer.accept(ProviderState.ERROR);
+
+        // handle last call of this stream
+        handleEndOfStream();
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
@@ -94,6 +97,12 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         this.stateConsumer.accept(ProviderState.READY);
         if (this.cache.getEnabled()) {
             this.cache.clear();
+        }
+    }
+
+    private void handleEndOfStream() {
+        synchronized (this.sync) {
+            this.sync.notify();
         }
     }
 }
