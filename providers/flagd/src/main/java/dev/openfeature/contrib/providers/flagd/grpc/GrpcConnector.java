@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLException;
 import java.io.File;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -30,6 +31,8 @@ import java.util.function.Consumer;
 public class GrpcConnector {
     private final Object sync = new Object();
     private final AtomicBoolean connected = new AtomicBoolean(false);
+    private final Random random = new Random();
+    private final int maxJitter = 100;
 
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
@@ -133,7 +136,8 @@ public class GrpcConnector {
             }
 
             this.eventStreamAttempt++;
-            this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
+            // backoff with a jitter
+            this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff + random.nextInt(maxJitter);
 
             try {
                 Thread.sleep(this.eventStreamRetryBackoff);
