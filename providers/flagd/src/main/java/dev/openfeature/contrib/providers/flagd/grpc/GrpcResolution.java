@@ -70,7 +70,7 @@ public final class GrpcResolution implements Resolver {
     /**
      * Initialize Grpc resolver.
      * */
-    public void init() {
+    public void init() throws Exception {
         this.connector.initialize();
     }
 

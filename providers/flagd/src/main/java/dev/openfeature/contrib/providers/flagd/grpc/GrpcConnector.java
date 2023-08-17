@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.net.ssl.SSLException;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
@@ -28,6 +29,8 @@ import java.util.function.Consumer;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
     private final Object sync = new Object();
+    private final AtomicBoolean connected = new AtomicBoolean(false);
+
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
     private final ManagedChannel channel;
@@ -67,12 +70,13 @@ public class GrpcConnector {
 
     /**
      * Initialize the gRPC stream.
-     *
-     * @throws RuntimeException if the connection cannot be established.
      */
-    public void initialize() {
+    public void initialize() throws Exception {
         eventObserverThread = new Thread(this::observeEventStream);
         eventObserverThread.start();
+
+        // block till ready
+        busyWaitAndCheck(this.deadline, this.connected);
     }
 
     /**
@@ -149,10 +153,32 @@ public class GrpcConnector {
         if (ProviderState.READY.equals(state)) {
             this.eventStreamAttempt = 1;
             this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
+            this.connected.set(true);
+        } else if (ProviderState.ERROR.equals(state)) {
+            // reset connection status
+            this.connected.set(false);
         }
 
         // chain to initiator
         this.stateConsumer.accept(state);
+    }
+
+    /**
+     * A helper to block the caller for given conditions.
+     *
+     * @param deadline number of milliseconds to block
+     * @param check    {@link AtomicBoolean} to check for status true
+     */
+    private static void busyWaitAndCheck(final Long deadline, final AtomicBoolean check) throws InterruptedException {
+        long start = System.currentTimeMillis();
+
+        do {
+            if (deadline <= System.currentTimeMillis() - start) {
+                throw new RuntimeException(String.format("Initialization not complete after %d ms", deadline));
+            }
+
+            Thread.sleep(50L);
+        } while (!check.get());
     }
 
     /**

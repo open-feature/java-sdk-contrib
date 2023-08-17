@@ -8,7 +8,7 @@ import dev.openfeature.sdk.Value;
  * A generic contract flag resolving contract for flagd.
  */
 public interface Resolver {
-    void init();
+    void init() throws Exception;
 
     void shutdown() throws Exception;
 

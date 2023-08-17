@@ -419,7 +419,7 @@ class FlagdProviderTest {
 
 
     @Test
-    void invalidate_cache() throws Exception {
+    void invalidate_cache() {
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
                 .setValue(true)
                 .setVariant(BOOL_VARIANT)
@@ -486,7 +486,11 @@ class FlagdProviderTest {
 
         FlagdProvider provider = createProvider(grpc);
 
-        provider.initialize(null);
+        try {
+            provider.initialize(null);
+        } catch (Exception e) {
+            // ignore exception if any
+        }
 
         //provider.setState(ProviderState.READY);
         OpenFeatureAPI.getInstance().setProvider(provider);
@@ -701,7 +705,12 @@ class FlagdProviderTest {
         }
 
         FlagdProvider provider = createProvider(grpc, cache, () -> ProviderState.READY);
-        provider.initialize(null);
+
+        try {
+            provider.initialize(null);
+        } catch (Exception e) {
+            // ignore exception if any
+        }
 
         OpenFeatureAPI.getInstance().setProvider(provider);
 

@@ -46,7 +46,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
     }
 
     @Override
-    public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
+    public void initialize(EvaluationContext evaluationContext) throws Exception {
         this.flagResolver.init();
     }
 
