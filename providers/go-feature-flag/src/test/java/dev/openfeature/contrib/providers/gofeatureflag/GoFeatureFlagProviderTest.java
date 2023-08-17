@@ -9,8 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.cache.CacheBuilder;
-import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import org.jetbrains.annotations.NotNull;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -158,7 +158,9 @@ class GoFeatureFlagProviderTest {
     @Test
     void should_return_not_ready_if_not_initialized() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
-        assertEquals(ErrorCode.PROVIDER_NOT_READY, g.getBooleanEvaluation("fail_not_initialized", false, this.evaluationContext).getErrorCode());
+
+        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
+        assertThrows(ProviderNotReadyError.class, ()-> g.getBooleanEvaluation("fail_not_initialized", false, this.evaluationContext));
     }
 
     @SneakyThrows
