@@ -5,8 +5,12 @@ import com.google.protobuf.ListValue;
 import com.google.protobuf.Message;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.Resolver;
 import dev.openfeature.contrib.providers.flagd.cache.Cache;
-import dev.openfeature.contrib.providers.flagd.strategy.ResolveStrategy;
+import dev.openfeature.contrib.providers.flagd.grpc.strategy.ResolveFactory;
+import dev.openfeature.contrib.providers.flagd.grpc.strategy.ResolveStrategy;
+import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableStructure;
@@ -18,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -36,30 +41,106 @@ import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
  */
 @SuppressWarnings("PMD.TooManyStaticImports")
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
-public final class FlagResolution {
+public final class GrpcResolution implements Resolver {
 
+    private final GrpcConnector connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
-    private final Supplier<ProviderState> getState;
+    private final Supplier<ProviderState> stateSupplier;
 
 
     /**
-     * Initialize the flag resolution.
+     * Initialize Grpc resolver.
      *
-     * @param cache    cache to use.
-     * @param strategy resolution strategy to use.
-     * @param getState lambda to call for getting the state.
+     * @param options       flagd options.
+     * @param cache         cache to use.
+     * @param stateSupplier lambda to call for getting the state.
+     * @param stateConsumer lambda to communicate back the state.
      */
-    public FlagResolution(Cache cache, ResolveStrategy strategy, Supplier<ProviderState> getState) {
+    public GrpcResolution(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> stateSupplier,
+                          final Consumer<ProviderState> stateConsumer) {
         this.cache = cache;
-        this.strategy = strategy;
-        this.getState = getState;
+        this.stateSupplier = stateSupplier;
+
+        this.strategy = ResolveFactory.getStrategy(options);
+        this.connector = new GrpcConnector(options, cache, stateConsumer);
     }
+
+
+    /**
+     * Initialize Grpc resolver.
+     * */
+    public void init() throws Exception {
+        this.connector.initialize();
+    }
+
+    /**
+     * Shutdown Grpc resolver.
+     * */
+    public void shutdown() throws Exception {
+        this.connector.shutdown();
+    }
+
+
+    /**
+     * Boolean evaluation from grpc resolver.
+     * */
+    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
+                                                         EvaluationContext ctx) {
+        Schema.ResolveBooleanRequest request = Schema.ResolveBooleanRequest.newBuilder().buildPartial();
+
+        return resolve(key, ctx, request, this.connector.getResolver()::resolveBoolean, null);
+    }
+
+    /**
+     * String evaluation from grpc resolver.
+     * */
+    public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
+                                                       EvaluationContext ctx) {
+        Schema.ResolveStringRequest request = Schema.ResolveStringRequest.newBuilder().buildPartial();
+
+        return resolve(key, ctx, request, this.connector.getResolver()::resolveString, null);
+    }
+
+    /**
+     * Double evaluation from grpc resolver.
+     * */
+    public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
+                                                       EvaluationContext ctx) {
+        Schema.ResolveFloatRequest request = Schema.ResolveFloatRequest.newBuilder().buildPartial();
+
+        return resolve(key, ctx, request, this.connector.getResolver()::resolveFloat, null);
+    }
+
+    /**
+     * Integer evaluation from grpc resolver.
+     * */
+    public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
+                                                         EvaluationContext ctx) {
+
+        Schema.ResolveIntRequest request = Schema.ResolveIntRequest.newBuilder().buildPartial();
+
+        return resolve(key, ctx, request, this.connector.getResolver()::resolveInt,
+                (Object value) -> ((Long) value).intValue());
+    }
+
+    /**
+     * Object evaluation from grpc resolver.
+     * */
+    public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue,
+                                                      EvaluationContext ctx) {
+
+        Schema.ResolveObjectRequest request = Schema.ResolveObjectRequest.newBuilder().buildPartial();
+
+        return resolve(key, ctx, request, this.connector.getResolver()::resolveObject,
+                (Object value) -> convertObjectResponse((Struct) value));
+    }
+
 
     /**
      * A generic resolve method that takes a resolverRef and an optional converter lambda to transform the result.
      */
-    public <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
+    private <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
             Convert<ValT, Object> converter) {
 
@@ -110,13 +191,13 @@ public final class FlagResolution {
     }
 
     private Boolean cacheAvailable() {
-        return this.cache.getEnabled() && ProviderState.READY.equals(this.getState.get());
+        return this.cache.getEnabled() && ProviderState.READY.equals(this.stateSupplier.get());
     }
 
     /**
      * Recursively convert protobuf structure to openfeature value.
      */
-    public static Value convertObjectResponse(Struct protobuf) {
+    private static Value convertObjectResponse(Struct protobuf) {
         return convertProtobufMap(protobuf.getFieldsMap());
     }
 

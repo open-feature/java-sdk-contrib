@@ -1,14 +1,12 @@
 package dev.openfeature.contrib.providers.flagd.grpc;
 
-import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.sdk.ProviderState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -20,7 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLException;
 import java.io.File;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
@@ -29,30 +29,40 @@ import java.util.function.Consumer;
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
+    private final Object sync = new Object();
+    private final AtomicBoolean connected = new AtomicBoolean(false);
+    private final Random random = new Random();
+    private final int maxJitter = 100;
 
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
     private final ManagedChannel channel;
     private final int maxEventStreamRetries;
 
-    private int eventStreamAttempt = 1;
-    private int eventStreamRetryBackoff;
     private final int startEventStreamRetryBackoff;
     private final long deadline;
 
     private final Cache cache;
     private final Consumer<ProviderState> stateConsumer;
 
+    private int eventStreamAttempt = 1;
+    private int eventStreamRetryBackoff;
+
+    // Thread responsible for event observation
+    private Thread eventObserverThread;
+
     /**
      * GrpcConnector creates an abstraction over gRPC communication.
-     * @param options options to build the gRPC channel.
-     * @param cache cache to use.
+     *
+     * @param options       options to build the gRPC channel.
+     * @param cache         cache to use.
      * @param stateConsumer lambda to call for setting the state.
      */
     public GrpcConnector(final FlagdOptions options, final Cache cache, Consumer<ProviderState> stateConsumer) {
         this.channel = nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
+
         this.maxEventStreamRetries = options.getMaxEventStreamRetries();
         this.startEventStreamRetryBackoff = options.getRetryBackoffMs();
         this.eventStreamRetryBackoff = options.getRetryBackoffMs();
@@ -61,34 +71,28 @@ public class GrpcConnector {
         this.stateConsumer = stateConsumer;
     }
 
-
     /**
      * Initialize the gRPC stream.
-     * @throws RuntimeException if the connection cannot be established.
      */
-    public void initialize() throws RuntimeException {
-        try {
-            // try a dummy request
-            this.serviceBlockingStub
-                    .withWaitForReady()
-                    .withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS)
-                    .resolveBoolean(Schema.ResolveBooleanRequest.newBuilder().setFlagKey("ready?").build());
-        } catch (StatusRuntimeException e) {
-            // only return the exception if we don't meet the deadline
-            if (Status.DEADLINE_EXCEEDED.equals(e.getStatus())) {
-                throw e;
-            }
-        } finally {
-            // try in background to open the event stream
-            this.startEventStream();
-        }
+    public void initialize() throws Exception {
+        eventObserverThread = new Thread(this::observeEventStream);
+        eventObserverThread.start();
+
+        // block till ready
+        busyWaitAndCheck(this.deadline, this.connected);
     }
 
     /**
      * Shuts down all gRPC resources.
+     *
      * @throws Exception is something goes wrong while terminating the communication.
      */
     public void shutdown() throws Exception {
+        // first shutdown the event listener
+        if (this.eventObserverThread != null) {
+            this.eventObserverThread.interrupt();
+        }
+
         try {
             if (this.channel != null) {
                 this.channel.shutdown();
@@ -103,42 +107,82 @@ public class GrpcConnector {
     }
 
     /**
-     * Resets internal state for retrying establishing the stream.
-     */
-    public void resetRetryConnection() {
-        this.eventStreamAttempt = 1;
-        this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
-    }
-
-    /**
      * Provide the object that can be used to resolve Feature Flag values.
+     *
      * @return a {@link ServiceGrpc.ServiceBlockingStub} for running FF resolution.
      */
     public ServiceGrpc.ServiceBlockingStub getResolver() {
         return serviceBlockingStub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS);
     }
 
-    private void startEventStream() {
-        StreamObserver<Schema.EventStreamResponse> responseObserver =
-                new EventStreamObserver(this.cache, this.stateConsumer, this::restartEventStream);
-        this.serviceStub
-                .eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
+    /**
+     * Event stream observer logic. This contains blocking mechanisms, hence must be run in a dedicated thread.
+     */
+    private void observeEventStream() {
+        while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
+            final StreamObserver<Schema.EventStreamResponse> responseObserver =
+                    new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);
+            this.serviceStub.eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
+
+            try {
+                synchronized (sync) {
+                    sync.wait();
+                }
+            } catch (InterruptedException e) {
+                // Interruptions are considered end calls for this observer, hence log and return
+                // Note - this is the most common interruption when shutdown, hence the log level debug
+                log.debug("interruption while waiting for condition", e);
+                return;
+            }
+
+            this.eventStreamAttempt++;
+            // backoff with a jitter
+            this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff + random.nextInt(maxJitter);
+
+            try {
+                Thread.sleep(this.eventStreamRetryBackoff);
+            } catch (InterruptedException e) {
+                // Interruptions are considered end calls for this observer, hence log and return
+                log.warn("interrupted while restarting gRPC Event Stream");
+                return;
+            }
+        }
+
+        log.error("failed to connect to event stream, exhausted retries");
+        this.grpcStateConsumer(ProviderState.ERROR);
     }
 
-    private void restartEventStream() {
-        this.eventStreamAttempt++;
-        if (this.eventStreamAttempt > this.maxEventStreamRetries) {
-            log.error("failed to connect to event stream, exhausted retries");
-            this.stateConsumer.accept(ProviderState.ERROR);
-            return;
+    private void grpcStateConsumer(final ProviderState state) {
+        // check for readiness
+        if (ProviderState.READY.equals(state)) {
+            this.eventStreamAttempt = 1;
+            this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
+            this.connected.set(true);
+        } else if (ProviderState.ERROR.equals(state)) {
+            // reset connection status
+            this.connected.set(false);
         }
-        this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff;
-        try {
-            Thread.sleep(this.eventStreamRetryBackoff);
-        } catch (InterruptedException e) {
-            log.debug("Failed to sleep while restarting gRPC Event Stream");
-        }
-        this.startEventStream();
+
+        // chain to initiator
+        this.stateConsumer.accept(state);
+    }
+
+    /**
+     * A helper to block the caller for given conditions.
+     *
+     * @param deadline number of milliseconds to block
+     * @param check    {@link AtomicBoolean} to check for status true
+     */
+    private static void busyWaitAndCheck(final Long deadline, final AtomicBoolean check) throws InterruptedException {
+        long start = System.currentTimeMillis();
+
+        do {
+            if (deadline <= System.currentTimeMillis() - start) {
+                throw new RuntimeException(String.format("Initialization not complete after %d ms", deadline));
+            }
+
+            Thread.sleep(50L);
+        } while (!check.get());
     }
 
     /**

@@ -16,9 +16,9 @@ import java.util.function.Consumer;
  */
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
-public class EventStreamObserver implements StreamObserver<EventStreamResponse> {
+class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private final Consumer<ProviderState> stateConsumer;
-    private final Runnable reconnectEventStream;
+    private final Object sync;
     private final Cache cache;
 
     private static final String CONFIGURATION_CHANGE = "configuration_change";
@@ -27,14 +27,15 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
 
     /**
      * Create a gRPC stream that get notified about flag changes.
-     * @param cache cache to update
-     * @param stateConsumer lambda to call for setting the state
-     * @param reconnectEventStream callback for trying to recreate the stream
+     *
+     * @param sync                 synchronization object from caller
+     * @param cache                cache to update
+     * @param stateConsumer        lambda to call for setting the state
      */
-    public EventStreamObserver(Cache cache, Consumer<ProviderState> stateConsumer, Runnable reconnectEventStream) {
+    EventStreamObserver(Object sync, Cache cache, Consumer<ProviderState> stateConsumer) {
+        this.sync = sync;
         this.cache = cache;
         this.stateConsumer = stateConsumer;
-        this.reconnectEventStream = reconnectEventStream;
     }
 
     @Override
@@ -58,7 +59,9 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
             this.cache.clear();
         }
         this.stateConsumer.accept(ProviderState.ERROR);
-        this.reconnectEventStream.run();
+
+        // handle last call of this stream
+        handleEndOfStream();
     }
 
     @Override
@@ -67,6 +70,9 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
             this.cache.clear();
         }
         this.stateConsumer.accept(ProviderState.ERROR);
+
+        // handle last call of this stream
+        handleEndOfStream();
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
@@ -91,6 +97,12 @@ public class EventStreamObserver implements StreamObserver<EventStreamResponse> 
         this.stateConsumer.accept(ProviderState.READY);
         if (this.cache.getEnabled()) {
             this.cache.clear();
+        }
+    }
+
+    private void handleEndOfStream() {
+        synchronized (this.sync) {
+            this.sync.notify();
         }
     }
 }

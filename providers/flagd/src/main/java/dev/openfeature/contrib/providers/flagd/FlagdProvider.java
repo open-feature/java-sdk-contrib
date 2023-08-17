@@ -1,16 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.contrib.providers.flagd.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.cache.CacheFactory;
-import dev.openfeature.contrib.providers.flagd.grpc.FlagResolution;
-import dev.openfeature.contrib.providers.flagd.grpc.GrpcConnector;
-import dev.openfeature.contrib.providers.flagd.strategy.ResolveFactory;
-import dev.openfeature.contrib.providers.flagd.strategy.ResolveStrategy;
-import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveFloatRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveIntRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveObjectRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveStringRequest;
+import dev.openfeature.contrib.providers.flagd.grpc.GrpcResolution;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.FeatureProvider;
@@ -34,12 +25,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
     private static final String FLAGD_PROVIDER = "flagD Provider";
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-
-    private final Cache cache;
-    private final ResolveStrategy strategy;
-    private final GrpcConnector grpc;
-    private final FlagResolution flagResolver;
-
+    private final Resolver flagResolver;
 
     private ProviderState state = ProviderState.NOT_READY;
 
@@ -56,28 +42,18 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      * @param options {@link FlagdOptions} with
      */
     public FlagdProvider(final FlagdOptions options) {
-        this.strategy = ResolveFactory.getStrategy(options);
-        this.cache = CacheFactory.getCache(options);
-        this.grpc = new GrpcConnector(options, this.cache, this::setState);
-        this.flagResolver = new FlagResolution(this.cache, this.strategy, this::getState);
-    }
-
-    FlagdProvider(ResolveStrategy strategy, Cache cache, GrpcConnector grpc, FlagResolution resolution) {
-        this.strategy = strategy;
-        this.cache = cache;
-        this.grpc = grpc;
-        this.flagResolver = resolution;
+        this.flagResolver = new GrpcResolution(options, CacheFactory.getCache(options), this::getState, this::setState);
     }
 
     @Override
-    public void initialize(EvaluationContext evaluationContext) throws RuntimeException {
-        this.grpc.initialize();
+    public void initialize(EvaluationContext evaluationContext) throws Exception {
+        this.flagResolver.init();
     }
 
     @Override
     public void shutdown() {
         try {
-            this.grpc.shutdown();
+            this.flagResolver.shutdown();
         } catch (Exception e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
         }
@@ -94,6 +70,37 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
         }
     }
 
+
+    @Override
+    public Metadata getMetadata() {
+        return () -> FLAGD_PROVIDER;
+    }
+
+    @Override
+    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
+        return this.flagResolver.booleanEvaluation(key, defaultValue, ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
+        return this.flagResolver.stringEvaluation(key, defaultValue, ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
+        return this.flagResolver.doubleEvaluation(key, defaultValue, ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
+        return this.flagResolver.integerEvaluation(key, defaultValue, ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
+        return this.flagResolver.objectEvaluation(key, defaultValue, ctx);
+    }
+
     private void setState(ProviderState newState) {
         ProviderState oldState;
         Lock l = this.lock.writeLock();
@@ -108,10 +115,6 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
     }
 
     private void handleStateTransition(ProviderState oldState, ProviderState newState) {
-        // we are connected, reset the gRPC retry logic
-        if (ProviderState.READY.equals(newState)) {
-            this.grpc.resetRetryConnection();
-        }
         // we got initialized
         if (ProviderState.NOT_READY.equals(oldState) && ProviderState.READY.equals(newState)) {
             // nothing to do, the SDK emits the events
@@ -140,61 +143,4 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
             this.emitProviderConfigurationChanged(details);
         }
     }
-
-
-    @Override
-    public Metadata getMetadata() {
-        return () -> FLAGD_PROVIDER;
-    }
-
-    @Override
-    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue,
-                                                            EvaluationContext ctx) {
-
-        ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
-
-        return this.flagResolver.resolve(key, ctx, request,
-                this.grpc.getResolver()::resolveBoolean, null);
-    }
-
-    @Override
-    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue,
-                                                          EvaluationContext ctx) {
-        ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
-
-        return this.flagResolver.resolve(key, ctx, request,
-                this.grpc.getResolver()::resolveString, null);
-    }
-
-    @Override
-    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue,
-                                                          EvaluationContext ctx) {
-        ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
-
-        return this.flagResolver.resolve(key, ctx, request,
-                this.grpc.getResolver()::resolveFloat, null);
-    }
-
-    @Override
-    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue,
-                                                            EvaluationContext ctx) {
-
-        ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
-
-        return this.flagResolver.resolve(key, ctx, request,
-                this.grpc.getResolver()::resolveInt,
-                (Object value) -> ((Long) value).intValue());
-    }
-
-    @Override
-    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue,
-                                                         EvaluationContext ctx) {
-
-        ResolveObjectRequest request = ResolveObjectRequest.newBuilder().buildPartial();
-
-        return this.flagResolver.resolve(key, ctx, request,
-                this.grpc.getResolver()::resolveObject,
-                (Object value) -> this.flagResolver.convertObjectResponse((com.google.protobuf.Struct) value));
-    }
-
 }
