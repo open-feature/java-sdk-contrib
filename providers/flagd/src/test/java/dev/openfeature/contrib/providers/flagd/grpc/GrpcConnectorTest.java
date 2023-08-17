@@ -7,12 +7,12 @@ import dev.openfeature.flagd.grpc.ServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.unix.DomainSocketAddress;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
@@ -20,15 +20,12 @@ import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -154,17 +151,6 @@ public class GrpcConnectorTest {
     }
 
     @Test
-    void should_fail_when_epoll_is_unavailable() {
-        // Manually override system property to make epoll unavailable
-        System.setProperty("io.netty.transport.noNative", "true");
-
-        final FlagdOptions flagdOptions = FlagdOptions.builder().socketPath("path").build();
-        assertThrows(RuntimeException.class, () -> new GrpcConnector(flagdOptions, null, null));
-
-        System.clearProperty("io.netty.transport.noNative");
-    }
-
-    @Test
     void no_args_host_and_port_env_set_should_build_tcp_socket() throws Exception {
         final String host = "server.com";
         final int port = 4321;
@@ -195,6 +181,31 @@ public class GrpcConnectorTest {
             }
         });
     }
+
+    @Nested
+    class EpollDisabled {
+
+        @BeforeEach
+        public void setUp() {
+            // Manually override system property to make epoll unavailable
+            System.setProperty("io.netty.transport.noNative", "true");
+        }
+
+        @AfterEach
+        public void cleanUp() {
+            System.clearProperty("io.netty.transport.noNative");
+        }
+
+
+        @Test
+        void should_fail_when_epoll_is_unavailable() {
+            final FlagdOptions flagdOptions = FlagdOptions.builder().socketPath("path").build();
+            assertThrows(RuntimeException.class, () -> new GrpcConnector(flagdOptions, null, null));
+
+            System.clearProperty("io.netty.transport.noNative");
+        }
+    }
+
 
     private NettyChannelBuilder getMockChannelBuilderSocket() {
         NettyChannelBuilder mockChannelBuilder = mock(NettyChannelBuilder.class);
