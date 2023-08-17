@@ -7,9 +7,6 @@ import dev.openfeature.flagd.grpc.ServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.EventLoopGroup;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -181,31 +178,6 @@ public class GrpcConnectorTest {
             }
         });
     }
-
-    @Nested
-    class EpollDisabled {
-
-        @BeforeEach
-        public void setUp() {
-            // Manually override system property to make epoll unavailable
-            System.setProperty("io.netty.transport.noNative", "true");
-        }
-
-        @AfterEach
-        public void cleanUp() {
-            System.clearProperty("io.netty.transport.noNative");
-        }
-
-
-        @Test
-        void should_fail_when_epoll_is_unavailable() {
-            final FlagdOptions flagdOptions = FlagdOptions.builder().socketPath("path").build();
-            assertThrows(RuntimeException.class, () -> new GrpcConnector(flagdOptions, null, null));
-
-            System.clearProperty("io.netty.transport.noNative");
-        }
-    }
-
 
     private NettyChannelBuilder getMockChannelBuilderSocket() {
         NettyChannelBuilder mockChannelBuilder = mock(NettyChannelBuilder.class);

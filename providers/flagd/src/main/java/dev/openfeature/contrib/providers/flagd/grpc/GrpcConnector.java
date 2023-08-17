@@ -194,7 +194,7 @@ public class GrpcConnector {
         // we have a socket path specified, build a channel with a unix socket
         if (options.getSocketPath() != null) {
             // check epoll availability
-            if (!Epoll.isAvailable()){
+            if (!Epoll.isAvailable()) {
                 throw new IllegalStateException("unix socket cannot be used", Epoll.unavailabilityCause());
             }
 
