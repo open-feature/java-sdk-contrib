@@ -56,7 +56,10 @@ public class MetricsHook implements Hook {
      * Construct a metric hook with {@link OpenTelemetry} instance and a list of {@link DimensionDescription}.
      * Provided dimensions are attempted to be extracted from ImmutableMetadata attached to
      * {@link FlagEvaluationDetails}.
+     *
+     * @deprecated - This constructor is deprecated. Please use {@link MetricHookOptions} based options
      */
+    @Deprecated
     public MetricsHook(final OpenTelemetry openTelemetry, final List<DimensionDescription> dimensions) {
         this(openTelemetry, MetricHookOptions.builder().setDimensions(dimensions).build());
     }
