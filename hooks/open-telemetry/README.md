@@ -33,7 +33,22 @@ The hook implementation is attached to `after`and `error` [hook stages](https://
 Both successful and failed flag evaluations will add a span event named `feature_flag` with evaluation details such as flag key, provider name and variant.
 Failed evaluations can be allowed to set span status to `ERROR`. You can configure this behavior through`TracesHookOptions`.
 
-Consider the following code example for usage,
+Further, you can write your own logic to extract custom dimensions from [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by setting a callback to `TracesHookOptions.dimensionExtractor`.
+Extracted dimensions will be added to successful falg evaluation spans.
+
+```java
+ TracesHookOptions options = TracesHookOptions.builder()
+             // configure a callback
+            .dimensionExtractor(metadata -> Attributes.builder()
+                    .put("boolean", metadata.getBoolean("boolean"))
+                    .put("integer", metadata.getInteger("integer"))
+                    .build()
+            ).build();
+
+    TracesHook tracesHook = new TracesHook(options);
+```
+
+Consider the following code example for a complete usage,
 
 ```java
 final Tracer tracer=... // derive Tracer from OpenTelemetry
@@ -94,4 +109,20 @@ OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 
 // Register MetricsHook with custom dimensions
 api.addHooks(new MetricsHook(openTelemetry, customDimensions));
+```
+
+Alternatively, you can wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `TracesHookOptions.attributeSetter`.
+
+```java
+final OpenTelemetry openTelemetry = ... // OpenTelemetry API instance
+
+MetricHookOptions hookOptions = MetricHookOptions.builder()
+        // configure a callback
+        .attributeSetter(metadata -> Attributes.builder()
+            .put("boolean", metadata.getBoolean("boolean"))
+            .put("integer", metadata.getInteger("integer"))
+            .build())
+        .build();
+
+final MetricsHook metricHook = new MetricsHook(openTelemetry, hookOptions);
 ```

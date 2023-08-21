@@ -3,9 +3,11 @@ package dev.openfeature.contrib.hooks.otel;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.FlagValueType;
 import dev.openfeature.sdk.HookContext;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -157,6 +159,52 @@ class TracesHookTest {
         tracesHook.error(hookContext, runtimeException, null);
 
         verifyNoInteractions(span);
+    }
+
+    @Test
+    @DisplayName("should execute callback which populate span attributes")
+    void should_execute_callback_which_populate_span_attributes() {
+        FlagEvaluationDetails<String> details = FlagEvaluationDetails.<String>builder()
+                .variant("test_variant")
+                .value("variant_value")
+                .flagMetadata(ImmutableMetadata.builder()
+                        .addBoolean("boolean", true)
+                        .addInteger("integer", 1)
+                        .addLong("long", 1L)
+                        .addFloat("float", 1.0F)
+                        .addDouble("double", 1.0D)
+                        .addString("string", "string")
+                        .build())
+                .build();
+        mockedSpan.when(Span::current).thenReturn(span);
+
+        TracesHookOptions options = TracesHookOptions.builder()
+                .dimensionExtractor(metadata -> Attributes.builder()
+                        .put("boolean", metadata.getBoolean("boolean"))
+                        .put("integer", metadata.getInteger("integer"))
+                        .put("long", metadata.getLong("long"))
+                        .put("float", metadata.getFloat("float"))
+                        .put("double", metadata.getDouble("double"))
+                        .put("string", metadata.getString("string"))
+                        .build()
+                ).build();
+
+        TracesHook tracesHook = new TracesHook(options);
+        tracesHook.after(hookContext, details, null);
+
+        final AttributesBuilder attributesBuilder = Attributes.builder();
+        attributesBuilder.put(flagKeyAttributeKey, "test_key");
+        attributesBuilder.put(providerNameAttributeKey, "test provider");
+        attributesBuilder.put(variantAttributeKey, "test_variant");
+        attributesBuilder.put("boolean", true);
+        attributesBuilder.put("integer", 1);
+        attributesBuilder.put("long", 1L);
+        attributesBuilder.put("float", 1.0F);
+        attributesBuilder.put("double", 1.0D);
+        attributesBuilder.put("string", "string");
+
+
+        verify(span).addEvent("feature_flag", attributesBuilder.build());
     }
 
 }
