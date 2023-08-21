@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v2.0.0...dev.openfeature.contrib.hooks.otel-v2.1.0) (2023-08-21)
+
+
+### Features
+
+* hook builder options for dimension extraction ([#391](https://github.com/open-feature/java-sdk-contrib/issues/391)) ([ed75f09](https://github.com/open-feature/java-sdk-contrib/commit/ed75f0920ef04aaccb9e71ff56e72d84da3b8ee5))
+* set metric units and improve documentation ([#358](https://github.com/open-feature/java-sdk-contrib/issues/358)) ([ef0b1b6](https://github.com/open-feature/java-sdk-contrib/commit/ef0b1b6b144e1dc6f6f63bc25719f963afeb02a6))
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.29.0 ([#397](https://github.com/open-feature/java-sdk-contrib/issues/397)) ([7987c5f](https://github.com/open-feature/java-sdk-contrib/commit/7987c5f9617ad30bc41e74bedef3148f23e021be))
+* otel hook attribute naming correction ([#359](https://github.com/open-feature/java-sdk-contrib/issues/359)) ([5e6ab32](https://github.com/open-feature/java-sdk-contrib/commit/5e6ab32c7b098f2f6d2d0b8110d388cbc3172d32))
+
 ## [2.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v1.0.3...dev.openfeature.contrib.hooks.otel-v2.0.0) (2023-07-14)
 
 
