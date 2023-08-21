@@ -10,6 +10,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
@@ -192,6 +193,11 @@ public class GrpcConnector {
     private static ManagedChannel nettyChannel(final FlagdOptions options) {
         // we have a socket path specified, build a channel with a unix socket
         if (options.getSocketPath() != null) {
+            // check epoll availability
+            if (!Epoll.isAvailable()) {
+                throw new IllegalStateException("unix socket cannot be used", Epoll.unavailabilityCause());
+            }
+
             return NettyChannelBuilder
                     .forAddress(new DomainSocketAddress(options.getSocketPath()))
                     .eventLoopGroup(new EpollEventLoopGroup())
