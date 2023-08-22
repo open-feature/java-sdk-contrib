@@ -261,6 +261,11 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         try {
             if (!ProviderState.READY.equals(state)) {
                 if (ProviderState.NOT_READY.equals(state)) {
+
+                    /*
+                     should be handled by the SDK framework, ErrorCode.PROVIDER_NOT_READY and default value
+                     should be returned when evaluated via the client.
+                     */
                     throw new ProviderNotReadyError("provider not initialized yet");
                 }
                 throw new GeneralError("unknown error, provider state: " + state);

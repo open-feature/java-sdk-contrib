@@ -9,7 +9,13 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.cache.CacheBuilder;
+import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import org.jetbrains.annotations.NotNull;
 import dev.openfeature.sdk.ImmutableMetadata;
@@ -35,6 +41,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import static dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider.CACHED_REASON;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -157,10 +164,28 @@ class GoFeatureFlagProviderTest {
     @SneakyThrows
     @Test
     void should_return_not_ready_if_not_initialized() {
-        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build()){
+            @Override
+            public void initialize(EvaluationContext evaluationContext) throws Exception {
 
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
-        assertThrows(ProviderNotReadyError.class, ()-> g.getBooleanEvaluation("fail_not_initialized", false, this.evaluationContext));
+                // make the provider not initialized for this test
+                Thread.sleep(3000);
+            }
+        };
+
+        /*
+         ErrorCode.PROVIDER_NOT_READY and default value should be returned when evaluated via the client,
+         see next step in this test.
+         */
+        assertThrows(ProviderNotReadyError.class, ()-> g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext));
+
+        String providerName = "shouldReturnNotReadyIfNotInitialized";
+        OpenFeatureAPI.getInstance().setProvider(providerName, g);
+        assertThat(OpenFeatureAPI.getInstance().getProvider(providerName).getState()).isEqualTo(ProviderState.NOT_READY);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        FlagEvaluationDetails<Boolean> booleanFlagEvaluationDetails = client.getBooleanDetails("return_error_when_not_initialized", false, new ImmutableContext("targetingKey"));
+        assertEquals(ErrorCode.PROVIDER_NOT_READY, booleanFlagEvaluationDetails.getErrorCode());
+        assertEquals(Boolean.FALSE, booleanFlagEvaluationDetails.getValue());
     }
 
     @SneakyThrows
