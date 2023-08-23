@@ -17,7 +17,7 @@
     <url>https://gofeatureflag.org</url>
 
     <properties>
-        <!-- override module name defined in paraent ("-" is not allowed) -->
+        <!-- override module name defined in parent ("-" is not allowed) -->
         <module-name>${groupId}.goff</module-name>
     </properties>
 

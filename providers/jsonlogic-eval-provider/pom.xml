@@ -17,7 +17,7 @@
     <url>https://openfeature.dev</url>
 
     <properties>
-        <!-- override module name defined in paraent ("-" is not allowed) -->
+        <!-- override module name defined in parent ("-" is not allowed) -->
         <module-name>${groupId}.jsonlogic</module-name>
     </properties>
 
