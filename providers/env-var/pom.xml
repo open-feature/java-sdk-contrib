@@ -14,7 +14,7 @@
 
     <properties>
         <!-- override module name defined in parent ("-" is not allowed) -->
-        <module-name>${groupId}.env</module-name>
+        <module-name>${groupId}.envvar</module-name>
     </properties>
 
     <name>env-var</name>

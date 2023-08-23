@@ -18,7 +18,7 @@
 
     <properties>
         <!-- override module name defined in parent ("-" is not allowed) -->
-        <module-name>${groupId}.goff</module-name>
+        <module-name>${groupId}.gofeatureflag</module-name>
     </properties>
 
     <developers>
