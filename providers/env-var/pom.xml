@@ -12,6 +12,11 @@
     <artifactId>env-var</artifactId>
     <version>0.0.4</version> <!--x-release-please-version -->
 
+    <properties>
+        <!-- override module name defined in paraent ("-" is not allowed) -->
+        <module-name>${groupId}.env</module-name>
+    </properties>
+
     <name>env-var</name>
     <description>Environment Variables provider for Java</description>
 

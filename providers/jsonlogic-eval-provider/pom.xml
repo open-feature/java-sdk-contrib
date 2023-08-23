@@ -16,6 +16,11 @@
     <description>Allows for evaluating rules on the client without synchronous calls to a backend</description>
     <url>https://openfeature.dev</url>
 
+    <properties>
+        <!-- override module name defined in paraent ("-" is not allowed) -->
+        <module-name>${groupId}.jsonlogic</module-name>
+    </properties>
+
     <developers>
         <developer>
             <id>justinabrahms</id>
