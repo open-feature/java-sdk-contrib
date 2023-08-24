@@ -17,6 +17,7 @@ import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
+import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import org.jetbrains.annotations.NotNull;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.Test;
 
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
-import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTargetingKey;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
@@ -187,6 +187,33 @@ class GoFeatureFlagProviderTest {
         assertEquals(ErrorCode.PROVIDER_NOT_READY, booleanFlagEvaluationDetails.getErrorCode());
         assertEquals(Boolean.FALSE, booleanFlagEvaluationDetails.getValue());
     }
+
+    @SneakyThrows
+    @Test
+    void client_test() {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+
+        String providerName = "clientTest";
+        OpenFeatureAPI.getInstance().setProvider(providerName, g);
+
+        /*
+         // TODO replace to setProviderAndWait and remove this when
+         https://github.com/open-feature/java-sdk/pull/563 is merged and released
+         */
+        Thread.sleep(500);
+
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        Boolean value = client.getBooleanValue("bool_targeting_match",
+        false);
+        assertEquals(Boolean.FALSE, value, "should evaluate to default value without context");
+        FlagEvaluationDetails<Boolean> booleanFlagEvaluationDetails = client.getBooleanDetails("bool_targeting_match",
+        false, new ImmutableContext());
+        assertEquals(Boolean.FALSE, booleanFlagEvaluationDetails.getValue(), "should evaluate to default value with empty context");
+        assertEquals(ErrorCode.TARGETING_KEY_MISSING, booleanFlagEvaluationDetails.getErrorCode(), "should evaluate to default value with empty context");
+        booleanFlagEvaluationDetails = client.getBooleanDetails("bool_targeting_match", false, new ImmutableContext("targetingKey"));
+        assertEquals(Boolean.TRUE, booleanFlagEvaluationDetails.getValue(), "should evaluate with a valid context");
+    }
+
 
     @SneakyThrows
     @Test
@@ -488,15 +515,15 @@ class GoFeatureFlagProviderTest {
 
     @SneakyThrows
     @Test
-    void should_resolve_a_valid_value_flag_with_a_list() {
+    void should_throw_an_error_if_no_targeting_key() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         g.initialize(new ImmutableContext());
-        assertThrows(InvalidTargetingKey.class, () -> g.getObjectEvaluation("list_key", null, new MutableContext()));
+        assertThrows(TargetingKeyMissingError.class, () -> g.getObjectEvaluation("list_key", null, new MutableContext()));
     }
 
     @SneakyThrows
     @Test
-    void should_throw_an_error_if_no_targeting_key() {
+    void should_resolve_a_valid_value_flag_with_a_list() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         g.initialize(new ImmutableContext());
         ProviderEvaluation<Value> res = g.getObjectEvaluation("list_key", null, this.evaluationContext);

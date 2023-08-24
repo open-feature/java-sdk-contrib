@@ -16,7 +16,21 @@ FeatureProvider provider = new GoFeatureFlagProvider(
   .endpoint("https://my-gofeatureflag-instance.org")
   .timeout(1000)
   .build());
+
+OpenFeatureAPI.getInstance().setProviderAndWait(providerName);
+
 // ...
+
+Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+
+// targetingKey is mandatory for each evaluation
+EvaluationContext evaluationContext = new ImmutableContext(targetingKey);
+
+booleanFlagEvaluationDetails = client.getBooleanDetails("feature_flag1", false, evaluationContext);
+value = booleanFlagEvaluationDetails.getValue();
+
+// ...
+        
 provider.shutdown();
 ```
 

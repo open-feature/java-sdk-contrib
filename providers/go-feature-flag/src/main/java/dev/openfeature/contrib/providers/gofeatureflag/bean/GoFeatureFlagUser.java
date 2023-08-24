@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.providers.gofeatureflag.bean;
 
-import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTargetingKey;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -29,7 +29,7 @@ public class GoFeatureFlagUser {
     public static GoFeatureFlagUser fromEvaluationContext(EvaluationContext ctx) {
         String key = ctx.getTargetingKey();
         if (key == null || "".equals(key)) {
-            throw new InvalidTargetingKey();
+            throw new TargetingKeyMissingError();
         }
         Value anonymousValue = ctx.getValue(anonymousFieldName);
         if (anonymousValue == null) {
