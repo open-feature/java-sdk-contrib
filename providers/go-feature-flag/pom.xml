@@ -16,6 +16,11 @@
     <description>GO Feature Flag provider for Java</description>
     <url>https://gofeatureflag.org</url>
 
+    <properties>
+        <!-- override module name defined in parent ("-" is not allowed) -->
+        <module-name>${groupId}.gofeatureflag</module-name>
+    </properties>
+
     <developers>
         <developer>
             <id>thomaspoignant</id>
