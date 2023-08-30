@@ -1,7 +1,9 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.contrib.providers.flagd.cache.CacheFactory;
-import dev.openfeature.contrib.providers.flagd.grpc.GrpcResolution;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheFactory;
+import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.FeatureProvider;
@@ -42,7 +44,15 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      * @param options {@link FlagdOptions} with
      */
     public FlagdProvider(final FlagdOptions options) {
-        this.flagResolver = new GrpcResolution(options, CacheFactory.getCache(options), this::getState, this::setState);
+        switch (options.getResolver()){
+            case inProcess:
+                this.flagResolver = new InProcessResolver(options);
+                break;
+            case flagd:
+            default:
+                this.flagResolver =
+                        new GrpcResolver(options, CacheFactory.getCache(options), this::getState, this::setState);
+        }
     }
 
     @Override

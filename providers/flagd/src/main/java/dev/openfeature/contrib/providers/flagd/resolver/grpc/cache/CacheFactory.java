@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.cache;
+package dev.openfeature.contrib.providers.flagd.resolver.grpc.cache;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 

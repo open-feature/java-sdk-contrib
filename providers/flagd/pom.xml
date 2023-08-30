@@ -126,7 +126,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>copy-protobuf-definition</id>
+                        <id>copy-schema-definition</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>exec</goal>
@@ -136,6 +136,21 @@
                             <executable>cp</executable>
                             <arguments>
                                 <argument>schemas/protobuf/schema/v1/schema.proto</argument>
+                                <argument>src/main/proto/</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-sync-definition</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!-- run: cp schemas/protobuf/sync/v1/sync_service.protosrc/main/proto/ -->
+                            <executable>cp</executable>
+                            <arguments>
+                                <argument>schemas/protobuf/sync/v1/sync_service.proto</argument>
                                 <argument>src/main/proto/</argument>
                             </arguments>
                         </configuration>

@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 /**
  * A converter lambda.

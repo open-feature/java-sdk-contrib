@@ -1,7 +1,7 @@
-package dev.openfeature.contrib.providers.flagd.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.sdk.ProviderState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

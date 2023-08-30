@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
  * FlagdGrpcInterceptor is an interceptor for grpc communication from java-sdk to flagd.
  * <a href="https://github.com/open-telemetry/opentelemetry-java-docs">credits</a>
  */
-final class FlagdGrpcInterceptor implements ClientInterceptor {
+public final class FlagdGrpcInterceptor implements ClientInterceptor {
     private static final TextMapSetter<Metadata> SETTER = new Setter();
 
     private final OpenTelemetry openTelemetry;

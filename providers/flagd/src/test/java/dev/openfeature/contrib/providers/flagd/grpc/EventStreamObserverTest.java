@@ -2,7 +2,8 @@ package dev.openfeature.contrib.providers.flagd.grpc;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.EventStreamObserver;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.ProviderState;
 import org.junit.jupiter.api.BeforeEach;

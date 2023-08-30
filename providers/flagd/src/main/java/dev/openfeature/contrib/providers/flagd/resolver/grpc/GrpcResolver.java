@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.ListValue;
@@ -6,10 +6,10 @@ import com.google.protobuf.Message;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.Resolver;
-import dev.openfeature.contrib.providers.flagd.cache.Cache;
-import dev.openfeature.contrib.providers.flagd.grpc.strategy.ResolveFactory;
-import dev.openfeature.contrib.providers.flagd.grpc.strategy.ResolveStrategy;
+import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveFactory;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveStrategy;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
@@ -41,7 +41,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
  */
 @SuppressWarnings("PMD.TooManyStaticImports")
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
-public final class GrpcResolution implements Resolver {
+public final class GrpcResolver implements Resolver {
 
     private final GrpcConnector connector;
     private final Cache cache;
@@ -57,8 +57,8 @@ public final class GrpcResolution implements Resolver {
      * @param stateSupplier lambda to call for getting the state.
      * @param stateConsumer lambda to communicate back the state.
      */
-    public GrpcResolution(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> stateSupplier,
-                          final Consumer<ProviderState> stateConsumer) {
+    public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> stateSupplier,
+                        final Consumer<ProviderState> stateConsumer) {
         this.cache = cache;
         this.stateSupplier = stateSupplier;
 

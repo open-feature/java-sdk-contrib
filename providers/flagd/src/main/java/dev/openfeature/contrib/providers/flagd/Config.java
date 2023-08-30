@@ -4,6 +4,7 @@ package dev.openfeature.contrib.providers.flagd;
  * Helper class to hold configuration default values.
  */
 public final class Config {
+    static final Resolver DEFAULT_RESOLVER = Resolver.flagd;
     static final String DEFAULT_PORT = "8013";
     static final String DEFAULT_TLS = "false";
     static final String DEFAULT_HOST = "localhost";
@@ -48,5 +49,10 @@ public final class Config {
         } catch (Exception e) {
             return defaultValue;
         }
+    }
+
+    public enum Resolver {
+        flagd,
+        inProcess
     }
 }
