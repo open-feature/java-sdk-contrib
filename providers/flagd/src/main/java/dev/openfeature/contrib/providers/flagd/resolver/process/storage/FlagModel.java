@@ -8,17 +8,17 @@ import lombok.Getter;
 import java.util.Map;
 
 @Getter
-class Flag {
+class FlagModel {
     private final String state;
     private final String defaultVariant;
     private final Map<String, Object> variants;
     private final String targeting;
 
     @JsonCreator
-    public Flag(@JsonProperty("state") String state,
-                @JsonProperty("defaultVariant") String defaultVariant,
-                @JsonProperty("variants") Map<String, Object> variants,
-                @JsonProperty("targeting") @JsonDeserialize(using = stringTest.class) String targeting) {
+    public FlagModel(@JsonProperty("state") String state,
+                     @JsonProperty("defaultVariant") String defaultVariant,
+                     @JsonProperty("variants") Map<String, Object> variants,
+                     @JsonProperty("targeting") @JsonDeserialize(using = StringParser.class) String targeting) {
         this.state = state;
         this.defaultVariant = defaultVariant;
         this.variants = variants;

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class FlagTest {
+class FlagModelTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -24,7 +24,7 @@ class FlagTest {
                         "\"defaultVariant\": \"on\"}";
 
         // when
-        Flag parsed = MAPPER.readValue(flag, Flag.class);
+        FlagModel parsed = MAPPER.readValue(flag, FlagModel.class);
 
         // then
         assertEquals("ENABLED", parsed.getState());

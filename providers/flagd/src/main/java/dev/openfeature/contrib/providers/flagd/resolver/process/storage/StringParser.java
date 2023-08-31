@@ -7,12 +7,11 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 import java.io.IOException;
 
-public class stringTest extends StdDeserializer<String> {
+public class StringParser extends StdDeserializer<String> {
 
-    public stringTest() {
+    public StringParser() {
         super(String.class);
     }
-
 
     @Override public String deserialize(JsonParser p, DeserializationContext ctxt)
             throws IOException {
