@@ -16,6 +16,11 @@ class InProcessResolverTest {
 
         resolver.init();
 
+        // delay for init
+        Thread.sleep(2000);
+
+        resolver.booleanEvaluation("booleanFlag", false, null);
+
         Thread.sleep(10000);
     }
 

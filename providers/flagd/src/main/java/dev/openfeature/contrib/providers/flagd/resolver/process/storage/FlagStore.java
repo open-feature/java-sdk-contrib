@@ -29,7 +29,7 @@ public class FlagStore {
         this.options = options;
     }
 
-    public void init(){
+    public void init() {
         // todo switch based on options ?
         GrpcStreamConnector connector = new GrpcStreamConnector(options);
         connector.init(this::setFlags);

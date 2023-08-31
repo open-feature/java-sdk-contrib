@@ -8,7 +8,7 @@ import lombok.Getter;
 import java.util.Map;
 
 @Getter
-class FlagModel {
+public class FlagModel {
     private final String state;
     private final String defaultVariant;
     private final Map<String, Object> variants;
