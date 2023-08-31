@@ -1,9 +1,8 @@
-package dev.openfeature.contrib.providers.flagd.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.EventStreamObserver;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.sdk.ProviderState;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,10 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
