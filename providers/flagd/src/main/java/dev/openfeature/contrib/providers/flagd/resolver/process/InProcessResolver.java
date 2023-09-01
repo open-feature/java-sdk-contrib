@@ -71,6 +71,7 @@ public class InProcessResolver implements Resolver {
                                                      EvaluationContext ctx) {
         final FeatureFlag flag = flagStore.getFLag(key);
 
+        // missing flag
         if (flag == null) {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
@@ -84,7 +85,7 @@ public class InProcessResolver implements Resolver {
         if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
-                    .reason(Reason.ERROR.toString())
+                    .reason(Reason.DISABLED.toString())
                     .errorCode(ErrorCode.GENERAL)
                     .errorMessage(String.format("requested flag is disabled: %s", key))
                     .build();
@@ -94,12 +95,21 @@ public class InProcessResolver implements Resolver {
         final Object resolvedVariant;
         final String reason;
 
-        if (flag.getTargeting() != "{}") {
+        if ("{}".equals(flag.getTargeting())) {
+            resolvedVariant = flag.getDefaultVariant();
+            reason = Reason.STATIC.toString();
+        } else {
             try {
-                resolvedVariant = jsonLogicHandler.apply(flag.getTargeting(), ctx.asObjectMap());
-                reason = Reason.TARGETING_MATCH.toString();
+                final Object jsonResolved = jsonLogicHandler.apply(flag.getTargeting(), ctx.asObjectMap());
+                if (jsonResolved == null) {
+                    resolvedVariant = flag.getDefaultVariant();
+                    reason = Reason.DEFAULT.toString();
+                } else {
+                    resolvedVariant = jsonResolved;
+                    reason = Reason.TARGETING_MATCH.toString();
+                }
             } catch (JsonLogicException e) {
-                log.log(Level.INFO, "Error evaluating targeting rule", e);
+                log.log(Level.FINE, "Error evaluating targeting rule", e);
                 return ProviderEvaluation.<T>builder()
                         .value(defaultValue)
                         .reason(Reason.ERROR.toString())
@@ -107,12 +117,23 @@ public class InProcessResolver implements Resolver {
                         .errorMessage(String.format("error parsing targeting rule: %s", key))
                         .build();
             }
-        } else {
-            resolvedVariant = flag.getVariants().get(flag.getDefaultVariant());
-            reason = Reason.STATIC.toString();
         }
 
-        if (!resolvedVariant.getClass().isAssignableFrom(type)) {
+        // check variant existence
+        Object value = flag.getVariants().get(resolvedVariant);
+        if (value == null){
+            log.log(Level.FINE, String.format("variant %s not found in flag with key %s", resolvedVariant, key));
+            return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
+                    .reason(Reason.ERROR.toString())
+                    .errorCode(ErrorCode.TYPE_MISMATCH)
+                    .errorMessage(String.format("requested flag is not of the evaluation type: %s", type.getName()))
+                    .build();
+        }
+
+        if (!value.getClass().isAssignableFrom(type) || !(resolvedVariant instanceof String)) {
+            log.log(Level.FINE, String.format("returning default variant for flagKey: %s, type not valid", key));
+
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
                     .reason(Reason.ERROR.toString())
@@ -122,7 +143,8 @@ public class InProcessResolver implements Resolver {
         }
 
         return ProviderEvaluation.<T>builder()
-                .value((T) resolvedVariant)
+                .value((T) value)
+                .variant((String) resolvedVariant)
                 .reason(reason)
                 .build();
     }

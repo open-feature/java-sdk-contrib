@@ -69,6 +69,7 @@ public class GrpcConnector {
      */
     public void initialize() throws Exception {
         eventObserverThread = new Thread(this::observeEventStream);
+        eventObserverThread.setDaemon(true);
         eventObserverThread.start();
 
         // block till ready

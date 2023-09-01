@@ -34,13 +34,16 @@ public class GrpcStreamConnector implements Connector {
     }
 
     public void init(Consumer<String> callback) {
-        new Thread(() -> {
+        Thread listener = new Thread(() -> {
             try {
                 observeEventStream(callback, shutdown, serviceStub);
             } catch (InterruptedException e) {
                 log.log(Level.WARNING, "Event stream interrupted, flag configurations are stale", e);
             }
-        }).start();
+        });
+
+        listener.setDaemon(true);
+        listener.start();
     }
 
     public void shutdown() {
