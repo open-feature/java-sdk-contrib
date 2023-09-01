@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

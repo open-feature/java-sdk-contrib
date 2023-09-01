@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

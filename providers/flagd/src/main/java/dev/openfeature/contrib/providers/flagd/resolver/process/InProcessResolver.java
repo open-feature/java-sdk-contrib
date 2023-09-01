@@ -2,8 +2,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
@@ -17,7 +18,7 @@ import java.util.logging.Level;
 
 @Log
 public class InProcessResolver implements Resolver {
-    private final FlagStore flagStore;
+    private final Storage flagStore;
     private final JsonLogic jsonLogicHandler;
 
     public InProcessResolver(FlagdOptions options) {

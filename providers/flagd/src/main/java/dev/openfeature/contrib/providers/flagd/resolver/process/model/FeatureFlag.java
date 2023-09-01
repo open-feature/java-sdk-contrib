@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
+package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -18,7 +18,7 @@ public class FeatureFlag {
     public FeatureFlag(@JsonProperty("state") String state,
                        @JsonProperty("defaultVariant") String defaultVariant,
                        @JsonProperty("variants") Map<String, Object> variants,
-                       @JsonProperty("targeting") @JsonDeserialize(using = StringParser.class) String targeting) {
+                       @JsonProperty("targeting") @JsonDeserialize(using = StringSerializer.class) String targeting) {
         this.state = state;
         this.defaultVariant = defaultVariant;
         this.variants = variants;

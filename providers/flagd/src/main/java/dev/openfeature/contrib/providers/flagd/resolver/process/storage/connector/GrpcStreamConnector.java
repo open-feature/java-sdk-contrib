@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Connector;
 import io.grpc.ManagedChannel;
 import lombok.extern.java.Log;
 import sync.v1.FlagSyncServiceGrpc;

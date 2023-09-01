@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector;
 
 import java.util.function.Consumer;
 
