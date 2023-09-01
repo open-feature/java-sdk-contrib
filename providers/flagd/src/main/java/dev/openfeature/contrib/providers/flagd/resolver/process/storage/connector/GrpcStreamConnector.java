@@ -11,7 +11,6 @@ import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 
 @Log
@@ -23,6 +22,7 @@ public class GrpcStreamConnector implements Connector {
     private static final int MAX_BACK_OFF = 120 * 1000;
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final BlockingQueue<StreamPayload> blockingQueue = new LinkedBlockingQueue<>(5);
 
     private final ManagedChannel channel;
     private final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub;
@@ -32,10 +32,10 @@ public class GrpcStreamConnector implements Connector {
         serviceStub = FlagSyncServiceGrpc.newStub(channel);
     }
 
-    public void init(Consumer<String> callback) {
+    public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(callback, shutdown, serviceStub);
+                observeEventStream(blockingQueue, shutdown, serviceStub);
             } catch (InterruptedException e) {
                 log.log(Level.WARNING, "Event stream interrupted, flag configurations are stale", e);
             }
@@ -45,13 +45,19 @@ public class GrpcStreamConnector implements Connector {
         listener.start();
     }
 
+    @Override
+    public BlockingQueue<StreamPayload> getStream() {
+        return blockingQueue;
+    }
+
+
     public void shutdown() {
         shutdown.set(true);
         channel.shutdown();
     }
 
     // blocking calls, to be used with thread
-    static void observeEventStream(final Consumer<String> callback,
+    static void observeEventStream(final BlockingQueue<StreamPayload> writeTo,
                                    final AtomicBoolean shutdown,
                                    FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub) throws InterruptedException {
 
@@ -61,6 +67,7 @@ public class GrpcStreamConnector implements Connector {
         while (!shutdown.get()) {
             final SyncService.SyncFlagsRequest request = SyncService.SyncFlagsRequest.newBuilder().build();
             serviceStub.syncFlags(request, new GrpcStreamHandler(blockingQueue));
+
             while (!shutdown.get()) {
                 GrpcResponseModel response = blockingQueue.take();
                 if (response.isComplete()) {
@@ -77,7 +84,10 @@ public class GrpcStreamConnector implements Connector {
                 final SyncService.SyncFlagsResponse flagsResponse = response.getSyncFlagsResponse();
                 switch (flagsResponse.getState()) {
                     case SYNC_STATE_ALL:
-                        callback.accept(flagsResponse.getFlagConfiguration());
+                        if (!writeTo.offer(
+                                new StreamPayload(StreamPayloadType.Data, flagsResponse.getFlagConfiguration()))) {
+                            log.log(Level.WARNING, "Stream writing failed");
+                        }
                         break;
                     case SYNC_STATE_UNSPECIFIED:
                     case SYNC_STATE_ADD:
@@ -89,6 +99,8 @@ public class GrpcStreamConnector implements Connector {
                                 String.format("Ignored - received payload of state: %s", flagsResponse.getState()));
                 }
             }
+
+            writeTo.offer(new StreamPayload(StreamPayloadType.Error, "Error from stream connection, retrying"));
 
             // busy wait till next attempt
             Thread.sleep(retryDelay + RANDOM.nextInt(INIT_BACK_OFF));

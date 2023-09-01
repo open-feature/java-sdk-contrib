@@ -6,8 +6,6 @@ public interface Storage {
     void init() ;
 
     void shutdown();
-
-    void setFlags(final String configuration) ;
-
+    
     FeatureFlag getFLag(final String key) ;
 }

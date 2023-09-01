@@ -20,8 +20,8 @@ public class FlagParser {
     private static final Map<String, Pattern> PATTERN_MAP = new HashMap<>();
     private static final Pattern REG_BRACKETS = Pattern.compile("^[^{]*\\{|}[^}]*$");
 
-    public Map<String, FeatureFlag> parseString(final String configuration) throws IOException {
-        Map<String, FeatureFlag> flagMap = new HashMap<>();
+    public static Map<String, FeatureFlag> parseString(final String configuration) throws IOException {
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
 
         final String transposedConfiguration = transposeEvaluators(configuration);
 

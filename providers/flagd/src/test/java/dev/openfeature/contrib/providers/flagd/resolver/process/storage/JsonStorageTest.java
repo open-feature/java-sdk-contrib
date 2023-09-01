@@ -2,7 +2,11 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -10,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class JsonStorageTest {
 
     @Test
-    public void deserializerTest(){
+    public void deserializerTest() throws IOException {
 
         // todo - as a test resource
         String flagConfig = "{\n" +
@@ -53,10 +57,8 @@ class JsonStorageTest {
 
         FlagStore storage = new FlagStore(FlagdOptions.builder().build());
 
-        storage.setFlags(flagConfig);
+        Map<String, FeatureFlag> flagMap = FlagParser.parseString(flagConfig);
 
-        FeatureFlag fibAlgo = storage.getFLag("fibAlgo");
-
-        assertEquals(expectedTargeting, fibAlgo.getTargeting());
+        assertEquals(expectedTargeting, flagMap.get("fibAlgo").getTargeting());
     }
 }

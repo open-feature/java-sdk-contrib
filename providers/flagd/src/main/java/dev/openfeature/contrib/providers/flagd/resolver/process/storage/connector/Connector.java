@@ -1,8 +1,11 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector;
 
-import java.util.function.Consumer;
+import java.util.concurrent.BlockingQueue;
 
 public interface Connector {
-    void init(Consumer<String> callback);
+    void init();
+
+    BlockingQueue<StreamPayload> getStream();
+
     void shutdown();
 }

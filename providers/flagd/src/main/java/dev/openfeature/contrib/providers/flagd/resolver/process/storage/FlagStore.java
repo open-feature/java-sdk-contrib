@@ -5,16 +5,21 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFla
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.GrpcStreamConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 @Log
 public class FlagStore implements Storage {
     private final Map<String, FeatureFlag> flags = new ConcurrentHashMap<>();
+
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final FlagParser parser = new FlagParser();
     private final Connector connector;
 
@@ -23,23 +28,46 @@ public class FlagStore implements Storage {
     }
 
     public void init() {
-        connector.init(this::setFlags);
+        connector.init();
+        Thread streamer = new Thread(() -> {
+            try {
+                streamerListener(connector);
+            } catch (InterruptedException e) {
+                log.log(Level.WARNING, "connection listener failed", e);
+            }
+        });
+        streamer.setDaemon(true);
+        streamer.start();
     }
 
     public void shutdown() {
+        shutdown.set(true);
         connector.shutdown();
-    }
-
-    public void setFlags(final String configuration) {
-        try {
-            parser.parseString(configuration);
-        } catch (IOException e) {
-            log.log(Level.WARNING, "flag configuration parsing failed", e);
-        }
     }
 
     public FeatureFlag getFLag(final String key) {
         return flags.get(key);
+    }
+
+    private void streamerListener(final Connector connector) throws InterruptedException {
+        final BlockingQueue<StreamPayload> streamPayloads = connector.getStream();
+        while (!shutdown.get()) {
+            StreamPayload take = streamPayloads.take();
+
+            switch (take.getType()) {
+                case Data:
+                    try {
+                        Map<String, FeatureFlag> flagMap = parser.parseString(take.getData());
+                        flags.clear();
+                        flags.putAll(flagMap);
+                    } catch (IOException e) {
+                        log.log(Level.WARNING, "Invalid flag sync payload", e);
+                    }
+                case Error:
+                    // todo - event handling
+                    break;
+            }
+        }
     }
 
 }
