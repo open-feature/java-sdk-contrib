@@ -54,7 +54,7 @@ class JsonStorageTest {
 
         storage.setFlags(flagConfig);
 
-        FlagModel fibAlgo = storage.getFLag("fibAlgo");
+        FeatureFlag fibAlgo = storage.getFLag("fibAlgo");
 
         assertEquals(expectedTargeting, fibAlgo.getTargeting());
     }

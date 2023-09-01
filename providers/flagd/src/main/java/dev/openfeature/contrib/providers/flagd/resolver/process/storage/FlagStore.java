@@ -10,29 +10,33 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 
 public class FlagStore {
     private static final String FLAG_KEY = "flags";
     private static final String EVALUATOR_KEY = "$evaluators";
+    private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final Map<String, Pattern> PATTERN_MAP = new HashMap<>();
     private static final Pattern REG_BRACKETS = Pattern.compile("^[^{]*\\{|}[^}]*$");
 
-    private final Map<String, FlagModel> flags = new HashMap<>();
-    private FlagdOptions options;
+    private final Map<String, FeatureFlag> flags = new ConcurrentHashMap<>();
+    private final Connector connector;
 
     public FlagStore(final FlagdOptions options) {
-        this.options = options;
+        this.connector = new GrpcStreamConnector(options);
     }
 
     public void init() {
-        // todo switch based on options ?
-        GrpcStreamConnector connector = new GrpcStreamConnector(options);
         connector.init(this::setFlags);
+    }
+
+    public void shutdown() {
+        connector.shutdown();
     }
 
     public void setFlags(final String configuration) {
@@ -46,7 +50,7 @@ public class FlagStore {
             final Iterator<String> it = flagNode.fieldNames();
             while (it.hasNext()) {
                 final String key = it.next();
-                flags.put(key, MAPPER.treeToValue(flagNode.get(key), FlagModel.class));
+                flags.put(key, MAPPER.treeToValue(flagNode.get(key), FeatureFlag.class));
             }
         } catch (IOException e) {
             // todo handle errors
@@ -54,7 +58,7 @@ public class FlagStore {
         }
     }
 
-    public FlagModel getFLag(final String key) {
+    public FeatureFlag getFLag(final String key) {
         return flags.get(key);
     }
 
@@ -78,7 +82,7 @@ public class FlagStore {
                         REG_BRACKETS.matcher(evaluators.get(evalName).toString())
                                 .replaceAll("");
 
-                final String replacePattern = String.format("\"\\$ref\":(\\s)*\"%s\"", evalName);
+                final String replacePattern = String.format(REPLACER_FORMAT, evalName);
 
                 // then derive pattern
                 final Pattern reg_replace =

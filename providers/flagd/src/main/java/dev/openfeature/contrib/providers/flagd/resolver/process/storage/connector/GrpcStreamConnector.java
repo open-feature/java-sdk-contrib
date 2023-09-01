@@ -2,17 +2,28 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Connector;
 import io.grpc.ManagedChannel;
-import io.grpc.stub.StreamObserver;
 import lombok.extern.java.Log;
 import sync.v1.FlagSyncServiceGrpc;
 import sync.v1.SyncService;
 
+import java.util.Random;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
-// handle grpc flag configuration stream
 @Log
-public class GrpcStreamConnector {
+public class GrpcStreamConnector implements Connector {
+    private static final Random RANDOM = new Random();
+
+    // todo make them instance or through a carrier for testing
+    private static final int INIT_BACK_OFF = 2 * 1000;
+    private static final int MAX_BACK_OFF = 120 * 1000;
+
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private final ManagedChannel channel;
     private final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub;
@@ -22,27 +33,49 @@ public class GrpcStreamConnector {
         serviceStub = FlagSyncServiceGrpc.newStub(channel);
     }
 
-    // todo shutdown
-
-    public void init(final Consumer<String> cb) {
-        // todo retry logic ?
-
-        Thread syncHandler = new Thread(() -> this.observeEventStream(cb));
-        syncHandler.start();
+    public void init(Consumer<String> callback) {
+        new Thread(() -> {
+            try {
+                observeEventStream(callback, shutdown, serviceStub);
+            } catch (InterruptedException e) {
+                log.log(Level.WARNING, "Event stream interrupted, flag configurations are stale", e);
+            }
+        }).start();
     }
 
-    private void observeEventStream(final Consumer<String> cb) {
-        SyncService.SyncFlagsRequest request = SyncService.SyncFlagsRequest.newBuilder()
-                .setSelector("selector")
-                .setProviderId("providerID")
-                .build();
+    public void shutdown() {
+        shutdown.set(true);
+        channel.shutdown();
+    }
 
+    // blocking calls, to be used with thread
+    static void observeEventStream(final Consumer<String> callback,
+                                   final AtomicBoolean shutdown,
+                                   FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub) throws InterruptedException {
 
-        this.serviceStub.syncFlags(request, new StreamObserver<SyncService.SyncFlagsResponse>() {
-            @Override public void onNext(SyncService.SyncFlagsResponse syncFlagsResponse) {
-                switch (syncFlagsResponse.getState()){
+        final BlockingQueue<GrpcResponseModel> blockingQueue = new LinkedBlockingQueue<>(5);
+        int retryDelay = INIT_BACK_OFF;
+
+        while (!shutdown.get()) {
+            final SyncService.SyncFlagsRequest request = SyncService.SyncFlagsRequest.newBuilder().build();
+            serviceStub.syncFlags(request, new GrpcStreamHandler(blockingQueue));
+            while (!shutdown.get()) {
+                GrpcResponseModel response = blockingQueue.take();
+                if (response.isComplete()) {
+                    break;
+                }
+
+                if (response.getError() != null) {
+                    log.log(Level.WARNING,
+                            String.format("error from grpc connection, retrying in %dms", retryDelay),
+                            response.getError());
+                    break;
+                }
+
+                final SyncService.SyncFlagsResponse flagsResponse = response.getSyncFlagsResponse();
+                switch (flagsResponse.getState()) {
                     case SYNC_STATE_ALL:
-                        cb.accept(syncFlagsResponse.getFlagConfiguration());
+                        callback.accept(flagsResponse.getFlagConfiguration());
                         break;
                     case SYNC_STATE_UNSPECIFIED:
                     case SYNC_STATE_ADD:
@@ -50,20 +83,17 @@ public class GrpcStreamConnector {
                     case SYNC_STATE_DELETE:
                     case SYNC_STATE_PING:
                     case UNRECOGNIZED:
-                        log.info("Received sate: "+ syncFlagsResponse.getState());
+                        log.info(
+                                String.format("Ignored - received payload of state: %s", flagsResponse.getState()));
                 }
-
             }
 
-            @Override public void onError(Throwable throwable) {
-                // todo handle error
-            }
+            // busy wait till next attempt
+            Thread.sleep(retryDelay + RANDOM.nextInt(INIT_BACK_OFF));
 
-            @Override public void onCompleted() {
-                // todo handle complete
+            if (retryDelay < MAX_BACK_OFF) {
+                retryDelay = 2 * retryDelay;
             }
-        });
+        }
     }
-
-
 }

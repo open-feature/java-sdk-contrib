@@ -2,20 +2,29 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagModel;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import io.github.jamsesso.jsonlogic.JsonLogic;
+import io.github.jamsesso.jsonlogic.JsonLogicException;
+import lombok.extern.java.Log;
 
+import java.util.logging.Level;
 
+@Log
 public class InProcessResolver implements Resolver {
     private final FlagStore flagStore;
+    private final JsonLogic jsonLogicHandler;
 
     public InProcessResolver(FlagdOptions options) {
         flagStore = new FlagStore(options);
+        jsonLogicHandler = new JsonLogic();
+
+        // todo - custom json logic operators
     }
 
 
@@ -25,31 +34,31 @@ public class InProcessResolver implements Resolver {
     }
 
     @Override
-    public void shutdown() throws Exception {
-
+    public void shutdown() {
+        flagStore.shutdown();
     }
 
     @Override
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-                                                                   EvaluationContext ctx) {
+                                                         EvaluationContext ctx) {
         return resolveGeneric(Boolean.class, key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
-                                                                 EvaluationContext ctx) {
+                                                       EvaluationContext ctx) {
         return resolveGeneric(String.class, key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
-                                                                 EvaluationContext ctx) {
+                                                       EvaluationContext ctx) {
         return resolveGeneric(Double.class, key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
-                                                                   EvaluationContext ctx) {
+                                                         EvaluationContext ctx) {
         return resolveGeneric(Integer.class, key, defaultValue, ctx);
     }
 
@@ -59,10 +68,10 @@ public class InProcessResolver implements Resolver {
     }
 
     private <T> ProviderEvaluation<T> resolveGeneric(Class<T> type, String key, T defaultValue,
-                                                               EvaluationContext ctx){
-       final FlagModel flag = flagStore.getFLag(key);
+                                                     EvaluationContext ctx) {
+        final FeatureFlag flag = flagStore.getFLag(key);
 
-        if (flag == null){
+        if (flag == null) {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
                     .reason(Reason.ERROR.toString())
@@ -72,7 +81,7 @@ public class InProcessResolver implements Resolver {
         }
 
         // state check
-        if ("DISABLED".equals(flag.getState())){
+        if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
                     .reason(Reason.ERROR.toString())
@@ -81,12 +90,29 @@ public class InProcessResolver implements Resolver {
                     .build();
         }
 
-        // todo - handle targeting rule
 
+        final Object resolvedVariant;
+        final String reason;
 
-        Object resolvedVariant = flag.getVariants().get(flag.getDefaultVariant());
+        if (flag.getTargeting() != "{}") {
+            try {
+                resolvedVariant = jsonLogicHandler.apply(flag.getTargeting(), ctx.asObjectMap());
+                reason = Reason.TARGETING_MATCH.toString();
+            } catch (JsonLogicException e) {
+                log.log(Level.INFO, "Error evaluating targeting rule", e);
+                return ProviderEvaluation.<T>builder()
+                        .value(defaultValue)
+                        .reason(Reason.ERROR.toString())
+                        .errorCode(ErrorCode.PARSE_ERROR)
+                        .errorMessage(String.format("error parsing targeting rule: %s", key))
+                        .build();
+            }
+        } else {
+            resolvedVariant = flag.getVariants().get(flag.getDefaultVariant());
+            reason = Reason.STATIC.toString();
+        }
 
-        if (!resolvedVariant.getClass().isAssignableFrom(type)){
+        if (!resolvedVariant.getClass().isAssignableFrom(type)) {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
                     .reason(Reason.ERROR.toString())
@@ -97,7 +123,7 @@ public class InProcessResolver implements Resolver {
 
         return ProviderEvaluation.<T>builder()
                 .value((T) resolvedVariant)
-                .reason(Reason.STATIC.toString())
+                .reason(reason)
                 .build();
     }
 
