@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.java.Log;

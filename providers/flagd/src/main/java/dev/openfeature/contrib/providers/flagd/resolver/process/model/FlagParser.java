@@ -10,6 +10,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * flagd feature flag configuration parser
+ */
 public class FlagParser {
     private static final String FLAG_KEY = "flags";
     private static final String EVALUATOR_KEY = "$evaluators";
@@ -21,11 +24,10 @@ public class FlagParser {
     private static final Pattern REG_BRACKETS = Pattern.compile("^[^{]*\\{|}[^}]*$");
 
     public static Map<String, FeatureFlag> parseString(final String configuration) throws IOException {
-        final Map<String, FeatureFlag> flagMap = new HashMap<>();
-
         final String transposedConfiguration = transposeEvaluators(configuration);
 
-        // then convert to flags
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+
         try (JsonParser parser = MAPPER.createParser(transposedConfiguration)) {
             final TreeNode treeNode = parser.readValueAsTree();
             final TreeNode flagNode = treeNode.get(FLAG_KEY);
@@ -43,7 +45,6 @@ public class FlagParser {
     static String transposeEvaluators(final String configuration) throws IOException {
         try (JsonParser parser = MAPPER.createParser(configuration)) {
             final TreeNode treeNode = parser.readValueAsTree();
-
             final TreeNode evaluators = treeNode.get(EVALUATOR_KEY);
 
             if (evaluators == null || evaluators.size() == 0) {

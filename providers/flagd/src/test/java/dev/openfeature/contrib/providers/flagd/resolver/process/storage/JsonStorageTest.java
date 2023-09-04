@@ -55,8 +55,6 @@ class JsonStorageTest {
 
         String expectedTargeting = "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}";
 
-        FlagStore storage = new FlagStore(FlagdOptions.builder().build());
-
         Map<String, FeatureFlag> flagMap = FlagParser.parseString(flagConfig);
 
         assertEquals(expectedTargeting, flagMap.get("fibAlgo").getTargeting());

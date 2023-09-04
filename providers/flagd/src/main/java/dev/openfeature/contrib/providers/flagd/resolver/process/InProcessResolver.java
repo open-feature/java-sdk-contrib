@@ -5,6 +5,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
@@ -16,16 +17,19 @@ import lombok.extern.java.Log;
 
 import java.util.logging.Level;
 
+/**
+ * flagd in-process resolver. Resolves feature flags in-process. Flags are retrieved from {@link Storage}, where the
+ * {@link Storage} maintain flag configurations obtained from known source.
+ * */
 @Log
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
     private final JsonLogic jsonLogicHandler;
 
     public InProcessResolver(FlagdOptions options) {
-        flagStore = new FlagStore(options);
+        // currently we support gRPC connector
+        flagStore = new FlagStore(new GrpcStreamConnector(options));
         jsonLogicHandler = new JsonLogic();
-
-        // todo - custom json logic operators
     }
 
 
@@ -122,7 +126,7 @@ public class InProcessResolver implements Resolver {
 
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
-        if (value == null){
+        if (value == null) {
             log.log(Level.FINE, String.format("variant %s not found in flag with key %s", resolvedVariant, key));
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)

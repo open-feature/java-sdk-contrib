@@ -5,7 +5,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 
 /**
- * A generic contract flag resolving contract for flagd.
+ * A generic flag resolving contract for flagd.
  */
 public interface Resolver {
     void init() throws Exception;

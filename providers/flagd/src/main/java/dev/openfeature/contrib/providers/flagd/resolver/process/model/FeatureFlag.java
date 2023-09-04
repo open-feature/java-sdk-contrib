@@ -7,6 +7,9 @@ import lombok.Getter;
 
 import java.util.Map;
 
+/**
+ * flagd feature flag model.
+ * */
 @Getter
 public class FeatureFlag {
     private final String state;

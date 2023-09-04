@@ -44,7 +44,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      * @param options {@link FlagdOptions} with
      */
     public FlagdProvider(final FlagdOptions options) {
-        switch (options.getResolver()){
+        switch (options.getResolverType()){
             case inProcess:
                 this.flagResolver = new InProcessResolver(options);
                 break;

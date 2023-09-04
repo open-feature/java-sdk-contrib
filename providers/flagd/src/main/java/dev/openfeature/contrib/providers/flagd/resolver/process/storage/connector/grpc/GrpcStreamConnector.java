@@ -1,7 +1,10 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
 import io.grpc.ManagedChannel;
 import lombok.extern.java.Log;
 import sync.v1.FlagSyncServiceGrpc;
@@ -13,11 +16,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
+/**
+ * Implements the {@link Connector} contract and emit flags obtained from flagd sync gRPC contract.
+ */
 @Log
 public class GrpcStreamConnector implements Connector {
     private static final Random RANDOM = new Random();
 
-    // todo make them instance or through a carrier for testing
     private static final int INIT_BACK_OFF = 2 * 1000;
     private static final int MAX_BACK_OFF = 120 * 1000;
 
@@ -37,7 +42,7 @@ public class GrpcStreamConnector implements Connector {
             try {
                 observeEventStream(blockingQueue, shutdown, serviceStub);
             } catch (InterruptedException e) {
-                log.log(Level.WARNING, "Event stream interrupted, flag configurations are stale", e);
+                log.log(Level.WARNING, "gRPC event stream interrupted, flag configurations are stale", e);
             }
         });
 
@@ -56,10 +61,13 @@ public class GrpcStreamConnector implements Connector {
         channel.shutdown();
     }
 
-    // blocking calls, to be used with thread
+    /**
+     * Contains blocking calls, to be used concurrently.
+     */
     static void observeEventStream(final BlockingQueue<StreamPayload> writeTo,
                                    final AtomicBoolean shutdown,
-                                   FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub) throws InterruptedException {
+                                   final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub)
+            throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> blockingQueue = new LinkedBlockingQueue<>(5);
         int retryDelay = INIT_BACK_OFF;
