@@ -4,12 +4,15 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFla
 
 import java.util.concurrent.BlockingQueue;
 
+/**
+ * Storage abstraction for resolver.
+ */
 public interface Storage {
-    void init() ;
+    void init();
 
     void shutdown();
-    
-    FeatureFlag getFLag(final String key) ;
+
+    FeatureFlag getFLag(final String key);
 
     BlockingQueue<StorageState> getStateQueue();
 }

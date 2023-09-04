@@ -35,7 +35,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefa
 public class FlagdOptions {
 
     /**
-     * flagd resolving type
+     * flagd resolving type.
      * */
     @Builder.Default
     private Config.ResolverType resolverType = DEFAULT_RESOLVER_TYPE;

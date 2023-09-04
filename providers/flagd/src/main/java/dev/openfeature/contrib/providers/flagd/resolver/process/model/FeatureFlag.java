@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * flagd feature flag model.
- * */
+ */
 @Getter
 public class FeatureFlag {
     private final String state;
@@ -17,6 +17,9 @@ public class FeatureFlag {
     private final Map<String, Object> variants;
     private final String targeting;
 
+    /**
+     * Construct a flagd feature flag.
+     */
     @JsonCreator
     public FeatureFlag(@JsonProperty("state") String state,
                        @JsonProperty("defaultVariant") String defaultVariant,
@@ -28,6 +31,9 @@ public class FeatureFlag {
         this.targeting = targeting;
     }
 
+    /**
+     * Get targeting rule of the flag.
+     */
     public String getTargeting() {
         return this.targeting == null ? "{}" : this.targeting;
     }

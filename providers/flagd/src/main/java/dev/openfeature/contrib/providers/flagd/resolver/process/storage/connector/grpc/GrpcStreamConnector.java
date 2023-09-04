@@ -37,6 +37,9 @@ public class GrpcStreamConnector implements Connector {
         serviceStub = FlagSyncServiceGrpc.newStub(channel);
     }
 
+    /**
+     * Initialize gRPC stream connector.
+     */
     public void init() {
         Thread listener = new Thread(() -> {
             try {
@@ -50,12 +53,16 @@ public class GrpcStreamConnector implements Connector {
         listener.start();
     }
 
-    @Override
+    /**
+     * Get blocking queue to obtain payloads exposed by this connector.
+     */
     public BlockingQueue<StreamPayload> getStream() {
         return blockingQueue;
     }
 
-
+    /**
+     * Shutdown gRPC stream connector.
+     */
     public void shutdown() {
         shutdown.set(true);
         channel.shutdown();
@@ -103,6 +110,7 @@ public class GrpcStreamConnector implements Connector {
                     case SYNC_STATE_DELETE:
                     case SYNC_STATE_PING:
                     case UNRECOGNIZED:
+                    default:
                         log.info(
                                 String.format("Ignored - received payload of state: %s", flagsResponse.getState()));
                 }

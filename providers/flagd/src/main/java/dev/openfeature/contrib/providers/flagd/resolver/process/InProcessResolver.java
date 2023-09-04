@@ -37,8 +37,9 @@ public class InProcessResolver implements Resolver {
         jsonLogicHandler = new JsonLogic();
     }
 
-
-    @Override
+    /**
+     * Initialize in-process resolver.
+     */
     public void init() throws Exception {
         flagStore.init();
         final Thread stateWatcher = new Thread(() -> {
@@ -48,10 +49,14 @@ public class InProcessResolver implements Resolver {
                     switch (storageState) {
                         case OK:
                             stateConsumer.accept(ProviderState.READY);
-                        case STALE:
-                            // todo set stale state
+                            break;
                         case ERROR:
                             stateConsumer.accept(ProviderState.ERROR);
+                            break;
+                        case STALE:
+                            // todo set stale state
+                        default:
+                            log.log(Level.INFO, String.format("Storage emitted unknown status: %s", storageState));
                     }
                 }
             } catch (InterruptedException e) {
@@ -62,36 +67,48 @@ public class InProcessResolver implements Resolver {
         stateWatcher.start();
     }
 
-    @Override
+    /**
+     * Shutdown in-process resolver.
+     */
     public void shutdown() {
         flagStore.shutdown();
     }
 
-    @Override
+    /**
+     * Resolve a boolean flag
+     */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
                                                          EvaluationContext ctx) {
         return resolveGeneric(Boolean.class, key, defaultValue, ctx);
     }
 
-    @Override
+    /**
+     * Resolve a string flag
+     */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
                                                        EvaluationContext ctx) {
         return resolveGeneric(String.class, key, defaultValue, ctx);
     }
 
-    @Override
+    /**
+     * Resolve a double flag
+     */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
                                                        EvaluationContext ctx) {
         return resolveGeneric(Double.class, key, defaultValue, ctx);
     }
 
-    @Override
+    /**
+     * Resolve an integer flag
+     */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
                                                          EvaluationContext ctx) {
         return resolveGeneric(Integer.class, key, defaultValue, ctx);
     }
 
-    @Override
+    /**
+     * Resolve an object flag
+     */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         return resolveGeneric(Value.class, key, defaultValue, ctx);
     }

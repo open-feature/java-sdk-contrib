@@ -51,6 +51,9 @@ public final class Config {
         }
     }
 
+    /**
+     * flagd resolving type.
+     */
     public enum ResolverType {
         /**
          * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC contract.

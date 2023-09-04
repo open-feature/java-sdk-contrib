@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * flagd feature flag configuration parser
+ * flagd feature flag configuration parser.
  */
 public class FlagParser {
     private static final String FLAG_KEY = "flags";
@@ -23,6 +23,9 @@ public class FlagParser {
     private static final Map<String, Pattern> PATTERN_MAP = new HashMap<>();
     private static final Pattern REG_BRACKETS = Pattern.compile("^[^{]*\\{|}[^}]*$");
 
+    /**
+     * Parse {@link String} for feature flags.
+     */
     public static Map<String, FeatureFlag> parseString(final String configuration) throws IOException {
         final String transposedConfiguration = transposeEvaluators(configuration);
 

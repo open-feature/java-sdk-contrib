@@ -14,6 +14,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
+/**
+ * Feature flag storage.
+ */
 @Log
 public class FlagStore implements Storage {
     private final Object sync = new Object();
@@ -27,6 +30,9 @@ public class FlagStore implements Storage {
         this.connector = connector;
     }
 
+    /**
+     * Initialize storage layer.
+     */
     public void init() {
         connector.init();
         Thread streamer = new Thread(() -> {
@@ -40,17 +46,26 @@ public class FlagStore implements Storage {
         streamer.start();
     }
 
+    /**
+     * Shutdown storage layer.
+     */
     public void shutdown() {
         shutdown.set(true);
         connector.shutdown();
     }
 
+    /**
+     * Retrieve flag for the given key.
+     */
     public FeatureFlag getFLag(final String key) {
         synchronized (sync) {
             return flags.get(key);
         }
     }
 
+    /**
+     * Retrieve blocking queue to check storage status.
+     */
     public BlockingQueue<StorageState> getStateQueue() {
         return stateBlockingQueue;
     }
@@ -73,9 +88,12 @@ public class FlagStore implements Storage {
                         log.log(Level.WARNING, "Invalid flag sync payload from connector", e);
                         stateBlockingQueue.offer(StorageState.STALE);
                     }
+                    break;
                 case Error:
                     stateBlockingQueue.offer(StorageState.ERROR);
                     break;
+                default:
+                    log.log(Level.INFO, String.format("Payload with unknown type: %s", take.getType()));
             }
         }
     }

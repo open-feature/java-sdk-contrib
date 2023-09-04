@@ -3,6 +3,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * Payload emitted by a {@link Connector}.
+ */
 @AllArgsConstructor
 @Getter
 public class StreamPayload {

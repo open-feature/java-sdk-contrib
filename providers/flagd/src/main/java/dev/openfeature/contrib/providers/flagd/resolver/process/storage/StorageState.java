@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 /**
- * Satus of the storage
+ * Satus of the storage.
  */
 public enum StorageState {
     /**
