@@ -10,14 +10,16 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 @Log
 public class FlagStore implements Storage {
     private final Object sync = new Object();
-    private final Map<String, FeatureFlag> flags = new ConcurrentHashMap<>();
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final BlockingQueue<StorageState> stateBlockingQueue = new LinkedBlockingQueue<>(1);
+    private final Map<String, FeatureFlag> flags = new ConcurrentHashMap<>();
 
     private final Connector connector;
 
@@ -49,6 +51,10 @@ public class FlagStore implements Storage {
         }
     }
 
+    public BlockingQueue<StorageState> getStateQueue() {
+        return stateBlockingQueue;
+    }
+
     private void streamerListener(final Connector connector) throws InterruptedException {
         final BlockingQueue<StreamPayload> streamPayloads = connector.getStream();
 
@@ -62,11 +68,13 @@ public class FlagStore implements Storage {
                             flags.clear();
                             flags.putAll(flagMap);
                         }
+                        stateBlockingQueue.offer(StorageState.OK);
                     } catch (IOException e) {
                         log.log(Level.WARNING, "Invalid flag sync payload from connector", e);
+                        stateBlockingQueue.offer(StorageState.STALE);
                     }
                 case Error:
-                    // todo - event handling
+                    stateBlockingQueue.offer(StorageState.ERROR);
                     break;
             }
         }

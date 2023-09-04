@@ -5,30 +5,35 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import lombok.extern.java.Log;
 
+import java.util.function.Consumer;
 import java.util.logging.Level;
 
 /**
  * flagd in-process resolver. Resolves feature flags in-process. Flags are retrieved from {@link Storage}, where the
  * {@link Storage} maintain flag configurations obtained from known source.
- * */
+ */
 @Log
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
+    private final Consumer<ProviderState> stateConsumer;
     private final JsonLogic jsonLogicHandler;
 
-    public InProcessResolver(FlagdOptions options) {
+    public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
         // currently we support gRPC connector
-        flagStore = new FlagStore(new GrpcStreamConnector(options));
+        this.flagStore = new FlagStore(new GrpcStreamConnector(options));
+        this.stateConsumer = stateConsumer;
         jsonLogicHandler = new JsonLogic();
     }
 
@@ -36,6 +41,25 @@ public class InProcessResolver implements Resolver {
     @Override
     public void init() throws Exception {
         flagStore.init();
+        final Thread stateWatcher = new Thread(() -> {
+            try {
+                while (true) {
+                    final StorageState storageState = flagStore.getStateQueue().take();
+                    switch (storageState) {
+                        case OK:
+                            stateConsumer.accept(ProviderState.READY);
+                        case STALE:
+                            // todo set stale state
+                        case ERROR:
+                            stateConsumer.accept(ProviderState.ERROR);
+                    }
+                }
+            } catch (InterruptedException e) {
+                log.log(Level.WARNING, "Storage state watcher interrupted", e);
+            }
+        });
+        stateWatcher.setDaemon(true);
+        stateWatcher.start();
     }
 
     @Override
