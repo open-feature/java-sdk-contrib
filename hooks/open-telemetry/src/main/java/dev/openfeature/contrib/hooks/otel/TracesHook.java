@@ -3,11 +3,14 @@ package dev.openfeature.contrib.hooks.otel;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
+import dev.openfeature.sdk.ImmutableMetadata;
 import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.EVENT_NAME;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
@@ -20,6 +23,7 @@ import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey
  */
 public class TracesHook implements Hook {
     private final boolean setSpanErrorStatus;
+    private final Function<ImmutableMetadata, Attributes> extractor;
 
     /**
      * Create a new OpenTelemetryHook instance with default options.
@@ -33,6 +37,7 @@ public class TracesHook implements Hook {
      */
     public TracesHook(TracesHookOptions options) {
         setSpanErrorStatus = options.isSetSpanErrorStatus();
+        extractor = options.getDimensionExtractor();
     }
 
     /**
@@ -51,9 +56,18 @@ public class TracesHook implements Hook {
         }
 
         String variant = details.getVariant() != null ? details.getVariant() : String.valueOf(details.getValue());
-        Attributes attributes = Attributes.of(flagKeyAttributeKey, ctx.getFlagKey(), providerNameAttributeKey,
-                ctx.getProviderMetadata().getName(), variantAttributeKey, variant);
-        currentSpan.addEvent(EVENT_NAME, attributes);
+
+        final AttributesBuilder attributesBuilder = Attributes.builder();
+
+        attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
+        attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
+        attributesBuilder.put(variantAttributeKey, variant);
+
+        if (extractor != null) {
+            attributesBuilder.putAll(extractor.apply(details.getFlagMetadata()));
+        }
+
+        currentSpan.addEvent(EVENT_NAME, attributesBuilder.build());
     }
 
     /**

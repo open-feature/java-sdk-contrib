@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.strategy;
+package dev.openfeature.contrib.providers.flagd.grpc.strategy;
 
 import com.google.protobuf.Message;
 import io.opentelemetry.api.OpenTelemetry;

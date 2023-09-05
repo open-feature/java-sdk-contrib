@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.strategy;
+package dev.openfeature.contrib.providers.flagd.grpc.strategy;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 

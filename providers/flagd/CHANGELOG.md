@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.6.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.0...dev.openfeature.contrib.providers.flagd-v0.6.1) (2023-08-21)
+
+
+### Features
+
+* flagd flag evaluation metadata ([#389](https://github.com/open-feature/java-sdk-contrib/issues/389)) ([b571cc5](https://github.com/open-feature/java-sdk-contrib/commit/b571cc5eb8424563dfed46e686b771da253894ee))
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.grpc:grpc-netty to v1.57.0 ([#373](https://github.com/open-feature/java-sdk-contrib/issues/373)) ([3b00f7d](https://github.com/open-feature/java-sdk-contrib/commit/3b00f7d5855a2f37e4bdaa5604a89078652210a1))
+* **deps:** update dependency io.grpc:grpc-netty to v1.57.1 ([#382](https://github.com/open-feature/java-sdk-contrib/issues/382)) ([72ca252](https://github.com/open-feature/java-sdk-contrib/commit/72ca252a5a09dd3ca4fb7ebd1dd407b0b7cdca07))
+* **deps:** update dependency io.grpc:grpc-netty to v1.57.2 ([#399](https://github.com/open-feature/java-sdk-contrib/issues/399)) ([a461bf0](https://github.com/open-feature/java-sdk-contrib/commit/a461bf01a874b5f6af04cb98231ad9bbfc5a3fde))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.57.0 ([#374](https://github.com/open-feature/java-sdk-contrib/issues/374)) ([f8d11d6](https://github.com/open-feature/java-sdk-contrib/commit/f8d11d6966208909eedcdb64cce1613aed2ba3b9))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.57.1 ([#383](https://github.com/open-feature/java-sdk-contrib/issues/383)) ([492b437](https://github.com/open-feature/java-sdk-contrib/commit/492b437b48bb225d74ae9b0154003bb1e6202a97))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.57.2 ([#400](https://github.com/open-feature/java-sdk-contrib/issues/400)) ([9750f99](https://github.com/open-feature/java-sdk-contrib/commit/9750f99bc8d342b698ea0fc932fb481f962e2b9d))
+* **deps:** update dependency io.grpc:grpc-stub to v1.57.0 ([#375](https://github.com/open-feature/java-sdk-contrib/issues/375)) ([6b53cf4](https://github.com/open-feature/java-sdk-contrib/commit/6b53cf42ca7fc74fbd069a90c0779f0088eb081e))
+* **deps:** update dependency io.grpc:grpc-stub to v1.57.1 ([#384](https://github.com/open-feature/java-sdk-contrib/issues/384)) ([6cf9900](https://github.com/open-feature/java-sdk-contrib/commit/6cf9900c8cab3e958dbf8ebb53553c51a94f872e))
+* **deps:** update dependency io.grpc:grpc-stub to v1.57.2 ([#401](https://github.com/open-feature/java-sdk-contrib/issues/401)) ([1d612a9](https://github.com/open-feature/java-sdk-contrib/commit/1d612a91ab3884bd1368d99d1f1e183d9b14e374))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.96.final ([#372](https://github.com/open-feature/java-sdk-contrib/issues/372)) ([f2eaca2](https://github.com/open-feature/java-sdk-contrib/commit/f2eaca2f7c18f44f131cf259d077bf39e349c00f))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.29.0 ([#396](https://github.com/open-feature/java-sdk-contrib/issues/396)) ([21ff548](https://github.com/open-feature/java-sdk-contrib/commit/21ff5489fc641d03c16fd9a71a610488cfa7db5c))
+
 ## [0.6.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.5.10...dev.openfeature.contrib.providers.flagd-v0.6.0) (2023-07-27)
 
 
