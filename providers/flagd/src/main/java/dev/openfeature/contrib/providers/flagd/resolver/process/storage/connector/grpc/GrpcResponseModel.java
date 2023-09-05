@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
+import dev.openfeature.flagd.sync.SyncService;
 import lombok.Getter;
-import sync.v1.SyncService;
 
 @Getter
 class GrpcResponseModel {

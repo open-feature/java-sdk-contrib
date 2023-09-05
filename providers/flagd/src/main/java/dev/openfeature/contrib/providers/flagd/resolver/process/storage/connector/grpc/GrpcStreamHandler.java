@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
+import dev.openfeature.flagd.sync.SyncService;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.java.Log;
-import sync.v1.SyncService;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;

@@ -5,11 +5,11 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import dev.openfeature.flagd.sync.FlagSyncServiceGrpc;
+import dev.openfeature.flagd.sync.SyncService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import lombok.extern.java.Log;
-import sync.v1.FlagSyncServiceGrpc;
-import sync.v1.SyncService;
 
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;

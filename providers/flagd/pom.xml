@@ -145,7 +145,7 @@
                                 <argument>submodule</argument>
                                 <argument>update</argument>
                                 <argument>--init</argument>
-                                <argument>schemas</argument>
+                                <argument>--remote</argument>
                             </arguments>
                         </configuration>
                     </execution>
