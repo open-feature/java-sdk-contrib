@@ -5,6 +5,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import lombok.extern.java.Log;
 import sync.v1.FlagSyncServiceGrpc;
@@ -20,6 +21,8 @@ import java.util.logging.Level;
  * Implements the {@link Connector} contract and emit flags obtained from flagd sync gRPC contract.
  */
 @Log
+@SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "EI_EXPOSE_REP"},
+        justification = "Random is used to generate a variation & flag configurations require exposing")
 public class GrpcStreamConnector implements Connector {
     private static final Random RANDOM = new Random();
 
@@ -119,7 +122,9 @@ public class GrpcStreamConnector implements Connector {
                 }
             }
 
-            writeTo.offer(new StreamPayload(StreamPayloadType.ERROR, "Error from stream connection, retrying"));
+            if (writeTo.offer(new StreamPayload(StreamPayloadType.ERROR, "Error from stream connection, retrying"))) {
+                log.log(Level.WARNING, "Failed to convey ERROR satus, queue is full");
+            }
 
             // busy wait till next attempt
             Thread.sleep(retryDelay + RANDOM.nextInt(INIT_BACK_OFF));

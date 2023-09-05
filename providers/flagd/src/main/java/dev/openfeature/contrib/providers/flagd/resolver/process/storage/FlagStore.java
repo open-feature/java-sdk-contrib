@@ -4,8 +4,8 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFla
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.java.Log;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -20,6 +20,8 @@ import java.util.logging.Level;
  * Feature flag storage.
  */
 @Log
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
+        justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagStore implements Storage {
     private final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
     private final ReadLock readLock = sync.readLock();
@@ -97,15 +99,21 @@ public class FlagStore implements Storage {
                         } finally {
                             writeLock.unlock();
                         }
-                        stateBlockingQueue.offer(StorageState.OK);
+                        if (!stateBlockingQueue.offer(StorageState.OK)) {
+                            log.log(Level.WARNING, "Failed to convey OK satus, queue is full");
+                        }
                     } catch (Throwable e) {
                         // catch all exceptions and avoid stream listener interruptions
                         log.log(Level.WARNING, "Invalid flag sync payload from connector", e);
-                        stateBlockingQueue.offer(StorageState.STALE);
+                        if (!stateBlockingQueue.offer(StorageState.STALE)) {
+                            log.log(Level.WARNING, "Failed to convey STALE satus, queue is full");
+                        }
                     }
                     break;
                 case ERROR:
-                    stateBlockingQueue.offer(StorageState.ERROR);
+                    if (!stateBlockingQueue.offer(StorageState.ERROR)) {
+                        log.log(Level.WARNING, "Failed to convey ERROR satus, queue is full");
+                    }
                     break;
                 default:
                     log.log(Level.INFO, String.format("Payload with unknown type: %s", take.getType()));

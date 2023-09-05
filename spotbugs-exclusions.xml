@@ -4,6 +4,7 @@
     <!-- Ignore generated dev.openfeature.flagd.grpc schemas -->
     <Match>
         <Package name="~dev\.openfeature\.flagd\.grpc\.*" />
+        <Package name="~dev\.openfeature\.flagd\.sync\.*" />
     </Match>
 
     <!-- All bugs in test classes, except for JUnit-specific bugs -->

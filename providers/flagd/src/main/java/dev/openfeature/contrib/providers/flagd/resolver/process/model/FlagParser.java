@@ -7,10 +7,12 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -23,7 +25,10 @@ import java.util.regex.Pattern;
 /**
  * flagd feature flag configuration parser.
  */
-@Log public class FlagParser {
+@Log
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
+        justification = "Feature flag comes as a Json configuration, hence they must be exposed")
+public class FlagParser {
     private static final String FLAG_KEY = "flags";
     private static final String EVALUATOR_KEY = "$evaluators";
     private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
@@ -43,7 +48,7 @@ import java.util.regex.Pattern;
                 log.log(Level.WARNING, String.format("Resource %s not found", SCHEMA_RESOURCE));
             } else {
                 byte[] bytes = Files.readAllBytes(Paths.get(url.getPath()));
-                String schemaString = new String(bytes);
+                String schemaString = new String(bytes, StandardCharsets.UTF_8);
                 JsonSchemaFactory instance = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
                 SCHEMA_VALIDATOR = instance.getSchema(schemaString);
             }
