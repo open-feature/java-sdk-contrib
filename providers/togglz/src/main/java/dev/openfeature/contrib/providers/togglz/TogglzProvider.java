@@ -16,7 +16,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.togglz.core.Feature;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,8 +36,8 @@ public class TogglzProvider extends EventProvider {
     @Getter
     private ProviderState state = ProviderState.NOT_READY;
 
-    public TogglzProvider(Collection<Feature> featuresCollection) {
-        featuresCollection.forEach(feature -> features.put(feature.name(), feature));
+    public TogglzProvider(TogglzOptions togglzOptions) {
+        togglzOptions.features.forEach(feature -> features.put(feature.name(), feature));
     }
 
     /**

@@ -42,10 +42,10 @@ class TogglzProviderTest {
             .build();
         StaticFeatureManagerProvider.setFeatureManager(featureManager);
 
-        OpenFeatureAPI api = OpenFeatureAPI.getInstance();
-        featureProvider = new TogglzProvider(Arrays.asList(TestFeatures.values()));
-        api.setProviderAndWait(featureProvider);
-        client = api.getClient();
+        TogglzOptions togglzOptions = TogglzOptions.builder().features(Arrays.asList(TestFeatures.values())).build();
+        featureProvider = new TogglzProvider(togglzOptions);
+        OpenFeatureAPI.getInstance().setProviderAndWait(featureProvider);
+        client = OpenFeatureAPI.getInstance().getClient();
     }
 
     @Test
@@ -73,7 +73,8 @@ class TogglzProviderTest {
     @SneakyThrows
     @Test
     void shouldThrowIfNotInitialized() {
-        TogglzProvider togglzProvider = new TogglzProvider(Arrays.asList(TestFeatures.values()));
+        TogglzOptions togglzOptions = TogglzOptions.builder().features(Arrays.asList(TestFeatures.values())).build();
+        FeatureProvider togglzProvider = new TogglzProvider(togglzOptions);
 
         // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
         assertThrows(ProviderNotReadyError.class, ()-> togglzProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
