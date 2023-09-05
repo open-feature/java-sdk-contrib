@@ -20,6 +20,8 @@ import lombok.extern.java.Log;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
+
 /**
  * flagd in-process resolver. Resolves feature flags in-process. Flags are retrieved from {@link Storage}, where the
  * {@link Storage} maintain flag configurations obtained from known source.
@@ -75,7 +77,7 @@ public class InProcessResolver implements Resolver {
     }
 
     /**
-     * Resolve a boolean flag
+     * Resolve a boolean flag.
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
                                                          EvaluationContext ctx) {
@@ -83,7 +85,7 @@ public class InProcessResolver implements Resolver {
     }
 
     /**
-     * Resolve a string flag
+     * Resolve a string flag.
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
                                                        EvaluationContext ctx) {
@@ -91,7 +93,7 @@ public class InProcessResolver implements Resolver {
     }
 
     /**
-     * Resolve a double flag
+     * Resolve a double flag.
      */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
                                                        EvaluationContext ctx) {
@@ -99,7 +101,7 @@ public class InProcessResolver implements Resolver {
     }
 
     /**
-     * Resolve an integer flag
+     * Resolve an integer flag.
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
                                                          EvaluationContext ctx) {
@@ -107,7 +109,7 @@ public class InProcessResolver implements Resolver {
     }
 
     /**
-     * Resolve an object flag
+     * Resolve an object flag.
      */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         return resolveGeneric(Value.class, key, defaultValue, ctx);
@@ -115,7 +117,7 @@ public class InProcessResolver implements Resolver {
 
     private <T> ProviderEvaluation<T> resolveGeneric(Class<T> type, String key, T defaultValue,
                                                      EvaluationContext ctx) {
-        final FeatureFlag flag = flagStore.getFLag(key);
+        final FeatureFlag flag = flagStore.getFlag(key);
 
         // missing flag
         if (flag == null) {
@@ -141,7 +143,7 @@ public class InProcessResolver implements Resolver {
         final Object resolvedVariant;
         final String reason;
 
-        if ("{}".equals(flag.getTargeting())) {
+        if (EMPTY_TARGETING_STRING.equals(flag.getTargeting())) {
             resolvedVariant = flag.getDefaultVariant();
             reason = Reason.STATIC.toString();
         } else {
@@ -160,7 +162,7 @@ public class InProcessResolver implements Resolver {
                         .value(defaultValue)
                         .reason(Reason.ERROR.toString())
                         .errorCode(ErrorCode.PARSE_ERROR)
-                        .errorMessage(String.format("error parsing targeting rule: %s", key))
+                        .errorMessage(String.format("error parsing targeting rule for key: %s", key))
                         .build();
             }
         }
@@ -179,12 +181,11 @@ public class InProcessResolver implements Resolver {
 
         if (!value.getClass().isAssignableFrom(type) || !(resolvedVariant instanceof String)) {
             log.log(Level.FINE, String.format("returning default variant for flagKey: %s, type not valid", key));
-
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
                     .reason(Reason.ERROR.toString())
                     .errorCode(ErrorCode.TYPE_MISMATCH)
-                    .errorMessage(String.format("requested flag is not of type: %s", key))
+                    .errorMessage(String.format("flag %s is not of type %s", key, type.getName()))
                     .build();
         }
 

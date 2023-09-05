@@ -12,7 +12,7 @@ public interface Storage {
 
     void shutdown();
 
-    FeatureFlag getFLag(final String key);
+    FeatureFlag getFlag(final String key);
 
     BlockingQueue<StorageState> getStateQueue();
 }

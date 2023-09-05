@@ -45,13 +45,16 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      */
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType()) {
-            case inProcess:
+            case IN_PROCESS:
                 this.flagResolver = new InProcessResolver(options, this::setState);
                 break;
-            case flagd:
-            default:
+            case FLAGD:
                 this.flagResolver =
                         new GrpcResolver(options, CacheFactory.getCache(options), this::getState, this::setState);
+                break;
+            default:
+                throw new IllegalStateException(
+                        String.format("Requested unsupported resolver type of %s", options.getResolverType()));
         }
     }
 

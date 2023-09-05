@@ -4,7 +4,7 @@ package dev.openfeature.contrib.providers.flagd;
  * Helper class to hold configuration default values.
  */
 public final class Config {
-    static final ResolverType DEFAULT_RESOLVER_TYPE = ResolverType.flagd;
+    static final ResolverType DEFAULT_RESOLVER_TYPE = ResolverType.FLAGD;
     static final String DEFAULT_PORT = "8013";
     static final String DEFAULT_TLS = "false";
     static final String DEFAULT_HOST = "localhost";
@@ -58,11 +58,11 @@ public final class Config {
         /**
          * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC contract.
          */
-        flagd,
+        FLAGD,
         /**
          * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract and stored
          * locally for in-process evaluation.
          */
-        inProcess
+        IN_PROCESS
     }
 }

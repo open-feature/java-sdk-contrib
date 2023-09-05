@@ -7,11 +7,14 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import lombok.extern.java.Log;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Level;
 
 /**
@@ -19,10 +22,13 @@ import java.util.logging.Level;
  */
 @Log
 public class FlagStore implements Storage {
-    private final Object sync = new Object();
+    private final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
+    private final ReadLock readLock = sync.readLock();
+    private final WriteLock writeLock = sync.writeLock();
+
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final BlockingQueue<StorageState> stateBlockingQueue = new LinkedBlockingQueue<>(1);
-    private final Map<String, FeatureFlag> flags = new ConcurrentHashMap<>();
+    private final Map<String, FeatureFlag> flags = new HashMap<>();
 
     private final Connector connector;
 
@@ -50,16 +56,22 @@ public class FlagStore implements Storage {
      * Shutdown storage layer.
      */
     public void shutdown() {
-        shutdown.set(true);
+        if (shutdown.getAndSet(true)) {
+            return;
+        }
+
         connector.shutdown();
     }
 
     /**
      * Retrieve flag for the given key.
      */
-    public FeatureFlag getFLag(final String key) {
-        synchronized (sync) {
+    public FeatureFlag getFlag(final String key) {
+        readLock.lock();
+        try {
             return flags.get(key);
+        } finally {
+            readLock.unlock();
         }
     }
 
@@ -76,12 +88,15 @@ public class FlagStore implements Storage {
         while (!shutdown.get()) {
             final StreamPayload take = streamPayloads.take();
             switch (take.getType()) {
-                case Data:
+                case DATA:
                     try {
                         Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getData());
-                        synchronized (sync) {
+                        writeLock.lock();
+                        try {
                             flags.clear();
                             flags.putAll(flagMap);
+                        } finally {
+                            writeLock.unlock();
                         }
                         stateBlockingQueue.offer(StorageState.OK);
                     } catch (IOException e) {
@@ -89,7 +104,7 @@ public class FlagStore implements Storage {
                         stateBlockingQueue.offer(StorageState.STALE);
                     }
                     break;
-                case Error:
+                case ERROR:
                     stateBlockingQueue.offer(StorageState.ERROR);
                     break;
                 default:

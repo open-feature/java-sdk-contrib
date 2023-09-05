@@ -31,7 +31,7 @@ class MockStorage implements Storage {
         // no-op
     }
 
-    public FeatureFlag getFLag(String key) {
+    public FeatureFlag getFlag(String key) {
         return mockFlags.get(key);
     }
 

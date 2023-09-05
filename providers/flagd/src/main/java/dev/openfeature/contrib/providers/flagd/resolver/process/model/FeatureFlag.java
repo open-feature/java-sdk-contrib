@@ -12,6 +12,8 @@ import java.util.Map;
  */
 @Getter
 public class FeatureFlag {
+    public static final String EMPTY_TARGETING_STRING = "{}";
+
     private final String state;
     private final String defaultVariant;
     private final Map<String, Object> variants;
@@ -35,6 +37,6 @@ public class FeatureFlag {
      * Get targeting rule of the flag.
      */
     public String getTargeting() {
-        return this.targeting == null ? "{}" : this.targeting;
+        return this.targeting == null ? EMPTY_TARGETING_STRING : this.targeting;
     }
 }

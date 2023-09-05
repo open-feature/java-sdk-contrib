@@ -64,7 +64,10 @@ public class GrpcStreamConnector implements Connector {
      * Shutdown gRPC stream connector.
      */
     public void shutdown() {
-        shutdown.set(true);
+        if (shutdown.getAndSet(true)){
+            return;
+        }
+
         channel.shutdown();
     }
 
@@ -100,7 +103,7 @@ public class GrpcStreamConnector implements Connector {
                 switch (flagsResponse.getState()) {
                     case SYNC_STATE_ALL:
                         if (!writeTo.offer(
-                                new StreamPayload(StreamPayloadType.Data, flagsResponse.getFlagConfiguration()))) {
+                                new StreamPayload(StreamPayloadType.DATA, flagsResponse.getFlagConfiguration()))) {
                             log.log(Level.WARNING, "Stream writing failed");
                         }
                         break;
@@ -116,7 +119,7 @@ public class GrpcStreamConnector implements Connector {
                 }
             }
 
-            writeTo.offer(new StreamPayload(StreamPayloadType.Error, "Error from stream connection, retrying"));
+            writeTo.offer(new StreamPayload(StreamPayloadType.ERROR, "Error from stream connection, retrying"));
 
             // busy wait till next attempt
             Thread.sleep(retryDelay + RANDOM.nextInt(INIT_BACK_OFF));
