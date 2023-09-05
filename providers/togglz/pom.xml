@@ -20,7 +20,7 @@
         <dependency>
             <groupId>org.togglz</groupId>
             <artifactId>togglz-core</artifactId>
-            <version>4.3.0</version>
+            <version>3.3.0</version>
         </dependency>
 
         <dependency>
