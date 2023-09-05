@@ -32,6 +32,9 @@ public class InProcessResolver implements Resolver {
     private final Consumer<ProviderState> stateConsumer;
     private final JsonLogic jsonLogicHandler;
 
+    /**
+     * Initialize an in-process resolver.
+     */
     public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
         // currently we support gRPC connector
         this.flagStore = new FlagStore(new GrpcStreamConnector(options));

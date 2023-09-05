@@ -64,7 +64,7 @@ public class GrpcStreamConnector implements Connector {
      * Shutdown gRPC stream connector.
      */
     public void shutdown() {
-        if (shutdown.getAndSet(true)){
+        if (shutdown.getAndSet(true)) {
             return;
         }
 

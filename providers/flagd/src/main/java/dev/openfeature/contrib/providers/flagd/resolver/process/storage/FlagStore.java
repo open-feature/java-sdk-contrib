@@ -6,7 +6,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import lombok.extern.java.Log;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -99,7 +98,8 @@ public class FlagStore implements Storage {
                             writeLock.unlock();
                         }
                         stateBlockingQueue.offer(StorageState.OK);
-                    } catch (IOException e) {
+                    } catch (Throwable e) {
+                        // catch all exceptions and avoid stream listener interruptions
                         log.log(Level.WARNING, "Invalid flag sync payload from connector", e);
                         stateBlockingQueue.offer(StorageState.STALE);
                     }
