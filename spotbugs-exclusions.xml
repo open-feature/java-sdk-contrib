@@ -4,6 +4,10 @@
     <!-- Ignore generated dev.openfeature.flagd.grpc schemas -->
     <Match>
         <Package name="~dev\.openfeature\.flagd\.grpc\.*" />
+    </Match>
+
+    <!-- Ignore generated dev.openfeature.flagd.sync schemas -->
+    <Match>
         <Package name="~dev\.openfeature\.flagd\.sync\.*" />
     </Match>
 
