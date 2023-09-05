@@ -194,13 +194,7 @@ class GoFeatureFlagProviderTest {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
 
         String providerName = "clientTest";
-        OpenFeatureAPI.getInstance().setProvider(providerName, g);
-
-        /*
-         // TODO replace to setProviderAndWait and remove this when
-         https://github.com/open-feature/java-sdk/pull/563 is merged and released
-         */
-        Thread.sleep(500);
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
 
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
         Boolean value = client.getBooleanValue("bool_targeting_match",
