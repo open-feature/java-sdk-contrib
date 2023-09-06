@@ -32,7 +32,7 @@ public class FlagParser {
     private static final String FLAG_KEY = "flags";
     private static final String EVALUATOR_KEY = "$evaluators";
     private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
-    private static final String SCHEMA_RESOURCE = "json-schema-v0.1.1";
+    private static final String SCHEMA_RESOURCE = "flagd-definitions.json";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

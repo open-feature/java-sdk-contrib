@@ -29,8 +29,10 @@ public class GrpcStreamConnector implements Connector {
     private static final int INIT_BACK_OFF = 2 * 1000;
     private static final int MAX_BACK_OFF = 120 * 1000;
 
+    private static final int QUEUE_SIZE = 5;
+
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
-    private final BlockingQueue<StreamPayload> blockingQueue = new LinkedBlockingQueue<>(5);
+    private final BlockingQueue<StreamPayload> streamEmitter = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
     private final ManagedChannel channel;
     private final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub;
@@ -46,7 +48,7 @@ public class GrpcStreamConnector implements Connector {
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, serviceStub);
+                observeEventStream(streamEmitter, shutdown, serviceStub);
             } catch (InterruptedException e) {
                 log.log(Level.WARNING, "gRPC event stream interrupted, flag configurations are stale", e);
             }
@@ -60,7 +62,7 @@ public class GrpcStreamConnector implements Connector {
      * Get blocking queue to obtain payloads exposed by this connector.
      */
     public BlockingQueue<StreamPayload> getStream() {
-        return blockingQueue;
+        return streamEmitter;
     }
 
     /**
@@ -82,15 +84,15 @@ public class GrpcStreamConnector implements Connector {
                                    final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub)
             throws InterruptedException {
 
-        final BlockingQueue<GrpcResponseModel> blockingQueue = new LinkedBlockingQueue<>(5);
+        final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
         int retryDelay = INIT_BACK_OFF;
 
         while (!shutdown.get()) {
             final SyncService.SyncFlagsRequest request = SyncService.SyncFlagsRequest.newBuilder().build();
-            serviceStub.syncFlags(request, new GrpcStreamHandler(blockingQueue));
+            serviceStub.syncFlags(request, new GrpcStreamHandler(streamReceiver));
 
             while (!shutdown.get()) {
-                GrpcResponseModel response = blockingQueue.take();
+                GrpcResponseModel response = streamReceiver.take();
                 if (response.isComplete()) {
                     break;
                 }
