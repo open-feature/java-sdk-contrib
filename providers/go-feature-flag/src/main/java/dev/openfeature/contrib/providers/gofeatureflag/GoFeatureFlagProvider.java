@@ -23,15 +23,14 @@ import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Metadata;
-import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
+import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -47,13 +46,12 @@ import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
+import static dev.openfeature.sdk.Value.objectToValue;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
@@ -262,15 +260,15 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
         try {
             if (!ProviderState.READY.equals(state)) {
-                ErrorCode errorCode = ErrorCode.PROVIDER_NOT_READY;
-                if (ProviderState.ERROR.equals(state)) {
-                    errorCode = ErrorCode.GENERAL;
+                if (ProviderState.NOT_READY.equals(state)) {
+
+                    /*
+                     should be handled by the SDK framework, ErrorCode.PROVIDER_NOT_READY and default value
+                     should be returned when evaluated via the client.
+                     */
+                    throw new ProviderNotReadyError("provider not initialized yet");
                 }
-                return ProviderEvaluation.<T>builder()
-                        .errorCode(errorCode)
-                        .reason(errorCode.name())
-                        .value(defaultValue)
-                        .build();
+                throw new GeneralError("unknown error, provider state: " + state);
             }
 
             if (cache == null) {
@@ -474,52 +472,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             return (T) value;
         }
         return (T) objectToValue(value);
-    }
-
-    /**
-     * objectToValue is wrapping an object into a Value.
-     *
-     * @param object the object you want to wrap
-     * @return the wrapped object
-     */
-    private Value objectToValue(Object object) {
-        if (object instanceof Value) {
-            return (Value) object;
-        } else if (object == null) {
-            return null;
-        } else if (object instanceof String) {
-            return new Value((String) object);
-        } else if (object instanceof Boolean) {
-            return new Value((Boolean) object);
-        } else if (object instanceof Integer) {
-            return new Value((Integer) object);
-        } else if (object instanceof Double) {
-            return new Value((Double) object);
-        } else if (object instanceof Structure) {
-            return new Value((Structure) object);
-        } else if (object instanceof List) {
-            // need to translate each elem in list to a value
-            return new Value(((List<Object>) object).stream().map(this::objectToValue).collect(Collectors.toList()));
-        } else if (object instanceof Instant) {
-            return new Value((Instant) object);
-        } else if (object instanceof Map) {
-            return new Value(mapToStructure((Map<String, Object>) object));
-        } else {
-            throw new ClassCastException("Could not cast Object to Value");
-        }
-    }
-
-    /**
-     * mapToStructure transform a map coming from a JSON Object to a Structure type.
-     *
-     * @param map - JSON object return by the API
-     * @return a Structure object in the SDK format
-     */
-    private Structure mapToStructure(Map<String, Object> map) {
-        return new MutableStructure(
-                map.entrySet().stream()
-                        .filter(e -> e.getValue() != null)
-                        .collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
     }
 
     /**
