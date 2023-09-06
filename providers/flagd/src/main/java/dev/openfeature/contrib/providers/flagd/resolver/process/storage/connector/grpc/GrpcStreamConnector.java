@@ -129,6 +129,9 @@ public class GrpcStreamConnector implements Connector {
                         log.info(
                                 String.format("Ignored - received payload of state: %s", flagsResponse.getState()));
                 }
+
+                // reset retry delay if we succeeded in a retry attempt
+                retryDelay = INIT_BACK_OFF;
             }
 
             // check for shutdown and avoid sleep
