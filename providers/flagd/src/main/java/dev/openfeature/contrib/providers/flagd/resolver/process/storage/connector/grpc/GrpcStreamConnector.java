@@ -32,7 +32,7 @@ public class GrpcStreamConnector implements Connector {
     private static final int QUEUE_SIZE = 5;
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
-    private final BlockingQueue<StreamPayload> streamEmitter = new LinkedBlockingQueue<>(QUEUE_SIZE);
+    private final BlockingQueue<StreamPayload> blockingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
     private final ManagedChannel channel;
     private final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub;
@@ -48,7 +48,7 @@ public class GrpcStreamConnector implements Connector {
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(streamEmitter, shutdown, serviceStub);
+                observeEventStream(blockingQueue, shutdown, serviceStub);
             } catch (InterruptedException e) {
                 log.log(Level.WARNING, "gRPC event stream interrupted, flag configurations are stale", e);
             }
@@ -62,7 +62,7 @@ public class GrpcStreamConnector implements Connector {
      * Get blocking queue to obtain payloads exposed by this connector.
      */
     public BlockingQueue<StreamPayload> getStream() {
-        return streamEmitter;
+        return blockingQueue;
     }
 
     /**
@@ -92,15 +92,22 @@ public class GrpcStreamConnector implements Connector {
             serviceStub.syncFlags(request, new GrpcStreamHandler(streamReceiver));
 
             while (!shutdown.get()) {
-                GrpcResponseModel response = streamReceiver.take();
+                final GrpcResponseModel response = streamReceiver.take();
+
                 if (response.isComplete()) {
+                    // The stream is complete. This is not considered as an error
                     break;
                 }
 
                 if (response.getError() != null) {
                     log.log(Level.WARNING,
-                            String.format("error from grpc connection, retrying in %dms", retryDelay),
+                            String.format("Error from grpc connection, retrying in %dms", retryDelay),
                             response.getError());
+
+                    if (!writeTo.offer(
+                            new StreamPayload(StreamPayloadType.ERROR, "Error from stream connection, retrying"))) {
+                        log.log(Level.WARNING, "Failed to convey ERROR satus, queue is full");
+                    }
                     break;
                 }
 
@@ -124,8 +131,10 @@ public class GrpcStreamConnector implements Connector {
                 }
             }
 
-            if (writeTo.offer(new StreamPayload(StreamPayloadType.ERROR, "Error from stream connection, retrying"))) {
-                log.log(Level.WARNING, "Failed to convey ERROR satus, queue is full");
+            // check for shutdown and avoid sleep
+            if (shutdown.get()) {
+                log.log(Level.INFO, "Shutdown invoked, exiting event stream listener");
+                return;
             }
 
             // busy wait till next attempt
@@ -135,5 +144,8 @@ public class GrpcStreamConnector implements Connector {
                 retryDelay = 2 * retryDelay;
             }
         }
+
+        // log as this can happen after awakened from backoff sleep
+        log.log(Level.INFO, "Shutdown invoked, exiting event stream listener");
     }
 }

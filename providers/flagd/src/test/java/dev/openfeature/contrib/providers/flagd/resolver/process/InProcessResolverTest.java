@@ -31,6 +31,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class InProcessResolverTest {
 
@@ -57,11 +58,11 @@ class InProcessResolverTest {
         }
 
         // then
-        assertTimeout(Duration.ofMillis(200), () -> {
+        assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
             Assertions.assertEquals(ProviderState.READY, receiver.take());
         });
 
-        assertTimeout(Duration.ofMillis(200), () -> {
+        assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
             Assertions.assertEquals(ProviderState.ERROR, receiver.take());
         });
     }
