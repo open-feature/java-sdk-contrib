@@ -17,8 +17,13 @@ A feature flag daemon with a Unix philosophy.
 
 ## Usage
 
-The `FlagdProvider` communicates with flagd via the gRPC protocol. Instantiate a new FlagdProvider instance, and
-configure the OpenFeature SDK to use it:
+### Remote resolver
+
+This is the default mode of operation of the provider. 
+In this mode, `FlagdProvider` communicates with [flagd](https://github.com/open-feature/flagd) via the gRPC protocol.
+Flag evaluations happens remotely at the connected flagd instance.
+
+Instantiate a new FlagdProvider instance, and configure the OpenFeature SDK to use it:
 
 ```java
 // Create a flagd instance with default options
@@ -27,26 +32,43 @@ FlagdProvider flagd = new FlagdProvider();
 OpenFeatureAPI.getInstance().setProvider(flagd);
 ```
 
+### In-process resolver
+
+This mode perform flag evaluations locally(in-process). Flag configurations for evaluations are obtained via gRPC protocol using [sync protocol buffer](https://buf.build/open-feature/flagd/file/main:sync/v1/sync_service.proto) service definition.
+
+Consider following example to create a `FlagdProvider` with in-process evaluations,
+
+```java
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .resolverType(Config.ResolverType.IN_PROCESS)
+                .build());
+```
+
+In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain flag configurations
+
+### Configuration options
+
 Options can be defined in the constructor or as environment variables, with constructor options having the highest
 precedence.
 
 Default options can be overridden through a `FlagdOptions` based constructor or set to be picked up from the environment
 variables.
 
-### Supported environmental variables
+Given below are the supported configurations. Note that some configurations are only applicable for remote resolver.
 
-| Option name           | Environment variable name      | Type    | Default   | Values       |
-|-----------------------|--------------------------------|---------|-----------|--------------|
-| host                  | FLAGD_HOST                     | string  | localhost |              |
-| port                  | FLAGD_PORT                     | number  | 8013      |              |
-| tls                   | FLAGD_TLS                      | boolean | false     |              |
-| socketPath            | FLAGD_SOCKET_PATH              | string  | null      |              |
-| certPath              | FLAGD_SERVER_CERT_PATH         | string  | null      |              |
-| cache                 | FLAGD_CACHE                    | string  | lru       | lru,disabled |
-| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int     | 1000      |              |
-| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int     | 5         |              |
-| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int     | 1000      |              |
-| deadline              | FLAGD_DEADLINE_MS              | int     | 500       |              |
+| Option name           | Environment variable name      | Type & Values          | Default   | Compatible resolver |
+|-----------------------|--------------------------------|------------------------|-----------|---------------------|
+| host                  | FLAGD_HOST                     | String                 | localhost | Remote & In-process |
+| port                  | FLAGD_PORT                     | int                    | 8013      | Remote & In-process |
+| tls                   | FLAGD_TLS                      | boolean                | false     | Remote & In-process |
+| socketPath            | FLAGD_SOCKET_PATH              | String                 | null      | Remote & In-process |
+| certPath              | FLAGD_SERVER_CERT_PATH         | String                 | null      | Remote & In-process |
+| cache                 | FLAGD_CACHE                    | String - lru, disabled | lru       | Remote              |
+| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                    | 1000      | Remote              |
+| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                    | 5         | Remote              |
+| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                    | 1000      | Remote              |
+| deadline              | FLAGD_DEADLINE_MS              | int                    | 500       | Remote              |
 
 ### OpenTelemetry support
 
