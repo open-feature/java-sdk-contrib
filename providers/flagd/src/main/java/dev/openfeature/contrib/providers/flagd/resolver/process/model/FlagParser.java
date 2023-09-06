@@ -69,7 +69,7 @@ public class FlagParser {
 
                 if (!validationMessages.isEmpty()) {
                     throw new IllegalArgumentException(
-                            String.format("Failed to parse configurations. %d validation " + "error(s) reported.",
+                            String.format("Failed to parse configurations. %d validation error(s) reported.",
                                     validationMessages.size()));
                 }
             }
