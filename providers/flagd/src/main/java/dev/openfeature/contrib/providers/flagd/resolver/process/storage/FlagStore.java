@@ -6,6 +6,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.java.Log;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -119,6 +120,8 @@ public class FlagStore implements Storage {
                     log.log(Level.INFO, String.format("Payload with unknown type: %s", take.getType()));
             }
         }
+
+        log.log(Level.INFO, "Shutting down store stream listener");
     }
 
 }

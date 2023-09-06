@@ -3,20 +3,18 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_CFG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FlagParserTest {
-
-    private static final String VALID_SIMPLE = "flagConfigurations/valid-simple.json";
-    private static final String VALID_LONG = "flagConfigurations/valid-long.json";
-    private static final String INVALID_FLAG = "flagConfigurations/invalid-flag.json";
-    private static final String INVALID_CFG = "flagConfigurations/invalid-configuration.json";
-
     @Test
     public void validJsonConfigurationParsing() throws IOException {
         Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE));
@@ -64,14 +62,5 @@ class FlagParserTest {
         assertThrows(IllegalArgumentException.class, () -> {
             FlagParser.parseString(getFlagsFromResource(INVALID_CFG));
         });
-    }
-
-    private static String getFlagsFromResource(final String file) throws IOException {
-        final URL url = FlagParser.class.getClassLoader().getResource(file);
-        if (url == null) {
-            throw new IllegalStateException(String.format("Resource %s not found", file));
-        } else {
-            return new String(Files.readAllBytes(Paths.get(url.getPath())));
-        }
     }
 }

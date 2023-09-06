@@ -61,7 +61,7 @@ public class InProcessResolver implements Resolver {
                         case STALE:
                             // todo set stale state
                         default:
-                            log.log(Level.INFO, String.format("Storage emitted unknown status: %s", storageState));
+                            log.log(Level.INFO, String.format("Storage emitted unhandled status: %s", storageState));
                     }
                 }
             } catch (InterruptedException e) {
