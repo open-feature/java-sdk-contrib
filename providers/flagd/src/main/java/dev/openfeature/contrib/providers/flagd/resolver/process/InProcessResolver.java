@@ -191,7 +191,7 @@ public class InProcessResolver implements Resolver {
                     .build();
         }
 
-        if (!value.getClass().isAssignableFrom(type) || !(resolvedVariant instanceof String)) {
+        if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
             log.log(Level.FINE, String.format("returning default variant for flagKey: %s, type not valid", key));
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)

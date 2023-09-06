@@ -9,6 +9,7 @@ public class MockFlags {
 
     static final Map<String, Object> booleanVariant;
     static final Map<String, Object> stringVariants;
+    static final Map<String, Object> objectVariants;
 
     static {
         booleanVariant = new HashMap<>();
@@ -18,10 +19,25 @@ public class MockFlags {
         stringVariants = new HashMap<>();
         stringVariants.put("loop", "loopAlg");
         stringVariants.put("binet", "binetAlg");
+
+        Map<String, Object> typeA = new HashMap<>();
+        typeA.put("key", "0165");
+        typeA.put("date", "01.01.2000");
+
+        Map<String, Object> typeB = new HashMap<>();
+        typeB.put("key", "0166");
+        typeB.put("date", "01.01.2010");
+
+        objectVariants = new HashMap<>();
+        objectVariants.put("typeA", typeA);
+        objectVariants.put("typeB", typeB);
     }
 
     // correct flag
     static final FeatureFlag BOOLEAN_FLAG = new FeatureFlag("ENABLED", "on", booleanVariant, null);
+
+    // correct flag
+    static final FeatureFlag OBJECT_FLAG = new FeatureFlag("ENABLED", "typeA", objectVariants, null);
 
     // flag in disabled state
     static final FeatureFlag DISABLED_FLAG = new FeatureFlag("DISABLED", "on", booleanVariant, null);

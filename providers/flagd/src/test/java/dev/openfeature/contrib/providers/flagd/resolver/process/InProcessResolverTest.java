@@ -9,6 +9,7 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +26,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DISABLED_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -81,6 +83,33 @@ class InProcessResolverTest {
         assertEquals(true, providerEvaluation.getValue());
         assertEquals("on", providerEvaluation.getVariant());
         assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
+    }
+
+    @Test
+    public void simpleObjectResolving() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("objectFlag", OBJECT_FLAG);
+
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
+        });
+
+        Map<String, Object> typeDefault = new HashMap<>();
+        typeDefault.put("key", "0164");
+        typeDefault.put("date", "01.01.1990");
+
+        // when
+        ProviderEvaluation<Value> providerEvaluation =
+                inProcessResolver.objectEvaluation("objectFlag", Value.objectToValue(typeDefault), new ImmutableContext());
+
+        // then
+        Value value = providerEvaluation.getValue();
+        Map<String, Value> valueMap = value.asStructure().asMap();
+
+        assertEquals("0165", valueMap.get("key").asString());
+        assertEquals("01.01.2000", valueMap.get("date").asString());
+        assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
+        assertEquals("typeA", providerEvaluation.getVariant());
     }
 
     @Test
