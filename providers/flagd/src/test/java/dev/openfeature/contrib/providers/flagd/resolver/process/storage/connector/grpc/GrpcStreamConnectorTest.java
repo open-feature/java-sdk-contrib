@@ -23,6 +23,8 @@ import static org.mockito.Mockito.verify;
 
 class GrpcStreamConnectorTest {
 
+    private static final Duration MAX_WAIT_MS = Duration.ofMillis(500);
+
     @Test
     public void grpcConnectionStatus() throws Throwable {
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
@@ -38,7 +40,7 @@ class GrpcStreamConnectorTest {
         connector.init();
 
         // verify and wait for initialization
-        verify(stubMock, Mockito.timeout(1000).times(1)).syncFlags(any(), any());
+        verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
 
         final GrpcStreamHandler grpcStreamHandler = injectedHandler[0];
         assertNotNull(grpcStreamHandler);
@@ -51,7 +53,7 @@ class GrpcStreamConnectorTest {
                         .setState(SyncService.SyncState.SYNC_STATE_ALL)
                         .build());
 
-        assertTimeoutPreemptively(Duration.ofMillis(500), ()->{
+        assertTimeoutPreemptively(MAX_WAIT_MS, ()->{
             StreamPayload payload = streamPayloads.take();
             assertEquals(StreamPayloadType.DATA, payload.getType());
         });
@@ -68,7 +70,7 @@ class GrpcStreamConnectorTest {
                         .setState(SyncService.SyncState.SYNC_STATE_ALL)
                         .build());
 
-        assertTimeoutPreemptively(Duration.ofMillis(500), ()->{
+        assertTimeoutPreemptively(MAX_WAIT_MS, ()->{
             StreamPayload payload = streamPayloads.take();
             assertEquals(StreamPayloadType.DATA, payload.getType());
         });
@@ -89,7 +91,7 @@ class GrpcStreamConnectorTest {
         connector.init();
 
         // verify and wait for initialization
-        verify(stubMock, Mockito.timeout(500).times(1)).syncFlags(any(), any());
+        verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
 
         final GrpcStreamHandler grpcStreamHandler = injectedHandler[0];
         assertNotNull(grpcStreamHandler);
@@ -99,7 +101,7 @@ class GrpcStreamConnectorTest {
         // mock channel close of gRPC handler
         grpcStreamHandler.onError(new Exception("Channel closed, exiting"));
 
-        assertTimeoutPreemptively(Duration.ofMillis(500), ()->{
+        assertTimeoutPreemptively(MAX_WAIT_MS, ()->{
             StreamPayload payload = connector.getStream().take();
             assertEquals(StreamPayloadType.ERROR, payload.getType());
         });
