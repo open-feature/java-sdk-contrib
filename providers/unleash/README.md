@@ -34,6 +34,8 @@ boolean featureEnabled = client.getBooleanValue(FLAG_NAME, false);
 UnleashContext unleashContext = UnleashContext.builder().userId("1").build();
 EvaluationContext evaluationContext = UnleashProvider.transform(unleashContext);
 featureEnabled = client.getBooleanValue(FLAG_NAME, false, evaluationContext);
+
+String variantValue = client.getStringValue(FLAG_NAME, "");
 ```
 
 See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/unleash/UnleashProviderTest.java) for more information.
