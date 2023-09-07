@@ -1,8 +1,12 @@
 # flagd Provider for OpenFeature
 
+Given below is the architecture of the provider implementation.
+
+![img.png](architecture.png)
+
 ## Building
 
-`mvn compile` will pull the `schemas` submodule, and build the gRPC/protobug resources.
+`mvn compile` will pull the `schemas` and `sync` submodule, and build the gRPC resources.
 Note that in some editors, you will need to disable some automatic compilation options to prevent your editor from cleaning them.
 In vscode for instance, the following settings are recommended:
 

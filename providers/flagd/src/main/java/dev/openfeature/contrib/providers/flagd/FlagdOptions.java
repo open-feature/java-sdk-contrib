@@ -14,6 +14,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_RESOLVER_TYPE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
 import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
@@ -32,6 +33,12 @@ import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefa
 @Getter
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class FlagdOptions {
+
+    /**
+     * flagd resolving type.
+     * */
+    @Builder.Default
+    private Config.ResolverType resolverType = DEFAULT_RESOLVER_TYPE;
 
     /**
      * flagd connection host.
