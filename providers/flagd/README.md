@@ -34,7 +34,7 @@ OpenFeatureAPI.getInstance().setProvider(flagd);
 
 ### In-process resolver
 
-This mode perform flag evaluations locally(in-process). Flag configurations for evaluations are obtained via gRPC protocol using [sync protocol buffer](https://buf.build/open-feature/flagd/file/main:sync/v1/sync_service.proto) service definition.
+This mode perform flag evaluations locally(in-process). Flag configurations for evaluations are obtained via gRPC protocol using [sync protobuf schema](https://buf.build/open-feature/flagd/file/main:sync/v1/sync_service.proto) service definition.
 
 Consider following example to create a `FlagdProvider` with in-process evaluations,
 
