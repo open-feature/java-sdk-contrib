@@ -15,8 +15,13 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
+import io.getunleash.Variant;
+import io.getunleash.strategy.Strategy;
 import io.getunleash.util.UnleashConfig;
+import io.getunleash.variant.Payload;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.ZonedDateTime;
@@ -39,12 +44,17 @@ public class UnleashProvider extends EventProvider {
     public static final String CONTEXT_REMOTE_ADDRESS = "remoteAddress";
     public static final String CONTEXT_SESSION_ID = "sessionId";
     public static final String CONTEXT_CURRENT_TIME = "currentTime";
+    public static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
+    public static final String UNKNOWN_ERROR = "unknown error";
 
+    @Getter(AccessLevel.PROTECTED)
     private UnleashOptions unleashOptions;
 
+    @Setter(AccessLevel.PROTECTED)
     @Getter
     private Unleash unleash;
 
+    @Setter(AccessLevel.PROTECTED)
     @Getter
     private ProviderState state = ProviderState.NOT_READY;
 
@@ -64,18 +74,12 @@ public class UnleashProvider extends EventProvider {
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
         super.initialize(evaluationContext);
-
         UnleashSubscriberWrapper unleashSubscriberWrapper = new UnleashSubscriberWrapper(
-                unleashOptions.getUnleashConfigBuilder().build().getSubscriber(), this);
+            unleashOptions.getUnleashConfigBuilder().build().getSubscriber(), this);
         unleashOptions.getUnleashConfigBuilder().subscriber(unleashSubscriberWrapper);
         UnleashConfig unleashConfig = unleashOptions.getUnleashConfigBuilder().build();
         unleash = new DefaultUnleash(unleashConfig,
-            unleashOptions.getFeatureRepository(),
-            unleashOptions.getStrategyMap(),
-            unleashOptions.getContextProvider(),
-            unleashOptions.getEventDispatcher(),
-            unleashOptions.getMetricService(),
-            unleashOptions.isFailOnMultipleInstantiations());
+            unleashOptions.getStrategyMap().values().toArray(new Strategy[unleashOptions.getStrategyMap().size()]));
 
         // else, state will be changed via UnleashSubscriberWrapper events
         if (unleashConfig.isSynchronousFetchOnInitialisation()) {
@@ -108,17 +112,15 @@ public class UnleashProvider extends EventProvider {
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         if (!ProviderState.READY.equals(state)) {
             if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError("provider not yet initialized");
+                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
             }
-            throw new GeneralError("unknown error");
+            throw new GeneralError(UNKNOWN_ERROR);
         }
         UnleashContext context = ctx == null ? UnleashContext.builder().build() : transform(ctx);
-        boolean featureBooleanValue = ctx == null
-            ? unleash.isEnabled(key, defaultValue)
-            : unleash.isEnabled(key, context, defaultValue);
+        boolean featureBooleanValue = unleash.isEnabled(key, context, defaultValue);
         return ProviderEvaluation.<Boolean>builder()
             .value(featureBooleanValue)
-            .reason(Reason.TARGETING_MATCH.name())
+            .reason(Reason.UNKNOWN.name())
             .build();
     }
 
@@ -175,7 +177,22 @@ public class UnleashProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        throw new TypeMismatchError(NOT_IMPLEMENTED);
+        if (!ProviderState.READY.equals(state)) {
+            if (ProviderState.NOT_READY.equals(state)) {
+                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
+            }
+            throw new GeneralError(UNKNOWN_ERROR);
+        }
+        UnleashContext context = ctx == null ? UnleashContext.builder().build() : transform(ctx);
+        Payload defaultVariantPayload = new Payload("string", String.valueOf(defaultValue));
+        Variant defaultVariant = new Variant("default_fallback", defaultVariantPayload, true);
+        Variant evaluatedVariant = unleash.getVariant(key, context, defaultVariant);
+        Payload evaluatedVariantPayload = evaluatedVariant.getPayload().orElse(defaultVariantPayload);
+        String evaluatedVariantPayloadValue = evaluatedVariantPayload.getValue();
+        return ProviderEvaluation.<String>builder()
+            .value(evaluatedVariantPayloadValue)
+            .reason(Reason.UNKNOWN.name())
+            .build();
     }
 
     @Override

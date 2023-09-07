@@ -17,6 +17,10 @@ Unleash OpenFeature Provider can provide usage for Unleash via OpenFeature Java 
 
 <!-- x-release-please-end-version -->
 
+## Concepts
+* Boolean evaluation gets feature enabled status.
+* String evaluation gets feature variant value.
+
 ## Usage
 Unleash OpenFeature Provider is using Unleash Java SDK.
 
@@ -36,7 +40,9 @@ See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers
 
 ## Caveats / Limitations
 
-* Unleash OpenFeature Provider only supports boolean feature flags.
+* Unleash OpenFeature Provider only supports boolean and string evaluation.
+* Unleash OpenFeature Provider only supports string variant type.
+* Evaluation reason is currently UNKNOWN.
 
 ## References
 * [Unleash](https://getunleash.io)

@@ -9,22 +9,12 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
-import io.getunleash.ActivationStrategy;
-import io.getunleash.FeatureToggle;
 import io.getunleash.UnleashContext;
-import io.getunleash.UnleashContextProvider;
 import io.getunleash.UnleashException;
-import io.getunleash.event.EventDispatcher;
 import io.getunleash.event.ToggleEvaluated;
 import io.getunleash.event.UnleashEvent;
-import io.getunleash.event.UnleashReady;
 import io.getunleash.event.UnleashSubscriber;
-import io.getunleash.metric.UnleashMetricService;
-import io.getunleash.repository.FeatureRepository;
 import io.getunleash.repository.FeatureToggleResponse;
-import io.getunleash.strategy.DefaultStrategy;
-import io.getunleash.strategy.Strategy;
-import io.getunleash.strategy.UserWithIdStrategy;
 import io.getunleash.util.UnleashConfig;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,11 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * UnleashProvider Test.
@@ -48,11 +35,9 @@ import static org.mockito.Mockito.when;
  */
 class UnleashProviderTest {
 
-    private static final String FLAG_NAME = "flagName";
-    private FeatureRepository featureRepository;
-    private UnleashContextProvider contextProvider;
-    private EventDispatcher eventDispatcher;
-    private UnleashMetricService metricService;
+    public static final String FLAG_NAME = "flagName";
+    public static final String VARIANT_1 = "variant1";
+    public static final String VARIANT_1_VALUE = "variant1_value";
     private TestSubscriber testSubscriber;
     private UnleashProvider unleashProvider;
     private Client client;
@@ -65,6 +50,7 @@ class UnleashProviderTest {
         client = OpenFeatureAPI.getInstance().getClient("sync");
     }
 
+    @SneakyThrows
     private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation) {
         TestSubscriber testSubscriber = new TestSubscriber();
         UnleashConfig.Builder unleashConfigBuilder =
@@ -73,30 +59,11 @@ class UnleashProviderTest {
                 .appName("fakeApp")
                 .subscriber(testSubscriber)
                 .synchronousFetchOnInitialisation(synchronousFetchOnInitialisation);
-        featureRepository = mock(FeatureRepository.class);
-        when(featureRepository.getToggle(FLAG_NAME))
-            .thenReturn(
-                new FeatureToggle(
-                    FLAG_NAME, true, asList(new ActivationStrategy("default", null))));
-        Map<String, Strategy> strategyMap = new HashMap<>();
-        strategyMap.put("default", new DefaultStrategy());
-        // Set up a toggleName using UserWithIdStrategy
-        Map<String, String> params = new HashMap<>();
-        UserWithIdStrategy userWithIdStrategy = new UserWithIdStrategy();
-        strategyMap.put(userWithIdStrategy.getName(), userWithIdStrategy);
-        contextProvider = mock(UnleashContextProvider.class);
-        eventDispatcher = mock(EventDispatcher.class);
-        metricService = mock(UnleashMetricService.class);
-        when(contextProvider.getContext()).thenReturn(UnleashContext.builder().build());
 
         UnleashOptions unleashOptions = UnleashOptions.builder()
             .unleashConfigBuilder(unleashConfigBuilder)
-                .featureRepository(featureRepository)
-                .strategyMap(strategyMap)
-                .contextProvider(contextProvider)
-                .eventDispatcher(eventDispatcher)
-                .metricService(metricService).build();
-        return new UnleashProvider(unleashOptions);
+            .build();
+        return new TestUnleashProvider(unleashOptions);
     }
 
     @Test
@@ -108,16 +75,18 @@ class UnleashProviderTest {
     }
 
     @Test
+    void getStringVariantEvaluation() {
+        assertEquals(VARIANT_1_VALUE, unleashProvider.getStringEvaluation(FLAG_NAME, "",
+            new ImmutableContext()).getValue());
+        assertEquals(VARIANT_1_VALUE, client.getStringValue(FLAG_NAME, ""));
+        assertEquals("fallback_str", unleashProvider.getStringEvaluation("non-existing",
+            "fallback_str", new ImmutableContext()).getValue());
+        assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str"));
+    }
+
+    @Test
     void getBooleanEvaluationByUser() {
-
-        // Set up a toggleName using UserWithIdStrategy
-        Map<String, String> params = new HashMap<>();
-        params.put("userIds", "1");
-        ActivationStrategy strategy = new ActivationStrategy("userWithId", params);
         String flagName = "testByUserId";
-        FeatureToggle featureToggle = new FeatureToggle(flagName, true, asList(strategy));
-        when(featureRepository.getToggle(flagName)).thenReturn(featureToggle);
-
         UnleashContext unleashContext = UnleashContext.builder().userId("1").build();
         EvaluationContext evaluationContext = UnleashProvider.transform(unleashContext);
         assertEquals(true, unleashProvider.getBooleanEvaluation(flagName, false, evaluationContext).getValue());
@@ -131,7 +100,7 @@ class UnleashProviderTest {
     @Test
     void typeMismatch() {
         assertThrows(TypeMismatchError.class, () -> {
-            unleashProvider.getStringEvaluation("test", "default_value", new ImmutableContext());
+            unleashProvider.getIntegerEvaluation("test", 1, new ImmutableContext());
         });
     }
 
