@@ -9,6 +9,8 @@ public class MockFlags {
 
     static final Map<String, Object> booleanVariant;
     static final Map<String, Object> stringVariants;
+    static final Map<String, Object> doubleVariants;
+    static final Map<String, Object> intVariants;
     static final Map<String, Object> objectVariants;
 
     static {
@@ -19,6 +21,14 @@ public class MockFlags {
         stringVariants = new HashMap<>();
         stringVariants.put("loop", "loopAlg");
         stringVariants.put("binet", "binetAlg");
+
+        doubleVariants = new HashMap<>();
+        doubleVariants.put("one", 3.141d);
+        doubleVariants.put("two", 3.14159265359d);
+
+        intVariants = new HashMap<>();
+        intVariants.put("one", 1);
+        intVariants.put("two", 2);
 
         Map<String, Object> typeA = new HashMap<>();
         typeA.put("key", "0165");
@@ -33,10 +43,16 @@ public class MockFlags {
         objectVariants.put("typeB", typeB);
     }
 
-    // correct flag
+    // correct flag - boolean
     static final FeatureFlag BOOLEAN_FLAG = new FeatureFlag("ENABLED", "on", booleanVariant, null);
 
-    // correct flag
+    // correct flag - double
+    static final FeatureFlag DOUBLE_FLAG = new FeatureFlag("ENABLED", "one", doubleVariants, null);
+
+    // correct flag - int
+    static final FeatureFlag INT_FLAG = new FeatureFlag("ENABLED", "one", intVariants, null);
+
+    // correct flag - object
     static final FeatureFlag OBJECT_FLAG = new FeatureFlag("ENABLED", "typeA", objectVariants, null);
 
     // flag in disabled state
@@ -45,7 +61,7 @@ public class MockFlags {
     // incorrect flag - variant mismatch
     static final FeatureFlag VARIANT_MISMATCH_FLAG = new FeatureFlag("ENABLED", "true", stringVariants, null);
 
-    // flag with targeting rule
+    // flag with targeting rule - string
     static final FeatureFlag FLAG_WIH_IF_IN_TARGET = new FeatureFlag("ENABLED", "loop", stringVariants,
             "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}");
 

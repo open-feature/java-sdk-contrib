@@ -24,13 +24,14 @@ import java.util.function.Consumer;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.BOOLEAN_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DISABLED_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DOUBLE_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.INT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class InProcessResolverTest {
@@ -47,7 +48,7 @@ class InProcessResolverTest {
                     receiver.offer(providerState);
                 });
 
-        // when
+        // when - emit events
         inProcessResolver.init();
         if (!sender.offer(StorageState.OK, 200, TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
@@ -57,7 +58,7 @@ class InProcessResolverTest {
             Assertions.fail("failed to send the event");
         }
 
-        // then
+        // then - receive events in order
         assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
             Assertions.assertEquals(ProviderState.READY, receiver.take());
         });
@@ -68,7 +69,7 @@ class InProcessResolverTest {
     }
 
     @Test
-    public void simpleResolving() throws Exception {
+    public void simpleBooleanResolving() throws Exception {
         // given
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
         flagMap.put("booleanFlag", BOOLEAN_FLAG);
@@ -83,6 +84,44 @@ class InProcessResolverTest {
         // then
         assertEquals(true, providerEvaluation.getValue());
         assertEquals("on", providerEvaluation.getVariant());
+        assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
+    }
+
+    @Test
+    public void simpleDoubleResolving() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("doubleFlag", DOUBLE_FLAG);
+
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
+        });
+
+        // when
+        ProviderEvaluation<Double> providerEvaluation =
+                inProcessResolver.doubleEvaluation("doubleFlag", 0d, new ImmutableContext());
+
+        // then
+        assertEquals(3.141d, providerEvaluation.getValue());
+        assertEquals("one", providerEvaluation.getVariant());
+        assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
+    }
+
+    @Test
+    public void simpleIntResolving() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("integerFlag", INT_FLAG);
+
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
+        });
+
+        // when
+        ProviderEvaluation<Integer> providerEvaluation =
+                inProcessResolver.integerEvaluation("integerFlag", 0, new ImmutableContext());
+
+        // then
+        assertEquals(1, providerEvaluation.getValue());
+        assertEquals("one", providerEvaluation.getVariant());
         assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
     }
 
