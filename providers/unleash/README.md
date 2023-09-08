@@ -44,7 +44,6 @@ See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers
 
 * Unleash OpenFeature Provider only supports boolean and string evaluation.
 * Unleash OpenFeature Provider only supports string variant type.
-* Evaluation reason is currently UNKNOWN.
 
 ## References
 * [Unleash](https://getunleash.io)

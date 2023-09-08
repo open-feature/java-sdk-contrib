@@ -88,11 +88,11 @@ class UnleashProviderTest {
     void getBooleanEvaluationByUser() {
         String flagName = "testByUserId";
         UnleashContext unleashContext = UnleashContext.builder().userId("1").build();
-        EvaluationContext evaluationContext = UnleashProvider.transform(unleashContext);
+        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
         assertEquals(true, unleashProvider.getBooleanEvaluation(flagName, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(flagName, false, evaluationContext));
         unleashContext = UnleashContext.builder().userId("2").build();
-        evaluationContext = UnleashProvider.transform(unleashContext);
+        evaluationContext = ContextTransformer.transform(unleashContext);
         assertEquals(false, unleashProvider.getBooleanEvaluation(flagName, false, evaluationContext).getValue());
         assertEquals(false, client.getBooleanValue(flagName, false, evaluationContext));
     }
@@ -148,7 +148,7 @@ class UnleashProviderTest {
         values.put(customPropertyKey, Value.objectToValue(customPropertyValue));
 
         EvaluationContext evaluationContext = new ImmutableContext(values);
-        UnleashContext transformedUnleashContext = UnleashProvider.transform(evaluationContext);
+        UnleashContext transformedUnleashContext = ContextTransformer.transform(evaluationContext);
         assertEquals(appNameValue, transformedUnleashContext.getAppName().get());
         assertEquals(userIdValue, transformedUnleashContext.getUserId().get());
         assertEquals(environmentValue, transformedUnleashContext.getEnvironment().get());

@@ -68,6 +68,11 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
     @Override
     public void togglesFetched(FeatureToggleResponse toggleResponse) {
         unleashSubscriber.togglesFetched(toggleResponse);
+        if (FeatureToggleResponse.Status.CHANGED.equals(toggleResponse.getStatus())) {
+            eventProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder()
+                .eventMetadata(ImmutableMetadata.builder()
+                    .build()).build());
+        }
     }
 
     @Override
