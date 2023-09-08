@@ -3,6 +3,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.operator.Fractional;
+import dev.openfeature.contrib.providers.flagd.resolver.process.operator.SemVer;
+import dev.openfeature.contrib.providers.flagd.resolver.process.operator.StringComp;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
@@ -39,7 +42,12 @@ public class InProcessResolver implements Resolver {
         // currently we support gRPC connector
         this.flagStore = new FlagStore(new GrpcStreamConnector(options));
         this.stateConsumer = stateConsumer;
+
         jsonLogicHandler = new JsonLogic();
+        jsonLogicHandler.addOperation(new Fractional());
+        jsonLogicHandler.addOperation(new SemVer());
+        jsonLogicHandler.addOperation(new StringComp(StringComp.Type.STARTS_WITH));
+        jsonLogicHandler.addOperation(new StringComp(StringComp.Type.ENDS_WITH));
     }
 
     /**
