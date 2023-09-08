@@ -10,11 +10,10 @@ import com.networknt.schema.ValidationMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.java.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -42,15 +41,18 @@ public class FlagParser {
     private static JsonSchema SCHEMA_VALIDATOR;
 
     static {
-        try {
-            final URL url = FlagParser.class.getClassLoader().getResource(SCHEMA_RESOURCE);
-            if (url == null) {
+        try( final InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
+            if (schema == null) {
                 log.log(Level.WARNING, String.format("Resource %s not found", SCHEMA_RESOURCE));
             } else {
-                byte[] bytes = Files.readAllBytes(Paths.get(url.getPath()));
-                String schemaString = new String(bytes, StandardCharsets.UTF_8);
+                final ByteArrayOutputStream result = new ByteArrayOutputStream();
+                byte[] buffer = new byte[512];
+                for (int size; 0 <(size = schema.read(buffer));){
+                    result.write(buffer, 0, size);
+                }
+
                 JsonSchemaFactory instance = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
-                SCHEMA_VALIDATOR = instance.getSchema(schemaString);
+                SCHEMA_VALIDATOR = instance.getSchema(result.toString());
             }
         } catch (Throwable e) {
             // log only, do not throw
