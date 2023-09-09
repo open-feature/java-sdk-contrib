@@ -14,13 +14,13 @@ import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
 import io.getunleash.Variant;
-import io.getunleash.strategy.Strategy;
 import io.getunleash.util.UnleashConfig;
-import io.getunleash.variant.Payload;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import static io.getunleash.Variant.DISABLED_VARIANT;
 
 /**
  * Provider implementation for Unleash.
@@ -67,8 +67,7 @@ public class UnleashProvider extends EventProvider {
             unleashOptions.getUnleashConfigBuilder().build().getSubscriber(), this);
         unleashOptions.getUnleashConfigBuilder().subscriber(unleashSubscriberWrapper);
         UnleashConfig unleashConfig = unleashOptions.getUnleashConfigBuilder().build();
-        unleash = new DefaultUnleash(unleashConfig,
-            unleashOptions.getStrategyMap().values().toArray(new Strategy[unleashOptions.getStrategyMap().size()]));
+        unleash = new DefaultUnleash(unleashConfig);
 
         // else, state will be changed via UnleashSubscriberWrapper events
         if (unleashConfig.isSynchronousFetchOnInitialisation()) {
@@ -121,14 +120,19 @@ public class UnleashProvider extends EventProvider {
             throw new GeneralError(UNKNOWN_ERROR);
         }
         UnleashContext context = ctx == null ? UnleashContext.builder().build() : ContextTransformer.transform(ctx);
-        Payload defaultVariantPayload = new Payload("string", String.valueOf(defaultValue));
-        Variant defaultVariant = new Variant("default_fallback", defaultVariantPayload, true);
-        Variant evaluatedVariant = unleash.getVariant(key, context, defaultVariant);
-        Payload evaluatedVariantPayload = evaluatedVariant.getPayload().orElse(defaultVariantPayload);
-        String evaluatedVariantPayloadValue = evaluatedVariantPayload.getValue();
+        Variant evaluatedVariant = unleash.getVariant(key, context);
+        String variantName;
+        String value;
+        if (DISABLED_VARIANT.equals(evaluatedVariant)) {
+            variantName = null;
+            value = defaultValue;
+        } else {
+            variantName = evaluatedVariant.getName();
+            value = evaluatedVariant.getPayload().get().getValue();
+        }
         return ProviderEvaluation.<String>builder()
-            .value(evaluatedVariantPayloadValue)
-            .variant(evaluatedVariant.getName())
+            .value(value)
+            .variant(variantName)
             .build();
     }
 

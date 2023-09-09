@@ -1,12 +1,13 @@
 package dev.openfeature.contrib.providers.unleash;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.ProviderState;
-import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import io.getunleash.UnleashContext;
@@ -20,12 +21,22 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -33,29 +44,48 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * UnleashProvider Test.
  * Inspired by Unleash tests.
  */
+@WireMockTest
 class UnleashProviderTest {
 
-    public static final String FLAG_NAME = "flagName";
-    public static final String VARIANT_1 = "variant1";
-    public static final String VARIANT_1_VALUE = "variant1_value";
+    public static final String FLAG_NAME = "Demo";
+    public static final String VARIANT_FLAG_NAME = "new-api";
+    public static final String VARIANT_FLAG_VALUE = "v1";
     private TestSubscriber testSubscriber;
     private UnleashProvider unleashProvider;
     private Client client;
 
     @BeforeEach
-    void setUp() {
+    void setUp(WireMockRuntimeInfo wmRuntimeInfo) {
         testSubscriber = new TestSubscriber();
-        unleashProvider = buildUnleashProvider(true);
+        stubFor(any(anyUrl()).willReturn(aResponse()
+            .withStatus(200)
+            .withBody("{}")));
+        String unleashAPI = "http://localhost:" + wmRuntimeInfo.getHttpPort() + "/api/";
+        String backupFileContent = readBackupFile();
+        mockUnleashAPI(backupFileContent);
+        unleashProvider = buildUnleashProvider(true, unleashAPI, backupFileContent);
         OpenFeatureAPI.getInstance().setProviderAndWait("sync", unleashProvider);
         client = OpenFeatureAPI.getInstance().getClient("sync");
     }
 
+    private void mockUnleashAPI(String backupFileContent) {
+        stubFor(
+            get(urlEqualTo("/api/client/features"))
+                .withHeader("Accept", equalTo("application/json"))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(backupFileContent)));
+        stubFor(post(urlEqualTo("/api/client/register")).willReturn(aResponse().withStatus(200)));
+    }
+
     @SneakyThrows
-    private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation) {
+    private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation, String unleashAPI, String backupFileContent) {
         TestSubscriber testSubscriber = new TestSubscriber();
         UnleashConfig.Builder unleashConfigBuilder =
             UnleashConfig.builder()
-                .unleashAPI("http://fakeAPI")
+                .unleashAPI(new URI(unleashAPI))
                 .appName("fakeApp")
                 .subscriber(testSubscriber)
                 .synchronousFetchOnInitialisation(synchronousFetchOnInitialisation);
@@ -63,7 +93,13 @@ class UnleashProviderTest {
         UnleashOptions unleashOptions = UnleashOptions.builder()
             .unleashConfigBuilder(unleashConfigBuilder)
             .build();
-        return new TestUnleashProvider(unleashOptions);
+        return new UnleashProvider(unleashOptions);
+    }
+
+    @SneakyThrows
+    private String readBackupFile() {
+        URL url = getClass().getResource("/features.json");
+        return new String(Files.readAllBytes(Paths.get(url.toURI())));
     }
 
     @Test
@@ -76,9 +112,9 @@ class UnleashProviderTest {
 
     @Test
     void getStringVariantEvaluation() {
-        assertEquals(VARIANT_1_VALUE, unleashProvider.getStringEvaluation(FLAG_NAME, "",
+        assertEquals(VARIANT_FLAG_VALUE, unleashProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
             new ImmutableContext()).getValue());
-        assertEquals(VARIANT_1_VALUE, client.getStringValue(FLAG_NAME, ""));
+        assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(VARIANT_FLAG_NAME, ""));
         assertEquals("fallback_str", unleashProvider.getStringEvaluation("non-existing",
             "fallback_str", new ImmutableContext()).getValue());
         assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str"));
@@ -86,8 +122,8 @@ class UnleashProviderTest {
 
     @Test
     void getBooleanEvaluationByUser() {
-        String flagName = "testByUserId";
-        UnleashContext unleashContext = UnleashContext.builder().userId("1").build();
+        String flagName = "by-users";
+        UnleashContext unleashContext = UnleashContext.builder().userId("111").build();
         EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
         assertEquals(true, unleashProvider.getBooleanEvaluation(flagName, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(flagName, false, evaluationContext));
@@ -107,9 +143,8 @@ class UnleashProviderTest {
     @SneakyThrows
     @Test
     void asyncInitTest() {
-        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false);
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "");
         OpenFeatureAPI.getInstance().setProvider("async", asyncInitUnleashProvider);
-        Client asyncClient = OpenFeatureAPI.getInstance().getClient("async");
         assertEquals(ProviderState.NOT_READY, asyncInitUnleashProvider.getState());
 
         // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
@@ -130,24 +165,26 @@ class UnleashProviderTest {
     @SneakyThrows
     @Test
     void contextTransformTest() {
-        Map<String, Value> values = new HashMap<>();
         String appNameValue = "appName_value";
-        values.put("appName", Value.objectToValue(appNameValue));
         String userIdValue = "userId_value";
-        values.put("userId", Value.objectToValue(userIdValue));
         String environmentValue = "environment_value";
-        values.put("environment", Value.objectToValue(environmentValue));
         String remoteAddressValue = "remoteAddress_value";
-        values.put("remoteAddress", Value.objectToValue(remoteAddressValue));
         String sessionIdValue = "sessionId_value";
-        values.put("sessionId", Value.objectToValue(sessionIdValue));
         ZonedDateTime currentTimeValue = ZonedDateTime.now();
-        values.put("currentTime", Value.objectToValue(currentTimeValue.toString()));
         String customPropertyValue = "customProperty_value";
         String customPropertyKey = "customProperty";
-        values.put(customPropertyKey, Value.objectToValue(customPropertyValue));
 
-        EvaluationContext evaluationContext = new ImmutableContext(values);
+        UnleashContext unleashContext = UnleashContext.builder()
+            .userId(userIdValue)
+            .currentTime(currentTimeValue)
+            .sessionId(sessionIdValue)
+            .remoteAddress(remoteAddressValue)
+            .environment(environmentValue)
+            .appName(appNameValue)
+            .addProperty(customPropertyKey, customPropertyValue)
+            .build();
+        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
+
         UnleashContext transformedUnleashContext = ContextTransformer.transform(evaluationContext);
         assertEquals(appNameValue, transformedUnleashContext.getAppName().get());
         assertEquals(userIdValue, transformedUnleashContext.getUserId().get());

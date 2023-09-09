@@ -63,8 +63,9 @@ public class ContextTransformer {
         unleashContext.getEnvironment().ifPresent(o -> attributes.put(CONTEXT_ENVIRONMENT, Value.objectToValue(o)));
         unleashContext.getSessionId().ifPresent(o -> attributes.put(CONTEXT_SESSION_ID, Value.objectToValue(o)));
         unleashContext.getRemoteAddress().ifPresent(o -> attributes.put(
-                CONTEXT_REMOTE_ADDRESS, Value.objectToValue(o)));
-        unleashContext.getCurrentTime().ifPresent(o -> attributes.put(CONTEXT_CURRENT_TIME, Value.objectToValue(o)));
+            CONTEXT_REMOTE_ADDRESS, Value.objectToValue(o)));
+        unleashContext.getCurrentTime().ifPresent(
+            o -> attributes.put(CONTEXT_CURRENT_TIME, Value.objectToValue(o.toString())));
 
         unleashContext.getProperties().forEach((k, v) -> {
             attributes.put(k, Value.objectToValue(v));

@@ -15,12 +15,14 @@ import io.getunleash.metric.ClientRegistration;
 import io.getunleash.repository.FeatureCollection;
 import io.getunleash.repository.FeatureToggleResponse;
 import io.getunleash.repository.ToggleCollection;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
 /**
  * UnleashSubscriber wrapper for emitting event provider events.
  */
+@Slf4j
 public class UnleashSubscriberWrapper implements UnleashSubscriber {
 
     private UnleashSubscriber unleashSubscriber;
@@ -42,9 +44,9 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
     @Override
     public void onError(UnleashException unleashException) {
         unleashSubscriber.onError(unleashException);
-        eventProvider.emitProviderError(ProviderEventDetails.builder()
-            .message(unleashException.getMessage())
-                .build());
+        log.info("unleashException: ", unleashException);
+
+        // Not emitting provider error, since some unleashException not expects to change provider state to error
     }
 
     @Override

@@ -3,16 +3,10 @@ package dev.openfeature.contrib.providers.unleash;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
-import io.getunleash.strategy.DefaultStrategy;
-import io.getunleash.strategy.Strategy;
-import io.getunleash.strategy.UserWithIdStrategy;
 import io.getunleash.util.UnleashConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -51,16 +45,9 @@ class UnleashProviderIntegrationTest {
                 .apiKey(API_KEY)
                 .projectName(PROJECT_NAME)
                 .synchronousFetchOnInitialisation(synchronousFetchOnInitialisation);
-        Map<String, Strategy> strategyMap = new HashMap<>();
-        strategyMap.put("default", new DefaultStrategy());
-        // Set up a toggleName using UserWithIdStrategy
-        Map<String, String> params = new HashMap<>();
-        UserWithIdStrategy userWithIdStrategy = new UserWithIdStrategy();
-        strategyMap.put(userWithIdStrategy.getName(), userWithIdStrategy);
 
         UnleashOptions unleashOptions = UnleashOptions.builder()
             .unleashConfigBuilder(unleashConfigBuilder)
-                .strategyMap(strategyMap)
                 .build();
         return new UnleashProvider(unleashOptions);
     }
