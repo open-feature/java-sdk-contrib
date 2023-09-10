@@ -5,8 +5,11 @@ import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import io.getunleash.util.UnleashConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * To trigger manually only.
  * To test it, set API_KEY and other values accordingly.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Slf4j
 class UnleashProviderIntegrationTest {
 
@@ -26,15 +30,24 @@ class UnleashProviderIntegrationTest {
     private UnleashProvider unleashProvider;
     private Client client;
 
-    @BeforeEach
+    @BeforeAll
     void setUp() {
         if (API_KEY == null) {
-            log.debug("tests disabled");
+            log.debug("init: tests disabled");
             return;
         }
         unleashProvider = buildUnleashProvider(true);
         OpenFeatureAPI.getInstance().setProviderAndWait("sync", unleashProvider);
         client = OpenFeatureAPI.getInstance().getClient("sync");
+    }
+
+    @AfterAll
+    public void shutdown() {
+        if (API_KEY == null) {
+            log.debug("shutdown: tests disabled");
+            return;
+        }
+        unleashProvider.shutdown();
     }
 
     private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation) {

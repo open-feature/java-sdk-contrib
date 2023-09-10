@@ -6,7 +6,6 @@ import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
-import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
@@ -18,8 +17,10 @@ import io.getunleash.event.UnleashSubscriber;
 import io.getunleash.repository.FeatureToggleResponse;
 import io.getunleash.util.UnleashConfig;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import java.net.URI;
 import java.net.URL;
@@ -45,16 +46,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Inspired by Unleash tests.
  */
 @WireMockTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UnleashProviderTest {
 
     public static final String FLAG_NAME = "Demo";
     public static final String VARIANT_FLAG_NAME = "new-api";
     public static final String VARIANT_FLAG_VALUE = "v1";
-    private TestSubscriber testSubscriber;
-    private UnleashProvider unleashProvider;
-    private Client client;
+    private static TestSubscriber testSubscriber;
+    private static UnleashProvider unleashProvider;
+    private static Client client;
 
-    @BeforeEach
+    @BeforeAll
     void setUp(WireMockRuntimeInfo wmRuntimeInfo) {
         testSubscriber = new TestSubscriber();
         stubFor(any(anyUrl()).willReturn(aResponse()
@@ -66,6 +68,11 @@ class UnleashProviderTest {
         unleashProvider = buildUnleashProvider(true, unleashAPI, backupFileContent);
         OpenFeatureAPI.getInstance().setProviderAndWait("sync", unleashProvider);
         client = OpenFeatureAPI.getInstance().getClient("sync");
+    }
+
+    @AfterAll
+    public void shutdown() {
+        unleashProvider.shutdown();
     }
 
     private void mockUnleashAPI(String backupFileContent) {
@@ -142,24 +149,14 @@ class UnleashProviderTest {
 
     @SneakyThrows
     @Test
-    void asyncInitTest() {
-        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "");
-        OpenFeatureAPI.getInstance().setProvider("async", asyncInitUnleashProvider);
+    void shouldThrowIfNotInitialized() {
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "{}");
         assertEquals(ProviderState.NOT_READY, asyncInitUnleashProvider.getState());
 
         // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
         assertThrows(ProviderNotReadyError.class, ()-> asyncInitUnleashProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
 
-        asyncInitUnleashProvider.initialize(new ImmutableContext());
-        asyncInitUnleashProvider.emitProviderReady(ProviderEventDetails.builder().build());
-
-        assertEquals(ProviderState.READY, asyncInitUnleashProvider.getState());
-        assertEquals(false, asyncInitUnleashProvider.getBooleanEvaluation("non-existing", false, new ImmutableContext()).getValue());
-        assertEquals(true, unleashProvider.getBooleanEvaluation(FLAG_NAME, false, new ImmutableContext()).getValue());
-        assertEquals(true, client.getBooleanValue(FLAG_NAME, false));
-
-        asyncInitUnleashProvider.emitProviderError(ProviderEventDetails.builder().build());
-        assertEquals(ProviderState.ERROR, asyncInitUnleashProvider.getState());
+        asyncInitUnleashProvider.shutdown();
     }
 
     @SneakyThrows

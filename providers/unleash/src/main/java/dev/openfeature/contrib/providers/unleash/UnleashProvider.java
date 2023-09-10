@@ -20,6 +20,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static io.getunleash.Variant.DISABLED_VARIANT;
 
 /**
@@ -47,6 +49,8 @@ public class UnleashProvider extends EventProvider {
     @Getter
     private ProviderState state = ProviderState.NOT_READY;
 
+    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+
     /**
      * Constructor.
      * @param unleashOptions UnleashOptions
@@ -62,6 +66,10 @@ public class UnleashProvider extends EventProvider {
      */
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
+        boolean initialized = isInitialized.getAndSet(true);
+        if (initialized) {
+            throw new GeneralError("already initialized");
+        }
         super.initialize(evaluationContext);
         UnleashSubscriberWrapper unleashSubscriberWrapper = new UnleashSubscriberWrapper(
             unleashOptions.getUnleashConfigBuilder().build().getSubscriber(), this);
@@ -149,5 +157,15 @@ public class UnleashProvider extends EventProvider {
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String s, Value value, EvaluationContext evaluationContext) {
         throw new TypeMismatchError(NOT_IMPLEMENTED);
+    }
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+        log.info("shutdown");
+        if (unleash != null) {
+            unleash.shutdown();
+        }
+        state = ProviderState.NOT_READY;
     }
 }
