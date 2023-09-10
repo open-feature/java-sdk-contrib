@@ -47,11 +47,8 @@ See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers
 
 ## Unleash Provider Tests Strategies
 
-* Unit test based on Unleash instance with Unleash features schema file, with WireMock for API mocking.  
+Unit test based on Unleash instance with Unleash features schema file, with WireMock for API mocking.  
 See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/unleash/UnleashProviderTest.java) for more information.
-* Integration Test based on Unleash instance connected to a live server.  
-This test is disabled by default, and meant for manual triggering only.  
-See [UnleashProviderIntegrationTest.java](./src/test/java/dev/openfeature/contrib/providers/unleash/UnleashProviderIntegrationTest.java) for more information.
 
 ## References
 * [Unleash](https://getunleash.io)

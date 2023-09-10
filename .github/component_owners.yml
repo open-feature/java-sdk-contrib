@@ -19,6 +19,8 @@ components:
     - thomaspoignant
   providers/jsonlogic-eval-provider:
     - justinabrahms
+  providers/unleash:
+    - liran2000
 
 ignored-authors:
   - renovate-bot

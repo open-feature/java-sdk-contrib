@@ -6,7 +6,10 @@ import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import io.getunleash.UnleashContext;
@@ -42,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * UnleashProvider Test.
+ * UnleashProvider test, based on APIs mocking.
  * Inspired by Unleash tests.
  */
 @WireMockTest
@@ -52,20 +55,18 @@ class UnleashProviderTest {
     public static final String FLAG_NAME = "Demo";
     public static final String VARIANT_FLAG_NAME = "new-api";
     public static final String VARIANT_FLAG_VALUE = "v1";
-    private static TestSubscriber testSubscriber;
     private static UnleashProvider unleashProvider;
     private static Client client;
 
     @BeforeAll
     void setUp(WireMockRuntimeInfo wmRuntimeInfo) {
-        testSubscriber = new TestSubscriber();
         stubFor(any(anyUrl()).willReturn(aResponse()
             .withStatus(200)
             .withBody("{}")));
         String unleashAPI = "http://localhost:" + wmRuntimeInfo.getHttpPort() + "/api/";
         String backupFileContent = readBackupFile();
         mockUnleashAPI(backupFileContent);
-        unleashProvider = buildUnleashProvider(true, unleashAPI, backupFileContent);
+        unleashProvider = buildUnleashProvider(true, unleashAPI, backupFileContent, new TestSubscriber());
         OpenFeatureAPI.getInstance().setProviderAndWait("sync", unleashProvider);
         client = OpenFeatureAPI.getInstance().getClient("sync");
     }
@@ -88,8 +89,7 @@ class UnleashProviderTest {
     }
 
     @SneakyThrows
-    private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation, String unleashAPI, String backupFileContent) {
-        TestSubscriber testSubscriber = new TestSubscriber();
+    private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation, String unleashAPI, String backupFileContent, TestSubscriber testSubscriber) {
         UnleashConfig.Builder unleashConfigBuilder =
             UnleashConfig.builder()
                 .unleashAPI(new URI(unleashAPI))
@@ -145,16 +145,41 @@ class UnleashProviderTest {
         assertThrows(TypeMismatchError.class, () -> {
             unleashProvider.getIntegerEvaluation("test", 1, new ImmutableContext());
         });
+        assertThrows(TypeMismatchError.class, () -> {
+            unleashProvider.getDoubleEvaluation("test", 1.0, new ImmutableContext());
+        });
+        assertThrows(TypeMismatchError.class, () -> {
+            unleashProvider.getObjectEvaluation("test", new Value(), new ImmutableContext());
+        });
     }
 
     @SneakyThrows
     @Test
     void shouldThrowIfNotInitialized() {
-        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "{}");
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "{}", new TestSubscriber());
         assertEquals(ProviderState.NOT_READY, asyncInitUnleashProvider.getState());
 
         // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
         assertThrows(ProviderNotReadyError.class, ()-> asyncInitUnleashProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
+        assertThrows(ProviderNotReadyError.class, ()-> asyncInitUnleashProvider.getStringEvaluation("fail_not_initialized", "", new ImmutableContext()));
+
+        asyncInitUnleashProvider.initialize(null);
+        assertThrows(GeneralError.class, ()-> asyncInitUnleashProvider.initialize(null));
+
+        asyncInitUnleashProvider.shutdown();
+    }
+
+    @SneakyThrows
+    @Test
+    void shouldThrowIfErrorEvent() {
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "{}", null);
+        asyncInitUnleashProvider.initialize(new ImmutableContext());
+
+        asyncInitUnleashProvider.emitProviderError(ProviderEventDetails.builder().build());
+
+        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
+        assertThrows(GeneralError.class, ()-> asyncInitUnleashProvider.getBooleanEvaluation("fail", false, new ImmutableContext()));
+        assertThrows(GeneralError.class, ()-> asyncInitUnleashProvider.getStringEvaluation("fail", "", new ImmutableContext()));
 
         asyncInitUnleashProvider.shutdown();
     }
@@ -190,6 +215,27 @@ class UnleashProviderTest {
         assertEquals(sessionIdValue, transformedUnleashContext.getSessionId().get());
         assertEquals(currentTimeValue, transformedUnleashContext.getCurrentTime().get());
         assertEquals(customPropertyValue, transformedUnleashContext.getProperties().get(customPropertyKey));
+    }
+
+    @SneakyThrows
+    @Test
+    void subscriberWrapperTest() {
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false,
+    "http://fakeAPI", "{}", null);
+        UnleashSubscriberWrapper unleashSubscriberWrapper = new UnleashSubscriberWrapper(
+            new TestSubscriber(), asyncInitUnleashProvider);
+        unleashSubscriberWrapper.clientMetrics(null);
+        unleashSubscriberWrapper.clientRegistered(null);
+        unleashSubscriberWrapper.featuresBackedUp(null);
+        unleashSubscriberWrapper.featuresBackupRestored(null);
+        unleashSubscriberWrapper.featuresBootstrapped(null);
+        unleashSubscriberWrapper.impression(null);
+        unleashSubscriberWrapper.toggleEvaluated(new ToggleEvaluated("dummy", false));
+        unleashSubscriberWrapper.togglesFetched(new FeatureToggleResponse(FeatureToggleResponse.Status.NOT_CHANGED,
+200));
+        unleashSubscriberWrapper.toggleBackupRestored(null);
+        unleashSubscriberWrapper.togglesBackedUp(null);
+        unleashSubscriberWrapper.togglesBootstrapped(null);
     }
 
     private class TestSubscriber implements UnleashSubscriber {

@@ -5,7 +5,6 @@ import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEventDetails;
 import io.getunleash.UnleashException;
 import io.getunleash.event.ImpressionEvent;
-import io.getunleash.event.NoOpSubscriber;
 import io.getunleash.event.ToggleEvaluated;
 import io.getunleash.event.UnleashEvent;
 import io.getunleash.event.UnleashReady;
@@ -15,6 +14,7 @@ import io.getunleash.metric.ClientRegistration;
 import io.getunleash.repository.FeatureCollection;
 import io.getunleash.repository.FeatureToggleResponse;
 import io.getunleash.repository.ToggleCollection;
+import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
  * UnleashSubscriber wrapper for emitting event provider events.
  */
 @Slf4j
+@Generated
 public class UnleashSubscriberWrapper implements UnleashSubscriber {
 
     private UnleashSubscriber unleashSubscriber;
@@ -35,9 +36,6 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
      */
     public UnleashSubscriberWrapper(@Nullable UnleashSubscriber unleashSubscriber, EventProvider eventProvider) {
         this.unleashSubscriber = unleashSubscriber;
-        if (this.unleashSubscriber == null) {
-            this.unleashSubscriber = new NoOpSubscriber();
-        }
         this.eventProvider = eventProvider;
     }
 
