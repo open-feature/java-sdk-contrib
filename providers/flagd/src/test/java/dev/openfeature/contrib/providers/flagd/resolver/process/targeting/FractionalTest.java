@@ -11,10 +11,12 @@ import java.util.Map;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.FLAG_KEY;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.TARGET_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class FractionalTest {
 
-    @Test void selfContainedFractional() throws JsonLogicEvaluationException {
+    @Test
+    void selfContainedFractional() throws JsonLogicEvaluationException {
         // given
         Fractional fractional = new Fractional();
 
@@ -56,7 +58,8 @@ class FractionalTest {
         assertEquals("green", evaluate);
     }
 
-    @Test void targetingBackedFractional() throws JsonLogicEvaluationException {
+    @Test
+    void targetingBackedFractional() throws JsonLogicEvaluationException {
         // given
         Fractional fractional = new Fractional();
 
@@ -95,6 +98,123 @@ class FractionalTest {
 
         // then
         assertEquals("blue", evaluate);
+    }
+
+
+    @Test
+    void invalidRuleSumNot100() throws JsonLogicEvaluationException {
+        // given
+        Fractional fractional = new Fractional();
+
+        /* Rule
+         *     [
+         *       [
+         *         "blue",
+         *         50
+         *       ],
+         *       [
+         *         "green",
+         *         70
+         *       ]
+         *     ]
+         * */
+
+        final List<Object> rule = new ArrayList<>();
+
+        final List<Object> bucket1 = new ArrayList<>();
+        bucket1.add("blue");
+        bucket1.add(50);
+
+        final List<Object> bucket2 = new ArrayList<>();
+        bucket2.add("green");
+        bucket2.add(70);
+
+        rule.add(bucket1);
+        rule.add(bucket2);
+
+        Map<String, String> data = new HashMap<>();
+        data.put(FLAG_KEY, "headerColor");
+        data.put(TARGET_KEY, "foo@foo.com");
+
+        // when
+        Object evaluate = fractional.evaluate(rule, data);
+
+        // then
+        assertNull(evaluate);
+    }
+
+    @Test
+    void notEnoughBuckets() throws JsonLogicEvaluationException {
+        // given
+        Fractional fractional = new Fractional();
+
+        /* Rule
+         *     [
+         *       [
+         *         "blue",
+         *         100
+         *       ]
+         *     ]
+         * */
+
+        final List<Object> rule = new ArrayList<>();
+
+        final List<Object> bucket1 = new ArrayList<>();
+        bucket1.add("blue");
+        bucket1.add(50);
+
+        rule.add(bucket1);
+
+        Map<String, String> data = new HashMap<>();
+        data.put(FLAG_KEY, "headerColor");
+        data.put(TARGET_KEY, "foo@foo.com");
+
+        // when
+        Object evaluate = fractional.evaluate(rule, data);
+
+        // then
+        assertNull(evaluate);
+    }
+
+
+    @Test
+    void invalidRule() throws JsonLogicEvaluationException {
+        // given
+        Fractional fractional = new Fractional();
+
+        /* Rule
+         *     [
+         *       [
+         *         "blue",
+         *         50
+         *       ],
+         *       [
+         *         "green"
+         *       ]
+         *     ]
+         * */
+
+        final List<Object> rule = new ArrayList<>();
+
+        final List<Object> bucket1 = new ArrayList<>();
+        bucket1.add("blue");
+        bucket1.add(50);
+
+        final List<Object> bucket2 = new ArrayList<>();
+        bucket2.add("green");
+
+        rule.add(bucket1);
+        rule.add(bucket2);
+
+        Map<String, String> data = new HashMap<>();
+        data.put(FLAG_KEY, "headerColor");
+        data.put(TARGET_KEY, "foo@foo.com");
+
+        // when
+        Object evaluate = fractional.evaluate(rule, data);
+
+        // then
+        assertNull(evaluate);
     }
 
 }
