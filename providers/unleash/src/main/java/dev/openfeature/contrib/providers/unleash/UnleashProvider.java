@@ -31,7 +31,7 @@ import static io.getunleash.Variant.DISABLED_VARIANT;
 public class UnleashProvider extends EventProvider {
 
     @Getter
-    private static final String NAME = "Unleash Provider";
+    private static final String NAME = "Unleash";
     public static final String NOT_IMPLEMENTED =
         "Not implemented - provider does not support this type. Only boolean is supported.";
 
@@ -77,13 +77,8 @@ public class UnleashProvider extends EventProvider {
         UnleashConfig unleashConfig = unleashOptions.getUnleashConfigBuilder().build();
         unleash = new DefaultUnleash(unleashConfig);
 
-        // else, state will be changed via UnleashSubscriberWrapper events
-        if (unleashConfig.isSynchronousFetchOnInitialisation()) {
-            state = ProviderState.READY;
-        } else {
-            log.info("ready state will be changed via UnleashSubscriberWrapper events");
-        }
-
+        // Unleash is per definition ready after it is initialized.
+        state = ProviderState.READY;
         log.info("finished initializing provider, state: {}", state);
     }
 
@@ -121,26 +116,13 @@ public class UnleashProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
-        UnleashContext context = ctx == null ? UnleashContext.builder().build() : ContextTransformer.transform(ctx);
-        Variant evaluatedVariant = unleash.getVariant(key, context);
-        String variantName;
-        String value;
-        if (DISABLED_VARIANT.equals(evaluatedVariant)) {
-            variantName = null;
-            value = defaultValue;
-        } else {
-            variantName = evaluatedVariant.getName();
-            value = evaluatedVariant.getPayload().get().getValue();
-        }
+        ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
         return ProviderEvaluation.<String>builder()
-            .value(value)
-            .variant(variantName)
+            .value(valueProviderEvaluation.getValue().asString())
+            .variant(valueProviderEvaluation.getVariant())
+                .errorCode(valueProviderEvaluation.getErrorCode())
+                .reason(valueProviderEvaluation.getReason())
+                .flagMetadata(valueProviderEvaluation.getFlagMetadata())
             .build();
     }
 
@@ -155,8 +137,28 @@ public class UnleashProvider extends EventProvider {
     }
 
     @Override
-    public ProviderEvaluation<Value> getObjectEvaluation(String s, Value value, EvaluationContext evaluationContext) {
-        throw new TypeMismatchError(NOT_IMPLEMENTED);
+    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
+        if (!ProviderState.READY.equals(state)) {
+            if (ProviderState.NOT_READY.equals(state)) {
+                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
+            }
+            throw new GeneralError(UNKNOWN_ERROR);
+        }
+        UnleashContext context = ctx == null ? UnleashContext.builder().build() : ContextTransformer.transform(ctx);
+        Variant evaluatedVariant = unleash.getVariant(key, context);
+        String variantName;
+        Value value;
+        if (DISABLED_VARIANT.equals(evaluatedVariant)) {
+            variantName = null;
+            value = defaultValue;
+        } else {
+            variantName = evaluatedVariant.getName();
+            value = evaluatedVariant.getPayload().map(p -> new Value(p.getValue())).orElse(null);
+        }
+        return ProviderEvaluation.<Value>builder()
+            .value(value)
+            .variant(variantName)
+            .build();
     }
 
     @Override

@@ -52,9 +52,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UnleashProviderTest {
 
-    public static final String FLAG_NAME = "Demo";
-    public static final String VARIANT_FLAG_NAME = "new-api";
+    public static final String FLAG_NAME = "variant-flag";
+    public static final String VARIANT_FLAG_NAME = "variant-flag";
     public static final String VARIANT_FLAG_VALUE = "v1";
+    public static final String USERS_FLAG_NAME = "users-flag";
+    public static final String JSON_VARIANT_FLAG_NAME = "json-flag";
+    public static final String JSON_VARIANT_FLAG_VALUE = "{ a: 1 }";
+    public static final String CSV_VARIANT_FLAG_NAME = "csv-flag";
+    public static final String CSV_VARIANT_FLAG_VALUE = "a,b,c";
     private static UnleashProvider unleashProvider;
     private static Client client;
 
@@ -128,16 +133,35 @@ class UnleashProviderTest {
     }
 
     @Test
+    void getJsonVariantEvaluation() {
+        assertEquals(JSON_VARIANT_FLAG_VALUE, unleashProvider.getObjectEvaluation(JSON_VARIANT_FLAG_NAME, new Value(""),
+            new ImmutableContext()).getValue().asString());
+        assertEquals(new Value(JSON_VARIANT_FLAG_VALUE), client.getObjectValue(JSON_VARIANT_FLAG_NAME, new Value("")));
+        assertEquals("fallback_str", unleashProvider.getObjectEvaluation("non-existing",
+            new Value("fallback_str"), new ImmutableContext()).getValue().asString());
+        assertEquals(new Value("fallback_str"), client.getObjectValue("non-existing", new Value("fallback_str")));
+    }
+
+    @Test
+    void getCSVVariantEvaluation() {
+        assertEquals(CSV_VARIANT_FLAG_VALUE, unleashProvider.getObjectEvaluation(CSV_VARIANT_FLAG_NAME, new Value(""),
+            new ImmutableContext()).getValue().asString());
+        assertEquals(new Value(CSV_VARIANT_FLAG_VALUE), client.getObjectValue(CSV_VARIANT_FLAG_NAME, new Value("")));
+        assertEquals("fallback_str", unleashProvider.getObjectEvaluation("non-existing",
+            new Value("fallback_str"), new ImmutableContext()).getValue().asString());
+        assertEquals(new Value("fallback_str"), client.getObjectValue("non-existing", new Value("fallback_str")));
+    }
+
+    @Test
     void getBooleanEvaluationByUser() {
-        String flagName = "by-users";
         UnleashContext unleashContext = UnleashContext.builder().userId("111").build();
         EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
-        assertEquals(true, unleashProvider.getBooleanEvaluation(flagName, false, evaluationContext).getValue());
-        assertEquals(true, client.getBooleanValue(flagName, false, evaluationContext));
+        assertEquals(true, unleashProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(true, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
         unleashContext = UnleashContext.builder().userId("2").build();
         evaluationContext = ContextTransformer.transform(unleashContext);
-        assertEquals(false, unleashProvider.getBooleanEvaluation(flagName, false, evaluationContext).getValue());
-        assertEquals(false, client.getBooleanValue(flagName, false, evaluationContext));
+        assertEquals(false, unleashProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(false, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
     }
 
     @Test
@@ -147,9 +171,6 @@ class UnleashProviderTest {
         });
         assertThrows(TypeMismatchError.class, () -> {
             unleashProvider.getDoubleEvaluation("test", 1.0, new ImmutableContext());
-        });
-        assertThrows(TypeMismatchError.class, () -> {
-            unleashProvider.getObjectEvaluation("test", new Value(), new ImmutableContext());
         });
     }
 

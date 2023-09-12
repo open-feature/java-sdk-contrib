@@ -42,8 +42,8 @@ See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers
 
 ## Caveats / Limitations
 
-* Unleash OpenFeature Provider only supports boolean and string evaluation.
-* Unleash OpenFeature Provider only supports string variant type.
+* json/csv payloads are evaluated via object evaluation as what returned from Unleash - string, wrapped with Value.
+* integer/double evaluation currently not supported.
 
 ## Unleash Provider Tests Strategies
 
