@@ -47,7 +47,7 @@ class FractionalTest {
         rule.add(bucket2);
 
         Map<String, String> data = new HashMap<>();
-        data.put("$flagKey", "flagA");
+        data.put(FLAG_KEY, "flagA");
 
         // when
         Object evaluate = fractional.evaluate(rule, data);
@@ -63,11 +63,11 @@ class FractionalTest {
         /* Rule
          *     [
          *       [
-         *         "red",
+         *         "blue",
          *         50
          *       ],
          *       [
-         *         "blue",
+         *         "green",
          *         50
          *       ]
          *     ]
@@ -76,7 +76,7 @@ class FractionalTest {
         final List<Object> rule = new ArrayList<>();
 
         final List<Object> bucket1 = new ArrayList<>();
-        bucket1.add("red");
+        bucket1.add("blue");
         bucket1.add(50);
 
         final List<Object> bucket2 = new ArrayList<>();
@@ -87,14 +87,14 @@ class FractionalTest {
         rule.add(bucket2);
 
         Map<String, String> data = new HashMap<>();
-        data.put(FLAG_KEY, "flagA");
-        data.put(TARGET_KEY, "targetingKey");
+        data.put(FLAG_KEY, "headerColor");
+        data.put(TARGET_KEY, "foo@foo.com");
 
         // when
         Object evaluate = fractional.evaluate(rule, data);
 
         // then
-        assertEquals("red", evaluate);
+        assertEquals("blue", evaluate);
     }
 
 }

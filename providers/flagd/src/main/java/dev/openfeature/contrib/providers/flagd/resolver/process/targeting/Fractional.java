@@ -7,6 +7,7 @@ import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsE
 import lombok.Getter;
 import lombok.extern.java.Log;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -75,7 +76,9 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
     private static String distributeValue(final String hashKey, final List<FractionProperty> propertyList)
             throws JsonLogicEvaluationException {
-        double bucket = (Math.abs(Murmur3.hash64(hashKey.getBytes())) * 1.0d / Long.MAX_VALUE) * 100.0d;
+        byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
+        double bucket =
+                (Math.abs(Murmur3.hash64(bytes, 0, bytes.length, 0)) * 1.0d / Long.MAX_VALUE) * 100.0d;
 
         double bucketSum = 0;
         for (FractionProperty p : propertyList) {
