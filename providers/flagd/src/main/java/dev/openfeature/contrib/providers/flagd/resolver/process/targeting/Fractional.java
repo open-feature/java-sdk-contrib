@@ -119,7 +119,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 throw new JsonLogicException("Second element of the fraction property is not a number");
             }
 
-            variant = ((String) array.get(0));
+            variant = (String) array.get(0);
             percentage = ((Number) array.get(1)).doubleValue();
         }
 

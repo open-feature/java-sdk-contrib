@@ -37,8 +37,7 @@
 
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting.lib;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+@SuppressWarnings("PMD")
 public class Murmur3 {
     // from 64-bit linear congruential generator
     public static final long NULL_HASHCODE = 2862933555777941757L;
@@ -142,7 +141,6 @@ public class Murmur3 {
      * @param seed   - seed. (default 0)
      * @return - hashcode
      */
-    @SuppressFBWarnings(value = {"SF_SWITCH_FALLTHROUGH", "SF_SWITCH_NO_DEFAULT"}, justification = "Expected")
     public static int hash32(byte[] data, int offset, int length, int seed) {
         int hash = seed;
         final int nblocks = length >> 2;
@@ -266,7 +264,6 @@ public class Murmur3 {
      * @param seed   - seed. (default is 0)
      * @return - hashcode
      */
-    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "Expected")
     public static long hash64(byte[] data, int offset, int length, int seed) {
         long hash = seed;
         final int nblocks = length >> 3;
@@ -341,7 +338,6 @@ public class Murmur3 {
      * @param seed   - seed. (default is 0)
      * @return - hashcode (2 longs)
      */
-    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "Expected")
     public static long[] hash128(byte[] data, int offset, int length, int seed) {
         long h1 = seed;
         long h2 = seed;
@@ -522,7 +518,6 @@ public class Murmur3 {
             System.arraycopy(data, offset + consumed, tail, 0, tailLen);
         }
 
-        @SuppressFBWarnings(value = {"SF_SWITCH_FALLTHROUGH", "SF_SWITCH_NO_DEFAULT"}, justification = "Expected")
         public final int end() {
             int k1 = 0;
             switch (tailLen) {

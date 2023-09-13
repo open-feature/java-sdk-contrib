@@ -47,12 +47,10 @@ class SemVer implements PreEvaluatedArgumentsExpression {
         }
 
         for (int i = 0; i < 3; i++) {
-            if (arguments.get(i) instanceof String) {
-                continue;
+            if (!(arguments.get(i) instanceof String)) {
+                log.log(Level.FINE, "Invalid argument type. Require Strings");
+                return null;
             }
-
-            log.log(Level.FINE, "Invalid argument type. Require Strings");
-            return null;
         }
 
         // arg 1 should be a SemVer

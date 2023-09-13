@@ -40,7 +40,7 @@ public class FlagParser {
     private static JsonSchema SCHEMA_VALIDATOR;
 
     static {
-        try (final InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
+        try (InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
             if (schema == null) {
                 log.log(Level.WARNING, String.format("Resource %s not found", SCHEMA_RESOURCE));
             } else {
