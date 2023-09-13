@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.11...dev.openfeature.contrib.providers.go-feature-flag-v0.2.12) (2023-09-12)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.guava:guava to v32.1.2-jre ([#392](https://github.com/open-feature/java-sdk-contrib/issues/392)) ([34b2d86](https://github.com/open-feature/java-sdk-contrib/commit/34b2d86f2ff9ff3b9678bbb76b04b37cefe8f4c0))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.9 ([#413](https://github.com/open-feature/java-sdk-contrib/issues/413)) ([757a8db](https://github.com/open-feature/java-sdk-contrib/commit/757a8db28f52dd2084845465e403cf43aea6e537))
+
 ## [0.2.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.10...dev.openfeature.contrib.providers.go-feature-flag-v0.2.11) (2023-08-07)
 
 
