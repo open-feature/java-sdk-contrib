@@ -201,6 +201,10 @@ class UnleashProviderTest {
         ImmutableMetadata flagMetadata = stringEvaluation.getFlagMetadata();
         assertEquals("default", flagMetadata.getString("variant-stickiness"));
         assertEquals("string", flagMetadata.getString("payload-type"));
+        assertEquals(true, flagMetadata.getBoolean("enabled"));
+        ProviderEvaluation<String> nonExistingFlagEvaluation = unleashProvider.getStringEvaluation("non-existing",
+            "", new ImmutableContext());
+        assertEquals(false, nonExistingFlagEvaluation.getFlagMetadata().getBoolean("enabled"));
     }
 
     @SneakyThrows
