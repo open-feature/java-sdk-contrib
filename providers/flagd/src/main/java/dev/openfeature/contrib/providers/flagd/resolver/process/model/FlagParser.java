@@ -40,13 +40,13 @@ public class FlagParser {
     private static JsonSchema SCHEMA_VALIDATOR;
 
     static {
-        try( final InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
+        try (final InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
             if (schema == null) {
                 log.log(Level.WARNING, String.format("Resource %s not found", SCHEMA_RESOURCE));
             } else {
                 final ByteArrayOutputStream result = new ByteArrayOutputStream();
                 byte[] buffer = new byte[512];
-                for (int size; 0 <(size = schema.read(buffer));){
+                for (int size; 0 < (size = schema.read(buffer)); ) {
                     result.write(buffer, 0, size);
                 }
 

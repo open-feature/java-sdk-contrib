@@ -13,8 +13,8 @@ import java.util.Map;
  */
 public class Operator {
 
-    final static String FLAG_KEY = "$flagKey";
-    final static String TARGET_KEY = "targetingKey";
+    static final String FLAG_KEY = "$flagKey";
+    static final String TARGET_KEY = "targetingKey";
 
     private final JsonLogic jsonLogicHandler;
 
@@ -29,6 +29,9 @@ public class Operator {
         jsonLogicHandler.addOperation(new StringComp(StringComp.Type.ENDS_WITH));
     }
 
+    /**
+     * Apply this operator on the provided rule.
+     */
     public Object apply(final String flagKey, final String targetingRule, final EvaluationContext ctx)
             throws TargetingRuleException {
         final Map<String, Object> valueMap = ctx.asObjectMap();
@@ -50,18 +53,18 @@ public class Operator {
             if (from instanceof Map) {
                 Map<?, ?> dataMap = (Map<?, ?>) from;
 
-                Object fKey = dataMap.get(FLAG_KEY);
+                Object flagKey = dataMap.get(FLAG_KEY);
 
-                if (fKey instanceof String) {
-                    flagKey = (String) fKey;
+                if (flagKey instanceof String) {
+                    this.flagKey = (String) flagKey;
                 } else {
-                    flagKey = null;
+                    this.flagKey = null;
                 }
 
-                Object tKey = dataMap.get(TARGET_KEY);
+                Object targetKey = dataMap.get(TARGET_KEY);
 
-                if (tKey instanceof String) {
-                    targetingKey = (String) tKey;
+                if (targetKey instanceof String) {
+                    targetingKey = (String) targetKey;
                 } else {
                     targetingKey = null;
                 }
