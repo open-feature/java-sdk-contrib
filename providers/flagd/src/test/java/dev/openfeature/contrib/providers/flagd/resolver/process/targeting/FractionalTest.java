@@ -16,13 +16,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class FractionalTest {
 
     @Test
-    void selfContainedFractional() throws JsonLogicEvaluationException {
+    void selfContainedFractionalA() throws JsonLogicEvaluationException {
         // given
         Fractional fractional = new Fractional();
 
         /* Rule
          *     [
-         *       "bucketKey",
+         *       "bucketKeyA", // this is resolved value of an expression
          *       [
          *         "red",
          *         50
@@ -35,7 +35,7 @@ class FractionalTest {
          * */
 
         final List<Object> rule = new ArrayList<>();
-        rule.add("bucketKey");
+        rule.add("bucketKeyA");
 
         final List<Object> bucket1 = new ArrayList<>();
         bucket1.add("red");
@@ -56,6 +56,49 @@ class FractionalTest {
 
         // then
         assertEquals("green", evaluate);
+    }
+
+    @Test
+    void selfContainedFractionalB() throws JsonLogicEvaluationException {
+        // given
+        Fractional fractional = new Fractional();
+
+        /* Rule
+         *     [
+         *       "bucketKeyB", // this is resolved value of an expression
+         *       [
+         *         "red",
+         *         50
+         *       ],
+         *       [
+         *         "blue",
+         *         50
+         *       ]
+         *     ]
+         * */
+
+        final List<Object> rule = new ArrayList<>();
+        rule.add("bucketKeyB");
+
+        final List<Object> bucket1 = new ArrayList<>();
+        bucket1.add("red");
+        bucket1.add(50);
+
+        final List<Object> bucket2 = new ArrayList<>();
+        bucket2.add("green");
+        bucket2.add(50);
+
+        rule.add(bucket1);
+        rule.add(bucket2);
+
+        Map<String, String> data = new HashMap<>();
+        data.put(FLAG_KEY, "flagA");
+
+        // when
+        Object evaluate = fractional.evaluate(rule, data);
+
+        // then
+        assertEquals("red", evaluate);
     }
 
     @Test

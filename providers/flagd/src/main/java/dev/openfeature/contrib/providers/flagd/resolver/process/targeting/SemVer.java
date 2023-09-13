@@ -67,7 +67,7 @@ class SemVer implements PreEvaluatedArgumentsExpression {
         final String arg2Parsed = (String) arguments.get(1);
 
         if (!OPS.contains(arg2Parsed)) {
-            log.log(Level.FINE, String.format("Not valid operator in argument 2. Received: %a", arg2Parsed));
+            log.log(Level.FINE, String.format("Not valid operator in argument 2. Received: %s", arg2Parsed));
             return null;
         }
 
