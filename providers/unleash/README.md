@@ -40,10 +40,14 @@ String variantValue = client.getStringValue(FLAG_NAME, "");
 
 See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/unleash/UnleashProviderTest.java) for more information.
 
-## Caveats / Limitations
+### Additional Usage Details
 
+* When default value is used and returned, default variant is not used and variant name is not set.
 * json/csv payloads are evaluated via object evaluation as what returned from Unleash - string, wrapped with Value.
-* integer/double evaluation currently not supported.
+* Additional evaluation data can be received via flag metadata, such as:
+  * *enabled* - boolean
+  * *variant-stickiness* - string
+  * *payload-type* - string, optional
 
 ## Unleash Provider Tests Strategies
 

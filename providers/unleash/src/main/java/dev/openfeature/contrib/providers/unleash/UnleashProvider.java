@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.unleash;
 
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
@@ -9,7 +10,6 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
-import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
@@ -128,12 +128,46 @@ public class UnleashProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        throw new TypeMismatchError(NOT_IMPLEMENTED);
+        ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
+        Integer value = getIntegerValue(valueProviderEvaluation, defaultValue);
+        return ProviderEvaluation.<Integer>builder()
+            .value(value)
+            .variant(valueProviderEvaluation.getVariant())
+            .errorCode(valueProviderEvaluation.getErrorCode())
+            .reason(valueProviderEvaluation.getReason())
+            .flagMetadata(valueProviderEvaluation.getFlagMetadata())
+            .build();
+    }
+
+    private static Integer getIntegerValue(ProviderEvaluation<Value> valueProviderEvaluation, Integer defaultValue) {
+        String valueStr = valueProviderEvaluation.getValue().asObject().toString();
+        try {
+            return Integer.parseInt(valueStr);
+        } catch (NumberFormatException ex) {
+            return defaultValue;
+        }
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        throw new TypeMismatchError(NOT_IMPLEMENTED);
+        ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
+        Double value = getDoubleValue(valueProviderEvaluation, defaultValue);
+        return ProviderEvaluation.<Double>builder()
+            .value(value)
+            .variant(valueProviderEvaluation.getVariant())
+            .errorCode(valueProviderEvaluation.getErrorCode())
+            .reason(valueProviderEvaluation.getReason())
+            .flagMetadata(valueProviderEvaluation.getFlagMetadata())
+            .build();
+    }
+
+    private static Double getDoubleValue(ProviderEvaluation<Value> valueProviderEvaluation, Double defaultValue) {
+        String valueStr = valueProviderEvaluation.getValue().asObject().toString();
+        try {
+            return Double.parseDouble(valueStr);
+        } catch (NumberFormatException ex) {
+            return defaultValue;
+        }
     }
 
     @Override
@@ -155,9 +189,16 @@ public class UnleashProvider extends EventProvider {
             variantName = evaluatedVariant.getName();
             value = evaluatedVariant.getPayload().map(p -> new Value(p.getValue())).orElse(null);
         }
+        ImmutableMetadata.ImmutableMetadataBuilder flagMetadataBuilder = ImmutableMetadata.builder()
+            .addString("variant-stickiness", evaluatedVariant.getStickiness());
+        flagMetadataBuilder.addBoolean("enabled", evaluatedVariant.isEnabled());
+        if (evaluatedVariant.getPayload().isPresent()) {
+            flagMetadataBuilder.addString("payload-type", evaluatedVariant.getPayload().get().getType());
+        }
         return ProviderEvaluation.<Value>builder()
             .value(value)
             .variant(variantName)
+            .flagMetadata(flagMetadataBuilder.build())
             .build();
     }
 

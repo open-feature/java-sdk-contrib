@@ -5,13 +5,14 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
-import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import io.getunleash.UnleashContext;
 import io.getunleash.UnleashException;
 import io.getunleash.event.ToggleEvaluated;
@@ -55,6 +56,10 @@ class UnleashProviderTest {
     public static final String FLAG_NAME = "variant-flag";
     public static final String VARIANT_FLAG_NAME = "variant-flag";
     public static final String VARIANT_FLAG_VALUE = "v1";
+    public static final String INT_FLAG_NAME = "int-flag";
+    public static final Integer INT_FLAG_VALUE = 123;
+    public static final String DOUBLE_FLAG_NAME = "double-flag";
+    public static final Double DOUBLE_FLAG_VALUE = 1.23;
     public static final String USERS_FLAG_NAME = "users-flag";
     public static final String JSON_VARIANT_FLAG_NAME = "json-flag";
     public static final String JSON_VARIANT_FLAG_VALUE = "{ a: 1 }";
@@ -96,8 +101,7 @@ class UnleashProviderTest {
     @SneakyThrows
     private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation, String unleashAPI, String backupFileContent, TestSubscriber testSubscriber) {
         UnleashConfig.Builder unleashConfigBuilder =
-            UnleashConfig.builder()
-                .unleashAPI(new URI(unleashAPI))
+            UnleashConfig.builder().unleashAPI(new URI(unleashAPI))
                 .appName("fakeApp")
                 .subscriber(testSubscriber)
                 .synchronousFetchOnInitialisation(synchronousFetchOnInitialisation);
@@ -128,8 +132,34 @@ class UnleashProviderTest {
             new ImmutableContext()).getValue());
         assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(VARIANT_FLAG_NAME, ""));
         assertEquals("fallback_str", unleashProvider.getStringEvaluation("non-existing",
-            "fallback_str", new ImmutableContext()).getValue());
+    "fallback_str", new ImmutableContext()).getValue());
         assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str"));
+    }
+
+    @Test
+    void getIntegerEvaluation() {
+        UnleashContext unleashContext = UnleashContext.builder().userId("int").build();
+        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
+        assertEquals(INT_FLAG_VALUE, unleashProvider.getIntegerEvaluation(INT_FLAG_NAME, 1,
+            evaluationContext).getValue());
+        assertEquals(INT_FLAG_VALUE, client.getIntegerValue(INT_FLAG_NAME, 1));
+        assertEquals(1, client.getIntegerValue("non-existing", 1));
+
+        // non-number flag value
+        assertEquals(1, client.getIntegerValue(VARIANT_FLAG_NAME, 1));
+    }
+
+    @Test
+    void getDoubleEvaluation() {
+        UnleashContext unleashContext = UnleashContext.builder().userId("double").build();
+        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
+        assertEquals(DOUBLE_FLAG_VALUE, unleashProvider.getDoubleEvaluation(DOUBLE_FLAG_NAME, 1.1,
+            evaluationContext).getValue());
+        assertEquals(DOUBLE_FLAG_VALUE, client.getDoubleValue(DOUBLE_FLAG_NAME, 1.1));
+        assertEquals(1.1, client.getDoubleValue("non-existing", 1.1));
+
+        // non-number flag value
+        assertEquals(1.1, client.getDoubleValue(VARIANT_FLAG_NAME, 1.1));
     }
 
     @Test
@@ -165,13 +195,12 @@ class UnleashProviderTest {
     }
 
     @Test
-    void typeMismatch() {
-        assertThrows(TypeMismatchError.class, () -> {
-            unleashProvider.getIntegerEvaluation("test", 1, new ImmutableContext());
-        });
-        assertThrows(TypeMismatchError.class, () -> {
-            unleashProvider.getDoubleEvaluation("test", 1.0, new ImmutableContext());
-        });
+    void getEvaluationMetadataTest() {
+        ProviderEvaluation<String> stringEvaluation = unleashProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
+            new ImmutableContext());
+        ImmutableMetadata flagMetadata = stringEvaluation.getFlagMetadata();
+        assertEquals("default", flagMetadata.getString("variant-stickiness"));
+        assertEquals("string", flagMetadata.getString("payload-type"));
     }
 
     @SneakyThrows

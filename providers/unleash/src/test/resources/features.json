@@ -71,6 +71,40 @@
           "stickiness": "default"
         }
       ]
+    },
+    {
+      "name": "int-flag",
+      "type": "experiment",
+      "enabled": true,
+      "stale": false,
+      "strategies": [{ "name": "default", "parameters": {} }],
+      "variants": [
+        {
+          "name": "aaaa",
+          "weight": 1000,
+          "payload": { "type": "number", "value": "123" },
+          "overrides": [],
+          "weightType": "variable",
+          "stickiness": "default"
+        }
+      ]
+    },
+    {
+      "name": "double-flag",
+      "type": "experiment",
+      "enabled": true,
+      "stale": false,
+      "strategies": [{ "name": "default", "parameters": {} }],
+      "variants": [
+        {
+          "name": "aaaa",
+          "weight": 1000,
+          "payload": { "type": "number", "value": "1.23" },
+          "overrides": [],
+          "weightType": "variable",
+          "stickiness": "default"
+        }
+      ]
     }
   ]
 }
