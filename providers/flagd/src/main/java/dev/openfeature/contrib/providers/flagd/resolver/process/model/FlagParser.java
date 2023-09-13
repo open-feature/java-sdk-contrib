@@ -13,6 +13,7 @@ import lombok.extern.java.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -51,7 +52,7 @@ public class FlagParser {
                 }
 
                 JsonSchemaFactory instance = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
-                SCHEMA_VALIDATOR = instance.getSchema(result.toString());
+                SCHEMA_VALIDATOR = instance.getSchema(result.toString("UTF-8"));
             }
         } catch (Throwable e) {
             // log only, do not throw
