@@ -1,11 +1,11 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.lib.Murmur3;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
 import lombok.Getter;
 import lombok.extern.java.Log;
+import org.apache.commons.codec.digest.MurmurHash3;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -77,7 +77,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     private static String distributeValue(final String hashKey, final List<FractionProperty> propertyList)
             throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
-        int mmrHash = Murmur3.hash32(bytes, 0, bytes.length, 0);
+        int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
         int bucket = (int) ((Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE) * 100);
 
         int bucketSum = 0;
