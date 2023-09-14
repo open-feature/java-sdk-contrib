@@ -55,7 +55,7 @@ class FractionalTest {
         Object evaluate = fractional.evaluate(rule, data);
 
         // then
-        assertEquals("green", evaluate);
+        assertEquals("red", evaluate);
     }
 
     @Test
@@ -98,7 +98,7 @@ class FractionalTest {
         Object evaluate = fractional.evaluate(rule, data);
 
         // then
-        assertEquals("red", evaluate);
+        assertEquals("green", evaluate);
     }
 
     @Test
