@@ -7,14 +7,14 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStor
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator;
+import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import io.github.jamsesso.jsonlogic.JsonLogic;
-import io.github.jamsesso.jsonlogic.JsonLogicException;
 import lombok.extern.java.Log;
 
 import java.util.function.Consumer;
@@ -30,7 +30,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.model.Fea
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
     private final Consumer<ProviderState> stateConsumer;
-    private final JsonLogic jsonLogicHandler;
+    private final Operator operator;
 
     /**
      * Initialize an in-process resolver.
@@ -39,7 +39,7 @@ public class InProcessResolver implements Resolver {
         // currently we support gRPC connector
         this.flagStore = new FlagStore(new GrpcStreamConnector(options));
         this.stateConsumer = stateConsumer;
-        jsonLogicHandler = new JsonLogic();
+        this.operator = new Operator();
     }
 
     /**
@@ -160,7 +160,7 @@ public class InProcessResolver implements Resolver {
             reason = Reason.STATIC.toString();
         } else {
             try {
-                final Object jsonResolved = jsonLogicHandler.apply(flag.getTargeting(), ctx.asObjectMap());
+                final Object jsonResolved = operator.apply(key, flag.getTargeting(), ctx);
                 if (jsonResolved == null) {
                     resolvedVariant = flag.getDefaultVariant();
                     reason = Reason.DEFAULT.toString();
@@ -168,7 +168,7 @@ public class InProcessResolver implements Resolver {
                     resolvedVariant = jsonResolved;
                     reason = Reason.TARGETING_MATCH.toString();
                 }
-            } catch (JsonLogicException e) {
+            } catch (TargetingRuleException e) {
                 log.log(Level.FINE, "Error evaluating targeting rule", e);
                 return ProviderEvaluation.<T>builder()
                         .value(defaultValue)

@@ -46,7 +46,8 @@ class FlagParserTest {
         assertEquals("loop", variants.get("loop"));
         assertEquals("binet", variants.get("binet"));
 
-        assertEquals("{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}", stringFlag.getTargeting());
+        assertEquals("{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}",
+                stringFlag.getTargeting());
     }
 
 

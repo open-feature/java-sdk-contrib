@@ -1,0 +1,14 @@
+{
+  "targeting":
+    [
+      "bucketKet",
+      [
+        "red",
+        50
+      ],
+      [
+        "blue",
+        50
+      ]
+    ]
+}
