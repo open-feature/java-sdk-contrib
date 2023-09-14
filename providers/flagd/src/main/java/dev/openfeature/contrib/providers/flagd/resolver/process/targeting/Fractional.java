@@ -77,10 +77,10 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     private static String distributeValue(final String hashKey, final List<FractionProperty> propertyList)
             throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
-        double bucket =
-                (Math.abs(Murmur3.hash64(bytes, 0, bytes.length, 0)) * 1.0d / Long.MAX_VALUE) * 100.0d;
+        int mmrHash = Murmur3.hash32(bytes, 0, bytes.length, 0);
+        int bucket = (int) ((Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE) * 100);
 
-        double bucketSum = 0;
+        int bucketSum = 0;
         for (FractionProperty p : propertyList) {
             bucketSum += p.getPercentage();
 
@@ -96,7 +96,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     @Getter
     private static class FractionProperty {
         private final String variant;
-        private final double percentage;
+        private final int percentage;
 
         FractionProperty(final Object from) throws JsonLogicException {
             if (!(from instanceof List<?>)) {
@@ -120,7 +120,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             }
 
             variant = (String) array.get(0);
-            percentage = ((Number) array.get(1)).doubleValue();
+            percentage = ((Number) array.get(1)).intValue();
         }
 
     }

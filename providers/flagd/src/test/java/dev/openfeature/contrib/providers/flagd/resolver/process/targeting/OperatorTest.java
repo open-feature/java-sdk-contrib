@@ -54,7 +54,7 @@ class OperatorTest {
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
         // then
-        assertEquals("red", evalVariant);
+        assertEquals("yellow", evalVariant);
     }
 
     @Test
@@ -93,7 +93,46 @@ class OperatorTest {
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
         // then
-        assertEquals("yellow", evalVariant);
+        assertEquals("blue", evalVariant);
+    }
+
+    @Test
+    void fractionalTestC() throws TargetingRuleException {
+        // given
+
+        // fractional rule with email as expression key
+        final String targetingRule = "" +
+                "{\n" +
+                "  \"fractional\": [\n" +
+                "    {\"var\": \"email\"},\n" +
+                "    [\n" +
+                "      \"red\",\n" +
+                "      25\n" +
+                "    ],\n" +
+                "    [\n" +
+                "      \"blue\",\n" +
+                "      25\n" +
+                "    ],\n" +
+                "    [\n" +
+                "      \"green\",\n" +
+                "      25\n" +
+                "    ],\n" +
+                "    [\n" +
+                "      \"yellow\",\n" +
+                "      25\n" +
+                "    ]\n" +
+                "  ]\n" +
+                "}";
+
+        Map<String, Value> ctxData = new HashMap<>();
+        ctxData.put("email", new Value("joey@faas.com"));
+
+
+        // when
+        Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
+
+        // then
+        assertEquals("red", evalVariant);
     }
 
     @Test
