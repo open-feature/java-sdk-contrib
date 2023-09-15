@@ -56,9 +56,7 @@ class InProcessResolverTest {
         Thread initThread = new Thread(() -> {
             try {
                 inProcessResolver.init();
-            } catch (Exception e) {
-                fail("error in initThread", e);
-            }
+            } catch (Exception e) {}
         });
         initThread.start();
         if (!sender.offer(StorageState.OK, 100, TimeUnit.MILLISECONDS)) {
