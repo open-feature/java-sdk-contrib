@@ -48,7 +48,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
             case IN_PROCESS:
                 this.flagResolver = new InProcessResolver(options, this::setState);
                 break;
-            case FLAGD:
+            case RPC:
                 this.flagResolver =
                         new GrpcResolver(options, CacheFactory.getCache(options), this::getState, this::setState);
                 break;

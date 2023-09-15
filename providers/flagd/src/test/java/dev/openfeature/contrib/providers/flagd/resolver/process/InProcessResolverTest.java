@@ -1,17 +1,17 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
-import dev.openfeature.sdk.ErrorCode;
-import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.MutableContext;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
-import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Value;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.BOOLEAN_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DISABLED_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DOUBLE_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.INT_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -22,17 +22,21 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.BOOLEAN_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DISABLED_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DOUBLE_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.INT_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.ParseError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 
 class InProcessResolverTest {
 
@@ -48,13 +52,19 @@ class InProcessResolverTest {
                     receiver.offer(providerState);
                 });
 
-        // when - emit events
-        inProcessResolver.init();
-        if (!sender.offer(StorageState.OK, 200, TimeUnit.MILLISECONDS)) {
+        // when - init and emit events
+        Thread initThread = new Thread(() -> {
+            try {
+                inProcessResolver.init();
+            } catch (Exception e) {
+                fail("error in initThread", e);
+            }
+        });
+        initThread.start();
+        if (!sender.offer(StorageState.OK, 100, TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
-
-        if (!sender.offer(StorageState.ERROR, 200, TimeUnit.MILLISECONDS)) {
+        if (!sender.offer(StorageState.ERROR, 100, TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
 
@@ -160,55 +170,41 @@ class InProcessResolverTest {
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
         });
 
-        // when
-        ProviderEvaluation<Boolean> providerEvaluation =
-                inProcessResolver.booleanEvaluation("booleanFlag", false, new ImmutableContext());
+        // when/then
+        assertThrows(FlagNotFoundError.class, () -> {
+            inProcessResolver.booleanEvaluation("missingFlag", false, new ImmutableContext());
 
-        // then
-        assertEquals(false, providerEvaluation.getValue());
-        assertEquals(Reason.ERROR.toString(), providerEvaluation.getReason());
-        assertEquals(ErrorCode.FLAG_NOT_FOUND, providerEvaluation.getErrorCode());
-        assertNotNull(providerEvaluation.getErrorMessage());
+        });
     }
 
     @Test
     public void disabledFlag() throws Exception {
         // given
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
-        flagMap.put("booleanFlag", DISABLED_FLAG);
+        flagMap.put("disabledFlag", DISABLED_FLAG);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
         });
 
-        // when
-        ProviderEvaluation<Boolean> providerEvaluation =
-                inProcessResolver.booleanEvaluation("booleanFlag", false, new ImmutableContext());
-
-        // then
-        assertEquals(false, providerEvaluation.getValue());
-        assertEquals(Reason.DISABLED.toString(), providerEvaluation.getReason());
-        assertEquals(ErrorCode.GENERAL, providerEvaluation.getErrorCode());
-        assertNotNull(providerEvaluation.getErrorMessage());
+        // when/then
+        assertThrows(FlagNotFoundError.class, () -> {
+            inProcessResolver.booleanEvaluation("disabledFlag", false, new ImmutableContext());
+        });
     }
 
     @Test
     public void variantMismatchFlag() throws Exception {
         // given
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
-        flagMap.put("booleanFlag", VARIANT_MISMATCH_FLAG);
+        flagMap.put("mismatchFlag", VARIANT_MISMATCH_FLAG);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
         });
 
-        // when
-        ProviderEvaluation<Boolean> providerEvaluation =
-                inProcessResolver.booleanEvaluation("booleanFlag", false, new ImmutableContext());
-
-        // then
-        assertEquals(false, providerEvaluation.getValue());
-        assertEquals(Reason.ERROR.toString(), providerEvaluation.getReason());
-        assertEquals(ErrorCode.TYPE_MISMATCH, providerEvaluation.getErrorCode());
-        assertNotNull(providerEvaluation.getErrorMessage());
+        // when/then
+        assertThrows(TypeMismatchError.class, () -> {
+            inProcessResolver.booleanEvaluation("mismatchFlag", false, new ImmutableContext());
+        });
     }
 
     @Test
@@ -220,15 +216,10 @@ class InProcessResolverTest {
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
         });
 
-        // when
-        ProviderEvaluation<String> providerEvaluation =
-                inProcessResolver.stringEvaluation("stringFlag", "false", new ImmutableContext());
-
-        // then
-        assertEquals("false", providerEvaluation.getValue());
-        assertEquals(Reason.ERROR.toString(), providerEvaluation.getReason());
-        assertEquals(ErrorCode.TYPE_MISMATCH, providerEvaluation.getErrorCode());
-        assertNotNull(providerEvaluation.getErrorMessage());
+        // when/then
+        assertThrows(TypeMismatchError.class, () -> {
+            inProcessResolver.stringEvaluation("stringFlag", "false", new ImmutableContext());
+        });
     }
 
     @Test
@@ -275,20 +266,15 @@ class InProcessResolverTest {
     public void targetingErrorEvaluationFlag() throws Exception {
         // given
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
-        flagMap.put("stringFlag", FLAG_WIH_INVALID_TARGET);
+        flagMap.put("targetingErrorFlag", FLAG_WIH_INVALID_TARGET);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
         });
 
-        // when
-        ProviderEvaluation<String> providerEvaluation =
-                inProcessResolver.stringEvaluation("stringFlag", "loopAlg",
-                        new MutableContext().add("email", "abc@abc,com"));
-
-        // then
-        assertEquals("loopAlg", providerEvaluation.getValue());
-        assertEquals(Reason.ERROR.toString(), providerEvaluation.getReason());
-        assertEquals(ErrorCode.PARSE_ERROR, providerEvaluation.getErrorCode());
+        // when/then
+        assertThrows(ParseError.class, () -> {
+            inProcessResolver.booleanEvaluation("targetingErrorFlag", false, new ImmutableContext());
+        });
     }
 
 

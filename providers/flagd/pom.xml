@@ -269,7 +269,7 @@
                                     <!-- run: cp test-harness/features/evaluation.feature src/test/resources/features/ -->
                                     <executable>cp</executable>
                                     <arguments>
-                                        <argument>test-harness/features/evaluation.feature</argument>
+                                        <argument>spec/specification/assets/gherkin/evaluation.feature</argument>
                                         <argument>src/test/resources/features/</argument>
                                     </arguments>
                                 </configuration>

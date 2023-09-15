@@ -38,7 +38,7 @@ public class FlagdOptions {
      * flagd resolving type.
      * */
     @Builder.Default
-    private Config.ResolverType resolverType = DEFAULT_RESOLVER_TYPE;
+    private Config.Evaluator resolverType = DEFAULT_RESOLVER_TYPE;
 
     /**
      * flagd connection host.
