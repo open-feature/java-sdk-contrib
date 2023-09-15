@@ -25,7 +25,6 @@ import static dev.openfeature.contrib.providers.flagd.Config.SOCKET_PATH_ENV_VAR
 import static dev.openfeature.contrib.providers.flagd.Config.TLS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
 
-
 /**
  * FlagdOptions is a builder to build flagd provider options.
  * */

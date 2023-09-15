@@ -97,7 +97,7 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
                                                          EvaluationContext ctx) {
-        return resolve(Boolean.class, key, defaultValue, ctx);
+        return resolve(Boolean.class, key, ctx);
     }
 
     /**
@@ -105,7 +105,7 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
                                                        EvaluationContext ctx) {
-        return resolve(String.class, key, defaultValue, ctx);
+        return resolve(String.class, key, ctx);
     }
 
     /**
@@ -113,7 +113,7 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
                                                        EvaluationContext ctx) {
-        return resolve(Double.class, key, defaultValue, ctx);
+        return resolve(Double.class, key, ctx);
     }
 
     /**
@@ -121,14 +121,14 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
                                                          EvaluationContext ctx) {
-        return resolve(Integer.class, key, defaultValue, ctx);
+        return resolve(Integer.class, key, ctx);
     }
 
     /**
      * Resolve an object flag.
      */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        final ProviderEvaluation<Object> evaluation = resolve(Object.class, key, defaultValue, ctx);
+        final ProviderEvaluation<Object> evaluation = resolve(Object.class, key, ctx);
 
         return ProviderEvaluation.<Value>builder()
                 .value(Value.objectToValue(evaluation.getValue()))
@@ -140,7 +140,7 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, T defaultValue,
+    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key,
                                               EvaluationContext ctx) {
         final FeatureFlag flag = flagStore.getFlag(key);
 
