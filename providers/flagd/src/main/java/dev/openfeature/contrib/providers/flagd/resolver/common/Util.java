@@ -3,7 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Utils for flagd resolvers
+ * Utils for flagd resolvers.
  */
 public class Util {
     /**
@@ -17,7 +17,7 @@ public class Util {
 
         do {
             if (deadline <= System.currentTimeMillis() - start) {
-                throw new RuntimeException(                        
+                throw new RuntimeException(
                     String.format("Deadline exceeded. Condition did not complete within the %d deadline", deadline));
             }
 
