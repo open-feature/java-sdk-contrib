@@ -283,7 +283,7 @@ class InProcessResolverTest {
         Field flagStore = InProcessResolver.class.getDeclaredField("flagStore");
         flagStore.setAccessible(true);
 
-        InProcessResolver resolver = new InProcessResolver(FlagdOptions.builder().build(), stateConsumer);
+        InProcessResolver resolver = new InProcessResolver(FlagdOptions.builder().deadline(1000).build(), stateConsumer);
         flagStore.set(resolver, storage);
 
         return resolver;
