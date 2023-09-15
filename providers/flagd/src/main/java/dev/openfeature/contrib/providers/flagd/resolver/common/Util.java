@@ -14,7 +14,7 @@ public class Util {
 
         do {
             if (deadline <= System.currentTimeMillis() - start) {
-                throw new RuntimeException(String.format("Initialization not complete after %d ms", deadline));
+                throw new RuntimeException(String.format("Deadline exceeded. Condition did not complete within the %d deadline", deadline));
             }
 
             Thread.sleep(50L);
