@@ -5,6 +5,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.BaseStepDefinitions;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -21,9 +22,14 @@ public class FlagdInProcessStepDefinitions extends BaseStepDefinitions {
             .host("localhost")
             .port(9090)
             .build());
-            OpenFeatureAPI.getInstance().setProviderAndWait(provider);
-            client = OpenFeatureAPI.getInstance().getClient();
+            OpenFeatureAPI.getInstance().setProviderAndWait("process", provider);
+            client = OpenFeatureAPI.getInstance().getClient("process");
         }
+    }
+
+    @AfterAll()
+    public static void cleanup() {
+        client = null;
     }
 
     /*

@@ -13,7 +13,7 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 
-public class BaseStepDefinitions {
+public abstract class BaseStepDefinitions {
 
     protected static Client client;
 
@@ -239,7 +239,6 @@ public class BaseStepDefinitions {
     public void the_reason_should_indicate_an_error_and_the_error_code_should_be_type_mismatch(String errorCode) {
         assertEquals(Reason.ERROR.toString(), typeErrorDetails.getReason());
         assertEquals(errorCode, typeErrorDetails.getErrorCode().toString());
-        // TODO: add errorCode assertion once flagd provider is updated.
     }
 
 }
