@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gofeatureflag.events;
+package dev.openfeature.contrib.providers.gofeatureflag.hook.events;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
