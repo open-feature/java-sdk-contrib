@@ -58,6 +58,9 @@ public class DataCollectorHookOptions {
         return new CustomBuilder();
     }
 
+    /**
+     * used only for the javadoc not to complain.
+     */
     public static class DataCollectorHookOptionsBuilder {
     }
 
