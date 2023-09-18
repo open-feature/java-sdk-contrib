@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e;
+package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -14,7 +14,6 @@ import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import io.cucumber.java.AfterAll;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -66,12 +65,6 @@ public class StepDefinitions {
      */
     public static void setClient(Client client) {
         StepDefinitions.client = client;
-        sync.writeLock().lock();
-    }
-
-    @AfterAll()
-    public static void cleanUp() {
-        sync.writeLock().unlock();
     }
 
     @BeforeAll()
@@ -364,5 +357,4 @@ public class StepDefinitions {
         String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue, this.customEvaluatorContext);
         assertEquals(expected, value);
     }
-
 }

@@ -3,7 +3,7 @@ package dev.openfeature.contrib.providers.flagd.e2e.process;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
-import dev.openfeature.contrib.providers.flagd.e2e.StepDefinitions;
+import dev.openfeature.contrib.providers.flagd.e2e.steps.StepDefinitions;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import io.cucumber.java.BeforeAll;
