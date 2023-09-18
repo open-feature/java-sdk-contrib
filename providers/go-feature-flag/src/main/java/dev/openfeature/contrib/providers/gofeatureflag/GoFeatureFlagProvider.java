@@ -63,12 +63,14 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
     public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
     public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 10000;
+    public static final ObjectMapper requestMapper = new ObjectMapper();
     protected static final String CACHED_REASON = Reason.CACHED.name();
     private static final String NAME = "GO Feature Flag Provider";
-    public static final ObjectMapper requestMapper = new ObjectMapper();
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final GoFeatureFlagProviderOptions options;
+    DataCollectorHook dataCollectorHook;
+    List<Hook> hooks = new ArrayList<>();
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
@@ -77,8 +79,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     @Getter(AccessLevel.PROTECTED)
     private Cache<String, ProviderEvaluation<?>> cache;
     private ProviderState state = ProviderState.NOT_READY;
-    DataCollectorHook dataCollectorHook;
-    List<Hook> hooks = new ArrayList<>();
 
     /**
      * Constructor of the provider.
@@ -430,7 +430,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         }
         return (T) objectToValue(value);
     }
-
 
 
     @Override

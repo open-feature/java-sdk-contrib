@@ -18,16 +18,15 @@ import java.util.function.Consumer;
 
 /**
  * Events publisher.
- * @param <T> event type
  *
+ * @param <T> event type
  * @author Liran Mendelovich
  */
 @Slf4j
 public class EventsPublisher<T> {
 
+    public final AtomicBoolean isShutdown = new AtomicBoolean(false);
     private final int maxPendingEvents;
-
-    private List<T> eventsList;
     private final Consumer<List<T>> publisher;
 
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -35,12 +34,12 @@ public class EventsPublisher<T> {
     private final Lock writeLock = readWriteLock.writeLock();
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-
-    public final AtomicBoolean isShutdown = new AtomicBoolean(false);
+    private List<T> eventsList;
 
     /**
      * Constructor.
-     * @param publisher events publisher
+     *
+     * @param publisher       events publisher
      * @param flushIntervalMs data flush interval
      */
     public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMs, int maxPendingEvents) {
@@ -49,11 +48,12 @@ public class EventsPublisher<T> {
         this.maxPendingEvents = maxPendingEvents;
         log.debug("Scheduling events publishing at fixed rate of {} milliseconds", flushIntervalMs);
         scheduledExecutorService.scheduleAtFixedRate(
-            this::publish, flushIntervalMs, flushIntervalMs, TimeUnit.MILLISECONDS);
+                this::publish, flushIntervalMs, flushIntervalMs, TimeUnit.MILLISECONDS);
     }
 
     /**
      * Add event for aggregation before publishing.
+     *
      * @param event event for adding
      */
     public void add(T event) {
@@ -75,6 +75,7 @@ public class EventsPublisher<T> {
 
     /**
      * publish events.
+     *
      * @return count of publish events
      */
     public int publish() {

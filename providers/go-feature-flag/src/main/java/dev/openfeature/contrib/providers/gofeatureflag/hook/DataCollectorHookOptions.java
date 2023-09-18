@@ -1,21 +1,22 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
-import com.google.common.cache.CacheBuilder;
-import dev.openfeature.sdk.ProviderEvaluation;
 import lombok.Builder;
 import lombok.Getter;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 
+/**
+ * DataCollectorHookOptions is the object containing all the options needed for the Data Collector Hook.
+ */
 @Builder
 @Getter
 public class DataCollectorHookOptions {
     /**
-     * httpClient is the instance of the OkHttpClient used by the provider
-    */
+     * httpClient is the instance of the OkHttpClient used by the provider.
+     */
     private OkHttpClient httpClient;
     /**
-     * (mandatory) parsedEndpoint contains the DNS of your GO Feature Flag relay proxy
+     * (mandatory) parsedEndpoint contains the DNS of your GO Feature Flag relay proxy.
      * example: https://mydomain.com/gofeatureflagproxy/
      */
     private HttpUrl parsedEndpoint;
@@ -35,10 +36,10 @@ public class DataCollectorHookOptions {
      */
     private Long flushIntervalMs;
     /**
-      * (optional) max pending events aggregated before publishing for collection data to the proxy.
-      * When event is added while events collection is full, event is omitted.
-      * default: 10000
-      */
+     * (optional) max pending events aggregated before publishing for collection data to the proxy.
+     * When event is added while events collection is full, event is omitted.
+     * default: 10000
+     */
     private Integer maxPendingEvents;
     /**
      * collectUnCachedEvent (optional) set to true if you want to send all events not only the cached evaluations.
