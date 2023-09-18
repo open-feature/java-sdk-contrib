@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider;
-import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.events.Event;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.events.Events;
@@ -55,16 +54,6 @@ public class DataCollectorHook implements Hook {
         if (options == null) {
             throw new InvalidOptions("No options provided");
         }
-        if (options.getParsedEndpoint() == null) {
-            throw new InvalidEndpoint("endpoint is a mandatory field when creating the hook");
-        }
-        if (options.getFlushIntervalMs() != null && options.getFlushIntervalMs() <= 0) {
-            throw new InvalidOptions("flushIntervalMs must be larger than 0");
-        }
-        if (options.getMaxPendingEvents() != null && options.getMaxPendingEvents() <= 0) {
-            throw new InvalidOptions("maxPendingEvents must be larger than 0");
-        }
-
         long flushIntervalMs = options.getFlushIntervalMs() == null
                 ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
         int maxPendingEvents = options.getMaxPendingEvents() == null

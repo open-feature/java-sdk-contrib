@@ -1,7 +1,10 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 
@@ -45,4 +48,32 @@ public class DataCollectorHookOptions {
      * collectUnCachedEvent (optional) set to true if you want to send all events not only the cached evaluations.
      */
     private Boolean collectUnCachedEvaluation;
+
+    /**
+     * Override the builder() method to return our custom builder instead of the Lombok generated builder class.
+     *
+     * @return a custom builder with validation
+     */
+    public static DataCollectorHookOptionsBuilder builder() {
+        return new CustomBuilder();
+    }
+
+    /**
+     * CustomBuilder is ensuring the validation in the build method.
+     */
+    private static class CustomBuilder extends DataCollectorHookOptionsBuilder {
+        @SneakyThrows
+        public DataCollectorHookOptions build() {
+            if (super.parsedEndpoint == null) {
+                throw new InvalidEndpoint("endpoint is a mandatory field when creating the hook");
+            }
+            if (super.flushIntervalMs != null && super.flushIntervalMs <= 0) {
+                throw new InvalidOptions("flushIntervalMs must be larger than 0");
+            }
+            if (super.maxPendingEvents != null && super.maxPendingEvents <= 0) {
+                throw new InvalidOptions("maxPendingEvents must be larger than 0");
+            }
+            return super.build();
+        }
+    }
 }
