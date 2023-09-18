@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.cache.CacheBuilder;
-import dev.openfeature.contrib.providers.gofeatureflag.hook.events.Events;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
@@ -43,10 +42,8 @@ import org.junit.jupiter.api.TestInfo;
 
 import static dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider.requestMapper;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j

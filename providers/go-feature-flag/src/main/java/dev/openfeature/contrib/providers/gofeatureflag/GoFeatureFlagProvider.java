@@ -69,8 +69,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final GoFeatureFlagProviderOptions options;
-    DataCollectorHook dataCollectorHook;
-    List<Hook> hooks = new ArrayList<>();
+    private DataCollectorHook dataCollectorHook;
+    private List<Hook> hooks = new ArrayList<>();
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
