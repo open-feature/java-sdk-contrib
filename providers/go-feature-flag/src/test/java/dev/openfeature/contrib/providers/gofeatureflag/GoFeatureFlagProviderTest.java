@@ -182,7 +182,6 @@ class GoFeatureFlagProviderTest {
         FlagEvaluationDetails<Boolean> booleanFlagEvaluationDetails = client.getBooleanDetails("return_error_when_not_initialized", false, new ImmutableContext("targetingKey"));
         assertEquals(ErrorCode.PROVIDER_NOT_READY, booleanFlagEvaluationDetails.getErrorCode());
         assertEquals(Boolean.FALSE, booleanFlagEvaluationDetails.getValue());
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -200,7 +199,6 @@ class GoFeatureFlagProviderTest {
         assertEquals(ErrorCode.TARGETING_KEY_MISSING, booleanFlagEvaluationDetails.getErrorCode(), "should evaluate to default value with empty context");
         booleanFlagEvaluationDetails = client.getBooleanDetails("bool_targeting_match", false, new ImmutableContext("targetingKey"));
         assertEquals(Boolean.TRUE, booleanFlagEvaluationDetails.getValue(), "should evaluate with a valid context");
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
 
@@ -219,7 +217,6 @@ class GoFeatureFlagProviderTest {
                 .errorMessage("impossible to contact GO Feature Flag relay proxy instance")
                 .build();
         assertEquals(want, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -242,7 +239,6 @@ class GoFeatureFlagProviderTest {
                 .errorMessage("invalid token used to contact GO Feature Flag relay proxy instance")
                 .build();
         assertEquals(want, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -260,7 +256,6 @@ class GoFeatureFlagProviderTest {
                 .errorMessage("Flag flag_not_found was not found in your configuration")
                 .build();
         assertEquals(want, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -278,7 +273,6 @@ class GoFeatureFlagProviderTest {
                 .errorMessage("Flag value string_key had unexpected type class java.lang.String, expected class java.lang.Boolean.")
                 .build();
         assertEquals(want, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -297,7 +291,6 @@ class GoFeatureFlagProviderTest {
                 .flagMetadata(defaultMetadata)
                 .build();
         assertEquals(want, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -322,7 +315,6 @@ class GoFeatureFlagProviderTest {
         assertEquals(want, got);
         got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
         assertEquals(want, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -350,7 +342,6 @@ class GoFeatureFlagProviderTest {
                 .flagMetadata(defaultMetadata)
                 .build();
         assertEquals(want2, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
@@ -689,7 +680,6 @@ class GoFeatureFlagProviderTest {
                 .flagMetadata(defaultMetadata)
                 .build();
         assertEquals(want, got);
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @SneakyThrows
