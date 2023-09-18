@@ -70,7 +70,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final GoFeatureFlagProviderOptions options;
     private DataCollectorHook dataCollectorHook;
-    private List<Hook> hooks = new ArrayList<>();
+    private final List<Hook> hooks = new ArrayList<>();
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
