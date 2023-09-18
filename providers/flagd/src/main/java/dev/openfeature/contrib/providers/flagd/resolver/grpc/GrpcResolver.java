@@ -164,34 +164,35 @@ public final class GrpcResolver implements Resolver {
                 .setField(getFieldDescriptor(request, CONTEXT_FIELD), this.convertContext(ctx))
                 .build();
 
-        // run the referenced resolver method
+        final Message response;
         try {
-            Message response = strategy.resolve(resolverRef, req, key);
-
-            // parse the response
-            ValT value = converter == null ? getField(response, VALUE_FIELD)
-                    : converter.convert(getField(response, VALUE_FIELD));
-
-            // Extract metadata from response
-            ImmutableMetadata immutableMetadata = metadataFromResponse(response);
-
-            ProviderEvaluation<ValT> result = ProviderEvaluation.<ValT>builder()
-                    .value(value)
-                    .variant(getField(response, VARIANT_FIELD))
-                    .reason(getField(response, REASON_FIELD))
-                    .flagMetadata(immutableMetadata)
-                    .build();
-
-            // cache if cache enabled
-            if (this.isEvaluationCacheable(result)) {
-                this.cache.put(key, result);
-            }
-
-            return result;
+            // run the referenced resolver method
+            response = strategy.resolve(resolverRef, req, key);
         } catch (Exception e) {
             OpenFeatureError openFeatureError = mapError(e);
             throw openFeatureError;
         }
+
+        // parse the response
+        ValT value = converter == null ? getField(response, VALUE_FIELD)
+                : converter.convert(getField(response, VALUE_FIELD));
+
+        // Extract metadata from response
+        ImmutableMetadata immutableMetadata = metadataFromResponse(response);
+
+        ProviderEvaluation<ValT> result = ProviderEvaluation.<ValT>builder()
+                .value(value)
+                .variant(getField(response, VARIANT_FIELD))
+                .reason(getField(response, REASON_FIELD))
+                .flagMetadata(immutableMetadata)
+                .build();
+
+        // cache if cache enabled
+        if (this.isEvaluationCacheable(result)) {
+            this.cache.put(key, result);
+        }
+
+        return result;
     }
 
     private <T> Boolean isEvaluationCacheable(ProviderEvaluation<T> evaluation) {
