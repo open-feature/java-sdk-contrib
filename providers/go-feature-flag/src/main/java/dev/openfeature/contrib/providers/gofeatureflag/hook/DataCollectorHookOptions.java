@@ -58,6 +58,9 @@ public class DataCollectorHookOptions {
         return new CustomBuilder();
     }
 
+    public static class DataCollectorHookOptionsBuilder {
+    }
+
     /**
      * CustomBuilder is ensuring the validation in the build method.
      */
