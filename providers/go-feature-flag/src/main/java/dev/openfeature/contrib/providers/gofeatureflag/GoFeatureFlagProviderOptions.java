@@ -48,9 +48,9 @@ public class GoFeatureFlagProviderOptions {
     private String apiKey;
 
     /**
-     *  (optional) If cache custom configuration is wanted, you should provide
-     *  a cache builder.
-     *  Default: null
+     * (optional) If cache custom configuration is wanted, you should provide
+     * a cache builder.
+     * Default: null
      */
     private CacheBuilder<String, ProviderEvaluation<?>> cacheBuilder;
 

@@ -6,6 +6,7 @@ import lombok.Getter;
 
 /**
  * EvaluationResponse wrapping the provider evaluation.
+ *
  * @param <T> evaluation type
  */
 @Builder
