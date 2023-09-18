@@ -31,6 +31,7 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -127,6 +128,7 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     }
 
     @Override
+    @SuppressFBWarnings({"EI_EXPOSE_REP"})
     public List<Hook> getProviderHooks() {
         return this.hooks;
     }
