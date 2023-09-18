@@ -70,12 +70,13 @@ class GoFeatureFlagProviderTest {
                     .setBody(readMockResponse(flagName + ".json"));
             }
             if (request.getPath().startsWith("/v1/data/collector")) {
-                Map<String, Object> map = requestMapper.readValue(request.getBody().readString(StandardCharsets.UTF_8), Map.class);
+                String requestBody = request.getBody().readString(StandardCharsets.UTF_8);
+                Map<String, Object> map = requestMapper.readValue(requestBody, Map.class);
                 publishEventsRequestsReceived = ((List)map.get("events")).size();
-                MockResponse mockResponse;
-                    mockResponse = new MockResponse()
-                        .setResponseCode(200);
-                return mockResponse;
+                if(requestBody.contains("fail_500") && publishEventsRequestsReceived == 1){
+                    return new MockResponse().setResponseCode(502);
+                }
+                return new MockResponse().setResponseCode(200);
             }
             return new MockResponse().setResponseCode(404);
         }
@@ -694,13 +695,16 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        client.getBooleanDetails("fail_500", false, this.evaluationContext);
+        Thread.sleep(170L);
+        assertEquals(1, publishEventsRequestsReceived, "We should have 1 event waiting to be publish");
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         Thread.sleep(50L);
-        assertEquals(0, publishEventsRequestsReceived, "Nothing should be publish before the deadline");
+        assertEquals(1, publishEventsRequestsReceived, "Nothing should be added in the waiting to be published list (stay to 1)");
         Thread.sleep(100);
-        assertEquals(2, publishEventsRequestsReceived, "We pass the flush interval, we should have 2 events");
+        assertEquals(3, publishEventsRequestsReceived, "We pass the flush interval, we should have 3 events");
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
