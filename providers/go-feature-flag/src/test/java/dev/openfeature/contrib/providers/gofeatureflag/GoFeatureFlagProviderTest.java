@@ -177,7 +177,7 @@ class GoFeatureFlagProviderTest {
         assertThrows(ProviderNotReadyError.class, ()-> g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext));
 
         String providerName = "shouldReturnNotReadyIfNotInitialized";
-        OpenFeatureAPI.getInstance().setProvider(providerName, g);
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         assertThat(OpenFeatureAPI.getInstance().getProvider(providerName).getState()).isEqualTo(ProviderState.NOT_READY);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
         FlagEvaluationDetails<Boolean> booleanFlagEvaluationDetails = client.getBooleanDetails("return_error_when_not_initialized", false, new ImmutableContext("targetingKey"));
