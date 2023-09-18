@@ -19,8 +19,9 @@ public class ConcurrentUtils {
     /**
      * Graceful shutdown a thread pool. <br>
      * See <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html">
-     *     https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html</a>
-     * @param pool thread pool
+     * https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html</a>
+     *
+     * @param pool           thread pool
      * @param timeoutSeconds grace period timeout in seconds - timeout can be twice than this value, as first it
      *                       waits for existing tasks to terminate, then waits for cancelled tasks to terminate.
      */
