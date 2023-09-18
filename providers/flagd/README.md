@@ -17,7 +17,7 @@ A feature flag daemon with a Unix philosophy.
 
 ## Usage
 
-### Remote resolver
+### Remote resolver (RPC)
 
 This is the default mode of operation of the provider. 
 In this mode, `FlagdProvider` communicates with [flagd](https://github.com/open-feature/flagd) via the gRPC protocol.
@@ -41,7 +41,7 @@ Consider following example to create a `FlagdProvider` with in-process evaluatio
 ```java
 FlagdProvider flagdProvider = new FlagdProvider(
         FlagdOptions.builder()
-                .resolverType(Config.ResolverType.IN_PROCESS)
+                .resolverType(Config.Evaluator.IN_PROCESS)
                 .build());
 ```
 

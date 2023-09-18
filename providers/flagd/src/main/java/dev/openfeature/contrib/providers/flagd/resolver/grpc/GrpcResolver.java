@@ -1,10 +1,28 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
+import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
+import static dev.openfeature.contrib.providers.flagd.Config.CONTEXT_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.FLAG_KEY_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.METADATA_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.REASON_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
+import static dev.openfeature.contrib.providers.flagd.Config.VALUE_FIELD;
+import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.Message;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
@@ -17,24 +35,14 @@ import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.GeneralError;
+import dev.openfeature.sdk.exceptions.OpenFeatureError;
+import dev.openfeature.sdk.exceptions.ParseError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.CONTEXT_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.FLAG_KEY_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.METADATA_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.REASON_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.VALUE_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
+import io.grpc.Status.Code;
+import io.grpc.StatusRuntimeException;
 
 /**
  * FlagResolution resolves flags from flagd.
@@ -48,7 +56,6 @@ public final class GrpcResolver implements Resolver {
     private final ResolveStrategy strategy;
     private final Supplier<ProviderState> stateSupplier;
 
-
     /**
      * Initialize Grpc resolver.
      *
@@ -58,7 +65,7 @@ public final class GrpcResolver implements Resolver {
      * @param stateConsumer lambda to communicate back the state.
      */
     public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> stateSupplier,
-                        final Consumer<ProviderState> stateConsumer) {
+            final Consumer<ProviderState> stateConsumer) {
         this.cache = cache;
         this.stateSupplier = stateSupplier;
 
@@ -66,27 +73,25 @@ public final class GrpcResolver implements Resolver {
         this.connector = new GrpcConnector(options, cache, stateConsumer);
     }
 
-
     /**
      * Initialize Grpc resolver.
-     * */
+     */
     public void init() throws Exception {
         this.connector.initialize();
     }
 
     /**
      * Shutdown Grpc resolver.
-     * */
+     */
     public void shutdown() throws Exception {
         this.connector.shutdown();
     }
 
-
     /**
      * Boolean evaluation from grpc resolver.
-     * */
+     */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-                                                         EvaluationContext ctx) {
+            EvaluationContext ctx) {
         Schema.ResolveBooleanRequest request = Schema.ResolveBooleanRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveBoolean, null);
@@ -94,9 +99,9 @@ public final class GrpcResolver implements Resolver {
 
     /**
      * String evaluation from grpc resolver.
-     * */
+     */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
-                                                       EvaluationContext ctx) {
+            EvaluationContext ctx) {
         Schema.ResolveStringRequest request = Schema.ResolveStringRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveString, null);
@@ -104,9 +109,9 @@ public final class GrpcResolver implements Resolver {
 
     /**
      * Double evaluation from grpc resolver.
-     * */
+     */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
-                                                       EvaluationContext ctx) {
+            EvaluationContext ctx) {
         Schema.ResolveFloatRequest request = Schema.ResolveFloatRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveFloat, null);
@@ -114,9 +119,9 @@ public final class GrpcResolver implements Resolver {
 
     /**
      * Integer evaluation from grpc resolver.
-     * */
+     */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
-                                                         EvaluationContext ctx) {
+            EvaluationContext ctx) {
 
         Schema.ResolveIntRequest request = Schema.ResolveIntRequest.newBuilder().buildPartial();
 
@@ -126,9 +131,9 @@ public final class GrpcResolver implements Resolver {
 
     /**
      * Object evaluation from grpc resolver.
-     * */
+     */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue,
-                                                      EvaluationContext ctx) {
+            EvaluationContext ctx) {
 
         Schema.ResolveObjectRequest request = Schema.ResolveObjectRequest.newBuilder().buildPartial();
 
@@ -136,9 +141,9 @@ public final class GrpcResolver implements Resolver {
                 (Object value) -> convertObjectResponse((Struct) value));
     }
 
-
     /**
-     * A generic resolve method that takes a resolverRef and an optional converter lambda to transform the result.
+     * A generic resolve method that takes a resolverRef and an optional converter
+     * lambda to transform the result.
      */
     private <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
@@ -159,8 +164,14 @@ public final class GrpcResolver implements Resolver {
                 .setField(getFieldDescriptor(request, CONTEXT_FIELD), this.convertContext(ctx))
                 .build();
 
-        // run the referenced resolver method
-        Message response = strategy.resolve(resolverRef, req, key);
+        final Message response;
+        try {
+            // run the referenced resolver method
+            response = strategy.resolve(resolverRef, req, key);
+        } catch (Exception e) {
+            OpenFeatureError openFeatureError = mapError(e);
+            throw openFeatureError;
+        }
 
         // parse the response
         ValT value = converter == null ? getField(response, VALUE_FIELD)
@@ -222,7 +233,7 @@ public final class GrpcResolver implements Resolver {
     }
 
     /**
-     * Convert any protobuf value to {@link  Value}.
+     * Convert any protobuf value to {@link Value}.
      */
     private static Value convertAny(com.google.protobuf.Value protobuf) {
         if (protobuf.hasListValue()) {
@@ -250,7 +261,8 @@ public final class GrpcResolver implements Resolver {
     }
 
     /**
-     * Convert protobuf map with {@link com.google.protobuf.Value} to OpenFeature map.
+     * Convert protobuf map with {@link com.google.protobuf.Value} to OpenFeature
+     * map.
      */
     private static Value convertProtobufMap(Map<String, com.google.protobuf.Value> map) {
         Map<String, Value> values = new HashMap<>();
@@ -281,7 +293,8 @@ public final class GrpcResolver implements Resolver {
     }
 
     /**
-     * Convert OpenFeature {@link Value} to protobuf {@link com.google.protobuf.Value}.
+     * Convert OpenFeature {@link Value} to protobuf
+     * {@link com.google.protobuf.Value}.
      */
     private static com.google.protobuf.Value convertPrimitive(Value value) {
         com.google.protobuf.Value.Builder builder = com.google.protobuf.Value.newBuilder();
@@ -299,7 +312,8 @@ public final class GrpcResolver implements Resolver {
     }
 
     /**
-     * Convert protobuf {@link com.google.protobuf.Value} to OpenFeature  {@link Value}.
+     * Convert protobuf {@link com.google.protobuf.Value} to OpenFeature
+     * {@link Value}.
      */
     private static Value convertPrimitive(com.google.protobuf.Value protobuf) {
         final Value value;
@@ -346,5 +360,22 @@ public final class GrpcResolver implements Resolver {
         }
 
         return builder.build();
+    }
+
+    private OpenFeatureError mapError(Exception e) {
+        if (e instanceof StatusRuntimeException) {
+            Code code = ((StatusRuntimeException)e).getStatus().getCode();
+            switch (code) {
+                case DATA_LOSS:
+                    return new ParseError(e.getMessage());
+                case INVALID_ARGUMENT:
+                    return new TypeMismatchError(e.getMessage());
+                case NOT_FOUND:
+                    return new FlagNotFoundError(e.getMessage());
+                default:
+                    return new GeneralError(e.getMessage());
+            }
+        }
+        return new GeneralError(e.getMessage());
     }
 }

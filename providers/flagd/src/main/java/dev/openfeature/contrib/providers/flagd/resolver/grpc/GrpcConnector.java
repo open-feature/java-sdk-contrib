@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
+import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.flagd.grpc.Schema;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.sdk.ProviderState;
@@ -73,7 +74,7 @@ public class GrpcConnector {
         eventObserverThread.start();
 
         // block till ready
-        busyWaitAndCheck(this.deadline, this.connected);
+        Util.busyWaitAndCheck(this.deadline, this.connected);
     }
 
     /**
@@ -159,23 +160,5 @@ public class GrpcConnector {
 
         // chain to initiator
         this.stateConsumer.accept(state);
-    }
-
-    /**
-     * A helper to block the caller for given conditions.
-     *
-     * @param deadline number of milliseconds to block
-     * @param check    {@link AtomicBoolean} to check for status true
-     */
-    private static void busyWaitAndCheck(final Long deadline, final AtomicBoolean check) throws InterruptedException {
-        long start = System.currentTimeMillis();
-
-        do {
-            if (deadline <= System.currentTimeMillis() - start) {
-                throw new RuntimeException(String.format("Initialization not complete after %d ms", deadline));
-            }
-
-            Thread.sleep(50L);
-        } while (!check.get());
     }
 }

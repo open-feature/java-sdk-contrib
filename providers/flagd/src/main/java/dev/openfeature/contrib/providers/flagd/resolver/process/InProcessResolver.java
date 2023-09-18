@@ -1,7 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
@@ -9,18 +16,15 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageS
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
-import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.ParseError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.extern.java.Log;
-
-import java.util.function.Consumer;
-import java.util.logging.Level;
-
-import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
 /**
  * flagd in-process resolver. Resolves feature flags in-process. Flags are retrieved from {@link Storage}, where the
@@ -31,6 +35,8 @@ public class InProcessResolver implements Resolver {
     private final Storage flagStore;
     private final Consumer<ProviderState> stateConsumer;
     private final Operator operator;
+    private final long deadline;
+    private final AtomicBoolean connected = new AtomicBoolean(false);
 
     /**
      * Initialize an in-process resolver.
@@ -38,6 +44,7 @@ public class InProcessResolver implements Resolver {
     public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
         // currently we support gRPC connector
         this.flagStore = new FlagStore(new GrpcStreamConnector(options));
+        this.deadline = options.getDeadline();
         this.stateConsumer = stateConsumer;
         this.operator = new Operator();
     }
@@ -54,9 +61,11 @@ public class InProcessResolver implements Resolver {
                     switch (storageState) {
                         case OK:
                             stateConsumer.accept(ProviderState.READY);
+                            this.connected.set(true);
                             break;
                         case ERROR:
                             stateConsumer.accept(ProviderState.ERROR);
+                            this.connected.set(false);
                             break;
                         case STALE:
                             // todo set stale state
@@ -70,6 +79,9 @@ public class InProcessResolver implements Resolver {
         });
         stateWatcher.setDaemon(true);
         stateWatcher.start();
+
+        // block till ready
+        Util.busyWaitAndCheck(this.deadline, this.connected);
     }
 
     /**
@@ -77,6 +89,7 @@ public class InProcessResolver implements Resolver {
      */
     public void shutdown() {
         flagStore.shutdown();
+        this.connected.set(false);
     }
 
     /**
@@ -84,7 +97,7 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
                                                          EvaluationContext ctx) {
-        return resolve(Boolean.class, key, defaultValue, ctx);
+        return resolve(Boolean.class, key, ctx);
     }
 
     /**
@@ -92,7 +105,7 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
                                                        EvaluationContext ctx) {
-        return resolve(String.class, key, defaultValue, ctx);
+        return resolve(String.class, key, ctx);
     }
 
     /**
@@ -100,7 +113,7 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
                                                        EvaluationContext ctx) {
-        return resolve(Double.class, key, defaultValue, ctx);
+        return resolve(Double.class, key, ctx);
     }
 
     /**
@@ -108,14 +121,14 @@ public class InProcessResolver implements Resolver {
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
                                                          EvaluationContext ctx) {
-        return resolve(Integer.class, key, defaultValue, ctx);
+        return resolve(Integer.class, key, ctx);
     }
 
     /**
      * Resolve an object flag.
      */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        final ProviderEvaluation<Object> evaluation = resolve(Object.class, key, defaultValue, ctx);
+        final ProviderEvaluation<Object> evaluation = resolve(Object.class, key, ctx);
 
         return ProviderEvaluation.<Value>builder()
                 .value(Value.objectToValue(evaluation.getValue()))
@@ -127,28 +140,18 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, T defaultValue,
+    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key,
                                               EvaluationContext ctx) {
         final FeatureFlag flag = flagStore.getFlag(key);
 
         // missing flag
         if (flag == null) {
-            return ProviderEvaluation.<T>builder()
-                    .value(defaultValue)
-                    .reason(Reason.ERROR.toString())
-                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .errorMessage(String.format("requested flag could not be found: %s", key))
-                    .build();
+            throw new FlagNotFoundError("flag: " + key + " not found");
         }
 
         // state check
         if ("DISABLED".equals(flag.getState())) {
-            return ProviderEvaluation.<T>builder()
-                    .value(defaultValue)
-                    .reason(Reason.DISABLED.toString())
-                    .errorCode(ErrorCode.GENERAL)
-                    .errorMessage(String.format("requested flag is disabled: %s", key))
-                    .build();
+            throw new FlagNotFoundError("flag: " + key + " is disabled");
         }
 
 
@@ -169,36 +172,24 @@ public class InProcessResolver implements Resolver {
                     reason = Reason.TARGETING_MATCH.toString();
                 }
             } catch (TargetingRuleException e) {
-                log.log(Level.FINE, "Error evaluating targeting rule", e);
-                return ProviderEvaluation.<T>builder()
-                        .value(defaultValue)
-                        .reason(Reason.ERROR.toString())
-                        .errorCode(ErrorCode.PARSE_ERROR)
-                        .errorMessage(String.format("error parsing targeting rule for key: %s", key))
-                        .build();
+                String message = String.format("error evaluating targeting rule for flag %s", key);
+                log.log(Level.FINE, message, e);
+                throw new ParseError(message);
             }
         }
 
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
-            log.log(Level.FINE, String.format("variant %s not found in flag with key %s", resolvedVariant, key));
-            return ProviderEvaluation.<T>builder()
-                    .value(defaultValue)
-                    .reason(Reason.ERROR.toString())
-                    .errorCode(ErrorCode.TYPE_MISMATCH)
-                    .errorMessage(String.format("requested flag is not of the evaluation type: %s", type.getName()))
-                    .build();
+            String message = String.format("variant %s not found in flag with key %s", resolvedVariant, key);
+            log.log(Level.FINE, message);
+            throw new TypeMismatchError(message);
         }
 
         if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
-            log.log(Level.FINE, String.format("returning default variant for flagKey: %s, type not valid", key));
-            return ProviderEvaluation.<T>builder()
-                    .value(defaultValue)
-                    .reason(Reason.ERROR.toString())
-                    .errorCode(ErrorCode.TYPE_MISMATCH)
-                    .errorMessage(String.format("flag %s is not of type %s", key, type.getName()))
-                    .build();
+            String message = "returning default variant for flagKey: %s, type not valid";
+            log.log(Level.FINE, String.format(message, key));
+            throw new TypeMismatchError(message);
         }
 
         return ProviderEvaluation.<T>builder()
@@ -207,6 +198,4 @@ public class InProcessResolver implements Resolver {
                 .reason(reason)
                 .build();
     }
-
-
 }

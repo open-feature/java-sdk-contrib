@@ -248,7 +248,7 @@
                                     <goal>exec</goal>
                                 </goals>
                                 <configuration>
-                                    <!-- run: git submodule update \-\-init \-\-recursive -->
+                                    <!-- run: git submodule update \-\-init test-harness -->
                                     <executable>git</executable>
                                     <arguments>
                                         <argument>submodule</argument>
@@ -259,7 +259,24 @@
                                 </configuration>
                             </execution>
                             <execution>
-                                <id>copy-gherkin-tests</id>
+                                <id>update-spec-submodule</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- run: git submodule update \-\-init spec -->
+                                    <executable>git</executable>
+                                    <arguments>
+                                        <argument>submodule</argument>
+                                        <argument>update</argument>
+                                        <argument>--init</argument>
+                                        <argument>spec</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-gherkin-evaluation.feature</id>
                                 <phase>validate</phase>
                                 <goals>
                                     <goal>exec</goal>
@@ -269,11 +286,11 @@
                                     <!-- run: cp test-harness/features/evaluation.feature src/test/resources/features/ -->
                                     <executable>cp</executable>
                                     <arguments>
-                                        <argument>test-harness/features/evaluation.feature</argument>
+                                        <argument>spec/specification/assets/gherkin/evaluation.feature</argument>
                                         <argument>src/test/resources/features/</argument>
                                     </arguments>
                                 </configuration>
-                            </execution>
+                            </execution>                            
                         </executions>
                     </plugin>
                 </plugins>

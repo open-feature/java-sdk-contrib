@@ -1,29 +1,32 @@
 package dev.openfeature.contrib.providers.flagd.e2e;
 
-import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.FlagdProvider;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+/**
+ * Common test suite used by both RPC and in-process flagd.
+ */
 public class StepDefinitions {
 
+    private static final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
     private static Client client;
+
     private boolean booleanFlagValue;
     private String stringFlagValue;
     private int intFlagValue;
@@ -48,15 +51,26 @@ public class StepDefinitions {
     private int typeErrorDefaultValue;
     private FlagEvaluationDetails<Integer> typeErrorDetails;
 
+    /**
+     * Injects the client to use for this test.
+     * Tests run one at a time, but just in case, a lock is used to make sure the client is not updated mid-test.
+     * 
+     * @param client client to inject into test.
+     */
+    public static void setClient(Client client) {
+        StepDefinitions.client = client;
+        sync.writeLock().lock();
+    }
+
+    @AfterAll()
+    public static void cleanUp() {
+        sync.writeLock().unlock();
+    }
+
     @BeforeAll()
-    @Given("a provider is registered with cache disabled")
+    @Given("a provider is registered")
     public static void setup() {
-        // set a generous deadline, to prevent timeouts in actions
-        FlagdOptions conf = FlagdOptions.builder().deadline(3000).build();
-        // TODO: when the FlagdProvider is updated to support caching, we might need to disable it here for this test to work as expected.
-        FlagdProvider provider = new FlagdProvider(conf);
-        OpenFeatureAPI.getInstance().setProvider(provider);
-        client = OpenFeatureAPI.getInstance().getClient();
+        // this is handled by the "Setup" files
     }
 
     /*
@@ -266,8 +280,7 @@ public class StepDefinitions {
     @Then("the reason should indicate an error and the error code should indicate a missing flag with {string}")
     public void the_reason_should_indicate_an_error_and_the_error_code_should_be_flag_not_found(String errorCode) {
         assertEquals(Reason.ERROR.toString(), notFoundDetails.getReason());
-        assertTrue(notFoundDetails.getErrorMessage().contains(errorCode));
-        // TODO: add errorCode assertion once flagd provider is updated.
+        assertEquals(errorCode, notFoundDetails.getErrorCode().toString());
     }
 
     // type mismatch
@@ -287,8 +300,7 @@ public class StepDefinitions {
     @Then("the reason should indicate an error and the error code should indicate a type mismatch with {string}")
     public void the_reason_should_indicate_an_error_and_the_error_code_should_be_type_mismatch(String errorCode) {
         assertEquals(Reason.ERROR.toString(), typeErrorDetails.getReason());
-        assertTrue(typeErrorDetails.getErrorMessage().contains(errorCode));
-        // TODO: add errorCode assertion once flagd provider is updated.
+        assertEquals(errorCode, typeErrorDetails.getErrorCode().toString());
     }
 
 }
