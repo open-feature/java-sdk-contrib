@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.6.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.1...dev.openfeature.contrib.providers.flagd-v0.6.2) (2023-09-19)
+
+
+### Features
+
+* flagd in-process provider ([#412](https://github.com/open-feature/java-sdk-contrib/issues/412)) ([7accd1e](https://github.com/open-feature/java-sdk-contrib/commit/7accd1e8b68a06714d7e2accb8d226eb364db49a))
+* json logic operators for flagd in-process provider ([#434](https://github.com/open-feature/java-sdk-contrib/issues/434)) ([485c8a3](https://github.com/open-feature/java-sdk-contrib/commit/485c8a38e9055bcc1ebadad77a09b514d002525a))
+
+
+### Bug Fixes
+
+* blocking in-process init, e2e tests ([#436](https://github.com/open-feature/java-sdk-contrib/issues/436)) ([0326095](https://github.com/open-feature/java-sdk-contrib/commit/032609572da04b347d5d0b1e5ae1542e43ada1c1))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.0.87 ([#426](https://github.com/open-feature/java-sdk-contrib/issues/426)) ([77ec448](https://github.com/open-feature/java-sdk-contrib/commit/77ec4484763eb8883d9dc4ecdbfb8d7162f03c70))
+* **deps:** update dependency io.grpc:grpc-netty to v1.58.0 ([#421](https://github.com/open-feature/java-sdk-contrib/issues/421)) ([496bdec](https://github.com/open-feature/java-sdk-contrib/commit/496bdec854bf300c2db4c30800dd5518b836436f))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.58.0 ([#422](https://github.com/open-feature/java-sdk-contrib/issues/422)) ([54f24dd](https://github.com/open-feature/java-sdk-contrib/commit/54f24ddf68c6abdb037432427f7028ecfe182072))
+* **deps:** update dependency io.grpc:grpc-stub to v1.58.0 ([#423](https://github.com/open-feature/java-sdk-contrib/issues/423)) ([ea4268d](https://github.com/open-feature/java-sdk-contrib/commit/ea4268d48420a76c5b0414c3b05b8e73dfe990a2))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.97.final ([#406](https://github.com/open-feature/java-sdk-contrib/issues/406)) ([ed25450](https://github.com/open-feature/java-sdk-contrib/commit/ed254508929a2b84b04735dad1dccbc1fdc7f173))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.30.0 ([#427](https://github.com/open-feature/java-sdk-contrib/issues/427)) ([3667e45](https://github.com/open-feature/java-sdk-contrib/commit/3667e45ba840f2e086dc530917b1672247376cec))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.30.1 ([#432](https://github.com/open-feature/java-sdk-contrib/issues/432)) ([3954230](https://github.com/open-feature/java-sdk-contrib/commit/395423076a92ff3408189742ae9d9e9e87ae8f39))
+
 ## [0.6.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.0...dev.openfeature.contrib.providers.flagd-v0.6.1) (2023-08-21)
 
 
