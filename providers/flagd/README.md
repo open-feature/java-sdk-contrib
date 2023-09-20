@@ -110,7 +110,7 @@ FlagdProvider flagdProvider = new FlagdProvider(
                 .build());
 ```
 
-> [!NOTE]  
+> [!WARNING]  
 > There's a [vulnerability](https://security.snyk.io/vuln/SNYK-JAVA-IONETTY-1042268) in [netty](https://github.com/netty/netty), a transitive dependency of the underlying gRPC libraries used in the flagd-provider that fails to correctly validate certificates.
 > This will be addressed in netty v5.
 
