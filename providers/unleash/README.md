@@ -31,8 +31,15 @@ FeatureProvider featureProvider = new UnleashProvider(unleashOptions);
 OpenFeatureAPI.getInstance().setProviderAndWait(unleashProvider);
 boolean featureEnabled = client.getBooleanValue(FLAG_NAME, false);
 
-UnleashContext unleashContext = UnleashContext.builder().userId("1").build();
-EvaluationContext evaluationContext = UnleashProvider.transform(unleashContext);
+// Context parameters are optional, not mandatory to fill all parameters
+MutableContext evaluationContext = new MutableContext();
+evaluationContext.add("userId", userIdValue);
+evaluationContext.add("currentTime", String.valueOf(currentTimeValue));
+evaluationContext.add("sessionId", sessionIdValue);
+evaluationContext.add("remoteAddress", remoteAddressValue);
+evaluationContext.add("environment", environmentValue);
+evaluationContext.add("appName", appNameValue);
+evaluationContext.add(customPropertyKey, customPropertyValue);
 featureEnabled = client.getBooleanValue(FLAG_NAME, false, evaluationContext);
 
 String variantValue = client.getStringValue(FLAG_NAME, "");

@@ -1,13 +1,9 @@
 package dev.openfeature.contrib.providers.unleash;
 
 import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.Value;
 import io.getunleash.UnleashContext;
 
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Transformer from Unleash context to OpenFeature context and vice versa.
@@ -51,25 +47,4 @@ public class ContextTransformer {
         return unleashContextBuilder.build();
     }
 
-    /**
-     * Transform UnleashContext to EvaluationContext.
-     * @param unleashContext the UnleashContext
-     * @return transformed EvaluationContext
-     */
-    public static EvaluationContext transform(UnleashContext unleashContext) {
-        Map<String, Value> attributes = new HashMap<>();
-        unleashContext.getAppName().ifPresent(o -> attributes.put(CONTEXT_APP_NAME, Value.objectToValue(o)));
-        unleashContext.getUserId().ifPresent(o -> attributes.put(CONTEXT_USER_ID, Value.objectToValue(o)));
-        unleashContext.getEnvironment().ifPresent(o -> attributes.put(CONTEXT_ENVIRONMENT, Value.objectToValue(o)));
-        unleashContext.getSessionId().ifPresent(o -> attributes.put(CONTEXT_SESSION_ID, Value.objectToValue(o)));
-        unleashContext.getRemoteAddress().ifPresent(o -> attributes.put(
-            CONTEXT_REMOTE_ADDRESS, Value.objectToValue(o)));
-        unleashContext.getCurrentTime().ifPresent(
-            o -> attributes.put(CONTEXT_CURRENT_TIME, Value.objectToValue(o.toString())));
-
-        unleashContext.getProperties().forEach((k, v) -> {
-            attributes.put(k, Value.objectToValue(v));
-        });
-        return new ImmutableContext(attributes);
-    }
 }

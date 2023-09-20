@@ -3,9 +3,9 @@ package dev.openfeature.contrib.providers.unleash;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.openfeature.sdk.Client;
-import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
@@ -138,8 +138,8 @@ class UnleashProviderTest {
 
     @Test
     void getIntegerEvaluation() {
-        UnleashContext unleashContext = UnleashContext.builder().userId("int").build();
-        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.add("userId", "int");
         assertEquals(INT_FLAG_VALUE, unleashProvider.getIntegerEvaluation(INT_FLAG_NAME, 1,
             evaluationContext).getValue());
         assertEquals(INT_FLAG_VALUE, client.getIntegerValue(INT_FLAG_NAME, 1));
@@ -151,8 +151,8 @@ class UnleashProviderTest {
 
     @Test
     void getDoubleEvaluation() {
-        UnleashContext unleashContext = UnleashContext.builder().userId("double").build();
-        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.add("userId", "double");
         assertEquals(DOUBLE_FLAG_VALUE, unleashProvider.getDoubleEvaluation(DOUBLE_FLAG_NAME, 1.1,
             evaluationContext).getValue());
         assertEquals(DOUBLE_FLAG_VALUE, client.getDoubleValue(DOUBLE_FLAG_NAME, 1.1));
@@ -184,12 +184,11 @@ class UnleashProviderTest {
 
     @Test
     void getBooleanEvaluationByUser() {
-        UnleashContext unleashContext = UnleashContext.builder().userId("111").build();
-        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.add("userId", "111");
         assertEquals(true, unleashProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
-        unleashContext = UnleashContext.builder().userId("2").build();
-        evaluationContext = ContextTransformer.transform(unleashContext);
+        evaluationContext.add("userId", "2");
         assertEquals(false, unleashProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(false, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
     }
@@ -250,16 +249,14 @@ class UnleashProviderTest {
         String customPropertyValue = "customProperty_value";
         String customPropertyKey = "customProperty";
 
-        UnleashContext unleashContext = UnleashContext.builder()
-            .userId(userIdValue)
-            .currentTime(currentTimeValue)
-            .sessionId(sessionIdValue)
-            .remoteAddress(remoteAddressValue)
-            .environment(environmentValue)
-            .appName(appNameValue)
-            .addProperty(customPropertyKey, customPropertyValue)
-            .build();
-        EvaluationContext evaluationContext = ContextTransformer.transform(unleashContext);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.add("userId", userIdValue);
+        evaluationContext.add("currentTime", String.valueOf(currentTimeValue));
+        evaluationContext.add("sessionId", sessionIdValue);
+        evaluationContext.add("remoteAddress", remoteAddressValue);
+        evaluationContext.add("environment", environmentValue);
+        evaluationContext.add("appName", appNameValue);
+        evaluationContext.add(customPropertyKey, customPropertyValue);
 
         UnleashContext transformedUnleashContext = ContextTransformer.transform(evaluationContext);
         assertEquals(appNameValue, transformedUnleashContext.getAppName().get());
