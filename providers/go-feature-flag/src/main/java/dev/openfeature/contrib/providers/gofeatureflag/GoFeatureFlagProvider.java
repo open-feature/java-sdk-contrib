@@ -428,6 +428,9 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 || expectedType == Double.class;
 
         if (isPrimitive) {
+            if (value.getClass() == Integer.class && expectedType == Double.class) {
+                return (T) Double.valueOf((Integer) value);
+            }
             return (T) value;
         }
         return (T) objectToValue(value);
