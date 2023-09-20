@@ -58,20 +58,20 @@ precedence.
 Default options can be overridden through a `FlagdOptions` based constructor or set to be picked up from the environment
 variables.
 
-Given below are the supported configurations. Note that some configurations are only applicable for remote resolver.
+Given below are the supported configurations:
 
 | Option name           | Environment variable name      | Type & Values          | Default   | Compatible resolver |
 | --------------------- | ------------------------------ | ---------------------- | --------- | ------------------- |
-| host                  | FLAGD_HOST                     | String                 | localhost | remote & in-process |
-| port                  | FLAGD_PORT                     | int                    | 8013      | remote & in-process |
-| tls                   | FLAGD_TLS                      | boolean                | false     | remote & in-process |
-| socketPath            | FLAGD_SOCKET_PATH              | String                 | null      | remote & in-process |
-| certPath              | FLAGD_SERVER_CERT_PATH         | String                 | null      | remote & in-process |
-| deadline              | FLAGD_DEADLINE_MS              | int                    | 500       | remote & in-process |
-| cache                 | FLAGD_CACHE                    | String - lru, disabled | lru       | remote              |
-| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                    | 1000      | remote              |
-| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                    | 5         | remote              |
-| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                    | 1000      | remote              |
+| host                  | FLAGD_HOST                     | String                 | localhost | RPC & in-process    |
+| port                  | FLAGD_PORT                     | int                    | 8013      | RPC & in-process    |
+| tls                   | FLAGD_TLS                      | boolean                | false     | RPC & in-process    |
+| socketPath            | FLAGD_SOCKET_PATH              | String                 | null      | RPC & in-process    |
+| certPath              | FLAGD_SERVER_CERT_PATH         | String                 | null      | RPC & in-process    |
+| deadline              | FLAGD_DEADLINE_MS              | int                    | 500       | RPC & in-process    |
+| cache                 | FLAGD_CACHE                    | String - lru, disabled | lru       | RPC                 |
+| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                    | 1000      | RPC                 |
+| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                    | 5         | RPC                 |
+| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                    | 1000      | RPC                 |
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.
@@ -98,11 +98,21 @@ A failure to connect within this timeout will result an [error event](https://op
 
 ### TLS
 
-Though likely unnecessary in deployments where flagd runs on the same host as the workload, TLS is available.
+TLS is available in situations where flagd is running on another host.
+You may optionally supply a X.509 certificate in PEM format, otherwise default certificate store will be used.
 
-:warning: Note that there's a [vulnerability](https://security.snyk.io/vuln/SNYK-JAVA-IONETTY-1042268)
-in [netty](https://github.com/netty/netty), a transitive dependency of the underlying gRPC libraries used in the
-flagd-provider that fails to correctly validate certificates. This will be addressed in netty v5.
+```java
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .host("myflagdhost")
+                .tls(true)                      // use TLS
+                .certPath("etc/cert/ca.crt")    // PEM cert
+                .build());
+```
+
+> [!NOTE]  
+> There's a [vulnerability](https://security.snyk.io/vuln/SNYK-JAVA-IONETTY-1042268) in [netty](https://github.com/netty/netty), a transitive dependency of the underlying gRPC libraries used in the flagd-provider that fails to correctly validate certificates.
+> This will be addressed in netty v5.
 
 ### Caching (RPC only)
 
@@ -130,8 +140,8 @@ For manual instrumentation, flagd provider can be constructed with an `OpenTelem
 ```java
 FlagdOptions options = 
         FlagdOptions.builder()
-                    .openTelemetry(openTelemetry)
-                    .build();
+                .openTelemetry(openTelemetry)
+                .build();
 
 FlagdProvider flagdProvider = new FlagdProvider(options);
 ```
