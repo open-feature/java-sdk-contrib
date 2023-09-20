@@ -94,7 +94,6 @@ class GrpcStreamConnectorTest {
         verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
 
         final GrpcStreamHandler grpcStreamHandler = injectedHandler[0];
-        // here
         assertNotNull(grpcStreamHandler);
 
         // invoke shutdown
