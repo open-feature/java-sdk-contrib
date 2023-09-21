@@ -575,6 +575,24 @@ class GoFeatureFlagProviderTest {
 
     @SneakyThrows
     @Test
+    void should_resolve_a_valid_double_flag_with_TARGETING_MATCH_reason_if_value_point_zero() {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        FlagEvaluationDetails<Double> got = client.getDoubleDetails("double_point_zero_key", 200.20, this.evaluationContext);
+        FlagEvaluationDetails<Double> want = FlagEvaluationDetails.<Double>builder()
+                .value(100.0)
+                .reason(Reason.TARGETING_MATCH.name())
+                .variant("True")
+                .flagMetadata(defaultMetadata)
+                .flagKey("double_point_zero_key")
+                .build();
+        assertEquals(want, got);
+    }
+
+    @SneakyThrows
+    @Test
     void should_use_double_default_value_if_the_flag_is_disabled() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         String providerName = this.testName;

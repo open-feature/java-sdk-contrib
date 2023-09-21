@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.13](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.12...dev.openfeature.contrib.providers.go-feature-flag-v0.2.13) (2023-09-21)
+
+
+### Bug Fixes
+
+* Double value for a flag converted to integer ([#442](https://github.com/open-feature/java-sdk-contrib/issues/442)) ([3881ebe](https://github.com/open-feature/java-sdk-contrib/commit/3881ebe4b1e8bf32d80c0d2c96b4da1cbf30f1df))
+
 ## [0.2.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.11...dev.openfeature.contrib.providers.go-feature-flag-v0.2.12) (2023-09-12)
 
 
