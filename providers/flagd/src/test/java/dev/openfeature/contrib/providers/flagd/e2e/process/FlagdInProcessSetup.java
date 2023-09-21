@@ -1,24 +1,29 @@
 package dev.openfeature.contrib.providers.flagd.e2e.process;
 
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.parallel.Isolated;
+
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.steps.StepDefinitions;
-import dev.openfeature.sdk.Client;
-import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.FeatureProvider;
 import io.cucumber.java.BeforeAll;
 
+@Isolated()
+@Order(value = Integer.MAX_VALUE)
 public class FlagdInProcessSetup {
+
+    private static FeatureProvider provider;
     
     @BeforeAll()
     public static void setup() throws InterruptedException {
-        FlagdProvider provider = new FlagdProvider(FlagdOptions.builder()
+        FlagdInProcessSetup.provider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Evaluator.IN_PROCESS)
+        .deadline(3000)
         .host("localhost")
         .port(9090)
         .build());
-        OpenFeatureAPI.getInstance().setProviderAndWait("process", provider);
-        Client client = OpenFeatureAPI.getInstance().getClient("process");
-        StepDefinitions.setClient(client);
+        StepDefinitions.setProvider(provider);
     }
 }

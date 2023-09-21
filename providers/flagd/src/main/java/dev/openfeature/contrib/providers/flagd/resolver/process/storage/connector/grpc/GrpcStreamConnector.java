@@ -1,5 +1,12 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
+import java.util.Random;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
@@ -10,12 +17,6 @@ import dev.openfeature.flagd.sync.SyncService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import lombok.extern.java.Log;
-
-import java.util.Random;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 
 /**
  * Implements the {@link Connector} contract and emit flags obtained from flagd sync gRPC contract.
@@ -36,10 +37,17 @@ public class GrpcStreamConnector implements Connector {
 
     private final ManagedChannel channel;
     private final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub;
+    private final int deadline;
 
+    /**
+     * Construct a new GrpcStreamConnector.
+     * 
+     * @param options flagd options
+     */
     public GrpcStreamConnector(final FlagdOptions options) {
         channel = ChannelBuilder.nettyChannel(options);
         serviceStub = FlagSyncServiceGrpc.newStub(channel);
+        this.deadline = options.getDeadline();
     }
 
     /**
@@ -67,13 +75,25 @@ public class GrpcStreamConnector implements Connector {
 
     /**
      * Shutdown gRPC stream connector.
+     * @throws InterruptedException if stream can't be closed within deadline.
      */
-    public void shutdown() {
+    public void shutdown() throws InterruptedException {
         if (shutdown.getAndSet(true)) {
             return;
         }
 
-        channel.shutdown();
+        try {
+            if (this.channel != null && !this.channel.isShutdown()) {
+                this.channel.shutdown();
+                this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
+            }
+        } finally {
+            if (this.channel != null && !this.channel.isShutdown()) {
+                this.channel.shutdownNow();
+                this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
+                log.warning(String.format("Unable to shut down channel by %d deadline", this.deadline));
+            }
+        }
     }
 
     /**

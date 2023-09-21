@@ -89,14 +89,16 @@ public class GrpcConnector {
         }
 
         try {
-            if (this.channel != null) {
+            if (this.channel != null && !this.channel.isShutdown()) {
                 this.channel.shutdown();
-                this.channel.awaitTermination(5, TimeUnit.SECONDS);
+                this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
             }
         } finally {
             this.cache.clear();
-            if (this.channel != null) {
+            if (this.channel != null && !this.channel.isShutdown()) {
                 this.channel.shutdownNow();
+                this.channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
+                log.warn(String.format("Unable to shut down channel by %d deadline", this.deadline));
             }
         }
     }
