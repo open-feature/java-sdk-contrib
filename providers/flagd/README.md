@@ -99,7 +99,7 @@ A failure to connect within this timeout will result an [error event](https://op
 ### TLS
 
 TLS is available in situations where flagd is running on another host.
-You may optionally supply a X.509 certificate in PEM format, otherwise default certificate store will be used.
+You may optionally supply an X.509 certificate in PEM format. Otherwise, the default certificate store will be used.
 
 ```java
 FlagdProvider flagdProvider = new FlagdProvider(
