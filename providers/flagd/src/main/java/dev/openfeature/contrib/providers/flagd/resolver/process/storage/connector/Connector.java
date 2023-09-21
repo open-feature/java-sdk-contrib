@@ -11,5 +11,5 @@ public interface Connector {
 
     BlockingQueue<StreamPayload> getStream();
 
-    void shutdown();
+    void shutdown() throws InterruptedException;
 }

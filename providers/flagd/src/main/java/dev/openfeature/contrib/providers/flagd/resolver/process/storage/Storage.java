@@ -10,7 +10,7 @@ import java.util.concurrent.BlockingQueue;
 public interface Storage {
     void init();
 
-    void shutdown();
+    void shutdown() throws InterruptedException;
 
     FeatureFlag getFlag(final String key);
 

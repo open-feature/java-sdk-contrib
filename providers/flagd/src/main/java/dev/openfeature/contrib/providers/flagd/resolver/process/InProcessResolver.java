@@ -86,8 +86,9 @@ public class InProcessResolver implements Resolver {
 
     /**
      * Shutdown in-process resolver.
-     */
-    public void shutdown() {
+     * @throws InterruptedException if stream can't be closed within deadline.
+     */ 
+    public void shutdown() throws InterruptedException {
         flagStore.shutdown();
         this.connected.set(false);
     }

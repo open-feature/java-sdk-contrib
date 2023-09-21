@@ -4,17 +4,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import io.cucumber.java.BeforeAll;
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -23,10 +28,12 @@ import io.cucumber.java.en.When;
 /**
  * Common test suite used by both RPC and in-process flagd providers.
  */
+@Isolated()
+@Order(value = Integer.MAX_VALUE)
 public class StepDefinitions {
 
-    private static final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
     private static Client client;
+    private static FeatureProvider provider;
 
     private String booleanFlagKey;
     private String stringFlagKey;
@@ -63,15 +70,25 @@ public class StepDefinitions {
      * 
      * @param client client to inject into test.
      */
-    public static void setClient(Client client) {
-        StepDefinitions.client = client;
+    public static void setProvider(FeatureProvider provider) {
+        StepDefinitions.provider = provider;
     }
 
-    @BeforeAll()
+    @BeforeEach()
     @Given("a provider is registered")
     @Given("a flagd provider is set")
     public static void setup() {
-        // this is handled by the "Setup" files
+        if (StepDefinitions.client == null) {
+            OpenFeatureAPI.getInstance().setProviderAndWait("e2e", provider);
+            StepDefinitions.client = OpenFeatureAPI.getInstance().getClient("e2e");
+        }
+    }
+
+    @AfterAll()
+    public static void cleanUp() throws InterruptedException {
+        StepDefinitions.provider.shutdown();
+        StepDefinitions.provider = null;
+        StepDefinitions.client = null;
     }
 
     /*

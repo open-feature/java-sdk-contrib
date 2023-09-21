@@ -1,18 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
-import dev.openfeature.flagd.sync.FlagSyncServiceGrpc;
-import dev.openfeature.flagd.sync.SyncService;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import java.lang.reflect.Field;
-import java.time.Duration;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -20,6 +7,20 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import java.lang.reflect.Field;
+import java.time.Duration;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import dev.openfeature.flagd.sync.FlagSyncServiceGrpc;
+import dev.openfeature.flagd.sync.SyncService;
 
 class GrpcStreamConnectorTest {
 
