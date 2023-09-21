@@ -130,7 +130,7 @@ By default, the provider is configured to
 use [least recently used (lru)](https://commons.apache.org/proper/commons-collections/apidocs/org/apache/commons/collections4/map/LRUMap.html)
 caching with up to 1000 entries.
 
-### OpenTelemetry support
+### OpenTelemetry support (RPC only)
 
 OpenTelemetry support can be enabled either through [automatic instrumentation](https://opentelemetry.io/docs/instrumentation/java/automatic/) 
 or with [manual instrumentation](https://opentelemetry.io/docs/instrumentation/java/manual/). 
