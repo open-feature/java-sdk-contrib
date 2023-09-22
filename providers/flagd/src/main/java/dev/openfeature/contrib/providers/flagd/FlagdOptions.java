@@ -20,6 +20,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.SELECTOR_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.SERVER_CERT_PATH_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.SOCKET_PATH_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.TLS_ENV_VAR_NAME;
@@ -97,11 +98,19 @@ public class FlagdOptions {
 
 
     /**
-     * Deadline to connect to flagD in milliseconds.
+     * Connection deadline in milliseconds.
+     *
+     * For RPC resolving, this is the deadline to connect to flagd for flag evaluation.
+     * For in-process resolving, this is the deadline for sync stream termination.
      * */
     @Builder.Default
-    private int deadline =
-            fallBackToEnvOrDefault(DEADLINE_MS_ENV_VAR_NAME, DEFAULT_DEADLINE);
+    private int deadline = fallBackToEnvOrDefault(DEADLINE_MS_ENV_VAR_NAME, DEFAULT_DEADLINE);
+
+    /**
+     * Selector to be used with flag sync gRPC contract.
+     **/
+    @Builder.Default
+    private String selector = fallBackToEnvOrDefault(SELECTOR_ENV_VAR_NAME, null);
 
     /**
      * Inject OpenTelemetry for the library runtime. Providing sdk will initiate distributed tracing for flagd grpc

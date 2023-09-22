@@ -1,12 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import java.util.Random;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
@@ -17,6 +10,13 @@ import dev.openfeature.flagd.sync.SyncService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import lombok.extern.java.Log;
+
+import java.util.Random;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 /**
  * Implements the {@link Connector} contract and emit flags obtained from flagd sync gRPC contract.
@@ -38,16 +38,18 @@ public class GrpcStreamConnector implements Connector {
     private final ManagedChannel channel;
     private final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub;
     private final int deadline;
+    private final String selector;
 
     /**
      * Construct a new GrpcStreamConnector.
-     * 
+     *
      * @param options flagd options
      */
     public GrpcStreamConnector(final FlagdOptions options) {
         channel = ChannelBuilder.nettyChannel(options);
         serviceStub = FlagSyncServiceGrpc.newStub(channel);
-        this.deadline = options.getDeadline();
+        deadline = options.getDeadline();
+        selector = options.getSelector();
     }
 
     /**
@@ -56,7 +58,13 @@ public class GrpcStreamConnector implements Connector {
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, serviceStub);
+                final SyncService.SyncFlagsRequest.Builder requestBuilder = SyncService.SyncFlagsRequest.newBuilder();
+
+                if (selector != null) {
+                    requestBuilder.setSelector(selector);
+                }
+
+                observeEventStream(blockingQueue, shutdown, serviceStub, requestBuilder.build());
             } catch (InterruptedException e) {
                 log.log(Level.WARNING, "gRPC event stream interrupted, flag configurations are stale", e);
             }
@@ -75,6 +83,7 @@ public class GrpcStreamConnector implements Connector {
 
     /**
      * Shutdown gRPC stream connector.
+     *
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
@@ -101,14 +110,14 @@ public class GrpcStreamConnector implements Connector {
      */
     static void observeEventStream(final BlockingQueue<StreamPayload> writeTo,
                                    final AtomicBoolean shutdown,
-                                   final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub)
+                                   final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub,
+                                   final SyncService.SyncFlagsRequest request)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
         int retryDelay = INIT_BACK_OFF;
 
         while (!shutdown.get()) {
-            final SyncService.SyncFlagsRequest request = SyncService.SyncFlagsRequest.newBuilder().build();
             serviceStub.syncFlags(request, new GrpcStreamHandler(streamReceiver));
 
             while (!shutdown.get()) {

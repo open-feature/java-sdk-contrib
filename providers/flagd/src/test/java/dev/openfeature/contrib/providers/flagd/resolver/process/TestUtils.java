@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 
 public class TestUtils {
     public static final String VALID_SIMPLE = "flagConfigurations/valid-simple.json";
+    public static final String VALID_SIMPLE_EXTRA_FIELD = "flagConfigurations/valid-simple-with-extra-fields.json";
     public static final String VALID_LONG = "flagConfigurations/valid-long.json";
     public static final String INVALID_FLAG = "flagConfigurations/invalid-flag.json";
     public static final String INVALID_CFG = "flagConfigurations/invalid-configuration.json";

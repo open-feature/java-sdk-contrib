@@ -9,6 +9,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE_EXTRA_FIELD;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -18,6 +19,21 @@ class FlagParserTest {
     @Test
     public void validJsonConfigurationParsing() throws IOException {
         Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE));
+        FeatureFlag boolFlag = flagMap.get("myBoolFlag");
+
+        assertNotNull(boolFlag);
+        assertEquals("ENABLED", boolFlag.getState());
+        assertEquals("on", boolFlag.getDefaultVariant());
+
+        Map<String, Object> variants = boolFlag.getVariants();
+
+        assertEquals(true, variants.get("on"));
+        assertEquals(false, variants.get("off"));
+    }
+
+    @Test
+    public void validJsonConfigurationWithExtraFieldsParsing() throws IOException {
+        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD));
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
         assertNotNull(boolFlag);

@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -14,6 +15,7 @@ import java.util.Map;
 @Getter
 @SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be parsed and exposed")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FeatureFlag {
     public static final String EMPTY_TARGETING_STRING = "{}";
 
