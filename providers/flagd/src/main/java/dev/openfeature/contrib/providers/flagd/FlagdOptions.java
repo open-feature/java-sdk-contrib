@@ -99,7 +99,6 @@ public class FlagdOptions {
 
     /**
      * Connection deadline in milliseconds.
-     *
      * For RPC resolving, this is the deadline to connect to flagd for flag evaluation.
      * For in-process resolving, this is the deadline for sync stream termination.
      * */
