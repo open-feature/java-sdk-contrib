@@ -27,7 +27,35 @@ class GrpcStreamConnectorTest {
     private static final Duration MAX_WAIT_MS = Duration.ofMillis(500);
 
     @Test
+    public void connectionParameters() throws Throwable {
+        // given
+        final FlagdOptions options = FlagdOptions.builder()
+                .selector("selector")
+                .build();
+
+        final GrpcStreamConnector connector = new GrpcStreamConnector(options);
+        final FlagSyncServiceGrpc.FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
+
+        final SyncService.SyncFlagsRequest[] request = new SyncService.SyncFlagsRequest[1];
+
+        Mockito.doAnswer(invocation -> {
+            request[0] = invocation.getArgument(0, SyncService.SyncFlagsRequest.class);
+            return null;
+        }).when(stubMock).syncFlags(any(), any());
+
+        // when
+        connector.init();
+        verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+
+        // then
+        final SyncService.SyncFlagsRequest flagsRequest = request[0];
+        assertNotNull(flagsRequest);
+        assertEquals("selector", flagsRequest.getSelector());
+    }
+
+    @Test
     public void grpcConnectionStatus() throws Throwable {
+        // given
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
         final FlagSyncServiceGrpc.FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
 
@@ -38,11 +66,12 @@ class GrpcStreamConnectorTest {
             return null;
         }).when(stubMock).syncFlags(any(), any());
 
+        // when
         connector.init();
-
         // verify and wait for initialization
         verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
 
+        // then
         final GrpcStreamHandler grpcStreamHandler = injectedHandler[0];
         assertNotNull(grpcStreamHandler);
 
@@ -54,7 +83,7 @@ class GrpcStreamConnectorTest {
                         .setState(SyncService.SyncState.SYNC_STATE_ALL)
                         .build());
 
-        assertTimeoutPreemptively(MAX_WAIT_MS, ()->{
+        assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
             StreamPayload payload = streamPayloads.take();
             assertEquals(StreamPayloadType.DATA, payload.getType());
         });
@@ -71,7 +100,7 @@ class GrpcStreamConnectorTest {
                         .setState(SyncService.SyncState.SYNC_STATE_ALL)
                         .build());
 
-        assertTimeoutPreemptively(MAX_WAIT_MS, ()->{
+        assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
             StreamPayload payload = streamPayloads.take();
             assertEquals(StreamPayloadType.DATA, payload.getType());
         });
@@ -79,6 +108,7 @@ class GrpcStreamConnectorTest {
 
     @Test
     public void listenerExitOnShutdown() throws Throwable {
+        // given
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
         final FlagSyncServiceGrpc.FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
 
@@ -89,11 +119,12 @@ class GrpcStreamConnectorTest {
             return null;
         }).when(stubMock).syncFlags(any(), any());
 
+        // when
         connector.init();
-
         // verify and wait for initialization
         verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
 
+        // then
         final GrpcStreamHandler grpcStreamHandler = injectedHandler[0];
         assertNotNull(grpcStreamHandler);
 
@@ -102,7 +133,7 @@ class GrpcStreamConnectorTest {
         // mock channel close of gRPC handler
         grpcStreamHandler.onError(new Exception("Channel closed, exiting"));
 
-        assertTimeoutPreemptively(MAX_WAIT_MS, ()->{
+        assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
             StreamPayload payload = connector.getStream().take();
             assertEquals(StreamPayloadType.ERROR, payload.getType());
         });
@@ -120,7 +151,8 @@ class GrpcStreamConnectorTest {
         assertNull(connector.getStream().poll(100, TimeUnit.MILLISECONDS));
     }
 
-    private static FlagSyncServiceGrpc.FlagSyncServiceStub mockStubAndReturn(final GrpcStreamConnector connector) throws Throwable {
+    private static FlagSyncServiceGrpc.FlagSyncServiceStub mockStubAndReturn(final GrpcStreamConnector connector)
+            throws Throwable {
         final Field serviceStubField = GrpcStreamConnector.class.getDeclaredField("serviceStub");
         serviceStubField.setAccessible(true);
 

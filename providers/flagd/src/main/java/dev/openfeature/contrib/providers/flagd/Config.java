@@ -22,6 +22,7 @@ public final class Config {
     static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
     static final String BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME = "FLAGD_RETRY_BACKOFF_MS";
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
+    static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
 
     public static final String STATIC_REASON = "STATIC";
     public static final String CACHED_REASON = "CACHED";

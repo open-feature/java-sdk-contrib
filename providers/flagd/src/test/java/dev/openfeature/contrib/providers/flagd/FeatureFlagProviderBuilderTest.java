@@ -28,6 +28,7 @@ public class FeatureFlagProviderBuilderTest {
         assertEquals(builder.getCacheType(), DEFAULT_CACHE);
         assertEquals(builder.getMaxCacheSize(), DEFAULT_MAX_CACHE_SIZE);
         assertEquals(builder.getMaxEventStreamRetries(), DEFAULT_MAX_EVENT_STREAM_RETRIES);
+        assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
     }
 
@@ -43,6 +44,7 @@ public class FeatureFlagProviderBuilderTest {
                 .cacheType("lru")
                 .maxCacheSize(100)
                 .maxEventStreamRetries(1)
+                .selector("app=weatherApp")
                 .openTelemetry(openTelemetry)
                 .build();
 
@@ -53,6 +55,7 @@ public class FeatureFlagProviderBuilderTest {
         assertEquals(flagdOptions.getCacheType(), "lru");
         assertEquals(flagdOptions.getMaxCacheSize(), 100);
         assertEquals(flagdOptions.getMaxEventStreamRetries(), 1);
+        assertEquals(flagdOptions.getSelector(), "app=weatherApp");
         assertEquals(flagdOptions.getOpenTelemetry(), openTelemetry);
     }
 }
