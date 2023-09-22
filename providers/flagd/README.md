@@ -68,7 +68,7 @@ Given below are the supported configurations:
 | socketPath            | FLAGD_SOCKET_PATH              | String                 | null      | RPC & in-process    |
 | certPath              | FLAGD_SERVER_CERT_PATH         | String                 | null      | RPC & in-process    |
 | deadline              | FLAGD_DEADLINE_MS              | int                    | 500       | RPC & in-process    |
-| selector              | FLAGD_SELECTOR                 | String                 | null      | in-process          |
+| selector              | FLAGD_SOURCE_SELECTOR          | String                 | null      | in-process          |
 | cache                 | FLAGD_CACHE                    | String - lru, disabled | lru       | RPC                 |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                    | 1000      | RPC                 |
 | maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                    | 5         | RPC                 |
