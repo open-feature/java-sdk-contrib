@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.2...dev.openfeature.contrib.providers.flagd-v0.6.3) (2023-09-22)
+
+
+### Features
+
+* flagd in-process evalator improvements ([#451](https://github.com/open-feature/java-sdk-contrib/issues/451)) ([a96c5d8](https://github.com/open-feature/java-sdk-contrib/commit/a96c5d8f72cbcc528e4db9a1981e911658d1caae))
+
+
+### Bug Fixes
+
+* await shutdown in in-process mode ([#445](https://github.com/open-feature/java-sdk-contrib/issues/445)) ([49340ef](https://github.com/open-feature/java-sdk-contrib/commit/49340ef1dd4539eb313b6da52bd5e3e2b66784cc))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.98.final ([#444](https://github.com/open-feature/java-sdk-contrib/issues/444)) ([8ceff09](https://github.com/open-feature/java-sdk-contrib/commit/8ceff09244e13136b740be711883fe89deb1fa7f))
+* **deps:** update dependency org.semver4j:semver4j to v5.2.0 ([#450](https://github.com/open-feature/java-sdk-contrib/issues/450)) ([2b8f978](https://github.com/open-feature/java-sdk-contrib/commit/2b8f978e9f3d513242bc1dc81fd6114e07ea8648))
+
 ## [0.6.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.1...dev.openfeature.contrib.providers.flagd-v0.6.2) (2023-09-19)
 
 
