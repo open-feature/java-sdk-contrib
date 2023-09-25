@@ -2,15 +2,14 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.semver4j.Semver;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
-@Log
+@Slf4j
 class SemVer implements PreEvaluatedArgumentsExpression {
 
     private static final String EQ = "=";
@@ -42,13 +41,13 @@ class SemVer implements PreEvaluatedArgumentsExpression {
     public Object evaluate(List arguments, Object data) throws JsonLogicEvaluationException {
 
         if (arguments.size() != 3) {
-            log.log(Level.FINE, "Incorrect number of arguments for sem_ver operator");
+            log.debug("Incorrect number of arguments for sem_ver operator");
             return null;
         }
 
         for (int i = 0; i < 3; i++) {
             if (!(arguments.get(i) instanceof String)) {
-                log.log(Level.FINE, "Invalid argument type. Require Strings");
+                log.debug("Invalid argument type. Require Strings");
                 return null;
             }
         }
@@ -57,7 +56,7 @@ class SemVer implements PreEvaluatedArgumentsExpression {
         final Semver arg1Parsed;
 
         if ((arg1Parsed = Semver.parse((String) arguments.get(0))) == null) {
-            log.log(Level.FINE, "Argument one is not a valid SemVer");
+            log.debug("Argument one is not a valid SemVer");
             return null;
         }
 
@@ -65,7 +64,7 @@ class SemVer implements PreEvaluatedArgumentsExpression {
         final String arg2Parsed = (String) arguments.get(1);
 
         if (!OPS.contains(arg2Parsed)) {
-            log.log(Level.FINE, String.format("Not valid operator in argument 2. Received: %s", arg2Parsed));
+            log.debug(String.format("Not valid operator in argument 2. Received: %s", arg2Parsed));
             return null;
         }
 
@@ -73,7 +72,7 @@ class SemVer implements PreEvaluatedArgumentsExpression {
         final Semver arg3Parsed;
 
         if ((arg3Parsed = Semver.parse((String) arguments.get(2))) == null) {
-            log.log(Level.FINE, "Argument three is not a valid SemVer");
+            log.debug("Argument three is not a valid SemVer");
             return null;
         }
 

@@ -9,19 +9,18 @@ import dev.openfeature.flagd.sync.FlagSyncServiceGrpc;
 import dev.openfeature.flagd.sync.SyncService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 
 /**
  * Implements the {@link Connector} contract and emit flags obtained from flagd sync gRPC contract.
  */
-@Log
+@Slf4j
 @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "EI_EXPOSE_REP"},
         justification = "Random is used to generate a variation & flag configurations require exposing")
 public class GrpcStreamConnector implements Connector {
@@ -66,7 +65,7 @@ public class GrpcStreamConnector implements Connector {
 
                 observeEventStream(blockingQueue, shutdown, serviceStub, requestBuilder.build());
             } catch (InterruptedException e) {
-                log.log(Level.WARNING, "gRPC event stream interrupted, flag configurations are stale", e);
+                log.warn("gRPC event stream interrupted, flag configurations are stale", e);
             }
         });
 
@@ -100,7 +99,7 @@ public class GrpcStreamConnector implements Connector {
             if (this.channel != null && !this.channel.isShutdown()) {
                 this.channel.shutdownNow();
                 this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
-                log.warning(String.format("Unable to shut down channel by %d deadline", this.deadline));
+                log.warn(String.format("Unable to shut down channel by %d deadline", this.deadline));
             }
         }
     }
@@ -129,13 +128,12 @@ public class GrpcStreamConnector implements Connector {
                 }
 
                 if (response.getError() != null) {
-                    log.log(Level.WARNING,
-                            String.format("Error from grpc connection, retrying in %dms", retryDelay),
+                    log.warn(String.format("Error from grpc connection, retrying in %dms", retryDelay),
                             response.getError());
 
                     if (!writeTo.offer(
                             new StreamPayload(StreamPayloadType.ERROR, "Error from stream connection, retrying"))) {
-                        log.log(Level.WARNING, "Failed to convey ERROR satus, queue is full");
+                        log.warn("Failed to convey ERROR satus, queue is full");
                     }
                     break;
                 }
@@ -145,7 +143,7 @@ public class GrpcStreamConnector implements Connector {
                     case SYNC_STATE_ALL:
                         if (!writeTo.offer(
                                 new StreamPayload(StreamPayloadType.DATA, flagsResponse.getFlagConfiguration()))) {
-                            log.log(Level.WARNING, "Stream writing failed");
+                            log.warn("Stream writing failed");
                         }
                         break;
                     case SYNC_STATE_UNSPECIFIED:
@@ -165,7 +163,7 @@ public class GrpcStreamConnector implements Connector {
 
             // check for shutdown and avoid sleep
             if (shutdown.get()) {
-                log.log(Level.INFO, "Shutdown invoked, exiting event stream listener");
+                log.info("Shutdown invoked, exiting event stream listener");
                 return;
             }
 
@@ -178,6 +176,6 @@ public class GrpcStreamConnector implements Connector {
         }
 
         // log as this can happen after awakened from backoff sleep
-        log.log(Level.INFO, "Shutdown invoked, exiting event stream listener");
+        log.info("Shutdown invoked, exiting event stream listener");
     }
 }
