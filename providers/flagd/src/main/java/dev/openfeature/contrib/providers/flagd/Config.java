@@ -4,6 +4,7 @@ package dev.openfeature.contrib.providers.flagd;
  * Helper class to hold configuration default values.
  */
 public final class Config {
+    static final Evaluator DEFAULT_RESOLVER_TYPE = Evaluator.RPC;
     static final String DEFAULT_PORT = "8013";
     static final String DEFAULT_TLS = "false";
     static final String DEFAULT_HOST = "localhost";
@@ -21,6 +22,7 @@ public final class Config {
     static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
     static final String BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME = "FLAGD_RETRY_BACKOFF_MS";
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
+    static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
 
     public static final String STATIC_REASON = "STATIC";
     public static final String CACHED_REASON = "CACHED";
@@ -48,5 +50,22 @@ public final class Config {
         } catch (Exception e) {
             return defaultValue;
         }
+    }
+
+    /**
+     * flagd evaluator type.
+     */
+    public enum Evaluator {
+        /**
+         * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC contract.
+         * Evaluations are performed remotely.
+         */
+        RPC,
+        /**
+         * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract and stored
+         * locally for in-process evaluation.
+         * Evaluations are preformed in-process.
+         */
+        IN_PROCESS
     }
 }

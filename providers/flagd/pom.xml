@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.6.1</version> <!--x-release-please-version -->
+    <version>0.6.3</version> <!--x-release-please-version -->
 
     <properties>
         <!-- exclusion expression for e2e tests -->
@@ -47,14 +47,14 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty</artifactId>
-            <version>1.57.2</version>
+            <version>1.58.0</version>
         </dependency>
 
         <dependency>
             <!-- we only support unix sockets on linux, via epoll native lib -->
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
-            <version>4.1.97.Final</version>
+            <version>4.1.98.Final</version>
             <!-- TODO: with 5+ (still alpha), arm is support and we should package multiple versions -->
             <classifier>linux-x86_64</classifier>
         </dependency>
@@ -62,13 +62,37 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
-            <version>1.57.2</version>
+            <version>1.58.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <version>1.57.2</version>
+            <version>1.58.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.jamsesso</groupId>
+            <artifactId>json-logic-java</artifactId>
+            <version>1.0.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>1.0.87</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -88,8 +112,15 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>1.29.0</version>
+            <version>1.30.1</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.semver4j</groupId>
+            <artifactId>semver4j</artifactId>
+            <version>5.2.1</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -126,7 +157,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>copy-protobuf-definition</id>
+                        <id>copy-schema-definition</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>exec</goal>
@@ -137,6 +168,36 @@
                             <arguments>
                                 <argument>schemas/protobuf/schema/v1/schema.proto</argument>
                                 <argument>src/main/proto/</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-sync-definition</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!-- run: cp schemas/protobuf/sync/v1/sync_service.proto src/main/proto/ -->
+                            <executable>cp</executable>
+                            <arguments>
+                                <argument>schemas/protobuf/sync/v1/sync_service.proto</argument>
+                                <argument>src/main/proto/</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-schema-json</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!-- run: cp schemas/json/flagd-definitions.json src/main/resources/ -->
+                            <executable>cp</executable>
+                            <arguments>
+                                <argument>schemas/json/flagd-definitions.json</argument>
+                                <argument>src/main/resources/</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -166,57 +227,90 @@
 
     <profiles>
         <profile>
-        <!-- this profile handles running the flagd e2e tests -->
-        <id>e2e</id>
-        <properties>
-            <!-- run the e2e tests by clearing the exclusions -->
-            <testExclusions/>
-        </properties>  
-        <build>
-            <plugins>
-            <!-- pull the gherkin tests as a git submodule  -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                <execution>
-                    <id>update-test-harness-submodule</id>
-                    <phase>validate</phase>
-                    <goals>
-                    <goal>exec</goal>
-                    </goals>
-                    <configuration>
-                    <!-- run: git submodule update \-\-init \-\-recursive -->
-                    <executable>git</executable>
-                    <arguments>
-                        <argument>submodule</argument>
-                        <argument>update</argument>
-                        <argument>--init</argument>
-                        <argument>test-harness</argument>
-                    </arguments>
-                    </configuration>
-                </execution>
-                <execution>
-                    <id>copy-gherkin-tests</id>
-                    <phase>validate</phase>
-                    <goals>
-                    <goal>exec</goal>
-                    </goals>
-                    <configuration>
-                    <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
-                    <!-- run: cp test-harness/features/evaluation.feature src/test/resources/features/ -->
-                    <executable>cp</executable>
-                    <arguments>
-                        <argument>test-harness/features/evaluation.feature</argument>
-                        <argument>src/test/resources/features/</argument>
-                    </arguments>
-                    </configuration>
-                </execution>
-                </executions>
-            </plugin>
-            </plugins>
-        </build>
+            <!-- this profile handles running the flagd e2e tests -->
+            <id>e2e</id>
+            <properties>
+                <!-- run the e2e tests by clearing the exclusions -->
+                <testExclusions/>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- pull the gherkin tests as a git submodule  -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>update-test-harness-submodule</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- run: git submodule update \-\-init test-harness -->
+                                    <executable>git</executable>
+                                    <arguments>
+                                        <argument>submodule</argument>
+                                        <argument>update</argument>
+                                        <argument>--init</argument>
+                                        <argument>test-harness</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>update-spec-submodule</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- run: git submodule update \-\-init spec -->
+                                    <executable>git</executable>
+                                    <arguments>
+                                        <argument>submodule</argument>
+                                        <argument>update</argument>
+                                        <argument>--init</argument>
+                                        <argument>spec</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-gherkin-evaluation.feature</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
+                                    <!-- run: cp test-harness/features/evaluation.feature src/test/resources/features/ -->
+                                    <executable>cp</executable>
+                                    <arguments>
+                                        <argument>spec/specification/assets/gherkin/evaluation.feature</argument>
+                                        <argument>src/test/resources/features/</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-gherkin-flagd-json-evaluator.feature</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
+                                    <!-- run: cp test-harness/features/flagd-json-evaluator.feature src/test/resources/features/ -->
+                                    <executable>cp</executable>
+                                    <arguments>
+                                        <argument>test-harness/gherkin/flagd-json-evaluator.feature</argument>
+                                        <argument>src/test/resources/features/</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 

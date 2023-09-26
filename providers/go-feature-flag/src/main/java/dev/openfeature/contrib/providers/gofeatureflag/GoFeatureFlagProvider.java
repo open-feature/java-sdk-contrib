@@ -11,12 +11,11 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.BeanUtils;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRequest;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
-import dev.openfeature.contrib.providers.gofeatureflag.events.Event;
-import dev.openfeature.contrib.providers.gofeatureflag.events.Events;
-import dev.openfeature.contrib.providers.gofeatureflag.events.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTypeInCache;
+import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook;
+import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOptions;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
@@ -32,6 +31,7 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -46,14 +46,13 @@ import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import static dev.openfeature.sdk.Value.objectToValue;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 /**
@@ -61,18 +60,18 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
  */
 @Slf4j
 public class GoFeatureFlagProvider implements FeatureProvider {
-    public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
-    public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
     public static final long DEFAULT_CACHE_TTL_MS = 1000;
     public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
     public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
     public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 10000;
+    public static final ObjectMapper requestMapper = new ObjectMapper();
     protected static final String CACHED_REASON = Reason.CACHED.name();
     private static final String NAME = "GO Feature Flag Provider";
-    private static final ObjectMapper requestMapper = new ObjectMapper();
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final GoFeatureFlagProviderOptions options;
+    private DataCollectorHook dataCollectorHook;
+    private final List<Hook> hooks = new ArrayList<>();
     private HttpUrl parsedEndpoint;
     // httpClient is the instance of the OkHttpClient used by the provider
     private OkHttpClient httpClient;
@@ -80,8 +79,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     private String apiKey;
     @Getter(AccessLevel.PROTECTED)
     private Cache<String, ProviderEvaluation<?>> cache;
-    @Getter(AccessLevel.PROTECTED)
-    private EventsPublisher<Event> eventsPublisher;
     private ProviderState state = ProviderState.NOT_READY;
 
     /**
@@ -107,20 +104,8 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             throw new InvalidOptions("No options provided");
         }
 
-        if (options.getEndpoint() == null || "".equals(options.getEndpoint())) {
+        if (options.getEndpoint() == null || options.getEndpoint().isEmpty()) {
             throw new InvalidEndpoint("endpoint is a mandatory field when initializing the provider");
-        }
-
-        if (options.getFlushIntervalMs() != null && options.getFlushIntervalMs() <= 0) {
-            throw new InvalidOptions("flushIntervalMs must be larger than 0");
-        }
-
-        if (Boolean.FALSE.equals(options.getEnableCache()) && options.getFlushIntervalMs() != null) {
-            throw new InvalidOptions("flushIntervalMs not used when cache is disabled");
-        }
-
-        if (options.getMaxPendingEvents() != null && options.getMaxPendingEvents() <= 0) {
-            throw new InvalidOptions("maxPendingEvents must be larger than 0");
         }
     }
 
@@ -143,8 +128,9 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     }
 
     @Override
+    @SuppressFBWarnings({"EI_EXPOSE_REP"})
     public List<Hook> getProviderHooks() {
-        return FeatureProvider.super.getProviderHooks();
+        return this.hooks;
     }
 
     @Override
@@ -222,17 +208,15 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         this.apiKey = options.getApiKey();
         boolean enableCache = options.getEnableCache() == null || options.getEnableCache();
         if (enableCache) {
-            if (options.getCacheBuilder() != null) {
-                this.cache = options.getCacheBuilder().build();
-            } else {
-                this.cache = buildDefaultCache();
-            }
-            long flushIntervalMs = options.getFlushIntervalMs() == null
-                    ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
-            int maxPendingEvents = options.getMaxPendingEvents() == null
-                    ? DEFAULT_MAX_PENDING_EVENTS : options.getMaxPendingEvents();
-            Consumer<List<Event>> publisher = this::publishEvents;
-            eventsPublisher = new EventsPublisher<>(publisher, flushIntervalMs, maxPendingEvents);
+            this.cache = options.getCacheBuilder() != null ? options.getCacheBuilder().build() : buildDefaultCache();
+            this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
+                    .flushIntervalMs(options.getFlushIntervalMs())
+                    .parsedEndpoint(parsedEndpoint)
+                    .maxPendingEvents(options.getMaxPendingEvents())
+                    .apiKey(options.getApiKey())
+                    .httpClient(this.httpClient)
+                    .build());
+            this.hooks.add(this.dataCollectorHook);
         }
         state = ProviderState.READY;
         log.info("finishing initializing provider, state: {}", state);
@@ -287,7 +271,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 return proxyRes.getProviderEvaluation();
             }
             cachedProviderEvaluation.setReason(CACHED_REASON);
-            addCacheEvaluationEvent(key, defaultValue, user, cachedProviderEvaluation);
 
             if (cachedProviderEvaluation.getValue().getClass() != expectedType) {
                 throw new InvalidTypeInCache(expectedType, cachedProviderEvaluation.getValue().getClass());
@@ -300,30 +283,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
             log.warn(e.getMessage(), e);
             return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
         }
-    }
-
-    /**
-     * addCacheEvaluationEvent is adding an event to the list of event to send to GO Feature Flag.
-     *
-     * @param key                - name of the feature flag
-     * @param defaultValue       - value used if something is not working as expected
-     * @param user               - user (containing EvaluationContext) used for the request
-     * @param providerEvaluation - object containing the evaluation response for openfeature
-     * @param <T>                the type of your evaluation
-     */
-    private <T> void addCacheEvaluationEvent(String key, T defaultValue, GoFeatureFlagUser user,
-                                             ProviderEvaluation<?> providerEvaluation) {
-        eventsPublisher.add(Event.builder()
-                .key(key)
-                .kind("feature")
-                .contextKind(user.isAnonymous() ? "anonymousUser" : "user")
-                .defaultValue(defaultValue)
-                .variation(providerEvaluation.getVariant())
-                .value(providerEvaluation.getValue())
-                .userKey(user.getKey())
-                .creationDate(System.currentTimeMillis())
-                .build()
-        );
     }
 
     /**
@@ -469,64 +428,20 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 || expectedType == Double.class;
 
         if (isPrimitive) {
+            if (value.getClass() == Integer.class && expectedType == Double.class) {
+                return (T) Double.valueOf((Integer) value);
+            }
             return (T) value;
         }
         return (T) objectToValue(value);
     }
 
-    /**
-     * publishEvents is calling the GO Feature Flag data/collector api to store the flag usage for analytics.
-     *
-     * @param eventsList - list of the event to send to GO Feature Flag
-     */
-    private void publishEvents(List<Event> eventsList) {
-        try {
-            Events events = new Events(eventsList);
-            HttpUrl url = this.parsedEndpoint.newBuilder()
-                    .addEncodedPathSegment("v1")
-                    .addEncodedPathSegment("data")
-                    .addEncodedPathSegment("collector")
-                    .build();
-
-            Request.Builder reqBuilder = new Request.Builder()
-                    .url(url)
-                    .addHeader("Content-Type", "application/json")
-                    .post(RequestBody.create(
-                            requestMapper.writeValueAsBytes(events),
-                            MediaType.get("application/json; charset=utf-8")));
-
-            if (this.apiKey != null && !"".equals(this.apiKey)) {
-                reqBuilder.addHeader("Authorization", "Bearer " + this.apiKey);
-            }
-
-            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                if (response.code() == HTTP_UNAUTHORIZED) {
-                    throw new GeneralError("Unauthorized");
-                }
-                if (response.code() >= HTTP_BAD_REQUEST) {
-                    throw new GeneralError("Bad request: " + response.body());
-                }
-
-                if (response.code() == HTTP_OK) {
-                    log.info("Published {} events successfully: {}", eventsList.size(), response.body());
-                }
-            } catch (IOException e) {
-                throw new GeneralError("Impossible to send the usage data to GO Feature Flag", e);
-            }
-        } catch (JsonProcessingException e) {
-            throw new GeneralError("Impossible to convert data collector events", e);
-        }
-    }
 
     @Override
     public void shutdown() {
         log.info("shutdown");
-        try {
-            if (eventsPublisher != null) {
-                eventsPublisher.shutdown();
-            }
-        } catch (Exception e) {
-            log.error("error publishing events on shutdown", e);
+        if (this.dataCollectorHook != null) {
+            this.dataCollectorHook.shutdown();
         }
     }
 }
