@@ -8,7 +8,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -17,13 +17,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 /**
  * flagd feature flag configuration parser.
  */
-@Log
+@Slf4j
 @SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagParser {
@@ -42,7 +41,7 @@ public class FlagParser {
     static {
         try (InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
             if (schema == null) {
-                log.log(Level.WARNING, String.format("Resource %s not found", SCHEMA_RESOURCE));
+                log.warn(String.format("Resource %s not found", SCHEMA_RESOURCE));
             } else {
                 final ByteArrayOutputStream result = new ByteArrayOutputStream();
                 byte[] buffer = new byte[512];
@@ -55,8 +54,7 @@ public class FlagParser {
             }
         } catch (Throwable e) {
             // log only, do not throw
-            log.log(Level.WARNING,
-                    String.format("Error loading resource %s, schema validation will be skipped", SCHEMA_RESOURCE), e);
+            log.warn(String.format("Error loading resource %s, schema validation will be skipped", SCHEMA_RESOURCE), e);
         }
     }
 

@@ -5,7 +5,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,12 +15,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-import java.util.logging.Level;
 
 /**
  * Feature flag storage.
  */
-@Log
+@Slf4j
 @SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagStore implements Storage {
@@ -47,7 +46,7 @@ public class FlagStore implements Storage {
             try {
                 streamerListener(connector);
             } catch (InterruptedException e) {
-                log.log(Level.WARNING, "connection listener failed", e);
+                log.warn("connection listener failed", e);
             }
         });
         streamer.setDaemon(true);
@@ -56,6 +55,7 @@ public class FlagStore implements Storage {
 
     /**
      * Shutdown storage layer.
+     *
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
@@ -102,27 +102,27 @@ public class FlagStore implements Storage {
                             writeLock.unlock();
                         }
                         if (!stateBlockingQueue.offer(StorageState.OK)) {
-                            log.log(Level.WARNING, "Failed to convey OK satus, queue is full");
+                            log.warn("Failed to convey OK satus, queue is full");
                         }
                     } catch (Throwable e) {
                         // catch all exceptions and avoid stream listener interruptions
-                        log.log(Level.WARNING, "Invalid flag sync payload from connector", e);
+                        log.warn("Invalid flag sync payload from connector", e);
                         if (!stateBlockingQueue.offer(StorageState.STALE)) {
-                            log.log(Level.WARNING, "Failed to convey STALE satus, queue is full");
+                            log.warn("Failed to convey STALE satus, queue is full");
                         }
                     }
                     break;
                 case ERROR:
                     if (!stateBlockingQueue.offer(StorageState.ERROR)) {
-                        log.log(Level.WARNING, "Failed to convey ERROR satus, queue is full");
+                        log.warn("Failed to convey ERROR satus, queue is full");
                     }
                     break;
                 default:
-                    log.log(Level.INFO, String.format("Payload with unknown type: %s", take.getType()));
+                    log.info(String.format("Payload with unknown type: %s", take.getType()));
             }
         }
 
-        log.log(Level.INFO, "Shutting down store stream listener");
+        log.info("Shutting down store stream listener");
     }
 
 }

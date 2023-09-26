@@ -3,17 +3,16 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
 
-@Log
+@Slf4j
 public class MockConnector implements Connector {
 
     private BlockingQueue<StreamPayload> mockQueue;
 
-    MockConnector(final BlockingQueue<StreamPayload> mockQueue){
+    MockConnector(final BlockingQueue<StreamPayload> mockQueue) {
         this.mockQueue = mockQueue;
     }
 
@@ -27,8 +26,8 @@ public class MockConnector implements Connector {
 
     public void shutdown() {
         // Emit error mocking closed connection scenario
-        if(!mockQueue.offer(new StreamPayload(StreamPayloadType.ERROR, "shutdown invoked"))){
-            log.log(Level.WARNING, "Failed to offer shutdown status");
+        if (!mockQueue.offer(new StreamPayload(StreamPayloadType.ERROR, "shutdown invoked"))) {
+            log.warn("Failed to offer shutdown status");
         }
     }
 }
