@@ -10,6 +10,6 @@ import lombok.Getter;
  */
 @Getter
 @Builder
-public class UnleashOptions {
+public class UnleashProviderConfig {
     private UnleashConfig.Builder unleashConfigBuilder;
 }

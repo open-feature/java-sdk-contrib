@@ -106,10 +106,10 @@ class UnleashProviderTest {
                 .subscriber(testSubscriber)
                 .synchronousFetchOnInitialisation(synchronousFetchOnInitialisation);
 
-        UnleashOptions unleashOptions = UnleashOptions.builder()
+        UnleashProviderConfig unleashProviderConfig = UnleashProviderConfig.builder()
             .unleashConfigBuilder(unleashConfigBuilder)
             .build();
-        return new UnleashProvider(unleashOptions);
+        return new UnleashProvider(unleashProviderConfig);
     }
 
     @SneakyThrows

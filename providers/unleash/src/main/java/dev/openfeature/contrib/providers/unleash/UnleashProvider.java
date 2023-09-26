@@ -39,7 +39,7 @@ public class UnleashProvider extends EventProvider {
     public static final String UNKNOWN_ERROR = "unknown error";
 
     @Getter(AccessLevel.PROTECTED)
-    private UnleashOptions unleashOptions;
+    private UnleashProviderConfig unleashProviderConfig;
 
     @Setter(AccessLevel.PROTECTED)
     @Getter
@@ -53,10 +53,10 @@ public class UnleashProvider extends EventProvider {
 
     /**
      * Constructor.
-     * @param unleashOptions UnleashOptions
+     * @param unleashProviderConfig UnleashProviderConfig
      */
-    public UnleashProvider(UnleashOptions unleashOptions) {
-        this.unleashOptions = unleashOptions;
+    public UnleashProvider(UnleashProviderConfig unleashProviderConfig) {
+        this.unleashProviderConfig = unleashProviderConfig;
     }
 
     /**
@@ -72,9 +72,9 @@ public class UnleashProvider extends EventProvider {
         }
         super.initialize(evaluationContext);
         UnleashSubscriberWrapper unleashSubscriberWrapper = new UnleashSubscriberWrapper(
-            unleashOptions.getUnleashConfigBuilder().build().getSubscriber(), this);
-        unleashOptions.getUnleashConfigBuilder().subscriber(unleashSubscriberWrapper);
-        UnleashConfig unleashConfig = unleashOptions.getUnleashConfigBuilder().build();
+            unleashProviderConfig.getUnleashConfigBuilder().build().getSubscriber(), this);
+        unleashProviderConfig.getUnleashConfigBuilder().subscriber(unleashSubscriberWrapper);
+        UnleashConfig unleashConfig = unleashProviderConfig.getUnleashConfigBuilder().build();
         unleash = new DefaultUnleash(unleashConfig);
 
         // Unleash is per definition ready after it is initialized.
