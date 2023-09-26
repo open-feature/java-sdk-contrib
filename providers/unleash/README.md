@@ -1,6 +1,6 @@
 # Unofficial Unleash OpenFeature Provider for Java
 
-Unleash OpenFeature Provider can provide usage for Unleash via OpenFeature Java SDK.
+[Unleash](https://getunleash.io) OpenFeature Provider can provide usage for Unleash via OpenFeature Java SDK.
 
 ## Installation
 
@@ -60,6 +60,3 @@ See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers
 
 Unit test based on Unleash instance with Unleash features schema file, with WireMock for API mocking.  
 See [UnleashProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/unleash/UnleashProviderTest.java) for more information.
-
-## References
-* [Unleash](https://getunleash.io)
