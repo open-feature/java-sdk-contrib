@@ -76,7 +76,7 @@ class UnleashProviderTest {
         String unleashAPI = "http://localhost:" + wmRuntimeInfo.getHttpPort() + "/api/";
         String backupFileContent = readBackupFile();
         mockUnleashAPI(backupFileContent);
-        unleashProvider = buildUnleashProvider(true, unleashAPI, backupFileContent, new TestSubscriber());
+        unleashProvider = buildUnleashProvider(true, unleashAPI, new TestSubscriber());
         OpenFeatureAPI.getInstance().setProviderAndWait("sync", unleashProvider);
         client = OpenFeatureAPI.getInstance().getClient("sync");
     }
@@ -99,7 +99,7 @@ class UnleashProviderTest {
     }
 
     @SneakyThrows
-    private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation, String unleashAPI, String backupFileContent, TestSubscriber testSubscriber) {
+    private UnleashProvider buildUnleashProvider(boolean synchronousFetchOnInitialisation, String unleashAPI, TestSubscriber testSubscriber) {
         UnleashConfig.Builder unleashConfigBuilder =
             UnleashConfig.builder().unleashAPI(new URI(unleashAPI))
                 .appName("fakeApp")
@@ -209,7 +209,7 @@ class UnleashProviderTest {
     @SneakyThrows
     @Test
     void shouldThrowIfNotInitialized() {
-        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "{}", new TestSubscriber());
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", new TestSubscriber());
         assertEquals(ProviderState.NOT_READY, asyncInitUnleashProvider.getState());
 
         // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
@@ -225,7 +225,7 @@ class UnleashProviderTest {
     @SneakyThrows
     @Test
     void shouldThrowIfErrorEvent() {
-        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", "{}", null);
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", null);
         asyncInitUnleashProvider.initialize(new ImmutableContext());
 
         asyncInitUnleashProvider.emitProviderError(ProviderEventDetails.builder().build());
@@ -272,7 +272,7 @@ class UnleashProviderTest {
     @Test
     void subscriberWrapperTest() {
         UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false,
-    "http://fakeAPI", "{}", null);
+    "http://fakeAPI", null);
         UnleashSubscriberWrapper unleashSubscriberWrapper = new UnleashSubscriberWrapper(
             new TestSubscriber(), asyncInitUnleashProvider);
         unleashSubscriberWrapper.clientMetrics(null);

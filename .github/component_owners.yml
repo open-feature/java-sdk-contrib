@@ -21,6 +21,7 @@ components:
     - justinabrahms
   providers/unleash:
     - liran2000
+    - sighphyre
 
 ignored-authors:
   - renovate-bot
