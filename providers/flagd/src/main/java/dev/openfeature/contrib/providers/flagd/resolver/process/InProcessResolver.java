@@ -1,11 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
@@ -24,13 +18,18 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
+import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
 /**
  * flagd in-process resolver. Resolves feature flags in-process. Flags are retrieved from {@link Storage}, where the
  * {@link Storage} maintain flag configurations obtained from known source.
  */
-@Log
+@Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
     private final Consumer<ProviderState> stateConsumer;
@@ -70,11 +69,11 @@ public class InProcessResolver implements Resolver {
                         case STALE:
                             // todo set stale state
                         default:
-                            log.log(Level.INFO, String.format("Storage emitted unhandled status: %s", storageState));
+                            log.info(String.format("Storage emitted unhandled status: %s", storageState));
                     }
                 }
             } catch (InterruptedException e) {
-                log.log(Level.WARNING, "Storage state watcher interrupted", e);
+                log.warn("Storage state watcher interrupted", e);
             }
         });
         stateWatcher.setDaemon(true);
@@ -86,8 +85,9 @@ public class InProcessResolver implements Resolver {
 
     /**
      * Shutdown in-process resolver.
+     *
      * @throws InterruptedException if stream can't be closed within deadline.
-     */ 
+     */
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
         this.connected.set(false);
@@ -174,7 +174,7 @@ public class InProcessResolver implements Resolver {
                 }
             } catch (TargetingRuleException e) {
                 String message = String.format("error evaluating targeting rule for flag %s", key);
-                log.log(Level.FINE, message, e);
+                log.debug(message, e);
                 throw new ParseError(message);
             }
         }
@@ -183,13 +183,13 @@ public class InProcessResolver implements Resolver {
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
             String message = String.format("variant %s not found in flag with key %s", resolvedVariant, key);
-            log.log(Level.FINE, message);
+            log.debug(message);
             throw new TypeMismatchError(message);
         }
 
         if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
             String message = "returning default variant for flagKey: %s, type not valid";
-            log.log(Level.FINE, String.format(message, key));
+            log.debug(String.format(message, key));
             throw new TypeMismatchError(message);
         }
 
