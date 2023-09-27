@@ -1,4 +1,4 @@
-# Unofficial Flipt OpenFeature Provider for Java
+# Official Flipt OpenFeature Provider for Java
 
 [Flipt](https://www.flipt.io/) OpenFeature Provider can provide usage for Flipt via OpenFeature Java SDK.
 

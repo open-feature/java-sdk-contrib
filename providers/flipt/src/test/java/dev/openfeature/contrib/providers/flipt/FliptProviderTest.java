@@ -49,6 +49,7 @@ class FliptProviderTest {
     public static final String DOUBLE_FLAG_NAME = "double-flag";
     public static final Double DOUBLE_FLAG_VALUE = 1.23;
     public static final String USERS_FLAG_NAME = "users-flag";
+    public static final String TARGETING_KEY = "targeting_key";
     private static FliptProvider fliptProvider;
     private static Client client;
 
@@ -98,73 +99,80 @@ class FliptProviderTest {
     void getBooleanEvaluation() {
         mockFliptAPI("/evaluate/v1/boolean", "boolean.json", FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();
-        evaluationContext.setTargetingKey(FLAG_NAME + "_targeting_key");
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         assertEquals(true, fliptProvider.getBooleanEvaluation(FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(true, client.getBooleanValue(FLAG_NAME, false));
-        assertEquals(false, fliptProvider.getBooleanEvaluation("non-existing", false, new ImmutableContext()).getValue());
-        assertEquals(false, client.getBooleanValue("non-existing", false));
+        assertEquals(true, client.getBooleanValue(FLAG_NAME, false, evaluationContext));
+        assertEquals(false, fliptProvider.getBooleanEvaluation("non-existing", false, evaluationContext).getValue());
+        assertEquals(false, client.getBooleanValue("non-existing", false, evaluationContext));
     }
 
     @Test
     void getStringVariantEvaluation() {
         mockFliptAPI("/evaluate/v1/variant", "variant.json", VARIANT_FLAG_NAME);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         assertEquals(VARIANT_FLAG_VALUE, fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
-            new ImmutableContext()).getValue());
-        assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(VARIANT_FLAG_NAME, ""));
+                evaluationContext).getValue());
+        assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(VARIANT_FLAG_NAME, "", evaluationContext));
         assertEquals("fallback_str", fliptProvider.getStringEvaluation("non-existing",
-    "fallback_str", new ImmutableContext()).getValue());
-        assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str"));
+    "fallback_str", evaluationContext).getValue());
+        assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str", evaluationContext));
     }
 
     @Test
     void getIntegerEvaluation() {
         mockFliptAPI("/evaluate/v1/variant", "variant-int.json", INT_FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         evaluationContext.add("userId", "int");
         assertEquals(INT_FLAG_VALUE, fliptProvider.getIntegerEvaluation(INT_FLAG_NAME, 1,
             evaluationContext).getValue());
-        assertEquals(INT_FLAG_VALUE, client.getIntegerValue(INT_FLAG_NAME, 1));
-        assertEquals(1, client.getIntegerValue("non-existing", 1));
+        assertEquals(INT_FLAG_VALUE, client.getIntegerValue(INT_FLAG_NAME, 1, evaluationContext));
+        assertEquals(1, client.getIntegerValue("non-existing", 1, evaluationContext));
 
         // non-number flag value
-        assertEquals(1, client.getIntegerValue(VARIANT_FLAG_NAME, 1));
+        assertEquals(1, client.getIntegerValue(VARIANT_FLAG_NAME, 1, evaluationContext));
     }
 
     @Test
     void getDoubleEvaluation() {
         mockFliptAPI("/evaluate/v1/variant", "variant-double.json", DOUBLE_FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         evaluationContext.add("userId", "double");
         assertEquals(DOUBLE_FLAG_VALUE, fliptProvider.getDoubleEvaluation(DOUBLE_FLAG_NAME, 1.1,
             evaluationContext).getValue());
-        assertEquals(DOUBLE_FLAG_VALUE, client.getDoubleValue(DOUBLE_FLAG_NAME, 1.1));
-        assertEquals(1.1, client.getDoubleValue("non-existing", 1.1));
+        assertEquals(DOUBLE_FLAG_VALUE, client.getDoubleValue(DOUBLE_FLAG_NAME, 1.1, evaluationContext));
+        assertEquals(1.1, client.getDoubleValue("non-existing", 1.1, evaluationContext));
 
         // non-number flag value
-        assertEquals(1.1, client.getDoubleValue(VARIANT_FLAG_NAME, 1.1));
+        assertEquals(1.1, client.getDoubleValue(VARIANT_FLAG_NAME, 1.1, evaluationContext));
     }
 
     @Test
-    void getBooleanEvaluationByUser() {
-        mockFliptAPI("/evaluate/v1/boolean", "boolean.json", "111");
+    void getStringEvaluationByUser() {
+        mockFliptAPI("/evaluate/v1/variant", "variant.json", "111");
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         evaluationContext.add("userId", "111");
-        assertEquals(true, fliptProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(true, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
+        assertEquals(VARIANT_FLAG_VALUE, fliptProvider.getStringEvaluation(USERS_FLAG_NAME, "", evaluationContext).getValue());
+        assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(USERS_FLAG_NAME, "", evaluationContext));
         evaluationContext.add("userId", "2");
-        assertEquals(false, fliptProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(false, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
+        assertEquals("", fliptProvider.getStringEvaluation(USERS_FLAG_NAME, "", evaluationContext).getValue());
+        assertEquals("", client.getStringValue(USERS_FLAG_NAME, "", evaluationContext));
     }
 
     @Test
     void getEvaluationMetadataTest() {
         mockFliptAPI("/evaluate/v1/variant", "variant.json", VARIANT_FLAG_NAME);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         ProviderEvaluation<String> stringEvaluation = fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
-            new ImmutableContext());
+            evaluationContext);
         ImmutableMetadata flagMetadata = stringEvaluation.getFlagMetadata();
         assertEquals("attachment-1", flagMetadata.getString("variant-attachment"));
         ProviderEvaluation<String> nonExistingFlagEvaluation = fliptProvider.getStringEvaluation("non-existing",
-            "", new ImmutableContext());
+            "", evaluationContext);
         assertEquals(null, nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
     }
 
