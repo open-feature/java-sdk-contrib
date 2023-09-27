@@ -27,7 +27,7 @@ Unleash OpenFeature Provider is using Unleash Java SDK.
 ### Usage Example
 
 ```
-FeatureProvider featureProvider = new UnleashProvider(unleashProviderConfig);
+FeatureProvider unleashProvider = new UnleashProvider(unleashProviderConfig);
 OpenFeatureAPI.getInstance().setProviderAndWait(unleashProvider);
 boolean featureEnabled = client.getBooleanValue(FLAG_NAME, false);
 
