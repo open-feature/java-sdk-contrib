@@ -4,16 +4,15 @@ import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
 import lombok.Getter;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.MurmurHash3;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 
-@Log
+@Slf4j
 class Fractional implements PreEvaluatedArgumentsExpression {
 
     public String key() {
@@ -42,7 +41,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         } else {
             // fallback to targeting key if present
             if (properties.getTargetingKey() == null) {
-                log.log(Level.FINE, "Missing fallback targeting key");
+                log.debug("Missing fallback targeting key");
                 return null;
             }
 
@@ -61,12 +60,12 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 distribution += fractionProperty.getPercentage();
             }
         } catch (JsonLogicException e) {
-            log.log(Level.FINE, "Error parsing fractional targeting rule", e);
+            log.debug("Error parsing fractional targeting rule", e);
             return null;
         }
 
         if (distribution != 100) {
-            log.log(Level.FINE, "Fractional properties do not sum to 100");
+            log.debug("Fractional properties do not sum to 100");
             return null;
         }
 

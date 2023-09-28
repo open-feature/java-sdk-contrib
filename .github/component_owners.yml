@@ -19,6 +19,9 @@ components:
     - thomaspoignant
   providers/jsonlogic-eval-provider:
     - justinabrahms
+  providers/unleash:
+    - liran2000
+    - sighphyre
   providers/flipt:
     - liran2000
     - markphelps
