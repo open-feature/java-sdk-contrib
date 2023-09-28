@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.3...dev.openfeature.contrib.providers.flagd-v0.6.4) (2023-09-28)
+
+
+### Features
+
+* force update gson depdency ([#460](https://github.com/open-feature/java-sdk-contrib/issues/460)) ([269d284](https://github.com/open-feature/java-sdk-contrib/commit/269d28448834c2ea06e8daa9fef3bd48d501c702))
+* jul to slf4j ([#458](https://github.com/open-feature/java-sdk-contrib/issues/458)) ([a90a864](https://github.com/open-feature/java-sdk-contrib/commit/a90a864a668453e8a0f47af4813cdb669696f678))
+
+
+### Bug Fixes
+
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.99.final ([#464](https://github.com/open-feature/java-sdk-contrib/issues/464)) ([9456f63](https://github.com/open-feature/java-sdk-contrib/commit/9456f63f736d596ba31d550db7a8e7cb2b89f256))
+* **deps:** update dependency org.semver4j:semver4j to v5.2.1 ([#456](https://github.com/open-feature/java-sdk-contrib/issues/456)) ([7aee884](https://github.com/open-feature/java-sdk-contrib/commit/7aee884e25322b6868d649835439da441c57802c))
+
 ## [0.6.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.2...dev.openfeature.contrib.providers.flagd-v0.6.3) (2023-09-22)
 
 
