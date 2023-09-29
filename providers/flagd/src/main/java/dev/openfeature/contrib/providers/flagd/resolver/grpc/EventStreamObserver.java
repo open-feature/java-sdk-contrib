@@ -54,7 +54,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
 
     @Override
     public void onError(Throwable t) {
-        log.error("event stream", t);
+        log.warn("event stream", t);
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
