@@ -1,10 +1,10 @@
 {
-  "providers/flagd": "0.6.3",
+  "providers/flagd": "0.6.4",
   "hooks/open-telemetry": "2.1.0",
   "providers/go-feature-flag": "0.2.13",
   "providers/flagsmith": "0.0.8",
   "providers/env-var": "0.0.4",
   "providers/jsonlogic-eval-provider": "1.0.0",
-  "providers/unleash": "0.0.1-alpha",
+  "providers/unleash": "0.0.2-alpha",
   "providers/flipt": "0.0.1"
 }
