@@ -1,8 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.atMost;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -129,13 +127,13 @@ public class StepDefinitions {
         this.stringFlagKey = flagKey;
         this.stringFlagDefaultValue = defaultValue;
     }
-   
+
     @Then("the resolved string value should be {string}")
     public void the_resolved_string_value_should_be(String expected) {
         String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue);
         assertEquals(expected, value);
     }
-   
+
     // integer value
     @When("an integer flag with key {string} is evaluated with default value {int}")
     public void an_integer_flag_with_key_is_evaluated_with_default_value(String flagKey, Integer defaultValue) {
@@ -385,7 +383,8 @@ public class StepDefinitions {
 
     @Then("the returned value should be {string}")
     public void the_returned_value_should_be(String expected) {
-        String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue, this.customEvaluatorContext);
+        String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue,
+                this.customEvaluatorContext);
         assertEquals(expected, value);
     }
 
@@ -393,38 +392,39 @@ public class StepDefinitions {
      * Events
      */
 
-     // Flag change event
+    // Flag change event
     @When("a PROVIDER_CONFIGURATION_CHANGED handler is added")
     public void a_provider_configuration_changed_handler_is_added() {
-        this.changeHandler = (EventDetails details) -> { 
+        this.changeHandler = (EventDetails details) -> {
             this.isChangeHandlerRun = true;
         };
         client.onProviderConfigurationChanged(this.changeHandler);
 
     }
+
     @When("a flag with key {string} is modified")
     public void a_flag_with_key_is_modified(String flagKey) {
-        //This happens automatically
+        // This happens automatically
     }
 
     @Then("the PROVIDER_CONFIGURATION_CHANGED handler must run")
     public void the_provider_configuration_changed_handler_must_run() {
         Awaitility.await()
-        .atMost(Duration.ofSeconds(2))
-        .until(() -> {
-            return this.isChangeHandlerRun;
-        });
+                .atMost(Duration.ofSeconds(2))
+                .until(() -> {
+                    return this.isChangeHandlerRun;
+                });
     }
 
     @Then("the event details must indicate {string} was altered")
     public void the_event_details_must_indicate_was_altered(String flagKey) {
-        //TODO: In-process-provider doesnt support flag change list.
+        // TODO: In-process-provider doesnt support flag change list.
     }
 
     // Provider ready event
     @When("a PROVIDER_READY handler is added")
     public void a_provider_ready_handler_is_added() {
-        this.readyHandler = (EventDetails details) -> { 
+        this.readyHandler = (EventDetails details) -> {
             this.isReadyHandlerRun = true;
         };
         client.onProviderReady(this.readyHandler);
@@ -433,47 +433,53 @@ public class StepDefinitions {
     @Then("the PROVIDER_READY handler must run")
     public void the_provider_ready_handler_must_run() {
         Awaitility.await()
-        .atMost(Duration.ofSeconds(2))
-        .until(() -> {
-            return this.isReadyHandlerRun;
-        });
+                .atMost(Duration.ofSeconds(2))
+                .until(() -> {
+                    return this.isReadyHandlerRun;
+                });
     }
 
     /*
-    * Zero Value
-    */
+     * Zero Value
+     */
 
     // boolean value
     @When("a zero-value boolean flag with key {string} is evaluated with default value {string}")
-    public void a_zero_value_boolean_flag_with_key_is_evaluated_with_default_value(String flagKey, String defaultValue) {
+    public void a_zero_value_boolean_flag_with_key_is_evaluated_with_default_value(String flagKey,
+            String defaultValue) {
         this.booleanFlagKey = flagKey;
         this.booleanFlagDefaultValue = Boolean.valueOf(defaultValue);
     }
+
     @Then("the resolved boolean zero-value should be {string}")
     public void the_resolved_boolean_zero_value_should_be(String expected) {
         boolean value = client.getBooleanValue(this.booleanFlagKey, this.booleanFlagDefaultValue);
-         assertEquals(Boolean.valueOf(expected),value);   
+        assertEquals(Boolean.valueOf(expected), value);
     }
 
     // float/double value
     @When("a zero-value float flag with key {string} is evaluated with default value {double}")
     public void a_zero_value_float_flag_with_key_is_evaluated_with_default_value(String flagKey, Double defaultValue) {
-        // TODO: There is a bug here with 0 value floats  
+        // TODO: There is a bug here with 0 value floats
         // this.doubleFlagKey = flagKey;
-        // this.doubleFlagDefaultValue = defaultValue;     
+        // this.doubleFlagDefaultValue = defaultValue;
     }
+
     @Then("the resolved float zero-value should be {double}")
     public void the_resolved_float_zero_value_should_be(Double expected) {
-        // FlagEvaluationDetails<Double> details = client.getDoubleDetails("float-zero-flag", this.doubleFlagDefaultValue);
-        // assertEquals(expected, details.getValue());      
+        // FlagEvaluationDetails<Double> details =
+        // client.getDoubleDetails("float-zero-flag", this.doubleFlagDefaultValue);
+        // assertEquals(expected, details.getValue());
     }
 
     // integer value
     @When("a zero-value integer flag with key {string} is evaluated with default value {int}")
-    public void a_zero_value_integer_flag_with_key_is_evaluated_with_default_value(String flagKey, Integer defaultValue) {
+    public void a_zero_value_integer_flag_with_key_is_evaluated_with_default_value(String flagKey,
+            Integer defaultValue) {
         this.intFlagKey = flagKey;
         this.intFlagDefaultValue = defaultValue;
     }
+
     @Then("the resolved integer zero-value should be {int}")
     public void the_resolved_integer_zero_value_should_be(Integer expected) {
         int value = client.getIntegerValue(this.intFlagKey, this.intFlagDefaultValue);
@@ -486,6 +492,7 @@ public class StepDefinitions {
         this.stringFlagKey = flagKey;
         this.stringFlagDefaultValue = defaultValue;
     }
+
     @Then("the resolved string zero-value should be {string}")
     public void the_resolved_string_zero_value_should_be(String expected) {
         String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue);
