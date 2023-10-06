@@ -130,6 +130,9 @@ public class FlagdOptions {
      */
     private OpenTelemetry openTelemetry;
 
+    /**
+     * Overload default lombok builder.
+     */
     public static class FlagdOptionsBuilder {
 
         /**

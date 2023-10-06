@@ -13,7 +13,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * File connector reads flag configurations and expose the context through {@code Connector} contract.
- * <p>
  * The implementation is kept minimal and suites testing, local development needs.
  */
 @Slf4j
