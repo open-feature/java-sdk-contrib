@@ -3,9 +3,11 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.BlockingQueue;
@@ -15,6 +17,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  * File connector reads flag configurations and expose the context through {@code Connector} contract.
  * The implementation is kept minimal and suites testing, local development needs.
  */
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
+        justification = "File connector read feature flag from a file source.")
 @Slf4j
 public class FileConnector implements Connector {
 
@@ -29,7 +33,7 @@ public class FileConnector implements Connector {
      * Initialize file connector. Reads content of the provided source file and offer it through queue.
      */
     public void init() throws IOException {
-        final String flagData = new String(Files.readAllBytes(Paths.get(flagSourcePath)));
+        final String flagData = new String(Files.readAllBytes(Paths.get(flagSourcePath)), StandardCharsets.UTF_8);
 
         if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
             throw new RuntimeException("Unable to write to queue. Que is full.");
