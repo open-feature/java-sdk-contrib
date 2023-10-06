@@ -26,7 +26,8 @@ import java.util.function.Consumer;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
 /**
- * flagd in-process resolver. Resolves feature flags in-process. Flags are retrieved from {@link Storage}, where the
+ * flagd in-process resolver. Resolves feature flags in-process. Flags are
+ * retrieved from {@link Storage}, where the
  * {@link Storage} maintain flag configurations obtained from known source.
  */
 @Slf4j
@@ -97,7 +98,7 @@ public class InProcessResolver implements Resolver {
      * Resolve a boolean flag.
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-                                                         EvaluationContext ctx) {
+            EvaluationContext ctx) {
         return resolve(Boolean.class, key, ctx);
     }
 
@@ -105,7 +106,7 @@ public class InProcessResolver implements Resolver {
      * Resolve a string flag.
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
-                                                       EvaluationContext ctx) {
+            EvaluationContext ctx) {
         return resolve(String.class, key, ctx);
     }
 
@@ -113,7 +114,7 @@ public class InProcessResolver implements Resolver {
      * Resolve a double flag.
      */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
-                                                       EvaluationContext ctx) {
+            EvaluationContext ctx) {
         return resolve(Double.class, key, ctx);
     }
 
@@ -121,7 +122,7 @@ public class InProcessResolver implements Resolver {
      * Resolve an integer flag.
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
-                                                         EvaluationContext ctx) {
+            EvaluationContext ctx) {
         return resolve(Integer.class, key, ctx);
     }
 
@@ -142,7 +143,7 @@ public class InProcessResolver implements Resolver {
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key,
-                                              EvaluationContext ctx) {
+            EvaluationContext ctx) {
         final FeatureFlag flag = flagStore.getFlag(key);
 
         // missing flag
@@ -154,7 +155,6 @@ public class InProcessResolver implements Resolver {
         if ("DISABLED".equals(flag.getState())) {
             throw new FlagNotFoundError("flag: " + key + " is disabled");
         }
-
 
         final Object resolvedVariant;
         final String reason;
@@ -186,7 +186,14 @@ public class InProcessResolver implements Resolver {
             log.debug(message);
             throw new TypeMismatchError(message);
         }
-
+        // if this is an integer and we are trying to resolve a double, convert
+        if (value instanceof Integer && type == Double.class) {
+            value = ((Integer) value).doubleValue();
+        }
+        // if this is a doulbe and we are trying to resolve an integer, convert
+        else if (value instanceof Double && type == Integer.class) {
+            value = ((Double) value).intValue();
+        }
         if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
             String message = "returning default variant for flagKey: %s, type not valid";
             log.debug(String.format(message, key));
