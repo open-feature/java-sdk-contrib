@@ -23,4 +23,13 @@ public class TestUtils {
             return new String(Files.readAllBytes(Paths.get(url.getPath())));
         }
     }
+
+    public static String getResourcePath(final String relativePath) {
+        final URL url = FlagParser.class.getClassLoader().getResource(relativePath);
+        if (url == null) {
+            throw new IllegalStateException(String.format("Resource %s not found", relativePath));
+        } else {
+            return url.getPath();
+        }
+    }
 }
