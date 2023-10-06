@@ -7,6 +7,8 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFla
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
@@ -42,8 +44,11 @@ public class InProcessResolver implements Resolver {
      * Initialize an in-process resolver.
      */
     public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
-        // currently we support gRPC connector
-        this.flagStore = new FlagStore(new GrpcStreamConnector(options));
+        final Connector connector = options.isOffline()
+                ? new FileConnector(options.getOfflineFlagSourcePath())
+                : new GrpcStreamConnector(options);
+
+        this.flagStore = new FlagStore(connector);
         this.deadline = options.getDeadline();
         this.stateConsumer = stateConsumer;
         this.operator = new Operator();
