@@ -189,9 +189,9 @@ public class InProcessResolver implements Resolver {
         // if this is an integer and we are trying to resolve a double, convert
         if (value instanceof Integer && type == Double.class) {
             value = ((Integer) value).doubleValue();
-        }
+        
         // if this is a doulbe and we are trying to resolve an integer, convert
-        else if (value instanceof Double && type == Integer.class) {
+        } else if (value instanceof Double && type == Integer.class) {
             value = ((Double) value).intValue();
         }
         if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
