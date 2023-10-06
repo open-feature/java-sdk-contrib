@@ -147,6 +147,7 @@ public class FlagdOptions {
         }
 
         // Remove the public access as this needs to be connected to offlineFlagSourcePath
+        @SuppressWarnings({"PMD.UnusedFormalParameter", "PMD.UnusedPrivateMethod"})
         private FlagdOptionsBuilder isOffline(final boolean isOffline) {
             return this;
         }
