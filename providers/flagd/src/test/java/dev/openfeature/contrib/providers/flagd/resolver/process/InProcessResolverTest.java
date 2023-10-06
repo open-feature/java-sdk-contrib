@@ -118,7 +118,6 @@ class InProcessResolverTest {
     @Test
     public void fetchIntegerAsDouble() throws Exception {
         // given
-
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
         flagMap.put("doubleFlag", DOUBLE_FLAG);
 
@@ -138,7 +137,6 @@ class InProcessResolverTest {
     @Test
     public void fetchDoubleAsInt() throws Exception {
         // given
-
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
         flagMap.put("integerFlag", INT_FLAG);
 
