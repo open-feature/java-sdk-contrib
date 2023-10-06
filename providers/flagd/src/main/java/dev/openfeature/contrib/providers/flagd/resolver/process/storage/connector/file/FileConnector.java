@@ -17,7 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * File connector reads flag configurations and expose the context through {@code Connector} contract.
  * The implementation is kept minimal and suites testing, local development needs.
  */
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP", "PATH_TRAVERSAL_IN"},
         justification = "File connector read feature flag from a file source.")
 @Slf4j
 public class FileConnector implements Connector {
