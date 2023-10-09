@@ -64,6 +64,7 @@ FlagdProvider flagdProvider = new FlagdProvider(
 
 Provider will not detect file changes nor re-read the file after the initial read.
 This mode is useful for local development, test cases and for offline application.
+For a full-featured, production-ready file-based implementation, use the RPC evaluator in combination with the flagd standalone application, which can be configured to watch files for changes.
 
 ### Configuration options
 
