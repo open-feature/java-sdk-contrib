@@ -460,16 +460,15 @@ public class StepDefinitions {
     // float/double value
     @When("a zero-value float flag with key {string} is evaluated with default value {double}")
     public void a_zero_value_float_flag_with_key_is_evaluated_with_default_value(String flagKey, Double defaultValue) {
-        // TODO: There is a bug here with 0 value floats
-        // this.doubleFlagKey = flagKey;
-        // this.doubleFlagDefaultValue = defaultValue;
+        this.doubleFlagKey = flagKey;
+        this.doubleFlagDefaultValue = defaultValue;
     }
 
     @Then("the resolved float zero-value should be {double}")
     public void the_resolved_float_zero_value_should_be(Double expected) {
-        // FlagEvaluationDetails<Double> details =
-        // client.getDoubleDetails("float-zero-flag", this.doubleFlagDefaultValue);
-        // assertEquals(expected, details.getValue());
+        FlagEvaluationDetails<Double> details =
+        client.getDoubleDetails("float-zero-flag", this.doubleFlagDefaultValue);
+        assertEquals(expected, details.getValue());
     }
 
     // integer value
