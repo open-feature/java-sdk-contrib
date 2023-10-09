@@ -186,12 +186,11 @@ public class InProcessResolver implements Resolver {
             log.debug(message);
             throw new TypeMismatchError(message);
         }
-        // if this is an integer and we are trying to resolve a double, convert
         if (value instanceof Integer && type == Double.class) {
+            // if this is an integer and we are trying to resolve a double, convert
             value = ((Integer) value).doubleValue();
-        
-        // if this is a doulbe and we are trying to resolve an integer, convert
         } else if (value instanceof Double && type == Integer.class) {
+            // if this is a double and we are trying to resolve an integer, convert
             value = ((Double) value).intValue();
         }
         if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
