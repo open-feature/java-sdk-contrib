@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 class FlagStoreTest {
 
     @Test
-    public void connectorHandling() throws InterruptedException {
+    public void connectorHandling() throws Exception {
         final int maxDelay = 500;
 
         final BlockingQueue<StreamPayload> payload = new LinkedBlockingQueue<>();

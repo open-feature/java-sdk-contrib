@@ -30,10 +30,12 @@ public class FeatureFlagProviderBuilderTest {
         assertEquals(builder.getMaxEventStreamRetries(), DEFAULT_MAX_EVENT_STREAM_RETRIES);
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
+        assertNull(builder.getOfflineFlagSourcePath());
+        assertFalse(builder.isOffline());
     }
 
     @Test
-    public void TestBuilderOptions(){
+    public void TestBuilderOptions() {
         OpenTelemetry openTelemetry = Mockito.mock(OpenTelemetry.class);
 
         FlagdOptions flagdOptions = FlagdOptions.builder()
@@ -45,6 +47,7 @@ public class FeatureFlagProviderBuilderTest {
                 .maxCacheSize(100)
                 .maxEventStreamRetries(1)
                 .selector("app=weatherApp")
+                .offlineFlagSourcePath("some-path")
                 .openTelemetry(openTelemetry)
                 .build();
 
@@ -56,6 +59,8 @@ public class FeatureFlagProviderBuilderTest {
         assertEquals(flagdOptions.getMaxCacheSize(), 100);
         assertEquals(flagdOptions.getMaxEventStreamRetries(), 1);
         assertEquals(flagdOptions.getSelector(), "app=weatherApp");
+        assertTrue(flagdOptions.isOffline());
+        assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(flagdOptions.getOpenTelemetry(), openTelemetry);
     }
 }

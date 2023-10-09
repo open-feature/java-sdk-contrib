@@ -7,7 +7,7 @@ import java.util.concurrent.BlockingQueue;
  * {@link StreamPayload} format.
  */
 public interface Connector {
-    void init();
+    void init() throws Exception;
 
     BlockingQueue<StreamPayload> getStream();
 

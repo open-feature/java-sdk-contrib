@@ -8,7 +8,7 @@ import java.util.concurrent.BlockingQueue;
  * Storage abstraction for resolver.
  */
 public interface Storage {
-    void init();
+    void init() throws Exception;
 
     void shutdown() throws InterruptedException;
 
