@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.4...dev.openfeature.contrib.providers.flagd-v0.6.5) (2023-10-09)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.31.0 ([#474](https://github.com/open-feature/java-sdk-contrib/issues/474)) ([f4f28d8](https://github.com/open-feature/java-sdk-contrib/commit/f4f28d8413f56d25355ce0331b6cf1f8b8de7229))
+* int/float auto-conversion ([#472](https://github.com/open-feature/java-sdk-contrib/issues/472)) ([63b541c](https://github.com/open-feature/java-sdk-contrib/commit/63b541c166188552764da9df3326754ea6d65b77))
+
+
+### 🧹 Chore
+
+* fix dependencies for flagd and OTel hook ([#471](https://github.com/open-feature/java-sdk-contrib/issues/471)) ([8a0c8cf](https://github.com/open-feature/java-sdk-contrib/commit/8a0c8cfa675363ecbef5467fea7ffc28d4b69e97))
+* flagd change log level from error to warn ([#465](https://github.com/open-feature/java-sdk-contrib/issues/465)) ([d03be0c](https://github.com/open-feature/java-sdk-contrib/commit/d03be0c366876a84bcf169d5404ea2ea144e7fab))
+
 ## [0.6.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.3...dev.openfeature.contrib.providers.flagd-v0.6.4) (2023-09-28)
 
 
