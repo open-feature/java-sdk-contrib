@@ -36,7 +36,7 @@ public class FileConnector implements Connector {
         final String flagData = new String(Files.readAllBytes(Paths.get(flagSourcePath)), StandardCharsets.UTF_8);
 
         if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
-            throw new RuntimeException("Unable to write to queue. Que is full.");
+            throw new RuntimeException("Unable to write to queue. Queue is full.");
         }
 
         log.info(String.format("Using feature flag configurations from file %s", flagSourcePath));
