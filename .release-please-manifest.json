@@ -1,6 +1,6 @@
 {
   "providers/flagd": "0.6.4",
-  "hooks/open-telemetry": "2.1.0",
+  "hooks/open-telemetry": "2.1.1",
   "providers/go-feature-flag": "0.2.13",
   "providers/flagsmith": "0.0.8",
   "providers/env-var": "0.0.4",

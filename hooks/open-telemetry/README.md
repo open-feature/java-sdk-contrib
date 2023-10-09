@@ -12,7 +12,7 @@ These hooks can be used to determine the impact a feature has on a request, enab
 <dependency>
     <groupId>dev.openfeature.contrib.hooks</groupId>
     <artifactId>otel</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
 </dependency>
 ```
 

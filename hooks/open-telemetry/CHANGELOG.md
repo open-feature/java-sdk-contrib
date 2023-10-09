@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v2.1.0...dev.openfeature.contrib.hooks.otel-v2.1.1) (2023-10-09)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.30.0 ([#428](https://github.com/open-feature/java-sdk-contrib/issues/428)) ([ffcbc47](https://github.com/open-feature/java-sdk-contrib/commit/ffcbc4745471a9be6c51428fa83693475bc5110d))
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.30.1 ([#433](https://github.com/open-feature/java-sdk-contrib/issues/433)) ([0fe21e9](https://github.com/open-feature/java-sdk-contrib/commit/0fe21e9b3dc1e16bb28f285fa89f0a62c5c4a6fb))
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.31.0 ([#475](https://github.com/open-feature/java-sdk-contrib/issues/475)) ([4873ebc](https://github.com/open-feature/java-sdk-contrib/commit/4873ebc83bf12afe365fec33fcc874c90e48cc91))
+
+
+### 🧹 Chore
+
+* fix dependencies for flagd and OTel hook ([#471](https://github.com/open-feature/java-sdk-contrib/issues/471)) ([8a0c8cf](https://github.com/open-feature/java-sdk-contrib/commit/8a0c8cfa675363ecbef5467fea7ffc28d4b69e97))
+
 ## [2.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v2.0.0...dev.openfeature.contrib.hooks.otel-v2.1.0) (2023-08-21)
 
 
