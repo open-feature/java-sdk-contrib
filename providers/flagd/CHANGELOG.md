@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.5...dev.openfeature.contrib.providers.flagd-v0.6.6) (2023-10-10)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.semver4j:semver4j to v5.2.2 ([#480](https://github.com/open-feature/java-sdk-contrib/issues/480)) ([05a2535](https://github.com/open-feature/java-sdk-contrib/commit/05a2535f6223d923ce878e824dbac0ba1c06415e))
+
+
+### ✨ New Features
+
+* flagd in process offline mode ([#473](https://github.com/open-feature/java-sdk-contrib/issues/473)) ([6920557](https://github.com/open-feature/java-sdk-contrib/commit/6920557708528fa858b3febd7f0700255e598576))
+
 ## [0.6.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.4...dev.openfeature.contrib.providers.flagd-v0.6.5) (2023-10-09)
 
 
