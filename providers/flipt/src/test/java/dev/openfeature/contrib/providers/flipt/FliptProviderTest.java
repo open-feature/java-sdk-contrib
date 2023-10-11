@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * FliptProvider test, based on APIs mocking.
  */
-@WireMockTest(httpPort = 9090)
+@WireMockTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FliptProviderTest {
 
