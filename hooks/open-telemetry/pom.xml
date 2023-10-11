@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.hooks</groupId>
     <artifactId>otel</artifactId>
-    <version>2.1.0</version> <!--x-release-please-version -->
+    <version>2.1.1</version> <!--x-release-please-version -->
 
     <name>open-telemetry-hook</name>
     <description>Open Telemetry Hook</description>
@@ -30,7 +30,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
-                <version>1.30.1</version>
+                <version>1.31.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -48,8 +48,7 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
-            <version>1.28.0-alpha</version>
-            <scope>provided</scope>
+            <version>1.30.1-alpha</version>
         </dependency>
 
         <dependency>
