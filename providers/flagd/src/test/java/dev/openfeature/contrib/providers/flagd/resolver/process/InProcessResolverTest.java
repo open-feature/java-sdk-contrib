@@ -47,8 +47,8 @@ class InProcessResolverTest {
         final BlockingQueue<StorageState> sender = new LinkedBlockingQueue<>(5);
         final BlockingQueue<ProviderState> receiver = new LinkedBlockingQueue<>(5);
 
-        InProcessResolver inProcessResolver =
-                getInProcessResolverWth(new MockStorage(new HashMap<>(), sender), providerState -> {
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(new HashMap<>(), sender),
+                providerState -> {
                     receiver.offer(providerState);
                 });
 
@@ -56,7 +56,8 @@ class InProcessResolverTest {
         Thread initThread = new Thread(() -> {
             try {
                 inProcessResolver.init();
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         });
         initThread.start();
         if (!sender.offer(StorageState.OK, 100, TimeUnit.MILLISECONDS)) {
@@ -86,8 +87,8 @@ class InProcessResolverTest {
         });
 
         // when
-        ProviderEvaluation<Boolean> providerEvaluation =
-                inProcessResolver.booleanEvaluation("booleanFlag", false, new ImmutableContext());
+        ProviderEvaluation<Boolean> providerEvaluation = inProcessResolver.booleanEvaluation("booleanFlag", false,
+                new ImmutableContext());
 
         // then
         assertEquals(true, providerEvaluation.getValue());
@@ -105,11 +106,49 @@ class InProcessResolverTest {
         });
 
         // when
-        ProviderEvaluation<Double> providerEvaluation =
-                inProcessResolver.doubleEvaluation("doubleFlag", 0d, new ImmutableContext());
+        ProviderEvaluation<Double> providerEvaluation = inProcessResolver.doubleEvaluation("doubleFlag", 0d,
+                new ImmutableContext());
 
         // then
         assertEquals(3.141d, providerEvaluation.getValue());
+        assertEquals("one", providerEvaluation.getVariant());
+        assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
+    }
+
+    @Test
+    public void fetchIntegerAsDouble() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("doubleFlag", DOUBLE_FLAG);
+
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
+        });
+
+        // when
+        ProviderEvaluation<Integer> providerEvaluation = inProcessResolver.integerEvaluation("doubleFlag", 0,
+                new ImmutableContext());
+
+        // then
+        assertEquals(3, providerEvaluation.getValue());
+        assertEquals("one", providerEvaluation.getVariant());
+        assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
+    }
+
+    @Test
+    public void fetchDoubleAsInt() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("integerFlag", INT_FLAG);
+
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
+        });
+
+        // when
+        ProviderEvaluation<Double> providerEvaluation = inProcessResolver.doubleEvaluation("integerFlag", 0d,
+                new ImmutableContext());
+
+        // then
+        assertEquals(1d, providerEvaluation.getValue());
         assertEquals("one", providerEvaluation.getVariant());
         assertEquals(Reason.STATIC.toString(), providerEvaluation.getReason());
     }
@@ -124,8 +163,8 @@ class InProcessResolverTest {
         });
 
         // when
-        ProviderEvaluation<Integer> providerEvaluation =
-                inProcessResolver.integerEvaluation("integerFlag", 0, new ImmutableContext());
+        ProviderEvaluation<Integer> providerEvaluation = inProcessResolver.integerEvaluation("integerFlag", 0,
+                new ImmutableContext());
 
         // then
         assertEquals(1, providerEvaluation.getValue());
@@ -147,8 +186,8 @@ class InProcessResolverTest {
         typeDefault.put("date", "01.01.1990");
 
         // when
-        ProviderEvaluation<Value> providerEvaluation =
-                inProcessResolver.objectEvaluation("objectFlag", Value.objectToValue(typeDefault), new ImmutableContext());
+        ProviderEvaluation<Value> providerEvaluation = inProcessResolver.objectEvaluation("objectFlag",
+                Value.objectToValue(typeDefault), new ImmutableContext());
 
         // then
         Value value = providerEvaluation.getValue();
@@ -230,9 +269,8 @@ class InProcessResolverTest {
         });
 
         // when
-        ProviderEvaluation<String> providerEvaluation =
-                inProcessResolver.stringEvaluation("stringFlag", "loopAlg",
-                        new MutableContext().add("email", "abc@faas.com"));
+        ProviderEvaluation<String> providerEvaluation = inProcessResolver.stringEvaluation("stringFlag", "loopAlg",
+                new MutableContext().add("email", "abc@faas.com"));
 
         // then
         assertEquals("binetAlg", providerEvaluation.getValue());
@@ -250,9 +288,8 @@ class InProcessResolverTest {
         });
 
         // when
-        ProviderEvaluation<String> providerEvaluation =
-                inProcessResolver.stringEvaluation("stringFlag", "loopAlg",
-                        new MutableContext().add("email", "abc@abc.com"));
+        ProviderEvaluation<String> providerEvaluation = inProcessResolver.stringEvaluation("stringFlag", "loopAlg",
+                new MutableContext().add("email", "abc@abc.com"));
 
         // then
         assertEquals("loopAlg", providerEvaluation.getValue());
@@ -275,13 +312,13 @@ class InProcessResolverTest {
         });
     }
 
-
     private InProcessResolver getInProcessResolverWth(final MockStorage storage, Consumer<ProviderState> stateConsumer)
             throws NoSuchFieldException, IllegalAccessException {
         Field flagStore = InProcessResolver.class.getDeclaredField("flagStore");
         flagStore.setAccessible(true);
 
-        InProcessResolver resolver = new InProcessResolver(FlagdOptions.builder().deadline(1000).build(), stateConsumer);
+        InProcessResolver resolver = new InProcessResolver(FlagdOptions.builder().deadline(1000).build(),
+                stateConsumer);
         flagStore.set(resolver, storage);
 
         return resolver;

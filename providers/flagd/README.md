@@ -12,7 +12,7 @@ This provider is designed to use flagd's [evaluation protocol](https://github.co
 <dependency>
   <groupId>dev.openfeature.contrib.providers</groupId>
   <artifactId>flagd</artifactId>
-  <version>0.6.4</version>
+  <version>0.6.6</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
@@ -50,6 +50,21 @@ FlagdProvider flagdProvider = new FlagdProvider(
 ```
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
+
+In-process resolver can also work in an offline mode. To enable this mode, you should provide a valid flag configuration file with the option `offlineFlagSourcePath`.
+The file must contain a valid flagd flag source file.
+
+```java
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .resolverType(Config.Evaluator.IN_PROCESS)
+                .offlineFlagSourcePath("PATH")
+                .build());
+```
+
+Provider will not detect file changes nor re-read the file after the initial read.
+This mode is useful for local development, test cases and for offline application.
+For a full-featured, production-ready file-based implementation, use the RPC evaluator in combination with the flagd standalone application, which can be configured to watch files for changes.
 
 ### Configuration options
 

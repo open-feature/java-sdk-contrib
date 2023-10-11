@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.5...dev.openfeature.contrib.providers.flagd-v0.6.6) (2023-10-10)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.semver4j:semver4j to v5.2.2 ([#480](https://github.com/open-feature/java-sdk-contrib/issues/480)) ([05a2535](https://github.com/open-feature/java-sdk-contrib/commit/05a2535f6223d923ce878e824dbac0ba1c06415e))
+
+
+### ✨ New Features
+
+* flagd in process offline mode ([#473](https://github.com/open-feature/java-sdk-contrib/issues/473)) ([6920557](https://github.com/open-feature/java-sdk-contrib/commit/6920557708528fa858b3febd7f0700255e598576))
+
+## [0.6.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.4...dev.openfeature.contrib.providers.flagd-v0.6.5) (2023-10-09)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.31.0 ([#474](https://github.com/open-feature/java-sdk-contrib/issues/474)) ([f4f28d8](https://github.com/open-feature/java-sdk-contrib/commit/f4f28d8413f56d25355ce0331b6cf1f8b8de7229))
+* int/float auto-conversion ([#472](https://github.com/open-feature/java-sdk-contrib/issues/472)) ([63b541c](https://github.com/open-feature/java-sdk-contrib/commit/63b541c166188552764da9df3326754ea6d65b77))
+
+
+### 🧹 Chore
+
+* fix dependencies for flagd and OTel hook ([#471](https://github.com/open-feature/java-sdk-contrib/issues/471)) ([8a0c8cf](https://github.com/open-feature/java-sdk-contrib/commit/8a0c8cfa675363ecbef5467fea7ffc28d4b69e97))
+* flagd change log level from error to warn ([#465](https://github.com/open-feature/java-sdk-contrib/issues/465)) ([d03be0c](https://github.com/open-feature/java-sdk-contrib/commit/d03be0c366876a84bcf169d5404ea2ea144e7fab))
+
 ## [0.6.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.3...dev.openfeature.contrib.providers.flagd-v0.6.4) (2023-09-28)
 
 

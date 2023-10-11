@@ -40,7 +40,7 @@ public class FlagStore implements Storage {
     /**
      * Initialize storage layer.
      */
-    public void init() {
+    public void init() throws Exception {
         connector.init();
         Thread streamer = new Thread(() -> {
             try {

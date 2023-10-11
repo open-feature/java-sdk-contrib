@@ -48,8 +48,8 @@ jobs:
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
-      # Release Please has already incremented versions and published tags, so we just need to publish.
-      - name: Maven Verify Deploy
+      # Release Please has already incremented versions and published tags, so we just need to publish (skip tests).
+      - name: Maven Verify Deploy -DskipTests
         if: ${{ steps.release.outputs.releases_created }}
         # The nexus-staging-maven-plugin doesn't follow maven conventions. It stages all the projects with the last submodule: https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment
         # This means there's no way to skip publishing of a particular module in a multi-module build, so we iterate over each module and publish them individually,
