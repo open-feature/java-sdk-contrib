@@ -3,6 +3,7 @@ package dev.openfeature.contrib.hooks.otel;
 import dev.openfeature.sdk.ImmutableMetadata;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -30,4 +31,10 @@ public class MetricHookOptions {
      */
     @Builder.Default
     private final List<DimensionDescription> setDimensions = Collections.emptyList();
+
+    /**
+     * Extra attributes added at hook constructor time.
+     */
+    @Builder.Default
+    private Attributes extraAttributes = Attributes.empty();
 }

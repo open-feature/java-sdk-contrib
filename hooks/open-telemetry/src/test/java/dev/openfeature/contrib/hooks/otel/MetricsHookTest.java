@@ -105,7 +105,8 @@ class MetricsHookTest {
         dimensionList.add(new DimensionDescription("double", Double.class));
         dimensionList.add(new DimensionDescription("string", String.class));
 
-        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(), dimensionList);
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(),
+                MetricHookOptions.builder().setDimensions(dimensionList).build());
 
         final ImmutableMetadata metadata = ImmutableMetadata.builder()
                 .addBoolean("boolean", true)
@@ -213,6 +214,10 @@ class MetricsHookTest {
                         .put("double", metadata.getDouble("double"))
                         .put("string", metadata.getString("string"))
                         .build())
+                .extraAttributes(
+                        Attributes.builder()
+                                .put("scope", "value")
+                                .build())
                 .build();
 
         final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(), hookOptions);
@@ -254,5 +259,6 @@ class MetricsHookTest {
         assertThat(attributes.get(AttributeKey.longKey("long"))).isEqualTo(1L);
         assertThat(attributes.get(AttributeKey.longKey("integer"))).isEqualTo(1);
         assertThat(attributes.get(AttributeKey.booleanKey("boolean"))).isEqualTo(true);
+        assertThat(attributes.get(AttributeKey.stringKey("scope"))).isEqualTo("value");
     }
 }
