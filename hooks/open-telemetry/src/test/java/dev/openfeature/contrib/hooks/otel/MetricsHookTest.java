@@ -149,7 +149,13 @@ class MetricsHookTest {
     @Test
     public void error_stage_validation() {
         // given
-        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry());
+        final MetricsHook metricHook =
+                new MetricsHook(telemetryExtension.getOpenTelemetry(),
+                        MetricHookOptions.builder()
+                                .extraAttributes(Attributes.builder()
+                                        .put("scope", "app-a")
+                                        .build())
+                                .build());
 
         final Exception exception = new Exception("some_exception");
 
@@ -172,6 +178,7 @@ class MetricsHookTest {
 
         assertThat(attributes.get(flagKeyAttributeKey)).isEqualTo("key");
         assertThat(attributes.get(providerNameAttributeKey)).isEqualTo("UnitTest");
+        assertThat(attributes.get(AttributeKey.stringKey("scope"))).isEqualTo("app-a");
     }
 
 

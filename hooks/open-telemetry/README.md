@@ -36,7 +36,7 @@ Failed evaluations can be allowed to set span status to `ERROR`. You can configu
 #### Custom dimensions (attributes)
 
 You can write your own logic to extract custom dimensions from [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by setting a callback to `dimensionExtractor`.
-Extracted dimensions will be added to successful falg evaluation spans.
+These extracted dimensions will be added to successful flag evaluation spans.
 
 ```java
  TracesHookOptions options = TracesHookOptions.builder()
@@ -50,7 +50,8 @@ Extracted dimensions will be added to successful falg evaluation spans.
 TracesHook tracesHook = new TracesHook(options);
 ```
 
-Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`,
+Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`.
+These extracted dimensions will be added to successful flag evaluation spans as well as flag evaluation error spans.
 
 ```java
 TracesHookOptions options = TracesHookOptions.builder()
@@ -143,7 +144,8 @@ MetricHookOptions hookOptions = MetricHookOptions.builder()
 
 final MetricsHook metricHook = new MetricsHook(openTelemetry, hookOptions);
 ```
-Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`,
+Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`.
+Dimensions added through `extraAttributes` option will be included in both flag evaluation success and evaluation error metrics.
 
 ```java
 MetricHookOptions hookOptions = MetricHookOptions.builder()

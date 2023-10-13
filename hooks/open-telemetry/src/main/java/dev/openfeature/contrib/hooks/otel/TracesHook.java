@@ -51,7 +51,8 @@ public class TracesHook implements Hook {
      * @param details Information about how the flag was resolved, including any resolved values.
      * @param hints   An immutable mapping of data for users to communicate to the hooks.
      */
-    @Override public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
+    @Override
+    public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         Span currentSpan = Span.current();
         if (currentSpan == null) {
             return;
@@ -82,7 +83,8 @@ public class TracesHook implements Hook {
      * @param error The exception that was thrown.
      * @param hints An immutable mapping of data for users to communicate to the hooks.
      */
-    @Override public void error(HookContext ctx, Exception error, Map hints) {
+    @Override
+    public void error(HookContext ctx, Exception error, Map hints) {
         Span currentSpan = Span.current();
         if (currentSpan == null) {
             return;
@@ -92,8 +94,12 @@ public class TracesHook implements Hook {
             currentSpan.setStatus(StatusCode.ERROR);
         }
 
-        Attributes attributes = Attributes.of(flagKeyAttributeKey, ctx.getFlagKey(), providerNameAttributeKey,
-                ctx.getProviderMetadata().getName());
+        Attributes attributes = Attributes.builder()
+                .put(flagKeyAttributeKey, ctx.getFlagKey())
+                .put(providerNameAttributeKey, ctx.getProviderMetadata().getName())
+                .putAll(extraAttributes)
+                .build();
+
         currentSpan.recordException(error, attributes);
     }
 }
