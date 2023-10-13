@@ -33,7 +33,9 @@ The hook implementation is attached to `after`and `error` [hook stages](https://
 Both successful and failed flag evaluations will add a span event named `feature_flag` with evaluation details such as flag key, provider name and variant.
 Failed evaluations can be allowed to set span status to `ERROR`. You can configure this behavior through`TracesHookOptions`.
 
-Further, you can write your own logic to extract custom dimensions from [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by setting a callback to `TracesHookOptions.dimensionExtractor`.
+#### Custom dimensions (attributes)
+
+You can write your own logic to extract custom dimensions from [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by setting a callback to `dimensionExtractor`.
 Extracted dimensions will be added to successful falg evaluation spans.
 
 ```java
@@ -45,8 +47,23 @@ Extracted dimensions will be added to successful falg evaluation spans.
                     .build()
             ).build();
 
-    TracesHook tracesHook = new TracesHook(options);
+TracesHook tracesHook = new TracesHook(options);
 ```
+
+Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`,
+
+```java
+TracesHookOptions options = TracesHookOptions.builder()
+            .extraAttributes(Attributes.builder()
+                .put("scope", "my-app")
+                .put("region", "us-east-1")
+                .build())
+            .build();
+
+TracesHook tracesHook = new TracesHook(options);
+```
+
+#### Example
 
 Consider the following code example for a complete usage,
 
@@ -93,7 +110,7 @@ OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 api.addHooks(new MetricsHook(openTelemetry));
 ```
 
-#### Recording custom dimensions
+#### Custom dimensions (attributes)
 
 You can extract dimension from `ImmutableMetadata` of the `FlagEvaluationDetails` and add them to `feature_flag. evaluation_success_total` metric.
 To use this feature, construct the `MetricsHook` with a list of `DimensionDescription`. 
@@ -111,7 +128,7 @@ OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 api.addHooks(new MetricsHook(openTelemetry, customDimensions));
 ```
 
-Alternatively, you can wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `TracesHookOptions.attributeSetter`.
+You can also wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `attributeSetter`.
 
 ```java
 final OpenTelemetry openTelemetry = ... // OpenTelemetry API instance
@@ -121,6 +138,18 @@ MetricHookOptions hookOptions = MetricHookOptions.builder()
         .attributeSetter(metadata -> Attributes.builder()
             .put("boolean", metadata.getBoolean("boolean"))
             .put("integer", metadata.getInteger("integer"))
+            .build())
+        .build();
+
+final MetricsHook metricHook = new MetricsHook(openTelemetry, hookOptions);
+```
+Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`,
+
+```java
+MetricHookOptions hookOptions = MetricHookOptions.builder()
+        .extraAttributes(Attributes.builder()
+            .put("scope", "my-app")
+            .put("region", "us-east-1")
             .build())
         .build();
 
