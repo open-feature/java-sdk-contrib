@@ -1,17 +1,19 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
-import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-import org.junit.jupiter.api.Test;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.FLAGD_PROPS_KEY;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.FLAG_KEY;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.TARGET_KEY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.FLAG_KEY;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.TARGET_KEY;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import org.junit.jupiter.api.Test;
+
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 
 class FractionalTest {
 
@@ -48,8 +50,10 @@ class FractionalTest {
         rule.add(bucket1);
         rule.add(bucket2);
 
-        Map<String, String> data = new HashMap<>();
-        data.put(FLAG_KEY, "flagA");
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        Map<String, Object> data = new HashMap<>();
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
 
         // when
         Object evaluate = fractional.evaluate(rule, data);
@@ -91,8 +95,10 @@ class FractionalTest {
         rule.add(bucket1);
         rule.add(bucket2);
 
-        Map<String, String> data = new HashMap<>();
-        data.put(FLAG_KEY, "flagA");
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        Map<String, Object> data = new HashMap<>();
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
 
         // when
         Object evaluate = fractional.evaluate(rule, data);
