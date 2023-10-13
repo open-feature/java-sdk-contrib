@@ -59,7 +59,7 @@ public class Operator {
             if (from instanceof Map) {
                 Map<?, ?> dataMap = (Map<?, ?>) from;
 
-                Object flagKey = Optional.ofNullable(dataMap.get(FLAGD_PROPS_KEY))
+                final Object flagKey = Optional.ofNullable(dataMap.get(FLAGD_PROPS_KEY))
                     .filter(flagdProps -> flagdProps instanceof Map)
                     .map(flagdProps -> ((Map<?, ?>)flagdProps).get(FLAG_KEY))
                     .orElse(null);
@@ -70,7 +70,7 @@ public class Operator {
                     this.flagKey = null;
                 }
 
-                Object targetKey = dataMap.get(TARGET_KEY);
+                final Object targetKey = dataMap.get(TARGET_KEY);
 
                 if (targetKey instanceof String) {
                     targetingKey = (String) targetKey;
