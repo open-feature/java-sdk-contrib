@@ -123,6 +123,7 @@ public class MetricsHook implements Hook {
         final AttributesBuilder attributesBuilder = Attributes.builder();
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
         attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
+        attributesBuilder.putAll(extraDimensions);
 
         evaluationErrorCounter.add(+1, attributesBuilder.build());
     }
