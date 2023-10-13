@@ -36,7 +36,7 @@ Failed evaluations can be allowed to set span status to `ERROR`. You can configu
 #### Custom dimensions (attributes)
 
 You can write your own logic to extract custom dimensions from [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by setting a callback to `dimensionExtractor`.
-These extracted dimensions will be added to successful falg evaluation spans.
+These extracted dimensions will be added to successful flag evaluation spans.
 
 ```java
  TracesHookOptions options = TracesHookOptions.builder()
