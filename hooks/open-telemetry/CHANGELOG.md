@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.0.0...dev.openfeature.contrib.hooks.otel-v3.1.0) (2023-10-13)
+
+
+### ✨ New Features
+
+* extra dimensions to error ([#497](https://github.com/open-feature/java-sdk-contrib/issues/497)) ([b8e852c](https://github.com/open-feature/java-sdk-contrib/commit/b8e852c76027c7facec63f5c1f201d3ad77e2a35))
+
 ## [3.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v2.1.1...dev.openfeature.contrib.hooks.otel-v3.0.0) (2023-10-13)
 
 
