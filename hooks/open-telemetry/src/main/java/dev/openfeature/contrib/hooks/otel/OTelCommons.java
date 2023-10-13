@@ -14,5 +14,4 @@ class OTelCommons {
 
     // Define non convention attribute keys
     static final String REASON_KEY = "reason";
-    static final String ERROR_KEY = "exception";
 }
