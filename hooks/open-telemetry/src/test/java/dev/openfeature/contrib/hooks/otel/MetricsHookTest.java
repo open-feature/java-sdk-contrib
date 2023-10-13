@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.ERROR_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
@@ -173,7 +172,6 @@ class MetricsHookTest {
 
         assertThat(attributes.get(flagKeyAttributeKey)).isEqualTo("key");
         assertThat(attributes.get(providerNameAttributeKey)).isEqualTo("UnitTest");
-        assertThat(attributes.get(AttributeKey.stringKey(ERROR_KEY))).isEqualTo("some_exception");
     }
 
 

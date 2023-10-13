@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.ERROR_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
@@ -122,13 +121,8 @@ public class MetricsHook implements Hook {
     @Override
     public void error(HookContext ctx, Exception error, Map hints) {
         final AttributesBuilder attributesBuilder = Attributes.builder();
-
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
         attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
-
-        if (error.getMessage() != null) {
-            attributesBuilder.put(ERROR_KEY, error.getMessage());
-        }
 
         evaluationErrorCounter.add(+1, attributesBuilder.build());
     }
