@@ -1,14 +1,15 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
-import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.Value;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.Value;
 
 class OperatorTest {
     private static Operator OPERATOR;
@@ -16,6 +17,20 @@ class OperatorTest {
     @BeforeAll
     static void setUp() {
         OPERATOR = new Operator();
+    }
+
+    @Test
+    void flagKeyPresent() throws TargetingRuleException {
+        // given
+
+        // rule asserting $flagd.flagKey equals the flag key
+        final String targetingRule = "{\"===\":[{\"var\":[\"$flagd.flagKey\"]},\"some-key\"]}";
+
+        // when
+        Object evalVariant = OPERATOR.apply("some-key", targetingRule, new ImmutableContext());
+
+        // then
+        assertEquals(true, evalVariant);
     }
 
     @Test
