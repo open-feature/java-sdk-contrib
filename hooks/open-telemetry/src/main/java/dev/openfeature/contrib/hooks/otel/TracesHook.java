@@ -24,6 +24,7 @@ import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey
 public class TracesHook implements Hook {
     private final boolean setSpanErrorStatus;
     private final Function<ImmutableMetadata, Attributes> extractor;
+    private final Attributes extraAttributes;
 
     /**
      * Create a new OpenTelemetryHook instance with default options.
@@ -38,6 +39,7 @@ public class TracesHook implements Hook {
     public TracesHook(TracesHookOptions options) {
         setSpanErrorStatus = options.isSetSpanErrorStatus();
         extractor = options.getDimensionExtractor();
+        extraAttributes = options.getExtraAttributes();
     }
 
     /**
@@ -62,6 +64,7 @@ public class TracesHook implements Hook {
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
         attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
         attributesBuilder.put(variantAttributeKey, variant);
+        attributesBuilder.putAll(extraAttributes);
 
         if (extractor != null) {
             attributesBuilder.putAll(extractor.apply(details.getFlagMetadata()));

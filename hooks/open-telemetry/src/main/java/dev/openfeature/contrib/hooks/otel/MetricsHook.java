@@ -44,24 +44,13 @@ public class MetricsHook implements Hook {
     private final LongCounter evaluationErrorCounter;
     private final List<DimensionDescription> dimensionDescriptions;
     private final Function<ImmutableMetadata, Attributes> extractor;
+    private final Attributes extraDimensions;
 
     /**
      * Construct a metric hook by providing an {@link OpenTelemetry} instance.
      */
     public MetricsHook(final OpenTelemetry openTelemetry) {
-        this(openTelemetry, Collections.emptyList());
-    }
-
-    /**
-     * Construct a metric hook with {@link OpenTelemetry} instance and a list of {@link DimensionDescription}.
-     * Provided dimensions are attempted to be extracted from ImmutableMetadata attached to
-     * {@link FlagEvaluationDetails}.
-     *
-     * @deprecated - This constructor is deprecated. Please use {@link MetricHookOptions} based options
-     */
-    @Deprecated
-    public MetricsHook(final OpenTelemetry openTelemetry, final List<DimensionDescription> dimensions) {
-        this(openTelemetry, MetricHookOptions.builder().setDimensions(dimensions).build());
+        this(openTelemetry, MetricHookOptions.builder().build());
     }
 
     /**
@@ -90,6 +79,7 @@ public class MetricsHook implements Hook {
 
         dimensionDescriptions = Collections.unmodifiableList(options.getSetDimensions());
         extractor = options.getAttributeSetter();
+        extraDimensions = options.getExtraAttributes();
     }
 
 
@@ -108,6 +98,7 @@ public class MetricsHook implements Hook {
 
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
         attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
+        attributesBuilder.putAll(extraDimensions);
 
         if (details.getReason() != null) {
             attributesBuilder.put(REASON_KEY, details.getReason());
@@ -115,8 +106,6 @@ public class MetricsHook implements Hook {
 
         if (details.getVariant() != null) {
             attributesBuilder.put(variantAttributeKey, details.getVariant());
-        } else {
-            attributesBuilder.put(variantAttributeKey, String.valueOf(details.getValue()));
         }
 
         if (!dimensionDescriptions.isEmpty()) {

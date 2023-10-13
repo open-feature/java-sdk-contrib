@@ -187,7 +187,9 @@ class TracesHookTest {
                         .put("double", metadata.getDouble("double"))
                         .put("string", metadata.getString("string"))
                         .build()
-                ).build();
+                )
+                .extraAttributes(Attributes.builder().put("scope", "value").build())
+                .build();
 
         TracesHook tracesHook = new TracesHook(options);
         tracesHook.after(hookContext, details, null);
@@ -202,8 +204,9 @@ class TracesHookTest {
         attributesBuilder.put("float", 1.0F);
         attributesBuilder.put("double", 1.0D);
         attributesBuilder.put("string", "string");
+        attributesBuilder.put("scope", "value");
 
-
+        // verify span built with given attributes
         verify(span).addEvent("feature_flag", attributesBuilder.build());
     }
 
