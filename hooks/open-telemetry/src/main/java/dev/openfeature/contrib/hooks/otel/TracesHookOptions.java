@@ -24,4 +24,9 @@ public class TracesHookOptions {
      * {@link ImmutableMetadata}.
      */
     private Function<ImmutableMetadata, Attributes> dimensionExtractor;
+
+    /**
+     * Extra attributes added at hook constructor time.
+     */
+    private Attributes extraAttributes;
 }

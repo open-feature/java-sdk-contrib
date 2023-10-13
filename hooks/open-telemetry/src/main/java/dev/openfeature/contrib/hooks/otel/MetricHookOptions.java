@@ -30,4 +30,10 @@ public class MetricHookOptions {
      */
     @Builder.Default
     private final List<DimensionDescription> setDimensions = Collections.emptyList();
+
+    /**
+     * Extra attributes added at hook constructor time.
+     */
+    @Builder.Default
+    private Attributes extraAttributes = Attributes.empty();
 }
