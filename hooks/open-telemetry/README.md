@@ -51,7 +51,7 @@ TracesHook tracesHook = new TracesHook(options);
 ```
 
 Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`.
-These extracted dimensions will be added to successful falg evaluation spans as well as flag evaluation error spans.
+These extracted dimensions will be added to successful flag evaluation spans as well as flag evaluation error spans.
 
 ```java
 TracesHookOptions options = TracesHookOptions.builder()
