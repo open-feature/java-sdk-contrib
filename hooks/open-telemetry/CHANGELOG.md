@@ -6,7 +6,7 @@
 ### ⚠ BREAKING CHANGES
 
 * Remove error message from dimension ([#496](https://github.com/open-feature/java-sdk-contrib/issues/496))
-* remove deprecated constructor and option to define construction time attributes ([#491](https://github.com/open-feature/java-sdk-contrib/issues/491))
+* Remove deprecated constructor and add option to define construction time attributes ([#491](https://github.com/open-feature/java-sdk-contrib/issues/491))
 
 ### 🐛 Bug Fixes
 
@@ -15,7 +15,7 @@
 
 ### ✨ New Features
 
-* remove deprecated constructor and option to define construction time attributes ([#491](https://github.com/open-feature/java-sdk-contrib/issues/491)) ([48d3cdf](https://github.com/open-feature/java-sdk-contrib/commit/48d3cdf2ea28af69ddf39b5295c0c56732bc5b0a))
+* Remove deprecated constructor and add option to define construction time attributes ([#491](https://github.com/open-feature/java-sdk-contrib/issues/491)) ([48d3cdf](https://github.com/open-feature/java-sdk-contrib/commit/48d3cdf2ea28af69ddf39b5295c0c56732bc5b0a))
 
 ## [2.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v2.1.0...dev.openfeature.contrib.hooks.otel-v2.1.1) (2023-10-09)
 
