@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
@@ -149,6 +150,16 @@ public class FlagdOptions {
         // Remove the public access as this needs to be connected to offlineFlagSourcePath
         @SuppressWarnings({"PMD.UnusedFormalParameter", "PMD.UnusedPrivateMethod"})
         private FlagdOptionsBuilder isOffline(final boolean isOffline) {
+            return this;
+        }
+
+        /**
+         * Enable OpenTelemetry instance extraction from GlobalOpenTelemetry. Note that, this is only useful if global
+         * configurations are registered.
+         */
+        public FlagdOptionsBuilder withGlobalTelemetry(final boolean b) {
+            this.openTelemetry = GlobalOpenTelemetry.get();
+
             return this;
         }
     }
