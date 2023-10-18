@@ -162,7 +162,7 @@ FlagdOptions options =
 FlagdProvider flagdProvider = new FlagdProvider(options);
 ```
 
-Alternatively, if you already have set up `GlobalOpenTelemetry` in your provider runtime, then allow flagd to derive tracer using`withGlobalTelemetry` option.
+Alternatively, if you already have set up `GlobalOpenTelemetry` in your provider runtime, then allow flagd to derive tracer using `withGlobalTelemetry` option.
 
 ```java
 FlagdOptions options =
