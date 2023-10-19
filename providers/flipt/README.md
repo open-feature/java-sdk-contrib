@@ -28,12 +28,13 @@ Flipt OpenFeature Provider is using Flipt Java SDK.
 
 ```
 FeatureProvider featureProvider = new FliptProvider(fliptProviderConfig);
-OpenFeatureAPI.getInstance().setProviderAndWait(featureProvider);
+OpenFeatureAPI.getInstance().setProviderAndWait("sync", fliptProvider);
+client = OpenFeatureAPI.getInstance().getClient("sync");
 
 MutableContext evaluationContext = new MutableContext();
 evaluationContext.setTargetingKey(FLAG_NAME + "_targeting_key");
-featureEnabled = fliptProvider.getBooleanEvaluation(FLAG_NAME, false, evaluationContext).getValue();
-variant = fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "", new ImmutableContext()).getValue());
+featureEnabled = client.getBooleanValue(FLAG_NAME, false, evaluationContext);
+variant = client.getStringValue(VARIANT_FLAG_NAME, "", evaluationContext);
 ```
 
 See [FliptProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/flipt/FliptProviderTest.java) for more information.
