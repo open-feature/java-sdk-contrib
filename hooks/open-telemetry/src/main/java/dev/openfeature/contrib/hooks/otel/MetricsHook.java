@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.ERROR_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
@@ -44,24 +43,13 @@ public class MetricsHook implements Hook {
     private final LongCounter evaluationErrorCounter;
     private final List<DimensionDescription> dimensionDescriptions;
     private final Function<ImmutableMetadata, Attributes> extractor;
+    private final Attributes extraDimensions;
 
     /**
      * Construct a metric hook by providing an {@link OpenTelemetry} instance.
      */
     public MetricsHook(final OpenTelemetry openTelemetry) {
-        this(openTelemetry, Collections.emptyList());
-    }
-
-    /**
-     * Construct a metric hook with {@link OpenTelemetry} instance and a list of {@link DimensionDescription}.
-     * Provided dimensions are attempted to be extracted from ImmutableMetadata attached to
-     * {@link FlagEvaluationDetails}.
-     *
-     * @deprecated - This constructor is deprecated. Please use {@link MetricHookOptions} based options
-     */
-    @Deprecated
-    public MetricsHook(final OpenTelemetry openTelemetry, final List<DimensionDescription> dimensions) {
-        this(openTelemetry, MetricHookOptions.builder().setDimensions(dimensions).build());
+        this(openTelemetry, MetricHookOptions.builder().build());
     }
 
     /**
@@ -90,6 +78,7 @@ public class MetricsHook implements Hook {
 
         dimensionDescriptions = Collections.unmodifiableList(options.getSetDimensions());
         extractor = options.getAttributeSetter();
+        extraDimensions = options.getExtraAttributes();
     }
 
 
@@ -108,6 +97,7 @@ public class MetricsHook implements Hook {
 
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
         attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
+        attributesBuilder.putAll(extraDimensions);
 
         if (details.getReason() != null) {
             attributesBuilder.put(REASON_KEY, details.getReason());
@@ -115,8 +105,6 @@ public class MetricsHook implements Hook {
 
         if (details.getVariant() != null) {
             attributesBuilder.put(variantAttributeKey, details.getVariant());
-        } else {
-            attributesBuilder.put(variantAttributeKey, String.valueOf(details.getValue()));
         }
 
         if (!dimensionDescriptions.isEmpty()) {
@@ -133,13 +121,9 @@ public class MetricsHook implements Hook {
     @Override
     public void error(HookContext ctx, Exception error, Map hints) {
         final AttributesBuilder attributesBuilder = Attributes.builder();
-
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
         attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
-
-        if (error.getMessage() != null) {
-            attributesBuilder.put(ERROR_KEY, error.getMessage());
-        }
+        attributesBuilder.putAll(extraDimensions);
 
         evaluationErrorCounter.add(+1, attributesBuilder.build());
     }

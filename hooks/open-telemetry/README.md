@@ -12,7 +12,7 @@ These hooks can be used to determine the impact a feature has on a request, enab
 <dependency>
     <groupId>dev.openfeature.contrib.hooks</groupId>
     <artifactId>otel</artifactId>
-    <version>2.1.1</version>
+    <version>3.1.0</version>
 </dependency>
 ```
 
@@ -33,8 +33,10 @@ The hook implementation is attached to `after`and `error` [hook stages](https://
 Both successful and failed flag evaluations will add a span event named `feature_flag` with evaluation details such as flag key, provider name and variant.
 Failed evaluations can be allowed to set span status to `ERROR`. You can configure this behavior through`TracesHookOptions`.
 
-Further, you can write your own logic to extract custom dimensions from [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by setting a callback to `TracesHookOptions.dimensionExtractor`.
-Extracted dimensions will be added to successful falg evaluation spans.
+#### Custom dimensions (attributes)
+
+You can write your own logic to extract custom dimensions from [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by setting a callback to `dimensionExtractor`.
+These extracted dimensions will be added to successful flag evaluation spans.
 
 ```java
  TracesHookOptions options = TracesHookOptions.builder()
@@ -45,8 +47,24 @@ Extracted dimensions will be added to successful falg evaluation spans.
                     .build()
             ).build();
 
-    TracesHook tracesHook = new TracesHook(options);
+TracesHook tracesHook = new TracesHook(options);
 ```
+
+Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`.
+These extracted dimensions will be added to successful flag evaluation spans as well as flag evaluation error spans.
+
+```java
+TracesHookOptions options = TracesHookOptions.builder()
+            .extraAttributes(Attributes.builder()
+                .put("scope", "my-app")
+                .put("region", "us-east-1")
+                .build())
+            .build();
+
+TracesHook tracesHook = new TracesHook(options);
+```
+
+#### Example
 
 Consider the following code example for a complete usage,
 
@@ -80,7 +98,7 @@ Below are the metrics extracted by this hook and dimensions they carry:
 |----------------------------------------|---------------------------------|--------------|----------------------------------------------------------|
 | feature_flag.evaluation_requests_total | Number of evaluation requests   | {request}    | key & provider name                                      |
 | feature_flag.evaluation_success_total  | Flag evaluation successes       | {impression} | key, provider name, reason, variant & custom dimensions* |
-| feature_flag.evaluation_error_total    | Flag evaluation errors          | Counter      | key, provider name, exception                            |
+| feature_flag.evaluation_error_total    | Flag evaluation errors          | Counter      | key, provider name                                       |
 | feature_flag.evaluation_active_count   | Active flag evaluations counter | Counter      | key                                                      |
 
 Consider the following code example for usage,
@@ -93,7 +111,7 @@ OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 api.addHooks(new MetricsHook(openTelemetry));
 ```
 
-#### Recording custom dimensions
+#### Custom dimensions (attributes)
 
 You can extract dimension from `ImmutableMetadata` of the `FlagEvaluationDetails` and add them to `feature_flag. evaluation_success_total` metric.
 To use this feature, construct the `MetricsHook` with a list of `DimensionDescription`. 
@@ -111,7 +129,7 @@ OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 api.addHooks(new MetricsHook(openTelemetry, customDimensions));
 ```
 
-Alternatively, you can wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `TracesHookOptions.attributeSetter`.
+You can also wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `attributeSetter`.
 
 ```java
 final OpenTelemetry openTelemetry = ... // OpenTelemetry API instance
@@ -121,6 +139,19 @@ MetricHookOptions hookOptions = MetricHookOptions.builder()
         .attributeSetter(metadata -> Attributes.builder()
             .put("boolean", metadata.getBoolean("boolean"))
             .put("integer", metadata.getInteger("integer"))
+            .build())
+        .build();
+
+final MetricsHook metricHook = new MetricsHook(openTelemetry, hookOptions);
+```
+Alternatively, you can add dimensions at hook construction time using builder option `extraAttributes`.
+Dimensions added through `extraAttributes` option will be included in both flag evaluation success and evaluation error metrics.
+
+```java
+MetricHookOptions hookOptions = MetricHookOptions.builder()
+        .extraAttributes(Attributes.builder()
+            .put("scope", "my-app")
+            .put("region", "us-east-1")
             .build())
         .build();
 

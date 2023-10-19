@@ -24,6 +24,7 @@ import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey
 public class TracesHook implements Hook {
     private final boolean setSpanErrorStatus;
     private final Function<ImmutableMetadata, Attributes> extractor;
+    private final Attributes extraAttributes;
 
     /**
      * Create a new OpenTelemetryHook instance with default options.
@@ -38,6 +39,7 @@ public class TracesHook implements Hook {
     public TracesHook(TracesHookOptions options) {
         setSpanErrorStatus = options.isSetSpanErrorStatus();
         extractor = options.getDimensionExtractor();
+        extraAttributes = options.getExtraAttributes();
     }
 
     /**
@@ -49,7 +51,8 @@ public class TracesHook implements Hook {
      * @param details Information about how the flag was resolved, including any resolved values.
      * @param hints   An immutable mapping of data for users to communicate to the hooks.
      */
-    @Override public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
+    @Override
+    public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         Span currentSpan = Span.current();
         if (currentSpan == null) {
             return;
@@ -62,6 +65,7 @@ public class TracesHook implements Hook {
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
         attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
         attributesBuilder.put(variantAttributeKey, variant);
+        attributesBuilder.putAll(extraAttributes);
 
         if (extractor != null) {
             attributesBuilder.putAll(extractor.apply(details.getFlagMetadata()));
@@ -79,7 +83,8 @@ public class TracesHook implements Hook {
      * @param error The exception that was thrown.
      * @param hints An immutable mapping of data for users to communicate to the hooks.
      */
-    @Override public void error(HookContext ctx, Exception error, Map hints) {
+    @Override
+    public void error(HookContext ctx, Exception error, Map hints) {
         Span currentSpan = Span.current();
         if (currentSpan == null) {
             return;
@@ -89,8 +94,12 @@ public class TracesHook implements Hook {
             currentSpan.setStatus(StatusCode.ERROR);
         }
 
-        Attributes attributes = Attributes.of(flagKeyAttributeKey, ctx.getFlagKey(), providerNameAttributeKey,
-                ctx.getProviderMetadata().getName());
+        Attributes attributes = Attributes.builder()
+                .put(flagKeyAttributeKey, ctx.getFlagKey())
+                .put(providerNameAttributeKey, ctx.getProviderMetadata().getName())
+                .putAll(extraAttributes)
+                .build();
+
         currentSpan.recordException(error, attributes);
     }
 }

@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.ERROR_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
 import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
@@ -105,7 +104,8 @@ class MetricsHookTest {
         dimensionList.add(new DimensionDescription("double", Double.class));
         dimensionList.add(new DimensionDescription("string", String.class));
 
-        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(), dimensionList);
+        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(),
+                MetricHookOptions.builder().setDimensions(dimensionList).build());
 
         final ImmutableMetadata metadata = ImmutableMetadata.builder()
                 .addBoolean("boolean", true)
@@ -149,7 +149,13 @@ class MetricsHookTest {
     @Test
     public void error_stage_validation() {
         // given
-        final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry());
+        final MetricsHook metricHook =
+                new MetricsHook(telemetryExtension.getOpenTelemetry(),
+                        MetricHookOptions.builder()
+                                .extraAttributes(Attributes.builder()
+                                        .put("scope", "app-a")
+                                        .build())
+                                .build());
 
         final Exception exception = new Exception("some_exception");
 
@@ -172,7 +178,7 @@ class MetricsHookTest {
 
         assertThat(attributes.get(flagKeyAttributeKey)).isEqualTo("key");
         assertThat(attributes.get(providerNameAttributeKey)).isEqualTo("UnitTest");
-        assertThat(attributes.get(AttributeKey.stringKey(ERROR_KEY))).isEqualTo("some_exception");
+        assertThat(attributes.get(AttributeKey.stringKey("scope"))).isEqualTo("app-a");
     }
 
 
@@ -213,6 +219,10 @@ class MetricsHookTest {
                         .put("double", metadata.getDouble("double"))
                         .put("string", metadata.getString("string"))
                         .build())
+                .extraAttributes(
+                        Attributes.builder()
+                                .put("scope", "value")
+                                .build())
                 .build();
 
         final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(), hookOptions);
@@ -254,5 +264,6 @@ class MetricsHookTest {
         assertThat(attributes.get(AttributeKey.longKey("long"))).isEqualTo(1L);
         assertThat(attributes.get(AttributeKey.longKey("integer"))).isEqualTo(1);
         assertThat(attributes.get(AttributeKey.booleanKey("boolean"))).isEqualTo(true);
+        assertThat(attributes.get(AttributeKey.stringKey("scope"))).isEqualTo("value");
     }
 }

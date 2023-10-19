@@ -119,11 +119,20 @@ class TracesHookTest {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(span);
 
-        TracesHook tracesHook = new TracesHook();
+        final TracesHook tracesHook = new TracesHook(
+                TracesHookOptions.builder()
+                        .extraAttributes(Attributes.builder()
+                                .put("scope", "app-a")
+                                .build())
+                        .build());
+
         tracesHook.error(hookContext, runtimeException, null);
 
-        Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
-                providerNameAttributeKey, "test provider");
+        final Attributes expectedAttr = Attributes.builder()
+                .put(flagKeyAttributeKey, "test_key")
+                .put(providerNameAttributeKey, "test provider")
+                .put("scope", "app-a")
+                .build();
 
         verify(span).recordException(runtimeException, expectedAttr);
         verify(span, times(0)).setStatus(any());
@@ -187,7 +196,9 @@ class TracesHookTest {
                         .put("double", metadata.getDouble("double"))
                         .put("string", metadata.getString("string"))
                         .build()
-                ).build();
+                )
+                .extraAttributes(Attributes.builder().put("scope", "value").build())
+                .build();
 
         TracesHook tracesHook = new TracesHook(options);
         tracesHook.after(hookContext, details, null);
@@ -202,8 +213,9 @@ class TracesHookTest {
         attributesBuilder.put("float", 1.0F);
         attributesBuilder.put("double", 1.0D);
         attributesBuilder.put("string", "string");
+        attributesBuilder.put("scope", "value");
 
-
+        // verify span built with given attributes
         verify(span).addEvent("feature_flag", attributesBuilder.build());
     }
 
