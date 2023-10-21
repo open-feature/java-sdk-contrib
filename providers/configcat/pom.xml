@@ -10,11 +10,11 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>configcat</artifactId>
-    <version>0.0.2-alpha</version> <!--x-release-please-version -->
+    <version>0.0.1</version> <!--x-release-please-version -->
 
     <name>configcat</name>
     <description>configcat provider for Java</description>
-    <url>https://www.getconfigcat.io/</url>
+    <url>https://configcat.com/</url>
 
     <dependencies>
         <dependency>
@@ -27,13 +27,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.9</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-jre8</artifactId>
-            <version>2.35.1</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

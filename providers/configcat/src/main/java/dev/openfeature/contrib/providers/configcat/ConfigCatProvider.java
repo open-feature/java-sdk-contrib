@@ -49,7 +49,7 @@ public class ConfigCatProvider extends EventProvider {
     private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
-     * Constructor
+     * Constructor.
      * @param configCatProviderConfig configCatProvider Config
      */
     public ConfigCatProvider(ConfigCatProviderConfig configCatProviderConfig) {
@@ -68,7 +68,9 @@ public class ConfigCatProvider extends EventProvider {
             throw new GeneralError("already initialized");
         }
         super.initialize(evaluationContext);
-        configCatClient = ConfigCatClient.get(evaluationContext.getTargetingKey(), configCatProviderConfig.getOptions());
+        configCatClient = ConfigCatClient.get(configCatProviderConfig.getSdkKey(),
+            configCatProviderConfig.getOptions());
+        configCatProviderConfig.postInit();
         state = ProviderState.READY;
         log.info("finished initializing provider, state: {}", state);
 
@@ -111,7 +113,8 @@ public class ConfigCatProvider extends EventProvider {
         }
 
         User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Boolean> evaluationDetails = configCatClient.getValueDetails(Boolean.class, key, user, defaultValue);
+        EvaluationDetails<Boolean> evaluationDetails = configCatClient
+            .getValueDetails(Boolean.class, key, user, defaultValue);
         return ProviderEvaluation.<Boolean>builder()
             .value(evaluationDetails.getValue())
             .variant(evaluationDetails.getVariationId())
@@ -129,7 +132,8 @@ public class ConfigCatProvider extends EventProvider {
         }
 
         User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<String> evaluationDetails = configCatClient.getValueDetails(String.class, key, user, defaultValue);
+        EvaluationDetails<String> evaluationDetails = configCatClient
+            .getValueDetails(String.class, key, user, defaultValue);
         return ProviderEvaluation.<String>builder()
             .value(evaluationDetails.getValue())
             .variant(evaluationDetails.getVariationId())
@@ -147,7 +151,8 @@ public class ConfigCatProvider extends EventProvider {
         }
 
         User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Integer> evaluationDetails = configCatClient.getValueDetails(Integer.class, key, user, defaultValue);
+        EvaluationDetails<Integer> evaluationDetails = configCatClient
+            .getValueDetails(Integer.class, key, user, defaultValue);
         return ProviderEvaluation.<Integer>builder()
             .value(evaluationDetails.getValue())
             .variant(evaluationDetails.getVariationId())
@@ -165,7 +170,8 @@ public class ConfigCatProvider extends EventProvider {
         }
 
         User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Double> evaluationDetails = configCatClient.getValueDetails(Double.class, key, user, defaultValue);
+        EvaluationDetails<Double> evaluationDetails = configCatClient
+            .getValueDetails(Double.class, key, user, defaultValue);
         return ProviderEvaluation.<Double>builder()
             .value(evaluationDetails.getValue())
             .variant(evaluationDetails.getVariationId())
@@ -184,9 +190,10 @@ public class ConfigCatProvider extends EventProvider {
         }
 
         User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Object> evaluationDetails = configCatClient.getValueDetails(Object.class, key, user, defaultValue);
+        EvaluationDetails<Object> evaluationDetails = configCatClient
+            .getValueDetails(Object.class, key, user, defaultValue);
         return ProviderEvaluation.<Value>builder()
-            .value(new Value(evaluationDetails.getValue()))
+            .value(Value.objectToValue(evaluationDetails.getValue()))
             .variant(evaluationDetails.getVariationId())
             .errorMessage(evaluationDetails.getError())
             .build();

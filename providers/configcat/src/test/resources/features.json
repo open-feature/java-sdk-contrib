@@ -1,0 +1,28 @@
+{
+  "f": {
+    "disabledFeature": {
+      "v": false,
+      "r": [
+        {
+          "o": 0,
+          "a": "Identifier",
+          "t": 2,
+          "c": "@matching.com",
+          "v": true
+        }
+      ]
+    },
+    "enabledFeature": {
+      "v": true
+    },
+    "intSetting": {
+      "v": 5
+    },
+    "doubleSetting": {
+      "v": 3.14
+    },
+    "stringSetting": {
+      "v": "test"
+    }
+  }
+}

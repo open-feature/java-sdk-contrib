@@ -14,4 +14,11 @@ import java.util.function.Consumer;
 @Builder
 public class ConfigCatProviderConfig {
     private Consumer<ConfigCatClient.Options> options;
+
+    // Only holding temporary for initialization
+    private String sdkKey;
+
+    public void postInit() {
+        sdkKey = null; // for security, not holding key in memory for long-term
+    }
 }
