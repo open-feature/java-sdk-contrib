@@ -190,8 +190,8 @@ public class ConfigCatProvider extends EventProvider {
         }
 
         User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Object> evaluationDetails = configCatClient
-            .getValueDetails(Object.class, key, user, defaultValue);
+        EvaluationDetails<String> evaluationDetails = configCatClient
+            .getValueDetails(String.class, key, user, defaultValue.asString());
         return ProviderEvaluation.<Value>builder()
             .value(Value.objectToValue(evaluationDetails.getValue()))
             .variant(evaluationDetails.getVariationId())
