@@ -52,7 +52,7 @@ class OperatorTest {
         long thresholdPast = currentTimestamp - (5);
         long thresholdFuture = currentTimestamp + (5);
 
-        // checks if the timestamp is within 5 minutes of the current time
+        // checks if the timestamp is within 5 seconds of the current time (test tolerance)
         assertTrue(timestamp >= thresholdPast && timestamp <= thresholdFuture);
     }
 
