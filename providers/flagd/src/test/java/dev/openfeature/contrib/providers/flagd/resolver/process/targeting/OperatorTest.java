@@ -47,7 +47,7 @@ class OperatorTest {
 
         long timestamp = (long)Double.parseDouble(timestampString.toString());
 
-        // generating current unix timestamp & 5 minute threshold
+        // generating current unix timestamp for testing
         long currentTimestamp = Instant.now().getEpochSecond();
         long thresholdPast = currentTimestamp - (5);
         long thresholdFuture = currentTimestamp + (5);
