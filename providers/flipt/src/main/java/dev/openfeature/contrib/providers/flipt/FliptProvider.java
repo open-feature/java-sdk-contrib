@@ -102,7 +102,7 @@ public class FliptProvider extends EventProvider {
             throw new GeneralError(UNKNOWN_ERROR);
         }
 
-        Map<String, String> contextMap = buildContextMap(ctx);
+        Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
             .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
 
@@ -111,24 +111,13 @@ public class FliptProvider extends EventProvider {
             response = fliptApiClient.evaluation().boolean_(request);
         } catch (Exception e) {
             log.error("Error evaluating boolean", e);
-            return ProviderEvaluation.<Boolean>builder()
-                .value(defaultValue)
-                .errorMessage(e.getMessage())
-                .build();
+            throw new GeneralError(e.getMessage());
         }
 
         return ProviderEvaluation.<Boolean>builder()
             .value(response.getEnabled())
             .reason(response.getReason().toString())
             .build();
-    }
-
-    private static Map<String, String> buildContextMap(EvaluationContext ctx) {
-        Map<String, String> contextMap = new HashMap<>();
-        ctx.asObjectMap().forEach((k, v) -> {
-            contextMap.put(k, String.valueOf(v));
-        });
-        return contextMap;
     }
 
     @Override
@@ -195,7 +184,7 @@ public class FliptProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-        Map<String, String> contextMap = buildContextMap(ctx);
+        Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
             .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
 
@@ -204,17 +193,14 @@ public class FliptProvider extends EventProvider {
             response = fliptApiClient.evaluation().variant(request);
         } catch (Exception e) {
             log.error("Error evaluating variant", e);
-            return ProviderEvaluation.<Value>builder()
-                .value(defaultValue)
-                .errorMessage(e.getMessage())
-                .build();
+            throw new GeneralError(e.getMessage());
         }
 
         if (!response.getMatch()) {
             log.debug("non matching variant for {}", key);
             return ProviderEvaluation.<Value>builder()
                 .value(defaultValue)
-                .reason(DEFAULT.name())
+                .reason("NO_MATCH: " + String.valueOf(response.getReason()))
                 .build();
         }
 

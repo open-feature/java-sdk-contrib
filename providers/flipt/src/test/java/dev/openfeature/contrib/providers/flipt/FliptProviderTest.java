@@ -7,6 +7,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -102,7 +103,6 @@ class FliptProviderTest {
         evaluationContext.setTargetingKey(TARGETING_KEY);
         assertEquals(true, fliptProvider.getBooleanEvaluation(FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(FLAG_NAME, false, evaluationContext));
-        assertEquals(false, fliptProvider.getBooleanEvaluation("non-existing", false, evaluationContext).getValue());
         assertEquals(false, client.getBooleanValue("non-existing", false, evaluationContext));
     }
 
@@ -112,10 +112,8 @@ class FliptProviderTest {
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
         assertEquals(VARIANT_FLAG_VALUE, fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
-                evaluationContext).getValue());
+            evaluationContext).getValue());
         assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(VARIANT_FLAG_NAME, "", evaluationContext));
-        assertEquals("fallback_str", fliptProvider.getStringEvaluation("non-existing",
-    "fallback_str", evaluationContext).getValue());
         assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str", evaluationContext));
     }
 
@@ -158,7 +156,6 @@ class FliptProviderTest {
         assertEquals(VARIANT_FLAG_VALUE, fliptProvider.getStringEvaluation(USERS_FLAG_NAME, "", evaluationContext).getValue());
         assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(USERS_FLAG_NAME, "", evaluationContext));
         evaluationContext.add("userId", "2");
-        assertEquals("", fliptProvider.getStringEvaluation(USERS_FLAG_NAME, "", evaluationContext).getValue());
         assertEquals("", client.getStringValue(USERS_FLAG_NAME, "", evaluationContext));
     }
 
@@ -171,8 +168,7 @@ class FliptProviderTest {
             evaluationContext);
         ImmutableMetadata flagMetadata = stringEvaluation.getFlagMetadata();
         assertEquals("attachment-1", flagMetadata.getString("variant-attachment"));
-        ProviderEvaluation<String> nonExistingFlagEvaluation = fliptProvider.getStringEvaluation("non-existing",
-            "", evaluationContext);
+        FlagEvaluationDetails<String> nonExistingFlagEvaluation = client.getStringDetails("non-existing", "", evaluationContext);
         assertEquals(null, nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
     }
 
