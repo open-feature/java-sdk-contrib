@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class ContextTransformer {
 
-    public static Map<String, String> transform(EvaluationContext ctx) {
+    protected static Map<String, String> transform(EvaluationContext ctx) {
         Map<String, String> contextMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {
             contextMap.put(k, String.valueOf(v));

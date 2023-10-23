@@ -19,11 +19,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static dev.openfeature.sdk.Reason.DEFAULT;
 import static dev.openfeature.sdk.Reason.TARGETING_MATCH;
 
 /**
