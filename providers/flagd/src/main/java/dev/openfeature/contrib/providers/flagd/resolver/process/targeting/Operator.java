@@ -70,7 +70,6 @@ public class Operator {
                 this.timestamp = extractSubPropertyFromFlagd(dataMap, TIME_STAMP);
 
                 final Object targetKey = dataMap.get(TARGET_KEY);
-                
                 if (targetKey instanceof String) {
                     targetingKey = (String) targetKey;
                 } else {
