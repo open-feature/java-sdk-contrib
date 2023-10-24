@@ -22,6 +22,9 @@ components:
   providers/unleash:
     - liran2000
     - sighphyre
+  providers/flipt:
+    - liran2000
+    - markphelps
 
 ignored-authors:
   - renovate-bot

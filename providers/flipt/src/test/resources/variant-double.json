@@ -1,0 +1,12 @@
+{
+  "match": true,
+  "reason": "UNKNOWN_EVALUATION_REASON",
+  "requestDurationMillis": 1,
+  "requestId": "string",
+  "segmentKeys": [
+    "string"
+  ],
+  "timestamp": "2022-12-03T10:15:30+01:00",
+  "variantAttachment": "attachment-1",
+  "variantKey": "1.23"
+}

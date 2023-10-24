@@ -34,6 +34,7 @@
         <module>providers/jsonlogic-eval-provider</module>
         <module>providers/env-var</module>
         <module>providers/unleash</module>
+        <module>providers/flipt</module>
     </modules>
 
     <scm>
