@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static dev.openfeature.sdk.Reason.DEFAULT;
 import static dev.openfeature.sdk.Reason.TARGETING_MATCH;
 
 /**
@@ -195,10 +196,10 @@ public class FliptProvider extends EventProvider {
         }
 
         if (!response.getMatch()) {
-            log.debug("non matching variant for {}", key);
+            log.debug("non matching variant for {} : {}", key, response.getReason());
             return ProviderEvaluation.<Value>builder()
                 .value(defaultValue)
-                .reason("NO_MATCH: " + String.valueOf(response.getReason()))
+                .reason(DEFAULT.name())
                 .build();
         }
 
