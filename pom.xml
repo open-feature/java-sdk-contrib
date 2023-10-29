@@ -34,6 +34,7 @@
         <module>providers/jsonlogic-eval-provider</module>
         <module>providers/env-var</module>
         <module>providers/unleash</module>
+        <module>providers/flipt</module>
     </modules>
 
     <scm>
@@ -197,7 +198,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>3.2.1</version>
                 <configuration>
                     <excludes>
                         <!-- tests to exclude -->
@@ -210,7 +211,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.3.1</version>
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
                     <encoding>UTF-8</encoding>

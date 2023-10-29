@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.14](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.13...dev.openfeature.contrib.providers.go-feature-flag-v0.2.14) (2023-10-20)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.15.3 ([#493](https://github.com/open-feature/java-sdk-contrib/issues/493)) ([f6cb68f](https://github.com/open-feature/java-sdk-contrib/commit/f6cb68f3c54e67a10f7e2f5bf9f5a2a840689491))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.15.3 ([#494](https://github.com/open-feature/java-sdk-contrib/issues/494)) ([caed781](https://github.com/open-feature/java-sdk-contrib/commit/caed781e76d20a7d383c6842fecbace3dbbdfcd3))
+* **deps:** update dependency com.google.guava:guava to v32.1.3-jre ([#484](https://github.com/open-feature/java-sdk-contrib/issues/484)) ([b197f3b](https://github.com/open-feature/java-sdk-contrib/commit/b197f3b904256fff7b0a3987c33c5dc22fe9f12a))
+* **deps:** update dependency com.squareup.okhttp3:okhttp to v4.12.0 ([#503](https://github.com/open-feature/java-sdk-contrib/issues/503)) ([a82668c](https://github.com/open-feature/java-sdk-contrib/commit/a82668cd6ad4a4026626c67d69ea84c89f617e3b))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.squareup.okhttp3:mockwebserver to v4.12.0 ([#502](https://github.com/open-feature/java-sdk-contrib/issues/502)) ([4e0b6ff](https://github.com/open-feature/java-sdk-contrib/commit/4e0b6fffdfdae425be5015440ba0434879db2554))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.21.0 ([#501](https://github.com/open-feature/java-sdk-contrib/issues/501)) ([2f2ce59](https://github.com/open-feature/java-sdk-contrib/commit/2f2ce590b3589331f9b4c99bd7a18cf53c7436d8))
+
 ## [0.2.13](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.12...dev.openfeature.contrib.providers.go-feature-flag-v0.2.13) (2023-09-21)
 
 

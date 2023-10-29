@@ -10,7 +10,7 @@
     <!-- The group id MUST start with dev.openfeature, or publishing will fail. OpenFeature has verified ownership of this (reversed) domain. -->
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>jsonlogic-eval-provider</artifactId>
-    <version>1.0.0</version> <!--x-release-please-version -->
+    <version>1.0.1</version> <!--x-release-please-version -->
 
     <name>inline-evaluating-provider</name>
     <description>Allows for evaluating rules on the client without synchronous calls to a backend</description>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20230618</version>
+            <version>20231013</version>
         </dependency>
         <dependency>
             <groupId>com.github.spotbugs</groupId>

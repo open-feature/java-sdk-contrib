@@ -8,6 +8,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 public final class ResolveFactory {
     /**
      * Factory method to initialize the resolving strategy.
+     *
      * @param options Options.
      * @return the ResolveStrategy based on the provided options.
      */
@@ -15,6 +16,7 @@ public final class ResolveFactory {
         if (options.getOpenTelemetry() != null) {
             return new TracedResolving(options.getOpenTelemetry());
         }
+
         return new SimpleResolving();
     }
 }

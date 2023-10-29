@@ -146,12 +146,21 @@ By default, the provider is configured to
 use [least recently used (lru)](https://commons.apache.org/proper/commons-collections/apidocs/org/apache/commons/collections4/map/LRUMap.html)
 caching with up to 1000 entries.
 
-### OpenTelemetry support (RPC only)
+### OpenTelemetry tracing (RPC only)
 
-OpenTelemetry support can be enabled either through [automatic instrumentation](https://opentelemetry.io/docs/instrumentation/java/automatic/) 
-or with [manual instrumentation](https://opentelemetry.io/docs/instrumentation/java/manual/). 
+flagd provider support OpenTelemetry traces for gRPC backed remote evaluations. 
 
-For manual instrumentation, flagd provider can be constructed with an `OpenTelemetry` instance.
+There are two ways you can configure OpenTelemetry for the provider,
+
+- [Using automatic instrumentation](https://opentelemetry.io/docs/instrumentation/java/automatic/)
+- [Using manual instrumentation](https://opentelemetry.io/docs/instrumentation/java/manual/)
+
+When using automatic instrumentation, traces for gRPC will be automatically added by the OpenTelemetry Java library.
+These traces however will not include extra attributes added when using manual instrumentation. 
+
+When using manual instrumentation, you have two options to construct flagd provider to enable traces.
+
+First(preferred) option is by constructing the provider with an OpenTelemetry instance,
 
 ```java
 FlagdOptions options = 
@@ -162,8 +171,18 @@ FlagdOptions options =
 FlagdProvider flagdProvider = new FlagdProvider(options);
 ```
 
-Please refer [OpenTelemetry example](https://opentelemetry.io/docs/instrumentation/java/manual/#example) for best 
-practice guideline.
+Second option is useful if you have set up a GlobalOpenTelemetry in your runtime.
+You can allow flagd to derive the OpenTelemetry instance by enabling `withGlobalTelemetry` option.
 
-Telemetry configuration combined with [flagd telemetry ](https://github.com/open-feature/flagd/blob/main/docs/configuration/flagd_telemetry.md)
-allows distributed tracing.
+```java
+FlagdOptions options =
+        FlagdOptions.builder()
+            .withGlobalTelemetry(true)
+            .build();
+
+FlagdProvider flagdProvider = new FlagdProvider(options);
+```
+
+Please refer [OpenTelemetry example](https://opentelemetry.io/docs/instrumentation/java/manual/#example) for best practice guideline.
+
+Provider telemetry combined with [flagd OpenTelemetry](https://flagd.dev/reference/monitoring/#opentelemetry) allows you to have distributed traces.
