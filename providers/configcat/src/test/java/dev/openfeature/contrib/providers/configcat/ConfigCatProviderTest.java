@@ -128,6 +128,9 @@ class ConfigCatProviderTest {
     void shouldThrowIfNotInitialized() {
         ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder().sdkKey("test").build();
         ConfigCatProvider tempConfigCatProvider = new ConfigCatProvider(configCatProviderConfig);
+
+        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
+
         OpenFeatureAPI.getInstance().setProviderAndWait("tempConfigCatProvider", tempConfigCatProvider);
 
         assertThrows(GeneralError.class, ()-> tempConfigCatProvider.initialize(null));

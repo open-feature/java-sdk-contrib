@@ -67,14 +67,6 @@ public class ConfigCatProvider extends EventProvider {
         state = ProviderState.READY;
         log.info("finished initializing provider, state: {}", state);
 
-        configCatClient.getHooks().addOnClientReady(() -> {
-            state = ProviderState.READY;
-            ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
-                .message("provider ready")
-                .build();
-            emitProviderReady(providerEventDetails);
-        });
-
         configCatClient.getHooks().addOnConfigChanged(map -> {
             ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
                 .flagsChanged(new ArrayList<>(map.keySet()))
@@ -104,15 +96,7 @@ public class ConfigCatProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-
-        User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Boolean> evaluationDetails = configCatClient
-            .getValueDetails(Boolean.class, key, user, defaultValue);
-        return ProviderEvaluation.<Boolean>builder()
-            .value(evaluationDetails.getValue())
-            .variant(evaluationDetails.getVariationId())
-            .errorMessage(evaluationDetails.getError())
-            .build();
+        return getEvaluation(Boolean.class, key, defaultValue, ctx);
     }
 
     @Override
@@ -123,15 +107,7 @@ public class ConfigCatProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-
-        User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<String> evaluationDetails = configCatClient
-            .getValueDetails(String.class, key, user, defaultValue);
-        return ProviderEvaluation.<String>builder()
-            .value(evaluationDetails.getValue())
-            .variant(evaluationDetails.getVariationId())
-            .errorMessage(evaluationDetails.getError())
-            .build();
+        return getEvaluation(String.class, key, defaultValue, ctx);
     }
 
     @Override
@@ -142,15 +118,7 @@ public class ConfigCatProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-
-        User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Integer> evaluationDetails = configCatClient
-            .getValueDetails(Integer.class, key, user, defaultValue);
-        return ProviderEvaluation.<Integer>builder()
-            .value(evaluationDetails.getValue())
-            .variant(evaluationDetails.getVariationId())
-            .errorMessage(evaluationDetails.getError())
-            .build();
+        return getEvaluation(Integer.class, key, defaultValue, ctx);
     }
 
     @Override
@@ -161,15 +129,7 @@ public class ConfigCatProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-
-        User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<Double> evaluationDetails = configCatClient
-            .getValueDetails(Double.class, key, user, defaultValue);
-        return ProviderEvaluation.<Double>builder()
-            .value(evaluationDetails.getValue())
-            .variant(evaluationDetails.getVariationId())
-            .errorMessage(evaluationDetails.getError())
-            .build();
+        return getEvaluation(Double.class, key, defaultValue, ctx);
     }
 
     @SneakyThrows
@@ -181,12 +141,23 @@ public class ConfigCatProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-
         User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
         EvaluationDetails<String> evaluationDetails = configCatClient
             .getValueDetails(String.class, key, user, defaultValue.asString());
         return ProviderEvaluation.<Value>builder()
             .value(Value.objectToValue(evaluationDetails.getValue()))
+            .variant(evaluationDetails.getVariationId())
+            .errorMessage(evaluationDetails.getError())
+            .build();
+    }
+
+    private <T> ProviderEvaluation<T> getEvaluation(Class<T> classOfT, String key, T defaultValue,
+           EvaluationContext ctx) {
+        User user = ctx == null ? null : ContextTransformer.transform(ctx);
+        EvaluationDetails<T> evaluationDetails = configCatClient
+            .getValueDetails(classOfT, key, user, defaultValue);
+        return ProviderEvaluation.<T>builder()
+            .value(evaluationDetails.getValue())
             .variant(evaluationDetails.getVariationId())
             .errorMessage(evaluationDetails.getError())
             .build();
