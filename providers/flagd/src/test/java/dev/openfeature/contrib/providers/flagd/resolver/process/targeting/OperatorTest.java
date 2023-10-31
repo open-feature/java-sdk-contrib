@@ -45,7 +45,7 @@ class OperatorTest {
         // when
         Object timestampString = OPERATOR.apply("some-key", targetingRule, new ImmutableContext());
 
-        long timestamp = (long)Double.parseDouble(timestampString.toString());
+        long timestamp = (long) Double.parseDouble(timestampString.toString());
 
         // generating current unix timestamp & 5 minute threshold
         long currentTimestamp = Instant.now().getEpochSecond();
@@ -54,6 +54,25 @@ class OperatorTest {
 
         // checks if the timestamp is within 5 minutes of the current time
         assertTrue(timestamp >= thresholdPast && timestamp <= thresholdFuture);
+    }
+
+    @Test
+    void testExtractSubPropertyFromFlagd() {
+        // Given
+        Map<String, Object> flagdProperties = new HashMap<>();
+        flagdProperties.put(Operator.FLAG_KEY, "some-key");
+        flagdProperties.put(Operator.TIME_STAMP, 1634000000L); // Changed to long
+
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put(Operator.FLAGD_PROPS_KEY, flagdProperties);
+
+        // When
+        Object flagKey = Operator.FlagProperties.extractSubPropertyFromFlagd(dataMap, Operator.FLAG_KEY);
+        Object timestamp = Operator.FlagProperties.extractSubPropertyFromFlagd(dataMap, Operator.TIME_STAMP);
+
+        // Then
+        assertEquals("some-key", flagKey);
+        assertEquals(1634000000L, timestamp); // Changed to long
     }
 
     @Test

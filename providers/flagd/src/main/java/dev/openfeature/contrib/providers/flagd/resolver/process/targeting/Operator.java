@@ -58,8 +58,8 @@ public class Operator {
 
     @Getter
     static class FlagProperties {
-        private final String flagKey;
-        private final String timestamp;
+        private final Object flagKey;
+        private final Object timestamp;
         private final String targetingKey;
 
         FlagProperties(Object from) {
@@ -84,13 +84,11 @@ public class Operator {
             }
         }
 
-        private static String extractSubPropertyFromFlagd(Map<?, ?> dataMap, String propertyName) {
+        public static Object extractSubPropertyFromFlagd(Map<?, ?> dataMap, String propertyName) {
             return Optional.ofNullable(dataMap.get(FLAGD_PROPS_KEY))
                     .filter(flagdProps -> flagdProps instanceof Map)
                     .map(flagdProps -> ((Map<?, ?>) flagdProps).get(propertyName))
-                    .filter(value -> value instanceof String)
-                    .map(String::valueOf)
                     .orElse(null);
-        }
+        } 
     }
 }
