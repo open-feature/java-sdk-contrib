@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.configcat;
+package dev.openfeature.contrib.providers.unleash;
 
 import dev.openfeature.sdk.EvaluationContext;
 import io.getunleash.UnleashContext;
@@ -17,7 +17,7 @@ public class ContextTransformer {
     public static final String CONTEXT_SESSION_ID = "sessionId";
     public static final String CONTEXT_CURRENT_TIME = "currentTime";
 
-    protected static User transform(EvaluationContext ctx) {
+    protected static UnleashContext transform(EvaluationContext ctx) {
         UnleashContext.Builder unleashContextBuilder = new UnleashContext.Builder();
         ctx.asObjectMap().forEach((k, v) -> {
             switch (k) {

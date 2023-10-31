@@ -29,20 +29,15 @@ public class ConfigCatProvider extends EventProvider {
 
     @Getter
     private static final String NAME = "ConfigCat";
-    public static final String NOT_IMPLEMENTED =
-        "Not implemented - provider does not support this type. Only boolean is supported.";
 
     public static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
     public static final String UNKNOWN_ERROR = "unknown error";
 
-    @Getter(AccessLevel.PROTECTED)
     private ConfigCatProviderConfig configCatProviderConfig;
 
-    @Setter(AccessLevel.PROTECTED)
     @Getter
     private ConfigCatClient configCatClient;
 
-    @Setter(AccessLevel.PROTECTED)
     @Getter
     private ProviderState state = ProviderState.NOT_READY;
 
