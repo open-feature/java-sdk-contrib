@@ -35,6 +35,7 @@
         <module>providers/env-var</module>
         <module>providers/unleash</module>
         <module>providers/flipt</module>
+        <module>providers/configcat</module>
     </modules>
 
     <scm>
