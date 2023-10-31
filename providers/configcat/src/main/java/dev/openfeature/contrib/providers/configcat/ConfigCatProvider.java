@@ -12,9 +12,7 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
