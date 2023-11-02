@@ -34,7 +34,9 @@ class ConfigCatProviderTest {
     public static final Integer INT_FLAG_VALUE = 5;
     public static final String DOUBLE_FLAG_NAME = "doubleSetting";
     public static final Double DOUBLE_FLAG_VALUE = 3.14;
-    public static final String USERS_FLAG_NAME = "disabledFeature";
+    public static final String USERS_FLAG_NAME = "userIdMatching";
+    public static final String EMAIL_FLAG_NAME = "emailMatching";
+    public static final String COUNTRY_FLAG_NAME = "countryMatching";
     private static ConfigCatProvider configCatProvider;
     private static Client client;
 
@@ -87,7 +89,6 @@ class ConfigCatProviderTest {
     @Test
     void getIntegerEvaluation() {
         MutableContext evaluationContext = new MutableContext();
-        evaluationContext.add("userId", "int");
         assertEquals(INT_FLAG_VALUE, configCatProvider.getIntegerEvaluation(INT_FLAG_NAME, 1,
             evaluationContext).getValue());
         assertEquals(INT_FLAG_VALUE, client.getIntegerValue(INT_FLAG_NAME, 1));
@@ -100,7 +101,6 @@ class ConfigCatProviderTest {
     @Test
     void getDoubleEvaluation() {
         MutableContext evaluationContext = new MutableContext();
-        evaluationContext.add("userId", "double");
         assertEquals(DOUBLE_FLAG_VALUE, configCatProvider.getDoubleEvaluation(DOUBLE_FLAG_NAME, 1.1,
             evaluationContext).getValue());
         assertEquals(DOUBLE_FLAG_VALUE, client.getDoubleValue(DOUBLE_FLAG_NAME, 1.1));
@@ -114,13 +114,35 @@ class ConfigCatProviderTest {
     void getBooleanEvaluationByUser() {
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey("csp@matching.com");
-        evaluationContext.add("Email", "a@b.com");
-        evaluationContext.add("Country", "someCountry");
         assertEquals(true, configCatProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
         evaluationContext.setTargetingKey("csp@notmatching.com");
         assertEquals(false, configCatProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(false, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
+    }
+
+    @Test
+    void getBooleanEvaluationByEmail() {
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey("csp@matching.com");
+        evaluationContext.add("Email", "a@matching.com");
+        assertEquals(true, configCatProvider.getBooleanEvaluation(EMAIL_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(true, client.getBooleanValue(EMAIL_FLAG_NAME, false, evaluationContext));
+        evaluationContext.add("Email", "a@matchingnot.com");
+        assertEquals(false, configCatProvider.getBooleanEvaluation(EMAIL_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(false, client.getBooleanValue(EMAIL_FLAG_NAME, false, evaluationContext));
+    }
+
+    @Test
+    void getBooleanEvaluationByCountry() {
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey("csp@matching.com");
+        evaluationContext.add("Country", "country1");
+        assertEquals(true, configCatProvider.getBooleanEvaluation(COUNTRY_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(true, client.getBooleanValue(COUNTRY_FLAG_NAME, false, evaluationContext));
+        evaluationContext.add("Country", "country2");
+        assertEquals(false, configCatProvider.getBooleanEvaluation(COUNTRY_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(false, client.getBooleanValue(COUNTRY_FLAG_NAME, false, evaluationContext));
     }
 
     @SneakyThrows

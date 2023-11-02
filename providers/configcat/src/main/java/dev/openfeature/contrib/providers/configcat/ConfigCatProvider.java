@@ -90,74 +90,54 @@ public class ConfigCatProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         return getEvaluation(Boolean.class, key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         return getEvaluation(String.class, key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         return getEvaluation(Integer.class, key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         return getEvaluation(Double.class, key, defaultValue, ctx);
     }
 
     @SneakyThrows
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
+        return getEvaluation(Value.class, key, defaultValue, ctx);
+    }
+
+    private <T> ProviderEvaluation<T> getEvaluation(Class<T> classOfT, String key, T defaultValue,
+           EvaluationContext ctx) {
         if (!ProviderState.READY.equals(state)) {
             if (ProviderState.NOT_READY.equals(state)) {
                 throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-        User user = ctx == null ? null : dev.openfeature.contrib.providers.configcat.ContextTransformer.transform(ctx);
-        EvaluationDetails<String> evaluationDetails = configCatClient
-            .getValueDetails(String.class, key, user, defaultValue.asString());
-        return ProviderEvaluation.<Value>builder()
-            .value(Value.objectToValue(evaluationDetails.getValue()))
-            .variant(evaluationDetails.getVariationId())
-            .errorMessage(evaluationDetails.getError())
-            .build();
-    }
-
-    private <T> ProviderEvaluation<T> getEvaluation(Class<T> classOfT, String key, T defaultValue,
-           EvaluationContext ctx) {
         User user = ctx == null ? null : ContextTransformer.transform(ctx);
-        EvaluationDetails<T> evaluationDetails = configCatClient
-            .getValueDetails(classOfT, key, user, defaultValue);
+        EvaluationDetails<T> evaluationDetails;
+        T evaluatedValue;
+        if (classOfT.isAssignableFrom(Value.class)) {
+            String defaultValueStr = defaultValue == null ? null : ((Value)defaultValue).asString();
+            evaluationDetails = (EvaluationDetails<T>) configCatClient
+                .getValueDetails(String.class, key, user, defaultValueStr);
+            evaluatedValue = evaluationDetails.getValue() == null ? null :
+                (T) Value.objectToValue(evaluationDetails.getValue());
+        } else {
+            evaluationDetails = configCatClient
+                .getValueDetails(classOfT, key, user, defaultValue);
+            evaluatedValue = evaluationDetails.getValue();
+        }
         return ProviderEvaluation.<T>builder()
-            .value(evaluationDetails.getValue())
+            .value(evaluatedValue)
             .variant(evaluationDetails.getVariationId())
             .errorMessage(evaluationDetails.getError())
             .build();
