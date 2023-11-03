@@ -224,8 +224,7 @@ class ConfigCatProviderTest {
 
         HashMap<String, String > customMap = new HashMap<>();
         customMap.put(customPropertyKey, customPropertyValue);
-        User expectedUser = User.newBuilder().email(email).country(country).custom(customMap).build(
-            evaluationContext.getTargetingKey());
+        User expectedUser = User.newBuilder().email(email).country(country).custom(customMap).build(userId);
         User transformedUser = ContextTransformer.transform(evaluationContext);
 
         // equals not implemented for User, using toString
