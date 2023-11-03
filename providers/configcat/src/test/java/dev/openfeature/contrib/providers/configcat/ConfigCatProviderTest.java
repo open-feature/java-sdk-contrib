@@ -145,6 +145,39 @@ class ConfigCatProviderTest {
         assertEquals(false, client.getBooleanValue(COUNTRY_FLAG_NAME, false, evaluationContext));
     }
 
+    @Test
+    void getIntEvaluationByUser() {
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey("csp@matching.com");
+        assertEquals(123, configCatProvider.getIntegerEvaluation(USERS_FLAG_NAME + "Int", 111, evaluationContext).getValue());
+        assertEquals(123, client.getIntegerValue(USERS_FLAG_NAME + "Int", 111, evaluationContext));
+        evaluationContext.setTargetingKey("csp@notmatching.com");
+        assertEquals(111, configCatProvider.getIntegerEvaluation(USERS_FLAG_NAME + "Int", 222, evaluationContext).getValue());
+        assertEquals(111, client.getIntegerValue(USERS_FLAG_NAME + "Int", 222, evaluationContext));
+    }
+
+    @Test
+    void getDoubleEvaluationByUser() {
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey("csp@matching.com");
+        assertEquals(1.23, configCatProvider.getDoubleEvaluation(USERS_FLAG_NAME + "Double", 1.11, evaluationContext).getValue());
+        assertEquals(1.23, client.getDoubleValue(USERS_FLAG_NAME + "Double", 1.11, evaluationContext));
+        evaluationContext.setTargetingKey("csp@matchingnot.com");
+        assertEquals(0.1, configCatProvider.getDoubleEvaluation(USERS_FLAG_NAME + "Double", 1.11, evaluationContext).getValue());
+        assertEquals(0.1, client.getDoubleValue(USERS_FLAG_NAME + "Double", 1.11, evaluationContext));
+    }
+
+    @Test
+    void getStringEvaluationByUser() {
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey("csp@matching.com");
+        assertEquals("expected", configCatProvider.getStringEvaluation(USERS_FLAG_NAME + "Str", "111", evaluationContext).getValue());
+        assertEquals("expected", client.getStringValue(USERS_FLAG_NAME + "Str", "111", evaluationContext));
+        evaluationContext.setTargetingKey("csp@notmatching.com");
+        assertEquals("fallback", configCatProvider.getStringEvaluation(USERS_FLAG_NAME + "Str", "111", evaluationContext).getValue());
+        assertEquals("fallback", client.getStringValue(USERS_FLAG_NAME + "Str", "111", evaluationContext));
+    }
+
     @SneakyThrows
     @Test
     void shouldThrowIfNotInitialized() {
