@@ -84,7 +84,7 @@ public class Operator {
             }
         }
 
-        public static Object extractSubPropertyFromFlagd(Map<?, ?> dataMap, String propertyName) {
+        private static Object extractSubPropertyFromFlagd(Map<?, ?> dataMap, String propertyName) {
             return Optional.ofNullable(dataMap.get(FLAGD_PROPS_KEY))
                     .filter(flagdProps -> flagdProps instanceof Map)
                     .map(flagdProps -> ((Map<?, ?>) flagdProps).get(propertyName))
