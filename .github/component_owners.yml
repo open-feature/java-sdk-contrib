@@ -12,6 +12,7 @@ components:
     - beeme1mr
     - Kavindu-Dodan
     - toddbaert
+    - thisthat
   providers/flagsmith:
     - ajhelsby
     - matthewelwell
