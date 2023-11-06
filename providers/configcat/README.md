@@ -38,6 +38,13 @@ featureEnabled = client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContex
 See [ConfigCatProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/configcat/ConfigCatProviderTest.java)
 for more information.
 
+## Notes
+Some ConfigCat custom operations are supported from the provider client via:
+
+```java
+configCatProvider.getConfigCatClient()...
+```
+
 ## ConfigCat Provider Tests Strategies
 
 Unit test based on ConfigCat local features file.  
