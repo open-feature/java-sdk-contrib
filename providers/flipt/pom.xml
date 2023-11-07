@@ -9,18 +9,18 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
-    <artifactId>unleash</artifactId>
-    <version>0.0.2-alpha</version> <!--x-release-please-version -->
+    <artifactId>flipt</artifactId>
+    <version>0.0.2</version> <!--x-release-please-version -->
 
-    <name>unleash</name>
-    <description>unleash provider for Java</description>
-    <url>https://www.getunleash.io/</url>
+    <name>flipt</name>
+    <description>Flipt provider for Java</description>
+    <url>https://www.flipt.io/</url>
 
     <dependencies>
         <dependency>
-            <groupId>io.getunleash</groupId>
-            <artifactId>unleash-client-java</artifactId>
-            <version>9.0.0</version>
+            <groupId>io.flipt</groupId>
+            <artifactId>flipt-java</artifactId>
+            <version>0.2.14</version>
         </dependency>
 
         <dependency>
