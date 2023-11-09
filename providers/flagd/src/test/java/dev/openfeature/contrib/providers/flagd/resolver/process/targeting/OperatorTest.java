@@ -1,9 +1,11 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.time.Instant;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,45 @@ class OperatorTest {
 
         // then
         assertEquals(true, evalVariant);
+    }
+
+    @Test
+    void timestampPresent() throws TargetingRuleException {
+        // given
+
+        // rule asserting $flagd.timestamp is a number (i.e., a Unix timestamp)
+        final String targetingRule = "{\"var\":[\"$flagd.timestamp\"]}";
+
+        // when
+        Object timestampString = OPERATOR.apply("some-key", targetingRule, new ImmutableContext());
+
+        long timestamp = (long) Double.parseDouble(timestampString.toString());
+
+        // generating current unix timestamp & 5 minute threshold
+        long currentTimestamp = Instant.now().getEpochSecond();
+        long thresholdPast = currentTimestamp - (5);
+        long thresholdFuture = currentTimestamp + (5);
+
+        // checks if the timestamp is within 5 minutes of the current time
+        assertTrue(timestamp >= thresholdPast && timestamp <= thresholdFuture);
+    }
+
+    @Test
+    void testFlagPropertiesConstructor() {
+        // Given
+        Map<String, Object> flagdProperties = new HashMap<>();
+        flagdProperties.put(Operator.FLAG_KEY, "some-key");
+        flagdProperties.put(Operator.TIME_STAMP, 1634000000L);
+
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put(Operator.FLAGD_PROPS_KEY, flagdProperties);
+
+        // When
+        Operator.FlagProperties flagProperties = new Operator.FlagProperties(dataMap);
+
+        // Then
+        assertEquals("some-key", flagProperties.getFlagKey());
+        assertEquals(1634000000L, flagProperties.getTimestamp());
     }
 
     @Test
@@ -63,7 +104,6 @@ class OperatorTest {
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("rachel@faas.com"));
-
 
         // when
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
@@ -103,7 +143,6 @@ class OperatorTest {
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("monica@faas.com"));
 
-
         // when
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
@@ -142,7 +181,6 @@ class OperatorTest {
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("joey@faas.com"));
 
-
         // when
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
@@ -165,7 +203,6 @@ class OperatorTest {
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("admin@faas.com"));
-
 
         // when
         Object evalVariant = OPERATOR.apply("adminRule", targetingRule, new ImmutableContext(ctxData));
@@ -190,7 +227,6 @@ class OperatorTest {
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("admin@faas.com"));
 
-
         // when
         Object evalVariant = OPERATOR.apply("isFaas", targetingRule, new ImmutableContext(ctxData));
 
@@ -214,7 +250,6 @@ class OperatorTest {
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("version", new Value("1.1.0"));
-
 
         // when
         Object evalVariant = OPERATOR.apply("versionFlag", targetingRule, new ImmutableContext(ctxData));
