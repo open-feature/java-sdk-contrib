@@ -139,7 +139,6 @@ public class ConfigCatProvider extends EventProvider {
         return ProviderEvaluation.<T>builder()
             .value(evaluatedValue)
             .variant(evaluationDetails.getVariationId())
-            .errorMessage(evaluationDetails.getError())
             .build();
     }
 

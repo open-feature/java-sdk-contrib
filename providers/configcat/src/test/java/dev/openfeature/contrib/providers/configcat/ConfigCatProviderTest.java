@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -192,7 +193,6 @@ class ConfigCatProviderTest {
 
         tempConfigCatProvider.shutdown();
 
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
         assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
         assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getDoubleEvaluation("fail_not_initialized", 0.1, new ImmutableContext()));
         assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getIntegerEvaluation("fail_not_initialized", 3, new ImmutableContext()));
@@ -205,6 +205,7 @@ class ConfigCatProviderTest {
         configCatProvider.emitProviderReady(ProviderEventDetails.builder().build());
         configCatProvider.emitProviderError(ProviderEventDetails.builder().build());
         configCatProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder().build());
+        assertDoesNotThrow(() -> {configCatProvider.getState();});
     }
 
     @SneakyThrows
