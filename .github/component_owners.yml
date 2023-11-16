@@ -26,6 +26,11 @@ components:
   providers/flipt:
     - liran2000
     - markphelps
+  providers/configcat:
+    - liran2000
+    - z4kn4fein
+    - laliconfigcat
+    - novalisdenahi
 
 ignored-authors:
   - renovate-bot

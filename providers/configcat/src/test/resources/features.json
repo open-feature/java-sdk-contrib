@@ -1,0 +1,88 @@
+{
+  "f": {
+    "enabledFeature": {
+      "v": true
+    },
+    "intSetting": {
+      "v": 5
+    },
+    "doubleSetting": {
+      "v": 3.14
+    },
+    "stringSetting": {
+      "v": "test"
+    },
+    "userIdMatching": {
+      "v": false,
+      "r": [
+        {
+          "o": 0,
+          "a": "Identifier",
+          "t": 2,
+          "c": "@matching.com",
+          "v": true
+        }
+      ]
+    },
+    "emailMatching": {
+      "v": false,
+      "r": [
+        {
+          "o": 0,
+          "a": "Email",
+          "t": 2,
+          "c": "@matching.com",
+          "v": true
+        }
+      ]
+    },
+    "countryMatching": {
+      "v": false,
+      "r": [
+        {
+          "o": 0,
+          "a": "Country",
+          "t": 2,
+          "c": "country1",
+          "v": true
+        }
+      ]
+    },
+    "userIdMatchingInt": {
+      "v": 111,
+      "r": [
+        {
+          "o": 0,
+          "a": "Identifier",
+          "t": 2,
+          "c": "@matching.com",
+          "v": 123
+        }
+      ]
+    },
+    "userIdMatchingDouble": {
+      "v": 0.1,
+      "r": [
+        {
+          "o": 0,
+          "a": "Identifier",
+          "t": 2,
+          "c": "@matching.com",
+          "v": 1.23
+        }
+      ]
+    },
+    "userIdMatchingStr": {
+      "v": "fallback",
+      "r": [
+        {
+          "o": 0,
+          "a": "Identifier",
+          "t": 2,
+          "c": "@matching.com",
+          "v": "expected"
+        }
+      ]
+    }
+  }
+}
