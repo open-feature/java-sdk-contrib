@@ -200,7 +200,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>copy-new-schema-definition</id>
+                        <id>copy-evaluation.proto</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>exec</goal>
