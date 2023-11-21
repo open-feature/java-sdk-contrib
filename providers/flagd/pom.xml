@@ -215,7 +215,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>copy-new-sync-definition</id>
+                        <id>copy-sync.proto</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>exec</goal>
