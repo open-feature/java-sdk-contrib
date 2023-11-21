@@ -1,4 +1,1 @@
-evaluation.proto
-schema.proto
-sync.proto
-sync_service.proto
+*.proto
