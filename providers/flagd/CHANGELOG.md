@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.6.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.6...dev.openfeature.contrib.providers.flagd-v0.6.7) (2023-11-21)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.15.3 ([#493](https://github.com/open-feature/java-sdk-contrib/issues/493)) ([f6cb68f](https://github.com/open-feature/java-sdk-contrib/commit/f6cb68f3c54e67a10f7e2f5bf9f5a2a840689491))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.16.0 ([#538](https://github.com/open-feature/java-sdk-contrib/issues/538)) ([4857448](https://github.com/open-feature/java-sdk-contrib/commit/485744828ee3c2dc772ada94cb443b516adc9f78))
+* **deps:** update dependency io.grpc:grpc-netty to v1.59.0 ([#509](https://github.com/open-feature/java-sdk-contrib/issues/509)) ([cb00b6d](https://github.com/open-feature/java-sdk-contrib/commit/cb00b6df92901701632673d566eecd681b9b21b8))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.59.0 ([#510](https://github.com/open-feature/java-sdk-contrib/issues/510)) ([9df6523](https://github.com/open-feature/java-sdk-contrib/commit/9df65239b591cf527b9b5501eea0fee2aebb5d04))
+* **deps:** update dependency io.grpc:grpc-stub to v1.59.0 ([#511](https://github.com/open-feature/java-sdk-contrib/issues/511)) ([9c5df8e](https://github.com/open-feature/java-sdk-contrib/commit/9c5df8e264c3d339684b331f65475f92e809032b))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.100.final ([#482](https://github.com/open-feature/java-sdk-contrib/issues/482)) ([9c08799](https://github.com/open-feature/java-sdk-contrib/commit/9c087997281cdc83de84a01743c2fcef8e1fb0d1))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.101.final ([#532](https://github.com/open-feature/java-sdk-contrib/issues/532)) ([4e293bf](https://github.com/open-feature/java-sdk-contrib/commit/4e293bfa3f761aab82986c76efef375112a42154))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.32.0 ([#534](https://github.com/open-feature/java-sdk-contrib/issues/534)) ([9d66306](https://github.com/open-feature/java-sdk-contrib/commit/9d66306094146f1983852d06506609e51b5983d9))
+* set flag key on `$flagd.flagKey` ([#492](https://github.com/open-feature/java-sdk-contrib/issues/492)) ([934f934](https://github.com/open-feature/java-sdk-contrib/commit/934f9340b613cde127377d80b576a685843070f7))
+
+
+### ✨ New Features
+
+* `$flagd.timestamp` added to in-process evaluator  ([#512](https://github.com/open-feature/java-sdk-contrib/issues/512)) ([3a074b2](https://github.com/open-feature/java-sdk-contrib/commit/3a074b29ebbfb0300591d36ded3d08c2f1ae84a9))
+* Allow global otel configuration extraction ([#505](https://github.com/open-feature/java-sdk-contrib/issues/505)) ([addbc31](https://github.com/open-feature/java-sdk-contrib/commit/addbc310249f0e6c6c753827ea4b48bdbfe02a43))
+* utilize initialization context for flag evaluation ([#550](https://github.com/open-feature/java-sdk-contrib/issues/550)) ([2f3c069](https://github.com/open-feature/java-sdk-contrib/commit/2f3c0694987b7a90c3f59abe11d5511047a0d4c3))
+
+
+### 🧹 Chore
+
+* bundle flagd new proto schems ([#551](https://github.com/open-feature/java-sdk-contrib/issues/551)) ([478d593](https://github.com/open-feature/java-sdk-contrib/commit/478d593eba55fd64fb719d6ad648ca768d11916b))
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.1.1 ([#543](https://github.com/open-feature/java-sdk-contrib/issues/543)) ([56ebf39](https://github.com/open-feature/java-sdk-contrib/commit/56ebf39a26d3ef09c4fdec70b48e0911335dbc85))
+* remove experimental badge ([#522](https://github.com/open-feature/java-sdk-contrib/issues/522)) ([ffc1c3b](https://github.com/open-feature/java-sdk-contrib/commit/ffc1c3be1bfd870f1c265690a068ee5f143ba3bb))
+
 ## [0.6.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.5...dev.openfeature.contrib.providers.flagd-v0.6.6) (2023-10-10)
 
 
