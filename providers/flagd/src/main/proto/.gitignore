@@ -1,2 +1,1 @@
-schema.proto
-sync_service.proto
+*.proto

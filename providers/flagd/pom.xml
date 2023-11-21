@@ -200,6 +200,36 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>copy-evaluation.proto</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!-- run: cp schemas/protobuf/flagd/evaluation/v1/evaluation.proto src/main/proto/ -->
+                            <executable>cp</executable>
+                            <arguments>
+                                <argument>schemas/protobuf/flagd/evaluation/v1/evaluation.proto</argument>
+                                <argument>src/main/proto/</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-sync.proto</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!-- run: cp schemas/protobuf/flagd/sync/v1/sync.proto src/main/proto/ -->
+                            <executable>cp</executable>
+                            <arguments>
+                                <argument>schemas/protobuf/flagd/sync/v1/sync.proto</argument>
+                                <argument>src/main/proto/</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>copy-schema-json</id>
                         <phase>validate</phase>
                         <goals>
