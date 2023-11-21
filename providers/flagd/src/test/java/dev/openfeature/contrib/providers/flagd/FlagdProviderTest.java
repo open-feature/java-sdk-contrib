@@ -1,10 +1,11 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import com.google.protobuf.Struct;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
@@ -16,6 +17,7 @@ import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
@@ -48,6 +50,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FlagdProviderTest {
@@ -761,6 +764,39 @@ class FlagdProviderTest {
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(STATIC_REASON, objectDetails.getReason());
+    }
+
+    @Test
+    void contextMerging() throws Exception {
+        // given
+        final FlagdProvider provider = new FlagdProvider();
+
+        final Resolver resolverMock = mock(Resolver.class);
+
+        Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
+        flagResolver.setAccessible(true);
+        flagResolver.set(provider, resolverMock);
+
+        final HashMap<String, Value> globalCtxMap = new HashMap<>();
+        globalCtxMap.put("id", new Value("GlobalID"));
+        globalCtxMap.put("env", new Value("A"));
+
+        final HashMap<String, Value> localCtxMap = new HashMap<>();
+        localCtxMap.put("id", new Value("localID"));
+        localCtxMap.put("client", new Value("999"));
+
+        final HashMap<String, Value> expectedCtx = new HashMap<>();
+        expectedCtx.put("id", new Value("localID"));
+        expectedCtx.put("env", new Value("A"));
+        localCtxMap.put("client", new Value("999"));
+
+        // when
+        provider.initialize(new ImmutableContext(globalCtxMap));
+        provider.getBooleanEvaluation("ket", false, new ImmutableContext(localCtxMap));
+
+        // then
+        verify(resolverMock).booleanEvaluation(any(), any(), argThat(
+                ctx -> ctx.asMap().entrySet().containsAll(expectedCtx.entrySet())));
     }
 
     // test utils

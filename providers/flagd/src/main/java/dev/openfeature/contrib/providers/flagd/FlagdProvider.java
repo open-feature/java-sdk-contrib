@@ -28,8 +28,9 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Resolver flagResolver;
-
     private ProviderState state = ProviderState.NOT_READY;
+
+    private EvaluationContext evaluationContext;
 
     /**
      * Create a new FlagdProvider instance with default options.
@@ -60,6 +61,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
+        this.evaluationContext = evaluationContext;
         this.flagResolver.init();
     }
 
@@ -91,27 +93,35 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.booleanEvaluation(key, defaultValue, ctx);
+        return this.flagResolver.booleanEvaluation(key, defaultValue, mergeContext(ctx));
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.stringEvaluation(key, defaultValue, ctx);
+        return this.flagResolver.stringEvaluation(key, defaultValue, mergeContext(ctx));
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.doubleEvaluation(key, defaultValue, ctx);
+        return this.flagResolver.doubleEvaluation(key, defaultValue, mergeContext(ctx));
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.integerEvaluation(key, defaultValue, ctx);
+        return this.flagResolver.integerEvaluation(key, defaultValue, mergeContext(ctx));
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.objectEvaluation(key, defaultValue, ctx);
+        return this.flagResolver.objectEvaluation(key, defaultValue, mergeContext(ctx));
+    }
+
+    private EvaluationContext mergeContext(final EvaluationContext clientCallCtx) {
+        if (this.evaluationContext != null) {
+            return evaluationContext.merge(clientCallCtx);
+        }
+
+        return clientCallCtx;
     }
 
     private void setState(ProviderState newState) {
