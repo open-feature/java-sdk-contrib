@@ -20,7 +20,7 @@
         <dependency>
             <groupId>io.getunleash</groupId>
             <artifactId>unleash-client-java</artifactId>
-            <version>9.1.0</version>
+            <version>9.1.1</version>
         </dependency>
 
         <dependency>
