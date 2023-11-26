@@ -176,7 +176,7 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.14.0</version>
+            <version>7.14.1</version>
             <scope>test</scope>
         </dependency>
 
