@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.7...dev.openfeature.contrib.providers.flagd-v0.6.8) (2023-11-28)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.grpc:grpc-netty to v1.59.1 ([#559](https://github.com/open-feature/java-sdk-contrib/issues/559)) ([98abe08](https://github.com/open-feature/java-sdk-contrib/commit/98abe08236d61dfaa31265d31813c3a90c0dbc1b))
+* **deps:** update dependency io.grpc:grpc-protobuf to v1.59.1 ([#560](https://github.com/open-feature/java-sdk-contrib/issues/560)) ([66d6c47](https://github.com/open-feature/java-sdk-contrib/commit/66d6c47b1b7557e9af5756dddf9e9f5498213b60))
+* **deps:** update dependency io.grpc:grpc-stub to v1.59.1 ([#561](https://github.com/open-feature/java-sdk-contrib/issues/561)) ([8c99124](https://github.com/open-feature/java-sdk-contrib/commit/8c99124cd67a02660b4f7e93aff43b9a0da8b1a5))
+
 ## [0.6.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.6...dev.openfeature.contrib.providers.flagd-v0.6.7) (2023-11-21)
 
 
