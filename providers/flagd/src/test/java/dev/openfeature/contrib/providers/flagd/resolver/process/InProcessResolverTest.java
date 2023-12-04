@@ -5,13 +5,13 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DOUBLE_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_SHORTHAND_TARGETING;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.INT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -257,6 +257,24 @@ class InProcessResolverTest {
         assertThrows(TypeMismatchError.class, () -> {
             inProcessResolver.stringEvaluation("stringFlag", "false", new ImmutableContext());
         });
+    }
+
+    @Test
+    public void booleanShorthandEvaluation() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("shorthand", FLAG_WIH_SHORTHAND_TARGETING);
+
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
+        });
+
+        ProviderEvaluation<Boolean> providerEvaluation = inProcessResolver.booleanEvaluation("shorthand", false,
+                new ImmutableContext());
+
+        // then
+        assertEquals(true, providerEvaluation.getValue());
+        assertEquals("true", providerEvaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.toString(), providerEvaluation.getReason());
     }
 
     @Test

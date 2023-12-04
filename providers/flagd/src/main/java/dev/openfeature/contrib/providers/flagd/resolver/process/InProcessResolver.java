@@ -174,7 +174,7 @@ public class InProcessResolver implements Resolver {
                     resolvedVariant = flag.getDefaultVariant();
                     reason = Reason.DEFAULT.toString();
                 } else {
-                    resolvedVariant = jsonResolved;
+                    resolvedVariant = jsonResolved.toString(); // convert to string to support shorthand
                     reason = Reason.TARGETING_MATCH.toString();
                 }
             } catch (TargetingRuleException e) {
