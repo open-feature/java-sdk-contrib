@@ -198,7 +198,7 @@ public class InProcessResolver implements Resolver {
             // if this is a double and we are trying to resolve an integer, convert
             value = ((Double) value).intValue();
         }
-        if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
+        if (!type.isAssignableFrom(value.getClass())) {
             String message = "returning default variant for flagKey: %s, type not valid";
             log.debug(String.format(message, key));
             throw new TypeMismatchError(message);
