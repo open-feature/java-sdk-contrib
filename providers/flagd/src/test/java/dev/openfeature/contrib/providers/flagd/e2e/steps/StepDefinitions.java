@@ -392,8 +392,8 @@ public class StepDefinitions {
         this.customEvaluatorContext = new ImmutableContext(attrs);
     }
 
-    @And("a context containing a key {string}, with value {int}")
-    public void a_context_containing_a_key_with_value_int(String key, Integer value) {
+    @And("a context containing a key {string}, with value {double}")
+    public void a_context_containing_a_key_with_value_double(String key, Double value) {
         Map<String, Value> attrs = new HashMap<String, Value>();
         attrs.put(key, new Value(value));
         this.customEvaluatorContext = new ImmutableContext(attrs);
