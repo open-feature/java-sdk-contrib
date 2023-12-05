@@ -161,7 +161,7 @@ public class InProcessResolver implements Resolver {
             throw new FlagNotFoundError("flag: " + key + " is disabled");
         }
 
-        final Object resolvedVariant;
+        final String resolvedVariant;
         final String reason;
 
         if (EMPTY_TARGETING_STRING.equals(flag.getTargeting())) {
@@ -206,7 +206,7 @@ public class InProcessResolver implements Resolver {
 
         return ProviderEvaluation.<T>builder()
                 .value((T) value)
-                .variant((String) resolvedVariant)
+                .variant(resolvedVariant)
                 .reason(reason)
                 .build();
     }
