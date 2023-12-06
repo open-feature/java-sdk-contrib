@@ -395,6 +395,9 @@ public class GoFeatureFlagProvider implements FeatureProvider {
      */
     private ImmutableMetadata convertFlagMetadata(Map<String, Object> flagMetadata) {
         ImmutableMetadata.ImmutableMetadataBuilder builder = ImmutableMetadata.builder();
+        if (flagMetadata == null) {
+            return builder.build();
+        }
         flagMetadata.forEach((k, v) -> {
             if (v instanceof Long) {
                 builder.addLong(k, (Long) v);
