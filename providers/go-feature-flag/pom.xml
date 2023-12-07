@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>go-feature-flag</artifactId>
-    <version>0.2.15</version> <!--x-release-please-version -->
+    <version>0.2.16</version> <!--x-release-please-version -->
 
     <name>go-feature-flag</name>
     <description>GO Feature Flag provider for Java</description>
