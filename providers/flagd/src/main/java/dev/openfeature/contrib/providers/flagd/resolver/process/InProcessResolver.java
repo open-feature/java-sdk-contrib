@@ -161,7 +161,7 @@ public class InProcessResolver implements Resolver {
             throw new FlagNotFoundError("flag: " + key + " is disabled");
         }
 
-        final Object resolvedVariant;
+        final String resolvedVariant;
         final String reason;
 
         if (EMPTY_TARGETING_STRING.equals(flag.getTargeting())) {
@@ -174,7 +174,7 @@ public class InProcessResolver implements Resolver {
                     resolvedVariant = flag.getDefaultVariant();
                     reason = Reason.DEFAULT.toString();
                 } else {
-                    resolvedVariant = jsonResolved;
+                    resolvedVariant = jsonResolved.toString(); // convert to string to support shorthand
                     reason = Reason.TARGETING_MATCH.toString();
                 }
             } catch (TargetingRuleException e) {
@@ -198,7 +198,7 @@ public class InProcessResolver implements Resolver {
             // if this is a double and we are trying to resolve an integer, convert
             value = ((Double) value).intValue();
         }
-        if (!type.isAssignableFrom(value.getClass()) || !(resolvedVariant instanceof String)) {
+        if (!type.isAssignableFrom(value.getClass())) {
             String message = "returning default variant for flagKey: %s, type not valid";
             log.debug(String.format(message, key));
             throw new TypeMismatchError(message);
@@ -206,7 +206,7 @@ public class InProcessResolver implements Resolver {
 
         return ProviderEvaluation.<T>builder()
                 .value((T) value)
-                .variant((String) resolvedVariant)
+                .variant(resolvedVariant)
                 .reason(reason)
                 .build();
     }

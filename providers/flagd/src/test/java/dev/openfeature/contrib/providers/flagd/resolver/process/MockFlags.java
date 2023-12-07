@@ -8,6 +8,7 @@ import java.util.Map;
 public class MockFlags {
 
     static final Map<String, Object> booleanVariant;
+    static final Map<String, Object> shorthandVariant;
     static final Map<String, Object> stringVariants;
     static final Map<String, Object> doubleVariants;
     static final Map<String, Object> intVariants;
@@ -17,6 +18,10 @@ public class MockFlags {
         booleanVariant = new HashMap<>();
         booleanVariant.put("on", true);
         booleanVariant.put("off", false);
+
+        shorthandVariant = new HashMap<>();
+        shorthandVariant.put("true", true);
+        shorthandVariant.put("false", false);
 
         stringVariants = new HashMap<>();
         stringVariants.put("loop", "loopAlg");
@@ -46,6 +51,9 @@ public class MockFlags {
     // correct flag - boolean
     static final FeatureFlag BOOLEAN_FLAG = new FeatureFlag("ENABLED", "on", booleanVariant, null);
 
+    // correct flag - boolean
+    static final FeatureFlag SHORTHAND_FLAG = new FeatureFlag("ENABLED", "false", booleanVariant, null);
+
     // correct flag - double
     static final FeatureFlag DOUBLE_FLAG = new FeatureFlag("ENABLED", "one", doubleVariants, null);
 
@@ -68,4 +76,8 @@ public class MockFlags {
     // flag with incorrect targeting rule
     static final FeatureFlag FLAG_WIH_INVALID_TARGET = new FeatureFlag("ENABLED", "loop", stringVariants,
             "{if this, then that}");
+
+    // flag with shorthand rule
+    static final FeatureFlag FLAG_WIH_SHORTHAND_TARGETING = new FeatureFlag("ENABLED", "false", shorthandVariant,
+    "{ \"if\": [true, true, false] }");
 }

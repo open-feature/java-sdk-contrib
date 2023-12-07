@@ -374,8 +374,26 @@ public class StepDefinitions {
         this.customEvaluatorContext = new ImmutableContext(outerMap);
     }
 
+    @And("a context containing a nested property with outer key {string} and inner key {string}, with value {int}")
+    public void a_context_containing_a_nested_property_with_outer_key_and_inner_key_with_value_int(String outerKey,
+            String innerKey, Integer value) throws InstantiationException {
+        Map<String, Value> innerMap = new HashMap<String, Value>();
+        innerMap.put(innerKey, new Value(value));
+        Map<String, Value> outerMap = new HashMap<String, Value>();
+        outerMap.put(outerKey, new Value(new ImmutableStructure(innerMap)));
+        this.customEvaluatorContext = new ImmutableContext(outerMap);
+    }
+
+
     @And("a context containing a key {string}, with value {string}")
     public void a_context_containing_a_key_with_value(String key, String value) {
+        Map<String, Value> attrs = new HashMap<String, Value>();
+        attrs.put(key, new Value(value));
+        this.customEvaluatorContext = new ImmutableContext(attrs);
+    }
+
+    @And("a context containing a key {string}, with value {double}")
+    public void a_context_containing_a_key_with_value_double(String key, Double value) {
         Map<String, Value> attrs = new HashMap<String, Value>();
         attrs.put(key, new Value(value));
         this.customEvaluatorContext = new ImmutableContext(attrs);
@@ -386,6 +404,13 @@ public class StepDefinitions {
         String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue,
                 this.customEvaluatorContext);
         assertEquals(expected, value);
+    }
+
+    @Then("the returned value should be {int}")
+    public void the_returned_value_should_be(Integer expectedValue) {
+        Integer value = client.getIntegerValue(this.intFlagKey, this.intFlagDefaultValue,
+                this.customEvaluatorContext);
+        assertEquals(expectedValue, value);
     }
 
     /*
