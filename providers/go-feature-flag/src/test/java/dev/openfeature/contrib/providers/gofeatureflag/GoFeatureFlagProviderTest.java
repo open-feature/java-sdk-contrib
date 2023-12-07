@@ -703,6 +703,23 @@ class GoFeatureFlagProviderTest {
 
     @SneakyThrows
     @Test
+    void should_not_fail_if_no_metadata_in_response() {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("no_metadata",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
+                .value(true)
+                .variant("True")
+                .flagKey("no_metadata")
+                .reason(Reason.TARGETING_MATCH.name())
+                .build();
+        assertEquals(want, got);
+    }
+
+    @SneakyThrows
+    @Test
     void should_publish_events() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
                 .endpoint(this.baseUrl.toString())
