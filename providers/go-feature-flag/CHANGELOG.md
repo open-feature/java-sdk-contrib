@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.16](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.15...dev.openfeature.contrib.providers.go-feature-flag-v0.2.16) (2023-12-07)
+
+
+### 🐛 Bug Fixes
+
+* [go-feature-flag] Make flag metadata optional ([#572](https://github.com/open-feature/java-sdk-contrib/issues/572)) ([6a70bc4](https://github.com/open-feature/java-sdk-contrib/commit/6a70bc41c1d7573ca0d3f8ed68d447f865beed05))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.22.0 ([#540](https://github.com/open-feature/java-sdk-contrib/issues/540)) ([01d379f](https://github.com/open-feature/java-sdk-contrib/commit/01d379fc720c14c1fd1b6baeba23f3ab7007e740))
+
 ## [0.2.15](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.14...dev.openfeature.contrib.providers.go-feature-flag-v0.2.15) (2023-11-16)
 
 
