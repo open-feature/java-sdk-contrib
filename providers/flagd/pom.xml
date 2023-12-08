@@ -15,8 +15,8 @@
     <properties>
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
+        <io.grpc.version>1.60.0</io.grpc.version>
     </properties>
-
 
     <name>flagd</name>
     <description>FlagD provider for Java</description>
@@ -33,6 +33,7 @@
 
     <dependencies>
 
+        <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
         <!-- override parent definition -->
         <dependency>
             <groupId>dev.openfeature</groupId>
@@ -41,13 +42,22 @@
             <scope>provided</scope>
         </dependency>
 
-
-        <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
-
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty</artifactId>
-            <version>1.59.1</version>
+            <version>${io.grpc.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>${io.grpc.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>${io.grpc.version}</version>
         </dependency>
 
         <dependency>
@@ -57,18 +67,6 @@
             <version>4.1.101.Final</version>
             <!-- TODO: with 5+ (still alpha), arm is support and we should package multiple versions -->
             <classifier>linux-x86_64</classifier>
-        </dependency>
-
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-protobuf</artifactId>
-            <version>1.59.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-stub</artifactId>
-            <version>1.60.0</version>
         </dependency>
 
         <dependency>
