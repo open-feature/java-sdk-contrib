@@ -15,8 +15,7 @@ public enum CacheType {
         this.type = type;
     }
 
-    @Override
-    public String toString() {
-        return this.type;
+    public String getType() {
+        return type;
     }
 }

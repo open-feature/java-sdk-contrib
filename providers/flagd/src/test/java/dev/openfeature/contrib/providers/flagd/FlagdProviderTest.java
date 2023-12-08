@@ -482,7 +482,7 @@ class FlagdProviderTest {
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(serviceStubMock);
 
-            final Cache cache = new Cache(CacheType.LRU, 5);
+            final Cache cache = new Cache("lru", 5);
             grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
             });
         }
@@ -694,7 +694,7 @@ class FlagdProviderTest {
                 .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
 
         // disabled cache
-        final Cache cache = new Cache(CacheType.DISABLED, 0);
+        final Cache cache = new Cache("disabled", 0);
 
         GrpcConnector grpc;
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
@@ -808,7 +808,7 @@ class FlagdProviderTest {
 
     // create provider with given grpc provider and state supplier
     private FlagdProvider createProvider(GrpcConnector grpc, Supplier<ProviderState> getState) {
-        final Cache cache = new Cache(CacheType.LRU, 5);
+        final Cache cache = new Cache("lru", 5);
 
         return createProvider(grpc, cache, getState);
     }

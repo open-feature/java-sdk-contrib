@@ -2,7 +2,7 @@ package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheFactory;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
@@ -51,7 +51,10 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
                 break;
             case RPC:
                 this.flagResolver =
-                        new GrpcResolver(options, CacheFactory.getCache(options), this::getState, this::setState);
+                        new GrpcResolver(options,
+                                new Cache(options.getCacheType(), options.getMaxCacheSize()),
+                                this::getState,
+                                this::setState);
                 break;
             default:
                 throw new IllegalStateException(
