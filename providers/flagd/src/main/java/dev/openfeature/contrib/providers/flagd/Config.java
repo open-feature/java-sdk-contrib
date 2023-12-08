@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+
 /**
  * Helper class to hold configuration default values.
  */
@@ -34,7 +36,7 @@ public final class Config {
     public static final String REASON_FIELD = "reason";
     public static final String METADATA_FIELD = "metadata";
 
-    public static final String LRU_CACHE = "lru";
+    public static final String LRU_CACHE = CacheType.LRU.getValue();
     static final String DEFAULT_CACHE = LRU_CACHE;
 
     static final int DEFAULT_MAX_EVENT_STREAM_RETRIES = 5;

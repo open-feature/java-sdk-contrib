@@ -28,9 +28,9 @@ public class Cache {
      * @param maxCacheSize max amount of element to keep.
      */
     public Cache(final String forType, int maxCacheSize) {
-        if (DISABLED.getType().equals(forType)) {
+        if (DISABLED.getValue().equals(forType)) {
             enabled = false;
-        } else if (LRU.getType().equals(forType)) {
+        } else if (LRU.getValue().equals(forType)) {
             enabled = true;
             this.store = Collections.synchronizedMap(new LRUMap<>(maxCacheSize));
         } else {
