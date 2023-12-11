@@ -35,7 +35,7 @@ public class Cache {
             this.store = Collections.synchronizedMap(new LRUMap<>(maxCacheSize));
         } else {
             enabled = false;
-            log.info(String.format("Unsupported cache type %s, continuing without cache", forType));
+            log.warn(String.format("Unsupported cache type %s, continuing without cache", forType));
         }
     }
 
