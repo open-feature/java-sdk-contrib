@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.e2e.rpc;
 
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -19,10 +20,11 @@ public class FlagdRpcSetup {
     @BeforeAll()
     public static void setup() {
         FlagdRpcSetup.provider = new FlagdProvider(FlagdOptions.builder()
-        .resolverType(Config.Evaluator.RPC)
-        // set a generous deadline, to prevent timeouts in actions
-        .deadline(3000)
-        .build());
+                .resolverType(Config.Evaluator.RPC)
+                // set a generous deadline, to prevent timeouts in actions
+                .deadline(3000)
+                .cacheType(CacheType.DISABLED.getValue())
+                .build());
         StepDefinitions.setProvider(provider);
     }
 }

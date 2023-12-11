@@ -51,7 +51,7 @@ public class GrpcConnectorTest {
                 .maxEventStreamRetries(retries)
                 .build();
 
-        final Cache cache = new Cache(CacheType.DISABLED, 0);
+        final Cache cache = new Cache("disabled", 0);
 
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
@@ -87,7 +87,7 @@ public class GrpcConnectorTest {
 
     @Test
     void initialization_succeed_with_connected_status() throws NoSuchFieldException, IllegalAccessException {
-        final Cache cache = new Cache(CacheType.DISABLED, 0);
+        final Cache cache = new Cache("disabled", 0);
 
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
@@ -111,7 +111,7 @@ public class GrpcConnectorTest {
 
     @Test
     void initialization_fail_with_timeout() throws Exception {
-        final Cache cache = new Cache(CacheType.DISABLED, 0);
+        final Cache cache = new Cache("disabled", 0);
 
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());

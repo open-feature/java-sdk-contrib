@@ -1,22 +1,18 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc.cache;
 
-import static dev.openfeature.contrib.providers.flagd.Config.LRU_CACHE;
+import lombok.Getter;
 
 /**
  * Defines which type of cache to use.
  */
+@Getter
 public enum CacheType {
     DISABLED("disabled"),
-    LRU(LRU_CACHE);
+    LRU("lru");
 
-    private final String type;
+    private final String value;
 
-    CacheType(String type) {
-        this.type = type;
-    }
-
-    @Override
-    public String toString() {
-        return this.type;
+    CacheType(String value) {
+        this.value = value;
     }
 }
