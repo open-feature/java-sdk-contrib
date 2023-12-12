@@ -20,7 +20,7 @@
         <dependency>
             <groupId>io.flipt</groupId>
             <artifactId>flipt-java</artifactId>
-            <version>0.2.14</version>
+            <version>0.2.15</version>
         </dependency>
 
         <dependency>
