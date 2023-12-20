@@ -372,7 +372,7 @@
                                 </goals>
                                 <configuration>
                                     <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
-                                    <!-- run: cp test-harness/features/flagd.feature src/test/resources/features/ -->
+                                    <!-- run: cp test-harness/features/flagd-reconnect.feature src/test/resources/features/ -->
                                     <executable>cp</executable>
                                     <arguments>
                                         <argument>test-harness/gherkin/flagd-reconnect.feature</argument>
