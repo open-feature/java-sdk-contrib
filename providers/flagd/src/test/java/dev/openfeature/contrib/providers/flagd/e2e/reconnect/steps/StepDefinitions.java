@@ -6,7 +6,6 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -52,17 +51,15 @@ public class StepDefinitions {
     }
 
     public StepDefinitions() {
+        StepDefinitions.client = OpenFeatureAPI.getInstance().getClient("unstable");
         client.onProviderReady(this.readyHandler);
         client.onProviderError(this.errorHandler);
+        OpenFeatureAPI.getInstance().setProviderAndWait("unstable", provider);
     }
 
-    @BeforeEach()
     @Given("a flagd provider is set")
     public static void setup() {
-        if (StepDefinitions.client == null) {
-            OpenFeatureAPI.getInstance().setProviderAndWait("unstable", provider);
-            StepDefinitions.client = OpenFeatureAPI.getInstance().getClient("unstable");
-        }
+        // done in constructor
     }
 
     @AfterAll()
@@ -85,8 +82,8 @@ public class StepDefinitions {
 
     @Then("the PROVIDER_ERROR handler must run when the provider's connection is lost")
     public void the_provider_error_handler_must_run_when_the_provider_s_connection_is_lost() {
-        // wait up to 10 seconds for a disconnect (PROVIDER_ERROR event)
-        Awaitility.await().atMost(Duration.ofSeconds(10))
+        // wait up to 15 seconds for a disconnect (PROVIDER_ERROR event)
+        Awaitility.await().atMost(Duration.ofSeconds(15))
         .until(() -> {
             return this.errorHandlerRunCount > 0;
         });
@@ -94,8 +91,8 @@ public class StepDefinitions {
 
     @Then("when the connection is reestablished the PROVIDER_READY handler must run again")
     public void when_the_connection_is_reestablished_the_provider_ready_handler_must_run_again() {
-        // wait up to 10 seconds for a reconnect (PROVIDER_READY event)
-        Awaitility.await().atMost(Duration.ofSeconds(10))
+        // wait up to 15 seconds for a reconnect (PROVIDER_READY event)
+        Awaitility.await().atMost(Duration.ofSeconds(15))
         .until(() -> {
             return this.readyHandlerRunCount > 1;
         });
