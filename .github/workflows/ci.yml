@@ -19,7 +19,7 @@ jobs:
           - 8013:8013
       # flagd-testbed for flagd RPC provider reconnect e2e tests
       flagd-unstable:
-        image: ghcr.io/open-feature/flagd-testbed-unstable:v0.4.9
+        image: ghcr.io/open-feature/flagd-testbed-unstable:v0.4.10
         ports:
           - 8014:8013
       # sync-testbed for flagd in-process provider e2e tests
