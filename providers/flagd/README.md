@@ -23,7 +23,7 @@ This is the default mode of operation of the provider.
 In this mode, `FlagdProvider` communicates with [flagd](https://github.com/open-feature/flagd) via the gRPC protocol.
 Flag evaluations take place remotely at the connected flagd instance.
 
-Instantiate a new FlagdProvider instance, and configure the OpenFeature SDK to use it:
+Instantiate a new FlagdProvider instance and configure the OpenFeature SDK to use it:
 
 ```java
 // Create a flagd instance with default options
@@ -36,7 +36,7 @@ OpenFeatureAPI.getInstance().setProvider(flagd);
 
 This mode performs flag evaluations locally (in-process). Flag configurations for evaluation are obtained via gRPC protocol using [sync protobuf schema](https://buf.build/open-feature/flagd/file/main:sync/v1/sync_service.proto) service definition.
 
-Consider following example to create a `FlagdProvider` with in-process evaluations,
+Consider the following example to create a `FlagdProvider` with in-process evaluations,
 
 ```java
 FlagdProvider flagdProvider = new FlagdProvider(
@@ -47,8 +47,8 @@ FlagdProvider flagdProvider = new FlagdProvider(
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
 
-In-process resolver can also work in an offline mode. To enable this mode, you should provide a valid flag configuration file with the option `offlineFlagSourcePath`.
-The file must contain a valid flagd flag source file.
+In-process resolvers can also work in an offline mode.
+To enable this mode, you should provide a valid flag configuration file with the option `offlineFlagSourcePath`.
 
 ```java
 FlagdProvider flagdProvider = new FlagdProvider(
@@ -59,7 +59,7 @@ FlagdProvider flagdProvider = new FlagdProvider(
 ```
 
 Provider will not detect file changes nor re-read the file after the initial read.
-This mode is useful for local development, test cases and for offline application.
+This mode is useful for local development, test cases, and offline applications.
 For a full-featured, production-ready file-based implementation, use the RPC evaluator in combination with the flagd standalone application, which can be configured to watch files for changes.
 
 ### Configuration options
@@ -90,13 +90,13 @@ Given below are the supported configurations:
 
 ### Unix socket support
 
-Unix socket communication with flag is facilitated via usage of the linux-native `epoll` library on `linux-x86_64`
-only (ARM support is pending relase of `netty-transport-native-epoll` v5). Unix sockets are not supported on other
+Unix socket communication with flagd is facilitated by usaging of the linux-native `epoll` library on `linux-x86_64`
+only (ARM support is pending the release of `netty-transport-native-epoll` v5). Unix sockets are not supported on other
 platforms or architectures.
 
 ### Reconnection
 
-Reconnection is supported by the underlying GRPCBlockingStub. If connection to flagd is lost, it will reconnect
+Reconnection is supported by the underlying GRPCBlockingStub. If the connection to flagd is lost, it will reconnect
 automatically.
 
 ### Deadline (gRPC call timeout)
@@ -106,7 +106,7 @@ If the gRPC call is not completed within this deadline, the gRPC call is termina
 and the evaluation will default.
 The default deadline is 500ms, though evaluations typically take on the order of 10ms.
 For the in-process provider, the deadline is used when establishing the initial streaming connection.
-A failure to connect within this timeout will result an [error event](https://openfeature.dev/docs/reference/concepts/events#provider_error) from the provider, though it will attempt to reconnect indefinitely.
+A failure to connect within this timeout will result in an [error event](https://openfeature.dev/docs/reference/concepts/events#provider_error) from the provider, though it will attempt to reconnect indefinitely.
 
 ### TLS
 
@@ -129,14 +129,14 @@ FlagdProvider flagdProvider = new FlagdProvider(
 ### Caching (RPC only)
 
 > [!NOTE]  
-> The in-process resolver does not benefit from caching, since all evaluations are done locally and do not involve I/O.
+> The in-process resolver does not benefit from caching since all evaluations are done locally and do not involve I/O.
 
 The provider attempts to establish a connection to flagd's event stream (up to 5 times by default).
-If the connection is successful and caching is enabled each flag returned with reason `STATIC` is cached until an event is received
-concerning the cached flag (at which point it is removed from cache).
+If the connection is successful and caching is enabled, each flag returned with the reason `STATIC` is cached until an event is received
+concerning the cached flag (at which point it is removed from the cache).
 
-On invocation of a flag evaluation (if caching is available) an attempt is made to retrieve the entry from cache, if
-found the flag is returned with reason `CACHED`.
+On invocation of a flag evaluation (if caching is available), an attempt is made to retrieve the entry from the cache, if
+found the flag is returned with the reason `CACHED`.
 
 By default, the provider is configured to
 use [least recently used (lru)](https://commons.apache.org/proper/commons-collections/apidocs/org/apache/commons/collections4/map/LRUMap.html)
@@ -144,7 +144,7 @@ caching with up to 1000 entries.
 
 ### OpenTelemetry tracing (RPC only)
 
-flagd provider support OpenTelemetry traces for gRPC backed remote evaluations. 
+flagd provider support OpenTelemetry traces for gRPC-backed remote evaluations. 
 
 There are two ways you can configure OpenTelemetry for the provider,
 
@@ -152,11 +152,11 @@ There are two ways you can configure OpenTelemetry for the provider,
 - [Using manual instrumentation](https://opentelemetry.io/docs/instrumentation/java/manual/)
 
 When using automatic instrumentation, traces for gRPC will be automatically added by the OpenTelemetry Java library.
-These traces however will not include extra attributes added when using manual instrumentation. 
+These traces, however will not include extra attributes added when using manual instrumentation. 
 
 When using manual instrumentation, you have two options to construct flagd provider to enable traces.
 
-First(preferred) option is by constructing the provider with an OpenTelemetry instance,
+The first(preferred) option is to construct the provider with an OpenTelemetry instance,
 
 ```java
 FlagdOptions options = 
@@ -167,7 +167,7 @@ FlagdOptions options =
 FlagdProvider flagdProvider = new FlagdProvider(options);
 ```
 
-Second option is useful if you have set up a GlobalOpenTelemetry in your runtime.
+The second option is useful if you have set up a GlobalOpenTelemetry in your runtime.
 You can allow flagd to derive the OpenTelemetry instance by enabling `withGlobalTelemetry` option.
 
 ```java
@@ -179,6 +179,6 @@ FlagdOptions options =
 FlagdProvider flagdProvider = new FlagdProvider(options);
 ```
 
-Please refer [OpenTelemetry example](https://opentelemetry.io/docs/instrumentation/java/manual/#example) for best practice guideline.
+Please refer [OpenTelemetry example](https://opentelemetry.io/docs/instrumentation/java/manual/#example) for best practice guidelines.
 
 Provider telemetry combined with [flagd OpenTelemetry](https://flagd.dev/reference/monitoring/#opentelemetry) allows you to have distributed traces.
