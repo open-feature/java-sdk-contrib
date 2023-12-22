@@ -5,7 +5,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
@@ -26,6 +25,7 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import io.cucumber.java.AfterAll;
 import io.grpc.Channel;
 import io.grpc.Deadline;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,6 +83,10 @@ class FlagdProviderTest {
         api = OpenFeatureAPI.getInstance();
     }
 
+    @AfterAll
+    public static void cleanUp() {
+        api.shutdown();
+    }
 
     @Test
     void resolvers_call_grpc_service_and_return_details() {
@@ -191,7 +195,6 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
@@ -261,7 +264,6 @@ class FlagdProviderTest {
 
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
 
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(
                 serviceBlockingStubMock);
@@ -329,7 +331,6 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.resolveBoolean(argThat(
@@ -375,7 +376,6 @@ class FlagdProviderTest {
         context.add("key", (String) null);
 
         final ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        final ServiceStub serviceStubMock = mock(ServiceStub.class);
 
         // when
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
@@ -405,7 +405,6 @@ class FlagdProviderTest {
                 .build();
 
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class))).thenReturn(badReasonResponse);
@@ -509,11 +508,6 @@ class FlagdProviderTest {
 
         structMap.put("flags", com.google.protobuf.Value.newBuilder().
                 setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
-
-        EventStreamResponse eResponse = EventStreamResponse.newBuilder()
-                .setType("configuration_change")
-                .setData(Struct.newBuilder().putAllFields(structMap).build())
-                .build();
 
         // should cache results
         FlagEvaluationDetails<Boolean> booleanDetails;
@@ -725,11 +719,6 @@ class FlagdProviderTest {
 
         structMap.put("flags", com.google.protobuf.Value.newBuilder().
                 setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
-
-        EventStreamResponse eResponse = EventStreamResponse.newBuilder()
-                .setType("configuration_change")
-                .setData(Struct.newBuilder().putAllFields(structMap).build())
-                .build();
 
         // should not cache results
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
