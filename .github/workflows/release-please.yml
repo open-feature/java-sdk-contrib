@@ -12,9 +12,7 @@ jobs:
       - uses: google-github-actions/release-please-action@cc61a07e2da466bebbc19b3a7dd01d6aecb20d1e # v4
         id: release
         with:
-          command: manifest
           token: ${{secrets.GITHUB_TOKEN}}
-          default-branch: main
 
       # The logic below handles the maven publication:
       - name: Checkout Repository
