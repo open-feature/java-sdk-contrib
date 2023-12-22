@@ -2,12 +2,12 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -27,8 +27,6 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
-import java.time.Duration;
 
 /**
  * Common test suite used by both RPC and in-process flagd providers.
@@ -85,14 +83,15 @@ public class StepDefinitions {
         StepDefinitions.provider = provider;
     }
 
-    @BeforeEach()
+    public StepDefinitions() {
+        OpenFeatureAPI.getInstance().setProviderAndWait("e2e", provider);
+        StepDefinitions.client = OpenFeatureAPI.getInstance().getClient("e2e");
+    }
+
     @Given("a provider is registered")
     @Given("a flagd provider is set")
     public static void setup() {
-        if (StepDefinitions.client == null) {
-            OpenFeatureAPI.getInstance().setProviderAndWait("e2e", provider);
-            StepDefinitions.client = OpenFeatureAPI.getInstance().getClient("e2e");
-        }
+        // done in constructor
     }
 
     @AfterAll()
