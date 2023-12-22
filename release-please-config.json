@@ -1,5 +1,5 @@
 {
-  "bootstrap-sha": "7da7d2a1dfab602b257e801adb689c60ced6aaf3",
+  "bootstrap-sha": "5b1c87955b5d66b993f943161b72b30c398c1537",
   "separate-pull-requests": true,
   "packages": {
     "providers/flagd": {
