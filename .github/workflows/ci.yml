@@ -29,7 +29,7 @@ jobs:
           - 9090:9090
       # sync-testbed for flagd in-process provider reconnect e2e tests
       sync-unstable:
-        image: ghcr.io/open-feature/sync-testbed-unstable:v0.4.9
+        image: ghcr.io/open-feature/sync-testbed-unstable:v0.4.10
         ports:
           - 9091:9090
 
