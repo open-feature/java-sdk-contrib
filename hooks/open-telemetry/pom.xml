@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.hooks</groupId>
     <artifactId>otel</artifactId>
-    <version>3.1.0</version> <!--x-release-please-version -->
+    <version>3.1.1</version> <!--x-release-please-version -->
 
     <name>open-telemetry-hook</name>
     <description>Open Telemetry Hook</description>
