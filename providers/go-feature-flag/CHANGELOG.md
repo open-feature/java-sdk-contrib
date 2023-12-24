@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.17](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.16...dev.openfeature.contrib.providers.go-feature-flag-v0.2.17) (2023-12-24)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.16.1 ([#604](https://github.com/open-feature/java-sdk-contrib/issues/604)) ([165b1db](https://github.com/open-feature/java-sdk-contrib/commit/165b1db0a793b628ab6dd05b161350310505e41d))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.16.1 ([#605](https://github.com/open-feature/java-sdk-contrib/issues/605)) ([f403c64](https://github.com/open-feature/java-sdk-contrib/commit/f403c64973d851ac133f820f14f7ca658b4969ed))
+* **deps:** update dependency com.google.guava:guava to v33 ([#595](https://github.com/open-feature/java-sdk-contrib/issues/595)) ([ec3e948](https://github.com/open-feature/java-sdk-contrib/commit/ec3e9489e50b15a2c13d0f4739f7bc940a52b961))
+
 ## [0.2.16](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.15...dev.openfeature.contrib.providers.go-feature-flag-v0.2.16) (2023-12-07)
 
 
