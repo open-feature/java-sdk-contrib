@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.18](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.17...dev.openfeature.contrib.providers.go-feature-flag-v0.2.18) (2023-12-28)
+
+
+### 🐛 Bug Fixes
+
+* [go-feature-flag] Fix NullPointerException on checking anonymous user ([#609](https://github.com/open-feature/java-sdk-contrib/issues/609)) ([9effb7d](https://github.com/open-feature/java-sdk-contrib/commit/9effb7d85e0b3594c18456609ed742acb3cf31c0))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.22.1 ([#607](https://github.com/open-feature/java-sdk-contrib/issues/607)) ([75f0e3f](https://github.com/open-feature/java-sdk-contrib/commit/75f0e3f63a0f49d1d90de819145e480cd8eb4b6a))
+
 ## [0.2.17](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.16...dev.openfeature.contrib.providers.go-feature-flag-v0.2.17) (2023-12-24)
 
 
