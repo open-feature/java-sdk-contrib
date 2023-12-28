@@ -28,18 +28,25 @@ public class GoFeatureFlagUser {
      */
     public static GoFeatureFlagUser fromEvaluationContext(EvaluationContext ctx) {
         String key = ctx.getTargetingKey();
-        if (key == null || "".equals(key)) {
+        if (key == null || key.isEmpty()) {
             throw new TargetingKeyMissingError();
         }
-        Value anonymousValue = ctx.getValue(anonymousFieldName);
-        if (anonymousValue == null) {
-            anonymousValue = new Value(Boolean.FALSE);
-        }
-        boolean anonymous = anonymousValue.asBoolean();
+        boolean anonymous = isAnonymousUser(ctx);
         Map<String, Object> custom = new HashMap<>(ctx.asObjectMap());
         if (ctx.getValue(anonymousFieldName) != null) {
             custom.remove(anonymousFieldName);
         }
         return GoFeatureFlagUser.builder().anonymous(anonymous).key(key).custom(custom).build();
+    }
+
+    /**
+     * isAnonymousUser is checking if the user in the evaluationContext is anonymous.
+     *
+     * @param ctx - EvaluationContext from open-feature
+     * @return true if the user is anonymous, false otherwise
+     */
+    public static boolean isAnonymousUser(EvaluationContext ctx) {
+        Value value = ctx.getValue(anonymousFieldName);
+        return value != null && value.asBoolean();
     }
 }
