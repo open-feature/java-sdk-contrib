@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.events.Event;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.events.Events;
@@ -73,7 +74,7 @@ public class DataCollectorHook implements Hook {
         Event event = Event.builder()
                 .key(ctx.getFlagKey())
                 .kind("feature")
-                .contextKind(ctx.getCtx().getValue("anonymous").asBoolean() ? "anonymousUser" : "user")
+                .contextKind(GoFeatureFlagUser.isAnonymousUser(ctx.getCtx()) ? "anonymousUser" : "user")
                 .defaultValue(false)
                 .variation(details.getVariant())
                 .value(details.getValue())
@@ -88,7 +89,7 @@ public class DataCollectorHook implements Hook {
         Event event = Event.builder()
                 .key(ctx.getFlagKey())
                 .kind("feature")
-                .contextKind(ctx.getCtx().getValue("anonymous").asBoolean() ? "anonymousUser" : "user")
+                .contextKind(GoFeatureFlagUser.isAnonymousUser(ctx.getCtx()) ? "anonymousUser" : "user")
                 .creationDate(System.currentTimeMillis())
                 .defaultValue(true)
                 .variation("SdkDefault")

@@ -750,6 +750,29 @@ class GoFeatureFlagProviderTest {
         assertEquals(6, publishEventsRequestsReceived, "we have call 6 time more, so we should consider only those new calls");
     }
 
+    @SneakyThrows
+    @Test
+    void should_publish_events_context_without_anonymous() {
+        this.evaluationContext = new MutableContext("d45e303a-38c2-11ed-a261-0242ac120002");
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .enableCache(true)
+                .flushIntervalMs(50L)
+                .build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        client.getBooleanDetails("fail_500", false, this.evaluationContext);
+        Thread.sleep(100L);
+        assertEquals(1, publishEventsRequestsReceived, "We should have 1 event waiting to be publish");
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        Thread.sleep(100);
+        assertEquals(3, publishEventsRequestsReceived, "We pass the flush interval, we should have 3 events");
+    }
+
     private String readMockResponse(String filename) throws Exception {
         URL url = getClass().getClassLoader().getResource("mock_responses/" + filename);
         assert url != null;
