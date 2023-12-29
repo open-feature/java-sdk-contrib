@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.4...dev.openfeature.contrib.providers.env-var-v0.0.5) (2023-12-29)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.apache.commons:commons-lang3 to v3.14.0 ([#552](https://github.com/open-feature/java-sdk-contrib/issues/552)) ([b7751c5](https://github.com/open-feature/java-sdk-contrib/commit/b7751c5531e8fae5438cf8e9c40870a66b91aaba))
+
+
+### 🧹 Chore
+
+* generate automatic module names ([#407](https://github.com/open-feature/java-sdk-contrib/issues/407)) ([f18df0f](https://github.com/open-feature/java-sdk-contrib/commit/f18df0f7bcfc0db3e1ef10aa299aa7d7a17d74f7))
+
 ## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.3...dev.openfeature.contrib.providers.env-var-v0.0.4) (2023-08-12)
 
 

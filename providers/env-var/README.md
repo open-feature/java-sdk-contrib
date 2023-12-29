@@ -10,7 +10,7 @@ Environment Variables provider allows you to read feature flags from the [proces
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>env-var</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 

@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>env-var</artifactId>
-    <version>0.0.4</version> <!--x-release-please-version -->
+    <version>0.0.5</version> <!--x-release-please-version -->
 
     <properties>
         <!-- override module name defined in parent ("-" is not allowed) -->
