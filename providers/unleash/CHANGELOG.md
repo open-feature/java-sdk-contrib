@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.4-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.3-alpha...dev.openfeature.contrib.providers.unleash-v0.0.4-alpha) (2023-12-31)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.2.0 ([#576](https://github.com/open-feature/java-sdk-contrib/issues/576)) ([fed100e](https://github.com/open-feature/java-sdk-contrib/commit/fed100ee4b7c8c7a0521bc490ded5d2d036446e3))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.10 ([#610](https://github.com/open-feature/java-sdk-contrib/issues/610)) ([ce3825a](https://github.com/open-feature/java-sdk-contrib/commit/ce3825af03beb0ec682eec390efd4cfff973bc99))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.22.1 ([#607](https://github.com/open-feature/java-sdk-contrib/issues/607)) ([75f0e3f](https://github.com/open-feature/java-sdk-contrib/commit/75f0e3f63a0f49d1d90de819145e480cd8eb4b6a))
+
 ## [0.0.3-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.2-alpha...dev.openfeature.contrib.providers.unleash-v0.0.3-alpha) (2023-11-26)
 
 
