@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>unleash</artifactId>
-    <version>0.0.3-alpha</version> <!--x-release-please-version -->
+    <version>0.0.4-alpha</version> <!--x-release-please-version -->
 
     <name>unleash</name>
     <description>unleash provider for Java</description>

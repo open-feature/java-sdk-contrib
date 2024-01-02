@@ -11,7 +11,7 @@
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>unleash</artifactId>
-    <version>0.0.3-alpha</version>
+    <version>0.0.4-alpha</version>
 </dependency>
 ```
 
