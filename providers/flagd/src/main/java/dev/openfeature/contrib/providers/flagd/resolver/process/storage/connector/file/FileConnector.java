@@ -45,7 +45,7 @@ public class FileConnector implements Connector {
                 // initial read
                 String flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
                 if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
-                    throw new RuntimeException("Unable to write to queue. Queue is full.");
+                    log.warn("Unable to offer file content to queue: queue is full");
                 }
 
                 long lastTS = Files.getLastModifiedTime(filePath).toMillis();
@@ -58,7 +58,7 @@ public class FileConnector implements Connector {
                         lastTS = currentTS;
                         flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
                         if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
-                            throw new RuntimeException("Unable to write to queue. Queue is full.");
+                            log.warn("Unable to offer file content to queue: queue is full");
                         }
                     }
 
@@ -67,7 +67,10 @@ public class FileConnector implements Connector {
 
                 log.info("Shutting down file connector.");
             } catch (Throwable t) {
-                log.error("Error from file connector", t);
+                log.error("Error from file connector. File connector will exit", t);
+                if (!queue.offer(new StreamPayload(StreamPayloadType.ERROR, t.toString()))) {
+                    log.warn("Unable to offer file content to queue: queue is full");
+                }
             }
         });
 
