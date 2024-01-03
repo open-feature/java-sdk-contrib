@@ -9,12 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * File connector reads flag configurations and expose the context through {@code Connector} contract.
+ * File connector reads flag configurations from a given file, polls for changes and expose the content through
+ * {@code Connector} contract.
  * The implementation is kept minimal and suites testing, local development needs.
  */
 @SuppressFBWarnings(value = {"EI_EXPOSE_REP", "PATH_TRAVERSAL_IN"},
@@ -22,23 +24,55 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Slf4j
 public class FileConnector implements Connector {
 
+    private static final int POLL_INTERVAL_MS = 5000;
+
     private final String flagSourcePath;
     private final BlockingQueue<StreamPayload> queue = new LinkedBlockingQueue<>(1);
+    private boolean shutdown = false;
 
     public FileConnector(final String flagSourcePath) {
         this.flagSourcePath = flagSourcePath;
     }
 
     /**
-     * Initialize file connector. Reads content of the provided source file and offer it through queue.
+     * Initialize file connector. Reads file content, poll for changes and offer content through the queue.
      */
     public void init() throws IOException {
-        final String flagData = new String(Files.readAllBytes(Paths.get(flagSourcePath)), StandardCharsets.UTF_8);
+        Thread watcherT = new Thread(() -> {
+            try {
+                final Path filePath = Paths.get(flagSourcePath);
 
-        if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
-            throw new RuntimeException("Unable to write to queue. Queue is full.");
-        }
+                // initial read
+                String flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
+                if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
+                    throw new RuntimeException("Unable to write to queue. Queue is full.");
+                }
 
+                long lastTS = Files.getLastModifiedTime(filePath).toMillis();
+
+                // start polling for changes
+                while (!shutdown) {
+                    long currentTS = Files.getLastModifiedTime(filePath).toMillis();
+
+                    if (currentTS > lastTS) {
+                        lastTS = currentTS;
+                        flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
+                        if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
+                            throw new RuntimeException("Unable to write to queue. Queue is full.");
+                        }
+                    }
+
+                    Thread.sleep(POLL_INTERVAL_MS);
+                }
+
+                log.info("Shutting down file connector.");
+            } catch (Throwable t) {
+                log.error("Error from file connector", t);
+            }
+        });
+
+        watcherT.setDaemon(true);
+        watcherT.start();
         log.info(String.format("Using feature flag configurations from file %s", flagSourcePath));
     }
 
@@ -50,9 +84,9 @@ public class FileConnector implements Connector {
     }
 
     /**
-     * NO-OP shutdown.
+     * Shutdown file connector.
      */
     public void shutdown() throws InterruptedException {
-        // NO-OP nothing to do here
+        shutdown = true;
     }
 }
