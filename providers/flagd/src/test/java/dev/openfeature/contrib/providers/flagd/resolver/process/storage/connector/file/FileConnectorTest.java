@@ -4,14 +4,15 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.UPDATABLE_FILE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getResourcePath;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,25 +65,42 @@ class FileConnectorTest {
 
     @Test
     void watchForFileUpdatesAndEmitThem() throws IOException {
-        final String initial = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true," +
-                "\"off\":false},\"defaultVariant\":\"on\"}}}";
-
-        final String updatedFlags = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true," +
-                "\"off\":false},\"defaultVariant\":\"off\"}}}";
+        final String initial = "{\n" +
+                "  \"flags\": {\n" +
+                "    \"myBoolFlag\": {\n" +
+                "      \"state\": \"ENABLED\",\n" +
+                "      \"variants\": {\n" +
+                "        \"on\": true,\n" +
+                "        \"off\": false\n" +
+                "      },\n" +
+                "      \"defaultVariant\": \"on\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        final String updatedFlags = "{\n" +
+                "  \"flags\": {\n" +
+                "    \"myBoolFlag\": {\n" +
+                "      \"state\": \"ENABLED\",\n" +
+                "      \"variants\": {\n" +
+                "        \"on\": true,\n" +
+                "        \"off\": false\n" +
+                "      },\n" +
+                "      \"defaultVariant\": \"off\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
 
         // given
-        final File tmpFlagFile = File.createTempFile("flagd", "flags");
-        final Path flagSourcePath = tmpFlagFile.toPath();
+        final Path updPath = Paths.get(getResourcePath(UPDATABLE_FILE));
+        Files.write(updPath, initial.getBytes(), StandardOpenOption.WRITE);
 
-        Files.write(flagSourcePath, initial.getBytes(), StandardOpenOption.WRITE);
-        final FileConnector connector = new FileConnector(flagSourcePath.toString());
+        final FileConnector connector = new FileConnector(updPath.toString());
 
         // when
         connector.init();
 
         // then
         final BlockingQueue<StreamPayload> stream = connector.getStream();
-
         final StreamPayload[] payload = new StreamPayload[1];
 
         // first validate the initial payload
@@ -93,7 +111,7 @@ class FileConnectorTest {
         assertEquals(initial, payload[0].getData());
 
         // then update the flags
-        Files.write(flagSourcePath, updatedFlags.getBytes(), StandardOpenOption.WRITE);
+        Files.write(updPath, updatedFlags.getBytes(), StandardOpenOption.WRITE);
 
         // finally wait for updated payload
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
