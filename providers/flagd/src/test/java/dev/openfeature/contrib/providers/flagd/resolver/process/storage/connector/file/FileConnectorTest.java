@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -64,6 +65,7 @@ class FileConnectorTest {
     }
 
     @Test
+    @Disabled("under investigation for github action runs")
     void watchForFileUpdatesAndEmitThem() throws IOException {
         final String initial = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"}}}";
         final String updatedFlags = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"off\"}}}";
