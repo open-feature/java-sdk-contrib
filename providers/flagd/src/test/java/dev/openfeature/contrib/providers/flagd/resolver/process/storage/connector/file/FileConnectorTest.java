@@ -65,34 +65,12 @@ class FileConnectorTest {
 
     @Test
     void watchForFileUpdatesAndEmitThem() throws IOException {
-        final String initial = "{\n" +
-                "  \"flags\": {\n" +
-                "    \"myBoolFlag\": {\n" +
-                "      \"state\": \"ENABLED\",\n" +
-                "      \"variants\": {\n" +
-                "        \"on\": true,\n" +
-                "        \"off\": false\n" +
-                "      },\n" +
-                "      \"defaultVariant\": \"on\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
-        final String updatedFlags = "{\n" +
-                "  \"flags\": {\n" +
-                "    \"myBoolFlag\": {\n" +
-                "      \"state\": \"ENABLED\",\n" +
-                "      \"variants\": {\n" +
-                "        \"on\": true,\n" +
-                "        \"off\": false\n" +
-                "      },\n" +
-                "      \"defaultVariant\": \"off\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
+        final String initial = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"}}}";
+        final String updatedFlags = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"off\"}}}";
 
         // given
         final Path updPath = Paths.get(getResourcePath(UPDATABLE_FILE));
-        Files.write(updPath, initial.getBytes(), StandardOpenOption.WRITE);
+        Files.write(updPath, initial.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
         final FileConnector connector = new FileConnector(updPath.toString());
 
@@ -111,7 +89,7 @@ class FileConnectorTest {
         assertEquals(initial, payload[0].getData());
 
         // then update the flags
-        Files.write(updPath, updatedFlags.getBytes(), StandardOpenOption.WRITE);
+        Files.write(updPath, updatedFlags.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
         // finally wait for updated payload
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
