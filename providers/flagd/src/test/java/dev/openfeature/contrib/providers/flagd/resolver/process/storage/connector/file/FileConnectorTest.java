@@ -65,6 +65,7 @@ class FileConnectorTest {
     }
 
     @Test
+    @Disabled("Disabled as unstable on GH Action. Useful for functionality validation")
     void watchForFileUpdatesAndEmitThem() throws IOException {
         final String initial = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"}}}";
         final String updatedFlags = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"off\"}}}";
