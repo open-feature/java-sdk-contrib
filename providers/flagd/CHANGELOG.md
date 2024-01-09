@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.6.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.8...dev.openfeature.contrib.providers.flagd-v0.6.9) (2024-01-09)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.16.1 ([#604](https://github.com/open-feature/java-sdk-contrib/issues/604)) ([165b1db](https://github.com/open-feature/java-sdk-contrib/commit/165b1db0a793b628ab6dd05b161350310505e41d))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.0.88 ([#579](https://github.com/open-feature/java-sdk-contrib/issues/579)) ([ea9917c](https://github.com/open-feature/java-sdk-contrib/commit/ea9917c86307e4f1f734ffa32343d8ffb16d875f))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.1.0 ([#591](https://github.com/open-feature/java-sdk-contrib/issues/591)) ([cb44eab](https://github.com/open-feature/java-sdk-contrib/commit/cb44eab1d4d054c8156fbbb0bb8bc497bcb55604))
+* **deps:** update dependency io.grpc:grpc-stub to v1.60.0 ([#573](https://github.com/open-feature/java-sdk-contrib/issues/573)) ([c77bd44](https://github.com/open-feature/java-sdk-contrib/commit/c77bd4428bd2ba7d2df19684678da1e3ebb9812b))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.103.final ([#586](https://github.com/open-feature/java-sdk-contrib/issues/586)) ([dcd058c](https://github.com/open-feature/java-sdk-contrib/commit/dcd058c7980fb51b3b11f2600ba08b00282270b1))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.104.final ([#588](https://github.com/open-feature/java-sdk-contrib/issues/588)) ([d2ebcc2](https://github.com/open-feature/java-sdk-contrib/commit/d2ebcc22ca7255890b8cff99e2828b41596af513))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.33.0 ([#582](https://github.com/open-feature/java-sdk-contrib/issues/582)) ([2012a0e](https://github.com/open-feature/java-sdk-contrib/commit/2012a0e119f1abaa7a2b7add052363262d337915))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.34.0 ([#615](https://github.com/open-feature/java-sdk-contrib/issues/615)) ([5822a0a](https://github.com/open-feature/java-sdk-contrib/commit/5822a0a120fad7771895cd5a559e33472b1892a2))
+* **deps:** update io.grpc.version to v1.60.1 ([#597](https://github.com/open-feature/java-sdk-contrib/issues/597)) ([b657df1](https://github.com/open-feature/java-sdk-contrib/commit/b657df1d8755d89af38edbf3ee0dd24a9ec6491b))
+* edge cases with flagd targeting ([#567](https://github.com/open-feature/java-sdk-contrib/issues/567)) ([7da7d2a](https://github.com/open-feature/java-sdk-contrib/commit/7da7d2a1dfab602b257e801adb689c60ced6aaf3))
+* flagd caching ([#581](https://github.com/open-feature/java-sdk-contrib/issues/581)) ([e953fef](https://github.com/open-feature/java-sdk-contrib/commit/e953fef23f98938b90fad33123a9289ca41a3762))
+
+
+### ✨ New Features
+
+* flagd file polling for offline mode ([#614](https://github.com/open-feature/java-sdk-contrib/issues/614)) ([5e97b12](https://github.com/open-feature/java-sdk-contrib/commit/5e97b129708e864b5ae286535d5c98510ce17d07))
+
+
+### 🧹 Chore
+
+* add e2e test for reconnect ([#596](https://github.com/open-feature/java-sdk-contrib/issues/596)) ([c22b90e](https://github.com/open-feature/java-sdk-contrib/commit/c22b90ef26c4c58e126eaabff4d3e1770a636347))
+* fix types in flagd readme ([e1ac5d5](https://github.com/open-feature/java-sdk-contrib/commit/e1ac5d50c4630b9c757f23989d8597371bbc610c))
+* update io.grpc, use shared version ([#580](https://github.com/open-feature/java-sdk-contrib/issues/580)) ([59cdd74](https://github.com/open-feature/java-sdk-contrib/commit/59cdd747b01d68f25c85942cce2bcb8eeae61b92))
+
 ## [0.6.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.7...dev.openfeature.contrib.providers.flagd-v0.6.8) (2023-11-28)
 
 
