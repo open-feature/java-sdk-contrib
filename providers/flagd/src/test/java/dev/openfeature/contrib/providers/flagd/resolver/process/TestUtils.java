@@ -13,6 +13,7 @@ public class TestUtils {
     public static final String VALID_LONG = "flagConfigurations/valid-long.json";
     public static final String INVALID_FLAG = "flagConfigurations/invalid-flag.json";
     public static final String INVALID_CFG = "flagConfigurations/invalid-configuration.json";
+    public static final String UPDATABLE_FILE = "flagConfigurations/updatableFlags.json";
 
 
     public static String getFlagsFromResource(final String file) throws IOException {
