@@ -1,17 +1,20 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.BOOLEAN_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DISABLED_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DOUBLE_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_SHORTHAND_TARGETING;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.INT_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.ParseError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -22,21 +25,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
-import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.MutableContext;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
-import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
-import dev.openfeature.sdk.exceptions.ParseError;
-import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.BOOLEAN_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DISABLED_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DOUBLE_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_SHORTHAND_TARGETING;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.INT_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class InProcessResolverTest {
 
@@ -330,13 +331,50 @@ class InProcessResolverTest {
         });
     }
 
-    private InProcessResolver getInProcessResolverWth(final MockStorage storage, Consumer<ProviderState> stateConsumer)
-            throws NoSuchFieldException, IllegalAccessException {
-        Field flagStore = InProcessResolver.class.getDeclaredField("flagStore");
-        flagStore.setAccessible(true);
+    @Test
+    public void validateMetadataInEvaluationResult() throws Exception {
+        // given
+        final String scope = "appName=myApp";
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("booleanFlag", BOOLEAN_FLAG);
 
-        InProcessResolver resolver = new InProcessResolver(FlagdOptions.builder().deadline(1000).build(),
-                stateConsumer);
+        InProcessResolver inProcessResolver = getInProcessResolverWth(
+                FlagdOptions.builder().selector(scope).build(),
+                new MockStorage(flagMap));
+
+        // when
+        ProviderEvaluation<Boolean> providerEvaluation = inProcessResolver.booleanEvaluation("booleanFlag", false,
+                new ImmutableContext());
+
+        // then
+        final ImmutableMetadata metadata = providerEvaluation.getFlagMetadata();
+        assertNotNull(metadata);
+        assertEquals(scope, metadata.getString("scope"));
+    }
+
+    private InProcessResolver getInProcessResolverWth(final FlagdOptions options, final MockStorage storage)
+            throws NoSuchFieldException, IllegalAccessException {
+
+        final InProcessResolver resolver = new InProcessResolver(options, providerState -> {});
+        return injectFlagStore(resolver, storage);
+    }
+
+
+    private InProcessResolver getInProcessResolverWth(final MockStorage storage,
+                                                      final Consumer<ProviderState> stateConsumer)
+            throws NoSuchFieldException, IllegalAccessException {
+
+        final InProcessResolver resolver = new InProcessResolver(
+                FlagdOptions.builder().deadline(1000).build(), stateConsumer);
+        return injectFlagStore(resolver, storage);
+    }
+
+    // helper to inject flagStore override
+    private InProcessResolver injectFlagStore(final InProcessResolver resolver, final MockStorage storage)
+            throws NoSuchFieldException, IllegalAccessException {
+
+        final Field flagStore = InProcessResolver.class.getDeclaredField("flagStore");
+        flagStore.setAccessible(true);
         flagStore.set(resolver, storage);
 
         return resolver;
