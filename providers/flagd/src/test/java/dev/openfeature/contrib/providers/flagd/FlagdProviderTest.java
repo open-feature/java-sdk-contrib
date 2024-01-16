@@ -5,7 +5,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.Schema.EventStreamResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
 import dev.openfeature.flagd.grpc.Schema.ResolveFloatResponse;
@@ -15,6 +14,7 @@ import dev.openfeature.flagd.grpc.Schema.ResolveStringResponse;
 import dev.openfeature.flagd.grpc.ServiceGrpc;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
+import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
@@ -50,6 +50,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -788,7 +789,35 @@ class FlagdProviderTest {
                 ctx -> ctx.asMap().entrySet().containsAll(expectedCtx.entrySet())));
     }
 
-    // test utils
+    @Test
+    void initializationAndShutdown() throws Exception{
+        // given
+        final FlagdProvider provider = new FlagdProvider();
+        final EvaluationContext ctx = new ImmutableContext();
+
+        final Resolver resolverMock = mock(Resolver.class);
+
+        Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
+        flagResolver.setAccessible(true);
+        flagResolver.set(provider, resolverMock);
+
+        // when
+
+        // validate multiple initialization
+        provider.initialize(ctx);
+        provider.initialize(ctx);
+
+        // validate multiple shutdowns
+        provider.shutdown();
+        provider.shutdown();
+
+       // then
+        verify(resolverMock, times(1)).init();
+        verify(resolverMock, times(1)).shutdown();
+    }
+
+
+    // test helper
 
     // create provider with given grpc connector
     private FlagdProvider createProvider(GrpcConnector grpc) {

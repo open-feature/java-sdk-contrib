@@ -29,6 +29,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Resolver flagResolver;
     private ProviderState state = ProviderState.NOT_READY;
+    private boolean initialized = false;
 
     private EvaluationContext evaluationContext;
 
@@ -63,15 +64,25 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
     }
 
     @Override
-    public void initialize(EvaluationContext evaluationContext) throws Exception {
+    public synchronized void initialize(EvaluationContext evaluationContext) throws Exception {
+        if (this.initialized) {
+            return;
+        }
+
         this.evaluationContext = evaluationContext;
         this.flagResolver.init();
+        this.initialized = true;
     }
 
     @Override
-    public void shutdown() {
+    public synchronized void shutdown() {
+        if (!initialized) {
+            return;
+        }
+
         try {
             this.flagResolver.shutdown();
+            this.initialized = false;
         } catch (Exception e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
         }
