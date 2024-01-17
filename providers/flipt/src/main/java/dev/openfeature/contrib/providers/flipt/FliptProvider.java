@@ -1,9 +1,5 @@
 package dev.openfeature.contrib.providers.flipt;
 
-import com.flipt.api.FliptApiClient;
-import com.flipt.api.resources.evaluation.types.BooleanEvaluationResponse;
-import com.flipt.api.resources.evaluation.types.EvaluationRequest;
-import com.flipt.api.resources.evaluation.types.VariantEvaluationResponse;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableMetadata;
@@ -14,6 +10,10 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
+import io.flipt.api.FliptClient;
+import io.flipt.api.evaluation.models.BooleanEvaluationResponse;
+import io.flipt.api.evaluation.models.EvaluationRequest;
+import io.flipt.api.evaluation.models.VariantEvaluationResponse;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,7 +41,7 @@ public class FliptProvider extends EventProvider {
 
     @Setter(AccessLevel.PROTECTED)
     @Getter
-    private FliptApiClient fliptApiClient;
+    private FliptClient fliptClient;
 
     @Setter(AccessLevel.PROTECTED)
     @Getter
@@ -51,6 +51,7 @@ public class FliptProvider extends EventProvider {
 
     /**
      * Constructor.
+     * 
      * @param fliptProviderConfig FliptProviderConfig
      */
     public FliptProvider(FliptProviderConfig fliptProviderConfig) {
@@ -59,6 +60,7 @@ public class FliptProvider extends EventProvider {
 
     /**
      * Initialize the provider.
+     * 
      * @param evaluationContext evaluation context
      * @throws Exception on error
      */
@@ -69,7 +71,7 @@ public class FliptProvider extends EventProvider {
             throw new GeneralError("already initialized");
         }
         super.initialize(evaluationContext);
-        fliptApiClient = fliptProviderConfig.getFliptApiClientBuilder().build();
+        fliptClient = fliptProviderConfig.getFliptClientBuilder().build();
 
         state = ProviderState.READY;
         log.info("finished initializing provider, state: {}", state);
@@ -103,32 +105,32 @@ public class FliptProvider extends EventProvider {
 
         Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
-            .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
+                .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
 
         BooleanEvaluationResponse response = null;
         try {
-            response = fliptApiClient.evaluation().boolean_(request);
+            response = fliptClient.evaluation().evaluateBoolean(request);
         } catch (Exception e) {
             log.error("Error evaluating boolean", e);
             throw new GeneralError(e.getMessage());
         }
 
         return ProviderEvaluation.<Boolean>builder()
-            .value(response.getEnabled())
-            .reason(response.getReason().toString())
-            .build();
+                .value(response.isEnabled())
+                .reason(response.getReason().toString())
+                .build();
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
         return ProviderEvaluation.<String>builder()
-            .value(valueProviderEvaluation.getValue().asString())
-            .variant(valueProviderEvaluation.getVariant())
+                .value(valueProviderEvaluation.getValue().asString())
+                .variant(valueProviderEvaluation.getVariant())
                 .errorCode(valueProviderEvaluation.getErrorCode())
                 .reason(valueProviderEvaluation.getReason())
                 .flagMetadata(valueProviderEvaluation.getFlagMetadata())
-            .build();
+                .build();
     }
 
     @Override
@@ -136,12 +138,12 @@ public class FliptProvider extends EventProvider {
         ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
         Integer value = getIntegerValue(valueProviderEvaluation, defaultValue);
         return ProviderEvaluation.<Integer>builder()
-            .value(value)
-            .variant(valueProviderEvaluation.getVariant())
-            .errorCode(valueProviderEvaluation.getErrorCode())
-            .reason(valueProviderEvaluation.getReason())
-            .flagMetadata(valueProviderEvaluation.getFlagMetadata())
-            .build();
+                .value(value)
+                .variant(valueProviderEvaluation.getVariant())
+                .errorCode(valueProviderEvaluation.getErrorCode())
+                .reason(valueProviderEvaluation.getReason())
+                .flagMetadata(valueProviderEvaluation.getFlagMetadata())
+                .build();
     }
 
     private static Integer getIntegerValue(ProviderEvaluation<Value> valueProviderEvaluation, Integer defaultValue) {
@@ -158,12 +160,12 @@ public class FliptProvider extends EventProvider {
         ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
         Double value = getDoubleValue(valueProviderEvaluation, defaultValue);
         return ProviderEvaluation.<Double>builder()
-            .value(value)
-            .variant(valueProviderEvaluation.getVariant())
-            .errorCode(valueProviderEvaluation.getErrorCode())
-            .reason(valueProviderEvaluation.getReason())
-            .flagMetadata(valueProviderEvaluation.getFlagMetadata())
-            .build();
+                .value(value)
+                .variant(valueProviderEvaluation.getVariant())
+                .errorCode(valueProviderEvaluation.getErrorCode())
+                .reason(valueProviderEvaluation.getReason())
+                .flagMetadata(valueProviderEvaluation.getFlagMetadata())
+                .build();
     }
 
     private static Double getDoubleValue(ProviderEvaluation<Value> valueProviderEvaluation, Double defaultValue) {
@@ -185,22 +187,22 @@ public class FliptProvider extends EventProvider {
         }
         Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
-            .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
+                .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
 
         VariantEvaluationResponse response;
         try {
-            response = fliptApiClient.evaluation().variant(request);
+            response = fliptClient.evaluation().evaluateVariant(request);
         } catch (Exception e) {
             log.error("Error evaluating variant", e);
             throw new GeneralError(e.getMessage());
         }
 
-        if (!response.getMatch()) {
+        if (!response.isMatch()) {
             log.debug("non matching variant for {} : {}", key, response.getReason());
             return ProviderEvaluation.<Value>builder()
-                .value(defaultValue)
-                .reason(DEFAULT.name())
-                .build();
+                    .value(defaultValue)
+                    .reason(DEFAULT.name())
+                    .build();
         }
 
         ImmutableMetadata.ImmutableMetadataBuilder flagMetadataBuilder = ImmutableMetadata.builder();
@@ -209,11 +211,11 @@ public class FliptProvider extends EventProvider {
         }
 
         return ProviderEvaluation.<Value>builder()
-            .value(new Value(response.getVariantKey()))
-            .variant(response.getVariantKey())
-            .reason(TARGETING_MATCH.name())
-            .flagMetadata(flagMetadataBuilder.build())
-            .build();
+                .value(new Value(response.getVariantKey()))
+                .variant(response.getVariantKey())
+                .reason(TARGETING_MATCH.name())
+                .flagMetadata(flagMetadataBuilder.build())
+                .build();
     }
 
     @Override

@@ -7,26 +7,34 @@
 <!-- x-release-please-start-version -->
 
 ```xml
-
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flipt</artifactId>
-    <version>0.0.2</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
 <!-- x-release-please-end-version -->
 
 ## Concepts
+
 * Boolean evaluation gets feature boolean evaluation / enabled status.
 * Non-boolean evaluation gets feature variant key.
 
 ## Usage
-Flipt OpenFeature Provider is using Flipt Java SDK.
+
+Flipt OpenFeature Provider uses Flipt's [Server Java SDK](https://github.com/flipt-io/flipt-server-sdks/tree/main/flipt-java).
 
 ### Usage Example
 
-```
+```java
+// create a Flipt client and provider
+FliptClientBuilder fliptClientBuilder = FliptClient.builder().url(apiUrl);
+FliptProviderConfig fliptProviderConfig = FliptProviderConfig.builder()
+        .fliptClientBuilder(fliptClientBuilder)
+        .build();
+
+// create OpenFeature provider
 FeatureProvider featureProvider = new FliptProvider(fliptProviderConfig);
 OpenFeatureAPI.getInstance().setProviderAndWait("sync", fliptProvider);
 client = OpenFeatureAPI.getInstance().getClient("sync");
