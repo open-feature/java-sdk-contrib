@@ -7,6 +7,7 @@ import com.statsig.sdk.StatsigUser;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
+import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Structure;
@@ -19,6 +20,8 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,7 +47,7 @@ public class StatsigProvider extends EventProvider {
 
     /**
      * Constructor.
-     * @param statsigProviderConfig statsigProvider Config
+     * @param statsigProviderConfig StatsigProvider Config
      */
     public StatsigProvider(StatsigProviderConfig statsigProviderConfig) {
         this.statsigProviderConfig = statsigProviderConfig;
@@ -77,9 +80,18 @@ public class StatsigProvider extends EventProvider {
         return () -> NAME;
     }
 
+    /**
+     * Feature config, as required for evaluation.
+     */
     @AllArgsConstructor
     @Getter
     public static class FeatureConfig {
+
+        /**
+         * Type.
+         *  CONFIG: Dynamic Config
+         *  LAYER: Layer
+         */
         public enum Type {
             CONFIG, LAYER
         }
@@ -123,11 +135,11 @@ public class StatsigProvider extends EventProvider {
             String evaluatedValue = defaultValue;
             switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
+                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
                     evaluatedValue = dynamicConfig.getString(key, defaultValue);
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
+                    Layer layer = fetchLayer(user, featureConfig);
                     evaluatedValue = layer.getString(key, defaultValue);
                     break;
                 default:
@@ -156,11 +168,11 @@ public class StatsigProvider extends EventProvider {
             Integer evaluatedValue = defaultValue;
             switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
+                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
                     evaluatedValue = dynamicConfig.getInt(key, defaultValue);
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
+                    Layer layer = fetchLayer(user, featureConfig);
                     evaluatedValue = layer.getInt(key, defaultValue);
                     break;
                 default:
@@ -189,11 +201,11 @@ public class StatsigProvider extends EventProvider {
             Double evaluatedValue = defaultValue;
             switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
+                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
                     evaluatedValue = dynamicConfig.getDouble(key, defaultValue);
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
+                    Layer layer = fetchLayer(user, featureConfig);
                     evaluatedValue = layer.getDouble(key, defaultValue);
                     break;
                 default:
@@ -220,26 +232,69 @@ public class StatsigProvider extends EventProvider {
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
-            String evaluatedValue = defaultValue.asString();
+            Value evaluatedValue = defaultValue;
             switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
-                    evaluatedValue = dynamicConfig.getString(key, defaultValue.asString());
+                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
+                    evaluatedValue = toValue(dynamicConfig);
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
-                    evaluatedValue = layer.getString(key, defaultValue.asString());
+                    Layer layer = fetchLayer(user, featureConfig);
+                    evaluatedValue = toValue(layer);
                     break;
                 default:
                     break;
             }
             return ProviderEvaluation.<Value>builder()
-                .value(Value.objectToValue(evaluatedValue))
+                .value(evaluatedValue)
                 .build();
         } catch (Exception e) {
             log.error("Error evaluating object", e);
             throw new GeneralError(e.getMessage());
         }
+    }
+
+    @SneakyThrows
+    protected DynamicConfig fetchDynamicConfig(StatsigUser user, FeatureConfig featureConfig) {
+        return Statsig.getConfigAsync(user, featureConfig.getName()).get();
+    }
+
+    @SneakyThrows
+    protected Layer fetchLayer(StatsigUser user, FeatureConfig featureConfig) {
+        return Statsig.getLayerAsync(user, featureConfig.getName()).get();
+    }
+
+    private Value toValue(DynamicConfig dynamicConfig) {
+        MutableContext mutableContext = new MutableContext();
+        mutableContext.add("name", dynamicConfig.getName());
+        mutableContext.add("value", Structure.mapToStructure(dynamicConfig.getValue()));
+        mutableContext.add("ruleID", dynamicConfig.getRuleID());
+        mutableContext.add("groupName", dynamicConfig.getGroupName());
+        List<Value> secondaryExposures = new ArrayList<>();
+        dynamicConfig.getSecondaryExposures().stream().forEach(secondaryExposure -> {
+            Value value = Value.objectToValue(secondaryExposure);
+                secondaryExposures.add(value);
+            }
+        );
+        mutableContext.add("secondaryExposures", secondaryExposures);
+        return new Value(mutableContext);
+    }
+
+    private Value toValue(Layer layer) {
+        MutableContext mutableContext = new MutableContext();
+        mutableContext.add("name", layer.getName());
+        mutableContext.add("value", Structure.mapToStructure(layer.getValue()));
+        mutableContext.add("ruleID", layer.getRuleID());
+        mutableContext.add("groupName", layer.getGroupName());
+        List<Value> secondaryExposures = new ArrayList<>();
+        layer.getSecondaryExposures().stream().forEach(secondaryExposure -> {
+                Value value = Value.objectToValue(secondaryExposure);
+                secondaryExposures.add(value);
+            }
+        );
+        mutableContext.add("secondaryExposures", secondaryExposures);
+        mutableContext.add("allocatedExperiment", layer.getAllocatedExperiment());
+        return new Value(mutableContext);
     }
 
     @NotNull

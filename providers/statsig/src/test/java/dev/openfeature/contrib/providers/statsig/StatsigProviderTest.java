@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.statsig;
 
+import com.statsig.sdk.DynamicConfig;
+import com.statsig.sdk.Layer;
 import com.statsig.sdk.Statsig;
 import com.statsig.sdk.StatsigOptions;
 import com.statsig.sdk.StatsigUser;
@@ -16,6 +18,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +32,8 @@ import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTE
 import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_USER_AGENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +58,7 @@ class StatsigProviderTest {
     private static StatsigProvider statsigProvider;
     private static Client client;
 
+    @SneakyThrows
     @BeforeAll
     static void setUp() {
         String sdkKey = "test";
@@ -65,6 +72,7 @@ class StatsigProviderTest {
         buildFlags();
     }
 
+    @SneakyThrows
     private static void buildFlags() {
         Statsig.overrideGate(FLAG_NAME, true);
         Map<String, Object> configMap = new HashMap<>();
@@ -73,6 +81,31 @@ class StatsigProviderTest {
         configMap.put("price", DOUBLE_FLAG_VALUE);
         Statsig.overrideConfig("product", configMap);
         Statsig.overrideLayer("product", configMap);
+
+        ArrayList<Map<String, String>> secondaryExposures = new ArrayList<>();
+        secondaryExposures.add(Collections.singletonMap("test-exposure", "test-exposure-value"));
+        DynamicConfig dynamicConfig = new DynamicConfig("object-config-name",
+            Collections.singletonMap("value-key", "test-value"), "test-rule-id", "test-group-name",
+                secondaryExposures);
+
+        doAnswer(invocation -> {
+            if ("object-config-name".equals(invocation.getArgument(1,
+                    StatsigProvider.FeatureConfig.class).getName())) {
+                return dynamicConfig;
+            }
+            return invocation.callRealMethod();
+        }).when(statsigProvider).fetchDynamicConfig(any(), any());
+
+        Layer layer = new Layer("layer-name", "test-rule-id", "test-group-name",
+            Collections.singletonMap("value-key", "test-value"), secondaryExposures, "allocated",
+            null);
+        doAnswer(invocation -> {
+            if ("layer-name".equals(invocation.getArgument(1, StatsigProvider.FeatureConfig.class).getName())) {
+                return layer;
+            }
+            return invocation.callRealMethod();
+        }).when(statsigProvider).fetchLayer(any(), any());
+
     }
 
     @AfterAll
@@ -102,21 +135,35 @@ class StatsigProviderTest {
         assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str"));
     }
 
-//    @Test
-    void getObjectEvaluation() {
+    @Test
+    void getObjectConfigEvaluation() {
         MutableContext evaluationContext = new MutableContext();
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "CONFIG");
-        featureConfig.add("name", "product");
+        featureConfig.add("name", "object-config-name");
         evaluationContext.add("feature_config", featureConfig);
-        assertEquals(CONFIG_FLAG_VALUE, statsigProvider.getStringEvaluation(CONFIG_FLAG_NAME, "",
-            new ImmutableContext()).getValue());
-        assertEquals(CONFIG_FLAG_VALUE, statsigProvider.getStringEvaluation(LAYER_FLAG_NAME, "",
-            new ImmutableContext()).getValue());
-        assertEquals(new Value(CONFIG_FLAG_VALUE), client.getObjectValue(CONFIG_FLAG_NAME, new Value("")));
-        assertThrows(GeneralError.class, () -> statsigProvider.getObjectEvaluation("non-existing",
-            new Value("fallback_str"), new ImmutableContext()).getValue());
-        assertEquals(new Value("fallback_str"), client.getObjectValue("non-existing", new Value("fallback_str")));
+        Value objectEvaluation = statsigProvider.getObjectEvaluation("dummy", new Value("fallback"),
+            evaluationContext).getValue();
+
+        String expectedObjectEvaluation = "{groupName=test-group-name, name=object-config-name, secondaryExposures=" +
+            "[{test-exposure=test-exposure-value}], ruleID=test-rule-id, value={value-key=test-value}}";
+        assertEquals(expectedObjectEvaluation, objectEvaluation.asStructure().asObjectMap().toString());
+    }
+
+    @Test
+    void getObjectLayerEvaluation() {
+        MutableContext evaluationContext = new MutableContext();
+        MutableContext featureConfig = new MutableContext();
+        featureConfig.add("type", "LAYER");
+        featureConfig.add("name", "layer-name");
+        evaluationContext.add("feature_config", featureConfig);
+        Value objectEvaluation = statsigProvider.getObjectEvaluation("dummy", new Value("fallback"),
+            evaluationContext).getValue();
+
+        String expectedObjectEvaluation = "{groupName=test-group-name, name=layer-name, secondaryExposures="
+            + "[{test-exposure=test-exposure-value}], allocatedExperiment=allocated, ruleID=test-rule-id, "
+            + "value={value-key=test-value}}";
+        assertEquals(expectedObjectEvaluation, objectEvaluation.asStructure().asObjectMap().toString());
     }
 
     @Test
@@ -168,16 +215,19 @@ class StatsigProviderTest {
                 if (!USERS_FLAG_NAME.equals(invocation.getArgument(0, String.class))) {
                     invocation.callRealMethod();
                 }
-                boolean evaluatedValue = invocation.getArgument(2, MutableContext.class).getTargetingKey().equals(expectedTargetingKey);
+                boolean evaluatedValue = invocation.getArgument(2, MutableContext.class).getTargetingKey()
+                    .equals(expectedTargetingKey);
                 return ProviderEvaluation.<Boolean>builder()
                     .value(evaluatedValue)
                     .build();
                 }
             );
 
-        assertEquals(true, statsigProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(true, statsigProvider.getBooleanEvaluation(USERS_FLAG_NAME, false,
+            evaluationContext).getValue());
         evaluationContext.setTargetingKey("other-id");
-        assertEquals(false, statsigProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(false, statsigProvider.getBooleanEvaluation(USERS_FLAG_NAME, false,
+            evaluationContext).getValue());
     }
 
     @Test
@@ -203,8 +253,10 @@ class StatsigProviderTest {
                 if (!PROPERTIES_FLAG_NAME.equals(invocation.getArgument(0, String.class))) {
                     invocation.callRealMethod();
                 }
-                boolean evaluatedValue = invocation.getArgument(2, MutableContext.class).getValue(CONTEXT_EMAIL).asString().equals(expectedEmail);
-                if (invocation.getArgument(2, MutableContext.class).getValue(CONTEXT_PRIVATE_ATTRIBUTES).asStructure().getValue(CONTEXT_IP).asString().equals(expectedIp)) {
+                boolean evaluatedValue = invocation.getArgument(2, MutableContext.class)
+                    .getValue(CONTEXT_EMAIL).asString().equals(expectedEmail);
+                if (invocation.getArgument(2, MutableContext.class).getValue(CONTEXT_PRIVATE_ATTRIBUTES)
+                        .asStructure().getValue(CONTEXT_IP).asString().equals(expectedIp)) {
                     evaluatedValue = true;
                 }
                 return ProviderEvaluation.<Boolean>builder()
@@ -213,14 +265,18 @@ class StatsigProviderTest {
                 }
             );
 
-        assertEquals(true, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(true, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false,
+            evaluationContext).getValue());
         evaluationContext.add(CONTEXT_EMAIL, "non-match@test.com");
-        assertEquals(false, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(false, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false,
+            evaluationContext).getValue());
 
         privateAttributes.add(CONTEXT_IP, expectedIp);
-        assertEquals(true, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(true, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false,
+            evaluationContext).getValue());
         privateAttributes.add(CONTEXT_IP, "1.2.3.5");
-        assertEquals(false, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(false, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false,
+            evaluationContext).getValue());
     }
 
     @SneakyThrows
@@ -229,7 +285,8 @@ class StatsigProviderTest {
         StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder().sdkKey("test").build();
         StatsigProvider tempstatsigProvider = new StatsigProvider(statsigProviderConfig);
 
-        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
+        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getBooleanEvaluation(
+        "fail_not_initialized", false, new ImmutableContext()));
 
         OpenFeatureAPI.getInstance().setProviderAndWait("tempstatsigProvider", tempstatsigProvider);
 
