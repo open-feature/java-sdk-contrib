@@ -3,11 +3,7 @@ package dev.openfeature.contrib.providers.statsig;
 import com.statsig.sdk.DynamicConfig;
 import com.statsig.sdk.Layer;
 import com.statsig.sdk.Statsig;
-import com.statsig.sdk.StatsigOptions;
 import com.statsig.sdk.StatsigUser;
-import com.statsig.statsigClient;
-import com.statsig.EvaluationDetails;
-import com.statsig.User;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
@@ -17,7 +13,6 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +22,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Provider implementation for statsig.
+ * Provider implementation for Statsig.
  */
 @Slf4j
 public class StatsigProvider extends EventProvider {
@@ -38,12 +33,12 @@ public class StatsigProvider extends EventProvider {
     public static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
     public static final String UNKNOWN_ERROR = "unknown error";
 
-    private StatsigProviderConfig statsigProviderConfig;
+    private final StatsigProviderConfig statsigProviderConfig;
 
     @Getter
     private ProviderState state = ProviderState.NOT_READY;
 
-    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -66,8 +61,7 @@ public class StatsigProvider extends EventProvider {
         }
         super.initialize(evaluationContext);
 
-        StatsigOptions options;
-        Future initFuture = Statsig.initializeAsync(statsigProviderConfig.getSdkKey(), statsigProviderConfig.getStatsigOptions());
+        Future<Void> initFuture = Statsig.initializeAsync(statsigProviderConfig.getSdkKey(), statsigProviderConfig.getOptions());
         initFuture.get();
 
         statsigProviderConfig.postInit();
@@ -88,7 +82,7 @@ public class StatsigProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-        StatsigUser user = ctx == null ? null : ContextTransformer.transform(ctx);
+        StatsigUser user = ContextTransformer.transform(ctx);
         Future<Boolean> featureOn = Statsig.checkGateAsync(user, key);
         try {
             Boolean evaluatedValue = featureOn.get();
@@ -109,7 +103,7 @@ public class StatsigProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-        StatsigUser user = ctx == null ? null : ContextTransformer.transform(ctx);
+        StatsigUser user = ContextTransformer.transform(ctx);
         try {
             ConfigKey configKey = parseConfigKeys(key);
             String evaluatedValue = defaultValue;
@@ -140,7 +134,7 @@ public class StatsigProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-        StatsigUser user = ctx == null ? null : ContextTransformer.transform(ctx);
+        StatsigUser user = ContextTransformer.transform(ctx);
         try {
             ConfigKey configKey = parseConfigKeys(key);
             Integer evaluatedValue = defaultValue;
@@ -171,7 +165,7 @@ public class StatsigProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-        StatsigUser user = ctx == null ? null : ContextTransformer.transform(ctx);
+        StatsigUser user = ContextTransformer.transform(ctx);
         try {
             ConfigKey configKey = parseConfigKeys(key);
             Double evaluatedValue = defaultValue;
@@ -203,7 +197,7 @@ public class StatsigProvider extends EventProvider {
             }
             throw new GeneralError(UNKNOWN_ERROR);
         }
-        StatsigUser user = ctx == null ? null : ContextTransformer.transform(ctx);
+        StatsigUser user = ContextTransformer.transform(ctx);
         try {
             ConfigKey configKey = parseConfigKeys(key);
             String evaluatedValue = defaultValue.asString();
@@ -244,7 +238,7 @@ public class StatsigProvider extends EventProvider {
      */
     @NotNull
     private static ConfigKey parseConfigKeys(String key) {
-        String[] keys = key.split(".");
+        String[] keys = key.split("\\.");
         if (keys.length != 3) {
             throw new IllegalArgumentException("configuration key must contain exactly two occurrence of '.' character, for example 'config.product.name'.");
         }

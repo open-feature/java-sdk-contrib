@@ -19,7 +19,7 @@ public class ContextTransformer {
     public static final String CONTEXT_IP = "ip";
     public static final String CONTEXT_LOCALE = "locale";
     public static final String CONTEXT_USER_AGENT = "userAgent";
-    public static final String PRIVATE_ATTRIBUTES = "privateAttributes";
+    public static final String CONTEXT_PRIVATE_ATTRIBUTES = "privateAttributes";
 
     protected static StatsigUser transform(EvaluationContext ctx) {
         StatsigUser user = new StatsigUser(ctx.getTargetingKey());
@@ -27,7 +27,7 @@ public class ContextTransformer {
         ctx.asObjectMap().forEach((k, v) -> {
             switch (k) {
                 case CONTEXT_APP_VERSION:
-                    user.setCountry(String.valueOf(v));
+                    user.setAppVersion(String.valueOf(v));
                     break;
                 case CONTEXT_COUNTRY:
                     user.setCountry(String.valueOf(v));
@@ -41,20 +41,23 @@ public class ContextTransformer {
                 case CONTEXT_USER_AGENT:
                     user.setUserAgent(String.valueOf(v));
                     break;
+                case CONTEXT_LOCALE:
+                    user.setLocale(String.valueOf(v));
+                    break;
                 default:
-                    customMap.put(k, String.valueOf(v));
+                    if (!CONTEXT_PRIVATE_ATTRIBUTES.equals(k)) {
+                        customMap.put(k, String.valueOf(v));
+                    }
                     break;
             }
         });
         user.setCustomIDs(customMap);
 
         Map<String, String> privateMap = new HashMap<>();
-        Value privateAttributes = ctx.getValue(PRIVATE_ATTRIBUTES);
+        Value privateAttributes = ctx.getValue(CONTEXT_PRIVATE_ATTRIBUTES);
         if (privateAttributes != null && privateAttributes.isStructure()) {
             Structure privateAttributesStructure = privateAttributes.asStructure();
-            privateAttributesStructure.asObjectMap().forEach((k, v) -> {
-                privateMap.put(k, String.valueOf(v));
-            });
+            privateAttributesStructure.asObjectMap().forEach((k, v) -> privateMap.put(k, String.valueOf(v)));
             user.setPrivateAttributes(privateMap);
         }
         return user;

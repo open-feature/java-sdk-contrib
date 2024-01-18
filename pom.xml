@@ -36,6 +36,7 @@
         <module>providers/unleash</module>
         <module>providers/flipt</module>
         <module>providers/configcat</module>
+        <module>providers/statsig</module>
     </modules>
 
     <scm>

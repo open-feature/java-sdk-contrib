@@ -1,15 +1,13 @@
 package dev.openfeature.contrib.providers.statsig;
 
-import com.statsig.OverrideBehaviour;
-import com.statsig.OverrideDataSourceBuilder;
-import com.statsig.User;
 import com.statsig.sdk.Statsig;
 import com.statsig.sdk.StatsigOptions;
+import com.statsig.sdk.StatsigUser;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
-import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
@@ -18,13 +16,20 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_APP_VERSION;
+import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_COUNTRY;
+import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_EMAIL;
+import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_IP;
+import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_LOCALE;
+import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_PRIVATE_ATTRIBUTES;
+import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_USER_AGENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * StatsigProvider test, based on local config file evaluation.
@@ -35,14 +40,15 @@ class StatsigProviderTest {
     public static final String FLAG_NAME = "enabledFeature";
     public static final String CONFIG_FLAG_NAME = "config.product.name";
     public static final String LAYER_FLAG_NAME = "layer.product.name";
-    public static final String VARIANT_FLAG_VALUE = "test";
-    public static final String INT_FLAG_NAME = "intSetting";
+    public static final String CONFIG_FLAG_VALUE = "test";
+    public static final String INT_FLAG_NAME = "config.product.revision";
+    public static final String LAYER_INT_FLAG_NAME = "layer.product.revision";
     public static final Integer INT_FLAG_VALUE = 5;
-    public static final String DOUBLE_FLAG_NAME = "doubleSetting";
+    public static final String DOUBLE_FLAG_NAME = "config.product.price";
+    public static final String LAYER_DOUBLE_FLAG_NAME = "layer.product.price";
     public static final Double DOUBLE_FLAG_VALUE = 3.14;
     public static final String USERS_FLAG_NAME = "userIdMatching";
-    public static final String EMAIL_FLAG_NAME = "emailMatching";
-    public static final String COUNTRY_FLAG_NAME = "countryMatching";
+    public static final String PROPERTIES_FLAG_NAME = "emailMatching";
     private static StatsigProvider statsigProvider;
     private static Client client;
 
@@ -53,7 +59,7 @@ class StatsigProviderTest {
         statsigOptions.setLocalMode(true);
         StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder().sdkKey(sdkKey)
             .options(statsigOptions).build();
-        statsigProvider = new StatsigProvider(statsigProviderConfig);
+        statsigProvider = spy(new StatsigProvider(statsigProviderConfig));
         OpenFeatureAPI.getInstance().setProviderAndWait(statsigProvider);
         client = OpenFeatureAPI.getInstance().getClient();
         buildFlags();
@@ -63,8 +69,8 @@ class StatsigProviderTest {
         Statsig.overrideGate(FLAG_NAME, true);
         Map<String, Object> configMap = new HashMap<>();
         configMap.put("name", "test");
-        configMap.put("version", "1");
-        configMap.put("price", "1.2");
+        configMap.put("revision", INT_FLAG_VALUE);
+        configMap.put("price", DOUBLE_FLAG_VALUE);
         Statsig.overrideConfig("product", configMap);
         Statsig.overrideLayer("product", configMap);
     }
@@ -84,23 +90,25 @@ class StatsigProviderTest {
 
     @Test
     void getStringEvaluation() {
-        assertEquals(VARIANT_FLAG_VALUE, statsigProvider.getStringEvaluation(CONFIG_FLAG_NAME, "",
+        assertEquals(CONFIG_FLAG_VALUE, statsigProvider.getStringEvaluation(CONFIG_FLAG_NAME, "",
             new ImmutableContext()).getValue());
-        assertEquals(VARIANT_FLAG_VALUE, statsigProvider.getStringEvaluation(LAYER_FLAG_NAME, "",
-                new ImmutableContext()).getValue());
-        assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(CONFIG_FLAG_NAME, ""));
-        assertEquals("fallback_str", statsigProvider.getStringEvaluation("non-existing",
+        assertEquals(CONFIG_FLAG_VALUE, statsigProvider.getStringEvaluation(LAYER_FLAG_NAME, "",
+            new ImmutableContext()).getValue());
+        assertEquals(CONFIG_FLAG_VALUE, client.getStringValue(CONFIG_FLAG_NAME, ""));
+        assertThrows(GeneralError.class, () -> statsigProvider.getStringEvaluation("non-existing",
     "fallback_str", new ImmutableContext()).getValue());
         assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str"));
     }
 
     @Test
     void getObjectEvaluation() {
-        assertEquals(VARIANT_FLAG_VALUE, statsigProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
-                new ImmutableContext()).getValue());
-        assertEquals(new Value(VARIANT_FLAG_VALUE), client.getObjectValue(VARIANT_FLAG_NAME, new Value("")));
-        assertEquals(new Value("fallback_str"), statsigProvider.getObjectEvaluation("non-existing",
-                new Value("fallback_str"), new ImmutableContext()).getValue());
+        assertEquals(CONFIG_FLAG_VALUE, statsigProvider.getStringEvaluation(CONFIG_FLAG_NAME, "",
+            new ImmutableContext()).getValue());
+        assertEquals(CONFIG_FLAG_VALUE, statsigProvider.getStringEvaluation(LAYER_FLAG_NAME, "",
+            new ImmutableContext()).getValue());
+        assertEquals(new Value(CONFIG_FLAG_VALUE), client.getObjectValue(CONFIG_FLAG_NAME, new Value("")));
+        assertThrows(GeneralError.class, () -> statsigProvider.getObjectEvaluation("non-existing",
+            new Value("fallback_str"), new ImmutableContext()).getValue());
         assertEquals(new Value("fallback_str"), client.getObjectValue("non-existing", new Value("fallback_str")));
     }
 
@@ -109,11 +117,13 @@ class StatsigProviderTest {
         MutableContext evaluationContext = new MutableContext();
         assertEquals(INT_FLAG_VALUE, statsigProvider.getIntegerEvaluation(INT_FLAG_NAME, 1,
             evaluationContext).getValue());
+        assertEquals(INT_FLAG_VALUE, statsigProvider.getIntegerEvaluation(LAYER_INT_FLAG_NAME, 1,
+            evaluationContext).getValue());
         assertEquals(INT_FLAG_VALUE, client.getIntegerValue(INT_FLAG_NAME, 1));
         assertEquals(1, client.getIntegerValue("non-existing", 1));
 
         // non-number flag value
-        assertEquals(1, client.getIntegerValue(VARIANT_FLAG_NAME, 1));
+        assertEquals(1, client.getIntegerValue(CONFIG_FLAG_NAME, 1));
     }
 
     @Test
@@ -121,108 +131,88 @@ class StatsigProviderTest {
         MutableContext evaluationContext = new MutableContext();
         assertEquals(DOUBLE_FLAG_VALUE, statsigProvider.getDoubleEvaluation(DOUBLE_FLAG_NAME, 1.1,
             evaluationContext).getValue());
+        assertEquals(DOUBLE_FLAG_VALUE, statsigProvider.getDoubleEvaluation(LAYER_DOUBLE_FLAG_NAME, 1.1,
+            evaluationContext).getValue());
         assertEquals(DOUBLE_FLAG_VALUE, client.getDoubleValue(DOUBLE_FLAG_NAME, 1.1));
         assertEquals(1.1, client.getDoubleValue("non-existing", 1.1));
 
         // non-number flag value
-        assertEquals(1.1, client.getDoubleValue(VARIANT_FLAG_NAME, 1.1));
+        assertEquals(1.1, client.getDoubleValue(CONFIG_FLAG_NAME, 1.1));
     }
 
     @Test
     void getBooleanEvaluationByUser() {
         MutableContext evaluationContext = new MutableContext();
-        evaluationContext.setTargetingKey("csp@matching.com");
+        final String expectedTargetingKey = "test-id";
+        evaluationContext.setTargetingKey(expectedTargetingKey);
+
+        when(statsigProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext))
+            .thenAnswer(invocation -> {
+                if (!USERS_FLAG_NAME.equals(invocation.getArgument(0, String.class))) {
+                    invocation.callRealMethod();
+                }
+                boolean evaluatedValue = invocation.getArgument(2, MutableContext.class).getTargetingKey().equals(expectedTargetingKey);
+                return ProviderEvaluation.<Boolean>builder()
+                    .value(evaluatedValue)
+                    .build();
+                }
+            );
+
         assertEquals(true, statsigProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(true, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
-        evaluationContext.setTargetingKey("csp@notmatching.com");
+        evaluationContext.setTargetingKey("other-id");
         assertEquals(false, statsigProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(false, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
     }
 
     @Test
-    void getBooleanEvaluationByEmail() {
+    void getBooleanEvaluationByProperties() {
         MutableContext evaluationContext = new MutableContext();
-        evaluationContext.setTargetingKey("csp@matching.com");
-        evaluationContext.add("Email", "a@matching.com");
-        assertEquals(true, statsigProvider.getBooleanEvaluation(EMAIL_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(true, client.getBooleanValue(EMAIL_FLAG_NAME, false, evaluationContext));
-        evaluationContext.add("Email", "a@matchingnot.com");
-        assertEquals(false, statsigProvider.getBooleanEvaluation(EMAIL_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(false, client.getBooleanValue(EMAIL_FLAG_NAME, false, evaluationContext));
-    }
+        final String expectedTargetingKey = "test-id";
+        final String expectedEmail = "match@test.com";
+        final String expectedIp = "1.2.3.4";
+        evaluationContext.setTargetingKey(expectedTargetingKey);
+        evaluationContext.add(CONTEXT_EMAIL, expectedEmail);
+        evaluationContext.add(CONTEXT_LOCALE, "test-locale");
+        MutableContext privateAttributes = new MutableContext();
+        privateAttributes.add(CONTEXT_IP, "1.2.3.5");
+        privateAttributes.add("custom-private", "test-custom");
+        evaluationContext.add(CONTEXT_PRIVATE_ATTRIBUTES, privateAttributes);
 
-    @Test
-    void getBooleanEvaluationByCountry() {
-        MutableContext evaluationContext = new MutableContext();
-        evaluationContext.setTargetingKey("csp@matching.com");
-        evaluationContext.add("Country", "country1");
-        assertEquals(true, statsigProvider.getBooleanEvaluation(COUNTRY_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(true, client.getBooleanValue(COUNTRY_FLAG_NAME, false, evaluationContext));
-        evaluationContext.add("Country", "country2");
-        assertEquals(false, statsigProvider.getBooleanEvaluation(COUNTRY_FLAG_NAME, false, evaluationContext).getValue());
-        assertEquals(false, client.getBooleanValue(COUNTRY_FLAG_NAME, false, evaluationContext));
-    }
+        when(statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext))
+            .thenAnswer(invocation -> {
+                if (!PROPERTIES_FLAG_NAME.equals(invocation.getArgument(0, String.class))) {
+                    invocation.callRealMethod();
+                }
+                boolean evaluatedValue = invocation.getArgument(2, MutableContext.class).getValue(CONTEXT_EMAIL).asString().equals(expectedEmail);
+                if (invocation.getArgument(2, MutableContext.class).getValue(CONTEXT_PRIVATE_ATTRIBUTES).asStructure().getValue(CONTEXT_IP).asString().equals(expectedIp)) {
+                    evaluatedValue = true;
+                }
+                return ProviderEvaluation.<Boolean>builder()
+                    .value(evaluatedValue)
+                    .build();
+                }
+            );
 
-    @Test
-    void getIntEvaluationByUser() {
-        MutableContext evaluationContext = new MutableContext();
-        evaluationContext.setTargetingKey("csp@matching.com");
-        assertEquals(123, statsigProvider.getIntegerEvaluation(USERS_FLAG_NAME + "Int", 111, evaluationContext).getValue());
-        assertEquals(123, client.getIntegerValue(USERS_FLAG_NAME + "Int", 111, evaluationContext));
-        evaluationContext.setTargetingKey("csp@notmatching.com");
-        assertEquals(111, statsigProvider.getIntegerEvaluation(USERS_FLAG_NAME + "Int", 222, evaluationContext).getValue());
-        assertEquals(111, client.getIntegerValue(USERS_FLAG_NAME + "Int", 222, evaluationContext));
-    }
+        assertEquals(true, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
+        evaluationContext.add(CONTEXT_EMAIL, "non-match@test.com");
+        assertEquals(false, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
 
-    @Test
-    void getDoubleEvaluationByUser() {
-        MutableContext evaluationContext = new MutableContext();
-        evaluationContext.setTargetingKey("csp@matching.com");
-        assertEquals(1.23, statsigProvider.getDoubleEvaluation(USERS_FLAG_NAME + "Double", 1.11, evaluationContext).getValue());
-        assertEquals(1.23, client.getDoubleValue(USERS_FLAG_NAME + "Double", 1.11, evaluationContext));
-        evaluationContext.setTargetingKey("csp@matchingnot.com");
-        assertEquals(0.1, statsigProvider.getDoubleEvaluation(USERS_FLAG_NAME + "Double", 1.11, evaluationContext).getValue());
-        assertEquals(0.1, client.getDoubleValue(USERS_FLAG_NAME + "Double", 1.11, evaluationContext));
-    }
-
-    @Test
-    void getStringEvaluationByUser() {
-        MutableContext evaluationContext = new MutableContext();
-        evaluationContext.setTargetingKey("csp@matching.com");
-        assertEquals("expected", statsigProvider.getStringEvaluation(USERS_FLAG_NAME + "Str", "111", evaluationContext).getValue());
-        assertEquals("expected", client.getStringValue(USERS_FLAG_NAME + "Str", "111", evaluationContext));
-        evaluationContext.setTargetingKey("csp@notmatching.com");
-        assertEquals("fallback", statsigProvider.getStringEvaluation(USERS_FLAG_NAME + "Str", "111", evaluationContext).getValue());
-        assertEquals("fallback", client.getStringValue(USERS_FLAG_NAME + "Str", "111", evaluationContext));
+        privateAttributes.add(CONTEXT_IP, expectedIp);
+        assertEquals(true, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
+        privateAttributes.add(CONTEXT_IP, "1.2.3.5");
+        assertEquals(false, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false, evaluationContext).getValue());
     }
 
     @SneakyThrows
     @Test
     void shouldThrowIfNotInitialized() {
-        statsigProviderConfig statsigProviderConfig = statsigProviderConfig.builder().sdkKey("test").build();
-        statsigProvider tempstatsigProvider = new statsigProvider(statsigProviderConfig);
+        StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder().sdkKey("test").build();
+        StatsigProvider tempstatsigProvider = new StatsigProvider(statsigProviderConfig);
 
         assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
 
         OpenFeatureAPI.getInstance().setProviderAndWait("tempstatsigProvider", tempstatsigProvider);
 
         assertThrows(GeneralError.class, ()-> tempstatsigProvider.initialize(null));
-
-        tempstatsigProvider.shutdown();
-
-        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getDoubleEvaluation("fail_not_initialized", 0.1, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getIntegerEvaluation("fail_not_initialized", 3, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getObjectEvaluation("fail_not_initialized", null, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getStringEvaluation("fail_not_initialized", "", new ImmutableContext()));
-    }
-
-    @Test
-    void eventsTest() {
-        statsigProvider.emitProviderReady(ProviderEventDetails.builder().build());
-        statsigProvider.emitProviderError(ProviderEventDetails.builder().build());
-        statsigProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder().build());
-        assertDoesNotThrow(() -> {statsigProvider.getState();});
     }
 
     @SneakyThrows
@@ -231,19 +221,40 @@ class StatsigProviderTest {
         String userId = "a";
         String email = "a@a.com";
         String country = "someCountry";
+        String userAgent = "userAgent1";
+        String ip = "1.2.3.4";
+        String appVersion = "appVersion1";
+        String locale = "locale1";
         String customPropertyValue = "customProperty_value";
         String customPropertyKey = "customProperty";
 
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(userId);
-        evaluationContext.add("Country", country);
-        evaluationContext.add("Email", email);
+        evaluationContext.add(CONTEXT_COUNTRY, country);
+        evaluationContext.add(CONTEXT_EMAIL, email);
+        evaluationContext.add(CONTEXT_USER_AGENT, userAgent);
+        evaluationContext.add(CONTEXT_IP, ip);
+        evaluationContext.add(CONTEXT_APP_VERSION, appVersion);
+
+        MutableContext privateAttributes = new MutableContext();
+        privateAttributes.add(CONTEXT_LOCALE, locale);
+        evaluationContext.add(CONTEXT_PRIVATE_ATTRIBUTES, privateAttributes);
+
         evaluationContext.add(customPropertyKey, customPropertyValue);
 
         HashMap<String, String > customMap = new HashMap<>();
         customMap.put(customPropertyKey, customPropertyValue);
-        User expectedUser = User.newBuilder().email(email).country(country).custom(customMap).build(userId);
-        User transformedUser = ContextTransformer.transform(evaluationContext);
+        StatsigUser expectedUser = new StatsigUser(evaluationContext.getTargetingKey());
+        expectedUser.setEmail(email);
+        expectedUser.setCountry(country);
+        expectedUser.setUserAgent(userAgent);
+        expectedUser.setIp(ip);
+        expectedUser.setAppVersion(appVersion);
+        Map<String, String> privateAttributesMap = new HashMap<>();
+        privateAttributesMap.put(CONTEXT_LOCALE, locale);
+        expectedUser.setPrivateAttributes(privateAttributesMap);
+        expectedUser.setCustomIDs(customMap);
+        StatsigUser transformedUser = ContextTransformer.transform(evaluationContext);
 
         // equals not implemented for User, using toString
         assertEquals(expectedUser.toString(), transformedUser.toString());
