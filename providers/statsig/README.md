@@ -19,8 +19,10 @@
 
 ## Concepts
 * Boolean evaluation gets [gate](https://docs.statsig.com/server/javaSdk#checking-a-gate) status.
-* Non-boolean evaluation gets [Dynamic config](https://docs.statsig.com/server/javaSdk#reading-a-dynamic-config) and [Layer](https://docs.statsig.com/server/javaSdk#getting-an-layerexperiment) evaluation.
-  Feature key structure is $TYPE[CONFIG/LAYER].$NAME.$KEY, for example _config.product.revision_ will evaluate dynamic config named "product" with "revision" key in it.
+* String/Integer/Double evaluations evaluation gets [Dynamic config](https://docs.statsig.com/server/javaSdk#reading-a-dynamic-config) or [Layer](https://docs.statsig.com/server/javaSdk#getting-an-layerexperiment) evaluation.
+  As the key represents an inner attribute, feature config is required as a parameter with data needed for evaluation.
+  For an example of dynamic config of product alias, need to differentiate between dynamic config or layer, and the dynamic config name.
+* Object evaluation - TODO
 * [Private Attributes](https://docs.statsig.com/server/javaSdk#private-attributes) are supported as 'privateAttributes' context key.
 
 ## Usage
@@ -36,8 +38,13 @@ statsigProvider = new StatsigProvider(statsigProviderConfig);
 OpenFeatureAPI.getInstance().setProviderAndWait(statsigProvider);
 
 boolean featureEnabled = client.getBooleanValue(FLAG_NAME, false);
-String featureValue = statsigProvider.getStringEvaluation("config.product.name", "",
-    new ImmutableContext()).getValue());
+
+MutableContext evaluationContext = new MutableContext();
+MutableContext featureConfig = new MutableContext();
+featureConfig.add("type", "CONFIG");
+featureConfig.add("name", "product");
+evaluationContext.add("feature_config", featureConfig);
+String value = statsigProvider.getStringEvaluation("alias", "fallback", evaluationContext).getValue());
 
 MutableContext evaluationContext = new MutableContext();
 evaluationContext.setTargetingKey("test-id");

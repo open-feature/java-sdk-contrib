@@ -9,6 +9,7 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
@@ -32,6 +33,7 @@ public class StatsigProvider extends EventProvider {
 
     public static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
     public static final String UNKNOWN_ERROR = "unknown error";
+    public static final String FEATURE_CONFIG_KEY = "feature_config";
 
     private final StatsigProviderConfig statsigProviderConfig;
 
@@ -75,6 +77,17 @@ public class StatsigProvider extends EventProvider {
         return () -> NAME;
     }
 
+    @AllArgsConstructor
+    @Getter
+    public static class FeatureConfig {
+        public enum Type {
+            CONFIG, LAYER
+        }
+
+        private Type type;
+        private String name;
+    }
+
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         if (!ProviderState.READY.equals(state)) {
@@ -106,16 +119,16 @@ public class StatsigProvider extends EventProvider {
         }
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
-            ConfigKey configKey = parseConfigKeys(key);
+            FeatureConfig featureConfig = parseFeatureConfig(ctx);
             String evaluatedValue = defaultValue;
-            switch (configKey.getType()) {
+            switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, configKey.getName()).get();
-                    evaluatedValue = dynamicConfig.getString(configKey.getKey(), defaultValue);
+                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = dynamicConfig.getString(key, defaultValue);
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
-                    evaluatedValue = layer.getString(configKey.getKey(), defaultValue);
+                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = layer.getString(key, defaultValue);
                     break;
                 default:
                     break;
@@ -139,16 +152,16 @@ public class StatsigProvider extends EventProvider {
         }
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
-            ConfigKey configKey = parseConfigKeys(key);
+            FeatureConfig featureConfig = parseFeatureConfig(ctx);
             Integer evaluatedValue = defaultValue;
-            switch (configKey.getType()) {
+            switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, configKey.getName()).get();
-                    evaluatedValue = dynamicConfig.getInt(configKey.getKey(), defaultValue);
+                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = dynamicConfig.getInt(key, defaultValue);
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
-                    evaluatedValue = layer.getInt(configKey.getKey(), defaultValue);
+                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = layer.getInt(key, defaultValue);
                     break;
                 default:
                     break;
@@ -172,16 +185,16 @@ public class StatsigProvider extends EventProvider {
         }
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
-            ConfigKey configKey = parseConfigKeys(key);
+            FeatureConfig featureConfig = parseFeatureConfig(ctx);
             Double evaluatedValue = defaultValue;
-            switch (configKey.getType()) {
+            switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, configKey.getName()).get();
-                    evaluatedValue = dynamicConfig.getDouble(configKey.getKey(), defaultValue);
+                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = dynamicConfig.getDouble(key, defaultValue);
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
-                    evaluatedValue = layer.getDouble(configKey.getKey(), defaultValue);
+                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = layer.getDouble(key, defaultValue);
                     break;
                 default:
                     break;
@@ -206,16 +219,16 @@ public class StatsigProvider extends EventProvider {
         }
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
-            ConfigKey configKey = parseConfigKeys(key);
+            FeatureConfig featureConfig = parseFeatureConfig(ctx);
             String evaluatedValue = defaultValue.asString();
-            switch (configKey.getType()) {
+            switch (featureConfig.getType()) {
                 case CONFIG:
-                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, configKey.getName()).get();
-                    evaluatedValue = dynamicConfig.getString(configKey.getKey(), defaultValue.asString());
+                    DynamicConfig dynamicConfig = Statsig.getConfigAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = dynamicConfig.getString(key, defaultValue.asString());
                     break;
                 case LAYER:
-                    Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
-                    evaluatedValue = layer.getString(configKey.getKey(), defaultValue.asString());
+                    Layer layer = Statsig.getLayerAsync(user, featureConfig.getName()).get();
+                    evaluatedValue = layer.getString(key, defaultValue.asString());
                     break;
                 default:
                     break;
@@ -229,31 +242,27 @@ public class StatsigProvider extends EventProvider {
         }
     }
 
-    @AllArgsConstructor
-    @Getter
-    private static class ConfigKey {
-        private enum Type {
-            CONFIG, LAYER
-        }
-
-        private Type type;
-        private String name;
-        private String key;
-    }
-
-    /**
-     * parse dynamic config name and key from feature key.
-     * @param key configuration key, for example 'config.product.name' or 'layer.product.name'.
-     * @return ConfigKey dynamic config name and key
-     */
     @NotNull
-    private static ConfigKey parseConfigKeys(String key) {
-        String[] keys = key.split("\\.");
-        if (keys.length != 3) {
-            throw new IllegalArgumentException("configuration key must contain exactly two occurrence of '.' "
-                + "character, for example 'config.product.name'.");
+    private static FeatureConfig parseFeatureConfig(EvaluationContext ctx) {
+        Value featureConfigValue = ctx.getValue(FEATURE_CONFIG_KEY);
+        if (featureConfigValue == null) {
+            throw new IllegalArgumentException("feature config not found at evaluation context.");
         }
-        return new ConfigKey(ConfigKey.Type.valueOf(keys[0].toUpperCase()), keys[1], keys[2]);
+        if (!featureConfigValue.isStructure()) {
+            throw new IllegalArgumentException("feature config is not a structure.");
+        }
+        Structure featureConfigStructure = featureConfigValue.asStructure();
+        Value typeValue = featureConfigStructure.getValue("type");
+        if (typeValue == null) {
+            throw new IllegalArgumentException("feature config type is missing");
+        }
+        FeatureConfig.Type type = FeatureConfig.Type.valueOf(typeValue.asString());
+        Value nameValue = featureConfigStructure.getValue("name");
+        if (nameValue == null) {
+            throw new IllegalArgumentException("feature config name is missing");
+        }
+        String name = nameValue.asString();
+        return new FeatureConfig(type, name);
     }
 
     @SneakyThrows
