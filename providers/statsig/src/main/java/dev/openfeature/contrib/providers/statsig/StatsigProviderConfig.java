@@ -4,8 +4,6 @@ import com.statsig.sdk.StatsigOptions;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.util.function.Consumer;
-
 
 /**
  * Configuration for initializing statsig provider.

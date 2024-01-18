@@ -61,7 +61,8 @@ public class StatsigProvider extends EventProvider {
         }
         super.initialize(evaluationContext);
 
-        Future<Void> initFuture = Statsig.initializeAsync(statsigProviderConfig.getSdkKey(), statsigProviderConfig.getOptions());
+        Future<Void> initFuture = Statsig.initializeAsync(statsigProviderConfig.getSdkKey(),
+            statsigProviderConfig.getOptions());
         initFuture.get();
 
         statsigProviderConfig.postInit();
@@ -116,6 +117,8 @@ public class StatsigProvider extends EventProvider {
                     Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
                     evaluatedValue = layer.getString(configKey.getKey(), defaultValue);
                     break;
+                default:
+                    break;
             }
             return ProviderEvaluation.<String>builder()
                 .value(evaluatedValue)
@@ -147,6 +150,8 @@ public class StatsigProvider extends EventProvider {
                     Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
                     evaluatedValue = layer.getInt(configKey.getKey(), defaultValue);
                     break;
+                default:
+                    break;
             }
             return ProviderEvaluation.<Integer>builder()
                 .value(evaluatedValue)
@@ -177,6 +182,8 @@ public class StatsigProvider extends EventProvider {
                 case LAYER:
                     Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
                     evaluatedValue = layer.getDouble(configKey.getKey(), defaultValue);
+                    break;
+                default:
                     break;
             }
             return ProviderEvaluation.<Double>builder()
@@ -210,6 +217,8 @@ public class StatsigProvider extends EventProvider {
                     Layer layer = Statsig.getLayerAsync(user, configKey.getName()).get();
                     evaluatedValue = layer.getString(configKey.getKey(), defaultValue.asString());
                     break;
+                default:
+                    break;
             }
             return ProviderEvaluation.<Value>builder()
                 .value(Value.objectToValue(evaluatedValue))
@@ -226,8 +235,9 @@ public class StatsigProvider extends EventProvider {
         private enum Type {
             CONFIG, LAYER
         }
+
         private Type type;
-        private String Name;
+        private String name;
         private String key;
     }
 
@@ -240,7 +250,8 @@ public class StatsigProvider extends EventProvider {
     private static ConfigKey parseConfigKeys(String key) {
         String[] keys = key.split("\\.");
         if (keys.length != 3) {
-            throw new IllegalArgumentException("configuration key must contain exactly two occurrence of '.' character, for example 'config.product.name'.");
+            throw new IllegalArgumentException("configuration key must contain exactly two occurrence of '.' "
+                + "character, for example 'config.product.name'.");
         }
         return new ConfigKey(ConfigKey.Type.valueOf(keys[0].toUpperCase()), keys[1], keys[2]);
     }
