@@ -13,6 +13,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
 import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
@@ -38,6 +39,7 @@ public class InProcessResolver implements Resolver {
     private final Consumer<ProviderState> stateConsumer;
     private final Operator operator;
     private final long deadline;
+    private final ImmutableMetadata metadata;
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
     /**
@@ -52,6 +54,10 @@ public class InProcessResolver implements Resolver {
         this.deadline = options.getDeadline();
         this.stateConsumer = stateConsumer;
         this.operator = new Operator();
+        this.metadata = options.getSelector() == null ? null :
+                ImmutableMetadata.builder()
+                        .addString("scope", options.getSelector())
+                        .build();
     }
 
     /**
@@ -204,10 +210,12 @@ public class InProcessResolver implements Resolver {
             throw new TypeMismatchError(message);
         }
 
-        return ProviderEvaluation.<T>builder()
+        final ProviderEvaluation.ProviderEvaluationBuilder<T> evaluationBuilder = ProviderEvaluation.<T>builder()
                 .value((T) value)
                 .variant(resolvedVariant)
-                .reason(reason)
-                .build();
+                .reason(reason);
+
+        return this.metadata == null ? evaluationBuilder.build() :
+                evaluationBuilder.flagMetadata(this.metadata).build();
     }
 }
