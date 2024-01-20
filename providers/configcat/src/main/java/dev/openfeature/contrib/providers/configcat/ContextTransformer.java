@@ -16,7 +16,7 @@ public class ContextTransformer {
 
     protected static User transform(EvaluationContext ctx) {
         User.Builder userBuilder = User.newBuilder();
-        Map<String, String> customMap = new HashMap<>();
+        Map<String, Object> customMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {
             switch (k) {
                 case CONTEXT_COUNTRY:

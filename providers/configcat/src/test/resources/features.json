@@ -1,88 +1,217 @@
 {
+  "p": {
+    "s": "80xCU/SlDz1lCiWFaxIBjyJeJecWjq46T4eu6GtozkM="
+  },
   "f": {
     "enabledFeature": {
-      "v": true
+      "t": 0,
+      "v": {
+        "b": true
+      }
     },
     "intSetting": {
-      "v": 5
+      "t": 2,
+      "v": {
+        "i": 5
+      }
     },
     "doubleSetting": {
-      "v": 3.14
+      "t": 3,
+      "v": {
+        "d": 3.14
+      }
     },
     "stringSetting": {
-      "v": "test"
+      "t": 1,
+      "v": {
+        "s": "test"
+      }
     },
     "userIdMatching": {
-      "v": false,
+      "t": 0,
       "r": [
         {
-          "o": 0,
-          "a": "Identifier",
-          "t": 2,
-          "c": "@matching.com",
-          "v": true
+          "c": [
+            {
+              "u": {
+                "a": "Identifier",
+                "c": 2,
+                "l": [
+                  "@matching.com"
+                ]
+              }
+            }
+          ],
+          "p": [
+            {
+              "p": 100,
+              "v": {
+                "b": true
+              },
+              "i": "bcfb84a7"
+            }
+          ]
         }
-      ]
+      ],
+      "v": {
+        "b": false
+      },
+      "i": "430bded3"
     },
     "emailMatching": {
-      "v": false,
+      "t": 0,
       "r": [
         {
-          "o": 0,
-          "a": "Email",
-          "t": 2,
-          "c": "@matching.com",
-          "v": true
+          "c": [
+            {
+              "u": {
+                "a": "Email",
+                "c": 2,
+                "l": [
+                  "@matching.com"
+                ]
+              }
+            }
+          ],
+          "p": [
+            {
+              "p": 100,
+              "v": {
+                "b": true
+              },
+              "i": "bcfb84a7"
+            }
+          ]
         }
-      ]
+      ],
+      "v": {
+        "b": false
+      },
+      "i": "430bded3"
     },
     "countryMatching": {
-      "v": false,
+      "t": 0,
       "r": [
         {
-          "o": 0,
-          "a": "Country",
-          "t": 2,
-          "c": "country1",
-          "v": true
+          "c": [
+            {
+              "u": {
+                "a": "Country",
+                "c": 2,
+                "l": [
+                  "country1"
+                ]
+              }
+            }
+          ],
+          "p": [
+            {
+              "p": 100,
+              "v": {
+                "b": true
+              },
+              "i": "bcfb84a7"
+            }
+          ]
         }
-      ]
+      ],
+      "v": {
+        "b": false
+      },
+      "i": "430bded3"
     },
     "userIdMatchingInt": {
-      "v": 111,
+      "t": 2,
       "r": [
         {
-          "o": 0,
-          "a": "Identifier",
-          "t": 2,
-          "c": "@matching.com",
-          "v": 123
+          "c": [
+            {
+              "u": {
+                "a": "Identifier",
+                "c": 2,
+                "l": [
+                  "@matching.com"
+                ]
+              }
+            }
+          ],
+          "p": [
+            {
+              "p": 100,
+              "v": {
+                "i": 123
+              },
+              "i": "bcfb84a7"
+            }
+          ]
         }
-      ]
+      ],
+      "v": {
+        "i": 111
+      },
+      "i": "430bded3"
     },
     "userIdMatchingDouble": {
-      "v": 0.1,
+      "t": 3,
       "r": [
         {
-          "o": 0,
-          "a": "Identifier",
-          "t": 2,
-          "c": "@matching.com",
-          "v": 1.23
+          "c": [
+            {
+              "u": {
+                "a": "Identifier",
+                "c": 2,
+                "l": [
+                  "@matching.com"
+                ]
+              }
+            }
+          ],
+          "p": [
+            {
+              "p": 100,
+              "v": {
+                "d": 1.23
+              },
+              "i": "bcfb84a7"
+            }
+          ]
         }
-      ]
+      ],
+      "v": {
+        "d": 0.1
+      },
+      "i": "430bded3"
     },
     "userIdMatchingStr": {
-      "v": "fallback",
+      "t": 1,
       "r": [
         {
-          "o": 0,
-          "a": "Identifier",
-          "t": 2,
-          "c": "@matching.com",
-          "v": "expected"
+          "c": [
+            {
+              "u": {
+                "a": "Identifier",
+                "c": 2,
+                "l": [
+                  "@matching.com"
+                ]
+              }
+            }
+          ],
+          "p": [
+            {
+              "p": 100,
+              "v": {
+                "s": "expected"
+              },
+              "i": "bcfb84a7"
+            }
+          ]
         }
-      ]
+      ],
+      "v": {
+        "s": "fallback"
+      },
+      "i": "430bded3"
     }
   }
 }
