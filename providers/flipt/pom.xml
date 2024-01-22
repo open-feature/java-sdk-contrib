@@ -16,6 +16,10 @@
     <description>Flipt provider for Java</description>
     <url>https://www.flipt.io/</url>
 
+    <properties>
+        <javadoc.failOnWarnings>false</javadoc.failOnWarnings>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.flipt</groupId>
