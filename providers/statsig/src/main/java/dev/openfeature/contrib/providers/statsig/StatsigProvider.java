@@ -61,10 +61,10 @@ public class StatsigProvider extends EventProvider {
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
         boolean initialized = isInitialized.getAndSet(true);
-        if (initialized) {
-            throw new GeneralError("already initialized");
+        if (initialized && ProviderState.READY.equals(state)) {
+            log.debug("already initialized");
+            return;
         }
-        super.initialize(evaluationContext);
 
         Future<Void> initFuture = Statsig.initializeAsync(statsigProviderConfig.getSdkKey(),
             statsigProviderConfig.getOptions());
@@ -80,34 +80,9 @@ public class StatsigProvider extends EventProvider {
         return () -> NAME;
     }
 
-    /**
-     * Feature config, as required for evaluation.
-     */
-    @AllArgsConstructor
-    @Getter
-    public static class FeatureConfig {
-
-        /**
-         * Type.
-         *  CONFIG: Dynamic Config
-         *  LAYER: Layer
-         */
-        public enum Type {
-            CONFIG, LAYER
-        }
-
-        private Type type;
-        private String name;
-    }
-
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
+        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         Future<Boolean> featureOn = Statsig.checkGateAsync(user, key);
         try {
@@ -123,12 +98,7 @@ public class StatsigProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
+        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
@@ -156,12 +126,7 @@ public class StatsigProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
+        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
@@ -189,12 +154,7 @@ public class StatsigProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
+        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
@@ -223,12 +183,7 @@ public class StatsigProvider extends EventProvider {
     @SneakyThrows
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
+        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         try {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
@@ -271,7 +226,7 @@ public class StatsigProvider extends EventProvider {
         mutableContext.add("ruleID", dynamicConfig.getRuleID());
         mutableContext.add("groupName", dynamicConfig.getGroupName());
         List<Value> secondaryExposures = new ArrayList<>();
-        dynamicConfig.getSecondaryExposures().stream().forEach(secondaryExposure -> {
+        dynamicConfig.getSecondaryExposures().forEach(secondaryExposure -> {
             Value value = Value.objectToValue(secondaryExposure);
                 secondaryExposures.add(value);
             }
@@ -287,7 +242,7 @@ public class StatsigProvider extends EventProvider {
         mutableContext.add("ruleID", layer.getRuleID());
         mutableContext.add("groupName", layer.getGroupName());
         List<Value> secondaryExposures = new ArrayList<>();
-        layer.getSecondaryExposures().stream().forEach(secondaryExposure -> {
+        layer.getSecondaryExposures().forEach(secondaryExposure -> {
                 Value value = Value.objectToValue(secondaryExposure);
                 secondaryExposures.add(value);
             }
@@ -320,12 +275,46 @@ public class StatsigProvider extends EventProvider {
         return new FeatureConfig(type, name);
     }
 
+    private void verifyEvaluation() throws ProviderNotReadyError, GeneralError {
+        if (!ProviderState.READY.equals(state)) {
+
+            /*
+            According to spec Requirement 2.4.5:
+            "The provider SHOULD indicate an error if flag resolution is attempted before the provider is ready."
+            https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-245
+             */
+            if (ProviderState.NOT_READY.equals(state)) {
+                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
+            }
+            throw new GeneralError(UNKNOWN_ERROR);
+        }
+    }
+
     @SneakyThrows
     @Override
     public void shutdown() {
-        super.shutdown();
         log.info("shutdown");
         Statsig.shutdown();
         state = ProviderState.NOT_READY;
+    }
+
+    /**
+     * Feature config, as required for evaluation.
+     */
+    @AllArgsConstructor
+    @Getter
+    public static class FeatureConfig {
+
+        /**
+         * Type.
+         *  CONFIG: Dynamic Config
+         *  LAYER: Layer
+         */
+        public enum Type {
+            CONFIG, LAYER
+        }
+
+        private Type type;
+        private String name;
     }
 }

@@ -11,7 +11,6 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterAll;
@@ -289,8 +288,6 @@ class StatsigProviderTest {
         "fail_not_initialized", false, new ImmutableContext()));
 
         OpenFeatureAPI.getInstance().setProviderAndWait("tempstatsigProvider", tempstatsigProvider);
-
-        assertThrows(GeneralError.class, ()-> tempstatsigProvider.initialize(null));
     }
 
     @SneakyThrows

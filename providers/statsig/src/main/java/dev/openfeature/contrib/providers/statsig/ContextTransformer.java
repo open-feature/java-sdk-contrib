@@ -11,8 +11,7 @@ import java.util.Map;
 /**
  * Transformer from OpenFeature context to statsig User.
  */
-public class ContextTransformer {
-
+class ContextTransformer {
     public static final String CONTEXT_APP_VERSION = "appVersion";
     public static final String CONTEXT_COUNTRY = "country";
     public static final String CONTEXT_EMAIL = "email";
@@ -21,7 +20,7 @@ public class ContextTransformer {
     public static final String CONTEXT_USER_AGENT = "userAgent";
     public static final String CONTEXT_PRIVATE_ATTRIBUTES = "privateAttributes";
 
-    protected static StatsigUser transform(EvaluationContext ctx) {
+    static StatsigUser transform(EvaluationContext ctx) {
         StatsigUser user = new StatsigUser(ctx.getTargetingKey());
         Map<String, String> customMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {
