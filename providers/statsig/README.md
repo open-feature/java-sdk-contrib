@@ -50,8 +50,8 @@ MutableContext evaluationContext = new MutableContext();
 evaluationContext.setTargetingKey("test-id");
 evaluationContext.add("Email", "a@b.com");
 MutableContext privateAttributes = new MutableContext();
-privateAttributes.add(CONTEXT_LOCALE, locale);
-evaluationContext.add(CONTEXT_PRIVATE_ATTRIBUTES, privateAttributes);
+privateAttributes.add("locale", locale);
+evaluationContext.add("privateAttributes", privateAttributes);
 featureEnabled = client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext);
 ```
 
