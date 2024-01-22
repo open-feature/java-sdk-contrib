@@ -12,6 +12,7 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * ConfigCatProvider test, based on local config file evaluation.
  * Configuration file test by ConfigCat tests.
  */
+@Slf4j
 class ConfigCatProviderTest {
 
     public static final String FLAG_NAME = "enabledFeature";
@@ -43,7 +45,7 @@ class ConfigCatProviderTest {
 
     @BeforeAll
     static void setUp() {
-        String sdkKey = "test";
+        String sdkKey = "configcat-sdk-1/TEST_KEY-0123456789012/1234567890123456789012";
         ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder().sdkKey(sdkKey)
             .options(options ->
                 options.flagOverrides(
@@ -182,7 +184,7 @@ class ConfigCatProviderTest {
     @SneakyThrows
     @Test
     void shouldThrowIfNotInitialized() {
-        ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder().sdkKey("test").build();
+        ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder().sdkKey("configcat-sdk-1/TEST_KEY-0123456789012/1234567890123456789012").build();
         ConfigCatProvider tempConfigCatProvider = new ConfigCatProvider(configCatProviderConfig);
 
         assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
@@ -205,7 +207,7 @@ class ConfigCatProviderTest {
         configCatProvider.emitProviderReady(ProviderEventDetails.builder().build());
         configCatProvider.emitProviderError(ProviderEventDetails.builder().build());
         configCatProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder().build());
-        assertDoesNotThrow(() -> {configCatProvider.getState();});
+        assertDoesNotThrow(() -> log.debug("provider state: {}", configCatProvider.getState()));
     }
 
     @SneakyThrows
