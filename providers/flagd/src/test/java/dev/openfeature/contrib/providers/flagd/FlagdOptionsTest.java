@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class FeatureFlagProviderBuilderTest {
+public class FlagdOptionsTest {
 
     @Test
     public void TestDefaults() {
@@ -31,7 +31,6 @@ public class FeatureFlagProviderBuilderTest {
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getOfflineFlagSourcePath());
-        assertFalse(builder.isOffline());
     }
 
     @Test
@@ -59,7 +58,6 @@ public class FeatureFlagProviderBuilderTest {
         assertEquals(flagdOptions.getMaxCacheSize(), 100);
         assertEquals(flagdOptions.getMaxEventStreamRetries(), 1);
         assertEquals(flagdOptions.getSelector(), "app=weatherApp");
-        assertTrue(flagdOptions.isOffline());
         assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(flagdOptions.getOpenTelemetry(), openTelemetry);
     }

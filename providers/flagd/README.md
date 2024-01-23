@@ -47,6 +47,8 @@ FlagdProvider flagdProvider = new FlagdProvider(
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
 
+#### Offline mode
+
 In-process resolvers can also work in an offline mode.
 To enable this mode, you should provide a valid flag configuration file with the option `offlineFlagSourcePath`.
 
@@ -58,9 +60,13 @@ FlagdProvider flagdProvider = new FlagdProvider(
                 .build());
 ```
 
-Provider will not detect file changes nor re-read the file after the initial read.
-This mode is useful for local development, test cases, and offline applications.
-For a full-featured, production-ready file-based implementation, use the RPC evaluator in combination with the flagd standalone application, which can be configured to watch files for changes.
+Provider will attempt to detect file changes using polling. 
+Polling happens at 5 second intervals and this is currently unconfigurable.
+This mode is useful for local development, tests and offline applications.
+
+> [!IMPORTANT]
+> Note that you can only use a single flag source (either gRPC or offline file) for the in-process resolver.
+> If both sources are configured, offline mode will be selected.
 
 ### Configuration options
 
@@ -73,17 +79,18 @@ Given below are the supported configurations:
 
 | Option name           | Environment variable name      | Type & Values          | Default   | Compatible resolver |
 |-----------------------|--------------------------------|------------------------|-----------|---------------------|
-| host                  | FLAGD_HOST                     | String                 | localhost | RPC & in-process    |
-| port                  | FLAGD_PORT                     | int                    | 8013      | RPC & in-process    |
-| tls                   | FLAGD_TLS                      | boolean                | false     | RPC & in-process    |
-| socketPath            | FLAGD_SOCKET_PATH              | String                 | null      | RPC & in-process    |
-| certPath              | FLAGD_SERVER_CERT_PATH         | String                 | null      | RPC & in-process    |
-| deadline              | FLAGD_DEADLINE_MS              | int                    | 500       | RPC & in-process    |
+| host                  | FLAGD_HOST                     | String                 | localhost | rpc & in-process    |
+| port                  | FLAGD_PORT                     | int                    | 8013      | rpc & in-process    |
+| tls                   | FLAGD_TLS                      | boolean                | false     | rpc & in-process    |
+| socketPath            | FLAGD_SOCKET_PATH              | String                 | null      | rpc & in-process    |
+| certPath              | FLAGD_SERVER_CERT_PATH         | String                 | null      | rpc & in-process    |
+| deadline              | FLAGD_DEADLINE_MS              | int                    | 500       | rpc & in-process    |
 | selector              | FLAGD_SOURCE_SELECTOR          | String                 | null      | in-process          |
-| cache                 | FLAGD_CACHE                    | String - lru, disabled | lru       | RPC                 |
-| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                    | 1000      | RPC                 |
-| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                    | 5         | RPC                 |
-| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                    | 1000      | RPC                 |
+| cache                 | FLAGD_CACHE                    | String - lru, disabled | lru       | rpc                 |
+| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                    | 1000      | rpc                 |
+| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                    | 5         | rpc                 |
+| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                    | 1000      | rpc                 |
+| offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH | String                 | null      | in-process          |
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.

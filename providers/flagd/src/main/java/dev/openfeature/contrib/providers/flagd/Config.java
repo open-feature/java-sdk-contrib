@@ -25,6 +25,7 @@ public final class Config {
     static final String BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME = "FLAGD_RETRY_BACKOFF_MS";
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
+    static final String OFFLINE_SOURCE_PATH = "FLAGD_OFFLINE_FLAG_SOURCE_PATH";
 
     public static final String STATIC_REASON = "STATIC";
     public static final String CACHED_REASON = "CACHED";

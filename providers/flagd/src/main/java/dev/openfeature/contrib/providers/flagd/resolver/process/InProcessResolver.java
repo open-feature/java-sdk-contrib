@@ -46,9 +46,10 @@ public class InProcessResolver implements Resolver {
      * Initialize an in-process resolver.
      */
     public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
-        final Connector connector = options.isOffline()
-                ? new FileConnector(options.getOfflineFlagSourcePath())
-                : new GrpcStreamConnector(options);
+        final Connector connector =
+                options.getOfflineFlagSourcePath() != null && !options.getOfflineFlagSourcePath().isEmpty()
+                        ? new FileConnector(options.getOfflineFlagSourcePath())
+                        : new GrpcStreamConnector(options);
 
         this.flagStore = new FlagStore(connector);
         this.deadline = options.getDeadline();
