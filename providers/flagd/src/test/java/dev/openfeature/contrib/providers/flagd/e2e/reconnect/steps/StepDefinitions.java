@@ -45,7 +45,7 @@ public class StepDefinitions {
      * Tests run one at a time, but just in case, a lock is used to make sure the
      * client is not updated mid-test.
      * 
-     * @param client client to inject into test.
+     * @param provider client to inject into test.
      */
     public static void setProvider(FeatureProvider provider) {
         StepDefinitions.provider = provider;

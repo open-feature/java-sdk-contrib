@@ -5,8 +5,6 @@ import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
 
-import javax.annotation.Nonnull;
-
 import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
 import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.CACHE_ENV_VAR_NAME;
@@ -22,6 +20,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
 import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.OFFLINE_SOURCE_PATH;
 import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.SERVER_CERT_PATH_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.SOCKET_PATH_ENV_VAR_NAME;
@@ -118,12 +117,8 @@ public class FlagdOptions {
      * File source of flags to be used by offline mode.
      * Setting this enables the offline mode of the in-process provider.
      */
-    private String offlineFlagSourcePath;
-
-    /**
-     * Flagd option to state the offline mode. Only get set with offlineFlagSourcePath.
-     */
-    private boolean isOffline;
+    @Builder.Default
+    private String offlineFlagSourcePath = fallBackToEnvOrDefault(OFFLINE_SOURCE_PATH, null);
 
     /**
      * Inject OpenTelemetry for the library runtime. Providing sdk will initiate distributed tracing for flagd grpc
@@ -135,31 +130,14 @@ public class FlagdOptions {
      * Overload default lombok builder.
      */
     public static class FlagdOptionsBuilder {
-
-        /**
-         * File source of flags to be used by offline mode.
-         * Setting this enables the offline mode of the in-process provider.
-         */
-        public FlagdOptionsBuilder offlineFlagSourcePath(@Nonnull final String offlineFlagSourcePath) {
-            this.isOffline = true;
-            this.offlineFlagSourcePath = offlineFlagSourcePath;
-
-            return this;
-        }
-
-        // Remove the public access as this needs to be connected to offlineFlagSourcePath
-        @SuppressWarnings({"PMD.UnusedFormalParameter", "PMD.UnusedPrivateMethod"})
-        private FlagdOptionsBuilder isOffline(final boolean isOffline) {
-            return this;
-        }
-
         /**
          * Enable OpenTelemetry instance extraction from GlobalOpenTelemetry. Note that, this is only useful if global
          * configurations are registered.
          */
         public FlagdOptionsBuilder withGlobalTelemetry(final boolean b) {
-            this.openTelemetry = GlobalOpenTelemetry.get();
-
+            if (b) {
+                this.openTelemetry = GlobalOpenTelemetry.get();
+            }
             return this;
         }
     }

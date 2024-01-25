@@ -46,11 +46,7 @@ public class InProcessResolver implements Resolver {
      * Initialize an in-process resolver.
      */
     public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
-        final Connector connector = options.isOffline()
-                ? new FileConnector(options.getOfflineFlagSourcePath())
-                : new GrpcStreamConnector(options);
-
-        this.flagStore = new FlagStore(connector);
+        this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.stateConsumer = stateConsumer;
         this.operator = new Operator();
@@ -151,6 +147,12 @@ public class InProcessResolver implements Resolver {
                 .errorMessage(evaluation.getErrorMessage())
                 .flagMetadata(evaluation.getFlagMetadata())
                 .build();
+    }
+
+    static Connector getConnector(final FlagdOptions options) {
+        return options.getOfflineFlagSourcePath() != null && !options.getOfflineFlagSourcePath().isEmpty()
+                ? new FileConnector(options.getOfflineFlagSourcePath())
+                : new GrpcStreamConnector(options);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key,
