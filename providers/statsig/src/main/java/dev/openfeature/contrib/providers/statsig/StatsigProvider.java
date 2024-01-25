@@ -80,104 +80,85 @@ public class StatsigProvider extends EventProvider {
         return () -> NAME;
     }
 
+    @SneakyThrows
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         Future<Boolean> featureOn = Statsig.checkGateAsync(user, key);
-        try {
-            Boolean evaluatedValue = featureOn.get();
-            return ProviderEvaluation.<Boolean>builder()
-                .value(evaluatedValue)
-                .build();
-        } catch (Exception e) {
-            log.error("Error evaluating boolean", e);
-            throw new GeneralError(e.getMessage());
-        }
+        Boolean evaluatedValue = featureOn.get();
+        return ProviderEvaluation.<Boolean>builder()
+            .value(evaluatedValue)
+            .build();
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
-        try {
-            FeatureConfig featureConfig = parseFeatureConfig(ctx);
-            String evaluatedValue = defaultValue;
-            switch (featureConfig.getType()) {
-                case CONFIG:
-                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
-                    evaluatedValue = dynamicConfig.getString(key, defaultValue);
-                    break;
-                case LAYER:
-                    Layer layer = fetchLayer(user, featureConfig);
-                    evaluatedValue = layer.getString(key, defaultValue);
-                    break;
-                default:
-                    break;
-            }
-            return ProviderEvaluation.<String>builder()
-                .value(evaluatedValue)
-                .build();
-        } catch (Exception e) {
-            log.error("Error evaluating string", e);
-            throw new GeneralError(e.getMessage());
+        FeatureConfig featureConfig = parseFeatureConfig(ctx);
+        String evaluatedValue = defaultValue;
+        switch (featureConfig.getType()) {
+            case CONFIG:
+                DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
+                evaluatedValue = dynamicConfig.getString(key, defaultValue);
+                break;
+            case LAYER:
+                Layer layer = fetchLayer(user, featureConfig);
+                evaluatedValue = layer.getString(key, defaultValue);
+                break;
+            default:
+                break;
         }
+        return ProviderEvaluation.<String>builder()
+            .value(evaluatedValue)
+            .build();
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
-        try {
-            FeatureConfig featureConfig = parseFeatureConfig(ctx);
-            Integer evaluatedValue = defaultValue;
-            switch (featureConfig.getType()) {
-                case CONFIG:
-                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
-                    evaluatedValue = dynamicConfig.getInt(key, defaultValue);
-                    break;
-                case LAYER:
-                    Layer layer = fetchLayer(user, featureConfig);
-                    evaluatedValue = layer.getInt(key, defaultValue);
-                    break;
-                default:
-                    break;
-            }
-            return ProviderEvaluation.<Integer>builder()
-                .value(evaluatedValue)
-                .build();
-        } catch (Exception e) {
-            log.error("Error evaluating integer", e);
-            throw new GeneralError(e.getMessage());
+        FeatureConfig featureConfig = parseFeatureConfig(ctx);
+        Integer evaluatedValue = defaultValue;
+        switch (featureConfig.getType()) {
+            case CONFIG:
+                DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
+                evaluatedValue = dynamicConfig.getInt(key, defaultValue);
+                break;
+            case LAYER:
+                Layer layer = fetchLayer(user, featureConfig);
+                evaluatedValue = layer.getInt(key, defaultValue);
+                break;
+            default:
+                break;
         }
+        return ProviderEvaluation.<Integer>builder()
+            .value(evaluatedValue)
+            .build();
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
-        try {
-            FeatureConfig featureConfig = parseFeatureConfig(ctx);
-            Double evaluatedValue = defaultValue;
-            switch (featureConfig.getType()) {
-                case CONFIG:
-                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
-                    evaluatedValue = dynamicConfig.getDouble(key, defaultValue);
-                    break;
-                case LAYER:
-                    Layer layer = fetchLayer(user, featureConfig);
-                    evaluatedValue = layer.getDouble(key, defaultValue);
-                    break;
-                default:
-                    break;
-            }
-            return ProviderEvaluation.<Double>builder()
-                .value(evaluatedValue)
-                .build();
-        } catch (Exception e) {
-            log.error("Error evaluating double", e);
-            throw new GeneralError(e.getMessage());
+        FeatureConfig featureConfig = parseFeatureConfig(ctx);
+        Double evaluatedValue = defaultValue;
+        switch (featureConfig.getType()) {
+            case CONFIG:
+                DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
+                evaluatedValue = dynamicConfig.getDouble(key, defaultValue);
+                break;
+            case LAYER:
+                Layer layer = fetchLayer(user, featureConfig);
+                evaluatedValue = layer.getDouble(key, defaultValue);
+                break;
+            default:
+                break;
         }
+        return ProviderEvaluation.<Double>builder()
+            .value(evaluatedValue)
+            .build();
     }
 
     @SneakyThrows
@@ -185,28 +166,23 @@ public class StatsigProvider extends EventProvider {
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
-        try {
-            FeatureConfig featureConfig = parseFeatureConfig(ctx);
-            Value evaluatedValue = defaultValue;
-            switch (featureConfig.getType()) {
-                case CONFIG:
-                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
-                    evaluatedValue = toValue(dynamicConfig);
-                    break;
-                case LAYER:
-                    Layer layer = fetchLayer(user, featureConfig);
-                    evaluatedValue = toValue(layer);
-                    break;
-                default:
-                    break;
-            }
-            return ProviderEvaluation.<Value>builder()
-                .value(evaluatedValue)
-                .build();
-        } catch (Exception e) {
-            log.error("Error evaluating object", e);
-            throw new GeneralError(e.getMessage());
+        FeatureConfig featureConfig = parseFeatureConfig(ctx);
+        Value evaluatedValue = defaultValue;
+        switch (featureConfig.getType()) {
+            case CONFIG:
+                DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
+                evaluatedValue = toValue(dynamicConfig);
+                break;
+            case LAYER:
+                Layer layer = fetchLayer(user, featureConfig);
+                evaluatedValue = toValue(layer);
+                break;
+            default:
+                break;
         }
+        return ProviderEvaluation.<Value>builder()
+            .value(evaluatedValue)
+            .build();
     }
 
     @SneakyThrows
