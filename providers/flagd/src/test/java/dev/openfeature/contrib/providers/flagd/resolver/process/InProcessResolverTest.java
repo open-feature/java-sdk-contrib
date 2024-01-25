@@ -1,8 +1,11 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
+import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -35,11 +38,25 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class InProcessResolverTest {
+
+    @Test
+    public void connectorSetup(){
+        // given
+        FlagdOptions forGrpcOptions =
+                 FlagdOptions.builder().resolverType(Config.Evaluator.IN_PROCESS).host("localhost").port(8080).build();
+        FlagdOptions forOfflineOptions =
+                FlagdOptions.builder().resolverType(Config.Evaluator.IN_PROCESS).offlineFlagSourcePath("path").build();
+
+        // then
+        assertInstanceOf(GrpcStreamConnector.class, InProcessResolver.getConnector(forGrpcOptions));
+        assertInstanceOf(FileConnector.class, InProcessResolver.getConnector(forOfflineOptions));
+    }
 
     @Test
     public void eventHandling() throws Throwable {
