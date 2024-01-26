@@ -1,9 +1,8 @@
 package dev.openfeature.contrib.providers.flipt;
 
-import com.flipt.api.FliptApiClientBuilder;
+import io.flipt.api.FliptClient.FliptClientBuilder;
 import lombok.Builder;
 import lombok.Getter;
-
 
 /**
  * FliptProvider config.
@@ -11,7 +10,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class FliptProviderConfig {
-    private FliptApiClientBuilder fliptApiClientBuilder;
+    private FliptClientBuilder fliptClientBuilder;
 
     @Builder.Default
     private String namespace = "default";
