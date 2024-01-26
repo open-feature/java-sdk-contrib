@@ -14,22 +14,22 @@ jobs:
     services:
       # flagd-testbed for flagd RPC provider e2e tests
       flagd:
-        image: ghcr.io/open-feature/flagd-testbed:v0.4.10
+        image: ghcr.io/open-feature/flagd-testbed:v0.4.11
         ports:
           - 8013:8013
       # flagd-testbed for flagd RPC provider reconnect e2e tests
       flagd-unstable:
-        image: ghcr.io/open-feature/flagd-testbed-unstable:v0.4.10
+        image: ghcr.io/open-feature/flagd-testbed-unstable:v0.4.11
         ports:
           - 8014:8013
       # sync-testbed for flagd in-process provider e2e tests
       sync:
-        image: ghcr.io/open-feature/sync-testbed:v0.4.10
+        image: ghcr.io/open-feature/sync-testbed:v0.4.11
         ports:
           - 9090:9090
       # sync-testbed for flagd in-process provider reconnect e2e tests
       sync-unstable:
-        image: ghcr.io/open-feature/sync-testbed-unstable:v0.4.10
+        image: ghcr.io/open-feature/sync-testbed-unstable:v0.4.11
         ports:
           - 9091:9090
 
