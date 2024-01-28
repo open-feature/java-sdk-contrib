@@ -34,9 +34,9 @@ public class StatsigProvider extends EventProvider {
     @Getter
     private static final String NAME = "Statsig";
 
-    public static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
-    public static final String UNKNOWN_ERROR = "unknown error";
-    public static final String FEATURE_CONFIG_KEY = "feature_config";
+    private static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
+    private static final String UNKNOWN_ERROR = "unknown error";
+    private static final String FEATURE_CONFIG_KEY = "feature_config";
 
     private final StatsigProviderConfig statsigProviderConfig;
 
