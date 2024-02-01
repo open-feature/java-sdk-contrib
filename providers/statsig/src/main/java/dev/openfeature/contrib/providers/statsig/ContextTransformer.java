@@ -4,6 +4,7 @@ import com.statsig.sdk.StatsigUser;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.InvalidContextError;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +22,9 @@ class ContextTransformer {
     public static final String CONTEXT_PRIVATE_ATTRIBUTES = "privateAttributes";
 
     static StatsigUser transform(EvaluationContext ctx) {
+        if (ctx.getTargetingKey() == null) {
+            throw new InvalidContextError("targeting key is missing");
+        }
         StatsigUser user = new StatsigUser(ctx.getTargetingKey());
         Map<String, String> customMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {
