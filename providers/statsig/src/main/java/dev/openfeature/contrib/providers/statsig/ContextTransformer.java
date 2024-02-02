@@ -4,7 +4,7 @@ import com.statsig.sdk.StatsigUser;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.InvalidContextError;
+import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 
 import java.util.HashMap;
 import java.util.Map;
