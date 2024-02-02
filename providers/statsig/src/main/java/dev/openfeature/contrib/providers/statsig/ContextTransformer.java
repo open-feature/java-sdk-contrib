@@ -23,7 +23,7 @@ class ContextTransformer {
 
     static StatsigUser transform(EvaluationContext ctx) {
         if (ctx.getTargetingKey() == null) {
-            throw new InvalidContextError("targeting key is missing");
+            throw new TargetingKeyMissingError("targeting key is required.");
         }
         StatsigUser user = new StatsigUser(ctx.getTargetingKey());
         Map<String, String> customMap = new HashMap<>();
