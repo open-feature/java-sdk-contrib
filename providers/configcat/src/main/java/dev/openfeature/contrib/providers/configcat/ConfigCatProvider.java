@@ -67,12 +67,19 @@ public class ConfigCatProvider extends EventProvider {
         state = ProviderState.READY;
         log.info("finished initializing provider, state: {}", state);
 
+        configCatClient.getHooks().addOnClientReady(() -> {
+            ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
+                .message("provider ready")
+                .build();
+            emitProviderReady(providerEventDetails);
+        });
+
         configCatClient.getHooks().addOnConfigChanged(map -> {
             ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
                 .flagsChanged(new ArrayList<>(map.keySet()))
                 .message("config changed")
                 .build();
-            emitProviderReady(providerEventDetails);
+            emitProviderConfigurationChanged(providerEventDetails);
         });
 
         configCatClient.getHooks().addOnError(errorMessage -> {
