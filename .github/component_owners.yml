@@ -31,6 +31,8 @@ components:
     - z4kn4fein
     - laliconfigcat
     - novalisdenahi
+  providers/statsig:
+    - liran2000
 
 ignored-authors:
   - renovate-bot
