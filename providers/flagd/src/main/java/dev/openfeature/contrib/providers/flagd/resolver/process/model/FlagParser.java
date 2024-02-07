@@ -1,5 +1,13 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,17 +15,9 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * flagd feature flag configuration parser.
@@ -29,7 +29,6 @@ public class FlagParser {
     private static final String FLAG_KEY = "flags";
     private static final String EVALUATOR_KEY = "$evaluators";
     private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
-    private static final String SCHEMA_RESOURCE = "flagd-definitions.json";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Map<String, Pattern> PATTERN_MAP = new HashMap<>();
@@ -40,37 +39,38 @@ public class FlagParser {
     }
 
     static {
-        try (InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
-            if (schema == null) {
-                log.warn(String.format("Resource %s not found", SCHEMA_RESOURCE));
-            } else {
-                final ByteArrayOutputStream result = new ByteArrayOutputStream();
-                byte[] buffer = new byte[512];
-                for (int size; 0 < (size = schema.read(buffer)); ) {
-                    result.write(buffer, 0, size);
-                }
+        try {
+            // load both schemas from resources (root (flags.json) and referenced (targeting.json)
+            // we don't want to resolve anything from the network
+            Map<String, String> mappings = new HashMap<>();
+            mappings.put("https://flagd.dev/schema/v0/targeting.json", "classpath:targeting.json");
+            mappings.put("https://flagd.dev/schema/v0/flags.json", "classpath:flags.json");
 
-                JsonSchemaFactory instance = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
-                SCHEMA_VALIDATOR = instance.getSchema(result.toString("UTF-8"));
-            }
+            SCHEMA_VALIDATOR = JsonSchemaFactory
+                    .getInstance(SpecVersion.VersionFlag.V7,
+                            builder -> builder
+                                    .schemaMappers(schemaMappers -> schemaMappers.mappings(mappings)))
+                    .getSchema(new URI("https://flagd.dev/schema/v0/flags.json"));
         } catch (Throwable e) {
             // log only, do not throw
-            log.warn(String.format("Error loading resource %s, schema validation will be skipped", SCHEMA_RESOURCE), e);
+            log.warn(String.format("Error loading schema schema resources, schema validation will be skipped"));
         }
     }
 
     /**
      * Parse {@link String} for feature flags.
      */
-    public static Map<String, FeatureFlag> parseString(final String configuration) throws IOException {
+    public static Map<String, FeatureFlag> parseString(final String configuration, boolean throwIfInvalid) throws IOException {
         if (SCHEMA_VALIDATOR != null) {
             try (JsonParser parser = MAPPER.createParser(configuration)) {
                 Set<ValidationMessage> validationMessages = SCHEMA_VALIDATOR.validate(parser.readValueAsTree());
 
                 if (!validationMessages.isEmpty()) {
-                    throw new IllegalArgumentException(
-                            String.format("Failed to parse configurations. %d validation error(s) reported.",
-                                    validationMessages.size()));
+                    String message = String.format("Invalid flag configuration: %s", validationMessages.toArray());
+                    log.warn(message);
+                    if (throwIfInvalid) {
+                        throw new IllegalArgumentException(message);
+                    }
                 }
             }
         }
@@ -128,5 +128,4 @@ public class FlagParser {
             return replacedConfigurations;
         }
     }
-
 }

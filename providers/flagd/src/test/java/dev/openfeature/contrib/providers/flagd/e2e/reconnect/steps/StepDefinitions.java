@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.e2e.reconnect.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.function.Consumer;
@@ -28,7 +28,8 @@ import io.cucumber.java.en.When;
 public class StepDefinitions {
 
     private static Client client;
-    private static FeatureProvider provider;
+    private static FeatureProvider unstableProvider;
+    private static FeatureProvider unavailableProvider;
 
     private int readyHandlerRunCount = 0;
     private int errorHandlerRunCount = 0;
@@ -47,13 +48,17 @@ public class StepDefinitions {
      * 
      * @param provider client to inject into test.
      */
-    public static void setProvider(FeatureProvider provider) {
-        StepDefinitions.provider = provider;
+    public static void setUnstableProvider(FeatureProvider provider) {
+        StepDefinitions.unstableProvider = provider;
+    }
+
+    public static void setUnavailableProvider(FeatureProvider provider) {
+        StepDefinitions.unavailableProvider = provider;
     }
 
     public StepDefinitions() {
         StepDefinitions.client = OpenFeatureAPI.getInstance().getClient("unstable");
-        OpenFeatureAPI.getInstance().setProviderAndWait("unstable", provider);
+        OpenFeatureAPI.getInstance().setProviderAndWait("unstable", unstableProvider);
     }
 
     @Given("a flagd provider is set")
@@ -63,8 +68,8 @@ public class StepDefinitions {
 
     @AfterAll()
     public static void cleanUp() throws InterruptedException {
-        StepDefinitions.provider.shutdown();
-        StepDefinitions.provider = null;
+        StepDefinitions.unstableProvider.shutdown();
+        StepDefinitions.unstableProvider = null;
         StepDefinitions.client = null;
     }
 
@@ -102,5 +107,22 @@ public class StepDefinitions {
                 .until(() -> {
                     return this.readyHandlerRunCount > 1;
                 });
+    }
+
+    @Given("flagd is unavailable")
+    public void flagd_is_unavailable() {
+        // there is no flag available on the port used by StepDefinitions.unavailableProvider
+    }
+
+    @When("a flagd provider is set and initialization is awaited")
+    public void a_flagd_provider_is_set_and_initialization_is_awaited() {
+        // handled below
+    }
+
+    @Then("an error should be indicated within the configured deadline")
+    public void an_error_should_be_indicated_within_the_configured_deadline() {
+        assertThrows(Exception.class, () -> {
+            OpenFeatureAPI.getInstance().setProviderAndWait("unavailable", StepDefinitions.unavailableProvider);
+        });
     }
 }

@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class FlagParserTest {
     @Test
     public void validJsonConfigurationParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE));
+        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true);
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
         assertNotNull(boolFlag);
@@ -33,7 +33,7 @@ class FlagParserTest {
 
     @Test
     public void validJsonConfigurationWithExtraFieldsParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD));
+        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD), true);
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
         assertNotNull(boolFlag);
@@ -48,7 +48,7 @@ class FlagParserTest {
 
     @Test
     public void validJsonConfigurationWithTargetingRulesParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_LONG));
+        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_LONG), true);
         FeatureFlag stringFlag = flagMap.get("fibAlgo");
 
         assertNotNull(stringFlag);
@@ -70,14 +70,14 @@ class FlagParserTest {
     @Test
     public void invalidFlagThrowsError() {
         assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(getFlagsFromResource(INVALID_FLAG));
+            FlagParser.parseString(getFlagsFromResource(INVALID_FLAG), true);
         });
     }
 
     @Test
     public void invalidConfigurationsThrowsError() {
         assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(getFlagsFromResource(INVALID_CFG));
+            FlagParser.parseString(getFlagsFromResource(INVALID_CFG), true);
         });
     }
 }

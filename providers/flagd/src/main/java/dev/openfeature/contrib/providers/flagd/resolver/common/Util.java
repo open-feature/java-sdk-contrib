@@ -2,6 +2,8 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import dev.openfeature.sdk.exceptions.GeneralError;
+
 /**
  * Utils for flagd resolvers.
  */
@@ -21,7 +23,7 @@ public class Util {
 
         do {
             if (deadline <= System.currentTimeMillis() - start) {
-                throw new RuntimeException(
+                throw new GeneralError(
                     String.format("Deadline exceeded. Condition did not complete within the %d deadline", deadline));
             }
 

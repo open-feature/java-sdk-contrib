@@ -5,8 +5,10 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
-import dev.openfeature.flagd.sync.FlagSyncServiceGrpc;
-import dev.openfeature.flagd.sync.SyncService;
+import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc;
+import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceStub;
+import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
+import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +59,7 @@ public class GrpcStreamConnector implements Connector {
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                final SyncService.SyncFlagsRequest.Builder requestBuilder = SyncService.SyncFlagsRequest.newBuilder();
+                final SyncFlagsRequest.Builder requestBuilder = SyncFlagsRequest.newBuilder();
 
                 if (selector != null) {
                     requestBuilder.setSelector(selector);
@@ -110,8 +112,8 @@ public class GrpcStreamConnector implements Connector {
      */
     static void observeEventStream(final BlockingQueue<StreamPayload> writeTo,
                                    final AtomicBoolean shutdown,
-                                   final FlagSyncServiceGrpc.FlagSyncServiceStub serviceStub,
-                                   final SyncService.SyncFlagsRequest request)
+                                   final FlagSyncServiceStub serviceStub,
+                                   final SyncFlagsRequest request)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -139,23 +141,10 @@ public class GrpcStreamConnector implements Connector {
                     break;
                 }
 
-                final SyncService.SyncFlagsResponse flagsResponse = response.getSyncFlagsResponse();
-                switch (flagsResponse.getState()) {
-                    case SYNC_STATE_ALL:
-                        if (!writeTo.offer(
-                                new StreamPayload(StreamPayloadType.DATA, flagsResponse.getFlagConfiguration()))) {
-                            log.warn("Stream writing failed");
-                        }
-                        break;
-                    case SYNC_STATE_UNSPECIFIED:
-                    case SYNC_STATE_ADD:
-                    case SYNC_STATE_UPDATE:
-                    case SYNC_STATE_DELETE:
-                    case SYNC_STATE_PING:
-                    case UNRECOGNIZED:
-                    default:
-                        log.info(
-                                String.format("Ignored - received payload of state: %s", flagsResponse.getState()));
+                final SyncFlagsResponse flagsResponse = response.getSyncFlagsResponse();
+                if (!writeTo.offer(
+                        new StreamPayload(StreamPayloadType.DATA, flagsResponse.getFlagConfiguration()))) {
+                    log.warn("Stream writing failed");
                 }
 
                 // reset retry delay if we succeeded in a retry attempt

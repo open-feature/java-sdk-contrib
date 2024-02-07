@@ -1,21 +1,22 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
-import dev.openfeature.flagd.grpc.Schema;
-import dev.openfeature.flagd.grpc.ServiceGrpc;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
+import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.sdk.ProviderState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  * Class that abstracts the gRPC communication with flagd.
@@ -116,9 +117,9 @@ public class GrpcConnector {
      */
     private void observeEventStream() {
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
-            final StreamObserver<Schema.EventStreamResponse> responseObserver =
+            final StreamObserver<EventStreamResponse> responseObserver =
                     new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);
-            this.serviceStub.eventStream(Schema.EventStreamRequest.getDefaultInstance(), responseObserver);
+            this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
 
             try {
                 synchronized (sync) {

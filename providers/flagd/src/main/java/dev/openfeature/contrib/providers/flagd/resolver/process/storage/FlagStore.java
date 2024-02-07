@@ -32,9 +32,16 @@ public class FlagStore implements Storage {
     private final Map<String, FeatureFlag> flags = new HashMap<>();
 
     private final Connector connector;
+    private final boolean throwIfInvalid;
 
     public FlagStore(final Connector connector) {
         this.connector = connector;
+        this.throwIfInvalid = false;
+    }
+
+    public FlagStore(final Connector connector, final boolean throwIfInvalid) {
+        this.connector = connector;
+        this.throwIfInvalid = throwIfInvalid;
     }
 
     /**
@@ -94,7 +101,7 @@ public class FlagStore implements Storage {
             switch (take.getType()) {
                 case DATA:
                     try {
-                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getData());
+                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getData(), throwIfInvalid);
                         writeLock.lock();
                         try {
                             flags.clear();
