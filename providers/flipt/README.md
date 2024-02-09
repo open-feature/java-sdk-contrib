@@ -35,7 +35,7 @@ FliptProviderConfig fliptProviderConfig = FliptProviderConfig.builder()
         .build();
 
 // create OpenFeature provider
-FeatureProvider featureProvider = new FliptProvider(fliptProviderConfig);
+FeatureProvider fliptProvider = new FliptProvider(fliptProviderConfig);
 OpenFeatureAPI.getInstance().setProviderAndWait("sync", fliptProvider);
 client = OpenFeatureAPI.getInstance().getClient("sync");
 
