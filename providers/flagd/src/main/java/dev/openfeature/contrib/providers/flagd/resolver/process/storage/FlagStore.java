@@ -47,6 +47,7 @@ public class FlagStore implements Storage {
                 streamerListener(connector);
             } catch (InterruptedException e) {
                 log.warn("connection listener failed", e);
+                Thread.currentThread().interrupt();
             }
         });
         streamer.setDaemon(true);

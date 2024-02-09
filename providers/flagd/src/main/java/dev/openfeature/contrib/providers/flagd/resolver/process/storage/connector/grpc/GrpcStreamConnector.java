@@ -66,6 +66,7 @@ public class GrpcStreamConnector implements Connector {
                 observeEventStream(blockingQueue, shutdown, serviceStub, requestBuilder.build());
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
+                Thread.currentThread().interrupt();
             }
         });
 

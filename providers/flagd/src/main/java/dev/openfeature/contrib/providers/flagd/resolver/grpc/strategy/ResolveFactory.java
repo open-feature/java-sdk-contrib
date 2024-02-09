@@ -6,6 +6,10 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
  * Factory to create a ResolveStrategy.
  */
 public final class ResolveFactory {
+
+    private ResolveFactory() {
+    }
+
     /**
      * Factory method to initialize the resolving strategy.
      *

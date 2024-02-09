@@ -16,7 +16,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheT
  */
 @Slf4j
 public class Cache {
-    private Map<String, ProviderEvaluation<? extends Object>> store;
+    private Map<String, ProviderEvaluation<?>> store;
 
     @Getter
     private final Boolean enabled;
@@ -39,11 +39,11 @@ public class Cache {
         }
     }
 
-    public void put(String key, ProviderEvaluation<? extends Object> value) {
+    public void put(String key, ProviderEvaluation<?> value) {
         this.store.put(key, value);
     }
 
-    public ProviderEvaluation<? extends Object> get(String key) {
+    public ProviderEvaluation<?> get(String key) {
         return this.store.get(key);
     }
 

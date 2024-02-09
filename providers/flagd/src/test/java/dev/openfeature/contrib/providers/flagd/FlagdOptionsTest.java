@@ -20,14 +20,14 @@ public class FlagdOptionsTest {
     public void TestDefaults() {
         final FlagdOptions builder = FlagdOptions.builder().build();
 
-        assertEquals(builder.getHost(), DEFAULT_HOST);
-        assertEquals(Integer.toString(builder.getPort()), DEFAULT_PORT);
+        assertEquals(DEFAULT_HOST, builder.getHost());
+        assertEquals(DEFAULT_PORT, Integer.toString(builder.getPort()));
         assertFalse(builder.isTls());
         assertNull(builder.getCertPath());
         assertNull(builder.getSocketPath());
-        assertEquals(builder.getCacheType(), DEFAULT_CACHE);
-        assertEquals(builder.getMaxCacheSize(), DEFAULT_MAX_CACHE_SIZE);
-        assertEquals(builder.getMaxEventStreamRetries(), DEFAULT_MAX_EVENT_STREAM_RETRIES);
+        assertEquals(DEFAULT_CACHE, builder.getCacheType());
+        assertEquals(DEFAULT_MAX_CACHE_SIZE, builder.getMaxCacheSize());
+        assertEquals(DEFAULT_MAX_EVENT_STREAM_RETRIES, builder.getMaxEventStreamRetries());
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getOfflineFlagSourcePath());
@@ -50,15 +50,15 @@ public class FlagdOptionsTest {
                 .openTelemetry(openTelemetry)
                 .build();
 
-        assertEquals(flagdOptions.getHost(), "https://hosted-flagd");
-        assertEquals(flagdOptions.getPort(), 80);
+        assertEquals("https://hosted-flagd", flagdOptions.getHost());
+        assertEquals(80, flagdOptions.getPort());
         assertTrue(flagdOptions.isTls());
-        assertEquals(flagdOptions.getCertPath(), "etc/cert/ca.crt");
-        assertEquals(flagdOptions.getCacheType(), "lru");
-        assertEquals(flagdOptions.getMaxCacheSize(), 100);
-        assertEquals(flagdOptions.getMaxEventStreamRetries(), 1);
-        assertEquals(flagdOptions.getSelector(), "app=weatherApp");
+        assertEquals("etc/cert/ca.crt", flagdOptions.getCertPath());
+        assertEquals("lru", flagdOptions.getCacheType());
+        assertEquals(100, flagdOptions.getMaxCacheSize());
+        assertEquals(1, flagdOptions.getMaxEventStreamRetries());
+        assertEquals("app=weatherApp", flagdOptions.getSelector());
         assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
-        assertEquals(flagdOptions.getOpenTelemetry(), openTelemetry);
+        assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
     }
 }

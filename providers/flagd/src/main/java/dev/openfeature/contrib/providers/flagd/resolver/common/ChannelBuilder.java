@@ -18,6 +18,10 @@ import java.io.File;
  * gRPC channel builder helper.
  */
 public class ChannelBuilder {
+
+    private ChannelBuilder() {
+    }
+
     /**
      * This method is a helper to build a {@link ManagedChannel} from provided {@link FlagdOptions}.
      */

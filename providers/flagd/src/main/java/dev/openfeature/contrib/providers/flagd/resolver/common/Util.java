@@ -6,6 +6,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Utils for flagd resolvers.
  */
 public class Util {
+
+    private Util() {
+    }
+
     /**
      * A helper to block the caller for given conditions.
      *
