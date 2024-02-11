@@ -309,7 +309,7 @@
             <plugin>
                 <groupId>org.honton.chas</groupId>
                 <artifactId>exists-maven-plugin</artifactId>
-                <version>0.7.0</version>
+                <version>0.13.0</version>
                 <executions>
                     <execution>
                         <goals>
