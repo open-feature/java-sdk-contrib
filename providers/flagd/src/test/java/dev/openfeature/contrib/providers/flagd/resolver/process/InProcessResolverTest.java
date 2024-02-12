@@ -34,6 +34,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_IF_IN_TARGET;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_INVALID_TARGET;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WIH_SHORTHAND_TARGETING;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.FLAG_WITH_TARGETING_KEY;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.INT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.OBJECT_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.VARIANT_MISMATCH_FLAG;
@@ -331,6 +332,25 @@ class InProcessResolverTest {
         assertEquals("loopAlg", providerEvaluation.getValue());
         assertEquals("loop", providerEvaluation.getVariant());
         assertEquals(Reason.DEFAULT.toString(), providerEvaluation.getReason());
+    }
+
+    @Test
+    public void explicitTargetingKeyHandling() throws NoSuchFieldException, IllegalAccessException {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("stringFlag", FLAG_WITH_TARGETING_KEY);
+
+        InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap), providerState -> {
+        });
+
+        // when
+        ProviderEvaluation<String> providerEvaluation =
+                inProcessResolver.stringEvaluation("stringFlag", "loop", new MutableContext("xyz"));
+
+        // then
+        assertEquals("binetAlg", providerEvaluation.getValue());
+        assertEquals("binet", providerEvaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.toString(), providerEvaluation.getReason());
     }
 
     @Test

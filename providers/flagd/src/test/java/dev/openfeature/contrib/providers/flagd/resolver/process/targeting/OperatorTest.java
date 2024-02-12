@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.TARGET_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -64,6 +65,7 @@ class OperatorTest {
         flagdProperties.put(Operator.TIME_STAMP, 1634000000L);
 
         Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put(TARGET_KEY, "myTargetingKey");
         dataMap.put(Operator.FLAGD_PROPS_KEY, flagdProperties);
 
         // When
@@ -71,6 +73,7 @@ class OperatorTest {
 
         // Then
         assertEquals("some-key", flagProperties.getFlagKey());
+        assertEquals("myTargetingKey", flagProperties.getTargetingKey());
         assertEquals(1634000000L, flagProperties.getTimestamp());
     }
 
