@@ -161,7 +161,7 @@ public final class GrpcResolver implements Resolver {
         // build the gRPC request
         Message req = request.newBuilderForType()
                 .setField(getFieldDescriptor(request, FLAG_KEY_FIELD), key)
-                .setField(getFieldDescriptor(request, CONTEXT_FIELD), this.convertContext(ctx))
+                .setField(getFieldDescriptor(request, CONTEXT_FIELD), convertContext(ctx))
                 .build();
 
         final Message response;
@@ -216,7 +216,12 @@ public final class GrpcResolver implements Resolver {
      * Recursively convert the Evaluation context to a protobuf structure.
      */
     private static Struct convertContext(EvaluationContext ctx) {
-        return convertMap(ctx.asMap()).getStructValue();
+        Map<String, Value> ctxMap = ctx.asMap();
+        // asMap() does not provide explicitly set targeting key (ex:- new ImmutableContext("TargetingKey") ).
+        // Hence, we add this explicitly here for targeting rule processing.
+        ctxMap.put("targetingKey", new Value(ctx.getTargetingKey()));
+
+        return convertMap(ctxMap).getStructValue();
     }
 
     /**
