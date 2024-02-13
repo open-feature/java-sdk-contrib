@@ -73,6 +73,9 @@ public class MockFlags {
     static final FeatureFlag FLAG_WIH_IF_IN_TARGET = new FeatureFlag("ENABLED", "loop", stringVariants,
             "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}");
 
+    static final FeatureFlag FLAG_WITH_TARGETING_KEY = new FeatureFlag("ENABLED", "loop", stringVariants,
+            "{\"if\":[{\"==\":[{\"var\":\"targetingKey\"},\"xyz\"]},\"binet\",null]}");
+
     // flag with incorrect targeting rule
     static final FeatureFlag FLAG_WIH_INVALID_TARGET = new FeatureFlag("ENABLED", "loop", stringVariants,
             "{if this, then that}");

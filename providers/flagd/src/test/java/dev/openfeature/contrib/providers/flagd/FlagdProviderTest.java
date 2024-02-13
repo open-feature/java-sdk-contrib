@@ -30,6 +30,7 @@ import io.grpc.Channel;
 import io.grpc.Deadline;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatcher;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
@@ -303,7 +304,6 @@ class FlagdProviderTest {
 
     @Test
     void context_is_parsed_and_passed_to_grpc_service() {
-
         final String BOOLEAN_ATTR_KEY = "bool-attr";
         final String INT_ATTR_KEY = "int-attr";
         final String STRING_ATTR_KEY = "string-attr";
@@ -313,9 +313,9 @@ class FlagdProviderTest {
         final String STRUCT_ATTR_INNER_KEY = "struct-inner-key";
 
         final Boolean BOOLEAN_ATTR_VALUE = true;
-        final Integer INT_ATTR_VALUE = 1;
+        final int INT_ATTR_VALUE = 1;
         final String STRING_ATTR_VALUE = "str";
-        final Double DOUBLE_ATTR_VALUE = 0.5d;
+        final double DOUBLE_ATTR_VALUE = 0.5d;
         final List<Value> LIST_ATTR_VALUE = new ArrayList<Value>() {
             {
                 add(new Value(1));
@@ -335,23 +335,30 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock.resolveBoolean(argThat(
-                x -> STRING_ATTR_VALUE.equals(x.getContext().getFieldsMap().get(STRING_ATTR_KEY).getStringValue())
-                        && INT_ATTR_VALUE == x.getContext().getFieldsMap().get(INT_ATTR_KEY).getNumberValue()
-                        && DOUBLE_ATTR_VALUE == x.getContext().getFieldsMap().get(DOUBLE_ATTR_KEY).getNumberValue()
-                        && LIST_ATTR_VALUE.get(0).asInteger() == x.getContext().getFieldsMap()
-                        .get(LIST_ATTR_KEY).getListValue().getValuesList().get(0).getNumberValue()
-                        && x.getContext().getFieldsMap().get(BOOLEAN_ATTR_KEY).getBoolValue()
-                        && STRUCT_ATTR_INNER_VALUE.equals(x.getContext().getFieldsMap()
-                        .get(STRUCT_ATTR_KEY).getStructValue().getFieldsMap().get(STRUCT_ATTR_INNER_KEY)
-                        .getStringValue()))))
-                .thenReturn(booleanResponse);
+                        x -> {
+                            final Struct struct = x.getContext();
+                            final Map<String, com.google.protobuf.Value> valueMap = struct.getFieldsMap();
+
+                            return STRING_ATTR_VALUE.equals(valueMap.get(STRING_ATTR_KEY).getStringValue())
+                                    && INT_ATTR_VALUE == valueMap.get(INT_ATTR_KEY).getNumberValue()
+                                    && DOUBLE_ATTR_VALUE == valueMap.get(DOUBLE_ATTR_KEY).getNumberValue()
+                                    && valueMap.get(BOOLEAN_ATTR_KEY).getBoolValue()
+                                    && "MY_TARGETING_KEY".equals(valueMap.get("targetingKey").getStringValue())
+                                    && LIST_ATTR_VALUE.get(0).asInteger() ==
+                                    valueMap.get(LIST_ATTR_KEY).getListValue().getValuesList().get(0).getNumberValue()
+                                    && STRUCT_ATTR_INNER_VALUE.equals(
+                                    valueMap.get(STRUCT_ATTR_KEY).getStructValue().getFieldsMap()
+                                            .get(STRUCT_ATTR_INNER_KEY).getStringValue());
+                        }
+                ))
+        ).thenReturn(booleanResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
         when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProvider(createProvider(grpc));
 
-        MutableContext context = new MutableContext();
+        final MutableContext context = new MutableContext("MY_TARGETING_KEY");
         context.add(BOOLEAN_ATTR_KEY, BOOLEAN_ATTR_VALUE);
         context.add(INT_ATTR_KEY, INT_ATTR_VALUE);
         context.add(DOUBLE_ATTR_KEY, DOUBLE_ATTR_VALUE);

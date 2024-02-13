@@ -1,14 +1,13 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.time.Instant;
-
 import dev.openfeature.sdk.EvaluationContext;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import lombok.Getter;
+
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Targeting operator wraps JsonLogic handlers and expose a simple API for
@@ -46,49 +45,57 @@ public class Operator {
         long unixTimestamp = Instant.now().getEpochSecond();
         flagdProperties.put(TIME_STAMP, unixTimestamp);
 
-        final Map<String, Object> valueMap = ctx.asObjectMap();
-        valueMap.put(FLAGD_PROPS_KEY, flagdProperties);
+        final Map<String, Object> targetingCtxData = ctx.asObjectMap();
+
+        // asObjectMap() does not provide explicitly set targeting key (ex:- new ImmutableContext("TargetingKey") ).
+        // Hence, we add this explicitly here for targeting rule processing.
+        targetingCtxData.put(TARGET_KEY, ctx.getTargetingKey());
+        targetingCtxData.put(FLAGD_PROPS_KEY, flagdProperties);
 
         try {
-            return jsonLogicHandler.apply(targetingRule, valueMap);
+            return jsonLogicHandler.apply(targetingRule, targetingCtxData);
         } catch (JsonLogicException e) {
             throw new TargetingRuleException("Error evaluating json logic", e);
         }
     }
 
+    /**
+     * A utility class to extract well-known properties such as flag key, targeting key and timestamp from json logic
+     * evaluation context data for further processing at evaluators.
+     */
     @Getter
     static class FlagProperties {
-        private final Object flagKey;
-        private final Object timestamp;
-        private final String targetingKey;
+        private Object flagKey = null;
+        private Object timestamp = null;
+        private String targetingKey = null;
 
         FlagProperties(Object from) {
-            if (from instanceof Map) {
-                Map<?, ?> dataMap = (Map<?, ?>) from;
-
-                this.flagKey = extractSubPropertyFromFlagd(dataMap, FLAG_KEY);
-                this.timestamp = extractSubPropertyFromFlagd(dataMap, TIME_STAMP);
-
-                final Object targetKey = dataMap.get(TARGET_KEY);
-                
-                if (targetKey instanceof String) {
-                    targetingKey = (String) targetKey;
-                } else {
-                    targetingKey = null;
-                }
-                
-            } else {
-                flagKey = null;
-                timestamp = null;
-                targetingKey = null;
+            if (!(from instanceof Map)) {
+                return;
             }
+
+            final Map<?, ?> dataMap = (Map<?, ?>) from;
+            final Object targetKey = dataMap.get(TARGET_KEY);
+            if (targetKey instanceof String) {
+                targetingKey = (String) targetKey;
+            }
+
+            final Map<?, ?> flagdPropertyMap = flagdPropertyMap(dataMap);
+            if (flagdPropertyMap == null) {
+                return;
+            }
+
+            this.flagKey = flagdPropertyMap.get(FLAG_KEY);
+            this.timestamp = flagdPropertyMap.get(TIME_STAMP);
         }
 
-        private static Object extractSubPropertyFromFlagd(Map<?, ?> dataMap, String propertyName) {
-            return Optional.ofNullable(dataMap.get(FLAGD_PROPS_KEY))
-                    .filter(flagdProps -> flagdProps instanceof Map)
-                    .map(flagdProps -> ((Map<?, ?>) flagdProps).get(propertyName))
-                    .orElse(null);
-        } 
+        private static Map<?, ?> flagdPropertyMap(Map<?, ?> dataMap) {
+            Object o = dataMap.get(FLAGD_PROPS_KEY);
+            if (o instanceof Map) {
+                return (Map<?, ?>) o;
+            }
+
+            return null;
+        }
     }
 }
