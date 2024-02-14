@@ -12,7 +12,8 @@ import lombok.Getter;
 @Builder
 public class StatsigProviderConfig {
 
-    private StatsigOptions options;
+    @Builder.Default
+    private StatsigOptions options = new StatsigOptions();
 
     // Only holding temporary for initialization
     private String sdkKey;
