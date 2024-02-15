@@ -26,7 +26,6 @@ public class GrpcConnector {
     private final Object sync = new Object();
     private final AtomicBoolean connected = new AtomicBoolean(false);
     private final Random random = new Random();
-    private final int maxJitter = 100;
 
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
@@ -129,19 +128,19 @@ public class GrpcConnector {
                 // Interruptions are considered end calls for this observer, hence log and return
                 // Note - this is the most common interruption when shutdown, hence the log level debug
                 log.debug("interruption while waiting for condition", e);
-                return;
+                Thread.currentThread().interrupt();
             }
 
             this.eventStreamAttempt++;
             // backoff with a jitter
-            this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff + random.nextInt(maxJitter);
+            this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff + random.nextInt(100);
 
             try {
                 Thread.sleep(this.eventStreamRetryBackoff);
             } catch (InterruptedException e) {
                 // Interruptions are considered end calls for this observer, hence log and return
                 log.warn("interrupted while restarting gRPC Event Stream");
-                return;
+                Thread.currentThread().interrupt();
             }
         }
 

@@ -102,7 +102,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
 
     private void handleEndOfStream() {
         synchronized (this.sync) {
-            this.sync.notify();
+            this.sync.notifyAll();
         }
     }
 }

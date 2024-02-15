@@ -82,6 +82,7 @@ public class InProcessResolver implements Resolver {
                 }
             } catch (InterruptedException e) {
                 log.warn("Storage state watcher interrupted", e);
+                Thread.currentThread().interrupt();
             }
         });
         stateWatcher.setDaemon(true);

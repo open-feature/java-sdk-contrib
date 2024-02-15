@@ -32,11 +32,12 @@ public class FlagParser {
     private static final String SCHEMA_RESOURCE = "flagd-definitions.json";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private static final Map<String, Pattern> PATTERN_MAP = new HashMap<>();
-    private static final Pattern REG_BRACKETS = Pattern.compile("^[^{]*\\{|}[^}]*$");
 
     private static JsonSchema SCHEMA_VALIDATOR;
+
+    private FlagParser() {
+    }
 
     static {
         try (InputStream schema = FlagParser.class.getClassLoader().getResourceAsStream(SCHEMA_RESOURCE)) {
@@ -110,8 +111,9 @@ public class FlagParser {
 
             while (evalFields.hasNext()) {
                 final String evalName = evalFields.next();
-                // first replace brackets
-                final String replacer = REG_BRACKETS.matcher(evaluators.get(evalName).toString()).replaceAll("");
+                // first replace outmost brackets
+                final String evaluator = evaluators.get(evalName).toString();
+                final String replacer = evaluator.substring(1, evaluator.length() - 1);
 
                 final String replacePattern = String.format(REPLACER_FORMAT, evalName);
 

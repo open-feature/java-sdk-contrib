@@ -25,6 +25,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class FileConnector implements Connector {
 
     private static final int POLL_INTERVAL_MS = 5000;
+    private static final String OFFER_WARN = "Unable to offer file content to queue: queue is full";
 
     private final String flagSourcePath;
     private final BlockingQueue<StreamPayload> queue = new LinkedBlockingQueue<>(1);
@@ -45,7 +46,7 @@ public class FileConnector implements Connector {
                 // initial read
                 String flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
                 if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
-                    log.warn("Unable to offer file content to queue: queue is full");
+                    log.warn(OFFER_WARN);
                 }
 
                 long lastTS = Files.getLastModifiedTime(filePath).toMillis();
@@ -58,7 +59,7 @@ public class FileConnector implements Connector {
                         lastTS = currentTS;
                         flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
                         if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
-                            log.warn("Unable to offer file content to queue: queue is full");
+                            log.warn(OFFER_WARN);
                         }
                     }
 
@@ -66,10 +67,13 @@ public class FileConnector implements Connector {
                 }
 
                 log.info("Shutting down file connector.");
+            } catch (InterruptedException ex) {
+                log.error("Interrupted while waiting for polling", ex);
+                Thread.currentThread().interrupt();
             } catch (Throwable t) {
                 log.error("Error from file connector. File connector will exit", t);
                 if (!queue.offer(new StreamPayload(StreamPayloadType.ERROR, t.toString()))) {
-                    log.warn("Unable to offer file content to queue: queue is full");
+                    log.warn(OFFER_WARN);
                 }
             }
         });
