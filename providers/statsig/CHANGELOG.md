@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.0.2...dev.openfeature.contrib.providers.statsig-v0.0.3) (2024-02-14)
+
+
+### 🐛 Bug Fixes
+
+* null exception when no options used ([#681](https://github.com/open-feature/java-sdk-contrib/issues/681)) ([19b96f8](https://github.com/open-feature/java-sdk-contrib/commit/19b96f8c8a62dbde3ed52177953d3e9fe9398912))
+
 ## [0.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.0.1...dev.openfeature.contrib.providers.statsig-v0.0.2) (2024-02-09)
 
 
