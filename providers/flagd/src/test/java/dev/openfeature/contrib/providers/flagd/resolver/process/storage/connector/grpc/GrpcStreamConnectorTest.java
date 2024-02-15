@@ -81,7 +81,6 @@ class GrpcStreamConnectorTest {
         // accepted data
         grpcStreamHandler.onNext(
                 SyncFlagsResponse.newBuilder()
-                        // .setState(SyncState.SYNC_STATE_ALL)
                         .build());
 
         assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
@@ -92,13 +91,11 @@ class GrpcStreamConnectorTest {
         // ping must be ignored
         grpcStreamHandler.onNext(
                 SyncFlagsResponse.newBuilder()
-                        // .setState(SyncService.SyncState.SYNC_STATE_PING)
                         .build());
 
         // accepted data
         grpcStreamHandler.onNext(
                 SyncFlagsResponse.newBuilder()
-                        // .setState(SyncService.SyncState.SYNC_STATE_ALL) TODO: this and others
                         .build());
 
         assertTimeoutPreemptively(MAX_WAIT_MS, () -> {

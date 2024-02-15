@@ -60,7 +60,8 @@ public class FlagParser {
     /**
      * Parse {@link String} for feature flags.
      */
-    public static Map<String, FeatureFlag> parseString(final String configuration, boolean throwIfInvalid) throws IOException {
+    public static Map<String, FeatureFlag> parseString(final String configuration, boolean throwIfInvalid)
+            throws IOException {
         if (SCHEMA_VALIDATOR != null) {
             try (JsonParser parser = MAPPER.createParser(configuration)) {
                 Set<ValidationMessage> validationMessages = SCHEMA_VALIDATOR.validate(parser.readValueAsTree());
