@@ -53,7 +53,7 @@ public class FlagParser {
                     .getSchema(new URI("https://flagd.dev/schema/v0/flags.json"));
         } catch (Throwable e) {
             // log only, do not throw
-            log.warn(String.format("Error loading schema schema resources, schema validation will be skipped"));
+            log.warn(String.format("Error loading schema resources, schema validation will be skipped"));
         }
     }
 
