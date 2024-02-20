@@ -28,7 +28,11 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveFactory;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveStrategy;
-import dev.openfeature.flagd.grpc.Schema;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveFloatRequest;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveIntRequest;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveObjectRequest;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringRequest;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableStructure;
@@ -92,7 +96,7 @@ public final class GrpcResolver implements Resolver {
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
             EvaluationContext ctx) {
-        Schema.ResolveBooleanRequest request = Schema.ResolveBooleanRequest.newBuilder().buildPartial();
+        ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveBoolean, null);
     }
@@ -102,7 +106,7 @@ public final class GrpcResolver implements Resolver {
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
             EvaluationContext ctx) {
-        Schema.ResolveStringRequest request = Schema.ResolveStringRequest.newBuilder().buildPartial();
+        ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveString, null);
     }
@@ -112,7 +116,7 @@ public final class GrpcResolver implements Resolver {
      */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
             EvaluationContext ctx) {
-        Schema.ResolveFloatRequest request = Schema.ResolveFloatRequest.newBuilder().buildPartial();
+        ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveFloat, null);
     }
@@ -123,7 +127,7 @@ public final class GrpcResolver implements Resolver {
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
             EvaluationContext ctx) {
 
-        Schema.ResolveIntRequest request = Schema.ResolveIntRequest.newBuilder().buildPartial();
+        ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveInt,
                 (Object value) -> ((Long) value).intValue());
@@ -135,7 +139,7 @@ public final class GrpcResolver implements Resolver {
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue,
             EvaluationContext ctx) {
 
-        Schema.ResolveObjectRequest request = Schema.ResolveObjectRequest.newBuilder().buildPartial();
+        ResolveObjectRequest request = ResolveObjectRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveObject,
                 (Object value) -> convertObjectResponse((Struct) value));

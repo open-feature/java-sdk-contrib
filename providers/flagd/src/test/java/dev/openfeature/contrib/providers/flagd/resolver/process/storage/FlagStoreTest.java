@@ -22,7 +22,7 @@ class FlagStoreTest {
         final int maxDelay = 500;
 
         final BlockingQueue<StreamPayload> payload = new LinkedBlockingQueue<>();
-        FlagStore store = new FlagStore(new MockConnector(payload));
+        FlagStore store = new FlagStore(new MockConnector(payload), true);
 
         store.init();
         final BlockingQueue<StorageState> states = store.getStateQueue();

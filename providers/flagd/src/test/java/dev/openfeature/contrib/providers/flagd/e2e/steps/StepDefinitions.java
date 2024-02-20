@@ -64,8 +64,6 @@ public class StepDefinitions {
     private int typeErrorDefaultValue;
     private FlagEvaluationDetails<Integer> typeErrorDetails;
 
-    private EvaluationContext customEvaluatorContext;
-
     private boolean isChangeHandlerRun = false;
     private boolean isReadyHandlerRun = false;
 
@@ -370,7 +368,7 @@ public class StepDefinitions {
         innerMap.put(innerKey, new Value(value));
         Map<String, Value> outerMap = new HashMap<String, Value>();
         outerMap.put(outerKey, new Value(new ImmutableStructure(innerMap)));
-        this.customEvaluatorContext = new ImmutableContext(outerMap);
+        this.context = new ImmutableContext(outerMap);
     }
 
     @And("a context containing a nested property with outer key {string} and inner key {string}, with value {int}")
@@ -380,7 +378,7 @@ public class StepDefinitions {
         innerMap.put(innerKey, new Value(value));
         Map<String, Value> outerMap = new HashMap<String, Value>();
         outerMap.put(outerKey, new Value(new ImmutableStructure(innerMap)));
-        this.customEvaluatorContext = new ImmutableContext(outerMap);
+        this.context = new ImmutableContext(outerMap);
     }
 
 
@@ -388,27 +386,27 @@ public class StepDefinitions {
     public void a_context_containing_a_key_with_value(String key, String value) {
         Map<String, Value> attrs = new HashMap<String, Value>();
         attrs.put(key, new Value(value));
-        this.customEvaluatorContext = new ImmutableContext(attrs);
+        this.context = new ImmutableContext(attrs);
     }
 
     @And("a context containing a key {string}, with value {double}")
     public void a_context_containing_a_key_with_value_double(String key, Double value) {
         Map<String, Value> attrs = new HashMap<String, Value>();
         attrs.put(key, new Value(value));
-        this.customEvaluatorContext = new ImmutableContext(attrs);
+        this.context = new ImmutableContext(attrs);
     }
 
     @Then("the returned value should be {string}")
     public void the_returned_value_should_be(String expected) {
         String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue,
-                this.customEvaluatorContext);
+                this.context);
         assertEquals(expected, value);
     }
 
     @Then("the returned value should be {int}")
     public void the_returned_value_should_be(Integer expectedValue) {
         Integer value = client.getIntegerValue(this.intFlagKey, this.intFlagDefaultValue,
-                this.customEvaluatorContext);
+                this.context);
         assertEquals(expectedValue, value);
     }
 
@@ -520,5 +518,17 @@ public class StepDefinitions {
     public void the_resolved_string_zero_value_should_be(String expected) {
         String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue);
         assertEquals(expected, value);
+    }
+    
+    @When("a context containing a targeting key with value {string}")
+    public void a_context_containing_a_targeting_key_with_value(String targetingKey) {
+        this.context = new ImmutableContext(targetingKey);
+    }
+
+    @Then("the returned reason should be {string}")
+    public void the_returned_reason_should_be(String reason) {
+        FlagEvaluationDetails<String> details = client.getStringDetails(this.stringFlagKey, this.stringFlagDefaultValue,
+                this.context);
+        assertEquals(reason, details.getReason());
     }
 }

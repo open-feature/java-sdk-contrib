@@ -1,26 +1,28 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import com.google.protobuf.Struct;
-import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.Schema;
-import dev.openfeature.sdk.ProviderState;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atMost;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
+
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
+import dev.openfeature.sdk.ProviderState;
 
 class EventStreamObserverTest {
 
@@ -45,7 +47,7 @@ class EventStreamObserverTest {
 
         @Test
         public void Change() {
-            Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
+            EventStreamResponse resp = mock(EventStreamResponse.class);
             Struct flagData = mock(Struct.class);
             when(resp.getType()).thenReturn("configuration_change");
             when(resp.getData()).thenReturn(flagData);
@@ -60,7 +62,7 @@ class EventStreamObserverTest {
 
         @Test
         public void Ready() {
-            Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
+            EventStreamResponse resp = mock(EventStreamResponse.class);
             when(resp.getType()).thenReturn("provider_ready");
             stream.onNext(resp);
             // we notify that we are ready
@@ -85,7 +87,7 @@ class EventStreamObserverTest {
             final String key1 = "myKey1";
             final String key2 = "myKey2";
 
-            Schema.EventStreamResponse resp = mock(Schema.EventStreamResponse.class);
+            EventStreamResponse resp = mock(EventStreamResponse.class);
             Struct flagData = mock(Struct.class);
             Value flagsValue = mock(Value.class);
             Struct flagsStruct = mock(Struct.class);

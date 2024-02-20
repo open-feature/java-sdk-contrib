@@ -1,19 +1,46 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
+import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
 import com.google.protobuf.Struct;
+
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.Schema.ResolveBooleanRequest;
-import dev.openfeature.flagd.grpc.Schema.ResolveBooleanResponse;
-import dev.openfeature.flagd.grpc.Schema.ResolveFloatResponse;
-import dev.openfeature.flagd.grpc.Schema.ResolveIntResponse;
-import dev.openfeature.flagd.grpc.Schema.ResolveObjectResponse;
-import dev.openfeature.flagd.grpc.Schema.ResolveStringResponse;
-import dev.openfeature.flagd.grpc.ServiceGrpc;
-import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceBlockingStub;
-import dev.openfeature.flagd.grpc.ServiceGrpc.ServiceStub;
+import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanResponse;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveFloatResponse;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveIntResponse;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveObjectResponse;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringResponse;
+import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
+import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
@@ -28,32 +55,6 @@ import dev.openfeature.sdk.Value;
 import io.cucumber.java.AfterAll;
 import io.grpc.Channel;
 import io.grpc.Deadline;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatcher;
-import org.mockito.MockedStatic;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class FlagdProviderTest {
     private static final String FLAG_KEY = "some-key";

@@ -1,13 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import dev.openfeature.flagd.sync.SyncService;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.BlockingQueue;
 
+import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
+
 @Slf4j
-class GrpcStreamHandler implements StreamObserver<SyncService.SyncFlagsResponse> {
+class GrpcStreamHandler implements StreamObserver<SyncFlagsResponse> {
     private final BlockingQueue<GrpcResponseModel> blockingQueue;
 
     GrpcStreamHandler(final BlockingQueue<GrpcResponseModel> queue) {
@@ -15,7 +16,7 @@ class GrpcStreamHandler implements StreamObserver<SyncService.SyncFlagsResponse>
     }
 
     @Override
-    public void onNext(SyncService.SyncFlagsResponse syncFlagsResponse) {
+    public void onNext(SyncFlagsResponse syncFlagsResponse) {
         if (!blockingQueue.offer(new GrpcResponseModel(syncFlagsResponse))) {
             log.warn("failed to write sync response to queue");
         }

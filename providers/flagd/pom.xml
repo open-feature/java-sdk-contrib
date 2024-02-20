@@ -228,16 +228,31 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>copy-schema-json</id>
+                        <id>copy-flags-json-schema</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <!-- run: cp schemas/json/flagd-definitions.json src/main/resources/ -->
+                            <!-- run: cp schemas/json/flags.json src/main/resources/ -->
                             <executable>cp</executable>
                             <arguments>
-                                <argument>schemas/json/flagd-definitions.json</argument>
+                                <argument>schemas/json/flags.json</argument>
+                                <argument>src/main/resources/</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-flags-targeting-schema</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!-- run: cp schemas/json/targeting.json src/main/resources/ -->
+                            <executable>cp</executable>
+                            <arguments>
+                                <argument>schemas/json/targeting.json</argument>
                                 <argument>src/main/resources/</argument>
                             </arguments>
                         </configuration>
