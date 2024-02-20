@@ -35,8 +35,7 @@ public class FlagStore implements Storage {
     private final boolean throwIfInvalid;
 
     public FlagStore(final Connector connector) {
-        this.connector = connector;
-        this.throwIfInvalid = false;
+        this(connector, false)
     }
 
     public FlagStore(final Connector connector, final boolean throwIfInvalid) {
