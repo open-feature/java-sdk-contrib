@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.7.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.9...dev.openfeature.contrib.providers.flagd-v0.7.0) (2024-02-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* use new eval/sync protos (requires flagd v0.7.3+) ([#683](https://github.com/open-feature/java-sdk-contrib/issues/683))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.2.0 ([#643](https://github.com/open-feature/java-sdk-contrib/issues/643)) ([858d1f6](https://github.com/open-feature/java-sdk-contrib/commit/858d1f660b13b1997ceca54f653923aaa11ea961))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.3.0 ([#652](https://github.com/open-feature/java-sdk-contrib/issues/652)) ([4a2cca0](https://github.com/open-feature/java-sdk-contrib/commit/4a2cca07fc64d26c3ad199c96fea2a7806db7069))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.3.1 ([#654](https://github.com/open-feature/java-sdk-contrib/issues/654)) ([df469c9](https://github.com/open-feature/java-sdk-contrib/commit/df469c951f8c1d8e8c2d85a9f243cfdca5e0bf76))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.3.2 ([#667](https://github.com/open-feature/java-sdk-contrib/issues/667)) ([73d22c6](https://github.com/open-feature/java-sdk-contrib/commit/73d22c6eb7f1f94b6f39a71434045a2dccb5a6f5))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.3.3 ([#684](https://github.com/open-feature/java-sdk-contrib/issues/684)) ([f455d8e](https://github.com/open-feature/java-sdk-contrib/commit/f455d8e1d9b030ac6acaeefcb4aa961b43a5ddcf))
+* **deps:** update dependency commons-codec:commons-codec to v1.16.1 ([#670](https://github.com/open-feature/java-sdk-contrib/issues/670)) ([6f55ce3](https://github.com/open-feature/java-sdk-contrib/commit/6f55ce383b7542961b5807899813b680d07097f7))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.105.final ([#634](https://github.com/open-feature/java-sdk-contrib/issues/634)) ([4f6c150](https://github.com/open-feature/java-sdk-contrib/commit/4f6c15025e2b7fffbcf0a63f81d43f20628f0b4d))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.106.final ([#642](https://github.com/open-feature/java-sdk-contrib/issues/642)) ([2755b68](https://github.com/open-feature/java-sdk-contrib/commit/2755b68d2cfd39110ae32bcc41be1d700dbdb85e))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.107.final ([#677](https://github.com/open-feature/java-sdk-contrib/issues/677)) ([eb6383d](https://github.com/open-feature/java-sdk-contrib/commit/eb6383d86a5e191605443d6a5e6ee686f5ef0dd1))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.34.1 ([#626](https://github.com/open-feature/java-sdk-contrib/issues/626)) ([220be29](https://github.com/open-feature/java-sdk-contrib/commit/220be295ad32f89a8da241bfca71efcef876350f))
+* **deps:** update grpc-java monorepo to v1.61.1 ([#656](https://github.com/open-feature/java-sdk-contrib/issues/656)) ([c4ed3b0](https://github.com/open-feature/java-sdk-contrib/commit/c4ed3b008a927504d9bc3e1613a897b5ba41beab))
+* **deps:** update io.grpc.version to v1.61.0 ([#628](https://github.com/open-feature/java-sdk-contrib/issues/628)) ([29c9854](https://github.com/open-feature/java-sdk-contrib/commit/29c9854d5ae58883cd2d169b01fc99f80dd30694))
+* **deps:** update opentelemetry-java monorepo to v1.35.0 ([#673](https://github.com/open-feature/java-sdk-contrib/issues/673)) ([4a62744](https://github.com/open-feature/java-sdk-contrib/commit/4a62744767f4924452898030932caac602aa7e02))
+* targeting key sometimes missing in rule context ([#676](https://github.com/open-feature/java-sdk-contrib/issues/676)) ([7407b84](https://github.com/open-feature/java-sdk-contrib/commit/7407b84b9e9ac4e129ca372c48891e3c4927894b))
+
+
+### ✨ New Features
+
+* flagd add scope to in-process evaluations ([#637](https://github.com/open-feature/java-sdk-contrib/issues/637)) ([b3873ae](https://github.com/open-feature/java-sdk-contrib/commit/b3873aea1588be8a54ba94ccd9a1232645cb541d))
+* synchronize initialization and shutdown ([#635](https://github.com/open-feature/java-sdk-contrib/issues/635)) ([2d98cb8](https://github.com/open-feature/java-sdk-contrib/commit/2d98cb8367eabde9f4c8fab1cc06db10a2bda903))
+* use new eval/sync protos (requires flagd v0.7.3+) ([#683](https://github.com/open-feature/java-sdk-contrib/issues/683)) ([20ca053](https://github.com/open-feature/java-sdk-contrib/commit/20ca05338b9717de5bb12a883096c1f71b0599eb))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.2.0 ([#690](https://github.com/open-feature/java-sdk-contrib/issues/690)) ([07f7ae9](https://github.com/open-feature/java-sdk-contrib/commit/07f7ae9bd0cdae8b6cf4aa09a0313b28340c658b))
+* flagd add offline flag source path support through env variables ([#647](https://github.com/open-feature/java-sdk-contrib/issues/647)) ([cd0e110](https://github.com/open-feature/java-sdk-contrib/commit/cd0e1103114e4cd7c3b79d39a590ec7313f1a566))
+* various improvements as suggested by sonar ([#674](https://github.com/open-feature/java-sdk-contrib/issues/674)) ([07eb45a](https://github.com/open-feature/java-sdk-contrib/commit/07eb45a581152d10ebcca9e494cb6e796c6ef0ab))
+
 ## [0.6.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.8...dev.openfeature.contrib.providers.flagd-v0.6.9) (2024-01-09)
 
 
