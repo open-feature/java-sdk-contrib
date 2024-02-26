@@ -85,8 +85,27 @@ public class StatsigProvider extends EventProvider {
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
-        Future<Boolean> featureOn = Statsig.checkGateAsync(user, key);
-        Boolean evaluatedValue = featureOn.get();
+        Boolean evaluatedValue = defaultValue;
+        try {
+            FeatureConfig featureConfig = parseFeatureConfig(ctx);
+            switch (featureConfig.getType()) {
+                case CONFIG:
+                    DynamicConfig dynamicConfig = fetchDynamicConfig(user, featureConfig);
+                    evaluatedValue = dynamicConfig.getBoolean(key, defaultValue);
+                    break;
+                case LAYER:
+                    Layer layer = fetchLayer(user, featureConfig);
+                    evaluatedValue = layer.getBoolean(key, defaultValue);
+                    break;
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            log.debug("could not fetch feature config. checking gate {}.", key);
+            Future<Boolean> featureOn = Statsig.checkGateAsync(user, key);
+            evaluatedValue = featureOn.get();
+        }
+
         return ProviderEvaluation.<Boolean>builder()
             .value(evaluatedValue)
             .build();

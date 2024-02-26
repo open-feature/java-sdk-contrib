@@ -75,6 +75,7 @@ class StatsigProviderTest {
     private static void buildFlags() {
         Statsig.overrideGate(FLAG_NAME, true);
         Map<String, Object> configMap = new HashMap<>();
+        configMap.put("boolean", true);
         configMap.put("alias", "test");
         configMap.put("revision", INT_FLAG_VALUE);
         configMap.put("price", DOUBLE_FLAG_VALUE);
@@ -118,6 +119,17 @@ class StatsigProviderTest {
         assertEquals(true, client.getBooleanValue(FLAG_NAME, false));
         assertEquals(false, statsigProvider.getBooleanEvaluation("non-existing", false, new ImmutableContext()).getValue());
         assertEquals(false, client.getBooleanValue("non-existing", false));
+
+        // expected to succeed when https://github.com/statsig-io/java-server-sdk/issues/22 is resolved and adopted
+//        assertEquals(true, client.getBooleanValue("non-existing", true));
+
+        MutableContext evaluationContext = new MutableContext();
+        MutableContext featureConfig = new MutableContext();
+        featureConfig.add("type", "CONFIG");
+        featureConfig.add("name", "product");
+        evaluationContext.add("feature_config", featureConfig);
+        assertEquals(true, statsigProvider.getBooleanEvaluation("boolean", false,
+            evaluationContext).getValue());
     }
 
     @Test
