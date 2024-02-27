@@ -11,7 +11,7 @@
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>statsig</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 

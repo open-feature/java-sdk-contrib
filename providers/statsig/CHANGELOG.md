@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.0.3...dev.openfeature.contrib.providers.statsig-v0.0.4) (2024-02-27)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.statsig:serversdk to v1.12.1 ([#687](https://github.com/open-feature/java-sdk-contrib/issues/687)) ([91da6fe](https://github.com/open-feature/java-sdk-contrib/commit/91da6fee020bdf60d51e1a6849e94201a2b04dec))
+
+
+### ✨ New Features
+
+* Statsig provider evaluate boolean updates ([#691](https://github.com/open-feature/java-sdk-contrib/issues/691)) ([04df666](https://github.com/open-feature/java-sdk-contrib/commit/04df6669264227e3c3c6165ea0d876e5d8aa8766))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.0 ([#689](https://github.com/open-feature/java-sdk-contrib/issues/689)) ([6589871](https://github.com/open-feature/java-sdk-contrib/commit/65898713166b5d02f246302c54fd7400ee4238d5))
+
 ## [0.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.0.2...dev.openfeature.contrib.providers.statsig-v0.0.3) (2024-02-14)
 
 
