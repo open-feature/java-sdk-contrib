@@ -33,6 +33,7 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
  * DataCollectorHook is an OpenFeature Hook in charge of sending the usage of the flag to GO Feature Flag.
  */
 @Slf4j
+@SuppressWarnings({"checkstyle:NoFinalizer"})
 public class DataCollectorHook implements Hook {
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
     public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
@@ -44,6 +45,10 @@ public class DataCollectorHook implements Hook {
      * eventsPublisher is the system collecting all the information to send to GO Feature Flag.
      */
     private final EventsPublisher<Event> eventsPublisher;
+
+    protected final void finalize() {
+        // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
+    }
 
     /**
      * Constructor of the hook.

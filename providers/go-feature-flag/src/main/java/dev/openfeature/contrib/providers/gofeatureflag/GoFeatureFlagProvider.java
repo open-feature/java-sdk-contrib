@@ -59,6 +59,7 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
  */
 @Slf4j
+@SuppressWarnings({"checkstyle:NoFinalizer"})
 public class GoFeatureFlagProvider implements FeatureProvider {
     public static final long DEFAULT_CACHE_TTL_MS = 1000;
     public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
@@ -80,6 +81,10 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     @Getter(AccessLevel.PROTECTED)
     private Cache<String, ProviderEvaluation<?>> cache;
     private ProviderState state = ProviderState.NOT_READY;
+
+    protected final void finalize() {
+        // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
+    }
 
     /**
      * Constructor of the provider.
