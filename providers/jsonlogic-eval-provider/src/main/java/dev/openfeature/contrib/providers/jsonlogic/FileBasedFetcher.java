@@ -19,9 +19,14 @@ import java.util.logging.Logger;
         value = "PATH_TRAVERSAL_IN",
         justification = "This is expected to read files based on user input"
 )
+@SuppressWarnings({"checkstyle:NoFinalizer"})
 public class FileBasedFetcher implements RuleFetcher {
     private static final Logger log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
     private final JSONObject rules;
+
+    protected final void finalize() {
+        // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
+    }
 
     /**
      * Create a file based fetcher give a file URI.

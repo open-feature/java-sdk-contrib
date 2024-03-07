@@ -93,9 +93,14 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     @Getter
+    @SuppressWarnings({"checkstyle:NoFinalizer"})
     private static class FractionProperty {
         private final String variant;
         private final int percentage;
+
+        protected final void finalize() {
+            // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
+        }
 
         FractionProperty(final Object from) throws JsonLogicException {
             if (!(from instanceof List<?>)) {

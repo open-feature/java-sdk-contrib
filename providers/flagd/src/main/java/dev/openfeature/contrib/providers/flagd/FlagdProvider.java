@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * OpenFeature provider for flagd.
  */
 @Slf4j
-@SuppressWarnings("PMD.TooManyStaticImports")
+@SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
 public class FlagdProvider extends EventProvider implements FeatureProvider {
     private static final String FLAGD_PROVIDER = "flagD Provider";
 
@@ -32,6 +32,10 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
     private boolean initialized = false;
 
     private EvaluationContext evaluationContext;
+
+    protected final void finalize() {
+        // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
+    }
 
     /**
      * Create a new FlagdProvider instance with default options.
