@@ -16,6 +16,7 @@ import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -84,6 +85,7 @@ public class StatsigProvider extends EventProvider {
 
     @SneakyThrows
     @Override
+    @SuppressFBWarnings(value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "reason can be null")
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
@@ -92,7 +94,7 @@ public class StatsigProvider extends EventProvider {
         String reason = null;
         if (featureConfigValue == null) {
             APIFeatureGate featureGate = Statsig.getFeatureGate(user, key);
-            if (assumeFailure(featureGate)) {
+            if (featureGate.getReason() != null && assumeFailure(featureGate)) {
                 reason = featureGate.getReason().getReason();
             } else {
                 evaluatedValue = featureGate.getValue();
@@ -121,10 +123,10 @@ public class StatsigProvider extends EventProvider {
 
     private boolean assumeFailure(APIFeatureGate featureGate) {
         EvaluationReason reason = featureGate.getReason();
-        return EvaluationReason.DEFAULT.equals(reason) ||
-            EvaluationReason.UNINITIALIZED.equals(reason) ||
-            EvaluationReason.UNRECOGNIZED.equals(reason) ||
-            EvaluationReason.UNSUPPORTED.equals(reason);
+        return EvaluationReason.DEFAULT.equals(reason)
+            || EvaluationReason.UNINITIALIZED.equals(reason)
+            || EvaluationReason.UNRECOGNIZED.equals(reason)
+            || EvaluationReason.UNSUPPORTED.equals(reason);
     }
 
     @Override

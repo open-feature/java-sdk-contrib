@@ -119,10 +119,9 @@ class StatsigProviderTest {
     void getBooleanEvaluation() {
 
 
-        // TODO issue
         FlagEvaluationDetails<Boolean> flagEvaluationDetails = client.getBooleanDetails(FLAG_NAME, false, new ImmutableContext());
         assertEquals(false, flagEvaluationDetails.getValue());
-        // TODO add reason
+        // TODO add reason after https://github.com/open-feature/java-sdk/pull/849
 
 
         MutableContext evaluationContext = new MutableContext();
