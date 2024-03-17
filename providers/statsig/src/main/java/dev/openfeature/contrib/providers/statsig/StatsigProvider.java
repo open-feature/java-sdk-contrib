@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.providers.statsig;
 
+import com.statsig.sdk.APIFeatureGate;
 import com.statsig.sdk.DynamicConfig;
+import com.statsig.sdk.EvaluationReason;
 import com.statsig.sdk.Layer;
 import com.statsig.sdk.Statsig;
 import com.statsig.sdk.StatsigUser;
@@ -86,7 +88,16 @@ public class StatsigProvider extends EventProvider {
         verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         Boolean evaluatedValue = defaultValue;
-        try {
+        Value featureConfigValue = ctx.getValue(FEATURE_CONFIG_KEY);
+        String reason = null;
+        if (featureConfigValue == null) {
+            APIFeatureGate featureGate = Statsig.getFeatureGate(user, key);
+            if (assumeFailure(featureGate)) {
+                reason = featureGate.getReason().getReason();
+            } else {
+                evaluatedValue = featureGate.getValue();
+            }
+        } else {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
             switch (featureConfig.getType()) {
                 case CONFIG:
@@ -100,15 +111,20 @@ public class StatsigProvider extends EventProvider {
                 default:
                     break;
             }
-        } catch (Exception e) {
-            log.debug("could not fetch feature config. checking gate {}.", key);
-            Future<Boolean> featureOn = Statsig.checkGateAsync(user, key);
-            evaluatedValue = featureOn.get();
         }
 
         return ProviderEvaluation.<Boolean>builder()
             .value(evaluatedValue)
+            .reason(reason)
             .build();
+    }
+
+    private boolean assumeFailure(APIFeatureGate featureGate) {
+        EvaluationReason reason = featureGate.getReason();
+        return EvaluationReason.DEFAULT.equals(reason) ||
+            EvaluationReason.UNINITIALIZED.equals(reason) ||
+            EvaluationReason.UNRECOGNIZED.equals(reason) ||
+            EvaluationReason.UNSUPPORTED.equals(reason);
     }
 
     @Override
