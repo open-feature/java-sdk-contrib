@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.unleash;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.EventDetails;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -13,12 +14,16 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
+import io.getunleash.FeatureToggle;
 import io.getunleash.UnleashContext;
 import io.getunleash.UnleashException;
 import io.getunleash.event.ToggleEvaluated;
 import io.getunleash.event.UnleashEvent;
 import io.getunleash.event.UnleashSubscriber;
+import io.getunleash.repository.ClientFeaturesResponse;
 import io.getunleash.repository.FeatureToggleResponse;
+import io.getunleash.repository.SegmentCollection;
+import io.getunleash.repository.ToggleCollection;
 import io.getunleash.util.UnleashConfig;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterAll;
@@ -32,18 +37,23 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * UnleashProvider test, based on APIs mocking.
@@ -287,6 +297,37 @@ class UnleashProviderTest {
         unleashSubscriberWrapper.toggleBackupRestored(null);
         unleashSubscriberWrapper.togglesBackedUp(null);
         unleashSubscriberWrapper.togglesBootstrapped(null);
+    }
+
+    @Test
+    void changedFlagsAreAvailableOnConfigChangedEvent() throws InterruptedException {
+        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false,
+                "http://fakeAPI", null);
+        UnleashSubscriberWrapper unleashSubscriberWrapper = new UnleashSubscriberWrapper(
+                new TestSubscriber(), asyncInitUnleashProvider);
+        OpenFeatureAPI.getInstance().setProviderAndWait("async", asyncInitUnleashProvider);
+        Client client = OpenFeatureAPI.getInstance().getClient("async");
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<EventDetails> eventDetails = new AtomicReference<>();
+        client.onProviderConfigurationChanged(e -> {
+            eventDetails.set(e);
+            latch.countDown();
+        });
+        Collection<FeatureToggle> changedToggles = new ArrayList<>();
+        changedToggles.add(new FeatureToggle("a-flag", true, new ArrayList<>()));
+        changedToggles.add(new FeatureToggle("another-flag", false, new ArrayList<>()));
+        unleashSubscriberWrapper.togglesFetched(
+                new ClientFeaturesResponse(
+                        FeatureToggleResponse.Status.CHANGED,
+                        new ToggleCollection(changedToggles),
+                        new SegmentCollection(new ArrayList<>())
+                )
+        );
+        List<String> expectedChangedFlags = new ArrayList<>();
+        expectedChangedFlags.add("a-flag");
+        expectedChangedFlags.add("another-flag");
+        assertTrue(latch.await(1, TimeUnit.SECONDS));
+        assertEquals(expectedChangedFlags, eventDetails.get().getFlagsChanged());
     }
 
     private class TestSubscriber implements UnleashSubscriber {

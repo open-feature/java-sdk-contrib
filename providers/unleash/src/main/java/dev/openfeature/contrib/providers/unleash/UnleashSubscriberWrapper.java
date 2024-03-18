@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.unleash;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEventDetails;
+import io.getunleash.FeatureToggle;
 import io.getunleash.UnleashException;
 import io.getunleash.event.ImpressionEvent;
 import io.getunleash.event.ToggleEvaluated;
@@ -18,6 +19,8 @@ import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * UnleashSubscriber wrapper for emitting event provider events.
@@ -69,7 +72,12 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
     public void togglesFetched(FeatureToggleResponse toggleResponse) {
         unleashSubscriber.togglesFetched(toggleResponse);
         if (FeatureToggleResponse.Status.CHANGED.equals(toggleResponse.getStatus())) {
+            List<String> flagsChanged = new ArrayList<>();
+            for (FeatureToggle featureToggle : toggleResponse.getToggleCollection().getFeatures()) {
+                flagsChanged.add(featureToggle.getName());
+            }
             eventProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder()
+                .flagsChanged(flagsChanged)
                 .eventMetadata(ImmutableMetadata.builder()
                     .build()).build());
         }
