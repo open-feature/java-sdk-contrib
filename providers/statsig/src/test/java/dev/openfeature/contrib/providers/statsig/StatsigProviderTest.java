@@ -117,12 +117,9 @@ class StatsigProviderTest {
 
     @Test
     void getBooleanEvaluation() {
-
-
         FlagEvaluationDetails<Boolean> flagEvaluationDetails = client.getBooleanDetails(FLAG_NAME, false, new ImmutableContext());
         assertEquals(false, flagEvaluationDetails.getValue());
-        // TODO add reason after https://github.com/open-feature/java-sdk/pull/849
-
+        assertEquals("ERROR", flagEvaluationDetails.getReason());
 
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
@@ -130,8 +127,6 @@ class StatsigProviderTest {
         assertEquals(true, client.getBooleanValue(FLAG_NAME, false, evaluationContext));
         assertEquals(false, statsigProvider.getBooleanEvaluation("non-existing", false, evaluationContext).getValue());
         assertEquals(false, client.getBooleanValue("non-existing", false, evaluationContext));
-
-        // expected to succeed when https://github.com/statsig-io/java-server-sdk/issues/22 is resolved and adopted
         assertEquals(true, client.getBooleanValue("non-existing", true));
 
         MutableContext featureConfig = new MutableContext();
