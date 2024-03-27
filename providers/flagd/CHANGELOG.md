@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.7.0...dev.openfeature.contrib.providers.flagd-v0.7.1) (2024-03-27)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.16.2 ([#707](https://github.com/open-feature/java-sdk-contrib/issues/707)) ([2ce424d](https://github.com/open-feature/java-sdk-contrib/commit/2ce424dd780a04c49efe29093a33bd26d0ceccc5))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.17.0 ([#714](https://github.com/open-feature/java-sdk-contrib/issues/714)) ([a5964f0](https://github.com/open-feature/java-sdk-contrib/commit/a5964f0654124b668e50a5df7cf82c1028457f95))
+* **deps:** update grpc-java monorepo to v1.62.2 ([#695](https://github.com/open-feature/java-sdk-contrib/issues/695)) ([97da222](https://github.com/open-feature/java-sdk-contrib/commit/97da2226c15b61b8835a56e511420869cc961d17))
+* **deps:** update opentelemetry-java monorepo to v1.36.0 ([#703](https://github.com/open-feature/java-sdk-contrib/issues/703)) ([712b48c](https://github.com/open-feature/java-sdk-contrib/commit/712b48c8a25dc8733c03ea862f499e1a60271e13))
+* potential finalizer attack ([#702](https://github.com/open-feature/java-sdk-contrib/issues/702)) ([572df60](https://github.com/open-feature/java-sdk-contrib/commit/572df60e3d4ef2d6039a8b2cd8554423179ffc30))
+
 ## [0.7.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.9...dev.openfeature.contrib.providers.flagd-v0.7.0) (2024-02-22)
 
 
