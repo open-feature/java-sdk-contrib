@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.5-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.4-alpha...dev.openfeature.contrib.providers.unleash-v0.0.5-alpha) (2024-03-27)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.11 ([#619](https://github.com/open-feature/java-sdk-contrib/issues/619)) ([178fd42](https://github.com/open-feature/java-sdk-contrib/commit/178fd42d314bb7f7018d70d532020a366cc58ae3))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.12 ([#661](https://github.com/open-feature/java-sdk-contrib/issues/661)) ([f03d933](https://github.com/open-feature/java-sdk-contrib/commit/f03d93305bda8ea932831e81db57c989ce4e14e4))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.github.tomakehurst:wiremock-jre8 to v2.35.2 ([#686](https://github.com/open-feature/java-sdk-contrib/issues/686)) ([4de6c46](https://github.com/open-feature/java-sdk-contrib/commit/4de6c466b10d031ea5d8029acc7a47ba587465c6))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.0 ([#689](https://github.com/open-feature/java-sdk-contrib/issues/689)) ([6589871](https://github.com/open-feature/java-sdk-contrib/commit/65898713166b5d02f246302c54fd7400ee4238d5))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.1 ([#709](https://github.com/open-feature/java-sdk-contrib/issues/709)) ([d0bc7a5](https://github.com/open-feature/java-sdk-contrib/commit/d0bc7a5aceb746d6d7c442e189a6a1e011673ba7))
+
 ## [0.0.4-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.3-alpha...dev.openfeature.contrib.providers.unleash-v0.0.4-alpha) (2023-12-31)
 
 
