@@ -8,6 +8,7 @@ import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Transformer from OpenFeature context to statsig User.
@@ -29,27 +30,30 @@ class ContextTransformer {
         Map<String, String> customMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {
             switch (k) {
+                case "targetingKey":
+                    user.setUserID(Objects.toString(v, null));
+                    break;
                 case CONTEXT_APP_VERSION:
-                    user.setAppVersion(String.valueOf(v));
+                    user.setAppVersion(Objects.toString(v, null));
                     break;
                 case CONTEXT_COUNTRY:
-                    user.setCountry(String.valueOf(v));
+                    user.setCountry(Objects.toString(v, null));
                     break;
                 case CONTEXT_EMAIL:
-                    user.setEmail(String.valueOf(v));
+                    user.setEmail(Objects.toString(v, null));
                     break;
                 case CONTEXT_IP:
-                    user.setIp(String.valueOf(v));
+                    user.setIp(Objects.toString(v, null));
                     break;
                 case CONTEXT_USER_AGENT:
-                    user.setUserAgent(String.valueOf(v));
+                    user.setUserAgent(Objects.toString(v, null));
                     break;
                 case CONTEXT_LOCALE:
-                    user.setLocale(String.valueOf(v));
+                    user.setLocale(Objects.toString(v, null));
                     break;
                 default:
                     if (!CONTEXT_PRIVATE_ATTRIBUTES.equals(k)) {
-                        customMap.put(k, String.valueOf(v));
+                        customMap.put(k, Objects.toString(v, null));
                     }
                     break;
             }

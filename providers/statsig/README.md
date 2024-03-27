@@ -38,9 +38,10 @@ StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder().sd
 statsigProvider = new StatsigProvider(statsigProviderConfig);
 OpenFeatureAPI.getInstance().setProviderAndWait(statsigProvider);
 
+MutableContext evaluationContext = new MutableContext();
+evaluationContext.setTargetingKey(TARGETING_KEY);
 boolean featureEnabled = client.getBooleanValue(FLAG_NAME, false);
 
-MutableContext evaluationContext = new MutableContext();
 MutableContext featureConfig = new MutableContext();
 featureConfig.add("type", "CONFIG");
 featureConfig.add("name", "product");
@@ -73,7 +74,4 @@ As it is limited, evaluation context based tests are limited.
 See [statsigProviderTest](./src/test/java/dev/openfeature/contrib/providers/statsig/StatsigProviderTest.java)
 for more information.
 
-## Known issues
-- Gate BooleanEvaluation with default value true cannot fallback to true.
-  https://github.com/statsig-io/java-server-sdk/issues/22
 
