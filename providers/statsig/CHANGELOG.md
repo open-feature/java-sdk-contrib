@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.0.4...dev.openfeature.contrib.providers.statsig-v0.0.5) (2024-03-27)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.statsig:serversdk to v1.13.0 ([#699](https://github.com/open-feature/java-sdk-contrib/issues/699)) ([f5c38cf](https://github.com/open-feature/java-sdk-contrib/commit/f5c38cf832e6d4970b3076811ac5b6c2b7da86ee))
+* **deps:** update dependency com.statsig:serversdk to v1.13.1 ([#704](https://github.com/open-feature/java-sdk-contrib/issues/704)) ([5d35725](https://github.com/open-feature/java-sdk-contrib/commit/5d357255f10f6608a51bf253bac5dc999fef5a83))
+* **deps:** update dependency com.statsig:serversdk to v1.14.0 ([#718](https://github.com/open-feature/java-sdk-contrib/issues/718)) ([7f76265](https://github.com/open-feature/java-sdk-contrib/commit/7f76265b4f610a171bd5bd239941cb1d1420ab55))
+* **deps:** update dependency com.statsig:serversdk to v1.15.0 ([#728](https://github.com/open-feature/java-sdk-contrib/issues/728)) ([f101e2f](https://github.com/open-feature/java-sdk-contrib/commit/f101e2f6d5b5d9486bc5b426a1f05c71b70d658c))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.1 ([#709](https://github.com/open-feature/java-sdk-contrib/issues/709)) ([d0bc7a5](https://github.com/open-feature/java-sdk-contrib/commit/d0bc7a5aceb746d6d7c442e189a6a1e011673ba7))
+
 ## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.0.3...dev.openfeature.contrib.providers.statsig-v0.0.4) (2024-02-27)
 
 
