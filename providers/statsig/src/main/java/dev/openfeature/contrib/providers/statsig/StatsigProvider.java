@@ -94,9 +94,10 @@ public class StatsigProvider extends EventProvider {
         String reason = null;
         if (featureConfigValue == null) {
             APIFeatureGate featureGate = Statsig.getFeatureGate(user, key);
-            if (featureGate.getReason() != null && assumeFailure(featureGate)) {
-                reason = featureGate.getReason().getReason();
-            } else {
+            reason = featureGate.getReason().getReason();
+
+            // in case of evaluation failure, remain with default value.
+            if (!assumeFailure(featureGate)) {
                 evaluatedValue = featureGate.getValue();
             }
         } else {
@@ -121,6 +122,10 @@ public class StatsigProvider extends EventProvider {
             .build();
     }
 
+    /*
+    https://github.com/statsig-io/java-server-sdk/issues/22#issuecomment-2002346349
+    failure is assumed by reason, since success status is not returned.
+     */
     private boolean assumeFailure(APIFeatureGate featureGate) {
         EvaluationReason reason = featureGate.getReason();
         return EvaluationReason.DEFAULT.equals(reason)
