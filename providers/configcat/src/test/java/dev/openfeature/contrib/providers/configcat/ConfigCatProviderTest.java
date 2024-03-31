@@ -227,6 +227,7 @@ class ConfigCatProviderTest {
 
         HashMap<String, Object > customMap = new HashMap<>();
         customMap.put(customPropertyKey, customPropertyValue);
+        customMap.put("targetingKey", userId);
         User expectedUser = User.newBuilder().email(email).country(country).custom(customMap).build(userId);
         User transformedUser = ContextTransformer.transform(evaluationContext);
 
