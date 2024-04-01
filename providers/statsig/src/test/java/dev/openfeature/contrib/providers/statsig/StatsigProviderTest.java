@@ -43,19 +43,19 @@ import static org.mockito.Mockito.when;
  */
 class StatsigProviderTest {
 
-    public static final String FLAG_NAME = "enabledFeature";
-    public static final String CONFIG_FLAG_NAME = "alias";
-    public static final String LAYER_FLAG_NAME = "alias";
-    public static final String CONFIG_FLAG_VALUE = "test";
-    public static final String INT_FLAG_NAME = "revision";
-    public static final String LAYER_INT_FLAG_NAME = "revision";
-    public static final Integer INT_FLAG_VALUE = 5;
-    public static final String DOUBLE_FLAG_NAME = "price";
-    public static final String LAYER_DOUBLE_FLAG_NAME = "price";
-    public static final Double DOUBLE_FLAG_VALUE = 3.14;
-    public static final String USERS_FLAG_NAME = "userIdMatching";
-    public static final String PROPERTIES_FLAG_NAME = "emailMatching";
-    public static final String TARGETING_KEY = "user1";
+    private static final String FLAG_NAME = "enabledFeature";
+    private static final String CONFIG_FLAG_NAME = "alias";
+    private static final String LAYER_FLAG_NAME = "alias";
+    private static final String CONFIG_FLAG_VALUE = "test";
+    private static final String INT_FLAG_NAME = "revision";
+    private static final String LAYER_INT_FLAG_NAME = "revision";
+    private static final Integer INT_FLAG_VALUE = 5;
+    private static final String DOUBLE_FLAG_NAME = "price";
+    private static final String LAYER_DOUBLE_FLAG_NAME = "price";
+    private static final Double DOUBLE_FLAG_VALUE = 3.14;
+    private static final String USERS_FLAG_NAME = "userIdMatching";
+    private static final String PROPERTIES_FLAG_NAME = "emailMatching";
+    private static final String TARGETING_KEY = "user1";
     private static StatsigProvider statsigProvider;
     private static Client client;
 
