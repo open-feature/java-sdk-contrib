@@ -6,6 +6,7 @@ import com.statsig.sdk.Statsig;
 import com.statsig.sdk.StatsigOptions;
 import com.statsig.sdk.StatsigUser;
 import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
@@ -54,6 +55,7 @@ class StatsigProviderTest {
     public static final Double DOUBLE_FLAG_VALUE = 3.14;
     public static final String USERS_FLAG_NAME = "userIdMatching";
     public static final String PROPERTIES_FLAG_NAME = "emailMatching";
+    public static final String TARGETING_KEY = "user1";
     private static StatsigProvider statsigProvider;
     private static Client client;
 
@@ -115,15 +117,18 @@ class StatsigProviderTest {
 
     @Test
     void getBooleanEvaluation() {
-        assertEquals(true, statsigProvider.getBooleanEvaluation(FLAG_NAME, false, new ImmutableContext()).getValue());
-        assertEquals(true, client.getBooleanValue(FLAG_NAME, false));
-        assertEquals(false, statsigProvider.getBooleanEvaluation("non-existing", false, new ImmutableContext()).getValue());
-        assertEquals(false, client.getBooleanValue("non-existing", false));
-
-        // expected to succeed when https://github.com/statsig-io/java-server-sdk/issues/22 is resolved and adopted
-//        assertEquals(true, client.getBooleanValue("non-existing", true));
+        FlagEvaluationDetails<Boolean> flagEvaluationDetails = client.getBooleanDetails(FLAG_NAME, false, new ImmutableContext());
+        assertEquals(false, flagEvaluationDetails.getValue());
+        assertEquals("ERROR", flagEvaluationDetails.getReason());
 
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
+        assertEquals(true, statsigProvider.getBooleanEvaluation(FLAG_NAME, false, evaluationContext).getValue());
+        assertEquals(true, client.getBooleanValue(FLAG_NAME, false, evaluationContext));
+        assertEquals(false, statsigProvider.getBooleanEvaluation("non-existing", false, evaluationContext).getValue());
+        assertEquals(false, client.getBooleanValue("non-existing", false, evaluationContext));
+        assertEquals(true, client.getBooleanValue("non-existing", true));
+
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "CONFIG");
         featureConfig.add("name", "product");
@@ -135,6 +140,7 @@ class StatsigProviderTest {
     @Test
     void getStringEvaluation() {
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "CONFIG");
         featureConfig.add("name", "product");
@@ -149,6 +155,7 @@ class StatsigProviderTest {
     @Test
     void getObjectConfigEvaluation() {
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "CONFIG");
         featureConfig.add("name", "object-config-name");
@@ -164,6 +171,7 @@ class StatsigProviderTest {
     @Test
     void getObjectLayerEvaluation() {
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "LAYER");
         featureConfig.add("name", "layer-name");
@@ -180,6 +188,7 @@ class StatsigProviderTest {
     @Test
     void getIntegerEvaluation() {
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "CONFIG");
         featureConfig.add("name", "product");
@@ -197,6 +206,7 @@ class StatsigProviderTest {
     @Test
     void getDoubleEvaluation() {
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "CONFIG");
         featureConfig.add("name", "product");
@@ -214,6 +224,7 @@ class StatsigProviderTest {
     @Test
     void getBooleanEvaluationByUser() {
         MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
         MutableContext featureConfig = new MutableContext();
         featureConfig.add("type", "CONFIG");
         featureConfig.add("name", "product");
