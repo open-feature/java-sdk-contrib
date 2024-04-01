@@ -218,6 +218,7 @@ class ConfigCatProviderTest {
         String country = "someCountry";
         String customPropertyValue = "customProperty_value";
         String customPropertyKey = "customProperty";
+        String targetingKeyKey = "targetingKey";
 
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(userId);
@@ -227,7 +228,7 @@ class ConfigCatProviderTest {
 
         HashMap<String, Object > customMap = new HashMap<>();
         customMap.put(customPropertyKey, customPropertyValue);
-        customMap.put("targetingKey", userId);
+        customMap.put(targetingKeyKey, userId);
         User expectedUser = User.newBuilder().email(email).country(country).custom(customMap).build(userId);
         User transformedUser = ContextTransformer.transform(evaluationContext);
 
