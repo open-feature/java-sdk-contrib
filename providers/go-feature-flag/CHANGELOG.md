@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.19](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.18...dev.openfeature.contrib.providers.go-feature-flag-v0.2.19) (2024-04-01)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.16.2 ([#707](https://github.com/open-feature/java-sdk-contrib/issues/707)) ([2ce424d](https://github.com/open-feature/java-sdk-contrib/commit/2ce424dd780a04c49efe29093a33bd26d0ceccc5))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.17.0 ([#714](https://github.com/open-feature/java-sdk-contrib/issues/714)) ([a5964f0](https://github.com/open-feature/java-sdk-contrib/commit/a5964f0654124b668e50a5df7cf82c1028457f95))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.16.2 ([#708](https://github.com/open-feature/java-sdk-contrib/issues/708)) ([b6c7da1](https://github.com/open-feature/java-sdk-contrib/commit/b6c7da1ae902b74d9a92cf1f3a1cd105f9f2065c))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.17.0 ([#715](https://github.com/open-feature/java-sdk-contrib/issues/715)) ([95c5071](https://github.com/open-feature/java-sdk-contrib/commit/95c507175186bbffe786cfbaf6fb64295e244f52))
+* **deps:** update dependency com.google.guava:guava to v33.1.0-jre ([#717](https://github.com/open-feature/java-sdk-contrib/issues/717)) ([ab405e8](https://github.com/open-feature/java-sdk-contrib/commit/ab405e834a2ebd9c68ce1c97236a5f5e81c4de18))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.10 ([#610](https://github.com/open-feature/java-sdk-contrib/issues/610)) ([ce3825a](https://github.com/open-feature/java-sdk-contrib/commit/ce3825af03beb0ec682eec390efd4cfff973bc99))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.11 ([#619](https://github.com/open-feature/java-sdk-contrib/issues/619)) ([178fd42](https://github.com/open-feature/java-sdk-contrib/commit/178fd42d314bb7f7018d70d532020a366cc58ae3))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.12 ([#661](https://github.com/open-feature/java-sdk-contrib/issues/661)) ([f03d933](https://github.com/open-feature/java-sdk-contrib/commit/f03d93305bda8ea932831e81db57c989ce4e14e4))
+* potential finalizer attack ([#702](https://github.com/open-feature/java-sdk-contrib/issues/702)) ([572df60](https://github.com/open-feature/java-sdk-contrib/commit/572df60e3d4ef2d6039a8b2cd8554423179ffc30))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.0 ([#689](https://github.com/open-feature/java-sdk-contrib/issues/689)) ([6589871](https://github.com/open-feature/java-sdk-contrib/commit/65898713166b5d02f246302c54fd7400ee4238d5))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.1 ([#709](https://github.com/open-feature/java-sdk-contrib/issues/709)) ([d0bc7a5](https://github.com/open-feature/java-sdk-contrib/commit/d0bc7a5aceb746d6d7c442e189a6a1e011673ba7))
+
 ## [0.2.18](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.17...dev.openfeature.contrib.providers.go-feature-flag-v0.2.18) (2023-12-28)
 
 
