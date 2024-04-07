@@ -10,7 +10,7 @@ services:
       context: test-harness
       dockerfile: flagd/Dockerfile.unstable
     ports:
-      - 8014:8014
+      - 8014:8013
   flagd-sync:
     build:
       context: test-harness
