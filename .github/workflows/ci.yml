@@ -24,7 +24,7 @@ jobs:
           - 8014:8013
       # sync-testbed for flagd in-process provider e2e tests
       sync:
-        image: ghcr.io/open-feature/sync-testbed:v0.5.2
+        image: ghcr.io/open-feature/sync-testbed:v0.5.3
         ports:
           - 9090:9090
       # sync-testbed for flagd in-process provider reconnect e2e tests
