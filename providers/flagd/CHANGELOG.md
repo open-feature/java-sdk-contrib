@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.8.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.7.0...dev.openfeature.contrib.providers.flagd-v0.8.0) (2024-04-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* allow overrides for fractional seed ([#737](https://github.com/open-feature/java-sdk-contrib/issues/737))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.16.2 ([#707](https://github.com/open-feature/java-sdk-contrib/issues/707)) ([2ce424d](https://github.com/open-feature/java-sdk-contrib/commit/2ce424dd780a04c49efe29093a33bd26d0ceccc5))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.17.0 ([#714](https://github.com/open-feature/java-sdk-contrib/issues/714)) ([a5964f0](https://github.com/open-feature/java-sdk-contrib/commit/a5964f0654124b668e50a5df7cf82c1028457f95))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.4.0 ([#721](https://github.com/open-feature/java-sdk-contrib/issues/721)) ([862a0f2](https://github.com/open-feature/java-sdk-contrib/commit/862a0f2c192e525cfef47ec275f479c9c19a5ade))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.108.final ([#729](https://github.com/open-feature/java-sdk-contrib/issues/729)) ([f03fa26](https://github.com/open-feature/java-sdk-contrib/commit/f03fa2635be9fbf3b6b3bc9641441b5d593ca2d2))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.37.0 ([#748](https://github.com/open-feature/java-sdk-contrib/issues/748)) ([e94df12](https://github.com/open-feature/java-sdk-contrib/commit/e94df12b1a6d3f4a26cfa3aa6c7aac7551e4fe53))
+* **deps:** update dependency org.semver4j:semver4j to v5.2.3 ([#740](https://github.com/open-feature/java-sdk-contrib/issues/740)) ([387f8ae](https://github.com/open-feature/java-sdk-contrib/commit/387f8aedec25141f581026a46abf40c70ceacaa3))
+* **deps:** update grpc-java monorepo to v1.62.2 ([#695](https://github.com/open-feature/java-sdk-contrib/issues/695)) ([97da222](https://github.com/open-feature/java-sdk-contrib/commit/97da2226c15b61b8835a56e511420869cc961d17))
+* **deps:** update grpc-java monorepo to v1.63.0 ([#739](https://github.com/open-feature/java-sdk-contrib/issues/739)) ([2d7b262](https://github.com/open-feature/java-sdk-contrib/commit/2d7b26217a2ee4a960806e9d226f0909f24c2d5d))
+* **deps:** update opentelemetry-java monorepo to v1.36.0 ([#703](https://github.com/open-feature/java-sdk-contrib/issues/703)) ([712b48c](https://github.com/open-feature/java-sdk-contrib/commit/712b48c8a25dc8733c03ea862f499e1a60271e13))
+* potential finalizer attack ([#702](https://github.com/open-feature/java-sdk-contrib/issues/702)) ([572df60](https://github.com/open-feature/java-sdk-contrib/commit/572df60e3d4ef2d6039a8b2cd8554423179ffc30))
+
+
+### ✨ New Features
+
+* allow overrides for fractional seed ([#737](https://github.com/open-feature/java-sdk-contrib/issues/737)) ([ab6b888](https://github.com/open-feature/java-sdk-contrib/commit/ab6b8880ae97fca1891554b5dd38f682fc8406d1))
+
 ## [0.7.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.6.9...dev.openfeature.contrib.providers.flagd-v0.7.0) (2024-02-22)
 
 
