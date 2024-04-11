@@ -24,7 +24,7 @@ class FractionalTest {
 
         /* Rule
          *     [
-         *       "bucketKeyA", // this is resolved value of an expression
+         *       "flagAbucketKeyA", // this is resolved value of an expression
          *       [
          *         "red",
          *         50
@@ -37,7 +37,7 @@ class FractionalTest {
          * */
 
         final List<Object> rule = new ArrayList<>();
-        rule.add("bucketKeyA");
+        rule.add("flagAbucketKeyA");
 
         final List<Object> bucket1 = new ArrayList<>();
         bucket1.add("red");
@@ -69,7 +69,7 @@ class FractionalTest {
 
         /* Rule
          *     [
-         *       "bucketKeyB", // this is resolved value of an expression
+         *       "flagAbucketKeyB", // this is resolved value of an expression
          *       [
          *         "red",
          *         50
@@ -82,7 +82,7 @@ class FractionalTest {
          * */
 
         final List<Object> rule = new ArrayList<>();
-        rule.add("bucketKeyB");
+        rule.add("flagAbucketKeyB");
 
         final List<Object> bucket1 = new ArrayList<>();
         bucket1.add("red");

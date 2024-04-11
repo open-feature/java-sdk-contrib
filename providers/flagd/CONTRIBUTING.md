@@ -23,9 +23,17 @@ In vscode for instance, the following settings are recommended:
 The continuous integration runs a set of [gherkin e2e tests](https://github.com/open-feature/test-harness/blob/main/features/evaluation.feature) using [`flagd`](https://github.com/open-feature/flagd). These tests do not run with the default maven profile. If you'd like to run them locally, you can start the flagd testbed with
 
 ```
-docker run -p 8013:8013 ghcr.io/open-feature/flagd-testbed:latest
+docker-compose up -d
 ```
 and then run 
 ```
 mvn test -P e2e
 ```
+
+Note if your docker compose networking does not resolve to localhost, you can set a custom host
+```
+FLAGD_HOST=192.168.100.1 mvn test -P e2e
+```
+
+If test-harness is being updated, commit the changes before running `mvn`.
+Otherwise, uncommitted changes will be overridden by maven test plugins.

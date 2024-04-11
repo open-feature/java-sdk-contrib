@@ -85,7 +85,10 @@ class OperatorTest {
         final String targetingRule = "" +
                 "{\n" +
                 "  \"fractional\": [\n" +
-                "    {\"var\": \"email\"},\n" +
+                "    {\"cat\":[\n" +
+                "      {\"var\":\"$flagd.flagKey\"},\n" +
+                "      {\"var\": \"email\"}\n" +
+                "    ]},\n" +
                 "    [\n" +
                 "      \"red\",\n" +
                 "      25\n" +
@@ -123,7 +126,10 @@ class OperatorTest {
         final String targetingRule = "" +
                 "{\n" +
                 "  \"fractional\": [\n" +
-                "    {\"var\": \"email\"},\n" +
+                "    {\"cat\":[\n" +
+                "      {\"var\":\"$flagd.flagKey\"},\n" +
+                "      {\"var\": \"email\"}\n" +
+                "    ]},\n" +
                 "    [\n" +
                 "      \"red\",\n" +
                 "      25\n" +
@@ -161,7 +167,10 @@ class OperatorTest {
         final String targetingRule = "" +
                 "{\n" +
                 "  \"fractional\": [\n" +
-                "    {\"var\": \"email\"},\n" +
+                "    {\"cat\":[\n" +
+                "      {\"var\":\"$flagd.flagKey\"},\n" +
+                "      {\"var\": \"email\"}\n" +
+                "    ]},\n" +
                 "    [\n" +
                 "      \"red\",\n" +
                 "      25\n" +
