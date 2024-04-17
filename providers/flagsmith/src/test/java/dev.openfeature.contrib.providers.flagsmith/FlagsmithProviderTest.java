@@ -67,6 +67,14 @@ public class FlagsmithProviderTest {
         }
     };
 
+    final QueueDispatcher errorDispatcher = new QueueDispatcher() {
+        @SneakyThrows
+        @Override
+        public MockResponse dispatch(RecordedRequest request) {
+            return new MockResponse().setResponseCode(500);
+        }
+    };
+
     private static Stream<Arguments> provideKeysForFlagResolution() {
         return Stream.of(
             Arguments.of("true_key", "getBooleanEvaluation", Boolean.class, "true"),
@@ -132,8 +140,8 @@ public class FlagsmithProviderTest {
         // Error server will always result in FlagsmithApiError's used for
         // tests that need to handle this type of error
         mockFlagsmithErrorServer = new MockWebServer();
+        mockFlagsmithErrorServer.setDispatcher(this.errorDispatcher);
         mockFlagsmithErrorServer.start();
-
 
         FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
                                                                    .apiKey("API_KEY")
