@@ -45,11 +45,10 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 return null;
             }
 
-            bucketBy = properties.getTargetingKey();
+            bucketBy = properties.getFlagKey() + properties.getTargetingKey();
             distibutions = arguments.toArray();
         }
 
-        final String hashKey = properties.getFlagKey() + bucketBy;
         final List<FractionProperty> propertyList = new ArrayList<>();
 
         double distribution = 0;
@@ -70,7 +69,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         }
 
         // find distribution
-        return distributeValue(hashKey, propertyList);
+        return distributeValue(bucketBy, propertyList);
     }
 
     private static String distributeValue(final String hashKey, final List<FractionProperty> propertyList)

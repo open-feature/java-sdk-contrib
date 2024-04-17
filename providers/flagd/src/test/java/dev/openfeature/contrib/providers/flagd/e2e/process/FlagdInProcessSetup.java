@@ -21,7 +21,6 @@ public class FlagdInProcessSetup {
         FlagdInProcessSetup.provider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Evaluator.IN_PROCESS)
         .deadline(3000)
-        .host("localhost")
         .port(9090)
         .build());
         StepDefinitions.setProvider(provider);

@@ -19,7 +19,6 @@ public class FlagdInProcessSetup {
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Evaluator.IN_PROCESS)
         .deadline(3000)
-        .host("localhost")
         .port(9091)
         .build());
         StepDefinitions.setUnstableProvider(workingProvider);
