@@ -1,7 +1,7 @@
 {
   "providers/flagd": "0.8.0",
   "hooks/open-telemetry": "3.1.1",
-  "providers/go-feature-flag": "0.2.19",
+  "providers/go-feature-flag": "0.2.20",
   "providers/flagsmith": "0.0.8",
   "providers/env-var": "0.0.5",
   "providers/jsonlogic-eval-provider": "1.0.1",
