@@ -70,11 +70,17 @@ public class FlagdOptionsTest {
 
     @Test
     public void testValueProviderForEdgeCase_valid() {
-        Function<String, String> dummy = s -> "in-process";
-        assertEquals(Config.Evaluator.IN_PROCESS, Config.fromValueProvider(dummy));
+        Function<String, String> valueProvider = s -> "in-process";
+        assertEquals(Config.Evaluator.IN_PROCESS, Config.fromValueProvider(valueProvider));
 
-        dummy = s -> "rpc";
-        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(dummy));
+        valueProvider = s -> "IN-PROCESS";
+        assertEquals(Config.Evaluator.IN_PROCESS, Config.fromValueProvider(valueProvider));
+
+        valueProvider = s -> "rpc";
+        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(valueProvider));
+
+        valueProvider = s -> "RPC";
+        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(valueProvider));
     }
 
     @Test

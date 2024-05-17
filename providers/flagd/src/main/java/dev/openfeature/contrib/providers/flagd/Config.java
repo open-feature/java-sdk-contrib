@@ -1,12 +1,14 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.Function;
 
 /**
  * Helper class to hold configuration default values.
  */
+@Slf4j
 public final class Config {
     static final Evaluator DEFAULT_RESOLVER_TYPE = Evaluator.RPC;
     static final String DEFAULT_PORT = "8013";
@@ -64,12 +66,13 @@ public final class Config {
             return DEFAULT_RESOLVER_TYPE;
         }
 
-        switch (resolverVar) {
+        switch (resolverVar.toLowerCase()) {
             case "in-process":
                 return Evaluator.IN_PROCESS;
             case "rpc":
                 return Evaluator.RPC;
             default:
+                log.warn("Unsupported resolver variable: {}", resolverVar);
                 return DEFAULT_RESOLVER_TYPE;
         }
     }
