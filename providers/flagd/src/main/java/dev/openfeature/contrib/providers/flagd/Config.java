@@ -2,6 +2,8 @@ package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 
+import java.util.function.Function;
+
 /**
  * Helper class to hold configuration default values.
  */
@@ -14,6 +16,7 @@ public final class Config {
     static final int DEFAULT_DEADLINE = 500;
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
 
+    static final String RESOLVER_ENV_VAR = "FLAGD_RESOLVER";
     static final String HOST_ENV_VAR_NAME = "FLAGD_HOST";
     static final String PORT_ENV_VAR_NAME = "FLAGD_PORT";
     static final String TLS_ENV_VAR_NAME = "FLAGD_TLS";
@@ -52,6 +55,22 @@ public final class Config {
             return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : defaultValue;
         } catch (Exception e) {
             return defaultValue;
+        }
+    }
+
+    static Evaluator fromValueProvider(Function<String, String> provider) {
+        final String resolverVar = provider.apply(RESOLVER_ENV_VAR);
+        if (resolverVar == null) {
+            return DEFAULT_RESOLVER_TYPE;
+        }
+
+        switch (resolverVar) {
+            case "in-process":
+                return Evaluator.IN_PROCESS;
+            case "rpc":
+                return Evaluator.RPC;
+            default:
+                return DEFAULT_RESOLVER_TYPE;
         }
     }
 
