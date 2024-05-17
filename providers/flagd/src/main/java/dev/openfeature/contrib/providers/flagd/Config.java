@@ -87,7 +87,6 @@ public final class Config {
 
     /**
      * flagd evaluator type.
-     * <p>
      * Deprecated : Please use {@code Config.Resolver}, which is a drop-in replacement of this.
      */
     @Deprecated
