@@ -80,10 +80,10 @@ public class FlagdOptionsTest {
     @Test
     public void testValueProviderForEdgeCase_invalid() {
         Function<String, String> dummy = s -> "some-other";
-        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(dummy));
+        assertEquals(Config.DEFAULT_RESOLVER_TYPE, Config.fromValueProvider(dummy));
 
         dummy = s -> null;
-        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(dummy));
+        assertEquals(Config.DEFAULT_RESOLVER_TYPE, Config.fromValueProvider(dummy));
     }
 
 }
