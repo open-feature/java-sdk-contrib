@@ -19,7 +19,7 @@ public class FlagdInProcessSetup {
     @BeforeAll()
     public static void setup() throws InterruptedException {
         FlagdInProcessSetup.provider = new FlagdProvider(FlagdOptions.builder()
-        .resolverType(Config.Evaluator.IN_PROCESS)
+        .resolverType(Config.Resolver.IN_PROCESS)
         .deadline(3000)
         .port(9090)
         .build());

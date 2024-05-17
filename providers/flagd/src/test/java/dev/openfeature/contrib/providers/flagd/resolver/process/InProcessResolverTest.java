@@ -50,9 +50,9 @@ class InProcessResolverTest {
     public void connectorSetup(){
         // given
         FlagdOptions forGrpcOptions =
-                 FlagdOptions.builder().resolverType(Config.Evaluator.IN_PROCESS).host("localhost").port(8080).build();
+                 FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).host("localhost").port(8080).build();
         FlagdOptions forOfflineOptions =
-                FlagdOptions.builder().resolverType(Config.Evaluator.IN_PROCESS).offlineFlagSourcePath("path").build();
+                FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).offlineFlagSourcePath("path").build();
 
         // then
         assertInstanceOf(GrpcStreamConnector.class, InProcessResolver.getConnector(forGrpcOptions));

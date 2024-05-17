@@ -10,7 +10,7 @@ import java.util.function.Function;
  */
 @Slf4j
 public final class Config {
-    static final Evaluator DEFAULT_RESOLVER_TYPE = Evaluator.RPC;
+    static final Resolver DEFAULT_RESOLVER_TYPE = Resolver.RPC;
     static final String DEFAULT_PORT = "8013";
     static final String DEFAULT_TLS = "false";
     static final String DEFAULT_HOST = "localhost";
@@ -31,6 +31,9 @@ public final class Config {
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
     static final String OFFLINE_SOURCE_PATH = "FLAGD_OFFLINE_FLAG_SOURCE_PATH";
+
+    static final String RESOLVER_RPC = "rpc";
+    static final String RESOLVER_IN_PROCESS = "in-process";
 
     public static final String STATIC_REASON = "STATIC";
     public static final String CACHED_REASON = "CACHED";
@@ -60,7 +63,7 @@ public final class Config {
         }
     }
 
-    static Evaluator fromValueProvider(Function<String, String> provider) {
+    static Resolver fromValueProvider(Function<String, String> provider) {
         final String resolverVar = provider.apply(RESOLVER_ENV_VAR);
         if (resolverVar == null) {
             return DEFAULT_RESOLVER_TYPE;
@@ -68,29 +71,72 @@ public final class Config {
 
         switch (resolverVar.toLowerCase()) {
             case "in-process":
-                return Evaluator.IN_PROCESS;
+                return Resolver.IN_PROCESS;
             case "rpc":
-                return Evaluator.RPC;
+                return Resolver.RPC;
             default:
                 log.warn("Unsupported resolver variable: {}", resolverVar);
                 return DEFAULT_RESOLVER_TYPE;
         }
     }
 
+    // intermediate interface to unify deprecated Evaluator & new Resolver
+    interface EvaluatorType {
+        String asString();
+    }
+
     /**
      * flagd evaluator type.
+     * <p>
+     * Deprecated : Please use {@code Config.Resolver}, which is a drop-in replacement of this.
      */
-    public enum Evaluator {
+    @Deprecated
+    public enum Evaluator implements EvaluatorType {
         /**
          * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC contract.
          * Evaluations are performed remotely.
          */
-        RPC,
+        RPC {
+            public String asString() {
+                return RESOLVER_RPC;
+            }
+        },
         /**
          * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract and stored
          * locally for in-process evaluation.
          * Evaluations are preformed in-process.
          */
-        IN_PROCESS
+        IN_PROCESS {
+            public String asString() {
+                return RESOLVER_IN_PROCESS;
+            }
+        }
+
+    }
+
+
+    /**
+     * flagd Resolver type.
+     */
+    public enum Resolver implements EvaluatorType {
+        /**
+         * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC contract.
+         * Evaluations are performed remotely.
+         */
+        RPC {
+            public String asString() {
+                return RESOLVER_RPC;
+            }
+        },
+        /**
+         * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract and stored
+         * locally for in-process evaluation.
+         * Evaluations are preformed in-process.
+         */
+        IN_PROCESS {
+            public String asString() {
+                return RESOLVER_IN_PROCESS;
+            }
+        }
     }
 }

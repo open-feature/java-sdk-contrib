@@ -41,7 +41,7 @@ Consider the following example to create a `FlagdProvider` with in-process evalu
 ```java
 FlagdProvider flagdProvider = new FlagdProvider(
         FlagdOptions.builder()
-                .resolverType(Config.Evaluator.IN_PROCESS)
+                .resolverType(Config.Resolver.IN_PROCESS)
                 .build());
 ```
 
@@ -55,7 +55,7 @@ To enable this mode, you should provide a valid flag configuration file with the
 ```java
 FlagdProvider flagdProvider = new FlagdProvider(
         FlagdOptions.builder()
-                .resolverType(Config.Evaluator.IN_PROCESS)
+                .resolverType(Config.Resolver.IN_PROCESS)
                 .offlineFlagSourcePath("PATH")
                 .build());
 ```

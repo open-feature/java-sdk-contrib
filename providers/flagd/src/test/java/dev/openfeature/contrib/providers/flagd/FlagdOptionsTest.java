@@ -33,7 +33,7 @@ public class FlagdOptionsTest {
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getOfflineFlagSourcePath());
-        assertEquals(Config.Evaluator.RPC, builder.getResolverType());
+        assertEquals(Config.Resolver.RPC, builder.getResolverType());
     }
 
     @Test
@@ -51,7 +51,7 @@ public class FlagdOptionsTest {
                 .selector("app=weatherApp")
                 .offlineFlagSourcePath("some-path")
                 .openTelemetry(openTelemetry)
-                .resolverType(Config.Evaluator.IN_PROCESS)
+                .resolverType(Config.Resolver.IN_PROCESS)
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -64,23 +64,23 @@ public class FlagdOptionsTest {
         assertEquals("app=weatherApp", flagdOptions.getSelector());
         assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
-        assertEquals(Config.Evaluator.IN_PROCESS, flagdOptions.getResolverType());
+        assertEquals(Config.Resolver.IN_PROCESS, flagdOptions.getResolverType());
     }
 
 
     @Test
     public void testValueProviderForEdgeCase_valid() {
         Function<String, String> valueProvider = s -> "in-process";
-        assertEquals(Config.Evaluator.IN_PROCESS, Config.fromValueProvider(valueProvider));
+        assertEquals(Config.Resolver.IN_PROCESS, Config.fromValueProvider(valueProvider));
 
         valueProvider = s -> "IN-PROCESS";
-        assertEquals(Config.Evaluator.IN_PROCESS, Config.fromValueProvider(valueProvider));
+        assertEquals(Config.Resolver.IN_PROCESS, Config.fromValueProvider(valueProvider));
 
         valueProvider = s -> "rpc";
-        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(valueProvider));
+        assertEquals(Config.Resolver.RPC, Config.fromValueProvider(valueProvider));
 
         valueProvider = s -> "RPC";
-        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(valueProvider));
+        assertEquals(Config.Resolver.RPC, Config.fromValueProvider(valueProvider));
     }
 
     @Test
