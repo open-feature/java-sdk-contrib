@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.0...dev.openfeature.contrib.providers.flagd-v0.8.1) (2024-05-17)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.17.1 ([#777](https://github.com/open-feature/java-sdk-contrib/issues/777)) ([8b582d6](https://github.com/open-feature/java-sdk-contrib/commit/8b582d6052fd22b8141a9765b2a1a261933fd3a2))
+* **deps:** update dependency commons-codec:commons-codec to v1.17.0 ([#769](https://github.com/open-feature/java-sdk-contrib/issues/769)) ([3fbb213](https://github.com/open-feature/java-sdk-contrib/commit/3fbb2137575d716e3f2e62c6c49f860aa748ce39))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.109.final ([#756](https://github.com/open-feature/java-sdk-contrib/issues/756)) ([765cb36](https://github.com/open-feature/java-sdk-contrib/commit/765cb36b7413c765cf90c0805c6db2e7281909bd))
+* **deps:** update dependency org.semver4j:semver4j to v5.3.0 ([#767](https://github.com/open-feature/java-sdk-contrib/issues/767)) ([c43fe00](https://github.com/open-feature/java-sdk-contrib/commit/c43fe00277c297516f3e83fefdb05a9a8794bce9))
+* **deps:** update grpc-java monorepo to v1.64.0 ([#788](https://github.com/open-feature/java-sdk-contrib/issues/788)) ([03a545a](https://github.com/open-feature/java-sdk-contrib/commit/03a545a742ecfc89a74bcaf12bd93de2fa0c1fed))
+* **deps:** update opentelemetry-java monorepo to v1.38.0 ([#785](https://github.com/open-feature/java-sdk-contrib/issues/785)) ([61ac99f](https://github.com/open-feature/java-sdk-contrib/commit/61ac99f577b08b8abcfcaccb421d950465907f2c))
+* update flagd schema to remove warning ([#789](https://github.com/open-feature/java-sdk-contrib/issues/789)) ([77e9528](https://github.com/open-feature/java-sdk-contrib/commit/77e9528573cef8daf5127fce125522e254b2d1ed))
+
 ## [0.8.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.7.0...dev.openfeature.contrib.providers.flagd-v0.8.0) (2024-04-11)
 
 
