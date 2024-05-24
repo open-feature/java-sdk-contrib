@@ -4,6 +4,8 @@ import io.opentelemetry.api.OpenTelemetry;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.function.Function;
+
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_CACHE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
@@ -31,6 +33,7 @@ public class FlagdOptionsTest {
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getOfflineFlagSourcePath());
+        assertEquals(Config.Evaluator.RPC, builder.getResolverType());
     }
 
     @Test
@@ -48,6 +51,7 @@ public class FlagdOptionsTest {
                 .selector("app=weatherApp")
                 .offlineFlagSourcePath("some-path")
                 .openTelemetry(openTelemetry)
+                .resolverType(Config.Evaluator.IN_PROCESS)
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -60,5 +64,32 @@ public class FlagdOptionsTest {
         assertEquals("app=weatherApp", flagdOptions.getSelector());
         assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
+        assertEquals(Config.Evaluator.IN_PROCESS, flagdOptions.getResolverType());
     }
+
+
+    @Test
+    public void testValueProviderForEdgeCase_valid() {
+        Function<String, String> valueProvider = s -> "in-process";
+        assertEquals(Config.Evaluator.IN_PROCESS, Config.fromValueProvider(valueProvider));
+
+        valueProvider = s -> "IN-PROCESS";
+        assertEquals(Config.Evaluator.IN_PROCESS, Config.fromValueProvider(valueProvider));
+
+        valueProvider = s -> "rpc";
+        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(valueProvider));
+
+        valueProvider = s -> "RPC";
+        assertEquals(Config.Evaluator.RPC, Config.fromValueProvider(valueProvider));
+    }
+
+    @Test
+    public void testValueProviderForEdgeCase_invalid() {
+        Function<String, String> dummy = s -> "some-other";
+        assertEquals(Config.DEFAULT_RESOLVER_TYPE, Config.fromValueProvider(dummy));
+
+        dummy = s -> null;
+        assertEquals(Config.DEFAULT_RESOLVER_TYPE, Config.fromValueProvider(dummy));
+    }
+
 }

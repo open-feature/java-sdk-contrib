@@ -77,20 +77,21 @@ variables.
 
 Given below are the supported configurations:
 
-| Option name           | Environment variable name      | Type & Values          | Default   | Compatible resolver |
-|-----------------------|--------------------------------|------------------------|-----------|---------------------|
-| host                  | FLAGD_HOST                     | String                 | localhost | rpc & in-process    |
-| port                  | FLAGD_PORT                     | int                    | 8013      | rpc & in-process    |
-| tls                   | FLAGD_TLS                      | boolean                | false     | rpc & in-process    |
-| socketPath            | FLAGD_SOCKET_PATH              | String                 | null      | rpc & in-process    |
-| certPath              | FLAGD_SERVER_CERT_PATH         | String                 | null      | rpc & in-process    |
-| deadline              | FLAGD_DEADLINE_MS              | int                    | 500       | rpc & in-process    |
-| selector              | FLAGD_SOURCE_SELECTOR          | String                 | null      | in-process          |
-| cache                 | FLAGD_CACHE                    | String - lru, disabled | lru       | rpc                 |
-| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                    | 1000      | rpc                 |
-| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                    | 5         | rpc                 |
-| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                    | 1000      | rpc                 |
-| offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH | String                 | null      | in-process          |
+| Option name           | Environment variable name      | Type & Values            | Default   | Compatible resolver |
+|-----------------------|--------------------------------|--------------------------|-----------|---------------------|
+| resolver              | FLAGD_RESOLVER                 | String - rpc, in-process | rpc       |                     |
+| host                  | FLAGD_HOST                     | String                   | localhost | rpc & in-process    |
+| port                  | FLAGD_PORT                     | int                      | 8013      | rpc & in-process    |
+| tls                   | FLAGD_TLS                      | boolean                  | false     | rpc & in-process    |
+| socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process    |
+| certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process    |
+| deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process    |
+| selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process          |
+| cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                 |
+| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                      | 1000      | rpc                 |
+| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                      | 5         | rpc                 |
+| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                      | 1000      | rpc                 |
+| offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH | String                   | null      | in-process          |
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.

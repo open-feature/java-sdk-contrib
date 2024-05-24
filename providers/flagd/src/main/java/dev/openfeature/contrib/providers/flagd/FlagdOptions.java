@@ -15,7 +15,6 @@ import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_RESOLVER_TYPE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
 import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
@@ -27,6 +26,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.SOCKET_PATH_ENV_VAR
 import static dev.openfeature.contrib.providers.flagd.Config.SOURCE_SELECTOR_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.TLS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
+import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 /**
  * FlagdOptions is a builder to build flagd provider options.
@@ -40,7 +40,7 @@ public class FlagdOptions {
      * flagd resolving type.
      */
     @Builder.Default
-    private Config.Evaluator resolverType = DEFAULT_RESOLVER_TYPE;
+    private Config.Evaluator resolverType = fromValueProvider(System::getenv);
 
     /**
      * flagd connection host.
