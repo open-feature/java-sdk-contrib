@@ -40,7 +40,7 @@ public class FlagdOptions {
      * flagd resolving type.
      */
     @Builder.Default
-    private Config.Evaluator resolverType = fromValueProvider(System::getenv);
+    private Config.EvaluatorType resolverType = fromValueProvider(System::getenv);
 
     /**
      * flagd connection host.

@@ -20,7 +20,7 @@ public class FlagdRpcSetup {
     @BeforeAll()
     public static void setup() {
         FlagdRpcSetup.provider = new FlagdProvider(FlagdOptions.builder()
-                .resolverType(Config.Evaluator.RPC)
+                .resolverType(Config.Resolver.RPC)
                 // set a generous deadline, to prevent timeouts in actions
                 .deadline(3000)
                 .cacheType(CacheType.DISABLED.getValue())

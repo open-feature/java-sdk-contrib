@@ -50,11 +50,11 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      * @param options {@link FlagdOptions} with
      */
     public FlagdProvider(final FlagdOptions options) {
-        switch (options.getResolverType()) {
-            case IN_PROCESS:
+        switch (options.getResolverType().asString()) {
+            case Config.RESOLVER_IN_PROCESS:
                 this.flagResolver = new InProcessResolver(options, this::setState);
                 break;
-            case RPC:
+            case Config.RESOLVER_RPC:
                 this.flagResolver =
                         new GrpcResolver(options,
                                 new Cache(options.getCacheType(), options.getMaxCacheSize()),

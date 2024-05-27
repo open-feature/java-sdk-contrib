@@ -18,7 +18,7 @@ public class FlagdRpcSetup {
     @BeforeAll()
     public static void setup() throws InterruptedException {
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
-                .resolverType(Config.Evaluator.RPC)
+                .resolverType(Config.Resolver.RPC)
                 .port(8014)
                 // set a generous deadline, to prevent timeouts in actions
                 .deadline(3000)
@@ -27,7 +27,7 @@ public class FlagdRpcSetup {
         StepDefinitions.setUnstableProvider(workingProvider);
 
         FeatureProvider unavailableProvider = new FlagdProvider(FlagdOptions.builder()
-                .resolverType(Config.Evaluator.RPC)
+                .resolverType(Config.Resolver.RPC)
                 .port(8015) // this port isn't serving anything, error expected
                 // set a generous deadline, to prevent timeouts in actions
                 .deadline(100)
