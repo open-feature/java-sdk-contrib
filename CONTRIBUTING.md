@@ -71,6 +71,9 @@ Instructions for how to develop a module should also be included (required syste
 Any published modules must have reasonable test coverage.
 The parent POM adds basic testing support for you.
 
+> [!TIP]
+> For easier usage maven wrapper is available. Example usage: `./mvnw` (unix) or `./mvnw.cmd` (win)
+
 Use `mvn clean test` to test the entire project.
 Use `mvn --projects {MODULE PATH} clean test` to test just a single module.
 
