@@ -5,28 +5,8 @@ import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
 
-import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS;
-import static dev.openfeature.contrib.providers.flagd.Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.CACHE_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.DEADLINE_MS_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_CACHE;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_DEADLINE;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
-import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.OFFLINE_SOURCE_PATH;
-import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.SERVER_CERT_PATH_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.SOCKET_PATH_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.SOURCE_SELECTOR_ENV_VAR_NAME;
-import static dev.openfeature.contrib.providers.flagd.Config.TLS_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.*;
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
-import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 /**
  * FlagdOptions is a builder to build flagd provider options.
@@ -39,8 +19,7 @@ public class FlagdOptions {
     /**
      * flagd resolving type.
      */
-    @Builder.Default
-    private Config.EvaluatorType resolverType = fromValueProvider(System::getenv);
+    private Config.EvaluatorType resolverType;
 
     /**
      * flagd connection host.
@@ -51,8 +30,7 @@ public class FlagdOptions {
     /**
      * flagd connection port.
      */
-    @Builder.Default
-    private int port = Integer.parseInt(fallBackToEnvOrDefault(PORT_ENV_VAR_NAME, DEFAULT_PORT));
+    private int port;
 
     /**
      * Use TLS connectivity.
@@ -126,6 +104,17 @@ public class FlagdOptions {
      */
     private OpenTelemetry openTelemetry;
 
+
+    public static FlagdOptionsBuilder builder() {
+        return new FlagdOptionsBuilder() {
+            @Override
+            public FlagdOptions build() {
+                prebuild();
+                return super.build();
+            }
+        };
+    }
+
     /**
      * Overload default lombok builder.
      */
@@ -139,6 +128,23 @@ public class FlagdOptions {
                 this.openTelemetry = GlobalOpenTelemetry.get();
             }
             return this;
+        }
+
+        void prebuild() {
+            if (resolverType == null) {
+                resolverType = fromValueProvider(System::getenv);
+            }
+
+            if (port == 0) {
+                port = Integer.parseInt(fallBackToEnvOrDefault(PORT_ENV_VAR_NAME, determineDefaultPortForResolver()));
+            }
+        }
+
+        private String determineDefaultPortForResolver() {
+            if (resolverType.equals(Config.Resolver.RPC)) {
+                return Config.DEFAULT_RPC_PORT;
+            }
+            return Config.DEFAULT_IN_PROCESS_PORT;
         }
     }
 }

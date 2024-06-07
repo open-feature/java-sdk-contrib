@@ -1,29 +1,24 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import io.opentelemetry.api.OpenTelemetry;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.function.Function;
 
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_CACHE;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static dev.openfeature.contrib.providers.flagd.Config.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class FlagdOptionsTest {
+class FlagdOptionsTest {
 
     @Test
-    public void TestDefaults() {
+    void TestDefaults() {
         final FlagdOptions builder = FlagdOptions.builder().build();
 
         assertEquals(DEFAULT_HOST, builder.getHost());
-        assertEquals(DEFAULT_PORT, Integer.toString(builder.getPort()));
+        assertEquals(DEFAULT_RPC_PORT, Integer.toString(builder.getPort()));
         assertFalse(builder.isTls());
         assertNull(builder.getCertPath());
         assertNull(builder.getSocketPath());
@@ -33,11 +28,11 @@ public class FlagdOptionsTest {
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getOfflineFlagSourcePath());
-        assertEquals(Config.Resolver.RPC, builder.getResolverType());
+        assertEquals(Resolver.RPC, builder.getResolverType());
     }
 
     @Test
-    public void TestBuilderOptions() {
+    void TestBuilderOptions() {
         OpenTelemetry openTelemetry = Mockito.mock(OpenTelemetry.class);
 
         FlagdOptions flagdOptions = FlagdOptions.builder()
@@ -51,7 +46,7 @@ public class FlagdOptionsTest {
                 .selector("app=weatherApp")
                 .offlineFlagSourcePath("some-path")
                 .openTelemetry(openTelemetry)
-                .resolverType(Config.Resolver.IN_PROCESS)
+                .resolverType(Resolver.IN_PROCESS)
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -64,27 +59,27 @@ public class FlagdOptionsTest {
         assertEquals("app=weatherApp", flagdOptions.getSelector());
         assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
-        assertEquals(Config.Resolver.IN_PROCESS, flagdOptions.getResolverType());
+        assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
     }
 
 
     @Test
-    public void testValueProviderForEdgeCase_valid() {
+    void testValueProviderForEdgeCase_valid() {
         Function<String, String> valueProvider = s -> "in-process";
-        assertEquals(Config.Resolver.IN_PROCESS, Config.fromValueProvider(valueProvider));
+        assertEquals(Resolver.IN_PROCESS, Config.fromValueProvider(valueProvider));
 
         valueProvider = s -> "IN-PROCESS";
-        assertEquals(Config.Resolver.IN_PROCESS, Config.fromValueProvider(valueProvider));
+        assertEquals(Resolver.IN_PROCESS, Config.fromValueProvider(valueProvider));
 
         valueProvider = s -> "rpc";
-        assertEquals(Config.Resolver.RPC, Config.fromValueProvider(valueProvider));
+        assertEquals(Resolver.RPC, Config.fromValueProvider(valueProvider));
 
         valueProvider = s -> "RPC";
-        assertEquals(Config.Resolver.RPC, Config.fromValueProvider(valueProvider));
+        assertEquals(Resolver.RPC, Config.fromValueProvider(valueProvider));
     }
 
     @Test
-    public void testValueProviderForEdgeCase_invalid() {
+    void testValueProviderForEdgeCase_invalid() {
         Function<String, String> dummy = s -> "some-other";
         assertEquals(Config.DEFAULT_RESOLVER_TYPE, Config.fromValueProvider(dummy));
 
@@ -92,4 +87,64 @@ public class FlagdOptionsTest {
         assertEquals(Config.DEFAULT_RESOLVER_TYPE, Config.fromValueProvider(dummy));
     }
 
+    @Test
+    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    void testInProcessProviderFromEnv_noPortConfigured_defaultsToCorrectPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_IN_PROCESS_PORT));
+    }
+
+    @Test
+    void testInProcessProvider_noPortConfigured_defaultsToCorrectPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder()
+                .resolverType(Resolver.IN_PROCESS)
+                .build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_IN_PROCESS_PORT));
+    }
+
+    @Test
+    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    void testInProcessProviderFromEnv_portConfigured_usesConfiguredPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder()
+                .port(1000)
+                .build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(1000);
+    }
+
+    @Test
+    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    void testRpcProviderFromEnv_noPortConfigured_defaultsToCorrectPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
+        assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_RPC_PORT));
+    }
+
+    @Test
+    void testRpcProvider_noPortConfigured_defaultsToCorrectPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder()
+                .resolverType(Resolver.RPC)
+                .build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
+        assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_RPC_PORT));
+    }
+
+    @Test
+    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    void testRpcProviderFromEnv_portConfigured_usesConfiguredPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder()
+                .port(1534)
+                .build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
+        assertThat(flagdOptions.getPort()).isEqualTo(1534);
+
+    }
 }
