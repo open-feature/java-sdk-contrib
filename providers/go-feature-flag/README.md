@@ -17,17 +17,18 @@ FeatureProvider provider = new GoFeatureFlagProvider(
   .timeout(1000)
   .build());
 
-OpenFeatureAPI.getInstance().setProviderAndWait(providerName);
+OpenFeatureAPI.getInstance().setProviderAndWait(provider);
 
 // ...
 
-Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+Client client = OpenFeatureAPI.getInstance().getClient("my-provider");
 
 // targetingKey is mandatory for each evaluation
+String targetingKey = "ad0c6f75-f5d6-4b17-b8eb-6c923d8d4698";
 EvaluationContext evaluationContext = new ImmutableContext(targetingKey);
 
-booleanFlagEvaluationDetails = client.getBooleanDetails("feature_flag1", false, evaluationContext);
-value = booleanFlagEvaluationDetails.getValue();
+FlagEvaluationDetails<Boolean> booleanFlagEvaluationDetails = client.getBooleanDetails("feature_flag1", false, evaluationContext);
+Boolean value = booleanFlagEvaluationDetails.getValue();
 
 // ...
         
