@@ -64,8 +64,7 @@
         </module>
 
 
-        <module name="AvoidStarImport">
-        </module>
+        <module name="AvoidStarImport" />
 
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText">
