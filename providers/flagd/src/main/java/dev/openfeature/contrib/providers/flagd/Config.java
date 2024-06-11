@@ -11,7 +11,8 @@ import java.util.function.Function;
 @Slf4j
 public final class Config {
     static final Resolver DEFAULT_RESOLVER_TYPE = Resolver.RPC;
-    static final String DEFAULT_PORT = "8013";
+    static final String DEFAULT_RPC_PORT = "8013";
+    static final String DEFAULT_IN_PROCESS_PORT = "8015";
     static final String DEFAULT_TLS = "false";
     static final String DEFAULT_HOST = "localhost";
 
