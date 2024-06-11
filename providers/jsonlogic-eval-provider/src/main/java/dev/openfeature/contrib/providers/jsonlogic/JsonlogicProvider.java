@@ -1,6 +1,11 @@
 package dev.openfeature.contrib.providers.jsonlogic;
 
-import dev.openfeature.sdk.*;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.Metadata;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ParseError;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;

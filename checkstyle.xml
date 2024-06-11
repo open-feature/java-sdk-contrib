@@ -51,7 +51,7 @@
     <module name="TreeWalker">
         <!-- needed for SuppressWarningsFilter -->
         <module name="SuppressWarningsHolder" />
-        
+
         <module name="SuppressWarnings">
             <property name="id" value="checkstyle:suppresswarnings"/>
         </module>
@@ -62,7 +62,11 @@
                         default="checkstyle-xpath-suppressions.xml" />
             <property name="optional" value="true"/>
         </module>
-    
+
+
+        <module name="AvoidStarImport">
+        </module>
+
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText">
             <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>
