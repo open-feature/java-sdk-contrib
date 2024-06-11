@@ -86,4 +86,11 @@ public class GoFeatureFlagProviderOptions {
      * default: 120000
      */
     private Long flagChangePollingIntervalMs;
+
+    /**
+     * (optional) disableDataCollection set to true if you don't want to collect the usage of
+     * flags retrieved in the cache.
+     * default: false
+     */
+    private boolean disableDataCollection;
 }

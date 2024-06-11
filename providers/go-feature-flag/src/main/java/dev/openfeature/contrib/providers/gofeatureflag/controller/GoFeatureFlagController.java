@@ -253,7 +253,7 @@ public class GoFeatureFlagController {
         HttpUrl url = this.parsedEndpoint.newBuilder()
                 .addEncodedPathSegment("v1")
                 .addEncodedPathSegment("flag")
-                .addEncodedPathSegment("chang1e")
+                .addEncodedPathSegment("change")
                 .build();
 
         Request.Builder reqBuilder = new Request.Builder()
@@ -281,8 +281,11 @@ public class GoFeatureFlagController {
                 throw new ConfigurationChangeEndpointUnknownErr();
             }
 
-            this.etag = response.header("ETag");
-            return ConfigurationChange.FLAG_CONFIGURATION_UPDATED;
+            boolean isInitialConfiguration = this.etag == null;
+            this.etag = response.header(HttpHeaders.ETAG);
+            return isInitialConfiguration
+                    ? ConfigurationChange.FLAG_CONFIGURATION_INITIALIZED
+                    : ConfigurationChange.FLAG_CONFIGURATION_UPDATED;
         } catch (IOException e) {
             throw new ConfigurationChangeEndpointUnknownErr(e);
         }

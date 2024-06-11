@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.cache.CacheBuilder;
+import com.google.common.net.HttpHeaders;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
@@ -49,6 +50,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Slf4j
 class GoFeatureFlagProviderTest {
     private int publishEventsRequestsReceived = 0;
+    private int flagChangeCallCounter = 0;
+    private boolean flagChanged404 = false;
 
     // Dispatcher is the configuration of the mock server to test the provider.
     final Dispatcher dispatcher = new Dispatcher() {
@@ -78,8 +81,21 @@ class GoFeatureFlagProviderTest {
                 }
                 return new MockResponse().setResponseCode(200);
             }
-            if (request.getPath().startsWith("/v1/flag/change")) {
-                return new MockResponse().setResponseCode(200).setHeader("etag", "123456");
+            if (request.getPath().contains("/v1/flag/change")) {
+                flagChangeCallCounter++;
+                if (flagChanged404) {
+                    return new MockResponse().setResponseCode(404);
+                }
+                if (flagChangeCallCounter == 2) {
+                    return new MockResponse().setResponseCode(200).setHeader(HttpHeaders.ETAG, "7891011");
+                }
+                if (request.getHeader(HttpHeaders.IF_NONE_MATCH) != null
+                        && (request.getHeader(HttpHeaders.IF_NONE_MATCH).equals("123456")
+                        || request.getHeader(HttpHeaders.IF_NONE_MATCH).equals("7891011"))) {
+                    return new MockResponse().setResponseCode(304);
+                }
+
+                return new MockResponse().setResponseCode(200).setHeader(HttpHeaders.ETAG, "123456");
             }
             return new MockResponse().setResponseCode(404);
         }
@@ -98,6 +114,8 @@ class GoFeatureFlagProviderTest {
 
     @BeforeEach
     void beforeEach(TestInfo testInfo) throws IOException {
+        this.flagChangeCallCounter = 0;
+        this.flagChanged404 = false;
         this.testName = testInfo.getDisplayName();
         this.server = new MockWebServer();
         this.server.setDispatcher(dispatcher);
@@ -775,6 +793,50 @@ class GoFeatureFlagProviderTest {
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         Thread.sleep(100);
         assertEquals(3, publishEventsRequestsReceived, "We pass the flush interval, we should have 3 events");
+    }
+
+    @SneakyThrows
+    @Test
+    void should_not_get_cached_value_if_flag_configuration_changed() {
+        this.evaluationContext = new MutableContext("d45e303a-38c2-11ed-a261-0242ac120002");
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .disableDataCollection(true)
+                .enableCache(true)
+                .flagChangePollingIntervalMs(50L)
+                .disableDataCollection(true)
+                .build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.TARGETING_MATCH.name(), got.getReason());
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.CACHED.name(), got.getReason());
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.CACHED.name(), got.getReason());
+        Thread.sleep(200L);
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.TARGETING_MATCH.name(), got.getReason());
+    }
+
+    @SneakyThrows
+    @Test
+    void should_stop_calling_flag_change_if_receive_404() {
+        this.flagChanged404 = true;
+        this.evaluationContext = new MutableContext("d45e303a-38c2-11ed-a261-0242ac120002");
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .enableCache(true)
+                .flagChangePollingIntervalMs(10L)
+                .build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        Thread.sleep(150L);
+        assertEquals(1, this.flagChangeCallCounter);
     }
 
     private String readMockResponse(String filename) throws Exception {

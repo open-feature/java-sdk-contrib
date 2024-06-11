@@ -115,12 +115,15 @@ public class GoFeatureFlagProvider extends EventProvider {
 
         if (options.getEnableCache() == null || options.getEnableCache()) {
             this.cacheCtrl = CacheController.builder().options(options).build();
-            this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
-                    .flushIntervalMs(options.getFlushIntervalMs())
-                    .gofeatureflagController(this.gofeatureflagController)
-                    .maxPendingEvents(options.getMaxPendingEvents())
-                    .build());
-            this.hooks.add(this.dataCollectorHook);
+
+            if (!this.options.isDisableDataCollection()) {
+                this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
+                        .flushIntervalMs(options.getFlushIntervalMs())
+                        .gofeatureflagController(this.gofeatureflagController)
+                        .maxPendingEvents(options.getMaxPendingEvents())
+                        .build());
+                this.hooks.add(this.dataCollectorHook);
+            }
             this.flagChangeDisposable =
                     this.startCheckFlagConfigurationChangesDaemon();
         }
@@ -147,7 +150,7 @@ public class GoFeatureFlagProvider extends EventProvider {
                 .takeUntil(stopSignal)
                 .flatMap(tick -> Observable.fromCallable(() -> this.gofeatureflagController.configurationHasChanged())
                         .onErrorResumeNext(e -> {
-                            log.error("error while calling flag change API, error", e);
+                            log.error("error while calling flag change API", e);
                             if (e instanceof ConfigurationChangeEndpointNotFound) {
                                 // emit an item to stop the interval to stop the loop
                                 stopSignal.onNext(new Object());
@@ -164,6 +167,8 @@ public class GoFeatureFlagProvider extends EventProvider {
                                 this.cacheCtrl.invalidateAll();
                                 super.emitProviderConfigurationChanged(ProviderEventDetails.builder()
                                         .message("GO Feature Flag Configuration changed, clearing the cache").build());
+                            } else {
+                                log.debug("flag configuration has not changed: {}", response);
                             }
                         },
                         throwable -> log.error("error while calling flag change API, error: {}", throwable.getMessage())
@@ -242,7 +247,7 @@ public class GoFeatureFlagProvider extends EventProvider {
 
     @Override
     public void shutdown() {
-        log.info("shutdown");
+        log.debug("shutdown");
         if (this.dataCollectorHook != null) {
             this.dataCollectorHook.shutdown();
         }

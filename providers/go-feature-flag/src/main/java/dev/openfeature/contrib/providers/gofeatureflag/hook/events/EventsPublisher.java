@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook.events;
 
 
-import dev.openfeature.contrib.providers.gofeatureflag.concurrent.ConcurrentUtils;
+import dev.openfeature.contrib.providers.gofeatureflag.util.ConcurrentUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
