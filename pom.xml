@@ -72,7 +72,7 @@
             <version>1.18.32</version>
             <scope>provided</scope>
         </dependency>
-        
+
         <dependency>
             <!-- used so that lombok can generate suppressions for spotbugs. It needs to find it on the relevant classpath -->
             <groupId>com.github.spotbugs</groupId>
@@ -137,6 +137,13 @@
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <version>1.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit-pioneer</groupId>
+            <artifactId>junit-pioneer</artifactId>
+            <version>1.9.1</version>
             <scope>test</scope>
         </dependency>
 
