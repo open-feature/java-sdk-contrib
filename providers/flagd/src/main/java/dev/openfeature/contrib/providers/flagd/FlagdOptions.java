@@ -14,7 +14,6 @@ import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_DEADLINE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_EVENT_STREAM_RETRIES;
-import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_PORT;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_TLS;
 import static dev.openfeature.contrib.providers.flagd.Config.HOST_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
@@ -39,8 +38,7 @@ public class FlagdOptions {
     /**
      * flagd resolving type.
      */
-    @Builder.Default
-    private Config.EvaluatorType resolverType = fromValueProvider(System::getenv);
+    private Config.EvaluatorType resolverType;
 
     /**
      * flagd connection host.
@@ -51,8 +49,7 @@ public class FlagdOptions {
     /**
      * flagd connection port.
      */
-    @Builder.Default
-    private int port = Integer.parseInt(fallBackToEnvOrDefault(PORT_ENV_VAR_NAME, DEFAULT_PORT));
+    private int port;
 
     /**
      * Use TLS connectivity.
@@ -126,6 +123,22 @@ public class FlagdOptions {
      */
     private OpenTelemetry openTelemetry;
 
+
+    /**
+     * Builder overwrite in order to customize the "build" method.
+     *
+     * @return the flagd options builder
+     */
+    public static FlagdOptionsBuilder builder() {
+        return new FlagdOptionsBuilder() {
+            @Override
+            public FlagdOptions build() {
+                prebuild();
+                return super.build();
+            }
+        };
+    }
+
     /**
      * Overload default lombok builder.
      */
@@ -139,6 +152,23 @@ public class FlagdOptions {
                 this.openTelemetry = GlobalOpenTelemetry.get();
             }
             return this;
+        }
+
+        void prebuild() {
+            if (resolverType == null) {
+                resolverType = fromValueProvider(System::getenv);
+            }
+
+            if (port == 0) {
+                port = Integer.parseInt(fallBackToEnvOrDefault(PORT_ENV_VAR_NAME, determineDefaultPortForResolver()));
+            }
+        }
+
+        private String determineDefaultPortForResolver() {
+            if (resolverType.equals(Config.Resolver.RPC)) {
+                return Config.DEFAULT_RPC_PORT;
+            }
+            return Config.DEFAULT_IN_PROCESS_PORT;
         }
     }
 }
