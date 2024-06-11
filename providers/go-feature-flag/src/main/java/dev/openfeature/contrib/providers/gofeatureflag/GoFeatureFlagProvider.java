@@ -1,90 +1,55 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.BeanUtils;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRequest;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagUser;
+import dev.openfeature.contrib.providers.gofeatureflag.bean.ConfigurationChange;
+import dev.openfeature.contrib.providers.gofeatureflag.controller.CacheController;
+import dev.openfeature.contrib.providers.gofeatureflag.controller.GoFeatureFlagController;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.ConfigurationChangeEndpointNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTypeInCache;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOptions;
-import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
-import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
-import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.AccessLevel;
-import lombok.Getter;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+import io.reactivex.rxjava3.subjects.PublishSubject;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.ConnectionPool;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import static dev.openfeature.sdk.Value.objectToValue;
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 /**
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
  */
 @Slf4j
 @SuppressWarnings({"checkstyle:NoFinalizer"})
-public class GoFeatureFlagProvider implements FeatureProvider {
-    public static final long DEFAULT_CACHE_TTL_MS = 1000;
-    public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
-    public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
-    public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 10000;
-    public static final ObjectMapper requestMapper = new ObjectMapper();
+public class GoFeatureFlagProvider extends EventProvider {
+    public static final long DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS = 2L * 60L * 1000L;
     protected static final String CACHED_REASON = Reason.CACHED.name();
     private static final String NAME = "GO Feature Flag Provider";
-    private static final ObjectMapper responseMapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    private final GoFeatureFlagProviderOptions options;
-    private DataCollectorHook dataCollectorHook;
-    private final List<Hook> hooks = new ArrayList<>();
-    private HttpUrl parsedEndpoint;
-    // httpClient is the instance of the OkHttpClient used by the provider
-    private OkHttpClient httpClient;
-    // apiKey contains the token to use while calling GO Feature Flag relay proxy
-    private String apiKey;
-    @Getter(AccessLevel.PROTECTED)
-    private Cache<String, ProviderEvaluation<?>> cache;
-    private ProviderState state = ProviderState.NOT_READY;
 
-    protected final void finalize() {
-        // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
-    }
+    private final GoFeatureFlagProviderOptions options;
+    private final List<Hook> hooks = new ArrayList<>();
+    private DataCollectorHook dataCollectorHook;
+    private ProviderState state = ProviderState.NOT_READY;
+    private Disposable flagChangeDisposable;
+    private GoFeatureFlagController gofeatureflagController;
+    private CacheController cacheCtrl;
 
     /**
      * Constructor of the provider.
@@ -95,36 +60,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     public GoFeatureFlagProvider(GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.validateInputOptions(options);
         this.options = options;
-    }
-
-    /**
-     * validateInputOptions is validating the different options provided when creating the provider.
-     *
-     * @param options - Options used while creating the provider
-     * @throws InvalidOptions  - if no options are provided
-     * @throws InvalidEndpoint - if the endpoint provided is not valid
-     */
-    private void validateInputOptions(GoFeatureFlagProviderOptions options) throws InvalidEndpoint, InvalidOptions {
-        if (options == null) {
-            throw new InvalidOptions("No options provided");
-        }
-
-        if (options.getEndpoint() == null || options.getEndpoint().isEmpty()) {
-            throw new InvalidEndpoint("endpoint is a mandatory field when initializing the provider");
-        }
-    }
-
-    /**
-     * buildDefaultCache is building a default cache configuration.
-     *
-     * @return the default cache configuration
-     */
-    private Cache<String, ProviderEvaluation<?>> buildDefaultCache() {
-        return CacheBuilder.newBuilder()
-                .concurrencyLevel(DEFAULT_CACHE_CONCURRENCY_LEVEL)
-                .initialCapacity(DEFAULT_CACHE_INITIAL_CAPACITY).maximumSize(DEFAULT_CACHE_MAXIMUM_SIZE)
-                .expireAfterWrite(Duration.ofMillis(DEFAULT_CACHE_TTL_MS))
-                .build();
     }
 
     @Override
@@ -173,58 +108,70 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         return getEvaluation(key, defaultValue, evaluationContext, Value.class);
     }
 
-    /**
-     * buildCacheKey is creating the entry key of the cache.
-     *
-     * @param key     - the name of your feature flag
-     * @param userKey - a representation of your user
-     * @return the cache key
-     */
-    private String buildCacheKey(String key, String userKey) {
-        return key + "," + userKey;
-    }
-
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        FeatureProvider.super.initialize(evaluationContext);
+        super.initialize(evaluationContext);
+        this.gofeatureflagController = GoFeatureFlagController.builder().options(options).build();
 
-        // Register JavaTimeModule to be able to deserialized java.time.Instant Object
-        requestMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        requestMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        requestMapper.registerModule(new JavaTimeModule());
-
-        // init httpClient to call the GO Feature Flag API
-        int timeout = options.getTimeout() == 0 ? 10000 : options.getTimeout();
-        long keepAliveDuration = options.getKeepAliveDuration() == null ? 7200000 : options.getKeepAliveDuration();
-        int maxIdleConnections = options.getMaxIdleConnections() == 0 ? 1000 : options.getMaxIdleConnections();
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(timeout, TimeUnit.MILLISECONDS)
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .callTimeout(timeout, TimeUnit.MILLISECONDS)
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeout, TimeUnit.MILLISECONDS)
-                .connectionPool(new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.MILLISECONDS))
-                .build();
-
-        this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
-        if (this.parsedEndpoint == null) {
-            throw new InvalidEndpoint();
-        }
-        this.apiKey = options.getApiKey();
-        boolean enableCache = options.getEnableCache() == null || options.getEnableCache();
-        if (enableCache) {
-            this.cache = options.getCacheBuilder() != null ? options.getCacheBuilder().build() : buildDefaultCache();
+        if (options.getEnableCache() == null || options.getEnableCache()) {
+            this.cacheCtrl = CacheController.builder().options(options).build();
             this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
                     .flushIntervalMs(options.getFlushIntervalMs())
-                    .parsedEndpoint(parsedEndpoint)
+                    .gofeatureflagController(this.gofeatureflagController)
                     .maxPendingEvents(options.getMaxPendingEvents())
-                    .apiKey(options.getApiKey())
-                    .httpClient(this.httpClient)
                     .build());
             this.hooks.add(this.dataCollectorHook);
+            this.flagChangeDisposable =
+                    this.startCheckFlagConfigurationChangesDaemon();
         }
         state = ProviderState.READY;
+        super.emitProviderReady(ProviderEventDetails.builder().message("Provider is ready to call the API").build());
         log.info("finishing initializing provider, state: {}", state);
+    }
+
+
+    /**
+     * startCheckFlagConfigurationChangesDaemon is a daemon that will check if the flag configuration has changed.
+     *
+     * @return Disposable - the subscription to the observable
+     */
+    @NotNull
+    private Disposable startCheckFlagConfigurationChangesDaemon() {
+        long pollingIntervalMs = options.getFlagChangePollingIntervalMs() != null
+                ? options.getFlagChangePollingIntervalMs() : DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
+
+        PublishSubject<Object> stopSignal = PublishSubject.create();
+        Observable<Long> intervalObservable = Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS);
+        Observable<ConfigurationChange> apiCallObservable = intervalObservable
+                // as soon something is published in stopSignal, the interval will stop
+                .takeUntil(stopSignal)
+                .flatMap(tick -> Observable.fromCallable(() -> this.gofeatureflagController.configurationHasChanged())
+                        .onErrorResumeNext(e -> {
+                            log.error("error while calling flag change API, error", e);
+                            if (e instanceof ConfigurationChangeEndpointNotFound) {
+                                // emit an item to stop the interval to stop the loop
+                                stopSignal.onNext(new Object());
+                            }
+                            return Observable.empty();
+                        }))
+                .subscribeOn(Schedulers.io());
+
+        Disposable disposable = apiCallObservable
+                .subscribe(
+                        response -> {
+                            if (response == ConfigurationChange.FLAG_CONFIGURATION_UPDATED) {
+                                log.info("clean up the cache because the flag configuration has changed");
+                                this.cacheCtrl.invalidateAll();
+                                super.emitProviderConfigurationChanged(ProviderEventDetails.builder()
+                                        .message("GO Feature Flag Configuration changed, clearing the cache").build());
+                            }
+                        },
+                        throwable -> log.error("error while calling flag change API, error: {}", throwable.getMessage())
+                );
+
+        // Add a shutdown hook to dispose the subscription on application termination
+        Runtime.getRuntime().addShutdownHook(new Thread(disposable::dispose));
+        return disposable;
     }
 
     @Override
@@ -246,7 +193,6 @@ public class GoFeatureFlagProvider implements FeatureProvider {
     @SuppressWarnings("unchecked")
     private <T> ProviderEvaluation<T> getEvaluation(
             String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType) {
-        GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
         try {
             if (!ProviderState.READY.equals(state)) {
                 if (ProviderState.NOT_READY.equals(state)) {
@@ -260,190 +206,39 @@ public class GoFeatureFlagProvider implements FeatureProvider {
                 throw new GeneralError("unknown error, provider state: " + state);
             }
 
-            if (cache == null) {
-                return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType)
+            if (this.cacheCtrl == null) {
+                return this.gofeatureflagController
+                        .evaluateFlag(key, defaultValue, evaluationContext, expectedType)
                         .getProviderEvaluation();
             }
 
-            String cacheKey = buildCacheKey(key, BeanUtils.buildKey(user));
-            ProviderEvaluation<?> cachedProviderEvaluation = cache.getIfPresent(cacheKey);
+            ProviderEvaluation<?> cachedProviderEvaluation = this.cacheCtrl.getIfPresent(key, evaluationContext);
             if (cachedProviderEvaluation == null) {
-                EvaluationResponse<T> proxyRes = resolveEvaluationGoFeatureFlagProxy(
-                        key, defaultValue, user, expectedType);
-                if (Boolean.TRUE.equals(proxyRes.getCachable())) {
-                    cache.put(cacheKey, proxyRes.getProviderEvaluation());
+                EvaluationResponse<T> proxyRes = this.gofeatureflagController.evaluateFlag(
+                        key, defaultValue, evaluationContext, expectedType);
+
+                if (Boolean.TRUE.equals(proxyRes.getCacheable())) {
+                    this.cacheCtrl.put(key, evaluationContext, proxyRes.getProviderEvaluation());
                 }
                 return proxyRes.getProviderEvaluation();
             }
             cachedProviderEvaluation.setReason(CACHED_REASON);
-
             if (cachedProviderEvaluation.getValue().getClass() != expectedType) {
                 throw new InvalidTypeInCache(expectedType, cachedProviderEvaluation.getValue().getClass());
             }
             return (ProviderEvaluation<T>) cachedProviderEvaluation;
         } catch (JsonProcessingException e) {
             log.error("Error building key for user", e);
-            return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
+            return this.gofeatureflagController
+                    .evaluateFlag(key, defaultValue, evaluationContext, expectedType)
+                    .getProviderEvaluation();
         } catch (InvalidTypeInCache e) {
             log.warn(e.getMessage(), e);
-            return resolveEvaluationGoFeatureFlagProxy(key, defaultValue, user, expectedType).getProviderEvaluation();
+            return this.gofeatureflagController
+                    .evaluateFlag(key, defaultValue, evaluationContext, expectedType)
+                    .getProviderEvaluation();
         }
     }
-
-    /**
-     * resolveEvaluationGoFeatureFlagProxy is calling the GO Feature Flag API to retrieve the flag value.
-     *
-     * @param key          - name of the feature flag
-     * @param defaultValue - value used if something is not working as expected
-     * @param user         - user (containing EvaluationContext) used for the request
-     * @param expectedType - type expected for the value
-     * @return a ProviderEvaluation that contains the open-feature response
-     * @throws OpenFeatureError - if an error happen
-     */
-    private <T> EvaluationResponse<T> resolveEvaluationGoFeatureFlagProxy(
-            String key, T defaultValue, GoFeatureFlagUser user, Class<?> expectedType
-    ) throws OpenFeatureError {
-        try {
-            GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<>(user, defaultValue);
-
-            HttpUrl url = this.parsedEndpoint.newBuilder()
-                    .addEncodedPathSegment("v1")
-                    .addEncodedPathSegment("feature")
-                    .addEncodedPathSegment(key)
-                    .addEncodedPathSegment("eval")
-                    .build();
-
-            Request.Builder reqBuilder = new Request.Builder()
-                    .url(url)
-                    .addHeader("Content-Type", "application/json")
-                    .post(RequestBody.create(
-                            requestMapper.writeValueAsBytes(goffRequest),
-                            MediaType.get("application/json; charset=utf-8")));
-
-            if (this.apiKey != null && !"".equals(this.apiKey)) {
-                reqBuilder.addHeader("Authorization", "Bearer " + this.apiKey);
-            }
-
-            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                if (response.code() == HTTP_UNAUTHORIZED) {
-                    throw new GeneralError("invalid token used to contact GO Feature Flag relay proxy instance");
-                }
-                if (response.code() >= HTTP_BAD_REQUEST) {
-                    throw new GeneralError("impossible to contact GO Feature Flag relay proxy instance");
-                }
-
-                ResponseBody responseBody = response.body();
-                String body = responseBody != null ? responseBody.string() : "";
-                GoFeatureFlagResponse goffResp =
-                        responseMapper.readValue(body, GoFeatureFlagResponse.class);
-
-                if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
-                    // we don't set a variant since we are using the default value, and we are not able to know
-                    // which variant it is.
-                    ProviderEvaluation<T> providerEvaluation = ProviderEvaluation.<T>builder()
-                            .value(defaultValue)
-                            .variant(goffResp.getVariationType())
-                            .reason(Reason.DISABLED.name()).build();
-
-                    return EvaluationResponse.<T>builder()
-                            .providerEvaluation(providerEvaluation).cachable(goffResp.getCacheable()).build();
-                }
-
-                if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {
-                    throw new FlagNotFoundError("Flag " + key + " was not found in your configuration");
-                }
-
-                // Convert the value received from the API.
-                T flagValue = convertValue(goffResp.getValue(), expectedType);
-
-                if (flagValue.getClass() != expectedType) {
-                    throw new TypeMismatchError("Flag value " + key + " had unexpected type "
-                            + flagValue.getClass() + ", expected " + expectedType + ".");
-                }
-
-                ProviderEvaluation<T> providerEvaluation = ProviderEvaluation.<T>builder()
-                        .errorCode(mapErrorCode(goffResp.getErrorCode()))
-                        .reason(goffResp.getReason())
-                        .value(flagValue)
-                        .variant(goffResp.getVariationType())
-                        .flagMetadata(this.convertFlagMetadata(goffResp.getMetadata()))
-                        .build();
-
-                return EvaluationResponse.<T>builder()
-                        .providerEvaluation(providerEvaluation).cachable(goffResp.getCacheable()).build();
-            }
-        } catch (IOException e) {
-            throw new GeneralError("unknown error while retrieving flag " + key, e);
-        }
-    }
-
-    /**
-     * mapErrorCode is mapping the errorCode in string received by the API to our internal SDK ErrorCode enum.
-     *
-     * @param errorCode - string of the errorCode received from the API
-     * @return an item from the enum
-     */
-    private ErrorCode mapErrorCode(String errorCode) {
-        try {
-            return ErrorCode.valueOf(errorCode);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    /**
-     * convertFlagMetadata is converting the flagMetadata object received from the server
-     * to an ImmutableMetadata format known by Open Feature.
-     *
-     * @param flagMetadata - metadata received from the server
-     * @return a converted metadata object.
-     */
-    private ImmutableMetadata convertFlagMetadata(Map<String, Object> flagMetadata) {
-        ImmutableMetadata.ImmutableMetadataBuilder builder = ImmutableMetadata.builder();
-        if (flagMetadata == null) {
-            return builder.build();
-        }
-        flagMetadata.forEach((k, v) -> {
-            if (v instanceof Long) {
-                builder.addLong(k, (Long) v);
-            } else if (v instanceof Integer) {
-                builder.addInteger(k, (Integer) v);
-            } else if (v instanceof Float) {
-                builder.addFloat(k, (Float) v);
-            } else if (v instanceof Double) {
-                builder.addDouble(k, (Double) v);
-            } else if (v instanceof Boolean) {
-                builder.addBoolean(k, (Boolean) v);
-            } else {
-                builder.addString(k, v.toString());
-            }
-        });
-        return builder.build();
-    }
-
-    /**
-     * convertValue is converting the object return by the proxy response in the right type.
-     *
-     * @param value        - The value we have received
-     * @param expectedType - the type we expect for this value
-     * @param <T>          the type we want to convert to.
-     * @return A converted object
-     */
-    private <T> T convertValue(Object value, Class<?> expectedType) {
-        boolean isPrimitive = expectedType == Boolean.class
-                || expectedType == String.class
-                || expectedType == Integer.class
-                || expectedType == Double.class;
-
-        if (isPrimitive) {
-            if (value.getClass() == Integer.class && expectedType == Double.class) {
-                return (T) Double.valueOf((Integer) value);
-            }
-            return (T) value;
-        }
-        return (T) objectToValue(value);
-    }
-
 
     @Override
     public void shutdown() {
@@ -451,5 +246,38 @@ public class GoFeatureFlagProvider implements FeatureProvider {
         if (this.dataCollectorHook != null) {
             this.dataCollectorHook.shutdown();
         }
+        if (this.flagChangeDisposable != null) {
+            this.flagChangeDisposable.dispose();
+        }
+        if (this.cacheCtrl != null) {
+            this.cacheCtrl.invalidateAll();
+        }
+    }
+
+    /**
+     * validateInputOptions is validating the different options provided when creating the provider.
+     *
+     * @param options - Options used while creating the provider
+     * @throws InvalidOptions  - if no options are provided
+     * @throws InvalidEndpoint - if the endpoint provided is not valid
+     */
+    private void validateInputOptions(GoFeatureFlagProviderOptions options) throws InvalidOptions {
+        if (options == null) {
+            throw new InvalidOptions("No options provided");
+        }
+
+        if (options.getEndpoint() == null || options.getEndpoint().isEmpty()) {
+            throw new InvalidEndpoint("endpoint is a mandatory field when initializing the provider");
+        }
+    }
+
+    /**
+     * DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW.
+     *
+     * @deprecated (Kept for compatibility with OpenFeatureAPI)
+     */
+    @Deprecated
+    protected final void finalize() {
+        // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
     }
 }

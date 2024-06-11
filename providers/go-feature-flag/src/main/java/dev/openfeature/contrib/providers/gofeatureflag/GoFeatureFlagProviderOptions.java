@@ -50,7 +50,11 @@ public class GoFeatureFlagProviderOptions {
     /**
      * (optional) If cache custom configuration is wanted, you should provide
      * a cache builder.
-     * Default: null
+     * Default:
+     * CACHE_TTL_MS: 5min
+     * CACHE_CONCURRENCY_LEVEL: 1
+     * CACHE_INITIAL_CAPACITY: 100
+     * CACHE_MAXIMUM_SIZE: 100000
      */
     private CacheBuilder<String, ProviderEvaluation<?>> cacheBuilder;
 
@@ -70,8 +74,16 @@ public class GoFeatureFlagProviderOptions {
 
     /**
      * (optional) max pending events aggregated before publishing for collection data to the proxy.
-     * When event is added while events collection is full, event is omitted.
+     * When an event is added while an events collection is full, the event is omitted.
      * default: 10000
      */
     private Integer maxPendingEvents;
+
+    /**
+     * (optional) interval time we poll the proxy to check if the configuration has changed.
+     * If the cache is enabled, we will poll the relay-proxy every X milliseconds
+     * to check if the configuration has changed.
+     * default: 120000
+     */
+    private Long flagChangePollingIntervalMs;
 }
