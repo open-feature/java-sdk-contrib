@@ -159,7 +159,7 @@ public class GoFeatureFlagProvider extends EventProvider {
                         }))
                 .subscribeOn(Schedulers.io());
 
-        Disposable disposable = apiCallObservable
+        return apiCallObservable
                 .subscribe(
                         response -> {
                             if (response == ConfigurationChange.FLAG_CONFIGURATION_UPDATED) {
@@ -173,10 +173,6 @@ public class GoFeatureFlagProvider extends EventProvider {
                         },
                         throwable -> log.error("error while calling flag change API, error: {}", throwable.getMessage())
                 );
-
-        // Add a shutdown hook to dispose the subscription on application termination
-        Runtime.getRuntime().addShutdownHook(new Thread(disposable::dispose));
-        return disposable;
     }
 
     @Override
