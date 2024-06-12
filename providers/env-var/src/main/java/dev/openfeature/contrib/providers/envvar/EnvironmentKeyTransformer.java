@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.envvar;
 
-import java.util.function.*;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
