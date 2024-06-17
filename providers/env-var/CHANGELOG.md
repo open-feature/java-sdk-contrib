@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.5...dev.openfeature.contrib.providers.env-var-v0.0.6) (2024-06-17)
+
+
+### ✨ New Features
+
+* avoid star imports via checkstyle ([#817](https://github.com/open-feature/java-sdk-contrib/issues/817)) ([249225f](https://github.com/open-feature/java-sdk-contrib/commit/249225f4e0f981dbe7ea69330990c2509e4e4292))
+
 ## [0.0.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.4...dev.openfeature.contrib.providers.env-var-v0.0.5) (2023-12-29)
 
 
