@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.1.1...dev.openfeature.contrib.hooks.otel-v3.1.2) (2024-06-17)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.34.0 ([#617](https://github.com/open-feature/java-sdk-contrib/issues/617)) ([5ca055d](https://github.com/open-feature/java-sdk-contrib/commit/5ca055d261f05f0dd8c777bcffef63a8867cd6ad))
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.34.1 ([#627](https://github.com/open-feature/java-sdk-contrib/issues/627)) ([f6bff98](https://github.com/open-feature/java-sdk-contrib/commit/f6bff98d3f6974a8f9ada50208212ae389380ead))
+* **deps:** update dependency io.opentelemetry:opentelemetry-bom to v1.37.0 ([#747](https://github.com/open-feature/java-sdk-contrib/issues/747)) ([33b7e49](https://github.com/open-feature/java-sdk-contrib/commit/33b7e49f89ef5c4cae363a5135e3ab911787d692))
+* **deps:** update opentelemetry-java monorepo to v1.35.0 ([#673](https://github.com/open-feature/java-sdk-contrib/issues/673)) ([4a62744](https://github.com/open-feature/java-sdk-contrib/commit/4a62744767f4924452898030932caac602aa7e02))
+* **deps:** update opentelemetry-java monorepo to v1.36.0 ([#703](https://github.com/open-feature/java-sdk-contrib/issues/703)) ([712b48c](https://github.com/open-feature/java-sdk-contrib/commit/712b48c8a25dc8733c03ea862f499e1a60271e13))
+* **deps:** update opentelemetry-java monorepo to v1.38.0 ([#785](https://github.com/open-feature/java-sdk-contrib/issues/785)) ([61ac99f](https://github.com/open-feature/java-sdk-contrib/commit/61ac99f577b08b8abcfcaccb421d950465907f2c))
+* **deps:** update opentelemetry-java monorepo to v1.39.0 ([#813](https://github.com/open-feature/java-sdk-contrib/issues/813)) ([cbf4232](https://github.com/open-feature/java-sdk-contrib/commit/cbf42324351f25889e59bf8b29d5ed4752ab3c98))
+
 ## [3.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.1.0...dev.openfeature.contrib.hooks.otel-v3.1.1) (2023-12-22)
 
 
