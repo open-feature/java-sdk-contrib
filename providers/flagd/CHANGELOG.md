@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.2...dev.openfeature.contrib.providers.flagd-v0.8.3) (2024-06-19)
+
+
+### 🐛 Bug Fixes
+
+* broken netty transport ([#834](https://github.com/open-feature/java-sdk-contrib/issues/834)) ([92a0499](https://github.com/open-feature/java-sdk-contrib/commit/92a049933e9efd756b59db44487597b66878ff6e))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.111.final ([#819](https://github.com/open-feature/java-sdk-contrib/issues/819)) ([6bc7761](https://github.com/open-feature/java-sdk-contrib/commit/6bc7761672c8c488933323e19cc6f80801841f8f))
+* update flagd schema to latest tag ([#836](https://github.com/open-feature/java-sdk-contrib/issues/836)) ([732f567](https://github.com/open-feature/java-sdk-contrib/commit/732f567f583c3c35bb089c6e7ac9a37a1bb8a7f6))
+
 ## [0.8.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.1...dev.openfeature.contrib.providers.flagd-v0.8.2) (2024-06-14)
 
 
