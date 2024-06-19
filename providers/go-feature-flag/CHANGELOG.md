@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.21](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.20...dev.openfeature.contrib.providers.go-feature-flag-v0.2.21) (2024-06-19)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.google.guava:guava to v33.2.1-jre ([#803](https://github.com/open-feature/java-sdk-contrib/issues/803)) ([4181807](https://github.com/open-feature/java-sdk-contrib/commit/418180789db84fb7cff160ef3af2cac773274aaa))
+
+
+### ✨ New Features
+
+* **gofeatureflag:** Add support of flag change cache removal ([#821](https://github.com/open-feature/java-sdk-contrib/issues/821)) ([536de91](https://github.com/open-feature/java-sdk-contrib/commit/536de91d64ff37330245070b55db42d0d308f02c))
+
+
+### 📚 Documentation
+
+* **GOFF:** Fix issues in readme ([#814](https://github.com/open-feature/java-sdk-contrib/issues/814)) ([5d60be7](https://github.com/open-feature/java-sdk-contrib/commit/5d60be72a4e583829438db7776826d21bf87bb82))
+
 ## [0.2.20](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.19...dev.openfeature.contrib.providers.go-feature-flag-v0.2.20) (2024-05-06)
 
 
