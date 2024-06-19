@@ -13,5 +13,5 @@ import lombok.Getter;
 @Getter
 public class EvaluationResponse<T> {
     private ProviderEvaluation<T> providerEvaluation;
-    private Boolean cachable;
+    private Boolean cacheable;
 }

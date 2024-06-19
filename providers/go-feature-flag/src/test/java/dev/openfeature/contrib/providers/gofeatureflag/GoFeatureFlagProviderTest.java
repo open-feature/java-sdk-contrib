@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.cache.CacheBuilder;
+import com.google.common.net.HttpHeaders;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
@@ -40,7 +41,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.TestInfo;
 
-import static dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProvider.requestMapper;
+import static dev.openfeature.contrib.providers.gofeatureflag.controller.GoFeatureFlagController.requestMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,6 +50,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Slf4j
 class GoFeatureFlagProviderTest {
     private int publishEventsRequestsReceived = 0;
+    private int flagChangeCallCounter = 0;
+    private boolean flagChanged404 = false;
 
     // Dispatcher is the configuration of the mock server to test the provider.
     final Dispatcher dispatcher = new Dispatcher() {
@@ -66,17 +69,33 @@ class GoFeatureFlagProviderTest {
             if (request.getPath().startsWith("/v1/feature/")) {
                 String flagName = request.getPath().replace("/v1/feature/", "").replace("/eval", "");
                 return new MockResponse()
-                    .setResponseCode(200)
-                    .setBody(readMockResponse(flagName + ".json"));
+                        .setResponseCode(200)
+                        .setBody(readMockResponse(flagName + ".json"));
             }
             if (request.getPath().startsWith("/v1/data/collector")) {
                 String requestBody = request.getBody().readString(StandardCharsets.UTF_8);
                 Map<String, Object> map = requestMapper.readValue(requestBody, Map.class);
-                publishEventsRequestsReceived = ((List)map.get("events")).size();
-                if(requestBody.contains("fail_500") && publishEventsRequestsReceived == 1){
+                publishEventsRequestsReceived = ((List) map.get("events")).size();
+                if (requestBody.contains("fail_500") && publishEventsRequestsReceived == 1) {
                     return new MockResponse().setResponseCode(502);
                 }
                 return new MockResponse().setResponseCode(200);
+            }
+            if (request.getPath().contains("/v1/flag/change")) {
+                flagChangeCallCounter++;
+                if (flagChanged404) {
+                    return new MockResponse().setResponseCode(404);
+                }
+                if (flagChangeCallCounter == 2) {
+                    return new MockResponse().setResponseCode(200).setHeader(HttpHeaders.ETAG, "7891011");
+                }
+                if (request.getHeader(HttpHeaders.IF_NONE_MATCH) != null
+                        && (request.getHeader(HttpHeaders.IF_NONE_MATCH).equals("123456")
+                        || request.getHeader(HttpHeaders.IF_NONE_MATCH).equals("7891011"))) {
+                    return new MockResponse().setResponseCode(304);
+                }
+
+                return new MockResponse().setResponseCode(200).setHeader(HttpHeaders.ETAG, "123456");
             }
             return new MockResponse().setResponseCode(404);
         }
@@ -92,8 +111,11 @@ class GoFeatureFlagProviderTest {
                     .build();
 
     private String testName;
+
     @BeforeEach
     void beforeEach(TestInfo testInfo) throws IOException {
+        this.flagChangeCallCounter = 0;
+        this.flagChanged404 = false;
         this.testName = testInfo.getDisplayName();
         this.server = new MockWebServer();
         this.server.setDispatcher(dispatcher);
@@ -161,7 +183,7 @@ class GoFeatureFlagProviderTest {
     @SneakyThrows
     @Test
     void should_return_not_ready_if_not_initialized() {
-        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build()){
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build()) {
             @Override
             public void initialize(EvaluationContext evaluationContext) throws Exception {
 
@@ -174,7 +196,7 @@ class GoFeatureFlagProviderTest {
          ErrorCode.PROVIDER_NOT_READY and default value should be returned when evaluated via the client,
          see next step in this test.
          */
-        assertThrows(ProviderNotReadyError.class, ()-> g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext));
+        assertThrows(ProviderNotReadyError.class, () -> g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext));
 
         String providerName = "shouldReturnNotReadyIfNotInitialized";
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
@@ -192,10 +214,10 @@ class GoFeatureFlagProviderTest {
         String providerName = "clientTest";
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        Boolean value = client.getBooleanValue("bool_targeting_match",false);
+        Boolean value = client.getBooleanValue("bool_targeting_match", false);
         assertEquals(Boolean.FALSE, value, "should evaluate to default value without context");
         FlagEvaluationDetails<Boolean> booleanFlagEvaluationDetails = client.getBooleanDetails("bool_targeting_match",
-        false, new ImmutableContext());
+                false, new ImmutableContext());
         assertEquals(Boolean.FALSE, booleanFlagEvaluationDetails.getValue(), "should evaluate to default value with empty context");
         assertEquals(ErrorCode.TARGETING_KEY_MISSING, booleanFlagEvaluationDetails.getErrorCode(), "should evaluate to default value with empty context");
         booleanFlagEvaluationDetails = client.getBooleanDetails("bool_targeting_match", false, new ImmutableContext("targetingKey"));
@@ -210,7 +232,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("fail_500",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("fail_500", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
                 .reason(Reason.ERROR.name())
@@ -232,7 +254,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("fail_401",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("fail_401", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
                 .reason(Reason.ERROR.name())
@@ -249,7 +271,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("flag_not_found",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("flag_not_found", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
                 .reason(Reason.ERROR.name())
@@ -266,7 +288,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("string_key",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("string_key", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
                 .reason(Reason.ERROR.name())
@@ -283,7 +305,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -298,14 +320,14 @@ class GoFeatureFlagProviderTest {
     @Test
     void should_resolve_a_valid_boolean_flag_with_TARGETING_MATCH_reason_cache_disabled() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
-            .endpoint(this.baseUrl.toString())
-            .timeout(1000)
-            .enableCache(false)
-            .build());
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .enableCache(false)
+                .build());
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -314,7 +336,7 @@ class GoFeatureFlagProviderTest {
                 .flagMetadata(defaultMetadata)
                 .build();
         assertEquals(want, got);
-        got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         assertEquals(want, got);
     }
 
@@ -325,7 +347,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -334,7 +356,7 @@ class GoFeatureFlagProviderTest {
                 .flagMetadata(defaultMetadata)
                 .build();
         assertEquals(want, got);
-        got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want2 = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -354,7 +376,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -364,7 +386,7 @@ class GoFeatureFlagProviderTest {
                 .build();
         assertEquals(want, got);
 
-        got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want2 = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -395,7 +417,7 @@ class GoFeatureFlagProviderTest {
         assertEquals(wantStr2, gotStr);
 
         // verify that value previously fetch from cache now not fetched from cache since cache max size is 1, and cache is full.
-        got = client.getBooleanDetails("bool_targeting_match",false, this.evaluationContext);
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         assertEquals(want, got);
     }
 
@@ -690,7 +712,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("unknown_field",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("unknown_field", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -708,7 +730,7 @@ class GoFeatureFlagProviderTest {
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("no_metadata",false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("no_metadata", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(true)
                 .variant("True")
@@ -771,6 +793,50 @@ class GoFeatureFlagProviderTest {
         client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
         Thread.sleep(100);
         assertEquals(3, publishEventsRequestsReceived, "We pass the flush interval, we should have 3 events");
+    }
+
+    @SneakyThrows
+    @Test
+    void should_not_get_cached_value_if_flag_configuration_changed() {
+        this.evaluationContext = new MutableContext("d45e303a-38c2-11ed-a261-0242ac120002");
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .disableDataCollection(true)
+                .enableCache(true)
+                .flagChangePollingIntervalMs(50L)
+                .disableDataCollection(true)
+                .build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.TARGETING_MATCH.name(), got.getReason());
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.CACHED.name(), got.getReason());
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.CACHED.name(), got.getReason());
+        Thread.sleep(200L);
+        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        assertEquals(Reason.TARGETING_MATCH.name(), got.getReason());
+    }
+
+    @SneakyThrows
+    @Test
+    void should_stop_calling_flag_change_if_receive_404() {
+        this.flagChanged404 = true;
+        this.evaluationContext = new MutableContext("d45e303a-38c2-11ed-a261-0242ac120002");
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .enableCache(true)
+                .flagChangePollingIntervalMs(10L)
+                .build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        Thread.sleep(150L);
+        assertEquals(1, this.flagChangeCallCounter);
     }
 
     private String readMockResponse(String filename) throws Exception {

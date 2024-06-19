@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gofeatureflag.concurrent;
+package dev.openfeature.contrib.providers.gofeatureflag.util;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
