@@ -72,7 +72,7 @@
             <version>1.18.32</version>
             <scope>provided</scope>
         </dependency>
-        
+
         <dependency>
             <!-- used so that lombok can generate suppressions for spotbugs. It needs to find it on the relevant classpath -->
             <groupId>com.github.spotbugs</groupId>
@@ -141,6 +141,13 @@
         </dependency>
 
         <dependency>
+            <groupId>org.junit-pioneer</groupId>
+            <artifactId>junit-pioneer</artifactId>
+            <version>1.9.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <version>4.11.0</version>
@@ -201,7 +208,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
+                <version>3.3.0</version>
                 <configuration>
                     <excludes>
                         <!-- tests to exclude -->

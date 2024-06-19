@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.8.1</version> <!--x-release-please-version -->
+    <version>0.8.2</version> <!--x-release-please-version -->
 
     <properties>
         <!-- exclusion expression for e2e tests -->
@@ -64,7 +64,7 @@
             <!-- we only support unix sockets on linux, via epoll native lib -->
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
-            <version>4.1.110.Final</version>
+            <version>4.1.111.Final</version>
             <!-- TODO: with 5+ (still alpha), arm is support and we should package multiple versions -->
             <classifier>linux-x86_64</classifier>
         </dependency>

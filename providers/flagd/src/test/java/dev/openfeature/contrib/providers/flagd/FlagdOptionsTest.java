@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd;
 import io.opentelemetry.api.OpenTelemetry;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.mockito.Mockito;
 
 import java.util.function.Function;
@@ -88,7 +89,7 @@ class FlagdOptionsTest {
     }
 
     @Test
-    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
     void testInProcessProviderFromEnv_noPortConfigured_defaultsToCorrectPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
 
@@ -107,7 +108,7 @@ class FlagdOptionsTest {
     }
 
     @Test
-    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
     void testInProcessProviderFromEnv_portConfigured_usesConfiguredPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder()
                 .port(1000)
@@ -118,7 +119,7 @@ class FlagdOptionsTest {
     }
 
     @Test
-    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_RPC)
     void testRpcProviderFromEnv_noPortConfigured_defaultsToCorrectPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
 
@@ -137,7 +138,7 @@ class FlagdOptionsTest {
     }
 
     @Test
-    @Disabled("Currently there is no defined way on how to set environment variables for tests")
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_RPC)
     void testRpcProviderFromEnv_portConfigured_usesConfiguredPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder()
                 .port(1534)

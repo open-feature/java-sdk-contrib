@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.1...dev.openfeature.contrib.providers.flagd-v0.8.2) (2024-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.google.code.gson:gson to v2.11.0 ([#794](https://github.com/open-feature/java-sdk-contrib/issues/794)) ([e6ce0ea](https://github.com/open-feature/java-sdk-contrib/commit/e6ce0ea307b07d7813fc65b57737feb8beb571bb))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.110.final ([#798](https://github.com/open-feature/java-sdk-contrib/issues/798)) ([f7333ec](https://github.com/open-feature/java-sdk-contrib/commit/f7333ecddfceba342b175c9ca3ee1846ab61e7c6))
+* **deps:** update opentelemetry-java monorepo to v1.39.0 ([#813](https://github.com/open-feature/java-sdk-contrib/issues/813)) ([cbf4232](https://github.com/open-feature/java-sdk-contrib/commit/cbf42324351f25889e59bf8b29d5ed4752ab3c98))
+
+
+### ✨ New Features
+
+* [flagd] Default port to 8015 if in-process resolver is used. ([#810](https://github.com/open-feature/java-sdk-contrib/issues/810)) ([9b7dc9a](https://github.com/open-feature/java-sdk-contrib/commit/9b7dc9a71cb8060bce0112dce4c7650f9f3aa6c9))
+* add JUnit Pioneer as testing dependency ([#820](https://github.com/open-feature/java-sdk-contrib/issues/820)) ([3a9c916](https://github.com/open-feature/java-sdk-contrib/commit/3a9c9165185ddfdfccdd997b81c2e8ff2be63b56))
+* flagd support resolver type from env vars ([#792](https://github.com/open-feature/java-sdk-contrib/issues/792)) ([49d47b8](https://github.com/open-feature/java-sdk-contrib/commit/49d47b8bc62d150d45630e6e0fc625724a1d7b62))
+* introduce Resolver as a drop in replacement for Evaluator ([#793](https://github.com/open-feature/java-sdk-contrib/issues/793)) ([618a64a](https://github.com/open-feature/java-sdk-contrib/commit/618a64a93dbc1108e8382c4505324f7671ffdb04))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.3.0 ([#797](https://github.com/open-feature/java-sdk-contrib/issues/797)) ([fbe818b](https://github.com/open-feature/java-sdk-contrib/commit/fbe818b3946e3985188593934023c696dfb7afb9))
+
 ## [0.8.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.0...dev.openfeature.contrib.providers.flagd-v0.8.1) (2024-05-17)
 
 
