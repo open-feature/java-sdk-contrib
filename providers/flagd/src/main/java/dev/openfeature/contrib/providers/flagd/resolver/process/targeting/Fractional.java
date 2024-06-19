@@ -67,8 +67,11 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         return distributeValue(bucketBy, propertyList, totalWeight);
     }
 
-    private static String distributeValue(final String hashKey, final List<FractionProperty> propertyList, int totalWeight)
-            throws JsonLogicEvaluationException {
+    private static String distributeValue(
+            final String hashKey,
+            final List<FractionProperty> propertyList,
+            int totalWeight
+    ) throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
         float bucket = (Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE) * 100;
@@ -113,7 +116,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             }
 
             variant = (String) array.get(0);
-            if(array.size() >= 2) {
+            if (array.size() >= 2) {
                 // second element must be a number
                 if (!(array.get(1) instanceof Number)) {
                     throw new JsonLogicException("Second element of the fraction property is not a number");
