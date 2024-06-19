@@ -151,7 +151,7 @@ class FractionalTest {
 
 
     @Test
-    void invalidRuleSumNot100() throws JsonLogicEvaluationException {
+    void invalidRuleSumGreater100() throws JsonLogicEvaluationException {
         // given
         Fractional fractional = new Fractional();
 
@@ -189,7 +189,49 @@ class FractionalTest {
         Object evaluate = fractional.evaluate(rule, data);
 
         // then
-        assertNull(evaluate);
+        assertEquals("blue", evaluate);
+    }
+
+    @Test
+    void invalidRuleSumlower100() throws JsonLogicEvaluationException {
+        // given
+        Fractional fractional = new Fractional();
+
+        /* Rule
+         *     [
+         *       [
+         *         "blue",
+         *         50
+         *       ],
+         *       [
+         *         "green",
+         *         30
+         *       ]
+         *     ]
+         * */
+
+        final List<Object> rule = new ArrayList<>();
+
+        final List<Object> bucket1 = new ArrayList<>();
+        bucket1.add("blue");
+        bucket1.add(50);
+
+        final List<Object> bucket2 = new ArrayList<>();
+        bucket2.add("green");
+        bucket2.add(70);
+
+        rule.add(bucket1);
+        rule.add(bucket2);
+
+        Map<String, String> data = new HashMap<>();
+        data.put(FLAG_KEY, "headerColor");
+        data.put(TARGET_KEY, "foo@foo.com");
+
+        // when
+        Object evaluate = fractional.evaluate(rule, data);
+
+        // then
+        assertEquals("blue", evaluate);
     }
 
     @Test
@@ -227,7 +269,7 @@ class FractionalTest {
 
 
     @Test
-    void invalidRule() throws JsonLogicEvaluationException {
+    void prefillingRuleWithPlaceHolderValue() throws JsonLogicEvaluationException {
         // given
         Fractional fractional = new Fractional();
 
@@ -263,7 +305,7 @@ class FractionalTest {
         Object evaluate = fractional.evaluate(rule, data);
 
         // then
-        assertNull(evaluate);
+        assertEquals("blue", evaluate);
     }
 
 }
