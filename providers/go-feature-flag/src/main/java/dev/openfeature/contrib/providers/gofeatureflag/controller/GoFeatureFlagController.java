@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static dev.openfeature.sdk.Value.objectToValue;
-import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
+
 
 /**
  * GoFeatureFlagController is the layer to contact the APIs and get the data
@@ -54,6 +54,7 @@ import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
 @Slf4j
 @SuppressWarnings({"checkstyle:NoFinalizer"})
 public class GoFeatureFlagController {
+    public static final String APPLICATION_JSON = "application/json";
     public static final ObjectMapper requestMapper = new ObjectMapper();
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -136,7 +137,7 @@ public class GoFeatureFlagController {
 
             Request.Builder reqBuilder = new Request.Builder()
                     .url(url)
-                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON.getMimeType())
+                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                     .post(RequestBody.create(
                             requestMapper.writeValueAsBytes(goffRequest),
                             MediaType.get("application/json; charset=utf-8")));
@@ -215,7 +216,7 @@ public class GoFeatureFlagController {
 
             Request.Builder reqBuilder = new Request.Builder()
                     .url(url)
-                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON.getMimeType())
+                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                     .post(RequestBody.create(
                             requestMapper.writeValueAsBytes(events),
                             MediaType.get("application/json; charset=utf-8")));
@@ -258,7 +259,7 @@ public class GoFeatureFlagController {
 
         Request.Builder reqBuilder = new Request.Builder()
                 .url(url)
-                .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON.getMimeType())
+                .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .get();
 
         if (this.etag != null && !this.etag.isEmpty()) {
