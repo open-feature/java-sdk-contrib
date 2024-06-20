@@ -80,7 +80,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     @Override
     public synchronized void shutdown() {
-        if (!initialized) {
+        if (!this.initialized) {
             return;
         }
 
@@ -160,6 +160,12 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
         if (ProviderState.NOT_READY.equals(oldState) && ProviderState.READY.equals(newState)) {
             // nothing to do, the SDK emits the events
             log.debug("Init completed");
+            return;
+        }
+        // we got shutdown, not checking oldState as behavior remains the same for shutdown 
+        if (ProviderState.NOT_READY.equals(newState)) {
+            // nothing to do
+            log.debug("shutdown completed");
             return;
         }
         // configuration changed

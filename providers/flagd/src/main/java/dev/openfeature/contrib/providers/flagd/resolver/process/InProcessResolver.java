@@ -100,6 +100,7 @@ public class InProcessResolver implements Resolver {
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
         this.connected.set(false);
+        stateConsumer.accept(ProviderState.NOT_READY);
     }
 
     /**

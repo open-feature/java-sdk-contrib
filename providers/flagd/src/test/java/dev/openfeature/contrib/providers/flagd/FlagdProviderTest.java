@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -16,15 +17,18 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.google.protobuf.Struct;
 
@@ -32,6 +36,10 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.process.MockStorage;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanResponse;
@@ -824,6 +832,43 @@ class FlagdProviderTest {
         verify(resolverMock, times(1)).shutdown();
     }
 
+    @Test
+    void test_state_on_grpc_resolver_shutdown() throws Exception {
+        // setup mock provider
+        final FlagdProvider grpcProvider = Mockito.spy(FlagdProvider.class);
+        try {
+            doAnswer(invocation -> {
+                final Field stateField = FlagdProvider.class.getDeclaredField("state");
+                stateField.setAccessible(true);
+                stateField.set(grpcProvider, ProviderState.READY);
+
+                final Field intializedField = FlagdProvider.class.getDeclaredField("initialized");
+                intializedField.setAccessible(true);
+                intializedField.set(grpcProvider, true);
+
+                return null;
+            }).when(grpcProvider).initialize(any());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        grpcProvider.initialize(new ImmutableContext());
+        assertEquals(ProviderState.READY, grpcProvider.getState());
+        grpcProvider.shutdown();
+        assertEquals(ProviderState.NOT_READY, grpcProvider.getState());
+    }
+
+    @Test
+    void test_state_on_in_process_resolver_shutdown() throws Exception {
+        // setup mock in-process provider
+        FlagdProvider inProcessProvider = createInProcessProvider();
+
+        inProcessProvider.initialize(new ImmutableContext());
+        assertEquals(ProviderState.READY, inProcessProvider.getState());
+        inProcessProvider.shutdown();
+        assertEquals(ProviderState.NOT_READY, inProcessProvider.getState());
+    }
+
 
     // test helper
 
@@ -856,6 +901,31 @@ class FlagdProviderTest {
             Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
             flagResolver.setAccessible(true);
             flagResolver.set(provider, grpcResolver);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        return provider;
+    }
+
+    // Create an in process provider
+    private FlagdProvider createInProcessProvider() {
+
+        final FlagdOptions flagdOptions = FlagdOptions.builder()
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .deadline(1000)
+                .build();
+        final FlagdProvider provider = new FlagdProvider(flagdOptions);
+        final MockStorage mockStorage = new MockStorage(new HashMap<String, FeatureFlag>(), new LinkedBlockingQueue<StorageState>(Arrays.asList(StorageState.OK)));
+        
+        try {
+            final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
+            flagResolver.setAccessible(true);
+            final Resolver resolver = (Resolver) flagResolver.get(provider);
+
+            final Field flagStore = InProcessResolver.class.getDeclaredField("flagStore");
+            flagStore.setAccessible(true);
+            flagStore.set(resolver, mockStorage);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
