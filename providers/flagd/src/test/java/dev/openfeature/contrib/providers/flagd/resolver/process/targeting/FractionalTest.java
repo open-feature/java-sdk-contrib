@@ -218,7 +218,7 @@ class FractionalTest {
 
         final List<Object> bucket2 = new ArrayList<>();
         bucket2.add("green");
-        bucket2.add(70);
+        bucket2.add(30);
 
         rule.add(bucket1);
         rule.add(bucket2);
