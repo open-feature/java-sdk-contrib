@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.22](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.21...dev.openfeature.contrib.providers.go-feature-flag-v0.2.22) (2024-06-20)
+
+
+### 🐛 Bug Fixes
+
+* **gofeatureflag:** fix java.lang.NoClassDefFoundError ([#839](https://github.com/open-feature/java-sdk-contrib/issues/839)) ([6859fa6](https://github.com/open-feature/java-sdk-contrib/commit/6859fa62ecb6dcf01f3927b72e2d964b5871b45a))
+
 ## [0.2.21](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.20...dev.openfeature.contrib.providers.go-feature-flag-v0.2.21) (2024-06-19)
 
 

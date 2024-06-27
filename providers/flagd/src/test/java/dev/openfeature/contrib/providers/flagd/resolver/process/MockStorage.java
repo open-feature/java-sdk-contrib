@@ -8,17 +8,17 @@ import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
-class MockStorage implements Storage {
+public class MockStorage implements Storage {
 
     private final Map<String, FeatureFlag> mockFlags;
     private final BlockingQueue<StorageState> mockQueue;
 
-    MockStorage(Map<String, FeatureFlag> mockFlags, BlockingQueue<StorageState> mockQueue) {
+    public MockStorage(Map<String, FeatureFlag> mockFlags, BlockingQueue<StorageState> mockQueue) {
         this.mockFlags = mockFlags;
         this.mockQueue = mockQueue;
     }
 
-    MockStorage(Map<String, FeatureFlag> flagMap) {
+    public MockStorage(Map<String, FeatureFlag> flagMap) {
         this.mockFlags = flagMap;
         this.mockQueue = null;
     }
