@@ -1,0 +1,14 @@
+{
+  "rule": [
+    "flagAbucketKeyB",
+    [
+      "red",
+      50
+    ],
+    [
+      "blue",
+      50
+    ]
+  ],
+  "result": "blue"
+}

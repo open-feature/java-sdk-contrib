@@ -1,0 +1,12 @@
+{
+  "rule": [
+    [
+      "blue",
+      50
+    ],
+    [
+      "green"
+    ]
+  ],
+  "result": "blue"
+}
