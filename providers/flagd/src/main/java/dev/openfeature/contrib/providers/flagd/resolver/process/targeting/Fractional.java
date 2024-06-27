@@ -50,37 +50,35 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         }
 
         final List<FractionProperty> propertyList = new ArrayList<>();
+        int totalWeight = 0;
 
-        double distribution = 0;
         try {
             for (Object dist : distibutions) {
                 FractionProperty fractionProperty = new FractionProperty(dist);
                 propertyList.add(fractionProperty);
-                distribution += fractionProperty.getPercentage();
+                totalWeight += fractionProperty.getWeight();
             }
         } catch (JsonLogicException e) {
             log.debug("Error parsing fractional targeting rule", e);
             return null;
         }
 
-        if (distribution != 100) {
-            log.debug("Fractional properties do not sum to 100");
-            return null;
-        }
-
         // find distribution
-        return distributeValue(bucketBy, propertyList);
+        return distributeValue(bucketBy, propertyList, totalWeight);
     }
 
-    private static String distributeValue(final String hashKey, final List<FractionProperty> propertyList)
-            throws JsonLogicEvaluationException {
+    private static String distributeValue(
+            final String hashKey,
+            final List<FractionProperty> propertyList,
+            int totalWeight
+    ) throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
-        int bucket = (int) ((Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE) * 100);
+        float bucket = (Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE) * 100;
 
-        int bucketSum = 0;
+        float bucketSum = 0;
         for (FractionProperty p : propertyList) {
-            bucketSum += p.getPercentage();
+            bucketSum += p.getPercentage(totalWeight);
 
             if (bucket < bucketSum) {
                 return p.getVariant();
@@ -95,7 +93,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     @SuppressWarnings({"checkstyle:NoFinalizer"})
     private static class FractionProperty {
         private final String variant;
-        private final int percentage;
+        private final int weight;
 
         protected final void finalize() {
             // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
@@ -108,8 +106,8 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
             final List<?> array = (List) from;
 
-            if (array.size() != 2) {
-                throw new JsonLogicException("Fraction property does not have two elements");
+            if (array.isEmpty()) {
+                throw new JsonLogicException("Fraction property needs at least one element");
             }
 
             // first must be a string
@@ -117,14 +115,23 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 throw new JsonLogicException("First element of the fraction property is not a string variant");
             }
 
-            // second element must be a number
-            if (!(array.get(1) instanceof Number)) {
-                throw new JsonLogicException("Second element of the fraction property is not a number");
-            }
-
             variant = (String) array.get(0);
-            percentage = ((Number) array.get(1)).intValue();
+            if (array.size() >= 2) {
+                // second element must be a number
+                if (!(array.get(1) instanceof Number)) {
+                    throw new JsonLogicException("Second element of the fraction property is not a number");
+                }
+                weight = ((Number) array.get(1)).intValue();
+            } else {
+                weight = 1;
+            }
         }
 
+        float getPercentage(int totalWeight) {
+            if (weight == 0) {
+                return 0;
+            }
+            return (float) (weight * 100) / totalWeight;
+        }
     }
 }
