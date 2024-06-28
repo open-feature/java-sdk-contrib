@@ -234,11 +234,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <!-- run: cp schemas/json/flags.json src/main/resources/ -->
+                            <!-- run: cp schemas/json/flags.json src/main/resources/flagd/schemas/ -->
                             <executable>cp</executable>
                             <arguments>
                                 <argument>schemas/json/flags.json</argument>
-                                <argument>src/main/resources/</argument>
+                                <argument>src/main/resources/flagd/schemas/</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -249,11 +249,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <!-- run: cp schemas/json/targeting.json src/main/resources/ -->
+                            <!-- run: cp schemas/json/targeting.json src/main/resources/flagd/schemas/ -->
                             <executable>cp</executable>
                             <arguments>
                                 <argument>schemas/json/targeting.json</argument>
-                                <argument>src/main/resources/</argument>
+                                <argument>src/main/resources/flagd/schemas/</argument>
                             </arguments>
                         </configuration>
                     </execution>
