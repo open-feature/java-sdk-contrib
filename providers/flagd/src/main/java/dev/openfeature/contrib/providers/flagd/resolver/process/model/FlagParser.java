@@ -43,8 +43,8 @@ public class FlagParser {
             // load both schemas from resources (root (flags.json) and referenced (targeting.json)
             // we don't want to resolve anything from the network
             Map<String, String> mappings = new HashMap<>();
-            mappings.put("https://flagd.dev/schema/v0/targeting.json", "classpath:targeting.json");
-            mappings.put("https://flagd.dev/schema/v0/flags.json", "classpath:flags.json");
+            mappings.put("https://flagd.dev/schema/v0/targeting.json", "classpath:flagd/schemas/targeting.json");
+            mappings.put("https://flagd.dev/schema/v0/flags.json", "classpath:flagd/schemas/flags.json");
 
             SCHEMA_VALIDATOR = JsonSchemaFactory
                     .getInstance(SpecVersion.VersionFlag.V7,
