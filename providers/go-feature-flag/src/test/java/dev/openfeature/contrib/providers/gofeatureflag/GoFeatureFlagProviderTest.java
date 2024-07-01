@@ -318,6 +318,24 @@ class GoFeatureFlagProviderTest {
 
     @SneakyThrows
     @Test
+    void should_resolve_a_valid_boolean_flag_with_TARGETING_MATCH_reason_without_error_code_in_payload() {
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("bool_targeting_match_no_error_code", false, this.evaluationContext);
+        FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
+                .value(true)
+                .variant("True")
+                .flagKey("bool_targeting_match_no_error_code")
+                .reason(Reason.TARGETING_MATCH.name())
+                .flagMetadata(defaultMetadata)
+                .build();
+        assertEquals(want, got);
+    }
+
+    @SneakyThrows
+    @Test
     void should_resolve_a_valid_boolean_flag_with_TARGETING_MATCH_reason_cache_disabled() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
                 .endpoint(this.baseUrl.toString())

@@ -299,6 +299,10 @@ public class GoFeatureFlagController {
      * @return an item from the enum
      */
     private ErrorCode mapErrorCode(String errorCode) {
+        if (errorCode == null || errorCode.isEmpty()) {
+            return null;
+        }
+        
         try {
             return ErrorCode.valueOf(errorCode);
         } catch (IllegalArgumentException e) {
