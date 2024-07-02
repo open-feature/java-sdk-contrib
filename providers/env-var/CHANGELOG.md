@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.6...dev.openfeature.contrib.providers.env-var-v0.0.7) (2024-07-02)
+
+
+### 🧹 Chore
+
+* fix pmd violations ([#856](https://github.com/open-feature/java-sdk-contrib/issues/856)) ([f10d872](https://github.com/open-feature/java-sdk-contrib/commit/f10d87205dd6a21222de362694d208fd293d9200))
+
 ## [0.0.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.5...dev.openfeature.contrib.providers.env-var-v0.0.6) (2024-06-17)
 
 
