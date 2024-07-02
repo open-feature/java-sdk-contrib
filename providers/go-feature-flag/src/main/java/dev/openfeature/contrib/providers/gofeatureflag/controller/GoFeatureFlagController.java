@@ -142,7 +142,7 @@ public class GoFeatureFlagController {
                             requestMapper.writeValueAsBytes(goffRequest),
                             MediaType.get("application/json; charset=utf-8")));
 
-            if (this.apiKey != null && !"".equals(this.apiKey)) {
+            if (this.apiKey != null && !this.apiKey.isEmpty()) {
                 reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
             }
 
@@ -299,6 +299,10 @@ public class GoFeatureFlagController {
      * @return an item from the enum
      */
     private ErrorCode mapErrorCode(String errorCode) {
+        if (errorCode == null || errorCode.isEmpty()) {
+            return null;
+        }
+        
         try {
             return ErrorCode.valueOf(errorCode);
         } catch (IllegalArgumentException e) {

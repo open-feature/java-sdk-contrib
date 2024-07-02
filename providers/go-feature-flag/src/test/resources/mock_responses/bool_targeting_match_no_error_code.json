@@ -1,0 +1,13 @@
+{
+  "trackEvents": true,
+  "variationType": "True",
+  "failed": false,
+  "version": 0,
+  "reason": "TARGETING_MATCH",
+  "value": true,
+  "cacheable": true,
+  "metadata": {
+    "pr_link": "https://github.com/thomaspoignant/go-feature-flag/pull/916",
+    "version": 1
+  }
+}
