@@ -1,13 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.CONTEXT_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.FLAG_KEY_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.METADATA_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.REASON_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.VALUE_FIELD;
-import static dev.openfeature.contrib.providers.flagd.Config.VARIANT_FIELD;
+import dev.openfeature.contrib.providers.flagd.Config;
 
 import java.util.HashMap;
 import java.util.List;
@@ -157,15 +150,15 @@ public final class GrpcResolver implements Resolver {
         if (this.cacheAvailable()) {
             ProviderEvaluation<? extends Object> fromCache = this.cache.get(key);
             if (fromCache != null) {
-                fromCache.setReason(CACHED_REASON);
+                fromCache.setReason(Config.CACHED_REASON);
                 return (ProviderEvaluation<ValT>) fromCache;
             }
         }
 
         // build the gRPC request
         Message req = request.newBuilderForType()
-                .setField(getFieldDescriptor(request, FLAG_KEY_FIELD), key)
-                .setField(getFieldDescriptor(request, CONTEXT_FIELD), convertContext(ctx))
+                .setField(getFieldDescriptor(request, Config.FLAG_KEY_FIELD), key)
+                .setField(getFieldDescriptor(request, Config.CONTEXT_FIELD), convertContext(ctx))
                 .build();
 
         final Message response;
@@ -178,16 +171,16 @@ public final class GrpcResolver implements Resolver {
         }
 
         // parse the response
-        ValT value = converter == null ? getField(response, VALUE_FIELD)
-                : converter.convert(getField(response, VALUE_FIELD));
+        ValT value = converter == null ? getField(response, Config.VALUE_FIELD)
+                : converter.convert(getField(response, Config.VALUE_FIELD));
 
         // Extract metadata from response
         ImmutableMetadata immutableMetadata = metadataFromResponse(response);
 
         ProviderEvaluation<ValT> result = ProviderEvaluation.<ValT>builder()
                 .value(value)
-                .variant(getField(response, VARIANT_FIELD))
-                .reason(getField(response, REASON_FIELD))
+                .variant(getField(response, Config.VARIANT_FIELD))
+                .reason(getField(response, Config.REASON_FIELD))
                 .flagMetadata(immutableMetadata)
                 .build();
 
@@ -202,7 +195,7 @@ public final class GrpcResolver implements Resolver {
     private <T> Boolean isEvaluationCacheable(ProviderEvaluation<T> evaluation) {
         String reason = evaluation.getReason();
 
-        return reason != null && reason.equals(STATIC_REASON) && this.cacheAvailable();
+        return reason != null && reason.equals(Config.STATIC_REASON) && this.cacheAvailable();
     }
 
     private Boolean cacheAvailable() {
@@ -221,7 +214,8 @@ public final class GrpcResolver implements Resolver {
      */
     private static Struct convertContext(EvaluationContext ctx) {
         Map<String, Value> ctxMap = ctx.asMap();
-        // asMap() does not provide explicitly set targeting key (ex:- new ImmutableContext("TargetingKey") ).
+        // asMap() does not provide explicitly set targeting key (ex:- new
+        // ImmutableContext("TargetingKey") ).
         // Hence, we add this explicitly here for targeting rule processing.
         ctxMap.put("targetingKey", new Value(ctx.getTargetingKey()));
 
@@ -348,7 +342,7 @@ public final class GrpcResolver implements Resolver {
     }
 
     private static ImmutableMetadata metadataFromResponse(Message response) {
-        final Object metadata = response.getField(getFieldDescriptor(response, METADATA_FIELD));
+        final Object metadata = response.getField(getFieldDescriptor(response, Config.METADATA_FIELD));
 
         if (!(metadata instanceof Struct)) {
             return ImmutableMetadata.builder().build();
@@ -373,7 +367,7 @@ public final class GrpcResolver implements Resolver {
 
     private OpenFeatureError mapError(Exception e) {
         if (e instanceof StatusRuntimeException) {
-            Code code = ((StatusRuntimeException)e).getStatus().getCode();
+            Code code = ((StatusRuntimeException) e).getStatus().getCode();
             switch (code) {
                 case DATA_LOSS:
                     return new ParseError(e.getMessage());

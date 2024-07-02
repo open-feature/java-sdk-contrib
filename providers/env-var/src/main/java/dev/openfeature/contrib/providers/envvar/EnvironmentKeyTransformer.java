@@ -101,7 +101,7 @@ public class EnvironmentKeyTransformer {
 
     public static EnvironmentKeyTransformer hyphenCaseToScreamingSnake() {
         return new EnvironmentKeyTransformer(REPLACE_HYPHEN_WITH_UNDERSCORE)
-            .andThen(EnvironmentKeyTransformer.toUpperCaseTransformer());
+            .andThen(toUpperCaseTransformer());
     }
 
     public static EnvironmentKeyTransformer doNothing() {
