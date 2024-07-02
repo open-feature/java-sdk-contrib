@@ -13,6 +13,7 @@ import java.util.function.Function;
 /**
  * {@link TracedResolving} a request to response resolver with tracing for telemetry.
  */
+@SuppressWarnings("PMD.UnusedLocalVariable")
 public class TracedResolving implements ResolveStrategy {
 
     private final Tracer tracer;

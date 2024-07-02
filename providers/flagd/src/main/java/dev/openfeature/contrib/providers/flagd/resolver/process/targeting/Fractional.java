@@ -70,11 +70,10 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     private static String distributeValue(
             final String hashKey,
             final List<FractionProperty> propertyList,
-            int totalWeight
-    ) throws JsonLogicEvaluationException {
+            int totalWeight) throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
-        float bucket = (Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE) * 100;
+        float bucket = Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE * 100;
 
         float bucketSum = 0;
         for (FractionProperty p : propertyList) {
@@ -90,7 +89,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     @Getter
-    @SuppressWarnings({"checkstyle:NoFinalizer"})
+    @SuppressWarnings({ "checkstyle:NoFinalizer" })
     private static class FractionProperty {
         private final String variant;
         private final int weight;
