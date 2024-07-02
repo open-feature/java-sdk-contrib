@@ -142,7 +142,7 @@ public class GoFeatureFlagController {
                             requestMapper.writeValueAsBytes(goffRequest),
                             MediaType.get("application/json; charset=utf-8")));
 
-            if (this.apiKey != null && !"".equals(this.apiKey)) {
+            if (this.apiKey != null && !this.apiKey.isEmpty()) {
                 reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
             }
 
