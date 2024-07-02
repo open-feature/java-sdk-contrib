@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.3...dev.openfeature.contrib.providers.flagd-v0.8.4) (2024-07-02)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.4.2 ([#842](https://github.com/open-feature/java-sdk-contrib/issues/842)) ([d39dd8b](https://github.com/open-feature/java-sdk-contrib/commit/d39dd8b084cd2f360eafa726e5828a755d12874c))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.4.3 ([#845](https://github.com/open-feature/java-sdk-contrib/issues/845)) ([301f852](https://github.com/open-feature/java-sdk-contrib/commit/301f85230aa50eef1b35f039fac862d86eb72453))
+* **deps:** update grpc-java monorepo to v1.65.0 ([#849](https://github.com/open-feature/java-sdk-contrib/issues/849)) ([50ff3b8](https://github.com/open-feature/java-sdk-contrib/commit/50ff3b8f8a0557f37d8c2d619ea31cf642e9dd7e))
+
+
+### ✨ New Features
+
+* Change fractional custom op from percentage-based to relative weighting. [#828](https://github.com/open-feature/java-sdk-contrib/issues/828) ([#833](https://github.com/open-feature/java-sdk-contrib/issues/833)) ([2e5c146](https://github.com/open-feature/java-sdk-contrib/commit/2e5c1468b6fb76391d59cb64bd3b8ced48a60977))
+* Reset the state on shutting down the flagd resolver ([#410](https://github.com/open-feature/java-sdk-contrib/issues/410)) ([#832](https://github.com/open-feature/java-sdk-contrib/issues/832)) ([05ea93d](https://github.com/open-feature/java-sdk-contrib/commit/05ea93d713d2b8c85d2f1e08f598fe18554789a5))
+* use namespaced schemas for flagd json schemas ([#843](https://github.com/open-feature/java-sdk-contrib/issues/843)) ([#850](https://github.com/open-feature/java-sdk-contrib/issues/850)) ([efc3a9e](https://github.com/open-feature/java-sdk-contrib/commit/efc3a9eb88a5e02d181bf3dd38331648122af56b))
+
+
+### 🧹 Chore
+
+* **deps:** update ghcr.io/open-feature/flagd-testbed docker tag to v0.5.5 ([#851](https://github.com/open-feature/java-sdk-contrib/issues/851)) ([07841e8](https://github.com/open-feature/java-sdk-contrib/commit/07841e8fb42dff15d9fe7dc53e08b51cbc11aff3))
+* fix pmd violations ([#856](https://github.com/open-feature/java-sdk-contrib/issues/856)) ([f10d872](https://github.com/open-feature/java-sdk-contrib/commit/f10d87205dd6a21222de362694d208fd293d9200))
+
 ## [0.8.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.2...dev.openfeature.contrib.providers.flagd-v0.8.3) (2024-06-19)
 
 
