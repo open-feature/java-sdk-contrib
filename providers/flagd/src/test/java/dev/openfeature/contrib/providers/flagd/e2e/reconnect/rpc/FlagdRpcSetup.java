@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.e2e.reconnect.rpc;
 
+import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
+import io.cucumber.java.AfterAll;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -10,16 +12,22 @@ import dev.openfeature.contrib.providers.flagd.e2e.reconnect.steps.StepDefinitio
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 import dev.openfeature.sdk.FeatureProvider;
 import io.cucumber.java.BeforeAll;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.utility.DockerImageName;
 
 @Isolated()
 @Order(value = Integer.MAX_VALUE)
 public class FlagdRpcSetup {
+    private static final GenericContainer flagdContainer = ContainerConfig.flagd(true);
 
     @BeforeAll()
     public static void setup() throws InterruptedException {
+        flagdContainer.start();
+
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
                 .resolverType(Config.Resolver.RPC)
-                .port(8014)
+                .port(flagdContainer.getFirstMappedPort())
                 // set a generous deadline, to prevent timeouts in actions
                 .deadline(3000)
                 .cacheType(CacheType.DISABLED.getValue())
@@ -34,5 +42,10 @@ public class FlagdRpcSetup {
                 .cacheType(CacheType.DISABLED.getValue())
                 .build());
         StepDefinitions.setUnavailableProvider(unavailableProvider);
+    }
+
+    @AfterAll
+    public static void tearDown() {
+        flagdContainer.stop();
     }
 }
