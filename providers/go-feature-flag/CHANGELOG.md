@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.23](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.22...dev.openfeature.contrib.providers.go-feature-flag-v0.2.23) (2024-07-03)
+
+
+### 🐛 Bug Fixes
+
+* **gofeatureflag:** Fix NPE when error code is not set in the API response ([#855](https://github.com/open-feature/java-sdk-contrib/issues/855)) ([79ca933](https://github.com/open-feature/java-sdk-contrib/commit/79ca933f6b8ffac13ee46c0685f5675bccbb7dcd))
+
 ## [0.2.22](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.21...dev.openfeature.contrib.providers.go-feature-flag-v0.2.22) (2024-06-20)
 
 
