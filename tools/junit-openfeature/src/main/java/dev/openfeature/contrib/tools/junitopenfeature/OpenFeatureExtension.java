@@ -5,53 +5,28 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.providers.memory.Flag;
 import dev.openfeature.sdk.providers.memory.InMemoryProvider;
 import org.apache.commons.lang3.BooleanUtils;
-import org.junit.jupiter.api.extension.*;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junitpioneer.internal.PioneerAnnotationUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
+/**
+ * JUnit5 Extension for OpenFeature.
+ */
+public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallback {
 
     OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 
-
-    @Override
-    public void afterEach(ExtensionContext extensionContext) throws Exception {
-
-        @SuppressWarnings("unchecked") Map<String, Map<String, Flag<?>>> configuration =
-                (Map<String, Map<String, Flag<?>>>) getStore(extensionContext).get("config");
-        for (Map.Entry<String, Map<String, Flag<?>>> stringMapEntry : configuration.entrySet()) {
-            InMemoryProvider inMemoryProvider = new InMemoryProvider(stringMapEntry.getValue());
-            if (stringMapEntry.getKey().isEmpty()) {
-                api.setProvider(new NoOpProvider());
-            } else {
-                api.setProvider(stringMapEntry.getKey(), new NoOpProvider());
-            }
-        }
-    }
-
-
-    @Override
-    public void beforeEach(ExtensionContext extensionContext) throws Exception {
-        Map<String, Map<String, Flag<?>>> configuration = handleSimpleConfiguration(extensionContext);
-        configuration.putAll(handleExtendedConfiguration(extensionContext, configuration));
-
-        for (Map.Entry<String, Map<String, Flag<?>>> stringMapEntry : configuration.entrySet()) {
-            InMemoryProvider inMemoryProvider = new InMemoryProvider(stringMapEntry.getValue());
-            if (stringMapEntry.getKey().isEmpty()) {
-                api.setProvider(inMemoryProvider);
-            } else {
-                api.setProvider(stringMapEntry.getKey(), inMemoryProvider);
-            }
-        }
-
-        getStore(extensionContext).put("config", configuration);
-    }
-
-    private static Map<String, Map<String, Flag<?>>> handleExtendedConfiguration(ExtensionContext extensionContext, Map<String, Map<String, Flag<?>>> configuration) {
-        PioneerAnnotationUtils.findAllEnclosingRepeatableAnnotations(extensionContext, OpenFeature.class)
+    private static Map<String, Map<String, Flag<?>>> handleExtendedConfiguration(
+            ExtensionContext extensionContext,
+            Map<String, Map<String, Flag<?>>> configuration
+    ) {
+        PioneerAnnotationUtils
+                .findAllEnclosingRepeatableAnnotations(extensionContext, OpenFeature.class)
                 .forEachOrdered(annotation -> {
                     Map<String, Flag<?>> domainFlags = configuration.getOrDefault(annotation.domain(), new HashMap<>());
 
@@ -68,10 +43,13 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
 
     private static Map<String, Map<String, Flag<?>>> handleSimpleConfiguration(ExtensionContext extensionContext) {
         Map<String, Map<String, Flag<?>>> configuration = new HashMap<>();
-        String defaultDomain = PioneerAnnotationUtils.findClosestEnclosingAnnotation(extensionContext, OpenFeatureDefaultDomain.class)
-                .map(OpenFeatureDefaultDomain::value)
-                .orElse("");
-        PioneerAnnotationUtils.findAllEnclosingRepeatableAnnotations(extensionContext, dev.openfeature.contrib.tools.junitopenfeature.Flag.class)
+        String defaultDomain = PioneerAnnotationUtils
+                .findClosestEnclosingAnnotation(extensionContext, OpenFeatureDefaultDomain.class)
+                .map(OpenFeatureDefaultDomain::value).orElse("");
+        PioneerAnnotationUtils
+                .findAllEnclosingRepeatableAnnotations(
+                        extensionContext,
+                        dev.openfeature.contrib.tools.junitopenfeature.Flag.class)
                 .forEachOrdered(flag -> {
                     Map<String, Flag<?>> domainFlags = configuration.getOrDefault(defaultDomain, new HashMap<>());
                     if (!domainFlags.containsKey(flag.name())) {
@@ -103,13 +81,34 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @Override
-    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return false;
+    public void afterEach(ExtensionContext extensionContext) throws Exception {
+
+        @SuppressWarnings("unchecked") Map<String, Map<String, Flag<?>>> configuration =
+                (Map<String, Map<String, Flag<?>>>) getStore(extensionContext).get("config");
+        for (Map.Entry<String, Map<String, Flag<?>>> stringMapEntry : configuration.entrySet()) {
+            if (stringMapEntry.getKey().isEmpty()) {
+                api.setProvider(new NoOpProvider());
+            } else {
+                api.setProvider(stringMapEntry.getKey(), new NoOpProvider());
+            }
+        }
     }
 
     @Override
-    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return null;
+    public void beforeEach(ExtensionContext extensionContext) throws Exception {
+        Map<String, Map<String, Flag<?>>> configuration = handleSimpleConfiguration(extensionContext);
+        configuration.putAll(handleExtendedConfiguration(extensionContext, configuration));
+
+        for (Map.Entry<String, Map<String, Flag<?>>> stringMapEntry : configuration.entrySet()) {
+            InMemoryProvider inMemoryProvider = new InMemoryProvider(stringMapEntry.getValue());
+            if (stringMapEntry.getKey().isEmpty()) {
+                api.setProvider(inMemoryProvider);
+            } else {
+                api.setProvider(stringMapEntry.getKey(), inMemoryProvider);
+            }
+        }
+
+        getStore(extensionContext).put("config", configuration);
     }
 
     private ExtensionContext.Store getStore(ExtensionContext context) {

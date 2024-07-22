@@ -7,10 +7,16 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Collection of {@link Flag} configurations.
+ */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(OpenFeatureExtension.class)
 public @interface Flags {
+    /**
+     * Collection of {@link Flag} configurations.
+     */
     Flag[] value() default {};
 }
 
