@@ -73,6 +73,14 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
                 builder = Flag.<String>builder();
                 builder.variant(flag.value(), flag.value());
                 break;
+            case "Integer":
+                builder = Flag.<Integer>builder();
+                builder.variant(flag.value(), Integer.parseInt(flag.value()));
+                break;
+            case "Double":
+                builder = Flag.<Double>builder();
+                builder.variant(flag.value(), Double.parseDouble(flag.value()));
+                break;
             default:
                 throw new IllegalArgumentException("Unsupported flag type: " + flag.value());
         }
