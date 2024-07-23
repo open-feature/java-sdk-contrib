@@ -1,15 +1,15 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
+import dev.openfeature.contrib.tools.junitopenfeature.annotations.Flag;
+import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeature;
+import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeatureDefaultDomain;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Execution(ExecutionMode.SAME_THREAD)
 class DoubleFlagTest {
 
     private static final String FLAG = "double-flag";

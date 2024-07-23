@@ -5,7 +5,8 @@ A JUnit5 extension to reduce boilerplate code for testing code which utilizes Op
 ## Getting Started
 
 We are supporting two different flavors for testing, a [simple](#simple-configuration) and an [extended](#extended-configuration) configuration.
-
+      
+Notice: We are most likely not multithread compatible!
 ### Simple Configuration
 
 Choose the simple configuration if you are only testing in one domain.

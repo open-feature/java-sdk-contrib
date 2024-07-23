@@ -1,15 +1,18 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
-import dev.openfeature.sdk.NoOpProvider;
+import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeature;
+import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeatureDefaultDomain;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.providers.memory.Flag;
-import dev.openfeature.sdk.providers.memory.InMemoryProvider;
 import org.apache.commons.lang3.BooleanUtils;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junitpioneer.internal.PioneerAnnotationUtils;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +20,7 @@ import java.util.Map;
 /**
  * JUnit5 Extension for OpenFeature.
  */
-public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallback {
+public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallback, InvocationInterceptor {
 
     OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 
@@ -49,7 +52,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
         PioneerAnnotationUtils
                 .findAllEnclosingRepeatableAnnotations(
                         extensionContext,
-                        dev.openfeature.contrib.tools.junitopenfeature.Flag.class)
+                        dev.openfeature.contrib.tools.junitopenfeature.annotations.Flag.class)
                 .forEachOrdered(flag -> {
                     Map<String, Flag<?>> domainFlags = configuration.getOrDefault(defaultDomain, new HashMap<>());
                     if (!domainFlags.containsKey(flag.name())) {
@@ -62,7 +65,9 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
         return configuration;
     }
 
-    private static Flag.FlagBuilder<?> generateFlagBuilder(dev.openfeature.contrib.tools.junitopenfeature.Flag flag) {
+    private static Flag.FlagBuilder<?> generateFlagBuilder(
+            dev.openfeature.contrib.tools.junitopenfeature.annotations.Flag flag
+    ) {
         Flag.FlagBuilder<?> builder;
         switch (flag.valueType().getSimpleName()) {
             case "Boolean":
@@ -89,17 +94,18 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @Override
-    public void afterEach(ExtensionContext extensionContext) throws Exception {
+    public void interceptTestMethod(
+            Invocation<Void> invocation,
+            ReflectiveInvocationContext<Method> invocationContext,
+            ExtensionContext extensionContext
+    ) throws Throwable {
+        TestProvider.CURRENT_NAMESPACE.set(getNamespace(extensionContext));
+        invocation.proceed();
+        TestProvider.CURRENT_NAMESPACE.remove();
+    }
 
-        @SuppressWarnings("unchecked") Map<String, Map<String, Flag<?>>> configuration =
-                (Map<String, Map<String, Flag<?>>>) getStore(extensionContext).get("config");
-        for (Map.Entry<String, Map<String, Flag<?>>> stringMapEntry : configuration.entrySet()) {
-            if (stringMapEntry.getKey().isEmpty()) {
-                api.setProvider(new NoOpProvider());
-            } else {
-                api.setProvider(stringMapEntry.getKey(), new NoOpProvider());
-            }
-        }
+    @Override
+    public void afterEach(ExtensionContext extensionContext) throws Exception {
     }
 
     @Override
@@ -108,15 +114,39 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
         configuration.putAll(handleExtendedConfiguration(extensionContext, configuration));
 
         for (Map.Entry<String, Map<String, Flag<?>>> stringMapEntry : configuration.entrySet()) {
-            InMemoryProvider inMemoryProvider = new InMemoryProvider(stringMapEntry.getValue());
-            if (stringMapEntry.getKey().isEmpty()) {
-                api.setProvider(inMemoryProvider);
+
+            if (!stringMapEntry.getKey().isEmpty()) {
+                String domain = stringMapEntry.getKey();
+                if (api.getProvider(domain) instanceof TestProvider && api.getProvider(domain) != api.getProvider()) {
+                    ((TestProvider) api.getProvider(domain))
+                            .addFlags(getNamespace(extensionContext), stringMapEntry.getValue());
+                } else {
+                    api.setProvider(domain, new TestProvider(
+                            getNamespace(extensionContext),
+                            stringMapEntry.getValue()));
+                }
             } else {
-                api.setProvider(stringMapEntry.getKey(), inMemoryProvider);
+                if (api.getProvider() instanceof TestProvider) {
+                    ((TestProvider) api.getProvider())
+                            .addFlags(getNamespace(extensionContext), stringMapEntry.getValue());
+                } else {
+                    api.setProvider(new TestProvider(
+                            getNamespace(extensionContext),
+                            stringMapEntry.getValue()));
+                }
             }
+
         }
 
         getStore(extensionContext).put("config", configuration);
+
+    }
+
+    private ExtensionContext.Namespace getNamespace(ExtensionContext extensionContext) {
+        return ExtensionContext.Namespace.create(
+                getClass(),
+                extensionContext.getRequiredTestMethod()
+        );
     }
 
     private ExtensionContext.Store getStore(ExtensionContext context) {
