@@ -1,7 +1,5 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
-import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeature;
-import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeatureDefaultDomain;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.providers.memory.Flag;
 import org.apache.commons.lang3.BooleanUtils;
@@ -52,7 +50,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
         PioneerAnnotationUtils
                 .findAllEnclosingRepeatableAnnotations(
                         extensionContext,
-                        dev.openfeature.contrib.tools.junitopenfeature.annotations.Flag.class)
+                        dev.openfeature.contrib.tools.junitopenfeature.Flag.class)
                 .forEachOrdered(flag -> {
                     Map<String, Flag<?>> domainFlags = configuration.getOrDefault(defaultDomain, new HashMap<>());
                     if (!domainFlags.containsKey(flag.name())) {
@@ -66,7 +64,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     private static Flag.FlagBuilder<?> generateFlagBuilder(
-            dev.openfeature.contrib.tools.junitopenfeature.annotations.Flag flag
+            dev.openfeature.contrib.tools.junitopenfeature.Flag flag
     ) {
         Flag.FlagBuilder<?> builder;
         switch (flag.valueType().getSimpleName()) {

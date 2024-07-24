@@ -1,8 +1,5 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
-import dev.openfeature.contrib.tools.junitopenfeature.annotations.Flag;
-import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeature;
-import dev.openfeature.contrib.tools.junitopenfeature.annotations.OpenFeatureDefaultDomain;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;

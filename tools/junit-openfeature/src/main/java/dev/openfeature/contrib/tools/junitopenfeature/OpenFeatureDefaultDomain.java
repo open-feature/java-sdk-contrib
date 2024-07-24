@@ -1,6 +1,5 @@
-package dev.openfeature.contrib.tools.junitopenfeature.annotations;
+package dev.openfeature.contrib.tools.junitopenfeature;
 
-import dev.openfeature.contrib.tools.junitopenfeature.OpenFeatureExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.lang.annotation.ElementType;

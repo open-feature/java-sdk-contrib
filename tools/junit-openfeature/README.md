@@ -73,12 +73,17 @@ Use the extended configuration when your code needs to use multiple domains.
 ```java
 @Test
 @OpenFeature({
-    @Flag(name = "BOOLEAN_FLAG", value = "true")
+        @Flag(name = "BOOLEAN_FLAG", value = "true")
 })
+@OpenFeature(
+        domain = "domain",
+        value = {
+            @Flag(name = "BOOLEAN_FLAG2", value = "true")
+        })
 void test() {
     // your test code
 }
-```
+``` 
 
 
 #### Multiple flags
@@ -133,24 +138,4 @@ void test() {
     // your test code
 }
 ```
-
-#### Multiple Configurations for multiple domains
-
-Following testcode will generate two providers, with different flag configurations for a test.
-
-```java
-@Test
-@OpenFeature({
-        @Flag(name = "BOOLEAN_FLAG", value = "true"),
-        @Flag(name = "BOOLEAN_FLAG2", value = "true")
-})
-@OpenFeature(
-        domain = "domain",
-        value = {
-            @Flag(name = "BOOLEAN_FLAG2", value = "true") // will be used
-        })
-void test() {
-    // your test code
-}
-``` 
 
