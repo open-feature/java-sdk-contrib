@@ -99,9 +99,9 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
             ReflectiveInvocationContext<Method> invocationContext,
             ExtensionContext extensionContext
     ) throws Throwable {
-        TestProvider.CURRENT_NAMESPACE.set(getNamespace(extensionContext));
+        TestProvider.setCurrentNamespace(getNamespace(extensionContext));
         invocation.proceed();
-        TestProvider.CURRENT_NAMESPACE.remove();
+        TestProvider.clearCurrentNamespace();
     }
 
     @Override
@@ -119,7 +119,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
                 String domain = stringMapEntry.getKey();
                 if (api.getProvider(domain) instanceof TestProvider && api.getProvider(domain) != api.getProvider()) {
                     ((TestProvider) api.getProvider(domain))
-                            .addFlags(getNamespace(extensionContext), stringMapEntry.getValue());
+                            .addConfigurationForTest(getNamespace(extensionContext), stringMapEntry.getValue());
                 } else {
                     api.setProvider(domain, new TestProvider(
                             getNamespace(extensionContext),
@@ -128,7 +128,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
             } else {
                 if (api.getProvider() instanceof TestProvider) {
                     ((TestProvider) api.getProvider())
-                            .addFlags(getNamespace(extensionContext), stringMapEntry.getValue());
+                            .addConfigurationForTest(getNamespace(extensionContext), stringMapEntry.getValue());
                 } else {
                     api.setProvider(new TestProvider(
                             getNamespace(extensionContext),
