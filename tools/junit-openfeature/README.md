@@ -36,7 +36,7 @@ void test() {
 #### Defining Flags for a whole test-class
 
 `@Flags` can be defined on the class-level too, but method-level
-annotations will superseded class-level annotations.
+annotations will supersede class-level annotations.
 
 ```java
 @Flag(name = "BOOLEAN_FLAG", value = "true")
@@ -52,7 +52,7 @@ class Test {
 
 #### Setting a different domain
 
-You can define an own domain on the test-class-level with `@OpenFeatureDefaultDomain` like:
+You can define your own domain on the test-class-level with `@OpenFeatureDefaultDomain` like:
 
 ```java
 @OpenFeatureDefaultDomain("domain")
@@ -103,7 +103,7 @@ void test() {
 
 #### Defining Flags for a whole test-class
 
-`@Flags` can be defined on the class-level too, but method-level
+`@Flag` can be defined on the class-level too, but method-level
 annotations will superseded class-level annotations.
 
 ```java
