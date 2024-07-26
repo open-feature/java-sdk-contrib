@@ -1,5 +1,7 @@
 # Keep all in alphabetical order
 components:
+  tools/junit-openfeature:
+    - aepfli
   hooks/open-telemetry:
     - beeme1mr
     - Kavindu-Dodan
