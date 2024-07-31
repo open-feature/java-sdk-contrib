@@ -2,6 +2,18 @@
 
 A JUnit5 extension to reduce boilerplate code for testing code which utilizes OpenFeature.
 
+## Installation
+<!-- x-release-please-start-version -->
+```xml
+<dependency>
+  <groupId>dev.openfeature.contrib.tools</groupId>
+  <artifactId>junitopenfeature</artifactId>
+  <version>0.0.0</version>
+  <scope>test</scope>
+</dependency>
+```
+<!-- x-release-please-end-version -->
+
 ## Getting Started
 
 We are supporting two different flavors for testing, a [simple](#simple-configuration) and an [extended](#extended-configuration) configuration.
