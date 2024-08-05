@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
@@ -98,6 +99,11 @@ public class FlagdOptions {
      */
     @Builder.Default
     private String offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+
+    /**
+     * Inject a Custom Connector for fetching flags.
+     */
+    private Connector customConnector;
 
     /**
      * Inject OpenTelemetry for the library runtime. Providing sdk will initiate

@@ -12,7 +12,7 @@ public class MockConnector implements Connector {
 
     private BlockingQueue<StreamPayload> mockQueue;
 
-    MockConnector(final BlockingQueue<StreamPayload> mockQueue) {
+    public MockConnector(final BlockingQueue<StreamPayload> mockQueue) {
         this.mockQueue = mockQueue;
     }
 

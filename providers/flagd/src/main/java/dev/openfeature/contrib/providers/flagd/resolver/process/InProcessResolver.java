@@ -152,6 +152,9 @@ public class InProcessResolver implements Resolver {
     }
 
     static Connector getConnector(final FlagdOptions options) {
+        if(options.getCustomConnector() != null){
+            return options.getCustomConnector();
+        }
         return options.getOfflineFlagSourcePath() != null && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileConnector(options.getOfflineFlagSourcePath())
                 : new GrpcStreamConnector(options);
