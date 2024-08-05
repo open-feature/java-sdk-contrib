@@ -64,9 +64,29 @@ Provider will attempt to detect file changes using polling.
 Polling happens at 5 second intervals and this is currently unconfigurable.
 This mode is useful for local development, tests and offline applications.
 
+#### Custom Connector 
+
+If you want to extend In-process resolver to fetch flags from a different source, you can inject a custom connector to 
+the In-process resolver. 
+The custom connector must implement the [Connector interface](https://github.com/open-feature/java-sdk-contrib/blob/main/providers/flagd/src/main/java/dev/openfeature/contrib/providers/flagd/resolver/process/storage/connector/Connector.java)
+
+```java
+Connector myCustomConnector = new MyCustomConnector();
+FlagdOptions options =
+        FlagdOptions.builder()
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .customConnector(myCustomConnector)
+                .build();
+
+FlagdProvider flagdProvider = new FlagdProvider(options);
+```
+
 > [!IMPORTANT]
-> Note that you can only use a single flag source (either gRPC or offline file) for the in-process resolver.
-> If both sources are configured, offline mode will be selected.
+> Note that the in-process resolver can only use a single flag source.
+> If multiple sources are configured then only one would be selected based on the following order of preference:
+>   1. Custom Connector
+>   2. Offline file
+>   3. gRPC
 
 ### Configuration options
 

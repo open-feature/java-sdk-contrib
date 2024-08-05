@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
@@ -53,10 +54,13 @@ class InProcessResolverTest {
                  FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).host("localhost").port(8080).build();
         FlagdOptions forOfflineOptions =
                 FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).offlineFlagSourcePath("path").build();
+        FlagdOptions forCustomConnectorOptions =
+                FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).customConnector(new MockConnector(null)).build();
 
         // then
         assertInstanceOf(GrpcStreamConnector.class, InProcessResolver.getConnector(forGrpcOptions));
         assertInstanceOf(FileConnector.class, InProcessResolver.getConnector(forOfflineOptions));
+        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions));
     }
 
     @Test
