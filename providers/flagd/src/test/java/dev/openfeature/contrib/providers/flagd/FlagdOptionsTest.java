@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import io.opentelemetry.api.OpenTelemetry;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,7 @@ class FlagdOptionsTest {
         assertEquals(DEFAULT_MAX_EVENT_STREAM_RETRIES, builder.getMaxEventStreamRetries());
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
+        assertNull(builder.getCustomConnector());
         assertNull(builder.getOfflineFlagSourcePath());
         assertEquals(Resolver.RPC, builder.getResolverType());
     }
@@ -35,6 +38,7 @@ class FlagdOptionsTest {
     @Test
     void TestBuilderOptions() {
         OpenTelemetry openTelemetry = Mockito.mock(OpenTelemetry.class);
+        Connector connector = new MockConnector(null);
 
         FlagdOptions flagdOptions = FlagdOptions.builder()
                 .host("https://hosted-flagd")
@@ -47,6 +51,7 @@ class FlagdOptionsTest {
                 .selector("app=weatherApp")
                 .offlineFlagSourcePath("some-path")
                 .openTelemetry(openTelemetry)
+                .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
                 .build();
 
@@ -60,6 +65,7 @@ class FlagdOptionsTest {
         assertEquals("app=weatherApp", flagdOptions.getSelector());
         assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
+        assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
     }
 
