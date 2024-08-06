@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.4...dev.openfeature.contrib.providers.flagd-v0.8.5) (2024-08-06)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.1 ([#891](https://github.com/open-feature/java-sdk-contrib/issues/891)) ([353f77b](https://github.com/open-feature/java-sdk-contrib/commit/353f77b24349a90e34b1823a60464e6369995c87))
+* **deps:** update dependency commons-codec:commons-codec to v1.17.1 ([#881](https://github.com/open-feature/java-sdk-contrib/issues/881)) ([ee8273e](https://github.com/open-feature/java-sdk-contrib/commit/ee8273e3bcea0b2d0dcfa6d58bd68b68edb551e6))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.112.final ([#886](https://github.com/open-feature/java-sdk-contrib/issues/886)) ([1c6c890](https://github.com/open-feature/java-sdk-contrib/commit/1c6c890a83fec49394a3a44c82ef75f80613e586))
+* **deps:** update grpc-java monorepo to v1.65.1 ([#878](https://github.com/open-feature/java-sdk-contrib/issues/878)) ([d307cc2](https://github.com/open-feature/java-sdk-contrib/commit/d307cc25ff042c084529655f4ebd953d2fa91b5c))
+
+
+### ✨ New Features
+
+* [flagd-in-process] Support Injection of a custom connector ([#900](https://github.com/open-feature/java-sdk-contrib/issues/900)) ([b9f9ffd](https://github.com/open-feature/java-sdk-contrib/commit/b9f9ffddf7538bbd8f7ffb531752c9468dbb87b1))
+
+
+### 🧹 Chore
+
+* **deps:** update testcontainers-java monorepo to v1.20.0 ([#882](https://github.com/open-feature/java-sdk-contrib/issues/882)) ([2861e4b](https://github.com/open-feature/java-sdk-contrib/commit/2861e4b5195c3a626bced6b393e714e21c8144e9))
+* **deps:** update testcontainers-java monorepo to v1.20.1 ([#897](https://github.com/open-feature/java-sdk-contrib/issues/897)) ([6f76193](https://github.com/open-feature/java-sdk-contrib/commit/6f76193bf34c3230945a6c0bb8cc0f818664af5b))
+
 ## [0.8.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.3...dev.openfeature.contrib.providers.flagd-v0.8.4) (2024-07-08)
 
 
