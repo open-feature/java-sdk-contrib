@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.24](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.23...dev.openfeature.contrib.providers.go-feature-flag-v0.2.24) (2024-08-08)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.17.2 ([#866](https://github.com/open-feature/java-sdk-contrib/issues/866)) ([cf66811](https://github.com/open-feature/java-sdk-contrib/commit/cf668118351120b8a86b08f30facb38f7ec51086))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.17.2 ([#867](https://github.com/open-feature/java-sdk-contrib/issues/867)) ([84f534c](https://github.com/open-feature/java-sdk-contrib/commit/84f534c7d0a8a739b1d071a2f7c93c6ec21316da))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.14 ([#904](https://github.com/open-feature/java-sdk-contrib/issues/904)) ([028b332](https://github.com/open-feature/java-sdk-contrib/commit/028b332dc8ac3b134e5453d5449a4c11b4ef250a))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.15 ([#910](https://github.com/open-feature/java-sdk-contrib/issues/910)) ([2f58638](https://github.com/open-feature/java-sdk-contrib/commit/2f58638eb4907c948325d1e61853e1b6eabfa4c1))
+
 ## [0.2.23](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.22...dev.openfeature.contrib.providers.go-feature-flag-v0.2.23) (2024-07-03)
 
 
