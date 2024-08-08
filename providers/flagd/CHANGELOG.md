@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.5...dev.openfeature.contrib.providers.flagd-v0.8.6) (2024-08-08)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update grpc-java monorepo to v1.66.0 ([#909](https://github.com/open-feature/java-sdk-contrib/issues/909)) ([a1bd2db](https://github.com/open-feature/java-sdk-contrib/commit/a1bd2db5e91242b9ef23651c8a874ce6ef7a4782))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.4.0 ([#905](https://github.com/open-feature/java-sdk-contrib/issues/905)) ([fe213ee](https://github.com/open-feature/java-sdk-contrib/commit/fe213ee895140952057746b909115c7110811ef8))
+
 ## [0.8.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.4...dev.openfeature.contrib.providers.flagd-v0.8.5) (2024-08-06)
 
 
