@@ -38,6 +38,7 @@
         <module>providers/flipt</module>
         <module>providers/configcat</module>
         <module>providers/statsig</module>
+        <module>providers/prefab</module>
     </modules>
 
     <scm>
