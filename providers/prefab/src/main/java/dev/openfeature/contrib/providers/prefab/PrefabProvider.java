@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.prefab;
 
 import cloud.prefab.client.PrefabCloudClient;
-import cloud.prefab.context.PrefabContext;
+import cloud.prefab.context.PrefabContextSetReadable;
 import cloud.prefab.domain.Prefab;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
@@ -84,7 +84,7 @@ public class PrefabProvider extends EventProvider {
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
-        PrefabContext context = ctx == null ? null : ContextTransformer.transform(ctx);
+        PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Boolean evaluatedValue = prefabCloudClient.featureFlagClient().featureIsOn(key, context);
         return ProviderEvaluation.<Boolean>builder()
             .value(evaluatedValue)
@@ -94,7 +94,7 @@ public class PrefabProvider extends EventProvider {
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
-        PrefabContext context = ctx == null ? null : ContextTransformer.transform(ctx);
+        PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         String evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
         if (opt.isPresent() && Prefab.ConfigValue.TypeCase.STRING.equals(opt.get().getTypeCase())) {
@@ -108,7 +108,7 @@ public class PrefabProvider extends EventProvider {
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
-        PrefabContext context = ctx == null ? null : ContextTransformer.transform(ctx);
+        PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Integer evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
         if (opt.isPresent() && Prefab.ConfigValue.TypeCase.INT.equals(opt.get().getTypeCase())) {
@@ -122,7 +122,7 @@ public class PrefabProvider extends EventProvider {
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         verifyEvaluation();
-        PrefabContext context = ctx == null ? null : ContextTransformer.transform(ctx);
+        PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Double evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
         if (opt.isPresent() && Prefab.ConfigValue.TypeCase.DOUBLE.equals(opt.get().getTypeCase())) {

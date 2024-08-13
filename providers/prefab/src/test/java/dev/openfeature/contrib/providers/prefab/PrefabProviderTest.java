@@ -2,6 +2,8 @@ package dev.openfeature.contrib.providers.prefab;
 
 import cloud.prefab.client.Options;
 import cloud.prefab.context.PrefabContext;
+import cloud.prefab.context.PrefabContextSet;
+import cloud.prefab.context.PrefabContextSetReadable;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
@@ -15,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,16 +37,16 @@ class PrefabProviderTest {
     public static final Integer INT_FLAG_VALUE = 123;
     public static final String DOUBLE_FLAG_NAME = "sample_double";
     public static final Double DOUBLE_FLAG_VALUE = 12.12;
-    public static final String USERS_FLAG_NAME = "just_my_domain";
+    public static final String USERS_FLAG_NAME = "test1";
     private static PrefabProvider prefabProvider;
     private static Client client;
 
     @BeforeAll
     static void setUp() {
-        String sdkKey = "prefab-test";
+        File localDataFile = new File("src/test/resources/features.json");
         Options options = new Options()
-            .setApikey(sdkKey)
-            .setPrefabDatasource(Options.Datasources.LOCAL_ONLY)
+            .setPrefabDatasource(Options.Datasources.ALL)
+            .setLocalDatafile(localDataFile.toString())
             .setInitializationTimeoutSec(10);
         PrefabProviderConfig prefabProviderConfig = PrefabProviderConfig.builder()
             .options(options).build();
@@ -108,13 +112,15 @@ class PrefabProviderTest {
         assertEquals(1.1, client.getDoubleValue(VARIANT_FLAG_NAME, 1.1));
     }
 
-//    @Test
+    @Test
     void getBooleanEvaluationByUser() {
         MutableContext evaluationContext = new MutableContext();
-        evaluationContext.add("domain", "prefab.cloud");
+        evaluationContext.add("user.key", "key1");
+        evaluationContext.add("team.domain", "prefab.cloud");
+
         assertEquals(true, prefabProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
-        evaluationContext.add("domain", "other.com");
+        evaluationContext.add("team.domain", "other.com");
         assertEquals(false, prefabProvider.getBooleanEvaluation(USERS_FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(false, client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext));
     }
@@ -156,16 +162,16 @@ class PrefabProviderTest {
     @SneakyThrows
     @Test
     void contextTransformTest() {
-        String customPropertyValue = "customProperty_value";
-        String customPropertyKey = "customProperty";
 
         MutableContext evaluationContext = new MutableContext();
-        evaluationContext.add(customPropertyKey, customPropertyValue);
+        evaluationContext.add("user.key", "key1");
+        evaluationContext.add("team.domain", "prefab.cloud");
 
-        PrefabContext expectedContext = PrefabContext.newBuilder("User")
-            .put(customPropertyKey, customPropertyValue)
-            .build();
-        PrefabContext transformedContext = ContextTransformer.transform(evaluationContext);
+        PrefabContextSet expectedContext = PrefabContextSet.from(
+            PrefabContext.newBuilder("user").put("key", "key1").build(),
+            PrefabContext.newBuilder("team").put("domain", "prefab.cloud").build()
+        );
+        PrefabContextSetReadable transformedContext = ContextTransformer.transform(evaluationContext);
 
         // equals not implemented for User, using toString
         assertEquals(expectedContext.toString(), transformedContext.toString());

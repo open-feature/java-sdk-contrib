@@ -37,7 +37,8 @@ OpenFeatureAPI.getInstance().setProviderAndWait(prefabProvider);
 boolean featureEnabled = client.getBooleanValue(FLAG_NAME, false);
 
 MutableContext evaluationContext = new MutableContext();
-evaluationContext.add("domain", "domain.com");
+evaluationContext.add("user.key", "key1");
+evaluationContext.add("team.domain", "prefab.cloud");
 featureEnabled = client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext);
 ```
 
