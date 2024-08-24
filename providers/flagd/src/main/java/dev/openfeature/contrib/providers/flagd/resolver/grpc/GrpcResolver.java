@@ -5,6 +5,7 @@ import dev.openfeature.contrib.providers.flagd.Config;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -62,7 +63,7 @@ public final class GrpcResolver implements Resolver {
      * @param stateConsumer lambda to communicate back the state.
      */
     public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> stateSupplier,
-            final Consumer<ProviderState> stateConsumer) {
+            final BiConsumer<ProviderState,List<String>> stateConsumer) {
         this.cache = cache;
         this.stateSupplier = stateSupplier;
 

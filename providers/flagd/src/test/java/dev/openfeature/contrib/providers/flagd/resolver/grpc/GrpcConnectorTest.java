@@ -58,7 +58,7 @@ public class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(options, cache, (state) -> {
+        final GrpcConnector connector = new GrpcConnector(options, cache, (state,changedFlagKeys) -> {
         });
 
         Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
@@ -94,7 +94,7 @@ public class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, (state) -> {
+        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, (state,changedFlagKeys) -> {
         });
 
         Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
@@ -118,7 +118,7 @@ public class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, (state) -> {
+        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, (state,changedFlagKeys) -> {
         });
 
         Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");

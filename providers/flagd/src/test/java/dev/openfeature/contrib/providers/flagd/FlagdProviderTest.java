@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateDTO;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -499,7 +501,7 @@ class FlagdProviderTest {
                     .thenReturn(serviceStubMock);
 
             final Cache cache = new Cache("lru", 5);
-            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, (state,changedFlagKeys) -> {
             });
         }
 
@@ -714,7 +716,7 @@ class FlagdProviderTest {
             mockStaticService.when(() -> ServiceGrpc.newStub(any()))
                     .thenReturn(serviceStubMock);
 
-            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, state -> {
+            grpc = new GrpcConnector(FlagdOptions.builder().build(), cache, (state,changedFlagKeys) -> {
             });
         }
 
@@ -888,7 +890,7 @@ class FlagdProviderTest {
     private FlagdProvider createProvider(GrpcConnector grpc, Cache cache, Supplier<ProviderState> getState) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
         final GrpcResolver grpcResolver =
-                new GrpcResolver(flagdOptions, cache, getState, (providerState) -> {
+                new GrpcResolver(flagdOptions, cache, getState, (providerState,changedFlagKeys) -> {
                 });
 
         final FlagdProvider provider = new FlagdProvider();
@@ -916,7 +918,9 @@ class FlagdProviderTest {
                 .deadline(1000)
                 .build();
         final FlagdProvider provider = new FlagdProvider(flagdOptions);
-        final MockStorage mockStorage = new MockStorage(new HashMap<String, FeatureFlag>(), new LinkedBlockingQueue<StorageState>(Arrays.asList(StorageState.OK)));
+        final MockStorage mockStorage = new MockStorage(new HashMap<String, FeatureFlag>(),
+                new LinkedBlockingQueue<StorageStateDTO>(Arrays.asList(new
+                        StorageStateDTO(StorageState.OK))));
         
         try {
             final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");

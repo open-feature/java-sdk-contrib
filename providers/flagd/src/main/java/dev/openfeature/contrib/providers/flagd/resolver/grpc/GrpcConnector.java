@@ -1,10 +1,11 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
+import java.util.function.BiConsumer;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
@@ -37,7 +38,7 @@ public class GrpcConnector {
     private final long deadline;
 
     private final Cache cache;
-    private final Consumer<ProviderState> stateConsumer;
+    private final BiConsumer<ProviderState, List<String>> stateConsumer;
 
     private int eventStreamAttempt = 1;
     private int eventStreamRetryBackoff;
@@ -52,7 +53,7 @@ public class GrpcConnector {
      * @param cache         cache to use.
      * @param stateConsumer lambda to call for setting the state.
      */
-    public GrpcConnector(final FlagdOptions options, final Cache cache, Consumer<ProviderState> stateConsumer) {
+    public GrpcConnector(final FlagdOptions options, final Cache cache, BiConsumer<ProviderState, List<String>> stateConsumer) {
         this.channel = ChannelBuilder.nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
@@ -100,7 +101,7 @@ public class GrpcConnector {
                 this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
                 log.warn(String.format("Unable to shut down channel by %d deadline", this.deadline));
             }
-            this.stateConsumer.accept(ProviderState.NOT_READY);
+            this.stateConsumer.accept(ProviderState.NOT_READY, Collections.emptyList());
         }
     }
 
@@ -162,6 +163,6 @@ public class GrpcConnector {
         }
 
         // chain to initiator
-        this.stateConsumer.accept(state);
+        this.stateConsumer.accept(state, Collections.emptyList());
     }
 }
