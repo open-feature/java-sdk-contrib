@@ -1,0 +1,5 @@
+services:
+  flagd:
+    build:
+      context: ./test-harness
+      dockerfile: flagd/Dockerfile
