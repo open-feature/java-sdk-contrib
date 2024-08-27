@@ -142,7 +142,7 @@ public class GrpcStreamConnector implements Connector {
 
                     if (!writeTo.offer(
                             new StreamPayload(StreamPayloadType.ERROR, "Error from stream connection, retrying"))) {
-                        log.error("Failed to convey ERROR satus, queue is full");
+                        log.error("Failed to convey ERROR status, queue is full");
                     }
                     break;
                 }
