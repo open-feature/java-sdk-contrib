@@ -130,7 +130,7 @@ public class GrpcStreamConnector implements Connector {
                 final GrpcResponseModel response = streamReceiver.take();
 
                 if (response.isComplete()) {
-                    log.warn("Stream completed");
+                    log.info("Sync stream completed");
                     // The stream is complete, this isn't really an error but we should try to
                     // reconnect
                     break;
