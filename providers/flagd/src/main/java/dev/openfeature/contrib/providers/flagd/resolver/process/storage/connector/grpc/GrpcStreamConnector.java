@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 @SuppressFBWarnings(value = { "PREDICTABLE_RANDOM",
-        "EI_EXPOSE_REP" }, justification = "Random is used to generate a variation & flag configurations require exposing")
+    "EI_EXPOSE_REP" }, justification = "Random is used to generate a variation & flag configurations require exposing")
 public class GrpcStreamConnector implements Connector {
     private static final Random RANDOM = new Random();
 
