@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.5...dev.openfeature.contrib.providers.flagd-v0.8.6) (2024-08-27)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update grpc-java monorepo to v1.66.0 ([#909](https://github.com/open-feature/java-sdk-contrib/issues/909)) ([a1bd2db](https://github.com/open-feature/java-sdk-contrib/commit/a1bd2db5e91242b9ef23651c8a874ce6ef7a4782))
+* **deps:** update opentelemetry-java monorepo to v1.41.0 ([#911](https://github.com/open-feature/java-sdk-contrib/issues/911)) ([157705a](https://github.com/open-feature/java-sdk-contrib/commit/157705a44e55f5b5a545f9126b64df00b1f8cdf9))
+
+
+### 🧹 Chore
+
+* add more logging in sync stream ([#929](https://github.com/open-feature/java-sdk-contrib/issues/929)) ([64c9f13](https://github.com/open-feature/java-sdk-contrib/commit/64c9f13a4afeae13df9ddd32dc2e942f76f9d905))
+* Create docker-compose.yml do match CONTRIBUTING.md ([#918](https://github.com/open-feature/java-sdk-contrib/issues/918)) ([d81702e](https://github.com/open-feature/java-sdk-contrib/commit/d81702ed0414dc6654d957663f4441fbf85ab6cb))
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.4.0 ([#905](https://github.com/open-feature/java-sdk-contrib/issues/905)) ([fe213ee](https://github.com/open-feature/java-sdk-contrib/commit/fe213ee895140952057746b909115c7110811ef8))
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.4.1 ([#914](https://github.com/open-feature/java-sdk-contrib/issues/914)) ([c68d0c5](https://github.com/open-feature/java-sdk-contrib/commit/c68d0c5cca31582a6952cb0054acec8ca195a716))
+* **deps:** update junit5 monorepo ([#917](https://github.com/open-feature/java-sdk-contrib/issues/917)) ([0fe925a](https://github.com/open-feature/java-sdk-contrib/commit/0fe925ae4584527c20be64dfc2e1af491df766cd))
+
 ## [0.8.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.4...dev.openfeature.contrib.providers.flagd-v0.8.5) (2024-08-06)
 
 
