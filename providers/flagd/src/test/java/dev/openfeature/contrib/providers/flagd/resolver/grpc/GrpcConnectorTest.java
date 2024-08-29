@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
@@ -277,6 +278,7 @@ public class GrpcConnectorTest {
         when(mockChannelBuilder.eventLoopGroup(any(EventLoopGroup.class))).thenReturn(mockChannelBuilder);
         when(mockChannelBuilder.channelType(any(Class.class))).thenReturn(mockChannelBuilder);
         when(mockChannelBuilder.usePlaintext()).thenReturn(mockChannelBuilder);
+        when(mockChannelBuilder.keepAliveTime(anyLong(), any())).thenReturn(mockChannelBuilder);
         when(mockChannelBuilder.build()).thenReturn(null);
         return mockChannelBuilder;
     }

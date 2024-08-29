@@ -94,6 +94,14 @@ public class FlagdOptions {
     private String selector = fallBackToEnvOrDefault(Config.SOURCE_SELECTOR_ENV_VAR_NAME, null);
 
     /**
+     * gRPC client KeepAlive in milliseconds. Disabled with 0.
+     * Defaults to 0 (disabled).
+     * 
+     **/
+    @Builder.Default
+    private long keepAlive = fallBackToEnvOrDefault(Config.KEEP_ALIVE_ENV_VAR_NAME, Config.DEFAULT_KEEP_ALIVE);
+
+    /**
      * File source of flags to be used by offline mode.
      * Setting this enables the offline mode of the in-process provider.
      */

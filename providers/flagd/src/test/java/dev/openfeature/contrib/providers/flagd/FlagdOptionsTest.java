@@ -3,7 +3,6 @@ package dev.openfeature.contrib.providers.flagd;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import io.opentelemetry.api.OpenTelemetry;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.mockito.Mockito;
@@ -33,6 +32,7 @@ class FlagdOptionsTest {
         assertNull(builder.getCustomConnector());
         assertNull(builder.getOfflineFlagSourcePath());
         assertEquals(Resolver.RPC, builder.getResolverType());
+        assertEquals(0, builder.getKeepAlive());
     }
 
     @Test
@@ -53,6 +53,7 @@ class FlagdOptionsTest {
                 .openTelemetry(openTelemetry)
                 .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
+                .keepAlive(1000)
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -67,6 +68,7 @@ class FlagdOptionsTest {
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
         assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
+        assertEquals(1000, flagdOptions.getKeepAlive());
     }
 
 

@@ -105,6 +105,7 @@ Given below are the supported configurations:
 | socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process    |
 | certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process    |
 | deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process    |
+| keepAliveTime         | FLAGD_KEEP_ALIVE_TIME          | long                     | 0         | rpc & in-process    |
 | selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process          |
 | cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                 |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                      | 1000      | rpc                 |
