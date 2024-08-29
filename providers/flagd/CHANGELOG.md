@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.6...dev.openfeature.contrib.providers.flagd-v0.8.7) (2024-08-29)
+
+
+### ✨ New Features
+
+* add gRPC keepalive ([#930](https://github.com/open-feature/java-sdk-contrib/issues/930)) ([6833433](https://github.com/open-feature/java-sdk-contrib/commit/6833433fcd2334c3df0cb30efedaba2f2984062d))
+
 ## [0.8.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.5...dev.openfeature.contrib.providers.flagd-v0.8.6) (2024-08-27)
 
 
