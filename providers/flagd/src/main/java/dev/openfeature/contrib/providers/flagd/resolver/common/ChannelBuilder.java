@@ -38,7 +38,8 @@ public class ChannelBuilder {
             return NettyChannelBuilder
                     .forAddress(new DomainSocketAddress(options.getSocketPath()))
                     // keepAliveTime: Long.MAX_VALUE disables keepAlive; very small values are increased automatically
-                    .keepAliveTime(options.getKeepAlive() == 0 ? Long.MAX_VALUE : options.getKeepAlive(), TimeUnit.MILLISECONDS)
+                    .keepAliveTime(options.getKeepAlive() == 0 ? Long.MAX_VALUE : options.getKeepAlive(),
+                            TimeUnit.MILLISECONDS)
                     .eventLoopGroup(new EpollEventLoopGroup())
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
