@@ -13,6 +13,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 
 import javax.net.ssl.SSLException;
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 /**
  * gRPC channel builder helper.
@@ -36,6 +37,8 @@ public class ChannelBuilder {
 
             return NettyChannelBuilder
                     .forAddress(new DomainSocketAddress(options.getSocketPath()))
+                    // keepAliveTime: Long.MAX_VALUE disables keepAlive; very small values are increased automatically
+                    .keepAliveTime(options.getKeepAlive() == 0 ? Long.MAX_VALUE : options.getKeepAlive(), TimeUnit.MILLISECONDS)
                     .eventLoopGroup(new EpollEventLoopGroup())
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
