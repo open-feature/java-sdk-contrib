@@ -12,6 +12,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
@@ -164,12 +165,18 @@ public class InProcessResolver implements Resolver {
 
         // missing flag
         if (flag == null) {
-            throw new FlagNotFoundError("flag: " + key + " not found");
+           return ProviderEvaluation.<T>builder()
+                   .errorMessage("flag: " + key + " not found")
+                   .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                   .build();
         }
 
         // state check
         if ("DISABLED".equals(flag.getState())) {
-            throw new FlagNotFoundError("flag: " + key + " is disabled");
+            return ProviderEvaluation.<T>builder()
+                    .errorMessage("flag: " + key + " is disabled")
+                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .build();
         }
 
         final String resolvedVariant;
