@@ -106,6 +106,14 @@ class FlagdOptionsTest {
     }
 
     @Test
+    @SetEnvironmentVariable(key = KEEP_ALIVE_ENV_VAR_NAME, value = "1337")
+    void testInProcessProviderFromEnv_keepAliveEnvSet_usesSet() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getKeepAlive()).isEqualTo(1337);
+    }
+
+    @Test
     void testInProcessProvider_noPortConfigured_defaultsToCorrectPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder()
                 .resolverType(Resolver.IN_PROCESS)
