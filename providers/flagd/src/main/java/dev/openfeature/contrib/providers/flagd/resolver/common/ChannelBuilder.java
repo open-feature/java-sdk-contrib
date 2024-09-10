@@ -28,6 +28,10 @@ public class ChannelBuilder {
      */
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "certificate path is a user input")
     public static ManagedChannel nettyChannel(final FlagdOptions options) {
+
+        // keepAliveTime: Long.MAX_VALUE disables keepAlive; very small values are increased automatically
+        long keepAliveMs = options.getKeepAlive() == 0 ? Long.MAX_VALUE : options.getKeepAlive();
+
         // we have a socket path specified, build a channel with a unix socket
         if (options.getSocketPath() != null) {
             // check epoll availability
@@ -37,9 +41,7 @@ public class ChannelBuilder {
 
             return NettyChannelBuilder
                     .forAddress(new DomainSocketAddress(options.getSocketPath()))
-                    // keepAliveTime: Long.MAX_VALUE disables keepAlive; very small values are increased automatically
-                    .keepAliveTime(options.getKeepAlive() == 0 ? Long.MAX_VALUE : options.getKeepAlive(),
-                            TimeUnit.MILLISECONDS)
+                    .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS)
                     .eventLoopGroup(new EpollEventLoopGroup())
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
@@ -48,7 +50,9 @@ public class ChannelBuilder {
 
         // build a TCP socket
         try {
-            final NettyChannelBuilder builder = NettyChannelBuilder.forAddress(options.getHost(), options.getPort());
+            final NettyChannelBuilder builder = NettyChannelBuilder
+                    .forAddress(options.getHost(), options.getPort())
+                    .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS);
             if (options.isTls()) {
                 SslContextBuilder sslContext = GrpcSslContexts.forClient();
 

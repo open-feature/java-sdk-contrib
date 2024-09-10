@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import io.opentelemetry.api.OpenTelemetry;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.mockito.Mockito;
@@ -105,13 +106,35 @@ class FlagdOptionsTest {
         assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_IN_PROCESS_PORT));
     }
 
-    @Test
-    @SetEnvironmentVariable(key = KEEP_ALIVE_ENV_VAR_NAME, value = "1337")
-    void testInProcessProviderFromEnv_keepAliveEnvSet_usesSet() {
-        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+    @Nested
+    class TestInProcessProviderFromEnv_keepAliveEnvSet {
+        @Test
+        @SetEnvironmentVariable(key = KEEP_ALIVE_MS_ENV_VAR_NAME, value = "1336")
+        void usesSet() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
 
-        assertThat(flagdOptions.getKeepAlive()).isEqualTo(1337);
+            assertThat(flagdOptions.getKeepAlive()).isEqualTo(1336);
+        }
+
+        @Test
+        @SetEnvironmentVariable(key = KEEP_ALIVE_MS_ENV_VAR_NAME_OLD, value = "1337")
+        void usesSetOldName() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+            assertThat(flagdOptions.getKeepAlive()).isEqualTo(1337);
+        }
+
+        @Test
+        @SetEnvironmentVariable(key = KEEP_ALIVE_MS_ENV_VAR_NAME_OLD, value = "2222")
+        @SetEnvironmentVariable(key = KEEP_ALIVE_MS_ENV_VAR_NAME, value = "1338")
+        void usesSetOldAndNewName() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+            assertThat(flagdOptions.getKeepAlive()).isEqualTo(1338);
+        }
     }
+
+
 
     @Test
     void testInProcessProvider_noPortConfigured_defaultsToCorrectPort() {

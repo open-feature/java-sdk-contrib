@@ -99,7 +99,8 @@ public class FlagdOptions {
      * 
      **/
     @Builder.Default
-    private long keepAlive = fallBackToEnvOrDefault(Config.KEEP_ALIVE_ENV_VAR_NAME, Config.DEFAULT_KEEP_ALIVE);
+    private long keepAlive = fallBackToEnvOrDefault(Config.KEEP_ALIVE_MS_ENV_VAR_NAME,
+            fallBackToEnvOrDefault(Config.KEEP_ALIVE_MS_ENV_VAR_NAME_OLD, Config.DEFAULT_KEEP_ALIVE));
 
     /**
      * File source of flags to be used by offline mode.
