@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.7...dev.openfeature.contrib.providers.flagd-v0.8.8) (2024-09-10)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.113.final ([#936](https://github.com/open-feature/java-sdk-contrib/issues/936)) ([6686300](https://github.com/open-feature/java-sdk-contrib/commit/6686300b62bd7b51283c6131bb24174bb2bb331f))
+* **deps:** update opentelemetry-java monorepo to v1.42.0 ([#939](https://github.com/open-feature/java-sdk-contrib/issues/939)) ([67e855c](https://github.com/open-feature/java-sdk-contrib/commit/67e855c0eeeb8f36cd6ebb901deb3bfa3ea90695))
+* use keepalive for TCP & use unit in env variable name ([#945](https://github.com/open-feature/java-sdk-contrib/issues/945)) ([d615499](https://github.com/open-feature/java-sdk-contrib/commit/d615499b7f213983da10c2fb9269cf47340f7110))
+
+
+### 🧹 Chore
+
+* add env keepalive test ([#943](https://github.com/open-feature/java-sdk-contrib/issues/943)) ([b07248c](https://github.com/open-feature/java-sdk-contrib/commit/b07248cf5843fea67775b31fa60b7f11e2e75919))
+
 ## [0.8.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.6...dev.openfeature.contrib.providers.flagd-v0.8.7) (2024-08-29)
 
 
