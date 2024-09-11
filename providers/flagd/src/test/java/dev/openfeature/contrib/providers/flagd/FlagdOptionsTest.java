@@ -34,6 +34,7 @@ class FlagdOptionsTest {
         assertNull(builder.getOfflineFlagSourcePath());
         assertEquals(Resolver.RPC, builder.getResolverType());
         assertEquals(0, builder.getKeepAlive());
+        assertNull(builder.getAuthority());
     }
 
     @Test
@@ -55,6 +56,7 @@ class FlagdOptionsTest {
                 .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
                 .keepAlive(1000)
+                .authority("test.service")
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -70,6 +72,7 @@ class FlagdOptionsTest {
         assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
         assertEquals(1000, flagdOptions.getKeepAlive());
+        assertEquals("test.service", flagdOptions.getAuthority());
     }
 
 
@@ -186,5 +189,14 @@ class FlagdOptionsTest {
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
         assertThat(flagdOptions.getPort()).isEqualTo(1534);
 
+    }
+
+
+    @Test
+    @SetEnvironmentVariable(key = AUTHORITY_OVERRIDE, value = "test.service")
+    void testAuthorityOverrideFromEnv() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getAuthority()).isEqualTo("test.service");
     }
 }

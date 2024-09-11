@@ -112,6 +112,7 @@ Given below are the supported configurations:
 | maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                      | 5         | rpc                 |
 | retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                      | 1000      | rpc                 |
 | offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH | String                   | null      | in-process          |
+| authority             | FLAGD_AUTHORITY_OVERRIDE       | String                   | null      | rpc & in-process    |
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.
