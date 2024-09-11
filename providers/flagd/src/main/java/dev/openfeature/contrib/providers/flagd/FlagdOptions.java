@@ -96,7 +96,7 @@ public class FlagdOptions {
     /**
      * gRPC client KeepAlive in milliseconds. Disabled with 0.
      * Defaults to 0 (disabled).
-     * 
+     *
      **/
     @Builder.Default
     private long keepAlive = fallBackToEnvOrDefault(Config.KEEP_ALIVE_MS_ENV_VAR_NAME,
@@ -108,6 +108,16 @@ public class FlagdOptions {
      */
     @Builder.Default
     private String offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+
+
+    /**
+     * gRPC authority override.
+     * Setting this will allow user to override the system generated authority with
+     * user specified string. This is useful when running flagd gRPC sync service behind
+     * proxy e.g. envoy, istio etc.
+     */
+    @Builder.Default
+    private String authority = fallBackToEnvOrDefault(Config.AUTHORITY_OVERRIDE, null);
 
     /**
      * Inject a Custom Connector for fetching flags.
