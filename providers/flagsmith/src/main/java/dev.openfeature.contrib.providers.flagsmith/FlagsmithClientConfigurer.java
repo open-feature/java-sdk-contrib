@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagsmith;
 
 import com.flagsmith.FlagsmithClient;
 import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsException;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsException;
@@ -88,10 +89,8 @@ public class FlagsmithClientConfigurer {
      * @param options The options used to create the provider
      * @return a FlagsmithConfig object with the FlagsmithClient settings
      */
-    private static com.flagsmith.config.FlagsmithConfig initializeConfig(
-        FlagsmithProviderOptions options) {
-        com.flagsmith.config.FlagsmithConfig.Builder flagsmithConfig = com.flagsmith.config.FlagsmithConfig
-            .newBuilder();
+    private static FlagsmithConfig initializeConfig(FlagsmithProviderOptions options) {
+        FlagsmithConfig.Builder flagsmithConfig = FlagsmithConfig.newBuilder();
 
         // Set client level configuration settings
         if (options.getBaseUri() != null) {
@@ -134,6 +133,10 @@ public class FlagsmithClientConfigurer {
 
         if (options.isEnableAnalytics()) {
             flagsmithConfig.withEnableAnalytics(options.isEnableAnalytics());
+        }
+
+        if (options.getSupportedProtocols() != null && !options.getSupportedProtocols().isEmpty()) {
+            flagsmithConfig.withSupportedProtocols(options.getSupportedProtocols());
         }
 
         return flagsmithConfig.build();
