@@ -2,8 +2,13 @@ package dev.openfeature.contrib.providers.flagsmith;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import com.flagsmith.config.FlagsmithConfig.Protocol;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import lombok.Builder;
 import lombok.Getter;
 import javax.net.ssl.SSLSocketFactory;
@@ -183,4 +188,12 @@ public class FlagsmithProviderOptions {
      */
     @Builder.Default
     private boolean usingBooleanConfigValue = false;
+
+    /**
+     * Set the list of supported protocols that should be used.
+     * Optional.
+     * Default: All the enum protocols from FlagsmithConfig.
+     */
+    @Builder.Default
+    private List<Protocol> supportedProtocols = Arrays.stream(Protocol.values()).collect(Collectors.toList());
 }

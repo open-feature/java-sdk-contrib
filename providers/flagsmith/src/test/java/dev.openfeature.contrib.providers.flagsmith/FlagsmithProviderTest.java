@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagsmith;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.config.FlagsmithConfig;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsException;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsException;
 import dev.openfeature.sdk.EvaluationContext;
@@ -16,6 +17,8 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -191,6 +194,7 @@ public class FlagsmithProviderTest {
                                     .environmentRefreshIntervalSeconds(1)
                                     .enableAnalytics(true)
                                     .usingBooleanConfigValue(false)
+                                    .supportedProtocols(Collections.singletonList(FlagsmithConfig.Protocol.HTTP_1_1))
                                     .build();
         assertDoesNotThrow(() -> new FlagsmithProvider(options));
     }
