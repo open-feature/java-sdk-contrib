@@ -36,7 +36,7 @@ public class FlagsmithClientConfigurer {
             flagsmithBuilder.withCache(flagsmithCacheConfig);
         }
 
-        com.flagsmith.config.FlagsmithConfig flagsmithConfig = initializeConfig(options);
+        final FlagsmithConfig flagsmithConfig = initializeConfig(options);
         flagsmithBuilder.withConfiguration(flagsmithConfig);
 
         return flagsmithBuilder.build();
