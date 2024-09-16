@@ -6,7 +6,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateDTO;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
@@ -26,8 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
-
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
@@ -53,8 +51,8 @@ public class InProcessResolver implements Resolver {
         this.deadline = options.getDeadline();
         this.stateConsumer = stateConsumer;
         this.operator = new Operator();
-        this.metadata = options.getSelector() == null ? null :
-                ImmutableMetadata.builder()
+        this.metadata = options.getSelector() == null ? null
+                : ImmutableMetadata.builder()
                         .addString("scope", options.getSelector())
                         .build();
     }
@@ -67,20 +65,21 @@ public class InProcessResolver implements Resolver {
         final Thread stateWatcher = new Thread(() -> {
             try {
                 while (true) {
-                    final StorageStateDTO storageStateDTO = flagStore.getStateQueue().take();
-                    switch (storageStateDTO.getStorageState()) {
+                    final StorageStateChange storageStateChange = flagStore.getStateQueue().take();
+                    switch (storageStateChange.getStorageState()) {
                         case OK:
-                            stateConsumer.accept(ProviderState.READY, storageStateDTO.getChangedFlagsKeys());
+                            stateConsumer.accept(ProviderState.READY, storageStateChange.getChangedFlagsKeys());
                             this.connected.set(true);
                             break;
                         case ERROR:
-                            stateConsumer.accept(ProviderState.ERROR,null);
+                            stateConsumer.accept(ProviderState.ERROR, null);
                             this.connected.set(false);
                             break;
                         case STALE:
                             // todo set stale state
                         default:
-                            log.info(String.format("Storage emitted unhandled status: %s", storageStateDTO.getStorageState()));
+                            log.info(String.format("Storage emitted unhandled status: %s",
+                                    storageStateChange.getStorageState()));
                     }
                 }
             } catch (InterruptedException e) {
@@ -103,14 +102,14 @@ public class InProcessResolver implements Resolver {
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
         this.connected.set(false);
-        stateConsumer.accept(ProviderState.NOT_READY,null);
+        stateConsumer.accept(ProviderState.NOT_READY, null);
     }
 
     /**
      * Resolve a boolean flag.
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-                                                         EvaluationContext ctx) {
+            EvaluationContext ctx) {
         return resolve(Boolean.class, key, ctx);
     }
 
@@ -221,7 +220,7 @@ public class InProcessResolver implements Resolver {
                 .variant(resolvedVariant)
                 .reason(reason);
 
-        return this.metadata == null ? evaluationBuilder.build() :
-                evaluationBuilder.flagMetadata(this.metadata).build();
+        return this.metadata == null ? evaluationBuilder.build()
+                : evaluationBuilder.flagMetadata(this.metadata).build();
     }
 }

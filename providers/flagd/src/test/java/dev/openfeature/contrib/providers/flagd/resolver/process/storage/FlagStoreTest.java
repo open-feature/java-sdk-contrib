@@ -30,7 +30,7 @@ class FlagStoreTest {
         FlagStore store = new FlagStore(new MockConnector(payload), true);
 
         store.init();
-        final BlockingQueue<StorageStateDTO> states = store.getStateQueue();
+        final BlockingQueue<StorageStateChange> states = store.getStateQueue();
 
         // OK for simple flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -82,7 +82,7 @@ class FlagStoreTest {
         final BlockingQueue<StreamPayload> payload = new LinkedBlockingQueue<>();
         FlagStore store = new FlagStore(new MockConnector(payload), true);
         store.init();
-        final BlockingQueue<StorageStateDTO> storageStateDTOS = store.getStateQueue();
+        final BlockingQueue<StorageStateChange> storageStateDTOS = store.getStateQueue();
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
             payload.offer(new StreamPayload(StreamPayloadType.DATA, getFlagsFromResource(VALID_SIMPLE)));

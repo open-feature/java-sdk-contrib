@@ -53,7 +53,8 @@ public class GrpcConnector {
      * @param cache         cache to use.
      * @param stateConsumer lambda to call for setting the state.
      */
-    public GrpcConnector(final FlagdOptions options, final Cache cache, BiConsumer<ProviderState, List<String>> stateConsumer) {
+    public GrpcConnector(final FlagdOptions options, final Cache cache,
+            BiConsumer<ProviderState, List<String>> stateConsumer) {
         this.channel = ChannelBuilder.nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
@@ -81,7 +82,8 @@ public class GrpcConnector {
     /**
      * Shuts down all gRPC resources.
      *
-     * @throws Exception is something goes wrong while terminating the communication.
+     * @throws Exception is something goes wrong while terminating the
+     *                   communication.
      */
     public void shutdown() throws Exception {
         // first shutdown the event listener
@@ -115,12 +117,13 @@ public class GrpcConnector {
     }
 
     /**
-     * Event stream observer logic. This contains blocking mechanisms, hence must be run in a dedicated thread.
+     * Event stream observer logic. This contains blocking mechanisms, hence must be
+     * run in a dedicated thread.
      */
     private void observeEventStream() {
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
-            final StreamObserver<EventStreamResponse> responseObserver =
-                    new EventStreamObserver(sync, this.cache, this::grpcStateConsumer);
+            final StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(sync, this.cache,
+                    this::grpcStateConsumer);
             this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
 
             try {
@@ -128,8 +131,10 @@ public class GrpcConnector {
                     sync.wait();
                 }
             } catch (InterruptedException e) {
-                // Interruptions are considered end calls for this observer, hence log and return
-                // Note - this is the most common interruption when shutdown, hence the log level debug
+                // Interruptions are considered end calls for this observer, hence log and
+                // return
+                // Note - this is the most common interruption when shutdown, hence the log
+                // level debug
                 log.debug("interruption while waiting for condition", e);
                 Thread.currentThread().interrupt();
             }
@@ -141,17 +146,18 @@ public class GrpcConnector {
             try {
                 Thread.sleep(this.eventStreamRetryBackoff);
             } catch (InterruptedException e) {
-                // Interruptions are considered end calls for this observer, hence log and return
+                // Interruptions are considered end calls for this observer, hence log and
+                // return
                 log.warn("interrupted while restarting gRPC Event Stream");
                 Thread.currentThread().interrupt();
             }
         }
 
         log.error("failed to connect to event stream, exhausted retries");
-        this.grpcStateConsumer(ProviderState.ERROR);
+        this.grpcStateConsumer(ProviderState.ERROR, null);
     }
 
-    private void grpcStateConsumer(final ProviderState state) {
+    private void grpcStateConsumer(final ProviderState state, final List<String> changedFlags) {
         // check for readiness
         if (ProviderState.READY.equals(state)) {
             this.eventStreamAttempt = 1;
@@ -163,6 +169,6 @@ public class GrpcConnector {
         }
 
         // chain to initiator
-        this.stateConsumer.accept(state, Collections.emptyList());
+        this.stateConsumer.accept(state, changedFlags);
     }
 }

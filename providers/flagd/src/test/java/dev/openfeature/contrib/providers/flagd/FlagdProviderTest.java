@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateDTO;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -919,8 +918,8 @@ class FlagdProviderTest {
                 .build();
         final FlagdProvider provider = new FlagdProvider(flagdOptions);
         final MockStorage mockStorage = new MockStorage(new HashMap<String, FeatureFlag>(),
-                new LinkedBlockingQueue<StorageStateDTO>(Arrays.asList(new
-                        StorageStateDTO(StorageState.OK))));
+                new LinkedBlockingQueue<StorageStateChange>(Arrays.asList(new
+                StorageStateChange(StorageState.OK))));
         
         try {
             final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");

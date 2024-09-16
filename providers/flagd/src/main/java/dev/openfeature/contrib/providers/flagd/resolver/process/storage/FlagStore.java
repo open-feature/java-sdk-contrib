@@ -21,15 +21,15 @@ import java.util.stream.Collectors;
  * Feature flag storage.
  */
 @Slf4j
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
-        justification = "Feature flag comes as a Json configuration, hence they must be exposed")
+@SuppressFBWarnings(value = {
+    "EI_EXPOSE_REP" }, justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagStore implements Storage {
     private final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
     private final ReadLock readLock = sync.readLock();
     private final WriteLock writeLock = sync.writeLock();
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
-    private final BlockingQueue<StorageStateDTO> stateBlockingQueue = new LinkedBlockingQueue<>(1);
+    private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(1);
     private final Map<String, FeatureFlag> flags = new HashMap<>();
 
     private final Connector connector;
@@ -89,7 +89,7 @@ public class FlagStore implements Storage {
     /**
      * Retrieve blocking queue to check storage status.
      */
-    public BlockingQueue<StorageStateDTO> getStateQueue() {
+    public BlockingQueue<StorageStateChange> getStateQueue() {
         return stateBlockingQueue;
     }
 
@@ -111,19 +111,19 @@ public class FlagStore implements Storage {
                         } finally {
                             writeLock.unlock();
                         }
-                        if (!stateBlockingQueue.offer(new StorageStateDTO(StorageState.OK, changedFlagsKeys))) {
+                        if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.OK, changedFlagsKeys))) {
                             log.warn("Failed to convey OK satus, queue is full");
                         }
                     } catch (Throwable e) {
                         // catch all exceptions and avoid stream listener interruptions
                         log.warn("Invalid flag sync payload from connector", e);
-                        if (!stateBlockingQueue.offer(new StorageStateDTO(StorageState.STALE))) {
+                        if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
                             log.warn("Failed to convey STALE satus, queue is full");
                         }
                     }
                     break;
                 case ERROR:
-                    if (!stateBlockingQueue.offer(new StorageStateDTO(StorageState.ERROR))) {
+                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.ERROR))) {
                         log.warn("Failed to convey ERROR satus, queue is full");
                     }
                     break;
@@ -147,8 +147,8 @@ public class FlagStore implements Storage {
                 updatedFeatureFlags.put(key, value);
             }
         });
-        flags.forEach((key,value) -> {
-            if(!newFlags.containsKey(key)) {
+        flags.forEach((key, value) -> {
+            if (!newFlags.containsKey(key)) {
                 removedFeatureFlags.put(key, value);
             }
         });

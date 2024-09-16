@@ -5,7 +5,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateDTO;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
 import dev.openfeature.sdk.ImmutableContext;
@@ -51,14 +51,14 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 class InProcessResolverTest {
 
     @Test
-    public void connectorSetup(){
+    public void connectorSetup() {
         // given
-        FlagdOptions forGrpcOptions =
-                FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).host("localhost").port(8080).build();
-        FlagdOptions forOfflineOptions =
-                FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).offlineFlagSourcePath("path").build();
-        FlagdOptions forCustomConnectorOptions =
-                FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).customConnector(new MockConnector(null)).build();
+        FlagdOptions forGrpcOptions = FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).host("localhost")
+                .port(8080).build();
+        FlagdOptions forOfflineOptions = FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS)
+                .offlineFlagSourcePath("path").build();
+        FlagdOptions forCustomConnectorOptions = FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS)
+                .customConnector(new MockConnector(null)).build();
 
         // then
         assertInstanceOf(GrpcStreamConnector.class, InProcessResolver.getConnector(forGrpcOptions));
@@ -70,7 +70,7 @@ class InProcessResolverTest {
     public void eventHandling() throws Throwable {
         // given
         // note - queues with adequate capacity
-        final BlockingQueue<StorageStateDTO> sender = new LinkedBlockingQueue<>(5);
+        final BlockingQueue<StorageStateChange> sender = new LinkedBlockingQueue<>(5);
         final BlockingQueue<ProviderState> receiver = new LinkedBlockingQueue<>(5);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(new HashMap<>(), sender),
@@ -84,10 +84,10 @@ class InProcessResolverTest {
             }
         });
         initThread.start();
-        if (!sender.offer(new StorageStateDTO(StorageState.OK, Collections.EMPTY_LIST), 100, TimeUnit.MILLISECONDS)) {
+        if (!sender.offer(new StorageStateChange(StorageState.OK, Collections.EMPTY_LIST), 100, TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
-        if (!sender.offer(new StorageStateDTO(StorageState.ERROR), 100, TimeUnit.MILLISECONDS)) {
+        if (!sender.offer(new StorageStateChange(StorageState.ERROR), 100, TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
 
@@ -169,7 +169,7 @@ class InProcessResolverTest {
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
                 (providerState, changedFlagKeys) -> {
-        });
+                });
 
         // when
         ProviderEvaluation<Double> providerEvaluation = inProcessResolver.doubleEvaluation("integerFlag", 0d,
@@ -188,8 +188,8 @@ class InProcessResolverTest {
         flagMap.put("integerFlag", INT_FLAG);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when
         ProviderEvaluation<Integer> providerEvaluation = inProcessResolver.integerEvaluation("integerFlag", 0,
@@ -208,8 +208,8 @@ class InProcessResolverTest {
         flagMap.put("objectFlag", OBJECT_FLAG);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         Map<String, Object> typeDefault = new HashMap<>();
         typeDefault.put("key", "0164");
@@ -235,8 +235,8 @@ class InProcessResolverTest {
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when/then
         assertThrows(FlagNotFoundError.class, () -> {
@@ -252,8 +252,8 @@ class InProcessResolverTest {
         flagMap.put("disabledFlag", DISABLED_FLAG);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when/then
         assertThrows(FlagNotFoundError.class, () -> {
@@ -268,8 +268,8 @@ class InProcessResolverTest {
         flagMap.put("mismatchFlag", VARIANT_MISMATCH_FLAG);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when/then
         assertThrows(TypeMismatchError.class, () -> {
@@ -284,8 +284,8 @@ class InProcessResolverTest {
         flagMap.put("stringFlag", BOOLEAN_FLAG);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when/then
         assertThrows(TypeMismatchError.class, () -> {
@@ -300,8 +300,8 @@ class InProcessResolverTest {
         flagMap.put("shorthand", FLAG_WIH_SHORTHAND_TARGETING);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         ProviderEvaluation<Boolean> providerEvaluation = inProcessResolver.booleanEvaluation("shorthand", false,
                 new ImmutableContext());
@@ -319,8 +319,8 @@ class InProcessResolverTest {
         flagMap.put("stringFlag", FLAG_WIH_IF_IN_TARGET);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when
         ProviderEvaluation<String> providerEvaluation = inProcessResolver.stringEvaluation("stringFlag", "loopAlg",
@@ -339,8 +339,8 @@ class InProcessResolverTest {
         flagMap.put("stringFlag", FLAG_WIH_IF_IN_TARGET);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when
         ProviderEvaluation<String> providerEvaluation = inProcessResolver.stringEvaluation("stringFlag", "loopAlg",
@@ -359,12 +359,12 @@ class InProcessResolverTest {
         flagMap.put("stringFlag", FLAG_WITH_TARGETING_KEY);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when
-        ProviderEvaluation<String> providerEvaluation =
-                inProcessResolver.stringEvaluation("stringFlag", "loop", new MutableContext("xyz"));
+        ProviderEvaluation<String> providerEvaluation = inProcessResolver.stringEvaluation("stringFlag", "loop",
+                new MutableContext("xyz"));
 
         // then
         assertEquals("binetAlg", providerEvaluation.getValue());
@@ -379,8 +379,8 @@ class InProcessResolverTest {
         flagMap.put("targetingErrorFlag", FLAG_WIH_INVALID_TARGET);
 
         InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(flagMap),
-                (providerState,changedFlagKeys) -> {
-        });
+                (providerState, changedFlagKeys) -> {
+                });
 
         // when/then
         assertThrows(ParseError.class, () -> {
@@ -417,9 +417,8 @@ class InProcessResolverTest {
         return injectFlagStore(resolver, storage);
     }
 
-
     private InProcessResolver getInProcessResolverWth(final MockStorage storage,
-                                                      final BiConsumer<ProviderState, List<String>> stateConsumer)
+            final BiConsumer<ProviderState, List<String>> stateConsumer)
             throws NoSuchFieldException, IllegalAccessException {
 
         final InProcessResolver resolver = new InProcessResolver(

@@ -14,5 +14,5 @@ public interface Storage {
 
     FeatureFlag getFlag(final String key);
 
-    BlockingQueue<StorageStateDTO> getStateQueue();
+    BlockingQueue<StorageStateChange> getStateQueue();
 }

@@ -4,10 +4,8 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
-import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
@@ -25,7 +23,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 @Slf4j
 @SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
-public class FlagdProvider extends EventProvider implements FeatureProvider {
+public class FlagdProvider extends EventProvider {
     private static final String FLAGD_PROVIDER = "flagD Provider";
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -173,8 +171,8 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
         // configuration changed
         if (ProviderState.READY.equals(oldState) && ProviderState.READY.equals(newState)) {
             log.debug("Configuration changed");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("configuration changed").build();
-            details.setFlagsChanged(changedFlagKeys);
+            ProviderEventDetails details = ProviderEventDetails.builder().flagsChanged(changedFlagKeys)
+                    .message("configuration changed").build();
             this.emitProviderConfigurationChanged(details);
             return;
         }

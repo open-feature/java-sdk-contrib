@@ -1,26 +1,29 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Represents a change in the stored flags.
+ */
 @Getter
 @ToString
 @EqualsAndHashCode
-public class StorageStateDTO {
+public class StorageStateChange {
     private final StorageState storageState;
     private final List<String> changedFlagsKeys;
 
-    public StorageStateDTO(StorageState storageState, List<String>  changedFlagsKeys) {
+    public StorageStateChange(StorageState storageState, List<String> changedFlagsKeys) {
         this.storageState = storageState;
-        this.changedFlagsKeys = changedFlagsKeys;
+        this.changedFlagsKeys = new ArrayList<>(changedFlagsKeys);
     }
 
-    public StorageStateDTO(StorageState storageState) {
+    public StorageStateChange(StorageState storageState) {
         this.storageState = storageState;
         this.changedFlagsKeys = Collections.emptyList();
     }
