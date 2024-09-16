@@ -42,7 +42,7 @@ class EventStreamObserverTest {
             cache = mock(Cache.class);
             reconnect = mock(Runnable.class);
             when(cache.getEnabled()).thenReturn(true);
-            stream = new EventStreamObserver(sync, cache, state -> states.add(state));
+            stream = new EventStreamObserver(sync, cache, (state, changed) -> states.add(state));
         }
 
         @Test

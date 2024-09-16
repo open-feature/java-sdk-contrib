@@ -65,6 +65,7 @@ public class StepDefinitions {
     private FlagEvaluationDetails<Integer> typeErrorDetails;
 
     private boolean isChangeHandlerRun = false;
+    private String changedFlag;
     private boolean isReadyHandlerRun = false;
 
     private Consumer<EventDetails> changeHandler;
@@ -418,7 +419,12 @@ public class StepDefinitions {
     @When("a PROVIDER_CONFIGURATION_CHANGED handler is added")
     public void a_provider_configuration_changed_handler_is_added() {
         this.changeHandler = (EventDetails details) -> {
-            this.isChangeHandlerRun = true;
+            if (details.getFlagsChanged().size() > 0) {
+                // we get multiple change events from the test container...
+                // we're only interested in the ones with the changed flag in question
+                this.changedFlag = details.getFlagsChanged().get(0);
+                this.isChangeHandlerRun = true;
+            }
         };
         client.onProviderConfigurationChanged(this.changeHandler);
 
@@ -440,7 +446,7 @@ public class StepDefinitions {
 
     @Then("the event details must indicate {string} was altered")
     public void the_event_details_must_indicate_was_altered(String flagKey) {
-        // TODO: In-process-provider doesnt support flag change list.
+        assertEquals(flagKey, this.changedFlag);
     }
 
     // Provider ready event

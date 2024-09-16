@@ -6,7 +6,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
@@ -23,8 +23,9 @@ import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
@@ -36,7 +37,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.model.Fea
 @Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
-    private final Consumer<ProviderState> stateConsumer;
+    private final BiConsumer<ProviderState, List<String>> stateConsumer;
     private final Operator operator;
     private final long deadline;
     private final ImmutableMetadata metadata;
@@ -45,13 +46,13 @@ public class InProcessResolver implements Resolver {
     /**
      * Initialize an in-process resolver.
      */
-    public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
+    public InProcessResolver(FlagdOptions options, BiConsumer<ProviderState, List<String>> stateConsumer) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.stateConsumer = stateConsumer;
         this.operator = new Operator();
-        this.metadata = options.getSelector() == null ? null :
-                ImmutableMetadata.builder()
+        this.metadata = options.getSelector() == null ? null
+                : ImmutableMetadata.builder()
                         .addString("scope", options.getSelector())
                         .build();
     }
@@ -64,20 +65,21 @@ public class InProcessResolver implements Resolver {
         final Thread stateWatcher = new Thread(() -> {
             try {
                 while (true) {
-                    final StorageState storageState = flagStore.getStateQueue().take();
-                    switch (storageState) {
+                    final StorageStateChange storageStateChange = flagStore.getStateQueue().take();
+                    switch (storageStateChange.getStorageState()) {
                         case OK:
-                            stateConsumer.accept(ProviderState.READY);
+                            stateConsumer.accept(ProviderState.READY, storageStateChange.getChangedFlagsKeys());
                             this.connected.set(true);
                             break;
                         case ERROR:
-                            stateConsumer.accept(ProviderState.ERROR);
+                            stateConsumer.accept(ProviderState.ERROR, null);
                             this.connected.set(false);
                             break;
                         case STALE:
                             // todo set stale state
                         default:
-                            log.info(String.format("Storage emitted unhandled status: %s", storageState));
+                            log.info(String.format("Storage emitted unhandled status: %s",
+                                    storageStateChange.getStorageState()));
                     }
                 }
             } catch (InterruptedException e) {
@@ -100,7 +102,7 @@ public class InProcessResolver implements Resolver {
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
         this.connected.set(false);
-        stateConsumer.accept(ProviderState.NOT_READY);
+        stateConsumer.accept(ProviderState.NOT_READY, null);
     }
 
     /**
@@ -114,24 +116,21 @@ public class InProcessResolver implements Resolver {
     /**
      * Resolve a string flag.
      */
-    public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
-            EvaluationContext ctx) {
+    public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         return resolve(String.class, key, ctx);
     }
 
     /**
      * Resolve a double flag.
      */
-    public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
-            EvaluationContext ctx) {
+    public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         return resolve(Double.class, key, ctx);
     }
 
     /**
      * Resolve an integer flag.
      */
-    public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
-            EvaluationContext ctx) {
+    public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         return resolve(Integer.class, key, ctx);
     }
 
@@ -160,8 +159,7 @@ public class InProcessResolver implements Resolver {
                 : new GrpcStreamConnector(options);
     }
 
-    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key,
-            EvaluationContext ctx) {
+    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {
         final FeatureFlag flag = flagStore.getFlag(key);
 
         // missing flag
@@ -222,7 +220,7 @@ public class InProcessResolver implements Resolver {
                 .variant(resolvedVariant)
                 .reason(reason);
 
-        return this.metadata == null ? evaluationBuilder.build() :
-                evaluationBuilder.flagMetadata(this.metadata).build();
+        return this.metadata == null ? evaluationBuilder.build()
+                : evaluationBuilder.flagMetadata(this.metadata).build();
     }
 }

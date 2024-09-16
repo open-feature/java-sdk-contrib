@@ -8,8 +8,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * EventStreamObserver handles events emitted by flagd.
@@ -17,7 +20,7 @@ import java.util.function.Consumer;
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
-    private final Consumer<ProviderState> stateConsumer;
+    private final BiConsumer<ProviderState, List<String>> stateConsumer;
     private final Object sync;
     private final Cache cache;
 
@@ -28,11 +31,11 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     /**
      * Create a gRPC stream that get notified about flag changes.
      *
-     * @param sync                 synchronization object from caller
-     * @param cache                cache to update
-     * @param stateConsumer        lambda to call for setting the state
+     * @param sync          synchronization object from caller
+     * @param cache         cache to update
+     * @param stateConsumer lambda to call for setting the state
      */
-    EventStreamObserver(Object sync, Cache cache, Consumer<ProviderState> stateConsumer) {
+    EventStreamObserver(Object sync, Cache cache, BiConsumer<ProviderState, List<String>> stateConsumer) {
         this.sync = sync;
         this.cache = cache;
         this.stateConsumer = stateConsumer;
@@ -58,7 +61,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.stateConsumer.accept(ProviderState.ERROR);
+        this.stateConsumer.accept(ProviderState.ERROR, Collections.emptyList());
 
         // handle last call of this stream
         handleEndOfStream();
@@ -69,32 +72,38 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.stateConsumer.accept(ProviderState.ERROR);
+        this.stateConsumer.accept(ProviderState.ERROR, Collections.emptyList());
 
         // handle last call of this stream
         handleEndOfStream();
     }
 
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
-        this.stateConsumer.accept(ProviderState.READY);
-        if (!this.cache.getEnabled()) {
-            return;
-        }
+        List<String> changedFlags = new ArrayList<>();
+        boolean cachingEnabled = this.cache.getEnabled();
+
         Map<String, Value> data = value.getData().getFieldsMap();
         Value flagsValue = data.get(FLAGS_KEY);
         if (flagsValue == null) {
-            this.cache.clear();
-            return;
+            if (cachingEnabled) {
+                this.cache.clear();
+            }
+        } else {
+            Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
+            this.cache.getEnabled();
+            for (String flagKey : flags.keySet()) {
+                changedFlags.add(flagKey);
+                if (cachingEnabled) {
+                    this.cache.remove(flagKey);
+                }
+            }
         }
 
-        Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
-        for (String flagKey : flags.keySet()) {
-            this.cache.remove(flagKey);
-        }
+        this.stateConsumer.accept(ProviderState.READY, changedFlags);
     }
 
     private void handleProviderReadyEvent() {
-        this.stateConsumer.accept(ProviderState.READY);
+        this.stateConsumer.accept(ProviderState.READY, Collections.emptyList());
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }

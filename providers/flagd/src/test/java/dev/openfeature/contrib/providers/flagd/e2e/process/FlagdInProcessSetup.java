@@ -12,7 +12,6 @@ import dev.openfeature.contrib.providers.flagd.e2e.steps.StepDefinitions;
 import dev.openfeature.sdk.FeatureProvider;
 import io.cucumber.java.BeforeAll;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.utility.DockerImageName;
 
 @Isolated()
 @Order(value = Integer.MAX_VALUE)

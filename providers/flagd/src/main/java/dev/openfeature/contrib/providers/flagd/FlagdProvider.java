@@ -6,7 +6,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
-import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
@@ -14,6 +13,7 @@ import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -23,7 +23,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 @Slf4j
 @SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
-public class FlagdProvider extends EventProvider implements FeatureProvider {
+public class FlagdProvider extends EventProvider {
     private static final String FLAGD_PROVIDER = "flagD Provider";
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -142,7 +142,7 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
         return clientCallCtx;
     }
 
-    private void setState(ProviderState newState) {
+    private void setState(ProviderState newState, List<String> changedFlagsKeys) {
         ProviderState oldState;
         Lock l = this.lock.writeLock();
         try {
@@ -152,17 +152,17 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
         } finally {
             l.unlock();
         }
-        this.handleStateTransition(oldState, newState);
+        this.handleStateTransition(oldState, newState, changedFlagsKeys);
     }
 
-    private void handleStateTransition(ProviderState oldState, ProviderState newState) {
+    private void handleStateTransition(ProviderState oldState, ProviderState newState, List<String> changedFlagKeys) {
         // we got initialized
         if (ProviderState.NOT_READY.equals(oldState) && ProviderState.READY.equals(newState)) {
             // nothing to do, the SDK emits the events
             log.debug("Init completed");
             return;
         }
-        // we got shutdown, not checking oldState as behavior remains the same for shutdown 
+        // we got shutdown, not checking oldState as behavior remains the same for shutdown
         if (ProviderState.NOT_READY.equals(newState)) {
             // nothing to do
             log.debug("shutdown completed");
@@ -171,7 +171,8 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
         // configuration changed
         if (ProviderState.READY.equals(oldState) && ProviderState.READY.equals(newState)) {
             log.debug("Configuration changed");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("configuration changed").build();
+            ProviderEventDetails details = ProviderEventDetails.builder().flagsChanged(changedFlagKeys)
+                    .message("configuration changed").build();
             this.emitProviderConfigurationChanged(details);
             return;
         }
