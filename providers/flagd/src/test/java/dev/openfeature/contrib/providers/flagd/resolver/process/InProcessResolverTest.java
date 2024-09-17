@@ -8,6 +8,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageS
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -239,10 +240,8 @@ class InProcessResolverTest {
                 });
 
         // when/then
-        assertThrows(FlagNotFoundError.class, () -> {
-            inProcessResolver.booleanEvaluation("missingFlag", false, new ImmutableContext());
-
-        });
+        ProviderEvaluation<Boolean> missingFlag = inProcessResolver.booleanEvaluation("missingFlag", false, new ImmutableContext());
+        assertEquals(ErrorCode.FLAG_NOT_FOUND, missingFlag.getErrorCode());
     }
 
     @Test
@@ -256,9 +255,8 @@ class InProcessResolverTest {
                 });
 
         // when/then
-        assertThrows(FlagNotFoundError.class, () -> {
-            inProcessResolver.booleanEvaluation("disabledFlag", false, new ImmutableContext());
-        });
+        ProviderEvaluation<Boolean> disabledFlag = inProcessResolver.booleanEvaluation("disabledFlag", false, new ImmutableContext());
+        assertEquals(ErrorCode.FLAG_NOT_FOUND, disabledFlag.getErrorCode());
     }
 
     @Test
