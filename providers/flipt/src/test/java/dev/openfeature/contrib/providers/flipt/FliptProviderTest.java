@@ -5,6 +5,16 @@ import io.flipt.api.FliptClient.FliptClientBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.SneakyThrows;
@@ -16,8 +26,6 @@ import org.junit.jupiter.api.TestInstance;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -46,7 +54,6 @@ class FliptProviderTest {
 
     private static FliptProvider fliptProvider;
     private static Client client;
-
     private String apiUrl;
 
     @BeforeAll
@@ -165,6 +172,24 @@ class FliptProviderTest {
         FlagEvaluationDetails<String> nonExistingFlagEvaluation = client.getStringDetails("non-existing", "",
                 evaluationContext);
         assertNull(nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
+    }
+
+    @SneakyThrows
+    @Test
+    void getObjectEvaluationTest() {
+        mockFliptAPI("/evaluate/v1/variant", "variant-object.json", OBJECT_FLAG_NAME);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
+        evaluationContext.add("userId", "object");
+
+        Value expectedValue = new Value("{\"key1\":\"value1\",\"key2\":42,\"key3\":true}");
+        Value emptyValue = new Value();
+
+        assertEquals(expectedValue, client.getObjectValue(OBJECT_FLAG_NAME, emptyValue, evaluationContext));
+        assertEquals(emptyValue, client.getObjectValue("non-existing", emptyValue, evaluationContext));
+
+        // non-object flag value
+        assertEquals(emptyValue, client.getObjectValue(VARIANT_FLAG_NAME, emptyValue, evaluationContext));
     }
 
     @SneakyThrows
