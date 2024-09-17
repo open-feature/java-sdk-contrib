@@ -19,7 +19,6 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.extern.slf4j.Slf4j;
@@ -165,7 +164,7 @@ public class InProcessResolver implements Resolver {
 
         // missing flag
         if (flag == null) {
-           return ProviderEvaluation.<T>builder()
+            return ProviderEvaluation.<T>builder()
                    .errorMessage("flag: " + key + " not found")
                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
                    .build();
