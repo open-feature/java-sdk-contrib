@@ -47,7 +47,7 @@ public class FliptProvider extends EventProvider {
     @Getter
     private ProviderState state = ProviderState.NOT_READY;
 
-    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -205,17 +205,19 @@ public class FliptProvider extends EventProvider {
                     .build();
         }
 
+        Value value = new Value(response.getVariantKey());
         ImmutableMetadata.ImmutableMetadataBuilder flagMetadataBuilder = ImmutableMetadata.builder();
-        if (response.getVariantAttachment() != null) {
+        if (response.getVariantAttachment() != null && !response.getVariantAttachment().isEmpty()) {
             flagMetadataBuilder.addString("variant-attachment", response.getVariantAttachment());
+            value = new Value(response.getVariantAttachment());
         }
 
         return ProviderEvaluation.<Value>builder()
-                .value(new Value(response.getVariantKey()))
-                .variant(response.getVariantKey())
-                .reason(TARGETING_MATCH.name())
-                .flagMetadata(flagMetadataBuilder.build())
-                .build();
+            .value(value)
+            .variant(response.getVariantKey())
+            .reason(TARGETING_MATCH.name())
+            .flagMetadata(flagMetadataBuilder.build())
+            .build();
     }
 
     @Override
