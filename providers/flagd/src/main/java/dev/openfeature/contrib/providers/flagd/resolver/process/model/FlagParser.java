@@ -29,10 +29,7 @@ public class FlagParser {
     private static final String FLAG_KEY = "flags";
     private static final String EVALUATOR_KEY = "$evaluators";
     private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
-
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Map<String, Pattern> PATTERN_MAP = new HashMap<>();
-
     private static JsonSchema SCHEMA_VALIDATOR;
 
     private FlagParser() {
@@ -100,6 +97,7 @@ public class FlagParser {
 
     private static String transposeEvaluators(final String configuration) throws IOException {
         try (JsonParser parser = MAPPER.createParser(configuration)) {
+            final Map<String, Pattern> patternMap = new HashMap<>();
             final TreeNode treeNode = parser.readValueAsTree();
             final TreeNode evaluators = treeNode.get(EVALUATOR_KEY);
 
@@ -120,7 +118,7 @@ public class FlagParser {
 
                 // then derive pattern
                 final Pattern reg_replace =
-                        PATTERN_MAP.computeIfAbsent(replacePattern, s -> Pattern.compile(replacePattern));
+                        patternMap.computeIfAbsent(replacePattern, s -> Pattern.compile(replacePattern));
 
                 // finally replace all references
                 replacedConfigurations = reg_replace.matcher(replacedConfigurations).replaceAll(replacer);
