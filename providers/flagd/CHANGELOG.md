@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.8...dev.openfeature.contrib.providers.flagd-v0.8.9) (2024-09-17)
+
+
+### 🐛 Bug Fixes
+
+* ConcurrentModificationException on flag config change java 9 ([#954](https://github.com/open-feature/java-sdk-contrib/issues/954)) ([f74fe5f](https://github.com/open-feature/java-sdk-contrib/commit/f74fe5f6da44a7fdaaaa60efa21d4ddbb3b00ec7))
+* **deps:** update dependency org.semver4j:semver4j to v5.4.0 ([#952](https://github.com/open-feature/java-sdk-contrib/issues/952)) ([61c4f2a](https://github.com/open-feature/java-sdk-contrib/commit/61c4f2a8aa66b00435e34c2c97f0855edee654f2))
+* **deps:** update opentelemetry-java monorepo to v1.42.1 ([#946](https://github.com/open-feature/java-sdk-contrib/issues/946)) ([0ca3da6](https://github.com/open-feature/java-sdk-contrib/commit/0ca3da649cbeb03039f7ea79134475093b739143))
+
+
+### ✨ New Features
+
+* emit changed flags in configuration change event ([#925](https://github.com/open-feature/java-sdk-contrib/issues/925)) ([d3de874](https://github.com/open-feature/java-sdk-contrib/commit/d3de8746941ff74e51e0a21675aded2bf799dc4e))
+* flow instead of exceptions in resolver ([#942](https://github.com/open-feature/java-sdk-contrib/issues/942)) ([03dfc91](https://github.com/open-feature/java-sdk-contrib/commit/03dfc91ae5bb47de90129abefc1146daa496ea17))
+
 ## [0.8.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.7...dev.openfeature.contrib.providers.flagd-v0.8.8) (2024-09-10)
 
 
