@@ -19,7 +19,8 @@
 ## Concepts
 
 * Boolean evaluation gets feature boolean evaluation / enabled status.
-* Non-boolean evaluation gets feature variant key.
+* Object evaluation gets variant attachment.
+* Other evaluations gets feature variant key.
 
 ## Usage
 
