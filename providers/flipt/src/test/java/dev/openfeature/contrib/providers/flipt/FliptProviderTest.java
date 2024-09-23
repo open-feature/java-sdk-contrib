@@ -173,40 +173,4 @@ class FliptProviderTest {
                 evaluationContext);
         assertEquals(null, nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
     }
-
-    @SneakyThrows
-    @Test
-    void shouldThrowIfNotInitialized() {
-        FliptProvider asyncInitfliptProvider = buildFliptProvider();
-        assertEquals(ProviderState.NOT_READY, asyncInitfliptProvider.getState());
-
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
-        assertThrows(ProviderNotReadyError.class, () -> asyncInitfliptProvider
-                .getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class,
-                () -> asyncInitfliptProvider.getStringEvaluation("fail_not_initialized", "", new ImmutableContext()));
-
-        asyncInitfliptProvider.initialize(null);
-        assertThrows(GeneralError.class, () -> asyncInitfliptProvider.initialize(null));
-
-        asyncInitfliptProvider.shutdown();
-    }
-
-    @SneakyThrows
-    @Test
-    void shouldThrowIfErrorEvent() {
-        FliptProvider asyncInitfliptProvider = buildFliptProvider();
-        asyncInitfliptProvider.initialize(new ImmutableContext());
-
-        asyncInitfliptProvider.emitProviderError(ProviderEventDetails.builder().build());
-
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
-        assertThrows(GeneralError.class,
-                () -> asyncInitfliptProvider.getBooleanEvaluation("fail", false, new ImmutableContext()));
-        assertThrows(GeneralError.class,
-                () -> asyncInitfliptProvider.getStringEvaluation("fail", "", new ImmutableContext()));
-
-        asyncInitfliptProvider.shutdown();
-    }
-
 }

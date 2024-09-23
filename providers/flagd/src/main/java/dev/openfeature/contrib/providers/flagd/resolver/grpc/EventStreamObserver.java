@@ -20,7 +20,7 @@ import java.util.function.BiConsumer;
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
-    private final BiConsumer<ProviderState, List<String>> stateConsumer;
+    private final BiConsumer<Boolean, List<String>> stateConsumer;
     private final Object sync;
     private final Cache cache;
 
@@ -35,7 +35,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
      * @param cache         cache to update
      * @param stateConsumer lambda to call for setting the state
      */
-    EventStreamObserver(Object sync, Cache cache, BiConsumer<ProviderState, List<String>> stateConsumer) {
+    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> stateConsumer) {
         this.sync = sync;
         this.cache = cache;
         this.stateConsumer = stateConsumer;
@@ -61,7 +61,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.stateConsumer.accept(ProviderState.ERROR, Collections.emptyList());
+        this.stateConsumer.accept(false, Collections.emptyList());
 
         // handle last call of this stream
         handleEndOfStream();
@@ -72,7 +72,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.stateConsumer.accept(ProviderState.ERROR, Collections.emptyList());
+        this.stateConsumer.accept(false, Collections.emptyList());
 
         // handle last call of this stream
         handleEndOfStream();
@@ -99,11 +99,11 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
             }
         }
 
-        this.stateConsumer.accept(ProviderState.READY, changedFlags);
+        this.stateConsumer.accept(true, changedFlags);
     }
 
     private void handleProviderReadyEvent() {
-        this.stateConsumer.accept(ProviderState.READY, Collections.emptyList());
+        this.stateConsumer.accept(true, Collections.emptyList());
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }

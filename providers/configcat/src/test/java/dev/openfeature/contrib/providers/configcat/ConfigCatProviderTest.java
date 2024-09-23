@@ -181,27 +181,6 @@ class ConfigCatProviderTest {
         assertEquals("fallback", client.getStringValue(USERS_FLAG_NAME + "Str", "111", evaluationContext));
     }
 
-    @SneakyThrows
-    @Test
-    void shouldThrowIfNotInitialized() {
-        ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder().sdkKey("configcat-sdk-1/TEST_KEY-0123456789012/1234567890123456789012").build();
-        ConfigCatProvider tempConfigCatProvider = new ConfigCatProvider(configCatProviderConfig);
-
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-
-        OpenFeatureAPI.getInstance().setProviderAndWait("tempConfigCatProvider", tempConfigCatProvider);
-
-        assertThrows(GeneralError.class, ()-> tempConfigCatProvider.initialize(null));
-
-        tempConfigCatProvider.shutdown();
-
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getDoubleEvaluation("fail_not_initialized", 0.1, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getIntegerEvaluation("fail_not_initialized", 3, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getObjectEvaluation("fail_not_initialized", null, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getStringEvaluation("fail_not_initialized", "", new ImmutableContext()));
-    }
-
     @Test
     void eventsTest() {
         configCatProvider.emitProviderReady(ProviderEventDetails.builder().build());

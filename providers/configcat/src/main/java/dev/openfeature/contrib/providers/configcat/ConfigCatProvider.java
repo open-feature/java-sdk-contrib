@@ -36,9 +36,6 @@ public class ConfigCatProvider extends EventProvider {
     @Getter
     private ConfigCatClient configCatClient;
 
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
-
     private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
@@ -64,8 +61,7 @@ public class ConfigCatProvider extends EventProvider {
         configCatClient = ConfigCatClient.get(configCatProviderConfig.getSdkKey(),
             configCatProviderConfig.getOptions());
         configCatProviderConfig.postInit();
-        state = ProviderState.READY;
-        log.info("finished initializing provider, state: {}", state);
+        log.info("finished initializing provider");
 
         configCatClient.getHooks().addOnClientReady(() -> {
             ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
@@ -123,12 +119,6 @@ public class ConfigCatProvider extends EventProvider {
 
     private <T> ProviderEvaluation<T> getEvaluation(Class<T> classOfT, String key, T defaultValue,
            EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         User user = ctx == null ? null : ContextTransformer.transform(ctx);
         EvaluationDetails<T> evaluationDetails;
         T evaluatedValue;
@@ -157,6 +147,5 @@ public class ConfigCatProvider extends EventProvider {
         if (configCatClient != null) {
             configCatClient.close();
         }
-        state = ProviderState.NOT_READY;
     }
 }

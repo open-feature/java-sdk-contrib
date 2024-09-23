@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import dev.openfeature.sdk.exceptions.GeneralError;
 
@@ -14,11 +15,11 @@ public class Util {
 
     /**
      * A helper to block the caller for given conditions.
-     *
      * @param deadline number of milliseconds to block
-     * @param check    {@link AtomicBoolean} to check for status true
+     * @param connectedSupplier func to check for status true
+     * @throws InterruptedException
      */
-    public static void busyWaitAndCheck(final Long deadline, final AtomicBoolean check) throws InterruptedException {
+    public static void busyWaitAndCheck(final Long deadline, final Supplier<Boolean> connectedSupplier) throws InterruptedException {
         long start = System.currentTimeMillis();
 
         do {
@@ -28,6 +29,6 @@ public class Util {
             }
 
             Thread.sleep(50L);
-        } while (!check.get());
+        } while (!connectedSupplier.get());
     }
 }

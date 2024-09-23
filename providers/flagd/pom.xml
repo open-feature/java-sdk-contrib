@@ -32,16 +32,7 @@
     </developers>
 
     <dependencies>
-
         <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
-        <!-- override parent definition -->
-        <dependency>
-            <groupId>dev.openfeature</groupId>
-            <artifactId>sdk</artifactId>
-            <version>[1.4,2.0)</version>
-            <scope>provided</scope>
-        </dependency>
-
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty</artifactId>

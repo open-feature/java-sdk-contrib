@@ -25,11 +25,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
 public class FlagdProvider extends EventProvider {
     private static final String FLAGD_PROVIDER = "flagD Provider";
-
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Resolver flagResolver;
-    private ProviderState state = ProviderState.NOT_READY;
-    private boolean initialized = false;
+    private volatile boolean initialized = false;
+    private volatile boolean connected = false;
 
     private EvaluationContext evaluationContext;
 
@@ -52,14 +50,14 @@ public class FlagdProvider extends EventProvider {
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
             case Config.RESOLVER_IN_PROCESS:
-                this.flagResolver = new InProcessResolver(options, this::setState);
+                this.flagResolver = new InProcessResolver(options, this::isConnected, this::onResolverConnectionChanged);
                 break;
             case Config.RESOLVER_RPC:
                 this.flagResolver =
                         new GrpcResolver(options,
                                 new Cache(options.getCacheType(), options.getMaxCacheSize()),
-                                this::getState,
-                                this::setState);
+                                this::isConnected,
+                                this::onResolverConnectionChanged);
                 break;
             default:
                 throw new IllegalStateException(
@@ -86,23 +84,12 @@ public class FlagdProvider extends EventProvider {
 
         try {
             this.flagResolver.shutdown();
-            this.initialized = false;
         } catch (Exception e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
-        }
-    }
-
-    @Override
-    public ProviderState getState() {
-        Lock l = this.lock.readLock();
-        try {
-            l.lock();
-            return this.state;
         } finally {
-            l.unlock();
+            this.initialized = false;
         }
     }
-
 
     @Override
     public Metadata getMetadata() {
@@ -142,34 +129,17 @@ public class FlagdProvider extends EventProvider {
         return clientCallCtx;
     }
 
-    private void setState(ProviderState newState, List<String> changedFlagsKeys) {
-        ProviderState oldState;
-        Lock l = this.lock.writeLock();
-        try {
-            l.lock();
-            oldState = this.state;
-            this.state = newState;
-        } finally {
-            l.unlock();
-        }
-        this.handleStateTransition(oldState, newState, changedFlagsKeys);
+    private boolean isConnected() {
+        return this.connected;
     }
 
-    private void handleStateTransition(ProviderState oldState, ProviderState newState, List<String> changedFlagKeys) {
-        // we got initialized
-        if (ProviderState.NOT_READY.equals(oldState) && ProviderState.READY.equals(newState)) {
-            // nothing to do, the SDK emits the events
-            log.debug("Init completed");
-            return;
-        }
-        // we got shutdown, not checking oldState as behavior remains the same for shutdown
-        if (ProviderState.NOT_READY.equals(newState)) {
-            // nothing to do
-            log.debug("shutdown completed");
-            return;
-        }
+    private void onResolverConnectionChanged(boolean newConnectedState, List<String> changedFlagKeys) {
+        boolean previous = connected;
+        boolean current = newConnectedState;
+        this.connected = newConnectedState;
+
         // configuration changed
-        if (ProviderState.READY.equals(oldState) && ProviderState.READY.equals(newState)) {
+        if (initialized && previous && current) {
             log.debug("Configuration changed");
             ProviderEventDetails details = ProviderEventDetails.builder().flagsChanged(changedFlagKeys)
                     .message("configuration changed").build();
@@ -177,14 +147,14 @@ public class FlagdProvider extends EventProvider {
             return;
         }
         // there was an error
-        if (ProviderState.READY.equals(oldState) && ProviderState.ERROR.equals(newState)) {
+        if (initialized && previous && !current) {
             log.debug("There has been an error");
             ProviderEventDetails details = ProviderEventDetails.builder().message("there has been an error").build();
             this.emitProviderError(details);
             return;
         }
-        // we recover from an error
-        if (ProviderState.ERROR.equals(oldState) && ProviderState.READY.equals(newState)) {
+        // we recovered from an error
+        if (initialized && !previous && current) {
             log.debug("Recovered from error");
             ProviderEventDetails details = ProviderEventDetails.builder().message("recovered from error").build();
             this.emitProviderReady(details);

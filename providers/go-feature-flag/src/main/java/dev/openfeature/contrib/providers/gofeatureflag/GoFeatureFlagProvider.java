@@ -46,7 +46,6 @@ public class GoFeatureFlagProvider extends EventProvider {
     private final GoFeatureFlagProviderOptions options;
     private final List<Hook> hooks = new ArrayList<>();
     private DataCollectorHook dataCollectorHook;
-    private ProviderState state = ProviderState.NOT_READY;
     private Disposable flagChangeDisposable;
     private GoFeatureFlagController gofeatureflagController;
     private CacheController cacheCtrl;
@@ -127,9 +126,8 @@ public class GoFeatureFlagProvider extends EventProvider {
             this.flagChangeDisposable =
                     this.startCheckFlagConfigurationChangesDaemon();
         }
-        state = ProviderState.READY;
         super.emitProviderReady(ProviderEventDetails.builder().message("Provider is ready to call the API").build());
-        log.info("finishing initializing provider, state: {}", state);
+        log.info("finishing initializing provider");
     }
 
 
@@ -175,11 +173,6 @@ public class GoFeatureFlagProvider extends EventProvider {
                 );
     }
 
-    @Override
-    public ProviderState getState() {
-        return state;
-    }
-
     /**
      * getEvaluation is the function resolving the flag, it will 1st check in the cache and if it is not available
      * will call the evaluation endpoint to get the value of the flag.
@@ -195,18 +188,6 @@ public class GoFeatureFlagProvider extends EventProvider {
     private <T> ProviderEvaluation<T> getEvaluation(
             String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType) {
         try {
-            if (!ProviderState.READY.equals(state)) {
-                if (ProviderState.NOT_READY.equals(state)) {
-
-                    /*
-                     should be handled by the SDK framework, ErrorCode.PROVIDER_NOT_READY and default value
-                     should be returned when evaluated via the client.
-                     */
-                    throw new ProviderNotReadyError("provider not initialized yet");
-                }
-                throw new GeneralError("unknown error, provider state: " + state);
-            }
-
             if (this.cacheCtrl == null) {
                 return this.gofeatureflagController
                         .evaluateFlag(key, defaultValue, evaluationContext, expectedType)

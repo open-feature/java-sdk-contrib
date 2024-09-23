@@ -43,10 +43,6 @@ public class FliptProvider extends EventProvider {
     @Getter
     private FliptClient fliptClient;
 
-    @Setter(AccessLevel.PROTECTED)
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
-
     private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
@@ -73,8 +69,7 @@ public class FliptProvider extends EventProvider {
         super.initialize(evaluationContext);
         fliptClient = fliptProviderConfig.getFliptClientBuilder().build();
 
-        state = ProviderState.READY;
-        log.info("finished initializing provider, state: {}", state);
+        log.info("finished initializing provider");
     }
 
     @Override
@@ -85,24 +80,15 @@ public class FliptProvider extends EventProvider {
     @Override
     public void emitProviderReady(ProviderEventDetails details) {
         super.emitProviderReady(details);
-        state = ProviderState.READY;
     }
 
     @Override
     public void emitProviderError(ProviderEventDetails details) {
         super.emitProviderError(details);
-        state = ProviderState.ERROR;
     }
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
-
         Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
                 .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
@@ -179,12 +165,6 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
                 .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
@@ -222,6 +202,5 @@ public class FliptProvider extends EventProvider {
     public void shutdown() {
         super.shutdown();
         log.info("shutdown");
-        state = ProviderState.NOT_READY;
     }
 }

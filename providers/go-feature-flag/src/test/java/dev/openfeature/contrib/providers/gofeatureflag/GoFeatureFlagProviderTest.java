@@ -182,33 +182,6 @@ class GoFeatureFlagProviderTest {
 
     @SneakyThrows
     @Test
-    void should_return_not_ready_if_not_initialized() {
-        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build()) {
-            @Override
-            public void initialize(EvaluationContext evaluationContext) throws Exception {
-
-                // make the provider not initialized for this test
-                Thread.sleep(3000);
-            }
-        };
-
-        /*
-         ErrorCode.PROVIDER_NOT_READY and default value should be returned when evaluated via the client,
-         see next step in this test.
-         */
-        assertThrows(ProviderNotReadyError.class, () -> g.getBooleanEvaluation("bool_targeting_match", false, this.evaluationContext));
-
-        String providerName = "shouldReturnNotReadyIfNotInitialized";
-        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
-        assertThat(OpenFeatureAPI.getInstance().getProvider(providerName).getState()).isEqualTo(ProviderState.NOT_READY);
-        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
-        FlagEvaluationDetails<Boolean> booleanFlagEvaluationDetails = client.getBooleanDetails("return_error_when_not_initialized", false, new ImmutableContext("targetingKey"));
-        assertEquals(ErrorCode.PROVIDER_NOT_READY, booleanFlagEvaluationDetails.getErrorCode());
-        assertEquals(Boolean.FALSE, booleanFlagEvaluationDetails.getValue());
-    }
-
-    @SneakyThrows
-    @Test
     void client_test() {
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder().endpoint(this.baseUrl.toString()).timeout(1000).build());
         String providerName = "clientTest";
