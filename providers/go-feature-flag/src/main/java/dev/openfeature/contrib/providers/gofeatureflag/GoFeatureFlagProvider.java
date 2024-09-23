@@ -1,6 +1,13 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import dev.openfeature.contrib.providers.gofeatureflag.bean.ConfigurationChange;
 import dev.openfeature.contrib.providers.gofeatureflag.controller.CacheController;
 import dev.openfeature.contrib.providers.gofeatureflag.controller.GoFeatureFlagController;
@@ -16,22 +23,14 @@ import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.

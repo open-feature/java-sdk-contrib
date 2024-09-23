@@ -1,15 +1,18 @@
 package dev.openfeature.contrib.providers.flipt;
 
+import static dev.openfeature.sdk.Reason.DEFAULT;
+import static dev.openfeature.sdk.Reason.TARGETING_MATCH;
+
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import io.flipt.api.FliptClient;
 import io.flipt.api.evaluation.models.BooleanEvaluationResponse;
 import io.flipt.api.evaluation.models.EvaluationRequest;
@@ -18,12 +21,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static dev.openfeature.sdk.Reason.DEFAULT;
-import static dev.openfeature.sdk.Reason.TARGETING_MATCH;
 
 /**
  * Provider implementation for Flipt.
@@ -75,16 +72,6 @@ public class FliptProvider extends EventProvider {
     @Override
     public Metadata getMetadata() {
         return () -> NAME;
-    }
-
-    @Override
-    public void emitProviderReady(ProviderEventDetails details) {
-        super.emitProviderReady(details);
-    }
-
-    @Override
-    public void emitProviderError(ProviderEventDetails details) {
-        super.emitProviderError(details);
     }
 
     @Override

@@ -44,8 +44,12 @@ public class InProcessResolver implements Resolver {
 
     /**
      * Initialize an in-process resolver.
+     * @param options flagd options
+     * @param connectedSupplier supplier for connection state
+     * @param onResolverConnectionChanged handler for connection change
      */
-    public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier, BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
+    public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
+            BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.onResolverConnectionChanged = onResolverConnectionChanged;
@@ -160,9 +164,9 @@ public class InProcessResolver implements Resolver {
         // missing flag
         if (flag == null) {
             return ProviderEvaluation.<T>builder()
-                   .errorMessage("flag: " + key + " not found")
-                   .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                   .build();
+                    .errorMessage("flag: " + key + " not found")
+                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .build();
         }
 
         // state check

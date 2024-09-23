@@ -1,23 +1,22 @@
 package dev.openfeature.contrib.providers.configcat;
 
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.configcat.ConfigCatClient;
 import com.configcat.EvaluationDetails;
 import com.configcat.User;
+
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Provider implementation for ConfigCat.

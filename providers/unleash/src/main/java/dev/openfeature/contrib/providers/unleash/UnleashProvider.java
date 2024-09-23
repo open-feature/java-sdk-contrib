@@ -9,7 +9,6 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import io.getunleash.DefaultUnleash;
@@ -80,16 +79,7 @@ public class UnleashProvider extends EventProvider {
         return () -> NAME;
     }
 
-    @Override
-    public void emitProviderReady(ProviderEventDetails details) {
-        super.emitProviderReady(details);
-    }
-
-    @Override
-    public void emitProviderError(ProviderEventDetails details) {
-        super.emitProviderError(details);
-    }
-
+    
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         UnleashContext context = ctx == null ? UnleashContext.builder().build() : ContextTransformer.transform(ctx);

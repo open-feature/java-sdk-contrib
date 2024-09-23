@@ -1,18 +1,18 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
-import dev.openfeature.sdk.ProviderState;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+
+import com.google.protobuf.Value;
+
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * EventStreamObserver handles events emitted by flagd.

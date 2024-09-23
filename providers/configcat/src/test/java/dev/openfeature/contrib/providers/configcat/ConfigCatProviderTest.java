@@ -1,27 +1,26 @@
 package dev.openfeature.contrib.providers.configcat;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.HashMap;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 import com.configcat.OverrideBehaviour;
 import com.configcat.OverrideDataSourceBuilder;
 import com.configcat.User;
+
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.util.HashMap;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * ConfigCatProvider test, based on local config file evaluation.

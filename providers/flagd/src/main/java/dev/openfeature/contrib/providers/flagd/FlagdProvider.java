@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import java.util.List;
+
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
@@ -9,20 +11,14 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * OpenFeature provider for flagd.
  */
 @Slf4j
-@SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
+@SuppressWarnings({ "PMD.TooManyStaticImports", "checkstyle:NoFinalizer" })
 public class FlagdProvider extends EventProvider {
     private static final String FLAGD_PROVIDER = "flagD Provider";
     private final Resolver flagResolver;
@@ -50,14 +46,14 @@ public class FlagdProvider extends EventProvider {
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
             case Config.RESOLVER_IN_PROCESS:
-                this.flagResolver = new InProcessResolver(options, this::isConnected, this::onResolverConnectionChanged);
+                this.flagResolver = new InProcessResolver(options, this::isConnected,
+                        this::onResolverConnectionChanged);
                 break;
             case Config.RESOLVER_RPC:
-                this.flagResolver =
-                        new GrpcResolver(options,
-                                new Cache(options.getCacheType(), options.getMaxCacheSize()),
-                                this::isConnected,
-                                this::onResolverConnectionChanged);
+                this.flagResolver = new GrpcResolver(options,
+                        new Cache(options.getCacheType(), options.getMaxCacheSize()),
+                        this::isConnected,
+                        this::onResolverConnectionChanged);
                 break;
             default:
                 throw new IllegalStateException(
