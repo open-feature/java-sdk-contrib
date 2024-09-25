@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -33,6 +34,7 @@ import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
@@ -65,7 +67,7 @@ public class GrpcConnectorTest {
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
         final GrpcConnector connector = new GrpcConnector(options, cache, () -> true,
-                (state, changedFlagKeys, syncMetadata) -> {
+                (connectionEvent) -> {
                 });
 
         Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
@@ -98,7 +100,7 @@ public class GrpcConnectorTest {
     void initialization_succeed_with_connected_status() throws NoSuchFieldException, IllegalAccessException {
         final Cache cache = new Cache("disabled", 0);
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
-        TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent = mock(TriConsumer.class);
+        Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
         doAnswer((InvocationOnMock invocation) -> {
             EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
             eventStreamObserver
@@ -123,9 +125,8 @@ public class GrpcConnectorTest {
                     onConnectionEvent);
 
             assertDoesNotThrow(connector::initialize);
-
-            // assert that onConnectionEvent was called with true
-            verify(onConnectionEvent).accept(argThat(arg -> arg), any(), any());
+            // assert that onConnectionEvent is connected
+            verify(onConnectionEvent).accept(argThat(arg -> arg.isConnected()));
         }
     }
 
@@ -133,7 +134,7 @@ public class GrpcConnectorTest {
     void initialization_fail_with_timeout() throws Exception {
         final Cache cache = new Cache("disabled", 0);
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
-        TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent = mock(TriConsumer.class);
+        Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
         final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> false,
@@ -141,8 +142,8 @@ public class GrpcConnectorTest {
 
         // assert throws
         assertThrows(RuntimeException.class, connector::initialize);
-        // assert that onConnectionEvent was called with false
-        verify(onConnectionEvent).accept(argThat(arg -> !arg), any(), any());
+        // assert that onConnectionEvent is not connected
+        verify(onConnectionEvent).accept(argThat(arg -> !arg.isConnected()));
     }
 
     @Test

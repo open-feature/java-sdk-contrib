@@ -1,10 +1,10 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
@@ -145,17 +145,16 @@ public class FlagdProvider extends EventProvider {
         return this.connected;
     }
 
-    private void onConnectionEvent(boolean newConnectedState, List<String> changedFlagKeys,
-            Map<String, Object> syncMetadata) {
+    private void onConnectionEvent(ConnectionEvent connectionEvent) {
         boolean previous = connected;
-        boolean current = newConnectedState;
-        this.connected = newConnectedState;
-        this.syncMetadata = syncMetadata;
+        boolean current = connected = connectionEvent.isConnected();
+        syncMetadata = connectionEvent.getSyncMetadata();
 
         // configuration changed
         if (initialized && previous && current) {
             log.debug("Configuration changed");
-            ProviderEventDetails details = ProviderEventDetails.builder().flagsChanged(changedFlagKeys)
+            ProviderEventDetails details = ProviderEventDetails.builder()
+                    .flagsChanged(connectionEvent.getFlagsChanged())
                     .message("configuration changed").build();
             this.emitProviderConfigurationChanged(details);
             return;

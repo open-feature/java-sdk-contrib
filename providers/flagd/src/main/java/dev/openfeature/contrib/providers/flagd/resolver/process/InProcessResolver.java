@@ -2,13 +2,12 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
@@ -27,7 +26,6 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
-import dev.openfeature.sdk.internal.TriConsumer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -38,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
-    private final TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent;
+    private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Operator operator;
     private final long deadline;
     private final ImmutableMetadata metadata;
@@ -56,7 +54,7 @@ public class InProcessResolver implements Resolver {
      *                          connection/stream
      */
     public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
-            TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent) {
+            Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
@@ -79,11 +77,11 @@ public class InProcessResolver implements Resolver {
                     final StorageStateChange storageStateChange = flagStore.getStateQueue().take();
                     switch (storageStateChange.getStorageState()) {
                         case OK:
-                            onConnectionEvent.accept(true, storageStateChange.getChangedFlagsKeys(),
-                                    storageStateChange.getSyncMetadata());
+                            onConnectionEvent.accept(new ConnectionEvent(true, storageStateChange.getChangedFlagsKeys(),
+                                    storageStateChange.getSyncMetadata()));
                             break;
                         case ERROR:
-                            onConnectionEvent.accept(false, Collections.emptyList(), Collections.emptyMap());
+                            onConnectionEvent.accept(new ConnectionEvent(false));
                             break;
                         default:
                             log.info(String.format("Storage emitted unhandled status: %s",
@@ -109,7 +107,7 @@ public class InProcessResolver implements Resolver {
      */
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
-        onConnectionEvent.accept(false, Collections.emptyList(), Collections.emptyMap());
+        onConnectionEvent.accept(new ConnectionEvent(false));
     }
 
     /**

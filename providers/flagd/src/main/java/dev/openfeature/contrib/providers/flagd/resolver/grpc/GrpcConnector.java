@@ -2,19 +2,19 @@ package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
-import dev.openfeature.sdk.internal.TriConsumer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
@@ -38,7 +38,7 @@ public class GrpcConnector {
     private final long deadline;
 
     private final Cache cache;
-    private final TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent;
+    private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Supplier<Boolean> connectedSupplier;
 
     private int eventStreamAttempt = 1;
@@ -56,7 +56,7 @@ public class GrpcConnector {
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
     public GrpcConnector(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
-            TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent) {
+        Consumer<ConnectionEvent> onConnectionEvent) {
         this.channel = ChannelBuilder.nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
@@ -105,7 +105,7 @@ public class GrpcConnector {
                 this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
                 log.warn(String.format("Unable to shut down channel by %d deadline", this.deadline));
             }
-            this.onConnectionEvent.accept(false, Collections.emptyList(), Collections.emptyMap());
+            this.onConnectionEvent.accept(new ConnectionEvent(false, Collections.emptyList(), Collections.emptyMap()));
         }
     }
 
@@ -166,6 +166,6 @@ public class GrpcConnector {
             this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
         }
         // chain to initiator
-        this.onConnectionEvent.accept(connected, changedFlags, Collections.emptyMap());
+        this.onConnectionEvent.accept(new ConnectionEvent(connected, changedFlags));
     }
 }

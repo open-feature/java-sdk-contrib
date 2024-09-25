@@ -5,8 +5,8 @@ import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.co
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.getField;
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.getFieldDescriptor;
 
-import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -16,6 +16,7 @@ import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveFactory;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveStrategy;
@@ -33,7 +34,6 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
-import dev.openfeature.sdk.internal.TriConsumer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
@@ -61,7 +61,7 @@ public final class GrpcResolver implements Resolver {
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
     public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
-            final TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent) {
+            final Consumer<ConnectionEvent> onConnectionEvent) {
         this.cache = cache;
         this.connectedSupplier = connectedSupplier;
         this.strategy = ResolveFactory.getStrategy(options);
