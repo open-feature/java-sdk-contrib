@@ -105,7 +105,7 @@ public class GrpcConnector {
                 this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
                 log.warn(String.format("Unable to shut down channel by %d deadline", this.deadline));
             }
-            this.onConnectionEvent.accept(new ConnectionEvent(false, Collections.emptyList(), Collections.emptyMap()));
+            this.onConnectionEvent.accept(new ConnectionEvent(false));
         }
     }
 
