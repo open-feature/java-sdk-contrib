@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.0.2...dev.openfeature.contrib.tools.junitopenfeature-v0.0.3) (2024-08-14)
+## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.0.3...dev.openfeature.contrib.tools.junitopenfeature-v0.1.0) (2024-09-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.apache.commons:commons-lang3 to v3.17.0 ([#932](https://github.com/open-feature/java-sdk-contrib/issues/932)) ([c598d9f](https://github.com/open-feature/java-sdk-contrib/commit/c598d9f0a61f2324fb85d72fdfea34811283c575))
 
 
 ### 🐛 Bug Fixes
