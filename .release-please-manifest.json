@@ -1,13 +1,13 @@
 {
   "providers/flagd": "0.8.9",
-  "hooks/open-telemetry": "3.1.2",
-  "providers/go-feature-flag": "0.2.23",
+  "hooks/open-telemetry": "3.2.0",
+  "providers/go-feature-flag": "0.3.0",
   "providers/flagsmith": "0.0.9",
-  "providers/env-var": "0.0.6",
-  "providers/jsonlogic-eval-provider": "1.1.0",
+  "providers/env-var": "0.0.7",
+  "providers/jsonlogic-eval-provider": "1.1.1",
   "providers/unleash": "0.1.0-alpha",
   "providers/flipt": "0.0.2",
-  "providers/configcat": "0.0.4",
-  "providers/statsig": "0.0.4",
-  "tools/junit-openfeature": "0.0.3"
+  "providers/configcat": "0.1.0",
+  "providers/statsig": "0.1.0",
+  "tools/junit-openfeature": "0.1.0"
 }

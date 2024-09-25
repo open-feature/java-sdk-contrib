@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.6...dev.openfeature.contrib.providers.env-var-v0.0.7) (2024-09-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.apache.commons:commons-lang3 to v3.15.0 ([#883](https://github.com/open-feature/java-sdk-contrib/issues/883)) ([93b67ed](https://github.com/open-feature/java-sdk-contrib/commit/93b67edaf5a1f81c6eb6341b1fa94d17190bcf1f))
+* **deps:** update dependency org.apache.commons:commons-lang3 to v3.16.0 ([#908](https://github.com/open-feature/java-sdk-contrib/issues/908)) ([d21cfe3](https://github.com/open-feature/java-sdk-contrib/commit/d21cfe3ac7da1ff6e1a4dc2ee4b0db5c24ed4847))
+* **deps:** update dependency org.apache.commons:commons-lang3 to v3.17.0 ([#932](https://github.com/open-feature/java-sdk-contrib/issues/932)) ([c598d9f](https://github.com/open-feature/java-sdk-contrib/commit/c598d9f0a61f2324fb85d72fdfea34811283c575))
+
+
+### 🧹 Chore
+
+* fix pmd violations ([#856](https://github.com/open-feature/java-sdk-contrib/issues/856)) ([f10d872](https://github.com/open-feature/java-sdk-contrib/commit/f10d87205dd6a21222de362694d208fd293d9200))
+
 ## [0.0.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.5...dev.openfeature.contrib.providers.env-var-v0.0.6) (2024-06-17)
 
 
