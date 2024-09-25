@@ -3,7 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
@@ -94,15 +94,15 @@ public class FlagStore implements Storage {
     }
 
     private void streamerListener(final Connector connector) throws InterruptedException {
-        final BlockingQueue<StreamPayload> streamPayloads = connector.getStream();
+        final BlockingQueue<QueuePayload> streamPayloads = connector.getStream();
 
         while (!shutdown.get()) {
-            final StreamPayload take = streamPayloads.take();
+            final QueuePayload take = streamPayloads.take();
             switch (take.getType()) {
                 case DATA:
                     try {
                         List<String> changedFlagsKeys;
-                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getData(), throwIfInvalid);
+                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getFlagData(), throwIfInvalid);
                         writeLock.lock();
                         try {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);

@@ -3,7 +3,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -29,18 +28,21 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import dev.openfeature.sdk.internal.TriConsumer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
 
 /**
- * FlagResolution resolves flags from flagd.
+ * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
+ * Flags are evaluated remotely.
  */
 @SuppressWarnings("PMD.TooManyStaticImports")
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
@@ -52,20 +54,20 @@ public final class GrpcResolver implements Resolver {
     private final Supplier<Boolean> connectedSupplier;
 
     /**
-     * Initialize Grpc resolver.
-     *
-     * @param options       flagd options.
-     * @param cache         cache to use.
-     * @param connectedSupplier lambda to call for getting the state.
-     * @param onResolverConnectionChanged lambda to communicate back the state.
+     * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
+     * Flags are evaluated remotely.
+     * 
+     * @param options flagd options
+     * @param cache cache to use
+     * @param connectedSupplier lambda providing current connection status from caller
+     * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
     public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
-            final BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
+            final TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent) {
         this.cache = cache;
         this.connectedSupplier = connectedSupplier;
-
         this.strategy = ResolveFactory.getStrategy(options);
-        this.connector = new GrpcConnector(options, cache, connectedSupplier, onResolverConnectionChanged);
+        this.connector = new GrpcConnector(options, cache, connectedSupplier, onConnectionEvent);
     }
 
     /**
@@ -203,14 +205,14 @@ public final class GrpcResolver implements Resolver {
     /**
      * Recursively convert protobuf structure to openfeature value.
      */
-    private static Value convertObjectResponse(Struct protobuf) {
+    public static Value convertObjectResponse(Struct protobuf) {
         return convertProtobufMap(protobuf.getFieldsMap());
     }
 
     /**
      * Recursively convert the Evaluation context to a protobuf structure.
      */
-    private static Struct convertContext(EvaluationContext ctx) {
+    public static Struct convertContext(EvaluationContext ctx) {
         Map<String, Value> ctxMap = ctx.asMap();
         // asMap() does not provide explicitly set targeting key (ex:- new
         // ImmutableContext("TargetingKey") ).
@@ -223,7 +225,7 @@ public final class GrpcResolver implements Resolver {
     /**
      * Convert any openfeature value to a protobuf value.
      */
-    private static com.google.protobuf.Value convertAny(Value value) {
+    public static com.google.protobuf.Value convertAny(Value value) {
         if (value.isList()) {
             return convertList(value.asList());
         } else if (value.isStructure()) {
@@ -236,7 +238,7 @@ public final class GrpcResolver implements Resolver {
     /**
      * Convert any protobuf value to {@link Value}.
      */
-    private static Value convertAny(com.google.protobuf.Value protobuf) {
+    public static Value convertAny(com.google.protobuf.Value protobuf) {
         if (protobuf.hasListValue()) {
             return convertList(protobuf.getListValue());
         } else if (protobuf.hasStructValue()) {
@@ -249,7 +251,7 @@ public final class GrpcResolver implements Resolver {
     /**
      * Convert OpenFeature map to protobuf {@link com.google.protobuf.Value}.
      */
-    private static com.google.protobuf.Value convertMap(Map<String, Value> map) {
+    public static com.google.protobuf.Value convertMap(Map<String, Value> map) {
         Map<String, com.google.protobuf.Value> values = new HashMap<>();
 
         map.keySet().forEach((String key) -> {
@@ -265,20 +267,28 @@ public final class GrpcResolver implements Resolver {
      * Convert protobuf map with {@link com.google.protobuf.Value} to OpenFeature
      * map.
      */
-    private static Value convertProtobufMap(Map<String, com.google.protobuf.Value> map) {
+    public static Value convertProtobufMap(Map<String, com.google.protobuf.Value> map) {
+        return new Value(convertProtobufMapToStructure(map));
+    }
+
+    /**
+     * Convert protobuf map with {@link com.google.protobuf.Value} to OpenFeature
+     * map.
+     */
+    public static Structure convertProtobufMapToStructure(Map<String, com.google.protobuf.Value> map) {
         Map<String, Value> values = new HashMap<>();
 
         map.keySet().forEach((String key) -> {
             com.google.protobuf.Value value = map.get(key);
             values.put(key, convertAny(value));
         });
-        return new Value(new MutableStructure(values));
+        return new MutableStructure(values);
     }
 
     /**
      * Convert OpenFeature list to protobuf {@link com.google.protobuf.Value}.
      */
-    private static com.google.protobuf.Value convertList(List<Value> values) {
+    public static com.google.protobuf.Value convertList(List<Value> values) {
         ListValue list = ListValue.newBuilder()
                 .addAllValues(values.stream()
                         .map(v -> convertAny(v)).collect(Collectors.toList()))
@@ -289,7 +299,7 @@ public final class GrpcResolver implements Resolver {
     /**
      * Convert protobuf list to OpenFeature {@link com.google.protobuf.Value}.
      */
-    private static Value convertList(ListValue protobuf) {
+    public static Value convertList(ListValue protobuf) {
         return new Value(protobuf.getValuesList().stream().map(p -> convertAny(p)).collect(Collectors.toList()));
     }
 
@@ -297,7 +307,7 @@ public final class GrpcResolver implements Resolver {
      * Convert OpenFeature {@link Value} to protobuf
      * {@link com.google.protobuf.Value}.
      */
-    private static com.google.protobuf.Value convertPrimitive(Value value) {
+    public static com.google.protobuf.Value convertPrimitive(Value value) {
         com.google.protobuf.Value.Builder builder = com.google.protobuf.Value.newBuilder();
 
         if (value.isBoolean()) {
@@ -316,7 +326,7 @@ public final class GrpcResolver implements Resolver {
      * Convert protobuf {@link com.google.protobuf.Value} to OpenFeature
      * {@link Value}.
      */
-    private static Value convertPrimitive(com.google.protobuf.Value protobuf) {
+    public static Value convertPrimitive(com.google.protobuf.Value protobuf) {
         final Value value;
         if (protobuf.hasBoolValue()) {
             value = new Value(protobuf.getBoolValue());

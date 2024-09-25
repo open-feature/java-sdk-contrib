@@ -1,12 +1,15 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
+import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -16,10 +19,14 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.google.protobuf.Struct;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceBlockingStub;
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceStub;
+import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 
@@ -57,8 +64,19 @@ class GrpcStreamConnectorTest {
     @Test
     public void grpcConnectionStatus() throws Throwable {
         // given
+        final String key = "key1";
+        final String val = "value1";
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
         final FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
+        final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
+
+final Struct metadata = Struct.newBuilder()
+            .putFields(key,
+                    com.google.protobuf.Value.newBuilder().setStringValue(val).build())
+            .build();
+
+
+        when(blockingStubMock.getMetadata(any())).thenReturn(GetMetadataResponse.newBuilder().setMetadata(metadata).build());
 
         final GrpcStreamHandler[] injectedHandler = new GrpcStreamHandler[1];
 
@@ -71,12 +89,13 @@ class GrpcStreamConnectorTest {
         connector.init();
         // verify and wait for initialization
         verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+        verify(blockingStubMock).getMetadata(any());
 
         // then
         final GrpcStreamHandler grpcStreamHandler = injectedHandler[0];
         assertNotNull(grpcStreamHandler);
 
-        final BlockingQueue<StreamPayload> streamPayloads = connector.getStream();
+        final BlockingQueue<QueuePayload> streamPayloads = connector.getStream();
 
         // accepted data
         grpcStreamHandler.onNext(
@@ -84,8 +103,9 @@ class GrpcStreamConnectorTest {
                         .build());
 
         assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
-            StreamPayload payload = streamPayloads.take();
-            assertEquals(StreamPayloadType.DATA, payload.getType());
+            QueuePayload payload = streamPayloads.take();
+            assertEquals(QueuePayloadType.DATA, payload.getType());
+            assertTrue(() -> payload.getSyncMetadata().get(key).equals(val));
         });
 
         // ping must be ignored
@@ -99,8 +119,8 @@ class GrpcStreamConnectorTest {
                         .build());
 
         assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
-            StreamPayload payload = streamPayloads.take();
-            assertEquals(StreamPayloadType.DATA, payload.getType());
+            QueuePayload payload = streamPayloads.take();
+            assertEquals(QueuePayloadType.DATA, payload.getType());
         });
     }
 
@@ -109,6 +129,7 @@ class GrpcStreamConnectorTest {
         // given
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
         final FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
+        final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
 
         final GrpcStreamHandler[] injectedHandler = new GrpcStreamHandler[1];
 
@@ -121,6 +142,7 @@ class GrpcStreamConnectorTest {
         connector.init();
         // verify and wait for initialization
         verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+        verify(blockingStubMock).getMetadata(any());
 
         // then
         final GrpcStreamHandler grpcStreamHandler = injectedHandler[0];
@@ -132,8 +154,8 @@ class GrpcStreamConnectorTest {
         grpcStreamHandler.onError(new Exception("Channel closed, exiting"));
 
         assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
-            StreamPayload payload = connector.getStream().take();
-            assertEquals(StreamPayloadType.ERROR, payload.getType());
+            QueuePayload payload = connector.getStream().take();
+            assertEquals(QueuePayloadType.ERROR, payload.getType());
         });
 
         // Validate mock calls & no more event propagation
@@ -159,6 +181,18 @@ class GrpcStreamConnectorTest {
         serviceStubField.set(connector, stubMock);
 
         return stubMock;
+    }
+
+    private static FlagSyncServiceBlockingStub mockBlockingStubAndReturn(final GrpcStreamConnector connector)
+        throws Throwable {
+    final Field blockingStubField = GrpcStreamConnector.class.getDeclaredField("serviceBlockingStub");
+    blockingStubField.setAccessible(true);
+
+    final FlagSyncServiceBlockingStub blockingStubMock = Mockito.mock(FlagSyncServiceBlockingStub.class);
+
+    blockingStubField.set(connector, blockingStubMock);
+
+    return blockingStubMock;
     }
 
 }

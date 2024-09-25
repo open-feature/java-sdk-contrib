@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -60,13 +63,16 @@ import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.internal.TriConsumer;
 import io.cucumber.java.AfterAll;
 import io.grpc.Channel;
 import io.grpc.Deadline;
+import lombok.val;
 
 class FlagdProviderTest {
     private static final String FLAG_KEY = "some-key";
@@ -502,14 +508,14 @@ class FlagdProviderTest {
             final Cache cache = new Cache("lru", 5);
 
             class NoopInitGrpcConnector extends GrpcConnector {
-                public NoopInitGrpcConnector(FlagdOptions options, Cache cache, Supplier<Boolean> connectedSupplier, BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
-                    super(options, cache, connectedSupplier, onResolverConnectionChanged);
+                public NoopInitGrpcConnector(FlagdOptions options, Cache cache, Supplier<Boolean> connectedSupplier, TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent) {
+                    super(options, cache, connectedSupplier, onConnectionEvent);
                 }
 
                 public void initialize() throws Exception {};
             } 
 
-            grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys) -> {
+            grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys, syncMetadata) -> {
             });
         }
 
@@ -719,15 +725,15 @@ class FlagdProviderTest {
                 class NoopInitGrpcConnector extends GrpcConnector {
                         public NoopInitGrpcConnector(FlagdOptions options, Cache cache,
                                         Supplier<Boolean> connectedSupplier,
-                                        BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
-                                super(options, cache, connectedSupplier, onResolverConnectionChanged);
+                                        TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent) {
+                                super(options, cache, connectedSupplier, onConnectionEvent);
                         }
 
                         public void initialize() throws Exception {
                         };
                 }
 
-                grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys) -> {
+                grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys, syncMetadata) -> {
                 });
         }
 
@@ -845,6 +851,40 @@ class FlagdProviderTest {
         verify(resolverMock, times(1)).shutdown();
     }
 
+    @Test
+    void updatesSyncMetadataWithCallback() throws Exception {
+
+        final EvaluationContext ctx = new ImmutableContext();
+        String key = "key1";
+        String val = "val1";
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put(key, val);
+
+        // mock a resolver
+        try (MockedConstruction<GrpcResolver> mockResolver = mockConstruction(GrpcResolver.class,
+                (mock, context) -> {
+                    TriConsumer<Boolean, List<String>, Map<String, Object>> onConnectionEvent;
+
+                    // get a reference to the onConnectionEvent callback
+                    onConnectionEvent = (TriConsumer<Boolean, List<String>, Map<String, Object>>) context
+                            .arguments().get(3);
+                    
+                    // when our mock resolver initializes, it runs the passed onConnectionEvent callback
+                    doAnswer(invocation -> {
+                        onConnectionEvent.accept(true, Collections.emptyList(),
+                                metadata);
+                        return null;
+                    }).when(mock).init();
+                })) {
+
+            FlagdProvider provider = new FlagdProvider();
+            provider.initialize(ctx);
+
+            // the onConnectionEvent should have updated the sync metadata
+            assertEquals(val, provider.getSyncMetadata().get(key));
+        }
+    }
+
     // test helper
 
     // create provider with given grpc connector
@@ -861,12 +901,12 @@ class FlagdProviderTest {
 
     // create provider with given grpc provider, cache and state supplier
     private FlagdProvider createProvider(GrpcConnector grpc, Cache cache, Supplier<Boolean> getConnected) {
-        final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final GrpcResolver grpcResolver = new GrpcResolver(flagdOptions, cache, getConnected,
-                (providerState, changedFlagKeys) -> {
-                });
+            final FlagdOptions flagdOptions = FlagdOptions.builder().build();
+            final GrpcResolver grpcResolver = new GrpcResolver(flagdOptions, cache, getConnected,
+                            (providerState, changedFlagKeys, syncMetadata) -> {
+                            });
 
-        final FlagdProvider provider = new FlagdProvider();
+            final FlagdProvider provider = new FlagdProvider();
 
         try {
             Field connector = GrpcResolver.class.getDeclaredField("connector");

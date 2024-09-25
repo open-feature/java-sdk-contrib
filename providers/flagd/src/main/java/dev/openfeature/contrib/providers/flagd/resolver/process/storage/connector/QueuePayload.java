@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector;
 
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -8,7 +9,8 @@ import lombok.Getter;
  */
 @AllArgsConstructor
 @Getter
-public class StreamPayload {
-    private final StreamPayloadType type;
-    private final String data;
+public class QueuePayload {
+    private final QueuePayloadType type;
+    private final String flagData;
+    private final Map<String, Object> syncMetadata;
 }

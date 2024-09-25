@@ -1,18 +1,19 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * File connector reads flag configurations from a given file, polls for changes and expose the content through
@@ -28,7 +29,7 @@ public class FileConnector implements Connector {
     private static final String OFFER_WARN = "Unable to offer file content to queue: queue is full";
 
     private final String flagSourcePath;
-    private final BlockingQueue<StreamPayload> queue = new LinkedBlockingQueue<>(1);
+    private final BlockingQueue<QueuePayload> queue = new LinkedBlockingQueue<>(1);
     private boolean shutdown = false;
 
     public FileConnector(final String flagSourcePath) {
@@ -45,7 +46,7 @@ public class FileConnector implements Connector {
 
                 // initial read
                 String flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
-                if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
+                if (!queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData, Collections.emptyMap()))) {
                     log.warn(OFFER_WARN);
                 }
 
@@ -58,7 +59,7 @@ public class FileConnector implements Connector {
                     if (currentTS > lastTS) {
                         lastTS = currentTS;
                         flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
-                        if (!queue.offer(new StreamPayload(StreamPayloadType.DATA, flagData))) {
+                        if (!queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData, Collections.emptyMap()))) {
                             log.warn(OFFER_WARN);
                         }
                     }
@@ -72,7 +73,7 @@ public class FileConnector implements Connector {
                 Thread.currentThread().interrupt();
             } catch (Throwable t) {
                 log.error("Error from file connector. File connector will exit", t);
-                if (!queue.offer(new StreamPayload(StreamPayloadType.ERROR, t.toString()))) {
+                if (!queue.offer(new QueuePayload(QueuePayloadType.ERROR, t.toString(), null))) {
                     log.warn(OFFER_WARN);
                 }
             }
@@ -86,7 +87,7 @@ public class FileConnector implements Connector {
     /**
      * Expose the queue to fulfil the {@code Connector} contract.
      */
-    public BlockingQueue<StreamPayload> getStream() {
+    public BlockingQueue<QueuePayload> getStream() {
         return queue;
     }
 

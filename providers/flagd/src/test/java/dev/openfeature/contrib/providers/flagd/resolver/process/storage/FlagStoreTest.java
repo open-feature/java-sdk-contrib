@@ -2,14 +2,15 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -27,7 +28,7 @@ class FlagStoreTest {
     public void connectorHandling() throws Exception {
         final int maxDelay = 500;
 
-        final BlockingQueue<StreamPayload> payload = new LinkedBlockingQueue<>();
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<>();
         FlagStore store = new FlagStore(new MockConnector(payload), true);
 
         store.init();
@@ -35,7 +36,7 @@ class FlagStoreTest {
 
         // OK for simple flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new StreamPayload(StreamPayloadType.DATA, getFlagsFromResource(VALID_SIMPLE)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE), Collections.emptyMap()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -44,7 +45,7 @@ class FlagStoreTest {
 
         // STALE for invalid flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new StreamPayload(StreamPayloadType.DATA, getFlagsFromResource(INVALID_FLAG)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(INVALID_FLAG), Collections.emptyMap()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -53,7 +54,7 @@ class FlagStoreTest {
 
         // OK again for next payload
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new StreamPayload(StreamPayloadType.DATA, getFlagsFromResource(VALID_LONG)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), Collections.emptyMap()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -62,7 +63,7 @@ class FlagStoreTest {
 
         // ERROR is propagated correctly
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new StreamPayload(StreamPayloadType.ERROR, null));
+            payload.offer(new QueuePayload(QueuePayloadType.ERROR, null, Collections.emptyMap()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -80,13 +81,13 @@ class FlagStoreTest {
     @Test
     public void changedFlags() throws Exception {
         final int maxDelay = 500;
-        final BlockingQueue<StreamPayload> payload = new LinkedBlockingQueue<>();
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<>();
         FlagStore store = new FlagStore(new MockConnector(payload), true);
         store.init();
         final BlockingQueue<StorageStateChange> storageStateDTOS = store.getStateQueue();
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new StreamPayload(StreamPayloadType.DATA, getFlagsFromResource(VALID_SIMPLE)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE), Collections.emptyMap()));
         });
         // flags changed for first time
         assertEquals(FlagParser.parseString(
@@ -94,7 +95,7 @@ class FlagStoreTest {
                 storageStateDTOS.take().getChangedFlagsKeys());
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new StreamPayload(StreamPayloadType.DATA, getFlagsFromResource(VALID_LONG)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), Collections.emptyMap()));
         });
         Map<String, FeatureFlag> expectedChangedFlags =
                 FlagParser.parseString(getFlagsFromResource(VALID_LONG),true);

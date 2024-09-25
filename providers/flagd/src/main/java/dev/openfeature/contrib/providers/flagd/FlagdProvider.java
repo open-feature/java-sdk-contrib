@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
@@ -24,6 +26,7 @@ public class FlagdProvider extends EventProvider {
     private final Resolver flagResolver;
     private volatile boolean initialized = false;
     private volatile boolean connected = false;
+    private volatile Map<String, Object> syncMetadata = Collections.emptyMap();
 
     private EvaluationContext evaluationContext;
 
@@ -47,13 +50,13 @@ public class FlagdProvider extends EventProvider {
         switch (options.getResolverType().asString()) {
             case Config.RESOLVER_IN_PROCESS:
                 this.flagResolver = new InProcessResolver(options, this::isConnected,
-                        this::onResolverConnectionChanged);
+                        this::onConnectionEvent);
                 break;
             case Config.RESOLVER_RPC:
                 this.flagResolver = new GrpcResolver(options,
                         new Cache(options.getCacheType(), options.getMaxCacheSize()),
                         this::isConnected,
-                        this::onResolverConnectionChanged);
+                        this::onConnectionEvent);
                 break;
             default:
                 throw new IllegalStateException(
@@ -117,6 +120,19 @@ public class FlagdProvider extends EventProvider {
         return this.flagResolver.objectEvaluation(key, defaultValue, mergeContext(ctx));
     }
 
+    /**
+     * An unmodifiable view of an object map representing the latest result of the
+     * SyncMetadata.
+     * Set on initial connection and updated with every reconnection.
+     * see:
+     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata
+     * 
+     * @return Object map representing sync metadata
+     */
+    protected Map<String, Object> getSyncMetadata() {
+        return Collections.unmodifiableMap(syncMetadata);
+    }
+
     private EvaluationContext mergeContext(final EvaluationContext clientCallCtx) {
         if (this.evaluationContext != null) {
             return evaluationContext.merge(clientCallCtx);
@@ -129,10 +145,12 @@ public class FlagdProvider extends EventProvider {
         return this.connected;
     }
 
-    private void onResolverConnectionChanged(boolean newConnectedState, List<String> changedFlagKeys) {
+    private void onConnectionEvent(boolean newConnectedState, List<String> changedFlagKeys,
+            Map<String, Object> syncMetadata) {
         boolean previous = connected;
         boolean current = newConnectedState;
         this.connected = newConnectedState;
+        this.syncMetadata = syncMetadata;
 
         // configuration changed
         if (initialized && previous && current) {
