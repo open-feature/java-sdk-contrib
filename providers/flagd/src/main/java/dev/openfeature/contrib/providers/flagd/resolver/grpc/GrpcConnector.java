@@ -159,7 +159,7 @@ public class GrpcConnector {
         this.grpconConnectionEvent(false, Collections.emptyList());
     }
 
-    private void grpconConnectionEvent(final boolean connected, final List<String> changedFlags) {
+    private void grpcOnConnectionEvent(final boolean connected, final List<String> changedFlags) {
         // reset reconnection states
         if (connected) {
             this.eventStreamAttempt = 1;
