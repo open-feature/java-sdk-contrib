@@ -1,7 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import dev.openfeature.contrib.providers.flagd.Config;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +14,7 @@ import com.google.protobuf.Message;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 
+import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
@@ -30,7 +29,6 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
@@ -51,23 +49,23 @@ public final class GrpcResolver implements Resolver {
     private final GrpcConnector connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
-    private final Supplier<ProviderState> stateSupplier;
+    private final Supplier<Boolean> connectedSupplier;
 
     /**
      * Initialize Grpc resolver.
      *
      * @param options       flagd options.
      * @param cache         cache to use.
-     * @param stateSupplier lambda to call for getting the state.
-     * @param stateConsumer lambda to communicate back the state.
+     * @param connectedSupplier lambda to call for getting the state.
+     * @param onResolverConnectionChanged lambda to communicate back the state.
      */
-    public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<ProviderState> stateSupplier,
-            final BiConsumer<ProviderState,List<String>> stateConsumer) {
+    public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
+            final BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
         this.cache = cache;
-        this.stateSupplier = stateSupplier;
+        this.connectedSupplier = connectedSupplier;
 
         this.strategy = ResolveFactory.getStrategy(options);
-        this.connector = new GrpcConnector(options, cache, stateConsumer);
+        this.connector = new GrpcConnector(options, cache, connectedSupplier, onResolverConnectionChanged);
     }
 
     /**
@@ -199,7 +197,7 @@ public final class GrpcResolver implements Resolver {
     }
 
     private Boolean cacheAvailable() {
-        return this.cache.getEnabled() && ProviderState.READY.equals(this.stateSupplier.get());
+        return this.cache.getEnabled() && this.connectedSupplier.get();
     }
 
     /**

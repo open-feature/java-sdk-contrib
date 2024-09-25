@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
@@ -22,7 +24,6 @@ import com.google.protobuf.Value;
 
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
-import dev.openfeature.sdk.ProviderState;
 
 class EventStreamObserverTest {
 
@@ -30,7 +31,7 @@ class EventStreamObserverTest {
     class StateChange {
 
         Cache cache;
-        List<ProviderState> states;
+        List<Boolean> states;
         EventStreamObserver stream;
         Runnable reconnect;
         Object sync;
@@ -46,7 +47,7 @@ class EventStreamObserverTest {
         }
 
         @Test
-        public void Change() {
+        public void change() {
             EventStreamResponse resp = mock(EventStreamResponse.class);
             Struct flagData = mock(Struct.class);
             when(resp.getType()).thenReturn("configuration_change");
@@ -55,35 +56,35 @@ class EventStreamObserverTest {
             stream.onNext(resp);
             // we notify that we are ready
             assertEquals(1, states.size());
-            assertEquals(ProviderState.READY, states.get(0));
+            assertTrue(states.get(0));
             // we flush the cache
             verify(cache, atLeast(1)).clear();
         }
 
         @Test
-        public void Ready() {
+        public void ready() {
             EventStreamResponse resp = mock(EventStreamResponse.class);
             when(resp.getType()).thenReturn("provider_ready");
             stream.onNext(resp);
             // we notify that we are ready
             assertEquals(1, states.size());
-            assertEquals(ProviderState.READY, states.get(0));
+            assertTrue(states.get(0));
             // cache was cleaned
             verify(cache, atLeast(1)).clear();
         }
 
         @Test
-        public void Reconnections() {
+        public void reconnections() {
             stream.onError(new Throwable("error"));
             // we flush the cache
             verify(cache, atLeast(1)).clear();
             // we notify the error
             assertEquals(1, states.size());
-            assertEquals(ProviderState.ERROR, states.get(0));
+            assertFalse(states.get(0));
         }
 
         @Test
-        public void CacheBustingForKnownKeys() {
+        public void cacheBustingForKnownKeys() {
             final String key1 = "myKey1";
             final String key2 = "myKey2";
 
@@ -106,7 +107,7 @@ class EventStreamObserverTest {
             stream.onNext(resp);
             // we notify that the configuration changed
             assertEquals(1, states.size());
-            assertEquals(ProviderState.READY, states.get(0));
+            assertTrue(states.get(0));
             // we did NOT flush the whole cache
             verify(cache, atMost(0)).clear();
             // we only clean the two keys

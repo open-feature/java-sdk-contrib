@@ -300,19 +300,7 @@ class StatsigProviderTest {
         assertEquals(false, statsigProvider.getBooleanEvaluation(PROPERTIES_FLAG_NAME, false,
             evaluationContext).getValue());
     }
-
-    @SneakyThrows
-    @Test
-    void shouldThrowIfNotInitialized() {
-        StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder().sdkKey("test").build();
-        StatsigProvider tempstatsigProvider = new StatsigProvider(statsigProviderConfig);
-
-        assertThrows(ProviderNotReadyError.class, ()-> tempstatsigProvider.getBooleanEvaluation(
-        "fail_not_initialized", false, new ImmutableContext()));
-
-        OpenFeatureAPI.getInstance().setProviderAndWait("tempstatsigProvider", tempstatsigProvider);
-    }
-
+    
     @SneakyThrows
     @Test
     void contextTransformTest() {

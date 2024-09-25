@@ -1,27 +1,26 @@
 package dev.openfeature.contrib.providers.configcat;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.HashMap;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 import com.configcat.OverrideBehaviour;
 import com.configcat.OverrideDataSourceBuilder;
 import com.configcat.User;
+
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.util.HashMap;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * ConfigCatProvider test, based on local config file evaluation.
@@ -179,27 +178,6 @@ class ConfigCatProviderTest {
         evaluationContext.setTargetingKey("csp@notmatching.com");
         assertEquals("fallback", configCatProvider.getStringEvaluation(USERS_FLAG_NAME + "Str", "111", evaluationContext).getValue());
         assertEquals("fallback", client.getStringValue(USERS_FLAG_NAME + "Str", "111", evaluationContext));
-    }
-
-    @SneakyThrows
-    @Test
-    void shouldThrowIfNotInitialized() {
-        ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder().sdkKey("configcat-sdk-1/TEST_KEY-0123456789012/1234567890123456789012").build();
-        ConfigCatProvider tempConfigCatProvider = new ConfigCatProvider(configCatProviderConfig);
-
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-
-        OpenFeatureAPI.getInstance().setProviderAndWait("tempConfigCatProvider", tempConfigCatProvider);
-
-        assertThrows(GeneralError.class, ()-> tempConfigCatProvider.initialize(null));
-
-        tempConfigCatProvider.shutdown();
-
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getDoubleEvaluation("fail_not_initialized", 0.1, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getIntegerEvaluation("fail_not_initialized", 3, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getObjectEvaluation("fail_not_initialized", null, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> tempConfigCatProvider.getStringEvaluation("fail_not_initialized", "", new ImmutableContext()));
     }
 
     @Test

@@ -4,8 +4,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
@@ -13,7 +14,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
-import dev.openfeature.sdk.ProviderState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
@@ -26,7 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
     private final Object sync = new Object();
-    private final AtomicBoolean connected = new AtomicBoolean(false);
     private final Random random = new Random();
 
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
@@ -38,7 +37,8 @@ public class GrpcConnector {
     private final long deadline;
 
     private final Cache cache;
-    private final BiConsumer<ProviderState, List<String>> stateConsumer;
+    private final BiConsumer<Boolean, List<String>> stateConsumer;
+    private final Supplier<Boolean> connectedSupplier;
 
     private int eventStreamAttempt = 1;
     private int eventStreamRetryBackoff;
@@ -53,8 +53,8 @@ public class GrpcConnector {
      * @param cache         cache to use.
      * @param stateConsumer lambda to call for setting the state.
      */
-    public GrpcConnector(final FlagdOptions options, final Cache cache,
-            BiConsumer<ProviderState, List<String>> stateConsumer) {
+    public GrpcConnector(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
+            BiConsumer<Boolean, List<String>> stateConsumer) {
         this.channel = ChannelBuilder.nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
@@ -65,6 +65,7 @@ public class GrpcConnector {
         this.deadline = options.getDeadline();
         this.cache = cache;
         this.stateConsumer = stateConsumer;
+        this.connectedSupplier = connectedSupplier;
     }
 
     /**
@@ -76,7 +77,7 @@ public class GrpcConnector {
         eventObserverThread.start();
 
         // block till ready
-        Util.busyWaitAndCheck(this.deadline, this.connected);
+        Util.busyWaitAndCheck(this.deadline, this.connectedSupplier);
     }
 
     /**
@@ -103,7 +104,7 @@ public class GrpcConnector {
                 this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
                 log.warn(String.format("Unable to shut down channel by %d deadline", this.deadline));
             }
-            this.stateConsumer.accept(ProviderState.NOT_READY, Collections.emptyList());
+            this.stateConsumer.accept(false, Collections.emptyList());
         }
     }
 
@@ -154,21 +155,16 @@ public class GrpcConnector {
         }
 
         log.error("failed to connect to event stream, exhausted retries");
-        this.grpcStateConsumer(ProviderState.ERROR, null);
+        this.grpcStateConsumer(false, null);
     }
 
-    private void grpcStateConsumer(final ProviderState state, final List<String> changedFlags) {
-        // check for readiness
-        if (ProviderState.READY.equals(state)) {
+    private void grpcStateConsumer(final boolean connected, final List<String> changedFlags) {
+        // reset reconnection states
+        if (connected) {
             this.eventStreamAttempt = 1;
             this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
-            this.connected.set(true);
-        } else if (ProviderState.ERROR.equals(state)) {
-            // reset connection status
-            this.connected.set(false);
         }
-
         // chain to initiator
-        this.stateConsumer.accept(state, changedFlags);
+        this.stateConsumer.accept(connected, changedFlags);
     }
 }

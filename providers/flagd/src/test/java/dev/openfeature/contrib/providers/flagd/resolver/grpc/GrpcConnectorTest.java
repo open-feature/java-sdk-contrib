@@ -58,7 +58,7 @@ public class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(options, cache, (state,changedFlagKeys) -> {
+        final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, (state,changedFlagKeys) -> {
         });
 
         Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
@@ -94,19 +94,9 @@ public class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, (state,changedFlagKeys) -> {
+        // pass true in connected lambda
+        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys) -> {
         });
-
-        Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
-        serviceStubField.setAccessible(true);
-        serviceStubField.set(connector, mockStub);
-
-        // override default connected state variable
-        final AtomicBoolean connected = new AtomicBoolean(true);
-
-        Field syncField = GrpcConnector.class.getDeclaredField("connected");
-        syncField.setAccessible(true);
-        syncField.set(connector, connected);
 
         assertDoesNotThrow(connector::initialize);
     }
@@ -118,12 +108,9 @@ public class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, (state,changedFlagKeys) -> {
+        // pass false in connected lambda
+        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> false, (state, changedFlagKeys) -> {
         });
-
-        Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
-        serviceStubField.setAccessible(true);
-        serviceStubField.set(connector, mockStub);
 
         assertThrows(RuntimeException.class, connector::initialize);
     }
@@ -149,7 +136,7 @@ public class GrpcConnectorTest {
                         .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
 
                 final FlagdOptions flagdOptions = FlagdOptions.builder().host(host).port(port).tls(false).build();
-                new GrpcConnector(flagdOptions, null, null);
+                new GrpcConnector(flagdOptions, null, null, null);
 
                 // verify host/port matches
                 mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
@@ -180,7 +167,7 @@ public class GrpcConnectorTest {
                     mockStaticChannelBuilder.when(() -> NettyChannelBuilder
                             .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
 
-                    new GrpcConnector(FlagdOptions.builder().build(), null, null);
+                    new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
                     // verify host/port matches & called times(= 1 as we rely on reusable channel)
                     mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.
@@ -217,7 +204,7 @@ public class GrpcConnectorTest {
                         })) {
                     when(NettyChannelBuilder.forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
 
-                    new GrpcConnector(FlagdOptions.builder().socketPath(path).build(), null, null);
+                    new GrpcConnector(FlagdOptions.builder().socketPath(path).build(), null, null, null);
 
                     // verify path matches
                     mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
@@ -260,7 +247,7 @@ public class GrpcConnectorTest {
                         mockStaticChannelBuilder.when(() -> NettyChannelBuilder
                                 .forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
 
-                        new GrpcConnector(FlagdOptions.builder().build(), null, null);
+                        new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
                         //verify path matches & called times(= 1 as we rely on reusable channel)
                         mockStaticChannelBuilder.verify(() -> NettyChannelBuilder

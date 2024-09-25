@@ -1,30 +1,14 @@
 package dev.openfeature.contrib.providers.unleash;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import dev.openfeature.sdk.Client;
-import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.ImmutableMetadata;
-import dev.openfeature.sdk.MutableContext;
-import dev.openfeature.sdk.OpenFeatureAPI;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
-import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
-import io.getunleash.UnleashContext;
-import io.getunleash.UnleashException;
-import io.getunleash.event.ToggleEvaluated;
-import io.getunleash.event.UnleashEvent;
-import io.getunleash.event.UnleashSubscriber;
-import io.getunleash.repository.FeatureToggleResponse;
-import io.getunleash.util.UnleashConfig;
-import lombok.SneakyThrows;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URI;
 import java.net.URL;
@@ -34,16 +18,29 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+
+import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Value;
+import io.getunleash.UnleashContext;
+import io.getunleash.UnleashException;
+import io.getunleash.event.ToggleEvaluated;
+import io.getunleash.event.UnleashEvent;
+import io.getunleash.event.UnleashSubscriber;
+import io.getunleash.repository.FeatureToggleResponse;
+import io.getunleash.util.UnleashConfig;
+import lombok.SneakyThrows;
 
 /**
  * UnleashProvider test, based on APIs mocking.
@@ -204,37 +201,6 @@ class UnleashProviderTest {
         ProviderEvaluation<String> nonExistingFlagEvaluation = unleashProvider.getStringEvaluation("non-existing",
             "", new ImmutableContext());
         assertEquals(false, nonExistingFlagEvaluation.getFlagMetadata().getBoolean("enabled"));
-    }
-
-    @SneakyThrows
-    @Test
-    void shouldThrowIfNotInitialized() {
-        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", new TestSubscriber());
-        assertEquals(ProviderState.NOT_READY, asyncInitUnleashProvider.getState());
-
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
-        assertThrows(ProviderNotReadyError.class, ()-> asyncInitUnleashProvider.getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class, ()-> asyncInitUnleashProvider.getStringEvaluation("fail_not_initialized", "", new ImmutableContext()));
-
-        asyncInitUnleashProvider.initialize(null);
-        assertThrows(GeneralError.class, ()-> asyncInitUnleashProvider.initialize(null));
-
-        asyncInitUnleashProvider.shutdown();
-    }
-
-    @SneakyThrows
-    @Test
-    void shouldThrowIfErrorEvent() {
-        UnleashProvider asyncInitUnleashProvider = buildUnleashProvider(false, "http://fakeAPI", null);
-        asyncInitUnleashProvider.initialize(new ImmutableContext());
-
-        asyncInitUnleashProvider.emitProviderError(ProviderEventDetails.builder().build());
-
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
-        assertThrows(GeneralError.class, ()-> asyncInitUnleashProvider.getBooleanEvaluation("fail", false, new ImmutableContext()));
-        assertThrows(GeneralError.class, ()-> asyncInitUnleashProvider.getStringEvaluation("fail", "", new ImmutableContext()));
-
-        asyncInitUnleashProvider.shutdown();
     }
 
     @SneakyThrows
