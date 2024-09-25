@@ -1,11 +1,6 @@
 # Changelog
 
-## [4.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.1.2...dev.openfeature.contrib.hooks.otel-v4.0.0) (2024-09-25)
-
-
-### ⚠ BREAKING CHANGES
-
-* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+## [3.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.1.2...dev.openfeature.contrib.hooks.otel-v3.2.0) (2024-09-25)
 
 ### 🐛 Bug Fixes
 
