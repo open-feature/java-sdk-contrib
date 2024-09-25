@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
@@ -10,7 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
@@ -139,8 +140,7 @@ public class GrpcStreamConnector implements Connector {
             serviceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
             try {
                 GetMetadataResponse metadataResponse = serviceBlockingStub.getMetadata(metadataRequest.build());
-                metadata = GrpcResolver
-                        .convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap()).asObjectMap();
+                metadata = convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap()).asObjectMap();
             } catch (Exception e) {
                 // the chances this call fails but the syncRequest does not are slim
                 // it could be that the server doesn't implement this RPC
