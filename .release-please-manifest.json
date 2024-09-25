@@ -9,5 +9,5 @@
   "providers/flipt": "0.0.2",
   "providers/configcat": "0.0.4",
   "providers/statsig": "0.0.4",
-  "tools/junit-openfeature": "0.0.3"
+  "tools/junit-openfeature": "0.1.0"
 }
