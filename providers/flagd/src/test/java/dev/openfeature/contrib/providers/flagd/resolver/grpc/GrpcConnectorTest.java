@@ -3,7 +3,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -19,9 +18,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
@@ -40,7 +36,6 @@ import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
-import dev.openfeature.sdk.internal.TriConsumer;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.EventLoopGroup;
@@ -104,7 +99,7 @@ public class GrpcConnectorTest {
         doAnswer((InvocationOnMock invocation) -> {
             EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
             eventStreamObserver
-                    .onNext(EventStreamResponse.newBuilder().setType(EventStreamObserver.PROVIDER_READY).build());
+                    .onNext(EventStreamResponse.newBuilder().setType(Constants.PROVIDER_READY).build());
             return null;
         }).when(mockStub).eventStream(any(), any());
 

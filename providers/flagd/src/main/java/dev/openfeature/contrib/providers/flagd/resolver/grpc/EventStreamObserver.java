@@ -24,10 +24,6 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private final Object sync;
     private final Cache cache;
 
-    public static final String CONFIGURATION_CHANGE = "configuration_change";
-    public static final String PROVIDER_READY = "provider_ready";
-    static final String FLAGS_KEY = "flags";
-
     /**
      * Create a gRPC stream that get notified about flag changes.
      *
@@ -44,10 +40,10 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     @Override
     public void onNext(EventStreamResponse value) {
         switch (value.getType()) {
-            case CONFIGURATION_CHANGE:
+            case Constants.CONFIGURATION_CHANGE:
                 this.handleConfigurationChangeEvent(value);
                 break;
-            case PROVIDER_READY:
+            case Constants.PROVIDER_READY:
                 this.handleProviderReadyEvent();
                 break;
             default:
@@ -83,7 +79,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         boolean cachingEnabled = this.cache.getEnabled();
 
         Map<String, Value> data = value.getData().getFieldsMap();
-        Value flagsValue = data.get(FLAGS_KEY);
+        Value flagsValue = data.get(Constants.FLAGS_KEY);
         if (flagsValue == null) {
             if (cachingEnabled) {
                 this.cache.clear();
