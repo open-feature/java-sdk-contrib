@@ -125,7 +125,7 @@ public class GrpcConnector {
     private void observeEventStream() {
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
             final StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(sync, this.cache,
-                    this::grpconConnectionEvent);
+                    this::onConnectionEvent);
             this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
 
             try {
@@ -156,10 +156,10 @@ public class GrpcConnector {
         }
 
         log.error("failed to connect to event stream, exhausted retries");
-        this.grpconConnectionEvent(false, Collections.emptyList());
+        this.onConnectionEvent(false, Collections.emptyList());
     }
 
-    private void grpcOnConnectionEvent(final boolean connected, final List<String> changedFlags) {
+    private void onConnectionEvent(final boolean connected, final List<String> changedFlags) {
         // reset reconnection states
         if (connected) {
             this.eventStreamAttempt = 1;

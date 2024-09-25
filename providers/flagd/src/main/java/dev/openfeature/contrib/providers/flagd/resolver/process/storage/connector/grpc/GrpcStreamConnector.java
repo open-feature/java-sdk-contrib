@@ -35,15 +35,12 @@ import lombok.extern.slf4j.Slf4j;
     "EI_EXPOSE_REP" }, justification = "Random is used to generate a variation & flag configurations require exposing")
 public class GrpcStreamConnector implements Connector {
     private static final Random RANDOM = new Random();
-
     private static final int INIT_BACK_OFF = 2 * 1000;
     private static final int MAX_BACK_OFF = 120 * 1000;
-
     private static final int QUEUE_SIZE = 5;
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final BlockingQueue<QueuePayload> blockingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-
     private final ManagedChannel channel;
     private final FlagSyncServiceStub serviceStub;
     private final FlagSyncServiceBlockingStub serviceBlockingStub;
@@ -69,7 +66,7 @@ public class GrpcStreamConnector implements Connector {
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector);
+                observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -118,7 +115,8 @@ public class GrpcStreamConnector implements Connector {
             final AtomicBoolean shutdown,
             final FlagSyncServiceStub serviceStub,
             final FlagSyncServiceBlockingStub serviceBlockingStub,
-            final String selector)
+            final String selector,
+            final int deadline)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -137,9 +135,11 @@ public class GrpcStreamConnector implements Connector {
                 syncRequest.setSelector(selector);
             }
 
-            serviceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
+            serviceStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS).syncFlags(syncRequest.build(),
+                    new GrpcStreamHandler(streamReceiver));
             try {
-                GetMetadataResponse metadataResponse = serviceBlockingStub.getMetadata(metadataRequest.build());
+                GetMetadataResponse metadataResponse = serviceBlockingStub
+                        .withDeadlineAfter(deadline, TimeUnit.MILLISECONDS).getMetadata(metadataRequest.build());
                 metadata = convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap()).asObjectMap();
             } catch (Exception e) {
                 // the chances this call fails but the syncRequest does not are slim

@@ -31,14 +31,14 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     /**
      * Create a gRPC stream that get notified about flag changes.
      *
-     * @param sync          synchronization object from caller
-     * @param cache         cache to update
-     * @param onResponse lambda to call to handle the response
+     * @param sync              synchronization object from caller
+     * @param cache             cache to update
+     * @param onConnectionEvent lambda to call to handle the response
      */
-    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> onResponse) {
+    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent) {
         this.sync = sync;
         this.cache = cache;
-        this.onConnectionEvent = onResponse;
+        this.onConnectionEvent = onConnectionEvent;
     }
 
     @Override

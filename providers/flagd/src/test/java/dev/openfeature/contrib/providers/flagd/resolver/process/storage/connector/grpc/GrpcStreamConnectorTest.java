@@ -1,12 +1,15 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,7 +20,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import com.google.protobuf.Struct;
 
@@ -39,21 +41,25 @@ class GrpcStreamConnectorTest {
         // given
         final FlagdOptions options = FlagdOptions.builder()
                 .selector("selector")
+                .deadline(1337)
                 .build();
 
         final GrpcStreamConnector connector = new GrpcStreamConnector(options);
         final FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
-
+        final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
         final SyncFlagsRequest[] request = new SyncFlagsRequest[1];
 
-        Mockito.doAnswer(invocation -> {
+        when(stubMock.withDeadlineAfter(anyLong(), any())).thenReturn(stubMock);
+        doAnswer(invocation -> {
             request[0] = invocation.getArgument(0, SyncFlagsRequest.class);
             return null;
         }).when(stubMock).syncFlags(any(), any());
 
         // when
         connector.init();
-        verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+        verify(stubMock, timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+        verify(stubMock).withDeadlineAfter(1337, TimeUnit.MILLISECONDS);
+        verify(blockingStubMock).withDeadlineAfter(1337, TimeUnit.MILLISECONDS);
 
         // then
         final SyncFlagsRequest flagsRequest = request[0];
@@ -70,17 +76,19 @@ class GrpcStreamConnectorTest {
         final FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
         final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
 
-final Struct metadata = Struct.newBuilder()
-            .putFields(key,
-                    com.google.protobuf.Value.newBuilder().setStringValue(val).build())
-            .build();
+        final Struct metadata = Struct.newBuilder()
+                .putFields(key,
+                        com.google.protobuf.Value.newBuilder().setStringValue(val).build())
+                .build();
 
-
-        when(blockingStubMock.getMetadata(any())).thenReturn(GetMetadataResponse.newBuilder().setMetadata(metadata).build());
+        when(blockingStubMock.withDeadlineAfter(anyLong(), any())).thenReturn(blockingStubMock);
+        when(blockingStubMock.getMetadata(any()))
+                .thenReturn(GetMetadataResponse.newBuilder().setMetadata(metadata).build());
 
         final GrpcStreamHandler[] injectedHandler = new GrpcStreamHandler[1];
 
-        Mockito.doAnswer(invocation -> {
+        when(stubMock.withDeadlineAfter(anyLong(), any())).thenReturn(stubMock);
+        doAnswer(invocation -> {
             injectedHandler[0] = invocation.getArgument(1, GrpcStreamHandler.class);
             return null;
         }).when(stubMock).syncFlags(any(), any());
@@ -88,7 +96,7 @@ final Struct metadata = Struct.newBuilder()
         // when
         connector.init();
         // verify and wait for initialization
-        verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+        verify(stubMock, timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
         verify(blockingStubMock).getMetadata(any());
 
         // then
@@ -133,7 +141,9 @@ final Struct metadata = Struct.newBuilder()
 
         final GrpcStreamHandler[] injectedHandler = new GrpcStreamHandler[1];
 
-        Mockito.doAnswer(invocation -> {
+        when(blockingStubMock.withDeadlineAfter(anyLong(), any())).thenReturn(blockingStubMock);
+        when(stubMock.withDeadlineAfter(anyLong(), any())).thenReturn(stubMock);
+        doAnswer(invocation -> {
             injectedHandler[0] = invocation.getArgument(1, GrpcStreamHandler.class);
             return null;
         }).when(stubMock).syncFlags(any(), any());
@@ -141,7 +151,7 @@ final Struct metadata = Struct.newBuilder()
         // when
         connector.init();
         // verify and wait for initialization
-        verify(stubMock, Mockito.timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+        verify(stubMock, timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
         verify(blockingStubMock).getMetadata(any());
 
         // then
@@ -176,7 +186,7 @@ final Struct metadata = Struct.newBuilder()
         final Field serviceStubField = GrpcStreamConnector.class.getDeclaredField("serviceStub");
         serviceStubField.setAccessible(true);
 
-        final FlagSyncServiceStub stubMock = Mockito.mock(FlagSyncServiceStub.class);
+        final FlagSyncServiceStub stubMock = mock(FlagSyncServiceStub.class);
 
         serviceStubField.set(connector, stubMock);
 
@@ -184,15 +194,15 @@ final Struct metadata = Struct.newBuilder()
     }
 
     private static FlagSyncServiceBlockingStub mockBlockingStubAndReturn(final GrpcStreamConnector connector)
-        throws Throwable {
-    final Field blockingStubField = GrpcStreamConnector.class.getDeclaredField("serviceBlockingStub");
-    blockingStubField.setAccessible(true);
+            throws Throwable {
+        final Field blockingStubField = GrpcStreamConnector.class.getDeclaredField("serviceBlockingStub");
+        blockingStubField.setAccessible(true);
 
-    final FlagSyncServiceBlockingStub blockingStubMock = Mockito.mock(FlagSyncServiceBlockingStub.class);
+        final FlagSyncServiceBlockingStub blockingStubMock = mock(FlagSyncServiceBlockingStub.class);
 
-    blockingStubField.set(connector, blockingStubMock);
+        blockingStubField.set(connector, blockingStubMock);
 
-    return blockingStubMock;
+        return blockingStubMock;
     }
 
 }
