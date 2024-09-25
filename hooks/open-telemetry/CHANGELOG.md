@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.1.2...dev.openfeature.contrib.hooks.otel-v4.0.0) (2024-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+
+### 🐛 Bug Fixes
+
+* **deps:** update opentelemetry-java monorepo to v1.40.0 ([#870](https://github.com/open-feature/java-sdk-contrib/issues/870)) ([53f4435](https://github.com/open-feature/java-sdk-contrib/commit/53f4435dce0b0f80fcae48d3f664a88d9734e7d0))
+* **deps:** update opentelemetry-java monorepo to v1.41.0 ([#911](https://github.com/open-feature/java-sdk-contrib/issues/911)) ([157705a](https://github.com/open-feature/java-sdk-contrib/commit/157705a44e55f5b5a545f9126b64df00b1f8cdf9))
+* **deps:** update opentelemetry-java monorepo to v1.42.0 ([#939](https://github.com/open-feature/java-sdk-contrib/issues/939)) ([67e855c](https://github.com/open-feature/java-sdk-contrib/commit/67e855c0eeeb8f36cd6ebb901deb3bfa3ea90695))
+* **deps:** update opentelemetry-java monorepo to v1.42.1 ([#946](https://github.com/open-feature/java-sdk-contrib/issues/946)) ([0ca3da6](https://github.com/open-feature/java-sdk-contrib/commit/0ca3da649cbeb03039f7ea79134475093b739143))
+
+
+### ✨ New Features
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964)) ([4a041b0](https://github.com/open-feature/java-sdk-contrib/commit/4a041b0dda9c4e460f4c2199f3bc680df0dda621))
+
 ## [3.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.1.1...dev.openfeature.contrib.hooks.otel-v3.1.2) (2024-06-17)
 
 
