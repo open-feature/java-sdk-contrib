@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.23...dev.openfeature.contrib.providers.go-feature-flag-v0.3.0) (2024-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.17.2 ([#866](https://github.com/open-feature/java-sdk-contrib/issues/866)) ([cf66811](https://github.com/open-feature/java-sdk-contrib/commit/cf668118351120b8a86b08f30facb38f7ec51086))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.17.2 ([#867](https://github.com/open-feature/java-sdk-contrib/issues/867)) ([84f534c](https://github.com/open-feature/java-sdk-contrib/commit/84f534c7d0a8a739b1d071a2f7c93c6ec21316da))
+* **deps:** update dependency com.google.guava:guava to v33.3.0-jre ([#919](https://github.com/open-feature/java-sdk-contrib/issues/919)) ([ba4a7f9](https://github.com/open-feature/java-sdk-contrib/commit/ba4a7f91c04116eb86bcb12c3e0d82dfa4f5a099))
+* **deps:** update dependency io.reactivex.rxjava3:rxjava to v3.1.9 ([#916](https://github.com/open-feature/java-sdk-contrib/issues/916)) ([6a3545a](https://github.com/open-feature/java-sdk-contrib/commit/6a3545a1f278297b8993df055b4ba80155e2925e))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.14 ([#904](https://github.com/open-feature/java-sdk-contrib/issues/904)) ([028b332](https://github.com/open-feature/java-sdk-contrib/commit/028b332dc8ac3b134e5453d5449a4c11b4ef250a))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.15 ([#910](https://github.com/open-feature/java-sdk-contrib/issues/910)) ([2f58638](https://github.com/open-feature/java-sdk-contrib/commit/2f58638eb4907c948325d1e61853e1b6eabfa4c1))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.16 ([#912](https://github.com/open-feature/java-sdk-contrib/issues/912)) ([52571d8](https://github.com/open-feature/java-sdk-contrib/commit/52571d806e7c547006db836245b4895fe9bc4660))
+
+
+### ✨ New Features
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964)) ([4a041b0](https://github.com/open-feature/java-sdk-contrib/commit/4a041b0dda9c4e460f4c2199f3bc680df0dda621))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.0 ([#940](https://github.com/open-feature/java-sdk-contrib/issues/940)) ([5465337](https://github.com/open-feature/java-sdk-contrib/commit/546533739b453988720bb051d5e623ac7eb0b588))
+
 ## [0.2.23](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.2.22...dev.openfeature.contrib.providers.go-feature-flag-v0.2.23) (2024-07-03)
 
 
