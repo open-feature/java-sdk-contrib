@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.0.4...dev.openfeature.contrib.providers.configcat-v0.1.0) (2024-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+
+### ✨ New Features
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964)) ([4a041b0](https://github.com/open-feature/java-sdk-contrib/commit/4a041b0dda9c4e460f4c2199f3bc680df0dda621))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.0 ([#940](https://github.com/open-feature/java-sdk-contrib/issues/940)) ([5465337](https://github.com/open-feature/java-sdk-contrib/commit/546533739b453988720bb051d5e623ac7eb0b588))
+
 ## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.0.3...dev.openfeature.contrib.providers.configcat-v0.0.4) (2024-08-13)
 
 
