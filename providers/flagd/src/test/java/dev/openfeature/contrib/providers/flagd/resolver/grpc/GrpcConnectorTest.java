@@ -130,15 +130,33 @@ public class GrpcConnectorTest {
         final Cache cache = new Cache("disabled", 0);
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
-        doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
+        doAnswer((InvocationOnMock invocation) -> {
+            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+            eventStreamObserver
+                    .onError(new Exception("fake"));
+            return null;
+        }).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> false,
-                onConnectionEvent);
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
+                    .thenReturn(mockStub);
 
-        // assert throws
-        assertThrows(RuntimeException.class, connector::initialize);
-        // assert that onConnectionEvent is not connected
-        verify(onConnectionEvent).accept(argThat(arg -> !arg.isConnected()));
+            // pass true in connected lambda
+            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> {
+                try {
+                    Thread.sleep(100);
+                    return true;
+                } catch (Exception e) {
+                }
+                return false;
+
+            },
+                    onConnectionEvent);
+
+            assertDoesNotThrow(connector::initialize);
+            // assert that onConnectionEvent is connected
+            verify(onConnectionEvent).accept(argThat(arg -> !arg.isConnected()));
+        }
     }
 
     @Test

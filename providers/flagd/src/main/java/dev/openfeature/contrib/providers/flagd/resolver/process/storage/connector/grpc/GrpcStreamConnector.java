@@ -135,8 +135,7 @@ public class GrpcStreamConnector implements Connector {
                 syncRequest.setSelector(selector);
             }
 
-            serviceStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS).syncFlags(syncRequest.build(),
-                    new GrpcStreamHandler(streamReceiver));
+            serviceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
             try {
                 GetMetadataResponse metadataResponse = serviceBlockingStub
                         .withDeadlineAfter(deadline, TimeUnit.MILLISECONDS).getMetadata(metadataRequest.build());

@@ -26,6 +26,7 @@ public class FlagdInProcessSetup {
         flagdContainer.start();
         FlagdInProcessSetup.provider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Resolver.IN_PROCESS)
+        // set a generous deadline, to prevent timeouts in actions
         .deadline(3000)
         .port(flagdContainer.getFirstMappedPort())
         .build());

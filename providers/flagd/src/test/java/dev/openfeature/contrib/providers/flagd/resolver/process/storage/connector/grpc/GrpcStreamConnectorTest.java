@@ -49,7 +49,6 @@ class GrpcStreamConnectorTest {
         final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
         final SyncFlagsRequest[] request = new SyncFlagsRequest[1];
 
-        when(stubMock.withDeadlineAfter(anyLong(), any())).thenReturn(stubMock);
         doAnswer(invocation -> {
             request[0] = invocation.getArgument(0, SyncFlagsRequest.class);
             return null;
@@ -58,7 +57,6 @@ class GrpcStreamConnectorTest {
         // when
         connector.init();
         verify(stubMock, timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
-        verify(stubMock).withDeadlineAfter(1337, TimeUnit.MILLISECONDS);
         verify(blockingStubMock).withDeadlineAfter(1337, TimeUnit.MILLISECONDS);
 
         // then
@@ -87,7 +85,6 @@ class GrpcStreamConnectorTest {
 
         final GrpcStreamHandler[] injectedHandler = new GrpcStreamHandler[1];
 
-        when(stubMock.withDeadlineAfter(anyLong(), any())).thenReturn(stubMock);
         doAnswer(invocation -> {
             injectedHandler[0] = invocation.getArgument(1, GrpcStreamHandler.class);
             return null;
