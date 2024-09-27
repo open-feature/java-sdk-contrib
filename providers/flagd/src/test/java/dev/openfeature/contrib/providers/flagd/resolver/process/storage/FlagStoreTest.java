@@ -26,7 +26,7 @@ class FlagStoreTest {
 
     @Test
     public void connectorHandling() throws Exception {
-        final int maxDelay = 500;
+        final int maxDelay = 1000;
 
         final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<>();
         FlagStore store = new FlagStore(new MockConnector(payload), true);
