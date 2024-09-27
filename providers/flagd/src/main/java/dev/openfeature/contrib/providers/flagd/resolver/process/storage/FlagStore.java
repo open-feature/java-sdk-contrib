@@ -1,11 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.extern.slf4j.Slf4j;
+import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +13,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.stream.Collectors;
+
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Feature flag storage.
@@ -97,12 +102,14 @@ public class FlagStore implements Storage {
         final BlockingQueue<QueuePayload> streamPayloads = connector.getStream();
 
         while (!shutdown.get()) {
-            final QueuePayload take = streamPayloads.take();
-            switch (take.getType()) {
+            final QueuePayload payload = streamPayloads.take();
+            switch (payload.getType()) {
                 case DATA:
                     try {
                         List<String> changedFlagsKeys;
-                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getFlagData(), throwIfInvalid);
+                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(payload.getFlagData(),
+                                throwIfInvalid);
+                        Map<String, Object> metadata = parseSyncMetadata(payload.getMetadataResponse());
                         writeLock.lock();
                         try {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);
@@ -111,7 +118,8 @@ public class FlagStore implements Storage {
                         } finally {
                             writeLock.unlock();
                         }
-                        if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.OK, changedFlagsKeys))) {
+                        if (!stateBlockingQueue
+                                .offer(new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
                             log.warn("Failed to convey OK satus, queue is full");
                         }
                     } catch (Throwable e) {
@@ -128,11 +136,21 @@ public class FlagStore implements Storage {
                     }
                     break;
                 default:
-                    log.info(String.format("Payload with unknown type: %s", take.getType()));
+                    log.info(String.format("Payload with unknown type: %s", payload.getType()));
             }
         }
 
         log.info("Shutting down store stream listener");
+    }
+
+    private Map<String, Object> parseSyncMetadata(GetMetadataResponse metadataResponse) {
+        try {
+            return convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap())
+                    .asObjectMap();
+        } catch (Exception exception) {
+            log.error("Failed to parse metadataResponse, provider metadata may not be up-to-date");
+        }
+        return Collections.emptyMap();
     }
 
     private List<String> getChangedFlagsKeys(Map<String, FeatureFlag> newFlags) {

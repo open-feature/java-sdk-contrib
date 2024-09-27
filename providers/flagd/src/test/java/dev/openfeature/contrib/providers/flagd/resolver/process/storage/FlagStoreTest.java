@@ -1,26 +1,27 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
-import org.junit.Assert;
-import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Collections;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
-
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
+
+import org.junit.Assert;
+import org.junit.jupiter.api.Test;
+
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 
 class FlagStoreTest {
 
@@ -36,7 +37,7 @@ class FlagStoreTest {
 
         // OK for simple flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE), Collections.emptyMap()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE), GetMetadataResponse.getDefaultInstance()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -45,7 +46,7 @@ class FlagStoreTest {
 
         // STALE for invalid flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(INVALID_FLAG), Collections.emptyMap()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(INVALID_FLAG), GetMetadataResponse.getDefaultInstance()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -54,7 +55,7 @@ class FlagStoreTest {
 
         // OK again for next payload
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), Collections.emptyMap()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), GetMetadataResponse.getDefaultInstance()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -63,7 +64,7 @@ class FlagStoreTest {
 
         // ERROR is propagated correctly
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new QueuePayload(QueuePayloadType.ERROR, null, Collections.emptyMap()));
+            payload.offer(new QueuePayload(QueuePayloadType.ERROR, null, GetMetadataResponse.getDefaultInstance()));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
@@ -87,7 +88,7 @@ class FlagStoreTest {
         final BlockingQueue<StorageStateChange> storageStateDTOS = store.getStateQueue();
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE), Collections.emptyMap()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE), GetMetadataResponse.getDefaultInstance()));
         });
         // flags changed for first time
         assertEquals(FlagParser.parseString(
@@ -95,7 +96,7 @@ class FlagStoreTest {
                 storageStateDTOS.take().getChangedFlagsKeys());
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), ()-> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), Collections.emptyMap()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), GetMetadataResponse.getDefaultInstance()));
         });
         Map<String, FeatureFlag> expectedChangedFlags =
                 FlagParser.parseString(getFlagsFromResource(VALID_LONG),true);

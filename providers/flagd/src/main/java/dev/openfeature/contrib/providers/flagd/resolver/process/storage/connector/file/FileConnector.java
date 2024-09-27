@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -46,7 +45,7 @@ public class FileConnector implements Connector {
 
                 // initial read
                 String flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
-                if (!queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData, Collections.emptyMap()))) {
+                if (!queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData))) {
                     log.warn(OFFER_WARN);
                 }
 
@@ -59,7 +58,7 @@ public class FileConnector implements Connector {
                     if (currentTS > lastTS) {
                         lastTS = currentTS;
                         flagData = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
-                        if (!queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData, Collections.emptyMap()))) {
+                        if (!queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData))) {
                             log.warn(OFFER_WARN);
                         }
                     }

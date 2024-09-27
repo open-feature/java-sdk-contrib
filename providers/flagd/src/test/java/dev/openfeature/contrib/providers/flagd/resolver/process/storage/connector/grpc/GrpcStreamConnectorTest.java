@@ -1,10 +1,10 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
@@ -73,7 +73,6 @@ class GrpcStreamConnectorTest {
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
         final FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
         final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
-
         final Struct metadata = Struct.newBuilder()
                 .putFields(key,
                         com.google.protobuf.Value.newBuilder().setStringValue(val).build())
@@ -110,7 +109,7 @@ class GrpcStreamConnectorTest {
         assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
             QueuePayload payload = streamPayloads.take();
             assertEquals(QueuePayloadType.DATA, payload.getType());
-            assertTrue(() -> payload.getSyncMetadata().get(key).equals(val));
+            assertEquals(val ,convertProtobufMapToStructure(payload.getMetadataResponse().getMetadata().getFieldsMap()).asObjectMap().get(key));
         });
 
         // ping must be ignored
@@ -130,15 +129,18 @@ class GrpcStreamConnectorTest {
     }
 
     @Test
+
     public void listenerExitOnShutdown() throws Throwable {
         // given
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
         final FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
         final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
-
         final GrpcStreamHandler[] injectedHandler = new GrpcStreamHandler[1];
+        final Struct metadata = Struct.newBuilder().build();
 
         when(blockingStubMock.withDeadlineAfter(anyLong(), any())).thenReturn(blockingStubMock);
+        when(blockingStubMock.getMetadata(any()))
+                 .thenReturn(GetMetadataResponse.newBuilder().setMetadata(metadata).build());
         when(stubMock.withDeadlineAfter(anyLong(), any())).thenReturn(stubMock);
         doAnswer(invocation -> {
             injectedHandler[0] = invocation.getArgument(1, GrpcStreamHandler.class);

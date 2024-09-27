@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector;
 
-import java.util.Map;
+import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,5 +12,9 @@ import lombok.Getter;
 public class QueuePayload {
     private final QueuePayloadType type;
     private final String flagData;
-    private final Map<String, Object> syncMetadata;
+    private final GetMetadataResponse metadataResponse;
+
+    public QueuePayload(QueuePayloadType type, String flagData) {
+        this(type, flagData, GetMetadataResponse.getDefaultInstance());
+    }
 }
