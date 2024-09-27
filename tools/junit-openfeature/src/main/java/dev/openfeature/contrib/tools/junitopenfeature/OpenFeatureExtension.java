@@ -119,7 +119,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
                     ((TestProvider) api.getProvider(domain))
                             .addConfigurationForTest(getNamespace(extensionContext), stringMapEntry.getValue());
                 } else {
-                    api.setProvider(domain, new TestProvider(
+                    api.setProviderAndWait(domain, new TestProvider(
                             getNamespace(extensionContext),
                             stringMapEntry.getValue()));
                 }
@@ -128,7 +128,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
                     ((TestProvider) api.getProvider())
                             .addConfigurationForTest(getNamespace(extensionContext), stringMapEntry.getValue());
                 } else {
-                    api.setProvider(new TestProvider(
+                    api.setProviderAndWait(new TestProvider(
                             getNamespace(extensionContext),
                             stringMapEntry.getValue()));
                 }
