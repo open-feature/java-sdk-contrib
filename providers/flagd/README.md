@@ -181,7 +181,7 @@ caching with up to 1000 entries.
 
 The `contextEnricher` option is a function which provides a context to be added to each evaluation.
 This function runs on the initial provider connection and every reconnection, and is passed the [sync-metadata](#sync-metadata).
-By default, a simple implementation which uses the sync-metadata payload its entirety is used.
+By default, a simple implementation which uses the sync-metadata payload in its entirety is used.
 
 ### OpenTelemetry tracing (RPC only)
 
