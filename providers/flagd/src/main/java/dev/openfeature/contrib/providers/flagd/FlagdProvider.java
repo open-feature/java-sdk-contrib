@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @SuppressWarnings({ "PMD.TooManyStaticImports", "checkstyle:NoFinalizer" })
 public class FlagdProvider extends EventProvider {
-    private static final String FLAGD_PROVIDER = "flagd Provider";
+    private static final String FLAGD_PROVIDER = "flagd";
     private final Resolver flagResolver;
     private volatile boolean initialized = false;
     private volatile boolean connected = false;
