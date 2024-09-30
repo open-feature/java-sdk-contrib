@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -27,9 +27,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
+import org.mockito.invocation.InvocationOnMock;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
@@ -43,7 +46,7 @@ import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 public class GrpcConnectorTest {
 
     @ParameterizedTest
-    @ValueSource(ints = {1, 2, 3})
+    @ValueSource(ints = { 1, 2, 3 })
     void validate_retry_calls(int retries) throws NoSuchFieldException, IllegalAccessException {
         final int backoffMs = 100;
 
@@ -58,8 +61,9 @@ public class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, (state,changedFlagKeys) -> {
-        });
+        final GrpcConnector connector = new GrpcConnector(options, cache, () -> true,
+                (connectionEvent) -> {
+                });
 
         Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
         serviceStubField.setAccessible(true);
@@ -90,29 +94,69 @@ public class GrpcConnectorTest {
     @Test
     void initialization_succeed_with_connected_status() throws NoSuchFieldException, IllegalAccessException {
         final Cache cache = new Cache("disabled", 0);
-
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
-        doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
+        Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
+        doAnswer((InvocationOnMock invocation) -> {
+            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+            eventStreamObserver
+                    .onNext(EventStreamResponse.newBuilder().setType(Constants.PROVIDER_READY).build());
+            return null;
+        }).when(mockStub).eventStream(any(), any());
 
-        // pass true in connected lambda
-        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys) -> {
-        });
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
+                    .thenReturn(mockStub);
 
-        assertDoesNotThrow(connector::initialize);
+            // pass true in connected lambda
+            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> {
+                try {
+                    Thread.sleep(100);
+                    return true;
+                } catch (Exception e) {
+                }
+                return false;
+
+            },
+                    onConnectionEvent);
+
+            assertDoesNotThrow(connector::initialize);
+            // assert that onConnectionEvent is connected
+            verify(onConnectionEvent).accept(argThat(arg -> arg.isConnected()));
+        }
     }
 
     @Test
     void initialization_fail_with_timeout() throws Exception {
         final Cache cache = new Cache("disabled", 0);
-
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
-        doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
+        Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
+        doAnswer((InvocationOnMock invocation) -> {
+            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+            eventStreamObserver
+                    .onError(new Exception("fake"));
+            return null;
+        }).when(mockStub).eventStream(any(), any());
 
-        // pass false in connected lambda
-        final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> false, (state, changedFlagKeys) -> {
-        });
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
+                    .thenReturn(mockStub);
 
-        assertThrows(RuntimeException.class, connector::initialize);
+            // pass true in connected lambda
+            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> {
+                try {
+                    Thread.sleep(100);
+                    return true;
+                } catch (Exception e) {
+                }
+                return false;
+
+            },
+                    onConnectionEvent);
+
+            assertDoesNotThrow(connector::initialize);
+            // assert that onConnectionEvent is connected
+            verify(onConnectionEvent).accept(argThat(arg -> !arg.isConnected()));
+        }
     }
 
     @Test
@@ -170,17 +214,16 @@ public class GrpcConnectorTest {
                     new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
                     // verify host/port matches & called times(= 1 as we rely on reusable channel)
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.
-                            forAddress(host, port), times(1));
+                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forAddress(host, port), times(1));
                 }
             }
         });
     }
 
-
     /**
-     * OS Specific test - This test is valid only on Linux system as it rely on epoll availability
-    * */
+     * OS Specific test - This test is valid only on Linux system as it rely on
+     * epoll availability
+     */
     @Test
     @EnabledOnOs(OS.LINUX)
     void path_arg_should_build_domain_socket_with_correct_path() {
@@ -218,8 +261,9 @@ public class GrpcConnectorTest {
     }
 
     /**
-     * OS Specific test - This test is valid only on Linux system as it rely on epoll availability
-     * */
+     * OS Specific test - This test is valid only on Linux system as it rely on
+     * epoll availability
+     */
     @Test
     @EnabledOnOs(OS.LINUX)
     void no_args_socket_env_should_build_domain_socket_with_correct_path() throws Exception {
@@ -249,7 +293,7 @@ public class GrpcConnectorTest {
 
                         new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
-                        //verify path matches & called times(= 1 as we rely on reusable channel)
+                        // verify path matches & called times(= 1 as we rely on reusable channel)
                         mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
                                 .forAddress(argThat((DomainSocketAddress d) -> {
                                     return d.path() == path;

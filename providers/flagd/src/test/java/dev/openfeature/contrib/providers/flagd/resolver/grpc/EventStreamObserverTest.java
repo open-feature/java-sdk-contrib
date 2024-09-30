@@ -93,7 +93,7 @@ class EventStreamObserverTest {
             Value flagsValue = mock(Value.class);
             Struct flagsStruct = mock(Struct.class);
             HashMap<String, Value> fields = new HashMap<>();
-            fields.put(EventStreamObserver.FLAGS_KEY, flagsValue);
+            fields.put(Constants.FLAGS_KEY, flagsValue);
             HashMap<String, Value> flags = new HashMap<>();
             flags.put(key1, null);
             flags.put(key2, null);

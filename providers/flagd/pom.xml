@@ -19,7 +19,7 @@
     </properties>
 
     <name>flagd</name>
-    <description>FlagD provider for Java</description>
+    <description>flagd provider for Java</description>
     <url>https://openfeature.dev</url>
 
     <developers>
