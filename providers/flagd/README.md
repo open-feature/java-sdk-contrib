@@ -96,7 +96,7 @@ FlagdProvider flagdProvider = new FlagdProvider(options);
 
 ### Configuration options
 
-Options can be defined in the constructor or as environment variables, with constructor options having the highest
+Most options can be defined in the constructor or as environment variables, with constructor options having the highest
 precedence.
 Default options can be overridden through a `FlagdOptions` based constructor or set to be picked up from the environment
 variables.
@@ -176,6 +176,12 @@ found the flag is returned with the reason `CACHED`.
 By default, the provider is configured to
 use [least recently used (lru)](https://commons.apache.org/proper/commons-collections/apidocs/org/apache/commons/collections4/map/LRUMap.html)
 caching with up to 1000 entries.
+
+##### Context enrichment
+
+The `contextEnricher` option is a function which provides a context to be added to each evaluation.
+This function runs on the initial provider connection and ever reconnection, and is passed the [sync-metadata](#sync-metadata).
+By default, a simple implementation which uses the sync-metadata payload its entirety is used.
 
 ### OpenTelemetry tracing (RPC only)
 

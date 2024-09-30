@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +18,8 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
+import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
 
@@ -109,7 +110,7 @@ public class FlagStore implements Storage {
                         List<String> changedFlagsKeys;
                         Map<String, FeatureFlag> flagMap = FlagParser.parseString(payload.getFlagData(),
                                 throwIfInvalid);
-                        Map<String, Object> metadata = parseSyncMetadata(payload.getMetadataResponse());
+                        Structure metadata = parseSyncMetadata(payload.getMetadataResponse());
                         writeLock.lock();
                         try {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);
@@ -143,14 +144,13 @@ public class FlagStore implements Storage {
         log.info("Shutting down store stream listener");
     }
 
-    private Map<String, Object> parseSyncMetadata(GetMetadataResponse metadataResponse) {
+    private Structure parseSyncMetadata(GetMetadataResponse metadataResponse) {
         try {
-            return convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap())
-                    .asObjectMap();
+            return convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap());
         } catch (Exception exception) {
             log.error("Failed to parse metadataResponse, provider metadata may not be up-to-date");
         }
-        return Collections.emptyMap();
+        return new ImmutableStructure();
     }
 
     private List<String> getChangedFlagsKeys(Map<String, FeatureFlag> newFlags) {
