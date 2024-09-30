@@ -43,6 +43,7 @@ public class GrpcStreamConnector implements Connector {
     private final FlagSyncServiceStub serviceStub;
     private final FlagSyncServiceBlockingStub serviceBlockingStub;
     private final int deadline;
+    private final int streamDeadlineMs;
     private final String selector;
 
     /**
@@ -55,6 +56,7 @@ public class GrpcStreamConnector implements Connector {
         serviceStub = FlagSyncServiceGrpc.newStub(channel);
         serviceBlockingStub = FlagSyncServiceGrpc.newBlockingStub(channel);
         deadline = options.getDeadline();
+        streamDeadlineMs = options.getStreamDeadlineMs();
         selector = options.getSelector();
     }
 
@@ -64,7 +66,8 @@ public class GrpcStreamConnector implements Connector {
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline);
+                observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline,
+                        streamDeadlineMs);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -114,7 +117,8 @@ public class GrpcStreamConnector implements Connector {
             final FlagSyncServiceStub serviceStub,
             final FlagSyncServiceBlockingStub serviceBlockingStub,
             final String selector,
-            final int deadline)
+            final int deadline,
+            final int streamDeadlineMs)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -135,7 +139,13 @@ public class GrpcStreamConnector implements Connector {
             }
 
             try (CancellableContext context = Context.current().withCancellation()) {
-                serviceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
+                FlagSyncServiceStub localServiceStub = serviceStub;
+                if (streamDeadlineMs > 0) {
+                    localServiceStub = localServiceStub.withDeadlineAfter(streamDeadlineMs, TimeUnit.MILLISECONDS);
+                }
+
+                localServiceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
+
                 try {
                     metadataResponse = serviceBlockingStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS)
                             .getMetadata(metadataRequest.build());

@@ -17,6 +17,7 @@ public final class Config {
     static final String DEFAULT_HOST = "localhost";
 
     static final int DEFAULT_DEADLINE = 500;
+    static final int DEFAULT_STREAM_DEADLINE_MS = 10 * 60 * 1000;
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
     static final long DEFAULT_KEEP_ALIVE = 0;
 
@@ -31,6 +32,7 @@ public final class Config {
     static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
     static final String BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME = "FLAGD_RETRY_BACKOFF_MS";
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
+    static final String STREAM_DEADLINE_MS_ENV_VAR_NAME = "FLAGD_STREAM_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
     static final String OFFLINE_SOURCE_PATH = "FLAGD_OFFLINE_FLAG_SOURCE_PATH";
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME_OLD = "FLAGD_KEEP_ALIVE_TIME";

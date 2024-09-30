@@ -88,6 +88,14 @@ public class FlagdOptions {
     private int deadline = fallBackToEnvOrDefault(Config.DEADLINE_MS_ENV_VAR_NAME, Config.DEFAULT_DEADLINE);
 
     /**
+     * Streaming connection deadline in milliseconds.
+     * Set to 0 to disable the deadline.
+     */
+    @Builder.Default
+    private int streamDeadlineMs = fallBackToEnvOrDefault(Config.STREAM_DEADLINE_MS_ENV_VAR_NAME,
+            Config.DEFAULT_STREAM_DEADLINE_MS);
+
+    /**
      * Selector to be used with flag sync gRPC contract.
      **/
     @Builder.Default
@@ -96,7 +104,7 @@ public class FlagdOptions {
     /**
      * gRPC client KeepAlive in milliseconds. Disabled with 0.
      * Defaults to 0 (disabled).
-     * 
+     *
      **/
     @Builder.Default
     private long keepAlive = fallBackToEnvOrDefault(Config.KEEP_ALIVE_MS_ENV_VAR_NAME,

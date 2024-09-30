@@ -2,22 +2,15 @@ package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
@@ -58,7 +51,7 @@ public class GrpcConnectorTest {
 
         final Cache cache = new Cache("disabled", 0);
 
-        final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
+        final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
         final GrpcConnector connector = new GrpcConnector(options, cache, () -> true,
@@ -94,7 +87,7 @@ public class GrpcConnectorTest {
     @Test
     void initialization_succeed_with_connected_status() throws NoSuchFieldException, IllegalAccessException {
         final Cache cache = new Cache("disabled", 0);
-        final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
+        final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
         doAnswer((InvocationOnMock invocation) -> {
             EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
@@ -128,7 +121,7 @@ public class GrpcConnectorTest {
     @Test
     void initialization_fail_with_timeout() throws Exception {
         final Cache cache = new Cache("disabled", 0);
-        final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
+        final ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
         doAnswer((InvocationOnMock invocation) -> {
             EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
@@ -165,7 +158,7 @@ public class GrpcConnectorTest {
         final int port = 1234;
 
         ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
-        ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
+        ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
@@ -196,7 +189,7 @@ public class GrpcConnectorTest {
 
         new EnvironmentVariables("FLAGD_HOST", host, "FLAGD_PORT", String.valueOf(port)).execute(() -> {
             ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
-            ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
+            ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
             NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
             try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
@@ -230,7 +223,7 @@ public class GrpcConnectorTest {
         final String path = "/some/path";
 
         ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
-        ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
+        ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
@@ -302,6 +295,50 @@ public class GrpcConnectorTest {
                 }
             }
         });
+    }
+
+    @Test
+    void initialization_with_stream_deadline() throws NoSuchFieldException, IllegalAccessException {
+        final FlagdOptions options = FlagdOptions.builder()
+                .streamDeadlineMs(16983)
+                .build();
+
+        final Cache cache = new Cache("disabled", 0);
+        final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
+
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
+
+            final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, null);
+
+            assertDoesNotThrow(connector::initialize);
+            verify(mockStub).withDeadlineAfter(16983, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    @Test
+    void initialization_without_stream_deadline() throws NoSuchFieldException, IllegalAccessException {
+        final FlagdOptions options = FlagdOptions.builder()
+                .streamDeadlineMs(0)
+                .build();
+
+        final Cache cache = new Cache("disabled", 0);
+        final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
+
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
+
+            final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, null);
+
+            assertDoesNotThrow(connector::initialize);
+            verify(mockStub, never()).withDeadlineAfter(16983, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private static ServiceStub createServiceStubMock() {
+        final ServiceStub mockStub = mock(ServiceStub.class);
+        when(mockStub.withDeadlineAfter(anyLong(), any())).thenReturn(mockStub);
+        return mockStub;
     }
 
     private NettyChannelBuilder getMockChannelBuilderSocket() {

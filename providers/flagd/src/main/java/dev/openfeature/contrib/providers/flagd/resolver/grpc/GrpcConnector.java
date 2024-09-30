@@ -36,6 +36,7 @@ public class GrpcConnector {
 
     private final int startEventStreamRetryBackoff;
     private final long deadline;
+    private final long streamDeadlineMs;
 
     private final Cache cache;
     private final Consumer<ConnectionEvent> onConnectionEvent;
@@ -64,6 +65,7 @@ public class GrpcConnector {
         this.startEventStreamRetryBackoff = options.getRetryBackoffMs();
         this.eventStreamRetryBackoff = options.getRetryBackoffMs();
         this.deadline = options.getDeadline();
+        this.streamDeadlineMs = options.getStreamDeadlineMs();
         this.cache = cache;
         this.onConnectionEvent = onConnectionEvent;
         this.connectedSupplier = connectedSupplier;
@@ -126,7 +128,14 @@ public class GrpcConnector {
         while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
             final StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(sync, this.cache,
                     this::onConnectionEvent);
-            this.serviceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
+
+            ServiceGrpc.ServiceStub localServiceStub = this.serviceStub;
+
+            if (this.streamDeadlineMs > 0) {
+                localServiceStub = localServiceStub.withDeadlineAfter(this.streamDeadlineMs, TimeUnit.MILLISECONDS);
+            }
+
+            localServiceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
 
             try {
                 synchronized (sync) {
