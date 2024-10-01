@@ -17,7 +17,7 @@ class SyncMetadataHook implements Hook<Object> {
     }
 
     /**
-     * Return the enriched context, including the additional attributes from the sync-metadata.
+     * Return the context adapted from the sync-metadata provided by the supplier.
      */
     @Override
     public Optional<EvaluationContext> before(HookContext<Object> ctx, Map<String, Object> hints) {
