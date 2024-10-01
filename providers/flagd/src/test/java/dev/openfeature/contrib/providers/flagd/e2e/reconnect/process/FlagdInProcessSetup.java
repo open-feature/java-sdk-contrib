@@ -23,8 +23,9 @@ public class FlagdInProcessSetup {
         flagdContainer.start();
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Resolver.IN_PROCESS)
-        .deadline(3000)
         .port(flagdContainer.getFirstMappedPort())
+        // set a generous deadline, to prevent timeouts in actions
+        .deadline(3000)
         .build());
         StepDefinitions.setUnstableProvider(workingProvider);
 

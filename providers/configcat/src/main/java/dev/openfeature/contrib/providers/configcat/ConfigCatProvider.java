@@ -1,23 +1,22 @@
 package dev.openfeature.contrib.providers.configcat;
 
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.configcat.ConfigCatClient;
 import com.configcat.EvaluationDetails;
 import com.configcat.User;
+
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Provider implementation for ConfigCat.
@@ -35,9 +34,6 @@ public class ConfigCatProvider extends EventProvider {
 
     @Getter
     private ConfigCatClient configCatClient;
-
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
 
     private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
@@ -64,8 +60,7 @@ public class ConfigCatProvider extends EventProvider {
         configCatClient = ConfigCatClient.get(configCatProviderConfig.getSdkKey(),
             configCatProviderConfig.getOptions());
         configCatProviderConfig.postInit();
-        state = ProviderState.READY;
-        log.info("finished initializing provider, state: {}", state);
+        log.info("finished initializing provider");
 
         configCatClient.getHooks().addOnClientReady(() -> {
             ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
@@ -123,12 +118,6 @@ public class ConfigCatProvider extends EventProvider {
 
     private <T> ProviderEvaluation<T> getEvaluation(Class<T> classOfT, String key, T defaultValue,
            EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         User user = ctx == null ? null : ContextTransformer.transform(ctx);
         EvaluationDetails<T> evaluationDetails;
         T evaluatedValue;
@@ -157,6 +146,5 @@ public class ConfigCatProvider extends EventProvider {
         if (configCatClient != null) {
             configCatClient.close();
         }
-        state = ProviderState.NOT_READY;
     }
 }

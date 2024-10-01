@@ -1,18 +1,18 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
-import dev.openfeature.sdk.ProviderState;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+
+import com.google.protobuf.Value;
+
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * EventStreamObserver handles events emitted by flagd.
@@ -20,34 +20,30 @@ import java.util.function.BiConsumer;
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
-    private final BiConsumer<ProviderState, List<String>> stateConsumer;
+    private final BiConsumer<Boolean, List<String>> onConnectionEvent;
     private final Object sync;
     private final Cache cache;
-
-    private static final String CONFIGURATION_CHANGE = "configuration_change";
-    private static final String PROVIDER_READY = "provider_ready";
-    static final String FLAGS_KEY = "flags";
 
     /**
      * Create a gRPC stream that get notified about flag changes.
      *
-     * @param sync          synchronization object from caller
-     * @param cache         cache to update
-     * @param stateConsumer lambda to call for setting the state
+     * @param sync              synchronization object from caller
+     * @param cache             cache to update
+     * @param onConnectionEvent lambda to call to handle the response
      */
-    EventStreamObserver(Object sync, Cache cache, BiConsumer<ProviderState, List<String>> stateConsumer) {
+    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent) {
         this.sync = sync;
         this.cache = cache;
-        this.stateConsumer = stateConsumer;
+        this.onConnectionEvent = onConnectionEvent;
     }
 
     @Override
     public void onNext(EventStreamResponse value) {
         switch (value.getType()) {
-            case CONFIGURATION_CHANGE:
+            case Constants.CONFIGURATION_CHANGE:
                 this.handleConfigurationChangeEvent(value);
                 break;
-            case PROVIDER_READY:
+            case Constants.PROVIDER_READY:
                 this.handleProviderReadyEvent();
                 break;
             default:
@@ -61,7 +57,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.stateConsumer.accept(ProviderState.ERROR, Collections.emptyList());
+        this.onConnectionEvent.accept(false, Collections.emptyList());
 
         // handle last call of this stream
         handleEndOfStream();
@@ -72,7 +68,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }
-        this.stateConsumer.accept(ProviderState.ERROR, Collections.emptyList());
+        this.onConnectionEvent.accept(false, Collections.emptyList());
 
         // handle last call of this stream
         handleEndOfStream();
@@ -83,7 +79,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         boolean cachingEnabled = this.cache.getEnabled();
 
         Map<String, Value> data = value.getData().getFieldsMap();
-        Value flagsValue = data.get(FLAGS_KEY);
+        Value flagsValue = data.get(Constants.FLAGS_KEY);
         if (flagsValue == null) {
             if (cachingEnabled) {
                 this.cache.clear();
@@ -99,11 +95,11 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
             }
         }
 
-        this.stateConsumer.accept(ProviderState.READY, changedFlags);
+        this.onConnectionEvent.accept(true, changedFlags);
     }
 
     private void handleProviderReadyEvent() {
-        this.stateConsumer.accept(ProviderState.READY, Collections.emptyList());
+        this.onConnectionEvent.accept(true, Collections.emptyList());
         if (this.cache.getEnabled()) {
             this.cache.clear();
         }

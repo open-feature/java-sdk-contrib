@@ -1,6 +1,10 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import java.util.Collections;
+import java.util.Map;
+
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
@@ -9,27 +13,20 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * OpenFeature provider for flagd.
  */
 @Slf4j
-@SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
+@SuppressWarnings({ "PMD.TooManyStaticImports", "checkstyle:NoFinalizer" })
 public class FlagdProvider extends EventProvider {
-    private static final String FLAGD_PROVIDER = "flagD Provider";
-
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private static final String FLAGD_PROVIDER = "flagd";
     private final Resolver flagResolver;
-    private ProviderState state = ProviderState.NOT_READY;
-    private boolean initialized = false;
+    private volatile boolean initialized = false;
+    private volatile boolean connected = false;
+    private volatile Map<String, Object> syncMetadata = Collections.emptyMap();
 
     private EvaluationContext evaluationContext;
 
@@ -52,14 +49,14 @@ public class FlagdProvider extends EventProvider {
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
             case Config.RESOLVER_IN_PROCESS:
-                this.flagResolver = new InProcessResolver(options, this::setState);
+                this.flagResolver = new InProcessResolver(options, this::isConnected,
+                        this::onConnectionEvent);
                 break;
             case Config.RESOLVER_RPC:
-                this.flagResolver =
-                        new GrpcResolver(options,
-                                new Cache(options.getCacheType(), options.getMaxCacheSize()),
-                                this::getState,
-                                this::setState);
+                this.flagResolver = new GrpcResolver(options,
+                        new Cache(options.getCacheType(), options.getMaxCacheSize()),
+                        this::isConnected,
+                        this::onConnectionEvent);
                 break;
             default:
                 throw new IllegalStateException(
@@ -86,23 +83,12 @@ public class FlagdProvider extends EventProvider {
 
         try {
             this.flagResolver.shutdown();
-            this.initialized = false;
         } catch (Exception e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
-        }
-    }
-
-    @Override
-    public ProviderState getState() {
-        Lock l = this.lock.readLock();
-        try {
-            l.lock();
-            return this.state;
         } finally {
-            l.unlock();
+            this.initialized = false;
         }
     }
-
 
     @Override
     public Metadata getMetadata() {
@@ -134,6 +120,19 @@ public class FlagdProvider extends EventProvider {
         return this.flagResolver.objectEvaluation(key, defaultValue, mergeContext(ctx));
     }
 
+    /**
+     * An unmodifiable view of an object map representing the latest result of the
+     * SyncMetadata.
+     * Set on initial connection and updated with every reconnection.
+     * see:
+     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata
+     * 
+     * @return Object map representing sync metadata
+     */
+    protected Map<String, Object> getSyncMetadata() {
+        return Collections.unmodifiableMap(syncMetadata);
+    }
+
     private EvaluationContext mergeContext(final EvaluationContext clientCallCtx) {
         if (this.evaluationContext != null) {
             return evaluationContext.merge(clientCallCtx);
@@ -142,49 +141,33 @@ public class FlagdProvider extends EventProvider {
         return clientCallCtx;
     }
 
-    private void setState(ProviderState newState, List<String> changedFlagsKeys) {
-        ProviderState oldState;
-        Lock l = this.lock.writeLock();
-        try {
-            l.lock();
-            oldState = this.state;
-            this.state = newState;
-        } finally {
-            l.unlock();
-        }
-        this.handleStateTransition(oldState, newState, changedFlagsKeys);
+    private boolean isConnected() {
+        return this.connected;
     }
 
-    private void handleStateTransition(ProviderState oldState, ProviderState newState, List<String> changedFlagKeys) {
-        // we got initialized
-        if (ProviderState.NOT_READY.equals(oldState) && ProviderState.READY.equals(newState)) {
-            // nothing to do, the SDK emits the events
-            log.debug("Init completed");
-            return;
-        }
-        // we got shutdown, not checking oldState as behavior remains the same for shutdown
-        if (ProviderState.NOT_READY.equals(newState)) {
-            // nothing to do
-            log.debug("shutdown completed");
-            return;
-        }
+    private void onConnectionEvent(ConnectionEvent connectionEvent) {
+        boolean previous = connected;
+        boolean current = connected = connectionEvent.isConnected();
+        syncMetadata = connectionEvent.getSyncMetadata();
+
         // configuration changed
-        if (ProviderState.READY.equals(oldState) && ProviderState.READY.equals(newState)) {
+        if (initialized && previous && current) {
             log.debug("Configuration changed");
-            ProviderEventDetails details = ProviderEventDetails.builder().flagsChanged(changedFlagKeys)
+            ProviderEventDetails details = ProviderEventDetails.builder()
+                    .flagsChanged(connectionEvent.getFlagsChanged())
                     .message("configuration changed").build();
             this.emitProviderConfigurationChanged(details);
             return;
         }
         // there was an error
-        if (ProviderState.READY.equals(oldState) && ProviderState.ERROR.equals(newState)) {
+        if (initialized && previous && !current) {
             log.debug("There has been an error");
             ProviderEventDetails details = ProviderEventDetails.builder().message("there has been an error").build();
             this.emitProviderError(details);
             return;
         }
-        // we recover from an error
-        if (ProviderState.ERROR.equals(oldState) && ProviderState.READY.equals(newState)) {
+        // we recovered from an error
+        if (initialized && !previous && current) {
             log.debug("Recovered from error");
             ProviderEventDetails details = ProviderEventDetails.builder().message("recovered from error").build();
             this.emitProviderReady(details);

@@ -1,15 +1,16 @@
 package dev.openfeature.contrib.providers.unleash;
 
+import static io.getunleash.Variant.DISABLED_VARIANT;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
@@ -19,10 +20,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static io.getunleash.Variant.DISABLED_VARIANT;
 
 /**
  * Provider implementation for Unleash.
@@ -44,10 +41,6 @@ public class UnleashProvider extends EventProvider {
     @Setter(AccessLevel.PROTECTED)
     @Getter
     private Unleash unleash;
-
-    @Setter(AccessLevel.PROTECTED)
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
 
     private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
@@ -78,8 +71,7 @@ public class UnleashProvider extends EventProvider {
         unleash = new DefaultUnleash(unleashConfig);
 
         // Unleash is per definition ready after it is initialized.
-        state = ProviderState.READY;
-        log.info("finished initializing provider, state: {}", state);
+        log.info("finished initializing provider");
     }
 
     @Override
@@ -87,26 +79,9 @@ public class UnleashProvider extends EventProvider {
         return () -> NAME;
     }
 
-    @Override
-    public void emitProviderReady(ProviderEventDetails details) {
-        super.emitProviderReady(details);
-        state = ProviderState.READY;
-    }
-
-    @Override
-    public void emitProviderError(ProviderEventDetails details) {
-        super.emitProviderError(details);
-        state = ProviderState.ERROR;
-    }
-
+    
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         UnleashContext context = ctx == null ? UnleashContext.builder().build() : ContextTransformer.transform(ctx);
         boolean featureBooleanValue = unleash.isEnabled(key, context, defaultValue);
         return ProviderEvaluation.<Boolean>builder()
@@ -172,12 +147,6 @@ public class UnleashProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
         UnleashContext context = ctx == null ? UnleashContext.builder().build() : ContextTransformer.transform(ctx);
         Variant evaluatedVariant = unleash.getVariant(key, context);
         String variantName;
@@ -209,6 +178,5 @@ public class UnleashProvider extends EventProvider {
         if (unleash != null) {
             unleash.shutdown();
         }
-        state = ProviderState.NOT_READY;
     }
 }

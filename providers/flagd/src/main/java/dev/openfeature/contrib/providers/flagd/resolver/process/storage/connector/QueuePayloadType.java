@@ -3,7 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 /**
  * Payload type emitted by {@link Connector}.
  */
-public enum StreamPayloadType {
+public enum QueuePayloadType {
     DATA,
     ERROR
 }

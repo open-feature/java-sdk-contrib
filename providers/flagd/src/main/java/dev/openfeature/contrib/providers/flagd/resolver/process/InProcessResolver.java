@@ -1,7 +1,13 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
@@ -16,41 +22,44 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
-
-import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
-
 /**
- * flagd in-process resolver. Resolves feature flags in-process. Flags are
- * retrieved from {@link Storage}, where the
- * {@link Storage} maintain flag configurations obtained from known source.
+ * Resolves flag values using
+ * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+ * Flags are evaluated locally.
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
-    private final BiConsumer<ProviderState, List<String>> stateConsumer;
+    private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Operator operator;
     private final long deadline;
     private final ImmutableMetadata metadata;
-    private final AtomicBoolean connected = new AtomicBoolean(false);
+    private final Supplier<Boolean> connectedSupplier;
 
     /**
-     * Initialize an in-process resolver.
+     * Resolves flag values using
+     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+     * Flags are evaluated locally.
+     * 
+     * @param options           flagd options
+     * @param connectedSupplier lambda providing current connection status from
+     *                          caller
+     * @param onConnectionEvent lambda which handles changes in the
+     *                          connection/stream
      */
-    public InProcessResolver(FlagdOptions options, BiConsumer<ProviderState, List<String>> stateConsumer) {
+    public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
+            Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
-        this.stateConsumer = stateConsumer;
+        this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
+        this.connectedSupplier = connectedSupplier;
         this.metadata = options.getSelector() == null ? null
                 : ImmutableMetadata.builder()
                         .addString("scope", options.getSelector())
@@ -68,15 +77,12 @@ public class InProcessResolver implements Resolver {
                     final StorageStateChange storageStateChange = flagStore.getStateQueue().take();
                     switch (storageStateChange.getStorageState()) {
                         case OK:
-                            stateConsumer.accept(ProviderState.READY, storageStateChange.getChangedFlagsKeys());
-                            this.connected.set(true);
+                            onConnectionEvent.accept(new ConnectionEvent(true, storageStateChange.getChangedFlagsKeys(),
+                                    storageStateChange.getSyncMetadata()));
                             break;
                         case ERROR:
-                            stateConsumer.accept(ProviderState.ERROR, null);
-                            this.connected.set(false);
+                            onConnectionEvent.accept(new ConnectionEvent(false));
                             break;
-                        case STALE:
-                            // todo set stale state
                         default:
                             log.info(String.format("Storage emitted unhandled status: %s",
                                     storageStateChange.getStorageState()));
@@ -91,7 +97,7 @@ public class InProcessResolver implements Resolver {
         stateWatcher.start();
 
         // block till ready
-        Util.busyWaitAndCheck(this.deadline, this.connected);
+        Util.busyWaitAndCheck(this.deadline, this.connectedSupplier);
     }
 
     /**
@@ -101,8 +107,7 @@ public class InProcessResolver implements Resolver {
      */
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
-        this.connected.set(false);
-        stateConsumer.accept(ProviderState.NOT_READY, null);
+        onConnectionEvent.accept(new ConnectionEvent(false));
     }
 
     /**
@@ -165,9 +170,9 @@ public class InProcessResolver implements Resolver {
         // missing flag
         if (flag == null) {
             return ProviderEvaluation.<T>builder()
-                   .errorMessage("flag: " + key + " not found")
-                   .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                   .build();
+                    .errorMessage("flag: " + key + " not found")
+                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .build();
         }
 
         // state check

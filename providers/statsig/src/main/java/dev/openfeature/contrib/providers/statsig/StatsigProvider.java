@@ -1,32 +1,30 @@
 package dev.openfeature.contrib.providers.statsig;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Future;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.statsig.sdk.APIFeatureGate;
 import com.statsig.sdk.DynamicConfig;
 import com.statsig.sdk.EvaluationReason;
 import com.statsig.sdk.Layer;
 import com.statsig.sdk.Statsig;
 import com.statsig.sdk.StatsigUser;
+
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Provider implementation for Statsig.
@@ -36,17 +34,8 @@ public class StatsigProvider extends EventProvider {
 
     @Getter
     private static final String NAME = "Statsig";
-
-    private static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
-    private static final String UNKNOWN_ERROR = "unknown error";
     private static final String FEATURE_CONFIG_KEY = "feature_config";
-
     private final StatsigProviderConfig statsigProviderConfig;
-
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
-
-    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -63,19 +52,12 @@ public class StatsigProvider extends EventProvider {
      */
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        boolean initialized = isInitialized.getAndSet(true);
-        if (initialized && ProviderState.READY.equals(state)) {
-            log.debug("already initialized");
-            return;
-        }
-
         Future<Void> initFuture = Statsig.initializeAsync(statsigProviderConfig.getSdkKey(),
             statsigProviderConfig.getOptions());
         initFuture.get();
 
         statsigProviderConfig.postInit();
-        state = ProviderState.READY;
-        log.info("finished initializing provider, state: {}", state);
+        log.info("finished initializing provider");
     }
 
     @Override
@@ -87,7 +69,6 @@ public class StatsigProvider extends EventProvider {
     @Override
     @SuppressFBWarnings(value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "reason can be null")
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         Boolean evaluatedValue = defaultValue;
         Value featureConfigValue = ctx.getValue(FEATURE_CONFIG_KEY);
@@ -136,7 +117,6 @@ public class StatsigProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         String evaluatedValue = defaultValue;
@@ -159,7 +139,6 @@ public class StatsigProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         Integer evaluatedValue = defaultValue;
@@ -182,7 +161,6 @@ public class StatsigProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         Double evaluatedValue = defaultValue;
@@ -206,7 +184,6 @@ public class StatsigProvider extends EventProvider {
     @SneakyThrows
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         Value evaluatedValue = defaultValue;
@@ -293,27 +270,11 @@ public class StatsigProvider extends EventProvider {
         return new FeatureConfig(type, name);
     }
 
-    private void verifyEvaluation() throws ProviderNotReadyError, GeneralError {
-        if (!ProviderState.READY.equals(state)) {
-
-            /*
-            According to spec Requirement 2.4.5:
-            "The provider SHOULD indicate an error if flag resolution is attempted before the provider is ready."
-            https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-245
-             */
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
-    }
-
     @SneakyThrows
     @Override
     public void shutdown() {
         log.info("shutdown");
         Statsig.shutdown();
-        state = ProviderState.NOT_READY;
     }
 
     /**

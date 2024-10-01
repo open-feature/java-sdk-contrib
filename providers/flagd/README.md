@@ -8,7 +8,7 @@ This provider is designed to use flagd's [evaluation protocol](https://github.co
 <dependency>
   <groupId>dev.openfeature.contrib.providers</groupId>
   <artifactId>flagd</artifactId>
-  <version>0.8.8</version>
+  <version>0.8.9</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
@@ -46,6 +46,13 @@ FlagdProvider flagdProvider = new FlagdProvider(
 ```
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flags.json).
+
+#### Sync-metadata
+
+To support the injection of contextual data configured in flagd for in-process evaluation, the provider exposes a `getSyncMetadata` accessor which provides the most recent value returned by the [GetMetadata RPC](https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
+The value is updated with every (re)connection to the sync implementation.
+This can be used to enrich evaluations with such data.
+If the `in-process` mode is not used, and before the provider is ready, the `getSyncMetadata` returns an empty map.
 
 #### Offline mode
 

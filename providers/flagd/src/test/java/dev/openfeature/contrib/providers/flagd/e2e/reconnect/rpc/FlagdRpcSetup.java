@@ -37,7 +37,6 @@ public class FlagdRpcSetup {
         FeatureProvider unavailableProvider = new FlagdProvider(FlagdOptions.builder()
                 .resolverType(Config.Resolver.RPC)
                 .port(8015) // this port isn't serving anything, error expected
-                // set a generous deadline, to prevent timeouts in actions
                 .deadline(100)
                 .cacheType(CacheType.DISABLED.getValue())
                 .build());

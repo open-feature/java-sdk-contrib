@@ -1,52 +1,70 @@
-# Unofficial ConfigCat OpenFeature Provider for Java
+# ConfigCat OpenFeature Provider for Java
 
-[ConfigCat](https://configcat.com/) OpenFeature Provider can provide usage for ConfigCat via OpenFeature Java SDK.
+[ConfigCat](https://configcat.com/) OpenFeature Provider can provide usage for ConfigCat via the OpenFeature Java SDK.
 
 ## Installation
 
 <!-- x-release-please-start-version -->
 
 ```xml
-
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>configcat</artifactId>
-    <version>0.0.4</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
 <!-- x-release-please-end-version -->
 
 ## Usage
-ConfigCat OpenFeature Provider is using ConfigCat Java SDK.
+The ConfigCat OpenFeature Provider uses a ConfigCat Java SDK client for evaluating feature flags.
 
 ### Usage Example
 
-```
-ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder().sdkKey(sdkKey).build();
-configCatProvider = new ConfigCatProvider(configCatProviderConfig);
+The following example shows how to use the provider with the OpenFeature SDK.
+
+```java
+// Build options for the ConfigCat SDK.
+ConfigCatProviderConfig configCatProviderConfig = ConfigCatProviderConfig.builder()
+        .sdkKey("#YOUR-SDK-KEY#")
+        .options(options -> {
+            options.pollingMode(PollingModes.autoPoll());
+            options.logLevel(LogLevel.WARNING);
+            // ...
+        })
+        .build();
+
+ConfigCatProvider configCatProvider = new ConfigCatProvider(configCatProviderConfig);
+
+// Configure the provider.
 OpenFeatureAPI.getInstance().setProviderAndWait(configCatProvider);
-boolean featureEnabled = client.getBooleanValue(FLAG_NAME, false);
 
-MutableContext evaluationContext = new MutableContext();
-evaluationContext.setTargetingKey("csp@matching.com");
-evaluationContext.add("Email", "a@b.com");
-evaluationContext.add("Country", "someCountry");
-featureEnabled = client.getBooleanValue(USERS_FLAG_NAME, false, evaluationContext);
+// Create a client.
+Client client = OpenFeatureAPI.getInstance().getClient();
+
+// Evaluate your feature flag.
+boolean isAwesomeFeatureEnabled = client.getBooleanValue("isAwesomeFeatureEnabled", false);
+
+// With evaluation context.
+MutableContext context = new MutableContext();
+context.setTargetingKey("#SOME-USER-ID#");
+context.add("Email", "configcat@example.com");
+context.add("Country", "CountryID");
+context.add("Rating", 4.5);
+
+boolean isAwesomeFeatureEnabled = client.getBooleanValue("isAwesomeFeatureEnabled", false, context);
 ```
-
-See [ConfigCatProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/configcat/ConfigCatProviderTest.java)
-for more information.
+For a full list of configuration options see the [ConfigCat Java SDK documentation](https://configcat.com/docs/sdk-reference/java/#creating-the-configcat-client).
 
 ## Notes
-Some ConfigCat custom operations are supported from the provider client via:
+The underlying ConfigCat Client is accessible via the provider's `getConfigCatClient()` function:
 
 ```java
 configCatProvider.getConfigCatClient()...
 ```
 
-## ConfigCat Provider Tests Strategies
+## ConfigCat Provider Test Strategy
 
-Unit test based on ConfigCat local features file.  
+Unit tests are based on the SDK's [local file override](https://configcat.com/docs/sdk-reference/java/#flag-overrides) feature.  
 See [ConfigCatProviderTest.java](./src/test/java/dev/openfeature/contrib/providers/configcat/ConfigCatProviderTest.java)
 for more information.

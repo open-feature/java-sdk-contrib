@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.1.0...dev.openfeature.contrib.providers.jsonlogic-v1.1.1) (2024-09-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.github.spotbugs:spotbugs-annotations to v4.8.6 ([#831](https://github.com/open-feature/java-sdk-contrib/issues/831)) ([52bfdfe](https://github.com/open-feature/java-sdk-contrib/commit/52bfdfed014780b92b0b99c73ff3e2cf05c56cff))
+
 ## [1.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.0.1...dev.openfeature.contrib.providers.jsonlogic-v1.1.0) (2024-06-17)
 
 

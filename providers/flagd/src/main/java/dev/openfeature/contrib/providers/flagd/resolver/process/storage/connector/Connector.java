@@ -4,12 +4,12 @@ import java.util.concurrent.BlockingQueue;
 
 /**
  * Contract of the in-process storage connector. Connectors are responsible to stream flag configurations in
- * {@link StreamPayload} format.
+ * {@link QueuePayload} format.
  */
 public interface Connector {
     void init() throws Exception;
 
-    BlockingQueue<StreamPayload> getStream();
+    BlockingQueue<QueuePayload> getStream();
 
     void shutdown() throws InterruptedException;
 }

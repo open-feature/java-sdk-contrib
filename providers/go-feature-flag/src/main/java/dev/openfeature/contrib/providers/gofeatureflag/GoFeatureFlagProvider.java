@@ -1,6 +1,13 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import dev.openfeature.contrib.providers.gofeatureflag.bean.ConfigurationChange;
 import dev.openfeature.contrib.providers.gofeatureflag.controller.CacheController;
 import dev.openfeature.contrib.providers.gofeatureflag.controller.GoFeatureFlagController;
@@ -16,22 +23,14 @@ import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
@@ -46,7 +45,6 @@ public class GoFeatureFlagProvider extends EventProvider {
     private final GoFeatureFlagProviderOptions options;
     private final List<Hook> hooks = new ArrayList<>();
     private DataCollectorHook dataCollectorHook;
-    private ProviderState state = ProviderState.NOT_READY;
     private Disposable flagChangeDisposable;
     private GoFeatureFlagController gofeatureflagController;
     private CacheController cacheCtrl;
@@ -127,9 +125,8 @@ public class GoFeatureFlagProvider extends EventProvider {
             this.flagChangeDisposable =
                     this.startCheckFlagConfigurationChangesDaemon();
         }
-        state = ProviderState.READY;
         super.emitProviderReady(ProviderEventDetails.builder().message("Provider is ready to call the API").build());
-        log.info("finishing initializing provider, state: {}", state);
+        log.info("finishing initializing provider");
     }
 
 
@@ -175,11 +172,6 @@ public class GoFeatureFlagProvider extends EventProvider {
                 );
     }
 
-    @Override
-    public ProviderState getState() {
-        return state;
-    }
-
     /**
      * getEvaluation is the function resolving the flag, it will 1st check in the cache and if it is not available
      * will call the evaluation endpoint to get the value of the flag.
@@ -195,18 +187,6 @@ public class GoFeatureFlagProvider extends EventProvider {
     private <T> ProviderEvaluation<T> getEvaluation(
             String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType) {
         try {
-            if (!ProviderState.READY.equals(state)) {
-                if (ProviderState.NOT_READY.equals(state)) {
-
-                    /*
-                     should be handled by the SDK framework, ErrorCode.PROVIDER_NOT_READY and default value
-                     should be returned when evaluated via the client.
-                     */
-                    throw new ProviderNotReadyError("provider not initialized yet");
-                }
-                throw new GeneralError("unknown error, provider state: " + state);
-            }
-
             if (this.cacheCtrl == null) {
                 return this.gofeatureflagController
                         .evaluateFlag(key, defaultValue, evaluationContext, expectedType)

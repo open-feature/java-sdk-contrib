@@ -1,8 +1,11 @@
 package dev.openfeature.contrib.providers.unleash;
 
+import javax.annotation.Nullable;
+
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEventDetails;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.getunleash.UnleashException;
 import io.getunleash.event.ImpressionEvent;
 import io.getunleash.event.ToggleEvaluated;
@@ -17,8 +20,6 @@ import io.getunleash.repository.ToggleCollection;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Nullable;
-
 /**
  * UnleashSubscriber wrapper for emitting event provider events.
  */
@@ -31,9 +32,11 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
 
     /**
      * Constructor.
+     * 
      * @param unleashSubscriber subscriber
-     * @param eventProvider events provider for emitting events.
+     * @param eventProvider     events provider for emitting events.
      */
+    @SuppressFBWarnings(value = { "EI_EXPOSE_REP" })
     public UnleashSubscriberWrapper(@Nullable UnleashSubscriber unleashSubscriber, EventProvider eventProvider) {
         this.unleashSubscriber = unleashSubscriber;
         this.eventProvider = eventProvider;
