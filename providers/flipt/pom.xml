@@ -20,6 +20,15 @@
         <javadoc.failOnWarnings>false</javadoc.failOnWarnings>
     </properties>
 
+    <developers>
+        <developer>
+            <id>markphelps</id>
+            <name>Mark Phelps</name>
+            <organization>Flipt Software</organization>
+            <url>https://flipt.io/</url>
+        </developer>
+    </developers>
+
     <dependencies>
         <dependency>
             <groupId>io.flipt</groupId>
@@ -31,6 +40,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.16</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.17.2</version>
         </dependency>
 
         <dependency>

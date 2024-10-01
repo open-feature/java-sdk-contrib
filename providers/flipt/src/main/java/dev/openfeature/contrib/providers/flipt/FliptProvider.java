@@ -40,7 +40,11 @@ public class FliptProvider extends EventProvider {
     @Getter
     private FliptClient fliptClient;
 
-    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+    @Setter(AccessLevel.PROTECTED)
+    @Getter
+    private ProviderState state = ProviderState.NOT_READY;
+
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -96,7 +100,8 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
+        ProviderEvaluation<Value> valueProviderEvaluation = 
+            evaluateVariant(String.class, key, new Value(defaultValue), ctx);
         return ProviderEvaluation.<String>builder()
                 .value(valueProviderEvaluation.getValue().asString())
                 .variant(valueProviderEvaluation.getVariant())
@@ -108,7 +113,8 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
+        ProviderEvaluation<Value> valueProviderEvaluation = 
+            evaluateVariant(Integer.class, key, new Value(defaultValue), ctx);
         Integer value = getIntegerValue(valueProviderEvaluation, defaultValue);
         return ProviderEvaluation.<Integer>builder()
                 .value(value)
@@ -130,7 +136,8 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        ProviderEvaluation<Value> valueProviderEvaluation = getObjectEvaluation(key, new Value(defaultValue), ctx);
+        ProviderEvaluation<Value> valueProviderEvaluation = 
+            evaluateVariant(Double.class, key, new Value(defaultValue), ctx);
         Double value = getDoubleValue(valueProviderEvaluation, defaultValue);
         return ProviderEvaluation.<Double>builder()
                 .value(value)
@@ -152,6 +159,18 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
+        return evaluateVariant(Value.class, key, defaultValue, ctx);
+    }
+
+    private <T> ProviderEvaluation<Value> evaluateVariant(Class<T> clazz, String key, Value defaultValue, 
+        EvaluationContext ctx) {
+        if (!ProviderState.READY.equals(state)) {
+            if (ProviderState.NOT_READY.equals(state)) {
+                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
+            }
+            throw new GeneralError(UNKNOWN_ERROR);
+        }
+
         Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
                 .flagKey(key).entityId(ctx.getTargetingKey()).context(contextMap).build();
@@ -172,17 +191,22 @@ public class FliptProvider extends EventProvider {
                     .build();
         }
 
+        Value value = new Value(response.getVariantKey());
         ImmutableMetadata.ImmutableMetadataBuilder flagMetadataBuilder = ImmutableMetadata.builder();
-        if (response.getVariantAttachment() != null) {
+        if (response.getVariantAttachment() != null && !response.getVariantAttachment().isEmpty()) {
             flagMetadataBuilder.addString("variant-attachment", response.getVariantAttachment());
+
+            if (clazz.isAssignableFrom(Value.class)) {
+                value = new Value(response.getVariantAttachment());
+            }
         }
 
         return ProviderEvaluation.<Value>builder()
-                .value(new Value(response.getVariantKey()))
-                .variant(response.getVariantKey())
-                .reason(TARGETING_MATCH.name())
-                .flagMetadata(flagMetadataBuilder.build())
-                .build();
+            .value(value)
+            .variant(response.getVariantKey())
+            .reason(TARGETING_MATCH.name())
+            .flagMetadata(flagMetadataBuilder.build())
+            .build();
     }
 
     @Override

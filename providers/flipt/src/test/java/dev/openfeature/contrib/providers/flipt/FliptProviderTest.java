@@ -14,6 +14,7 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.SneakyThrows;
@@ -31,8 +32,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * FliptProvider test, based on APIs mocking.
@@ -50,9 +50,10 @@ class FliptProviderTest {
     public static final Double DOUBLE_FLAG_VALUE = 1.23;
     public static final String USERS_FLAG_NAME = "users-flag";
     public static final String TARGETING_KEY = "targeting_key";
+    public static final String OBJECT_FLAG_NAME = "object-flag";
+
     private static FliptProvider fliptProvider;
     private static Client client;
-
     private String apiUrl;
 
     @BeforeAll
@@ -101,7 +102,6 @@ class FliptProviderTest {
         mockFliptAPI("/evaluate/v1/boolean", "boolean.json", FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
-        assertEquals(true, fliptProvider.getBooleanEvaluation(FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(FLAG_NAME, false, evaluationContext));
         assertEquals(false, client.getBooleanValue("non-existing", false, evaluationContext));
     }
@@ -171,6 +171,24 @@ class FliptProviderTest {
         assertEquals("attachment-1", flagMetadata.getString("variant-attachment"));
         FlagEvaluationDetails<String> nonExistingFlagEvaluation = client.getStringDetails("non-existing", "",
                 evaluationContext);
-        assertEquals(null, nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
+        assertNull(nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
+    }
+
+    @SneakyThrows
+    @Test
+    void getObjectEvaluationTest() {
+        mockFliptAPI("/evaluate/v1/variant", "variant-object.json", OBJECT_FLAG_NAME);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
+        evaluationContext.add("userId", "object");
+
+        Value expectedValue = new Value("{\"key1\":\"value1\",\"key2\":42,\"key3\":true}");
+        Value emptyValue = new Value();
+
+        assertEquals(expectedValue, client.getObjectValue(OBJECT_FLAG_NAME, emptyValue, evaluationContext));
+        assertEquals(emptyValue, client.getObjectValue("non-existing", emptyValue, evaluationContext));
+
+        // non-object flag value
+        assertEquals(emptyValue, client.getObjectValue(VARIANT_FLAG_NAME, emptyValue, evaluationContext));
     }
 }
