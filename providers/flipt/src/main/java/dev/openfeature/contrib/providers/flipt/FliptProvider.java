@@ -39,11 +39,6 @@ public class FliptProvider extends EventProvider {
     @Setter(AccessLevel.PROTECTED)
     @Getter
     private FliptClient fliptClient;
-
-    @Setter(AccessLevel.PROTECTED)
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
-
     private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
@@ -100,8 +95,8 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        ProviderEvaluation<Value> valueProviderEvaluation = 
-            evaluateVariant(String.class, key, new Value(defaultValue), ctx);
+        ProviderEvaluation<Value> valueProviderEvaluation = evaluateVariant(String.class, key, new Value(defaultValue),
+                ctx);
         return ProviderEvaluation.<String>builder()
                 .value(valueProviderEvaluation.getValue().asString())
                 .variant(valueProviderEvaluation.getVariant())
@@ -113,8 +108,8 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        ProviderEvaluation<Value> valueProviderEvaluation = 
-            evaluateVariant(Integer.class, key, new Value(defaultValue), ctx);
+        ProviderEvaluation<Value> valueProviderEvaluation = evaluateVariant(Integer.class, key, new Value(defaultValue),
+                ctx);
         Integer value = getIntegerValue(valueProviderEvaluation, defaultValue);
         return ProviderEvaluation.<Integer>builder()
                 .value(value)
@@ -136,8 +131,8 @@ public class FliptProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        ProviderEvaluation<Value> valueProviderEvaluation = 
-            evaluateVariant(Double.class, key, new Value(defaultValue), ctx);
+        ProviderEvaluation<Value> valueProviderEvaluation = evaluateVariant(Double.class, key, new Value(defaultValue),
+                ctx);
         Double value = getDoubleValue(valueProviderEvaluation, defaultValue);
         return ProviderEvaluation.<Double>builder()
                 .value(value)
@@ -162,14 +157,8 @@ public class FliptProvider extends EventProvider {
         return evaluateVariant(Value.class, key, defaultValue, ctx);
     }
 
-    private <T> ProviderEvaluation<Value> evaluateVariant(Class<T> clazz, String key, Value defaultValue, 
-        EvaluationContext ctx) {
-        if (!ProviderState.READY.equals(state)) {
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
+    private <T> ProviderEvaluation<Value> evaluateVariant(Class<T> clazz, String key, Value defaultValue,
+            EvaluationContext ctx) {
 
         Map<String, String> contextMap = ContextTransformer.transform(ctx);
         EvaluationRequest request = EvaluationRequest.builder().namespaceKey(fliptProviderConfig.getNamespace())
@@ -202,11 +191,11 @@ public class FliptProvider extends EventProvider {
         }
 
         return ProviderEvaluation.<Value>builder()
-            .value(value)
-            .variant(response.getVariantKey())
-            .reason(TARGETING_MATCH.name())
-            .flagMetadata(flagMetadataBuilder.build())
-            .build();
+                .value(value)
+                .variant(response.getVariantKey())
+                .reason(TARGETING_MATCH.name())
+                .flagMetadata(flagMetadataBuilder.build())
+                .build();
     }
 
     @Override
