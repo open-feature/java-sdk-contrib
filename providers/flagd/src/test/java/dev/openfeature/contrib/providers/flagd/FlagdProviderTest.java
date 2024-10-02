@@ -28,6 +28,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.Collections;
+import java.util.Optional;
+
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -57,6 +61,8 @@ import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.FlagValueType;
+import dev.openfeature.sdk.HookContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -909,12 +915,10 @@ class FlagdProviderTest {
 
     @Test
     void updatesSyncMetadataWithCallback() throws Exception {
-
+        // given
         final EvaluationContext ctx = new ImmutableContext();
         String key = "key1";
         String val = "val1";
-        // Map<String, Object> metadataMap = new HashMap<>();
-        // metadataMap.put(key, val);
         MutableStructure metadata = new MutableStructure();
         metadata.add(key, val);
 
@@ -936,11 +940,19 @@ class FlagdProviderTest {
                     }).when(mock).init();
                 })) {
 
-            FlagdProvider provider = new FlagdProvider(FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).build());
+            FlagdProvider provider = new FlagdProvider(
+                    FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).build());
             provider.initialize(ctx);
 
-            // the onConnectionEvent should have updated the sync metadata
+            // the onConnectionEvent should have updated the sync metadata and the
             assertEquals(val, provider.getSyncMetadata().getValue(key).asString());
+            assertEquals(val, provider.getEnrichedContext().getValue(key).asString());
+
+            // call the hook manually and make sure the enriched context is returned
+            Optional<EvaluationContext> contextFromHook = provider.getProviderHooks().get(0)
+                    .before(HookContext.builder().flagKey("some-flag").defaultValue(false)
+                            .type(FlagValueType.BOOLEAN).ctx(new ImmutableContext()).build(), Collections.emptyMap());
+            assertEquals(val, contextFromHook.get().getValue(key).asString());
         }
     }
 

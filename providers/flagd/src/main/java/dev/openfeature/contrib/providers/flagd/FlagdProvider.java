@@ -146,6 +146,10 @@ public class FlagdProvider extends EventProvider {
         return new ImmutableStructure(syncMetadata.asMap());
     }
 
+    /**
+     * The updated context mixed into all evaluations based on the sync-metadata.
+     * @return context
+     */
     EvaluationContext getEnrichedContext() {
         return enrichedContext;
     }
