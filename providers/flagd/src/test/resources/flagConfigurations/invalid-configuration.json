@@ -1,4 +1,4 @@
 {
-  "$schema": "../../../main/resources/flags.json",
+  "$schema": "../../../main/resources/flagd/schemas/flags.json",
   "some-other": "valid-json"
 }
