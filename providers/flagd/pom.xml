@@ -162,78 +162,18 @@
                 <executions>
                     <execution>
                         <id>update-schemas-submodule</id>
-                        <phase>validate</phase>
+                        <phase>initialize</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <!-- run: git submodule update \-\-init \-\-recursive -->
+                            <!-- run: git submodule update \-\-init schemas -->
                             <executable>git</executable>
                             <arguments>
                                 <argument>submodule</argument>
                                 <argument>update</argument>
                                 <argument>--init</argument>
                                 <argument>schemas</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-schema-definition</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/protobuf/schema/v1/schema.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/schema/v1/schema.proto</argument>
-                                <argument>src/main/proto/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-sync-definition</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/protobuf/sync/v1/sync_service.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/sync/v1/sync_service.proto</argument>
-                                <argument>src/main/proto/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-evaluation.proto</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/protobuf/flagd/evaluation/v1/evaluation.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/flagd/evaluation/v1/evaluation.proto</argument>
-                                <argument>src/main/proto/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-sync.proto</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/protobuf/flagd/sync/v1/sync.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/flagd/sync/v1/sync.proto</argument>
-                                <argument>src/main/proto/</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -278,6 +218,7 @@
                     <protocArtifact>com.google.protobuf:protoc:3.21.1:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.48.1:exe:${os.detected.classifier}</pluginArtifact>
+                    <protoSourceRoot>${project.basedir}/schemas/protobuf/</protoSourceRoot>
                 </configuration>
                 <executions>
                     <execution>
