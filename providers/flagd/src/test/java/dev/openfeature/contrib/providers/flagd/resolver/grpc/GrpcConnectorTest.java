@@ -30,6 +30,8 @@ import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
 import io.grpc.Channel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -119,7 +121,7 @@ public class GrpcConnectorTest {
     }
 
     @Test
-    void initialization_fail_with_timeout() throws Exception {
+    void stream_fails_with_error() throws Exception {
         final Cache cache = new Cache("disabled", 0);
         final ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
@@ -149,6 +151,40 @@ public class GrpcConnectorTest {
             assertDoesNotThrow(connector::initialize);
             // assert that onConnectionEvent is connected
             verify(onConnectionEvent).accept(argThat(arg -> !arg.isConnected()));
+        }
+    }
+
+    @Test
+    void stream_does_not_fail_with_deadline_error() throws Exception {
+        final Cache cache = new Cache("disabled", 0);
+        final ServiceStub mockStub = createServiceStubMock();
+        Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
+        doAnswer((InvocationOnMock invocation) -> {
+            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+            eventStreamObserver
+                    .onError(new StatusRuntimeException(Status.DEADLINE_EXCEEDED));
+            return null;
+        }).when(mockStub).eventStream(any(), any());
+
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
+                    .thenReturn(mockStub);
+
+            // pass true in connected lambda
+            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> {
+                try {
+                    Thread.sleep(100);
+                    return true;
+                } catch (Exception e) {
+                }
+                return false;
+
+            },
+                    onConnectionEvent);
+
+            assertDoesNotThrow(connector::initialize);
+            // this should not call the connection event
+            verify(onConnectionEvent, never()).accept(any());
         }
     }
 

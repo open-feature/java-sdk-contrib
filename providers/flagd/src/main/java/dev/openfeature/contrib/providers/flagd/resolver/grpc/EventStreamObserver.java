@@ -11,6 +11,8 @@ import com.google.protobuf.Value;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.Status.Code;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,12 +54,18 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     }
 
     @Override
-    public void onError(Throwable t) {
-        log.warn("event stream", t);
-        if (this.cache.getEnabled()) {
-            this.cache.clear();
+    public void onError(Throwable throwable) {
+        if (throwable instanceof StatusRuntimeException
+                && ((StatusRuntimeException) throwable).getStatus().getCode()
+                        .equals(Code.DEADLINE_EXCEEDED)) {
+            log.debug(String.format("stream deadline reached; will re-establish"));
+        } else {
+            log.error(String.format("event stream error", throwable));
+            if (this.cache.getEnabled()) {
+                this.cache.clear();
+            }
+            this.onConnectionEvent.accept(false, Collections.emptyList());
         }
-        this.onConnectionEvent.accept(false, Collections.emptyList());
 
         // handle last call of this stream
         handleEndOfStream();
