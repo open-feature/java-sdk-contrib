@@ -177,34 +177,30 @@
                             </arguments>
                         </configuration>
                     </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
                     <execution>
-                        <id>copy-flags-json-schema</id>
-                        <phase>validate</phase>
+                        <id>copy-json-schemas</id>
+                        <phase>generate-resources</phase>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <!-- run: cp schemas/json/flags.json src/main/resources/flagd/schemas/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/json/flags.json</argument>
-                                <argument>src/main/resources/flagd/schemas/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-flags-targeting-schema</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/json/targeting.json src/main/resources/flagd/schemas/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/json/targeting.json</argument>
-                                <argument>src/main/resources/flagd/schemas/</argument>
-                            </arguments>
+                            <outputDirectory>${basedir}/src/main/resources/flagd/schemas/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/schemas/json/</directory>
+                                    <includes>
+                                        <include>flags.json</include>
+                                        <include>targeting.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>
