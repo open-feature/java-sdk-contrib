@@ -12,6 +12,7 @@ import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 
 import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
@@ -20,6 +21,19 @@ import dev.openfeature.sdk.Value;
  * gRPC type conversion utils.
  */
 public class Convert {
+
+    /**
+     * Converts a protobuf struct to EvaluationContext.
+     * 
+     * @param struct profobuf struct to convert
+     * @return a context
+     */
+    public static EvaluationContext convertProtobufStructToContext(final Struct struct) {
+        final HashMap<String, Value> values = new HashMap<>();
+        struct.getFieldsMap().forEach((key, value) -> values.put(key, convertAny(value)));
+        return new ImmutableContext(values);
+    }
+
     /**
      * Recursively convert protobuf structure to openfeature value.
      */

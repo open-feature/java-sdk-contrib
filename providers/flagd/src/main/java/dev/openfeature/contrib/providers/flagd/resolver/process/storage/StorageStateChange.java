@@ -2,8 +2,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
+import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.Structure;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -17,7 +18,7 @@ import lombok.ToString;
 public class StorageStateChange {
     private final StorageState storageState;
     private final List<String> changedFlagsKeys;
-    private final Map<String, Object> syncMetadata;
+    private final Structure syncMetadata;
 
     /**
      * Construct a new StorageStateChange.
@@ -26,10 +27,10 @@ public class StorageStateChange {
      * @param syncMetadata possibly updated metadata 
      */
     public StorageStateChange(StorageState storageState, List<String> changedFlagsKeys,
-            Map<String, Object> syncMetadata) {
+            Structure syncMetadata) {
         this.storageState = storageState;
         this.changedFlagsKeys = Collections.unmodifiableList(changedFlagsKeys);
-        this.syncMetadata = Collections.unmodifiableMap(syncMetadata);
+        this.syncMetadata = new ImmutableStructure(syncMetadata.asMap());
     }
 
     /**
@@ -40,7 +41,7 @@ public class StorageStateChange {
     public StorageStateChange(StorageState storageState, List<String> changedFlagsKeys) {
         this.storageState = storageState;
         this.changedFlagsKeys = Collections.unmodifiableList(changedFlagsKeys);
-        this.syncMetadata = Collections.emptyMap();
+        this.syncMetadata = new ImmutableStructure();
     }
 
     /**
@@ -50,6 +51,6 @@ public class StorageStateChange {
     public StorageStateChange(StorageState storageState) {
         this.storageState = storageState;
         this.changedFlagsKeys = Collections.emptyList();
-        this.syncMetadata = Collections.emptyMap();
+        this.syncMetadata = new ImmutableStructure();
     }
 }

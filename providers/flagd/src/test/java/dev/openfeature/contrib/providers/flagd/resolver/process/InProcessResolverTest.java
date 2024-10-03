@@ -1,41 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import dev.openfeature.contrib.providers.flagd.Config;
-import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
-import dev.openfeature.sdk.ErrorCode;
-import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.ImmutableMetadata;
-import dev.openfeature.sdk.MutableContext;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
-import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
-import dev.openfeature.sdk.exceptions.ParseError;
-import dev.openfeature.sdk.exceptions.TypeMismatchError;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import java.lang.reflect.Field;
-import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.BOOLEAN_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DISABLED_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.MockFlags.DOUBLE_FLAG;
@@ -51,6 +15,39 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+
+import java.lang.reflect.Field;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import dev.openfeature.contrib.providers.flagd.Config;
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.ParseError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 
 class InProcessResolverTest {
 
@@ -79,8 +76,8 @@ class InProcessResolverTest {
                 final BlockingQueue<StorageStateChange> receiver = new LinkedBlockingQueue<>(5);
                 final String key = "key1";
                 final String val = "val1";
-                final Map<String, Object> syncMetadata = new HashMap<>();
-                syncMetadata.put(key, val);
+                final MutableStructure syncMetadata = new MutableStructure();
+                syncMetadata.add(key, val);
 
                 InProcessResolver inProcessResolver = getInProcessResolverWth(new MockStorage(new HashMap<>(), sender),
                                 (connectionEvent) -> receiver.offer(new StorageStateChange(
@@ -107,7 +104,7 @@ class InProcessResolverTest {
                 assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
                         StorageStateChange storageState = receiver.take();
                         assertEquals(StorageState.OK, storageState.getStorageState());
-                        assertEquals(val, storageState.getSyncMetadata().get(key));
+                        assertEquals(val, storageState.getSyncMetadata().getValue(key).asString());
                 });
 
                 assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
