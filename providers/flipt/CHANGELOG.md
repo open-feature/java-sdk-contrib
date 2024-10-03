@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.0...dev.openfeature.contrib.providers.flipt-v0.1.1) (2024-10-02)
+
+
+### 🐛 Bug Fixes
+
+* class not found ([ac58e28](https://github.com/open-feature/java-sdk-contrib/commit/ac58e2833db1c804cde3385fe875c8a9b56ab13d))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.0 ([#979](https://github.com/open-feature/java-sdk-contrib/issues/979)) ([7e1a13e](https://github.com/open-feature/java-sdk-contrib/commit/7e1a13ec79b82f8fa49703af58087fea1874cea5))
+* **flipt:** set variant attachment as value for object evaluation ([#956](https://github.com/open-feature/java-sdk-contrib/issues/956)) ([e221402](https://github.com/open-feature/java-sdk-contrib/commit/e221402b38840665741643d4e0a87e0c4b055d36))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-annotations to v2.18.0 ([#977](https://github.com/open-feature/java-sdk-contrib/issues/977)) ([eb0777b](https://github.com/open-feature/java-sdk-contrib/commit/eb0777b250771985cd0db2e208e985fcbc2b5e6d))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-core to v2.18.0 ([#978](https://github.com/open-feature/java-sdk-contrib/issues/978)) ([6cdea81](https://github.com/open-feature/java-sdk-contrib/commit/6cdea81644af0f1f8e231b553b6c16e665cc7d31))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.1 ([#986](https://github.com/open-feature/java-sdk-contrib/issues/986)) ([1e53431](https://github.com/open-feature/java-sdk-contrib/commit/1e53431353c1de0856db6bdb815d2218d9ac94a2))
+
 ## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.0.2...dev.openfeature.contrib.providers.flipt-v0.1.0) (2024-09-25)
 
 
