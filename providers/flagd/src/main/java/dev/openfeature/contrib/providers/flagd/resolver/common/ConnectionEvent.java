@@ -2,8 +2,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
+import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.Structure;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -17,7 +18,7 @@ public class ConnectionEvent {
     @Getter
     private final boolean connected;
     private final List<String> flagsChanged;
-    private final Map<String, Object> syncMetadata;
+    private final Structure syncMetadata;
 
     /**
      * Construct a new ConnectionEvent.
@@ -25,7 +26,7 @@ public class ConnectionEvent {
      * @param connected status of the connection
      */
     public ConnectionEvent(boolean connected) {
-        this(connected, Collections.emptyList(), Collections.emptyMap());
+        this(connected, Collections.emptyList(), new ImmutableStructure());
     }
 
     /**
@@ -35,7 +36,7 @@ public class ConnectionEvent {
      * @param flagsChanged list of flags changed
      */
     public ConnectionEvent(boolean connected, List<String> flagsChanged) {
-        this(connected, flagsChanged, Collections.emptyMap());
+        this(connected, flagsChanged, new ImmutableStructure());
     }
 
     /**
@@ -44,8 +45,8 @@ public class ConnectionEvent {
      * @param connected    status of the connection
      * @param syncMetadata sync.getMetadata
      */
-    public ConnectionEvent(boolean connected, Map<String, Object> syncMetadata) {
-        this(connected, Collections.emptyList(), syncMetadata);
+    public ConnectionEvent(boolean connected, Structure syncMetadata) {
+        this(connected, Collections.emptyList(), new ImmutableStructure(syncMetadata.asMap()));
     }
 
     /**
@@ -58,11 +59,11 @@ public class ConnectionEvent {
     }
 
     /**
-     * Get changed sync metadata.
+     * Get changed sync metadata represented as SDK structure type.
      * 
      * @return an unmodifiable view of the sync metadata
      */
-    public Map<String, Object> getSyncMetadata() {
-        return Collections.unmodifiableMap(syncMetadata);
+    public Structure getSyncMetadata() {
+        return new ImmutableStructure(syncMetadata.asMap());
     }
 }

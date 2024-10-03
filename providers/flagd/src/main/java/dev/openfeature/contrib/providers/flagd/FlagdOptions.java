@@ -1,13 +1,18 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
+import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
+
+import java.util.function.Function;
+
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.Structure;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
-
-import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
-import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 /**
  * FlagdOptions is a builder to build flagd provider options.
@@ -116,6 +121,19 @@ public class FlagdOptions {
      */
     @Builder.Default
     private String offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+
+    /**
+     * Function providing an EvaluationContext to mix into every evaluations.
+     * The sync-metadata response
+     * (https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.GetMetadataResponse),
+     * represented as a {@link dev.openfeature.sdk.Structure}, is passed as an
+     * argument.
+     * This function runs every time the provider (re)connects, and its result is cached and used in every evaluation.
+     * By default, the entire sync response (converted to a Structure) is used.
+     */
+    @Builder.Default
+    private Function<Structure, EvaluationContext> contextEnricher = (syncMetadata) -> new ImmutableContext(
+            syncMetadata.asMap());
 
     /**
      * Inject a Custom Connector for fetching flags.
