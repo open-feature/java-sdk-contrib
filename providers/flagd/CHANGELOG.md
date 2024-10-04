@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.9.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.9...dev.openfeature.contrib.providers.flagd-v0.9.0) (2024-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* context enrichment via contextEnricher, not from init ([#991](https://github.com/open-feature/java-sdk-contrib/issues/991))
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.0 ([#979](https://github.com/open-feature/java-sdk-contrib/issues/979)) ([7e1a13e](https://github.com/open-feature/java-sdk-contrib/commit/7e1a13ec79b82f8fa49703af58087fea1874cea5))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.2 ([#958](https://github.com/open-feature/java-sdk-contrib/issues/958)) ([da10fe8](https://github.com/open-feature/java-sdk-contrib/commit/da10fe856b53ac3bdf284a194e011895f397bec3))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.114.final ([#994](https://github.com/open-feature/java-sdk-contrib/issues/994)) ([3e9b967](https://github.com/open-feature/java-sdk-contrib/commit/3e9b967525a0bddb76f5ebb5b2c70ae92b038a42))
+* **deps:** update grpc-java monorepo to v1.68.0 ([#962](https://github.com/open-feature/java-sdk-contrib/issues/962)) ([96a78bd](https://github.com/open-feature/java-sdk-contrib/commit/96a78bdf3a01445eb41d4496f51660666281668a))
+
+
+### ✨ New Features
+
+* Add GRPC stream connection deadline ([#999](https://github.com/open-feature/java-sdk-contrib/issues/999)) ([9de03df](https://github.com/open-feature/java-sdk-contrib/commit/9de03df3f3d533fa8ca243e65fb86c6abc460252))
+* context enrichment via contextEnricher, not from init ([#991](https://github.com/open-feature/java-sdk-contrib/issues/991)) ([1c2e11b](https://github.com/open-feature/java-sdk-contrib/commit/1c2e11baa2222e236abd96adb8274b93a58a93cd))
+* expose sync-metadata, call RPC with (re)connect ([#967](https://github.com/open-feature/java-sdk-contrib/issues/967)) ([61bb726](https://github.com/open-feature/java-sdk-contrib/commit/61bb7263a8b4ad2b15560b1306b04cd28986a95f))
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964)) ([4a041b0](https://github.com/open-feature/java-sdk-contrib/commit/4a041b0dda9c4e460f4c2199f3bc680df0dda621))
+
+
+### 🧹 Chore
+
+* **deps:** update junit5 monorepo ([#970](https://github.com/open-feature/java-sdk-contrib/issues/970)) ([df66295](https://github.com/open-feature/java-sdk-contrib/commit/df662955809698650428303d811c2b3a4b135463))
+* **deps:** update testcontainers-java monorepo to v1.20.2 ([#992](https://github.com/open-feature/java-sdk-contrib/issues/992)) ([aba1ae3](https://github.com/open-feature/java-sdk-contrib/commit/aba1ae31ebe26137904218c6737ebe625d267f4e))
+
 ## [0.8.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.8...dev.openfeature.contrib.providers.flagd-v0.8.9) (2024-09-17)
 
 
