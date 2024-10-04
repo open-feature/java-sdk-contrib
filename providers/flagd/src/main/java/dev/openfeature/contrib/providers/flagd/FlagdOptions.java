@@ -95,6 +95,7 @@ public class FlagdOptions {
     /**
      * Streaming connection deadline in milliseconds.
      * Set to 0 to disable the deadline.
+     * Defaults to 600000 (10 minutes); recommended to prevent infrastructure from killing idle connections.
      */
     @Builder.Default
     private int streamDeadlineMs = fallBackToEnvOrDefault(Config.STREAM_DEADLINE_MS_ENV_VAR_NAME,
