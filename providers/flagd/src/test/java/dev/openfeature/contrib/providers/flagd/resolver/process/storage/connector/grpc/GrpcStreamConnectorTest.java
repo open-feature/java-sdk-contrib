@@ -7,12 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -42,6 +37,7 @@ class GrpcStreamConnectorTest {
         final FlagdOptions options = FlagdOptions.builder()
                 .selector("selector")
                 .deadline(1337)
+                .streamDeadlineMs(87699)
                 .build();
 
         final GrpcStreamConnector connector = new GrpcStreamConnector(options);
@@ -58,6 +54,37 @@ class GrpcStreamConnectorTest {
         connector.init();
         verify(stubMock, timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
         verify(blockingStubMock).withDeadlineAfter(1337, TimeUnit.MILLISECONDS);
+        verify(stubMock).withDeadlineAfter(87699, TimeUnit.MILLISECONDS);
+
+        // then
+        final SyncFlagsRequest flagsRequest = request[0];
+        assertNotNull(flagsRequest);
+        assertEquals("selector", flagsRequest.getSelector());
+    }
+
+
+    @Test
+    public void disableStreamDeadline() throws Throwable {
+        // given
+        final FlagdOptions options = FlagdOptions.builder()
+                .selector("selector")
+                .streamDeadlineMs(0)
+                .build();
+
+        final GrpcStreamConnector connector = new GrpcStreamConnector(options);
+        final FlagSyncServiceStub stubMock = mockStubAndReturn(connector);
+        final FlagSyncServiceBlockingStub blockingStubMock = mockBlockingStubAndReturn(connector);
+        final SyncFlagsRequest[] request = new SyncFlagsRequest[1];
+
+        doAnswer(invocation -> {
+            request[0] = invocation.getArgument(0, SyncFlagsRequest.class);
+            return null;
+        }).when(stubMock).syncFlags(any(), any());
+
+        // when
+        connector.init();
+        verify(stubMock, timeout(MAX_WAIT_MS.toMillis()).times(1)).syncFlags(any(), any());
+        verify(stubMock, never()).withDeadlineAfter(anyLong(), any());
 
         // then
         final SyncFlagsRequest flagsRequest = request[0];
@@ -186,6 +213,7 @@ class GrpcStreamConnectorTest {
         serviceStubField.setAccessible(true);
 
         final FlagSyncServiceStub stubMock = mock(FlagSyncServiceStub.class);
+        when(stubMock.withDeadlineAfter(anyLong(), any())).thenReturn(stubMock);
 
         serviceStubField.set(connector, stubMock);
 

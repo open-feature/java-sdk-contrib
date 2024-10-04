@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +25,8 @@ import com.google.protobuf.Value;
 
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 
 class EventStreamObserverTest {
 
@@ -81,6 +84,15 @@ class EventStreamObserverTest {
             // we notify the error
             assertEquals(1, states.size());
             assertFalse(states.get(0));
+        }
+
+        @Test
+        public void deadlineExceeded() {
+            stream.onError(new StatusRuntimeException(Status.DEADLINE_EXCEEDED));
+            // we flush the cache
+            verify(cache, never()).clear();
+            // we notify the error
+            assertEquals(0, states.size());
         }
 
         @Test

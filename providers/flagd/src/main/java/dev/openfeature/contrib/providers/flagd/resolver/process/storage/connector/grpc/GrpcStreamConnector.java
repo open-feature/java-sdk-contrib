@@ -22,6 +22,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Context;
 import io.grpc.Context.CancellableContext;
 import io.grpc.ManagedChannel;
+import io.grpc.Status.Code;
+import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -43,6 +45,7 @@ public class GrpcStreamConnector implements Connector {
     private final FlagSyncServiceStub serviceStub;
     private final FlagSyncServiceBlockingStub serviceBlockingStub;
     private final int deadline;
+    private final int streamDeadlineMs;
     private final String selector;
 
     /**
@@ -55,6 +58,7 @@ public class GrpcStreamConnector implements Connector {
         serviceStub = FlagSyncServiceGrpc.newStub(channel);
         serviceBlockingStub = FlagSyncServiceGrpc.newBlockingStub(channel);
         deadline = options.getDeadline();
+        streamDeadlineMs = options.getStreamDeadlineMs();
         selector = options.getSelector();
     }
 
@@ -64,7 +68,8 @@ public class GrpcStreamConnector implements Connector {
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline);
+                observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline,
+                        streamDeadlineMs);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -114,7 +119,8 @@ public class GrpcStreamConnector implements Connector {
             final FlagSyncServiceStub serviceStub,
             final FlagSyncServiceBlockingStub serviceBlockingStub,
             final String selector,
-            final int deadline)
+            final int deadline,
+            final int streamDeadlineMs)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -128,14 +134,20 @@ public class GrpcStreamConnector implements Connector {
             log.debug("Initializing sync stream request");
             final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
-            GetMetadataResponse metadataResponse = GetMetadataResponse.getDefaultInstance(); 
+            GetMetadataResponse metadataResponse = GetMetadataResponse.getDefaultInstance();
 
             if (selector != null) {
                 syncRequest.setSelector(selector);
             }
 
             try (CancellableContext context = Context.current().withCancellation()) {
-                serviceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
+                FlagSyncServiceStub localServiceStub = serviceStub;
+                if (streamDeadlineMs > 0) {
+                    localServiceStub = localServiceStub.withDeadlineAfter(streamDeadlineMs, TimeUnit.MILLISECONDS);
+                }
+
+                localServiceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
+
                 try {
                     metadataResponse = serviceBlockingStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS)
                             .getMetadata(metadataRequest.build());
@@ -158,14 +170,21 @@ public class GrpcStreamConnector implements Connector {
                     }
 
                     if (response.getError() != null || metadataException != null) {
-                        log.error(String.format("Error from initializing stream or metadata, retrying in %dms",
-                                retryDelay), response.getError());
-
-                        if (!writeTo.offer(
-                                new QueuePayload(QueuePayloadType.ERROR, "Error from stream or metadata",
-                                        metadataResponse))) {
-                            log.error("Failed to convey ERROR status, queue is full");
+                        if (response.getError() instanceof StatusRuntimeException
+                                && ((StatusRuntimeException) response.getError()).getStatus().getCode()
+                                        .equals(Code.DEADLINE_EXCEEDED)) {
+                            log.debug(String.format("Stream deadline reached, re-establishing in  %dms",
+                                    retryDelay));
+                        } else {
+                            log.error(String.format("Error initializing stream or metadata, retrying in %dms",
+                                    retryDelay), response.getError());
+                            if (!writeTo.offer(
+                                    new QueuePayload(QueuePayloadType.ERROR, "Error from stream or metadata",
+                                            metadataResponse))) {
+                                log.error("Failed to convey ERROR status, queue is full");
+                            }
                         }
+
                         // close the context to cancel the stream in case just the metadata call failed
                         context.cancel(metadataException);
                         break;
