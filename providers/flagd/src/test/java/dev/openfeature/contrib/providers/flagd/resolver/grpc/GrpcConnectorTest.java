@@ -297,6 +297,7 @@ class GrpcConnectorTest {
     void host_and_port_arg_should_build_tcp_socket() {
         final String host = "host.com";
         final int port = 1234;
+        final String targetUri = String.format("%s:%s", host, port);
 
         ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
         ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
@@ -311,14 +312,14 @@ class GrpcConnectorTest {
             try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
 
                 mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                        .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
+                        .forTarget(anyString())).thenReturn(mockChannelBuilder);
 
                 final FlagdOptions flagdOptions = FlagdOptions.builder().host(host).port(port).tls(false).build();
                 new GrpcConnector(flagdOptions, null, null, null);
 
                 // verify host/port matches
                 mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                        .forAddress(host, port), times(1));
+                        .forTarget(String.format(targetUri)), times(1));
             }
         }
     }
@@ -327,6 +328,7 @@ class GrpcConnectorTest {
     void no_args_host_and_port_env_set_should_build_tcp_socket() throws Exception {
         final String host = "server.com";
         final int port = 4321;
+        final String targetUri = String.format("%s:%s", host, port);
 
         new EnvironmentVariables("FLAGD_HOST", host, "FLAGD_PORT", String.valueOf(port)).execute(() -> {
             ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
@@ -343,12 +345,12 @@ class GrpcConnectorTest {
                         NettyChannelBuilder.class)) {
 
                     mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                            .forAddress(anyString(), anyInt())).thenReturn(mockChannelBuilder);
+                            .forTarget(anyString())).thenReturn(mockChannelBuilder);
 
                     new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
                     // verify host/port matches & called times(= 1 as we rely on reusable channel)
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forAddress(host, port), times(1));
+                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forTarget(targetUri), times(1));
                 }
             }
         });

@@ -123,6 +123,18 @@ public class FlagdOptions {
     @Builder.Default
     private String offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
 
+
+    /**
+     * gRPC custom target string.
+     * <p>
+     * Setting this will allow user to use custom gRPC name resolver at present
+     * we are supporting all core resolver along with a custom resolver for envoy proxy
+     * resolution. For more visit (https://grpc.io/docs/guides/custom-name-resolution/)
+     */
+    @Builder.Default
+    private String targetUri = fallBackToEnvOrDefault(Config.GRPC_TARGET_ENV_VAR_NAME, null);
+
+
     /**
      * Function providing an EvaluationContext to mix into every evaluations.
      * The sync-metadata response
