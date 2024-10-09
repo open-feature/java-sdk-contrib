@@ -94,8 +94,10 @@ public final class Config {
         }
     }
 
-    // intermediate interface to unify deprecated Evaluator & new Resolver
-    interface EvaluatorType {
+    /**
+     * intermediate interface to unify deprecated Evaluator and new Resolver.
+     **/
+    public interface EvaluatorType {
         String asString();
     }
 
