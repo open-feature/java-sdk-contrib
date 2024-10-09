@@ -112,6 +112,7 @@ Given below are the supported configurations:
 | socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process    |
 | certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process    |
 | deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process    |
+| streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS       | int                      | 600000    | rpc & in-process    |
 | keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS       | long                     | 0         | rpc & in-process    |
 | selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process          |
 | cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                 |
@@ -131,17 +132,32 @@ platforms or architectures.
 
 ### Reconnection
 
-Reconnection is supported by the underlying GRPCBlockingStub. If the connection to flagd is lost, it will reconnect
+Reconnection is supported by the underlying gRPC connections. If the connection to flagd is lost, it will reconnect
 automatically.
+A failure to connect will result in an [error event](https://openfeature.dev/docs/reference/concepts/events#provider_error) from the provider, though it will attempt to reconnect 
+indefinitely.
 
-### Deadline (gRPC call timeout)
+### Deadlines
+
+Deadlines are used to define how long the provider waits to complete initialization or flag evaluations. 
+They behave differently based on the resolver type.
+
+#### Deadlines with Remote resolver (RPC)
 
 The deadline for an individual flag evaluation can be configured by calling `setDeadline(myDeadlineMillis)`.
-If the gRPC call is not completed within this deadline, the gRPC call is terminated with the error `DEADLINE_EXCEEDED`
+If the remote evaluation call is not completed within this deadline, the gRPC call is terminated with the error `DEADLINE_EXCEEDED`
 and the evaluation will default.
-The default deadline is 500ms, though evaluations typically take on the order of 10ms.
-For the in-process provider, the deadline is used when establishing the initial streaming connection.
-A failure to connect within this timeout will result in an [error event](https://openfeature.dev/docs/reference/concepts/events#provider_error) from the provider, though it will attempt to reconnect indefinitely.
+
+#### Deadlines with In-process resolver
+
+In-process resolver with remote evaluation uses the `deadline` for synchronous gRPC calls to fetch metadata from flagd as part of its initialization process.
+If fetching metadata fails within this deadline, the provider will try to reconnect.
+The `streamDeadlineMs` defines a deadline for the streaming connection that listens to flag configuration updates from 
+flagd. After the deadline is exceeded, the provider closes the gRPC stream and will attempt to reconnect.
+
+In-process resolver with offline evaluation uses the `deadline` for file reads to fetch flag definitions.
+If the provider cannot open and read the file within this deadline, the provider will default the evaluation.
+
 
 ### TLS
 
