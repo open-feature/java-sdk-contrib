@@ -246,7 +246,7 @@ Provider telemetry combined with [flagd OpenTelemetry](https://flagd.dev/referen
 
 The `targetUri` is meant for gRPC custom name resolution (default is `dns`), this allows users to use different
 resolution method e.g. `xds`. Currently, we are supporting all [core resolver](https://grpc.io/docs/guides/custom-name-resolution/)
-and one custom resolver for ``envoy`` proxy resolution. For more details please refer the 
+and one custom resolver for `envoy` proxy resolution. For more details, please refer the 
 [RFC](https://github.com/open-feature/flagd/blob/main/docs/reference/specifications/proposal/rfc-grpc-custom-name-resolver.md) document.
 
 ```java
