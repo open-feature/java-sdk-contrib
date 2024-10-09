@@ -12,7 +12,6 @@ import java.net.URI;
  */
 public class EnvoyResolverProvider extends NameResolverProvider {
     static final String ENVOY_SCHEME = "envoy";
-    static final String DEFAULT_SERVICE_NAME = "undefined";
 
     @Override
     protected boolean isAvailable() {
