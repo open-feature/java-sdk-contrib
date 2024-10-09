@@ -95,8 +95,8 @@ public class ChannelBuilder {
             sslConfigException.initCause(ssle);
             throw sslConfigException;
         } catch (IllegalArgumentException argumentException) {
-            GenericConfigException genericConfigException = new GenericConfigException("Error with gRPC target string " +
-                    "configuration");
+            GenericConfigException genericConfigException = new GenericConfigException(
+                    "Error with gRPC target string configuration");
             genericConfigException.initCause(argumentException);
             throw genericConfigException;
         }

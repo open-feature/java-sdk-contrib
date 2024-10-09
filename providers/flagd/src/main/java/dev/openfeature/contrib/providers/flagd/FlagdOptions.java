@@ -126,8 +126,8 @@ public class FlagdOptions {
 
     /**
      * gRPC custom target string.
-     * <p>
-     * Setting this will allow user to use custom gRPC name resolver at present
+     *
+     * <p>Setting this will allow user to use custom gRPC name resolver at present
      * we are supporting all core resolver along with a custom resolver for envoy proxy
      * resolution. For more visit (https://grpc.io/docs/guides/custom-name-resolution/)
      */
