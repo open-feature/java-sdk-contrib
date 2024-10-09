@@ -242,7 +242,7 @@ Please refer [OpenTelemetry example](https://opentelemetry.io/docs/instrumentati
 
 Provider telemetry combined with [flagd OpenTelemetry](https://flagd.dev/reference/monitoring/#opentelemetry) allows you to have distributed traces.
 
-### TragetUri Support (gRPC name resolution)
+### Target URI Support (gRPC name resolution)
 
 The ``tagetUri`` is meant for gRPC custom name resolution (default is `dns`), this allows users to use different
 resolution method e.g. `xds`. Currently, we are supporting all [core resolver](https://grpc.io/docs/guides/custom-name-resolution/)
