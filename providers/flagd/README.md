@@ -151,7 +151,7 @@ and the evaluation will default.
 In-process resolver with remote evaluation uses the `deadline` for synchronous gRPC calls to fetch metadata from flagd as part of its initialization process.
 If fetching metadata fails within this deadline, the provider will try to reconnect.
 The `streamDeadlineMs` defines a deadline for the streaming connection that listens to flag configuration updates from 
-flagD. After the deadline exceeds, the provider closes the gRPC stream and will attempt to reconnect.
+flagd. After the deadline is exceeded, the provider closes the gRPC stream and will attempt to reconnect.
 
 A failure to connect within the deadline will result in
 an [error event](https://openfeature.dev/docs/reference/concepts/events#provider_error) from the provider, though it will attempt to reconnect indefinitely.
