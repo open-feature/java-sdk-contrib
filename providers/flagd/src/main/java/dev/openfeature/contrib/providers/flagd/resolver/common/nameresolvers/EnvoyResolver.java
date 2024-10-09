@@ -12,12 +12,12 @@ import java.util.List;
 /**
  * Envoy NameResolver, will always override the authority with the specified authority and
  * use the socketAddress to connect.
- * <p>
- * Custom URI Scheme:
- * <p>
- *     envoy://[proxy-agent-host]:[proxy-agent-port]/[service-name]
- * <p>
- * `service-name` is used as authority instead host
+ *
+ * <p>Custom URI Scheme:
+ *
+ * <p>envoy://[proxy-agent-host]:[proxy-agent-port]/[service-name]
+ *
+ * <p>`service-name` is used as authority instead host
  */
 public class EnvoyResolver extends NameResolver {
     private final URI uri;
