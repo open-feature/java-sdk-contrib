@@ -29,12 +29,12 @@ class ExponentialTimeBackoffTest {
     @ParameterizedTest(name = "{0} times backoff")
     @ValueSource(ints = {1, 2, 3, 4, 5})
     void backoffIncreasesExponentially(int iteration) {
-        ExponentialTimeBackoff target = new ExponentialTimeBackoff(1000);
+        ExponentialTimeBackoff target = new ExponentialTimeBackoff(2000, Long.MAX_VALUE);
         for (int i = 0; i < iteration; i++) {
             target.nextBackoff();
         }
 
-        long expectedValue = ((long) Math.pow(2, iteration)) * 1000;
+        long expectedValue = ((long) Math.pow(2, iteration)) * 2000;
         assertEquals(expectedValue, target.getCurrentBackoffMillis());
     }
 
@@ -47,6 +47,18 @@ class ExponentialTimeBackoffTest {
         target.nextBackoff();   // 5000 (8000)
 
         assertEquals(5000, target.getCurrentBackoffMillis());
+    }
+
+    @Test
+    void maxDefaultBackoffIsDefinedWhenNoBoundaryIsSet() {
+        ExponentialTimeBackoff target = new ExponentialTimeBackoff(1000);
+
+        // ~7 iterations == 128000; DEFAULT_MAX_BACK_OFF == 120000
+        for (int i = 0; i < 7; i++) {
+            target.nextBackoff();
+        }
+
+        assertEquals(ExponentialTimeBackoff.DEFAULT_MAX_BACK_OFF, target.getCurrentBackoffMillis());
     }
 
     @Test

@@ -5,23 +5,25 @@ package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
  * This backoff is never exhausted.
  */
 public class ExponentialTimeBackoff implements BackoffStrategy {
+    public static final long DEFAULT_MAX_BACK_OFF = 120 * 1000;
+
     private final long initialBackoff;
     private final long maxBackoff;
     private long currentBackoff;
 
     /**
      * A backoff strategy that exponentially increases the backoff time.
-     * This backoff will increase the backoff time by a factor of 2.
+     * This backoff will double the backoff time until the DEFAULT_MAX_BACK_OFF is reached.
      *
      * @param initialBackoffMillis the initial backoff time in milliseconds
      */
     public ExponentialTimeBackoff(long initialBackoffMillis) {
-        this(initialBackoffMillis, Long.MAX_VALUE);
+        this(initialBackoffMillis, DEFAULT_MAX_BACK_OFF);
     }
 
     /**
      * A backoff strategy that exponentially increases the backoff time.
-     * This backoff will increase the backoff time by a factor of 2 until the maximum backoff time is reached.
+     * This backoff will double the backoff time until the maximum backoff time is reached.
      * It is never exhausted but will stale at the maximum backoff time.
      *
      * @param initialBackoffMillis the initial backoff time in milliseconds
