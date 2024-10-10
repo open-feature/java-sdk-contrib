@@ -22,4 +22,9 @@ public class BackoffStrategies {
     public static BackoffStrategy noBackoff() {
         return new ConstantTimeBackoff(0L);
     }
+
+    public static BackoffStrategy maxRetriesWithExponentialTimeBackoffStrategy(int maxRetries,
+                                                                               long initialBackoffMillis) {
+        return new NumberOfRetriesBackoff(maxRetries, exponentialTimeBackoff(initialBackoffMillis));
+    }
 }

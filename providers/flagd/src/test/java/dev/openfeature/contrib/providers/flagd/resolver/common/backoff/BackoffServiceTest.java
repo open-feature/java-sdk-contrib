@@ -46,4 +46,26 @@ class BackoffServiceTest {
         verify(mockStrategy).getCurrentBackoffMillis();
         verify(mockStrategy).nextBackoff();
     }
+
+    @Test
+    void shouldRetryReturnsTrueIfStrategyIsNotExhausted() {
+        BackoffStrategy mockStrategy = mock(BackoffStrategy.class);
+        when(mockStrategy.isExhausted()).thenReturn(false);
+
+        BackoffService backoffService = new BackoffService(mockStrategy);
+
+        assertTrue(backoffService.shouldRetry());
+        verify(mockStrategy).isExhausted();
+    }
+
+    @Test
+    void shouldRetryReturnsFalseIfStrategyIsExhausted() {
+        BackoffStrategy mockStrategy = mock(BackoffStrategy.class);
+        when(mockStrategy.isExhausted()).thenReturn(true);
+
+        BackoffService backoffService = new BackoffService(mockStrategy);
+
+        assertFalse(backoffService.shouldRetry());
+        verify(mockStrategy).isExhausted();
+    }
 }

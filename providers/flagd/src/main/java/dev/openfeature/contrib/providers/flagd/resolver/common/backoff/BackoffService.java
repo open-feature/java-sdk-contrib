@@ -68,6 +68,14 @@ public class BackoffService {
     }
 
     /**
+     * Returns whether the backoff strategy has more attempts left.
+     * @return true if the backoff strategy has more attempts left, false otherwise
+     */
+    public boolean shouldRetry() {
+        return !strategy.isExhausted();
+    }
+
+    /**
      * Bolocks the current thread until the next attempt should be made.
      * The time to wait is determined by the backoff strategy and a random jitter.
      *
