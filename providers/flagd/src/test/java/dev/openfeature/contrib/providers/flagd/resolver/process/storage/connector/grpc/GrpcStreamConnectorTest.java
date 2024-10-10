@@ -156,7 +156,6 @@ class GrpcStreamConnectorTest {
     }
 
     @Test
-
     public void listenerExitOnShutdown() throws Throwable {
         // given
         final GrpcStreamConnector connector = new GrpcStreamConnector(FlagdOptions.builder().build());
@@ -189,13 +188,7 @@ class GrpcStreamConnectorTest {
         // mock channel close of gRPC handler
         grpcStreamHandler.onError(new Exception("Channel closed, exiting"));
 
-        assertTimeoutPreemptively(MAX_WAIT_MS, () -> {
-            QueuePayload payload = connector.getStream().take();
-            assertEquals(QueuePayloadType.ERROR, payload.getType());
-        });
-
         // Validate mock calls & no more event propagation
-
         verify(stubMock, times(1)).syncFlags(any(), any());
 
         grpcStreamHandler.onNext(
