@@ -22,9 +22,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Context;
 import io.grpc.Context.CancellableContext;
 import io.grpc.ManagedChannel;
-import io.grpc.Status.Code;
-import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.event.Level;
 
 /**
  * Implements the {@link Connector} contract and emit flags obtained from flagd
@@ -131,6 +130,7 @@ public class GrpcStreamConnector implements Connector {
         while (!shutdown.get()) {
             writeTo.clear();
             Exception metadataException = null;
+
             log.debug("Initializing sync stream request");
             final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
@@ -169,20 +169,24 @@ public class GrpcStreamConnector implements Connector {
                         break;
                     }
 
-                    if (response.getError() != null || metadataException != null) {
-                        if (response.getError() instanceof StatusRuntimeException
-                                && ((StatusRuntimeException) response.getError()).getStatus().getCode()
-                                        .equals(Code.DEADLINE_EXCEEDED)) {
-                            log.debug(String.format("Stream deadline reached, re-establishing in  %dms",
-                                    retryDelay));
-                        } else {
-                            log.error(String.format("Error initializing stream or metadata, retrying in %dms",
-                                    retryDelay), response.getError());
-                            if (!writeTo.offer(
-                                    new QueuePayload(QueuePayloadType.ERROR, "Error from stream or metadata",
-                                            metadataResponse))) {
-                                log.error("Failed to convey ERROR status, queue is full");
-                            }
+                    Throwable streamException = response.getError();
+                    if (streamException != null || metadataException != null) {
+
+                        if (streamException != null) {
+                            log.atLevel(getLogLevel(retryDelay))
+                                    .log("Error initializing stream, retrying in {}ms", retryDelay, streamException);
+                        }
+
+                        if (metadataException != null) {
+                            log.atLevel(getLogLevel(retryDelay))
+                                    .log("Error initializing metadata, retrying in {0}ms", retryDelay,
+                                            metadataException);
+                        }
+
+                        if (!writeTo.offer(
+                                new QueuePayload(QueuePayloadType.ERROR, "Error from stream or metadata",
+                                        metadataResponse))) {
+                            log.error("Failed to convey ERROR status, queue is full");
                         }
 
                         // close the context to cancel the stream in case just the metadata call failed
