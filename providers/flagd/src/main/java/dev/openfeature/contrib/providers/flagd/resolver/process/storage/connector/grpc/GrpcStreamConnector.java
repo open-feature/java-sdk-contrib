@@ -1,6 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -33,9 +32,6 @@ import org.slf4j.event.Level;
 @SuppressFBWarnings(value = { "PREDICTABLE_RANDOM",
     "EI_EXPOSE_REP" }, justification = "Random is used to generate a variation & flag configurations require exposing")
 public class GrpcStreamConnector implements Connector {
-    private static final Random RANDOM = new Random();
-    private static final int INIT_BACK_OFF = 2 * 1000;
-    private static final int MAX_BACK_OFF = 120 * 1000;
     private static final int QUEUE_SIZE = 5;
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
@@ -123,7 +119,7 @@ public class GrpcStreamConnector implements Connector {
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        int retryDelay = INIT_BACK_OFF;
+        final GrpcStreamConnectorBackoffService backoffService = GrpcStreamConnectorBackoffService.create();
 
         log.info("Initializing sync stream observer");
 
@@ -171,22 +167,17 @@ public class GrpcStreamConnector implements Connector {
 
                     Throwable streamException = response.getError();
                     if (streamException != null || metadataException != null) {
+                        long retryDelay = backoffService.getCurrentBackoffMillis();
 
-                        if (streamException != null) {
-                            log.atLevel(getLogLevel(retryDelay))
-                                    .log("Error initializing stream, retrying in {}ms", retryDelay, streamException);
-                        }
-
-                        if (metadataException != null) {
-                            log.atLevel(getLogLevel(retryDelay))
-                                    .log("Error initializing metadata, retrying in {0}ms", retryDelay,
-                                            metadataException);
-                        }
-
-                        if (!writeTo.offer(
-                                new QueuePayload(QueuePayloadType.ERROR, "Error from stream or metadata",
-                                        metadataResponse))) {
-                            log.error("Failed to convey ERROR status, queue is full");
+                        // if we are in silent recover mode, we should not expose the error to the client
+                        if (backoffService.shouldRecoverSilently()) {
+                            logExceptions(Level.INFO, streamException, metadataException, retryDelay);
+                        } else {
+                            logExceptions(Level.ERROR, streamException, metadataException, retryDelay);
+                            if (!writeTo.offer(new QueuePayload(QueuePayloadType.ERROR,
+                                    "Error from stream or metadata", metadataResponse))) {
+                                log.error("Failed to convey ERROR status, queue is full");
+                            }
                         }
 
                         // close the context to cancel the stream in case just the metadata call failed
@@ -195,35 +186,40 @@ public class GrpcStreamConnector implements Connector {
                     }
 
                     final SyncFlagsResponse flagsResponse = response.getSyncFlagsResponse();
-                    String data = flagsResponse.getFlagConfiguration();
-                    log.debug("Got stream response: " + data);
+                    final String data = flagsResponse.getFlagConfiguration();
+                    log.debug("Got stream response: {}", data);
 
-                    if (!writeTo.offer(
-                            new QueuePayload(QueuePayloadType.DATA, data, metadataResponse))) {
+                    if (!writeTo.offer(new QueuePayload(QueuePayloadType.DATA, data, metadataResponse))) {
                         log.error("Stream writing failed");
                     }
 
-                    // reset retry delay if we succeeded in a retry attempt
-                    retryDelay = INIT_BACK_OFF;
+                    // reset backoff if we succeeded in a retry attempt
+                    backoffService.reset();
                 }
             }
 
             // check for shutdown and avoid sleep
-            if (shutdown.get()) {
-                log.info("Shutdown invoked, exiting event stream listener");
-                return;
-            }
-
-            // busy wait till next attempt
-            log.debug(String.format("Stream failed, retrying in %dms", retryDelay));
-            Thread.sleep(retryDelay + RANDOM.nextInt(INIT_BACK_OFF));
-
-            if (retryDelay < MAX_BACK_OFF) {
-                retryDelay = 2 * retryDelay;
+            if (!shutdown.get()) {
+                log.debug("Stream failed, retrying in {}ms", backoffService.getCurrentBackoffMillis());
+                backoffService.waitUntilNextAttempt();
             }
         }
 
-        // log as this can happen after awakened from backoff sleep
         log.info("Shutdown invoked, exiting event stream listener");
+    }
+
+    private static void logExceptions(Level logLevel, Throwable streamException, Exception metadataException,
+                                      long retryDelay) {
+        if (streamException != null) {
+            log.atLevel(logLevel)
+                    .setCause(streamException)
+                    .log("Error initializing stream, retrying in {}ms", retryDelay);
+        }
+
+        if (metadataException != null) {
+            log.atLevel(logLevel)
+                    .setCause(metadataException)
+                    .log("Error initializing metadata, retrying in {}ms", retryDelay);
+        }
     }
 }

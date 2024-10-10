@@ -11,6 +11,12 @@
         <Package name="dev.openfeature.flagd.sync.*" />
     </Match>
 
+    <!-- Allow predictable random for backoff jitter generation -->
+    <Match>
+        <Class name="dev.openfeature.contrib.providers.flagd.resolver.common.backoff.BackoffService" />
+        <Bug pattern="PREDICTABLE_RANDOM" />
+    </Match>
+
     <!-- All bugs in test classes, except for JUnit-specific bugs -->
     <Match>
         <Class name="~.*\.*Test" />
