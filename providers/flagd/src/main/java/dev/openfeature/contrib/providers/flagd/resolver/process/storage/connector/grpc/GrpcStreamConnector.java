@@ -42,6 +42,7 @@ public class GrpcStreamConnector implements Connector {
     private final int deadline;
     private final int streamDeadlineMs;
     private final String selector;
+    private final int retryBackoffMillis;
 
     /**
      * Construct a new GrpcStreamConnector.
@@ -55,6 +56,7 @@ public class GrpcStreamConnector implements Connector {
         deadline = options.getDeadline();
         streamDeadlineMs = options.getStreamDeadlineMs();
         selector = options.getSelector();
+        retryBackoffMillis = options.getRetryBackoffMs();
     }
 
     /**
@@ -64,7 +66,7 @@ public class GrpcStreamConnector implements Connector {
         Thread listener = new Thread(() -> {
             try {
                 observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline,
-                        streamDeadlineMs);
+                        streamDeadlineMs, retryBackoffMillis);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -110,16 +112,18 @@ public class GrpcStreamConnector implements Connector {
      * Contains blocking calls, to be used concurrently.
      */
     static void observeEventStream(final BlockingQueue<QueuePayload> writeTo,
-            final AtomicBoolean shutdown,
-            final FlagSyncServiceStub serviceStub,
-            final FlagSyncServiceBlockingStub serviceBlockingStub,
-            final String selector,
-            final int deadline,
-            final int streamDeadlineMs)
+                                   final AtomicBoolean shutdown,
+                                   final FlagSyncServiceStub serviceStub,
+                                   final FlagSyncServiceBlockingStub serviceBlockingStub,
+                                   final String selector,
+                                   final int deadline,
+                                   final int streamDeadlineMs,
+                                   int retryBackoffMillis)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        final GrpcStreamConnectorBackoffService backoffService = GrpcStreamConnectorBackoffService.create();
+        final GrpcStreamConnectorBackoffService backoffService = GrpcStreamConnectorBackoffService
+                .create(retryBackoffMillis);
 
         log.info("Initializing sync stream observer");
 
@@ -170,7 +174,7 @@ public class GrpcStreamConnector implements Connector {
                         long retryDelay = backoffService.getCurrentBackoffMillis();
 
                         // if we are in silent recover mode, we should not expose the error to the client
-                        if (backoffService.shouldRecoverSilently()) {
+                        if (backoffService.shouldRetrySilently()) {
                             logExceptions(Level.INFO, streamException, metadataException, retryDelay);
                         } else {
                             logExceptions(Level.ERROR, streamException, metadataException, retryDelay);

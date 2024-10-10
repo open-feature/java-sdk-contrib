@@ -8,9 +8,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.NumberOfR
 import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.CombinedBackoff;
 
 class GrpcStreamConnectorBackoffService extends BackoffService {
-    private static final int INIT_BACK_OFF = 2 * 1000;
-    private static final int MAX_BACK_OFF = 120 * 1000;
-
     private final BackoffStrategy silentRecoverBackoff;
 
     /**
@@ -19,12 +16,12 @@ class GrpcStreamConnectorBackoffService extends BackoffService {
      *
      * @return a new instance of the backoff service
      */
-    public static GrpcStreamConnectorBackoffService create() {
+    public static GrpcStreamConnectorBackoffService create(long initialBackoffMillis) {
         // Try to recover silently on the first failure without backoff
         BackoffStrategy silentRecoverBackoff = new NumberOfRetriesBackoff(1, BackoffStrategies.noBackoff());
 
         // Backoff exponentially for subsequent failures
-        BackoffStrategy errorRecoveryBackoff = BackoffStrategies.exponentialTimeBackoff(INIT_BACK_OFF, MAX_BACK_OFF);
+        BackoffStrategy errorRecoveryBackoff = BackoffStrategies.exponentialTimeBackoff(initialBackoffMillis);
 
         return new GrpcStreamConnectorBackoffService(silentRecoverBackoff, errorRecoveryBackoff);
     }
@@ -37,7 +34,7 @@ class GrpcStreamConnectorBackoffService extends BackoffService {
         this.silentRecoverBackoff = silentRecoverBackoff;
     }
 
-    public boolean shouldRecoverSilently() {
+    public boolean shouldRetrySilently() {
         return ((CombinedBackoff) getStrategy()).getCurrentStrategy() == silentRecoverBackoff;
     }
 }
