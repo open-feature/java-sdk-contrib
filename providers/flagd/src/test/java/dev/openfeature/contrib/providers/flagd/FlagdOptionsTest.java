@@ -54,6 +54,7 @@ class FlagdOptionsTest {
                 .openTelemetry(openTelemetry)
                 .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
+                .targetUri("dns:///localhost:8016")
                 .keepAlive(1000)
                 .build();
 
@@ -69,6 +70,7 @@ class FlagdOptionsTest {
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
         assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
+        assertEquals("dns:///localhost:8016", flagdOptions.getTargetUri());
         assertEquals(1000, flagdOptions.getKeepAlive());
     }
 
@@ -186,5 +188,13 @@ class FlagdOptionsTest {
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
         assertThat(flagdOptions.getPort()).isEqualTo(1534);
 
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = GRPC_TARGET_ENV_VAR_NAME, value = "envoy://localhost:1234/foo.service")
+    void testTargetOverrideFromEnv() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getTargetUri()).isEqualTo("envoy://localhost:1234/foo.service");
     }
 }
