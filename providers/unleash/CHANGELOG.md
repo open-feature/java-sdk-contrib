@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.0-alpha...dev.openfeature.contrib.providers.unleash-v0.1.1-alpha) (2024-10-10)
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.1 ([#986](https://github.com/open-feature/java-sdk-contrib/issues/986)) ([1e53431](https://github.com/open-feature/java-sdk-contrib/commit/1e53431353c1de0856db6bdb815d2218d9ac94a2))
+
 ## [0.1.0-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.4-alpha...dev.openfeature.contrib.providers.unleash-v0.1.0-alpha) (2024-09-25)
 
 
