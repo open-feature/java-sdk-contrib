@@ -18,9 +18,13 @@ public class EnvoyResolverProvider extends NameResolverProvider {
         return true;
     }
 
+    // setting priority higher than the default i.e. 5
+    // could lead to issue since the resolver override the default
+    // dns provider.
+    // https://grpc.github.io/grpc-java/javadoc/io/grpc/NameResolverProvider.html?is-external=true#priority()
     @Override
     protected int priority() {
-        return 6;
+        return 5;
     }
 
     @Override
