@@ -17,7 +17,7 @@ import org.testcontainers.containers.GenericContainer;
 @Order(value = Integer.MAX_VALUE)
 public class FlagdInProcessSetup {
 
-    private static final GenericContainer flagdContainer = ContainerConfig.sync(true);
+    private static final GenericContainer flagdContainer = ContainerConfig.sync(true, false);
     @BeforeAll()
     public static void setup() throws InterruptedException {
         flagdContainer.start();
