@@ -102,14 +102,14 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-            <version>1.15.3</version>
+            <version>1.15.4</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
-            <version>1.15.3</version>
+            <version>1.15.4</version>
             <scope>test</scope>
         </dependency>
         <!-- End mockito workaround-->
@@ -201,14 +201,14 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.20.0</version>
+            <version>7.20.1</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.20.0</version>
+            <version>7.20.1</version>
             <scope>test</scope>
         </dependency>
 
