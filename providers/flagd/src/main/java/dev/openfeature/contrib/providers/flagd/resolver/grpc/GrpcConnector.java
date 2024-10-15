@@ -1,16 +1,10 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
+import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.GrpcStreamConnectorBackoffService;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
@@ -20,6 +14,14 @@ import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import static dev.openfeature.contrib.providers.flagd.resolver.common.backoff.BackoffStrategies.maxRetriesWithExponentialTimeBackoffStrategy;
+
 /**
  * Class that abstracts the gRPC communication with flagd.
  */
@@ -27,48 +29,44 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
     private final Object sync = new Object();
-    private final Random random = new Random();
 
     private final ServiceGrpc.ServiceBlockingStub serviceBlockingStub;
     private final ServiceGrpc.ServiceStub serviceStub;
     private final ManagedChannel channel;
-    private final int maxEventStreamRetries;
 
-    private final int startEventStreamRetryBackoff;
     private final long deadline;
     private final long streamDeadlineMs;
 
     private final Cache cache;
     private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Supplier<Boolean> connectedSupplier;
-
-    private int eventStreamAttempt = 1;
-    private int eventStreamRetryBackoff;
+    private final GrpcStreamConnectorBackoffService backoff;
 
     // Thread responsible for event observation
     private Thread eventObserverThread;
 
     /**
      * GrpcConnector creates an abstraction over gRPC communication.
-     * 
-     * @param options flagd options
-     * @param cache cache to use
+     *
+     * @param options           flagd options
+     * @param cache             cache to use
      * @param connectedSupplier lambda providing current connection status from caller
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
     public GrpcConnector(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
-        Consumer<ConnectionEvent> onConnectionEvent) {
+                         Consumer<ConnectionEvent> onConnectionEvent) {
         this.channel = ChannelBuilder.nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
-        this.maxEventStreamRetries = options.getMaxEventStreamRetries();
-        this.startEventStreamRetryBackoff = options.getRetryBackoffMs();
-        this.eventStreamRetryBackoff = options.getRetryBackoffMs();
         this.deadline = options.getDeadline();
         this.streamDeadlineMs = options.getStreamDeadlineMs();
         this.cache = cache;
         this.onConnectionEvent = onConnectionEvent;
         this.connectedSupplier = connectedSupplier;
+        this.backoff = new GrpcStreamConnectorBackoffService(maxRetriesWithExponentialTimeBackoffStrategy(
+                options.getMaxEventStreamRetries(),
+                options.getRetryBackoffMs())
+        );
     }
 
     /**
@@ -125,9 +123,9 @@ public class GrpcConnector {
      * run in a dedicated thread.
      */
     private void observeEventStream() {
-        while (this.eventStreamAttempt <= this.maxEventStreamRetries) {
+        while (backoff.shouldRetry()) {
             final StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(sync, this.cache,
-                    this::onConnectionEvent);
+                    this::onConnectionEvent, backoff::shouldRetrySilently);
 
             ServiceGrpc.ServiceStub localServiceStub = this.serviceStub;
 
@@ -150,12 +148,8 @@ public class GrpcConnector {
                 Thread.currentThread().interrupt();
             }
 
-            this.eventStreamAttempt++;
-            // backoff with a jitter
-            this.eventStreamRetryBackoff = 2 * this.eventStreamRetryBackoff + random.nextInt(100);
-
             try {
-                Thread.sleep(this.eventStreamRetryBackoff);
+                backoff.waitUntilNextAttempt();
             } catch (InterruptedException e) {
                 // Interruptions are considered end calls for this observer, hence log and
                 // return
@@ -171,9 +165,9 @@ public class GrpcConnector {
     private void onConnectionEvent(final boolean connected, final List<String> changedFlags) {
         // reset reconnection states
         if (connected) {
-            this.eventStreamAttempt = 1;
-            this.eventStreamRetryBackoff = this.startEventStreamRetryBackoff;
+            backoff.reset();
         }
+
         // chain to initiator
         this.onConnectionEvent.accept(new ConnectionEvent(connected, changedFlags));
     }

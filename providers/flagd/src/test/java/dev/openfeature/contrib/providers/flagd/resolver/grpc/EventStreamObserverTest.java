@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -38,6 +39,7 @@ class EventStreamObserverTest {
         EventStreamObserver stream;
         Runnable reconnect;
         Object sync;
+        Supplier<Boolean> shouldRetrySilently;
 
         @BeforeEach
         void setUp() {
@@ -46,7 +48,9 @@ class EventStreamObserverTest {
             cache = mock(Cache.class);
             reconnect = mock(Runnable.class);
             when(cache.getEnabled()).thenReturn(true);
-            stream = new EventStreamObserver(sync, cache, (state, changed) -> states.add(state));
+            shouldRetrySilently = mock(Supplier.class);
+            when(shouldRetrySilently.get()).thenReturn(true, false); // 1st time we should retry silently, subsequent calls should not
+            stream = new EventStreamObserver(sync, cache, (state, changed) -> states.add(state), shouldRetrySilently);
         }
 
         @Test
@@ -77,8 +81,18 @@ class EventStreamObserverTest {
         }
 
         @Test
-        public void reconnections() {
+        public void noReconnectionOnFirstError() {
             stream.onError(new Throwable("error"));
+            // we flush the cache
+            verify(cache, never()).clear();
+            // we notify the error
+            assertEquals(0, states.size());
+        }
+
+        @Test
+        public void reconnections() {
+            stream.onError(new Throwable("error 1"));
+            stream.onError(new Throwable("error 2"));
             // we flush the cache
             verify(cache, atLeast(1)).clear();
             // we notify the error

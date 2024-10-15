@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
@@ -38,11 +39,11 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
-public class GrpcConnectorTest {
+class GrpcConnectorTest {
 
     @ParameterizedTest
     @ValueSource(ints = { 1, 2, 3 })
-    void validate_retry_calls(int retries) throws NoSuchFieldException, IllegalAccessException {
+    void validate_retry_calls(int retries) throws Exception {
         final int backoffMs = 100;
 
         final FlagdOptions options = FlagdOptions.builder()
@@ -70,11 +71,7 @@ public class GrpcConnectorTest {
         syncField.setAccessible(true);
         syncField.set(connector, syncObject);
 
-        try {
-            connector.initialize();
-        } catch (Exception e) {
-            // ignored - we expect the failure and this test validate retry attempts
-        }
+        assertDoesNotThrow(connector::initialize);
 
         for (int i = 1; i < retries; i++) {
             // verify invocation with enough timeout value
@@ -87,7 +84,7 @@ public class GrpcConnectorTest {
     }
 
     @Test
-    void initialization_succeed_with_connected_status() throws NoSuchFieldException, IllegalAccessException {
+    void initialization_succeed_with_connected_status() {
         final Cache cache = new Cache("disabled", 0);
         final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
@@ -121,7 +118,7 @@ public class GrpcConnectorTest {
     }
 
     @Test
-    void stream_fails_with_error() throws Exception {
+    void stream_does_not_fail_on_first_error() {
         final Cache cache = new Cache("disabled", 0);
         final ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
@@ -137,7 +134,8 @@ public class GrpcConnectorTest {
                     .thenReturn(mockStub);
 
             // pass true in connected lambda
-            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> {
+            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache,
+                    () -> {
                 try {
                     Thread.sleep(100);
                     return true;
@@ -149,9 +147,116 @@ public class GrpcConnectorTest {
                     onConnectionEvent);
 
             assertDoesNotThrow(connector::initialize);
-            // assert that onConnectionEvent is connected
-            verify(onConnectionEvent).accept(argThat(arg -> !arg.isConnected()));
+            // assert that onConnectionEvent is connected gets not called
+            verify(onConnectionEvent, timeout(300).times(0)).accept(any());
         }
+    }
+
+    @Test
+    void stream_fails_on_second_error_in_a_row() throws Exception {
+        final FlagdOptions options = FlagdOptions.builder()
+                // shorter backoff for testing
+                .retryBackoffMs(0)
+                .build();
+
+        final Cache cache = new Cache("disabled", 0);
+        Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
+
+        final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
+        doAnswer((InvocationOnMock invocation) -> {
+            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+            eventStreamObserver
+                    .onError(new Exception("fake"));
+            return null;
+        }).when(mockStub).eventStream(any(), any());
+
+        final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, onConnectionEvent);
+
+        Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
+        serviceStubField.setAccessible(true);
+        serviceStubField.set(connector, mockStub);
+
+        final Object syncObject = new Object();
+
+        Field syncField = GrpcConnector.class.getDeclaredField("sync");
+        syncField.setAccessible(true);
+        syncField.set(connector, syncObject);
+
+        assertDoesNotThrow(connector::initialize);
+
+        // 1st try
+        verify(mockStub, timeout(300).times(1)).eventStream(any(), any());
+        verify(onConnectionEvent, timeout(300).times(0)).accept(any());
+        synchronized (syncObject) {
+            syncObject.notify();
+        }
+
+        // 2nd try
+        verify(mockStub, timeout(300).times(2)).eventStream(any(), any());
+        verify(onConnectionEvent, timeout(300).times(1)).accept(argThat(arg -> !arg.isConnected()));
+
+    }
+
+    @Test
+    void stream_does_not_fail_when_message_between_errors() throws Exception {
+        final FlagdOptions options = FlagdOptions.builder()
+                // shorter backoff for testing
+                .retryBackoffMs(0)
+                .build();
+
+        final Cache cache = new Cache("disabled", 0);
+        Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
+
+        final AtomicBoolean successMessage = new AtomicBoolean(false);
+        final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
+        doAnswer((InvocationOnMock invocation) -> {
+            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+
+            if (successMessage.get()) {
+                eventStreamObserver
+                        .onNext(EventStreamResponse.newBuilder().setType(Constants.PROVIDER_READY).build());
+            } else {
+                eventStreamObserver
+                        .onError(new Exception("fake"));
+            }
+            return null;
+        }).when(mockStub).eventStream(any(), any());
+
+        final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, onConnectionEvent);
+
+        Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
+        serviceStubField.setAccessible(true);
+        serviceStubField.set(connector, mockStub);
+
+        final Object syncObject = new Object();
+
+        Field syncField = GrpcConnector.class.getDeclaredField("sync");
+        syncField.setAccessible(true);
+        syncField.set(connector, syncObject);
+
+        assertDoesNotThrow(connector::initialize);
+
+        // 1st message with error
+        verify(mockStub, timeout(300).times(1)).eventStream(any(), any());
+        verify(onConnectionEvent, timeout(300).times(0)).accept(any());
+
+        synchronized (syncObject) {
+            successMessage.set(true);
+            syncObject.notify();
+        }
+
+        // 2nd message with provider ready
+        verify(mockStub, timeout(300).times(2)).eventStream(any(), any());
+        verify(onConnectionEvent, timeout(300).times(1)).accept(argThat(arg -> arg.isConnected()));
+        synchronized (syncObject) {
+            successMessage.set(false);
+            syncObject.notify();
+        }
+
+
+        // 3nd message with error
+        verify(mockStub, timeout(300).times(2)).eventStream(any(), any());
+        verify(onConnectionEvent, timeout(300).times(0)).accept(argThat(arg -> !arg.isConnected()));
     }
 
     @Test

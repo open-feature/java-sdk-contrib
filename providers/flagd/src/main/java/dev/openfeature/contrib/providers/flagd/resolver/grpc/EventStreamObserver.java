@@ -5,14 +5,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import com.google.protobuf.Value;
 
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.grpc.Status.Code;
-import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,20 +22,24 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     private final BiConsumer<Boolean, List<String>> onConnectionEvent;
+    private final Supplier<Boolean> shouldRetrySilently;
     private final Object sync;
     private final Cache cache;
 
     /**
      * Create a gRPC stream that get notified about flag changes.
      *
-     * @param sync              synchronization object from caller
-     * @param cache             cache to update
-     * @param onConnectionEvent lambda to call to handle the response
+     * @param sync                synchronization object from caller
+     * @param cache               cache to update
+     * @param onConnectionEvent   lambda to call to handle the response
+     * @param shouldRetrySilently Boolean supplier indicating if the GRPC connector will try to recover silently
      */
-    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent) {
+    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent,
+                        Supplier<Boolean> shouldRetrySilently) {
         this.sync = sync;
         this.cache = cache;
         this.onConnectionEvent = onConnectionEvent;
+        this.shouldRetrySilently = shouldRetrySilently;
     }
 
     @Override
@@ -55,12 +58,10 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
 
     @Override
     public void onError(Throwable throwable) {
-        if (throwable instanceof StatusRuntimeException
-                && ((StatusRuntimeException) throwable).getStatus().getCode()
-                        .equals(Code.DEADLINE_EXCEEDED)) {
-            log.debug(String.format("stream deadline reached; will re-establish"));
+        if (Boolean.TRUE.equals(shouldRetrySilently.get())) {
+            log.debug("Event stream error, trying to recover", throwable);
         } else {
-            log.error(String.format("event stream error", throwable));
+            log.error("Event stream error", throwable);
             if (this.cache.getEnabled()) {
                 this.cache.clear();
             }

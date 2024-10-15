@@ -1,6 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -8,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
+import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.GrpcStreamConnectorBackoffService;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
@@ -22,9 +22,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Context;
 import io.grpc.Context.CancellableContext;
 import io.grpc.ManagedChannel;
-import io.grpc.Status.Code;
-import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.event.Level;
 
 /**
  * Implements the {@link Connector} contract and emit flags obtained from flagd
@@ -34,9 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressFBWarnings(value = { "PREDICTABLE_RANDOM",
     "EI_EXPOSE_REP" }, justification = "Random is used to generate a variation & flag configurations require exposing")
 public class GrpcStreamConnector implements Connector {
-    private static final Random RANDOM = new Random();
-    private static final int INIT_BACK_OFF = 2 * 1000;
-    private static final int MAX_BACK_OFF = 120 * 1000;
     private static final int QUEUE_SIZE = 5;
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
@@ -47,6 +43,7 @@ public class GrpcStreamConnector implements Connector {
     private final int deadline;
     private final int streamDeadlineMs;
     private final String selector;
+    private final int retryBackoffMillis;
 
     /**
      * Construct a new GrpcStreamConnector.
@@ -60,6 +57,7 @@ public class GrpcStreamConnector implements Connector {
         deadline = options.getDeadline();
         streamDeadlineMs = options.getStreamDeadlineMs();
         selector = options.getSelector();
+        retryBackoffMillis = options.getRetryBackoffMs();
     }
 
     /**
@@ -69,7 +67,7 @@ public class GrpcStreamConnector implements Connector {
         Thread listener = new Thread(() -> {
             try {
                 observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline,
-                        streamDeadlineMs);
+                        streamDeadlineMs, retryBackoffMillis);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -115,22 +113,25 @@ public class GrpcStreamConnector implements Connector {
      * Contains blocking calls, to be used concurrently.
      */
     static void observeEventStream(final BlockingQueue<QueuePayload> writeTo,
-            final AtomicBoolean shutdown,
-            final FlagSyncServiceStub serviceStub,
-            final FlagSyncServiceBlockingStub serviceBlockingStub,
-            final String selector,
-            final int deadline,
-            final int streamDeadlineMs)
+                                   final AtomicBoolean shutdown,
+                                   final FlagSyncServiceStub serviceStub,
+                                   final FlagSyncServiceBlockingStub serviceBlockingStub,
+                                   final String selector,
+                                   final int deadline,
+                                   final int streamDeadlineMs,
+                                   int retryBackoffMillis)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        int retryDelay = INIT_BACK_OFF;
+        final GrpcStreamConnectorBackoffService backoffService =
+                new GrpcStreamConnectorBackoffService(retryBackoffMillis);
 
         log.info("Initializing sync stream observer");
 
         while (!shutdown.get()) {
             writeTo.clear();
             Exception metadataException = null;
+
             log.debug("Initializing sync stream request");
             final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
@@ -169,18 +170,17 @@ public class GrpcStreamConnector implements Connector {
                         break;
                     }
 
-                    if (response.getError() != null || metadataException != null) {
-                        if (response.getError() instanceof StatusRuntimeException
-                                && ((StatusRuntimeException) response.getError()).getStatus().getCode()
-                                        .equals(Code.DEADLINE_EXCEEDED)) {
-                            log.debug(String.format("Stream deadline reached, re-establishing in  %dms",
-                                    retryDelay));
+                    Throwable streamException = response.getError();
+                    if (streamException != null || metadataException != null) {
+                        long retryDelay = backoffService.getCurrentBackoffMillis();
+
+                        // if we are in silent recover mode, we should not expose the error to the client
+                        if (backoffService.shouldRetrySilently()) {
+                            logExceptions(Level.INFO, streamException, metadataException, retryDelay);
                         } else {
-                            log.error(String.format("Error initializing stream or metadata, retrying in %dms",
-                                    retryDelay), response.getError());
-                            if (!writeTo.offer(
-                                    new QueuePayload(QueuePayloadType.ERROR, "Error from stream or metadata",
-                                            metadataResponse))) {
+                            logExceptions(Level.ERROR, streamException, metadataException, retryDelay);
+                            if (!writeTo.offer(new QueuePayload(QueuePayloadType.ERROR,
+                                    "Error from stream or metadata", metadataResponse))) {
                                 log.error("Failed to convey ERROR status, queue is full");
                             }
                         }
@@ -191,35 +191,40 @@ public class GrpcStreamConnector implements Connector {
                     }
 
                     final SyncFlagsResponse flagsResponse = response.getSyncFlagsResponse();
-                    String data = flagsResponse.getFlagConfiguration();
-                    log.debug("Got stream response: " + data);
+                    final String data = flagsResponse.getFlagConfiguration();
+                    log.debug("Got stream response: {}", data);
 
-                    if (!writeTo.offer(
-                            new QueuePayload(QueuePayloadType.DATA, data, metadataResponse))) {
+                    if (!writeTo.offer(new QueuePayload(QueuePayloadType.DATA, data, metadataResponse))) {
                         log.error("Stream writing failed");
                     }
 
-                    // reset retry delay if we succeeded in a retry attempt
-                    retryDelay = INIT_BACK_OFF;
+                    // reset backoff if we succeeded in a retry attempt
+                    backoffService.reset();
                 }
             }
 
             // check for shutdown and avoid sleep
-            if (shutdown.get()) {
-                log.info("Shutdown invoked, exiting event stream listener");
-                return;
-            }
-
-            // busy wait till next attempt
-            log.debug(String.format("Stream failed, retrying in %dms", retryDelay));
-            Thread.sleep(retryDelay + RANDOM.nextInt(INIT_BACK_OFF));
-
-            if (retryDelay < MAX_BACK_OFF) {
-                retryDelay = 2 * retryDelay;
+            if (!shutdown.get()) {
+                log.debug("Stream failed, retrying in {}ms", backoffService.getCurrentBackoffMillis());
+                backoffService.waitUntilNextAttempt();
             }
         }
 
-        // log as this can happen after awakened from backoff sleep
         log.info("Shutdown invoked, exiting event stream listener");
+    }
+
+    private static void logExceptions(Level logLevel, Throwable streamException, Exception metadataException,
+                                      long retryDelay) {
+        if (streamException != null) {
+            log.atLevel(logLevel)
+                    .setCause(streamException)
+                    .log("Error initializing stream, retrying in {}ms", retryDelay);
+        }
+
+        if (metadataException != null) {
+            log.atLevel(logLevel)
+                    .setCause(metadataException)
+                    .log("Error initializing metadata, retrying in {}ms", retryDelay);
+        }
     }
 }
