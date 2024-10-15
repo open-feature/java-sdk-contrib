@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.0...dev.openfeature.contrib.providers.flagd-v0.9.1) (2024-10-15)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update opentelemetry-java monorepo to v1.43.0 ([#1020](https://github.com/open-feature/java-sdk-contrib/issues/1020)) ([67682a8](https://github.com/open-feature/java-sdk-contrib/commit/67682a8d8a0a69c157e0d4a78bf541c5c7c60971))
+* make flagd config EvaluatorType public ([#1014](https://github.com/open-feature/java-sdk-contrib/issues/1014)) ([c99c66b](https://github.com/open-feature/java-sdk-contrib/commit/c99c66b3e6be4b61005f025f4ce355358dd116e6))
+
+
+### ✨ New Features
+
+* tolerate immediately recoverable stream faults, improve logging ([#1019](https://github.com/open-feature/java-sdk-contrib/issues/1019)) ([3110076](https://github.com/open-feature/java-sdk-contrib/commit/3110076474f9141473c23a4e5207a005fc619904))
+
+
+### 🧹 Chore
+
+* **deps:** update junit5 monorepo ([#1000](https://github.com/open-feature/java-sdk-contrib/issues/1000)) ([80c237e](https://github.com/open-feature/java-sdk-contrib/commit/80c237e91633617d88d6b42d3bcce8fa0492aec3))
+
+
+### 📚 Documentation
+
+* **flagd:** Update deadline docs ([#1011](https://github.com/open-feature/java-sdk-contrib/issues/1011)) ([40ed928](https://github.com/open-feature/java-sdk-contrib/commit/40ed92828b5fc959b8f0bd7ee777656980cf2179))
+
 ## [0.9.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.8.9...dev.openfeature.contrib.providers.flagd-v0.9.0) (2024-10-04)
 
 
