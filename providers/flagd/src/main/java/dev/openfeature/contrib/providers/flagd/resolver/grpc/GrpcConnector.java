@@ -4,7 +4,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
-import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.BackoffService;
+import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.GrpcStreamConnectorBackoffService;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
@@ -40,7 +40,7 @@ public class GrpcConnector {
     private final Cache cache;
     private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Supplier<Boolean> connectedSupplier;
-    private final BackoffService backoff;
+    private final GrpcStreamConnectorBackoffService backoff;
 
     // Thread responsible for event observation
     private Thread eventObserverThread;
@@ -63,7 +63,7 @@ public class GrpcConnector {
         this.cache = cache;
         this.onConnectionEvent = onConnectionEvent;
         this.connectedSupplier = connectedSupplier;
-        this.backoff = new BackoffService(maxRetriesWithExponentialTimeBackoffStrategy(
+        this.backoff = new GrpcStreamConnectorBackoffService(maxRetriesWithExponentialTimeBackoffStrategy(
                 options.getMaxEventStreamRetries(),
                 options.getRetryBackoffMs())
         );
@@ -125,7 +125,7 @@ public class GrpcConnector {
     private void observeEventStream() {
         while (backoff.shouldRetry()) {
             final StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(sync, this.cache,
-                    this::onConnectionEvent);
+                    this::onConnectionEvent, backoff::shouldRetrySilently);
 
             ServiceGrpc.ServiceStub localServiceStub = this.serviceStub;
 
@@ -167,6 +167,7 @@ public class GrpcConnector {
         if (connected) {
             backoff.reset();
         }
+
         // chain to initiator
         this.onConnectionEvent.accept(new ConnectionEvent(connected, changedFlags));
     }

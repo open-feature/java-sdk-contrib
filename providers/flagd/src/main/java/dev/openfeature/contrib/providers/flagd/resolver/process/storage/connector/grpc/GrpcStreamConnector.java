@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
+import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.GrpcStreamConnectorBackoffService;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
@@ -122,8 +123,8 @@ public class GrpcStreamConnector implements Connector {
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        final GrpcStreamConnectorBackoffService backoffService = GrpcStreamConnectorBackoffService
-                .create(retryBackoffMillis);
+        final GrpcStreamConnectorBackoffService backoffService =
+                new GrpcStreamConnectorBackoffService(retryBackoffMillis);
 
         log.info("Initializing sync stream observer");
 
