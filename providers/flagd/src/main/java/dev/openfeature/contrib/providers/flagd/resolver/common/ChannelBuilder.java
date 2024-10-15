@@ -111,7 +111,7 @@ public class ChannelBuilder {
             final String scheme = new URI(targetUri).getScheme();
             if (scheme.equals(SupportedScheme.ENVOY.getScheme()) || scheme.equals(SupportedScheme.DNS.getScheme())
                     || scheme.equals(SupportedScheme.XDS.getScheme())
-                    q|| scheme.equals(SupportedScheme.UDS.getScheme())) {
+                    || scheme.equals(SupportedScheme.UDS.getScheme())) {
                 return true;
             }
         } catch (URISyntaxException e) {
