@@ -20,7 +20,7 @@ import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 @SelectClasspathResource("features/flagd-json-evaluator.feature")
 @SelectClasspathResource("features/flagd.feature")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.process,dev.openfeature.contrib.providers.flagd.e2e.steps")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.process.core,dev.openfeature.contrib.providers.flagd.e2e.steps")
 @Testcontainers
 public class RunFlagdInProcessCucumberTest {
 

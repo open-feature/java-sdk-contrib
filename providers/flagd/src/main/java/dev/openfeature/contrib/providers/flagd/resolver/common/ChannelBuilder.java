@@ -109,7 +109,9 @@ public class ChannelBuilder {
 
         try {
             final String scheme = new URI(targetUri).getScheme();
-            if (scheme.equals("envoy") || scheme.equals("dns") || scheme.equals("xds") || scheme.equals("uds")) {
+            if (scheme.equals(SupportedScheme.ENVOY.getScheme()) || scheme.equals(SupportedScheme.DNS.getScheme())
+                    || scheme.equals(SupportedScheme.XDS.getScheme())
+                    q|| scheme.equals(SupportedScheme.UDS.getScheme())) {
                 return true;
             }
         } catch (URISyntaxException e) {
@@ -126,7 +128,7 @@ public class ChannelBuilder {
 
         try {
             final String scheme = new URI(targetUri).getScheme();
-            if (scheme.equals("envoy")) {
+            if (scheme.equals(SupportedScheme.ENVOY.getScheme())) {
                 return true;
             }
         } catch (URISyntaxException e) {

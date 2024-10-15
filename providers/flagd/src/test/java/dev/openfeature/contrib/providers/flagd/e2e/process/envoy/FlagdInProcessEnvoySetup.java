@@ -14,7 +14,7 @@ import org.testcontainers.containers.GenericContainer;
 
 @Isolated()
 @Order(value = Integer.MAX_VALUE)
-public class FlagdInProcessSetup {
+public class FlagdInProcessEnvoySetup {
 
     private static FeatureProvider provider;
 
@@ -28,10 +28,10 @@ public class FlagdInProcessSetup {
         final String targetUri = String.format("envoy://localhost:%s/flagd-sync.service",
                 envoyContainer.getFirstMappedPort());
 
-        FlagdInProcessSetup.provider = new FlagdProvider(FlagdOptions.builder()
+        FlagdInProcessEnvoySetup.provider = new FlagdProvider(FlagdOptions.builder()
                 .resolverType(Config.Resolver.IN_PROCESS)
-                // set a generous deadline, to prevent timeouts in actions
-                .deadline(3000)
+                .deadline(1000)
+                .streamDeadlineMs(0) // this makes reconnect tests more predictabl
                 .targetUri(targetUri)
                 .build());
         StepDefinitions.setProvider(provider);

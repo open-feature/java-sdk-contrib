@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e.process;
+package dev.openfeature.contrib.providers.flagd.e2e.process.core;
 
 import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
 import io.cucumber.java.AfterAll;
