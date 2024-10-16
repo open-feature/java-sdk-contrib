@@ -108,6 +108,7 @@ Given below are the supported configurations:
 | resolver              | FLAGD_RESOLVER                 | String - rpc, in-process | rpc       |                     |
 | host                  | FLAGD_HOST                     | String                   | localhost | rpc & in-process    |
 | port                  | FLAGD_PORT                     | int                      | 8013      | rpc & in-process    |
+| targetUri             | FLAGD_GRPC_TARGET              | string                   | null      | rpc & in-process    |
 | tls                   | FLAGD_TLS                      | boolean                  | false     | rpc & in-process    |
 | socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process    |
 | certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process    |
@@ -123,6 +124,7 @@ Given below are the supported configurations:
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.
+>
 
 ### Unix socket support
 
@@ -239,3 +241,17 @@ FlagdProvider flagdProvider = new FlagdProvider(options);
 Please refer [OpenTelemetry example](https://opentelemetry.io/docs/instrumentation/java/manual/#example) for best practice guidelines.
 
 Provider telemetry combined with [flagd OpenTelemetry](https://flagd.dev/reference/monitoring/#opentelemetry) allows you to have distributed traces.
+
+### Target URI Support (gRPC name resolution)
+
+The `targetUri` is meant for gRPC custom name resolution (default is `dns`), this allows users to use different
+resolution method e.g. `xds`. Currently, we are supporting all [core resolver](https://grpc.io/docs/guides/custom-name-resolution/)
+and one custom resolver for `envoy` proxy resolution. For more details, please refer the 
+[RFC](https://github.com/open-feature/flagd/blob/main/docs/reference/specifications/proposal/rfc-grpc-custom-name-resolver.md) document.
+
+```java
+FlagdOptions options = FlagdOptions.builder()
+      .targetUri("envoy://localhost:9211/flag-source.service")
+      .resolverType(Config.Resolver.IN_PROCESS)
+      .build();
+```

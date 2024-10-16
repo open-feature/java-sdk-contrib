@@ -1,8 +1,10 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.common.nameresolvers.EnvoyResolverProvider;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
+import io.grpc.NameResolverRegistry;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.epoll.Epoll;
@@ -13,6 +15,8 @@ import io.netty.handler.ssl.SslContextBuilder;
 
 import javax.net.ssl.SSLException;
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -50,9 +54,21 @@ public class ChannelBuilder {
 
         // build a TCP socket
         try {
+            // Register custom resolver
+            if (isEnvoyTarget(options.getTargetUri())) {
+                NameResolverRegistry.getDefaultRegistry().register(new EnvoyResolverProvider());
+            }
+
+            // default to current `dns` resolution i.e. <host>:<port>, if valid / supported
+            // target string use the user provided target uri.
+            final String defaultTarget = String.format("%s:%s", options.getHost(), options.getPort());
+            final String targetUri = isValidTargetUri(options.getTargetUri()) ? options.getTargetUri() :
+                    defaultTarget;
+
             final NettyChannelBuilder builder = NettyChannelBuilder
-                    .forAddress(options.getHost(), options.getPort())
+                    .forTarget(targetUri)
                     .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS);
+
             if (options.isTls()) {
                 SslContextBuilder sslContext = GrpcSslContexts.forClient();
 
@@ -78,6 +94,48 @@ public class ChannelBuilder {
             SslConfigException sslConfigException = new SslConfigException("Error with SSL configuration.");
             sslConfigException.initCause(ssle);
             throw sslConfigException;
+        } catch (IllegalArgumentException argumentException) {
+            GenericConfigException genericConfigException = new GenericConfigException(
+                    "Error with gRPC target string configuration");
+            genericConfigException.initCause(argumentException);
+            throw genericConfigException;
         }
+    }
+
+    private static  boolean isValidTargetUri(String targetUri) {
+        if (targetUri == null) {
+            return false;
+        }
+
+        try {
+            final String scheme = new URI(targetUri).getScheme();
+            if (scheme.equals(SupportedScheme.ENVOY.getScheme()) || scheme.equals(SupportedScheme.DNS.getScheme())
+                    || scheme.equals(SupportedScheme.XDS.getScheme())
+                    || scheme.equals(SupportedScheme.UDS.getScheme())) {
+                return true;
+            }
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid target string", e);
+        }
+
+        return false;
+    }
+
+    private static boolean isEnvoyTarget(String targetUri) {
+        if (targetUri == null) {
+            return false;
+        }
+
+        try {
+            final String scheme = new URI(targetUri).getScheme();
+            if (scheme.equals(SupportedScheme.ENVOY.getScheme())) {
+                return true;
+            }
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid target string", e);
+        }
+
+        return false;
+
     }
 }
