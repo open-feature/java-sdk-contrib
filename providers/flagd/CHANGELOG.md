@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.1...dev.openfeature.contrib.providers.flagd-v0.9.2) (2024-10-16)
+
+
+### ✨ New Features
+
+* added custom grpc resolver ([#1008](https://github.com/open-feature/java-sdk-contrib/issues/1008)) ([85403b7](https://github.com/open-feature/java-sdk-contrib/commit/85403b728e76c371049fec56a3096118f212250b))
+
 ## [0.9.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.0...dev.openfeature.contrib.providers.flagd-v0.9.1) (2024-10-15)
 
 
