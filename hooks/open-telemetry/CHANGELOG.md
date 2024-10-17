@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.2.0...dev.openfeature.contrib.hooks.otel-v3.2.1) (2024-10-17)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update opentelemetry-java monorepo to v1.43.0 ([#1020](https://github.com/open-feature/java-sdk-contrib/issues/1020)) ([67682a8](https://github.com/open-feature/java-sdk-contrib/commit/67682a8d8a0a69c157e0d4a78bf541c5c7c60971))
+
 ## [3.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.1.2...dev.openfeature.contrib.hooks.otel-v3.2.0) (2024-09-25)
 
 ### 🐛 Bug Fixes
