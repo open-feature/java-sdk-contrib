@@ -9,7 +9,10 @@ import java.util.function.Function;
 
 import static dev.openfeature.sdk.ErrorCode.GENERAL;
 
-public class FirstSuccessfulStrategy extends BaseStrategy{
+/**
+ * First Successful Strategy.
+ */
+public class FirstSuccessfulStrategy extends BaseStrategy {
 
     public FirstSuccessfulStrategy(Map<String, FeatureProvider> providers) {
         super(providers);

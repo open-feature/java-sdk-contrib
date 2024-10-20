@@ -5,6 +5,9 @@ import dev.openfeature.sdk.ProviderEvaluation;
 
 import java.util.function.Function;
 
+/**
+ * strategy.
+ */
 public interface Strategy {
     <T> ProviderEvaluation<T> evaluate(Function<FeatureProvider, ProviderEvaluation<T>> providerFunction);
 }

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provider implementation for Statsig.
+ * Provider implementation for Multi-provider.
  */
 @Slf4j
 public class MultiProvider extends EventProvider {
@@ -30,7 +30,7 @@ public class MultiProvider extends EventProvider {
     private Strategy strategy;
 
     /**
-     * constructor
+     * constructor.
      * @param providers providers list
      */
     public MultiProvider(List<FeatureProvider> providers, Strategy strategy) {

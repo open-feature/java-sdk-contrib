@@ -9,10 +9,10 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
-    <artifactId>multi-provider</artifactId>
+    <artifactId>multiprovider</artifactId>
     <version>0.0.1</version> <!--x-release-please-version -->
 
-    <name>multi-provider</name>
+    <name>multiprovider</name>
     <description>OpenFeature Multi-Provider</description>
     <url>https://github.com/open-feature/java-sdk-contrib/tree/main/providers/multi-provider</url>
 

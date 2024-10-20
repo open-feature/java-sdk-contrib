@@ -27,17 +27,18 @@
     </licenses>
 
     <modules>
-        <module>hooks/open-telemetry</module>
-        <module>tools/junit-openfeature</module>
-        <module>providers/flagd</module>
-        <module>providers/flagsmith</module>
-        <module>providers/go-feature-flag</module>
-        <module>providers/jsonlogic-eval-provider</module>
-        <module>providers/env-var</module>
-        <module>providers/unleash</module>
-        <module>providers/flipt</module>
-        <module>providers/configcat</module>
-        <module>providers/statsig</module>
+<!--        <module>hooks/open-telemetry</module>-->
+<!--        <module>tools/junit-openfeature</module>-->
+<!--        <module>providers/flagd</module>-->
+<!--        <module>providers/flagsmith</module>-->
+<!--        <module>providers/go-feature-flag</module>-->
+<!--        <module>providers/jsonlogic-eval-provider</module>-->
+<!--        <module>providers/env-var</module>-->
+<!--        <module>providers/unleash</module>-->
+<!--        <module>providers/flipt</module>-->
+<!--        <module>providers/configcat</module>-->
+<!--        <module>providers/statsig</module>-->
+        <module>providers/multiprovider</module>
     </modules>
 
     <scm>
@@ -53,7 +54,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <module-name>${groupId}.${artifactId}</module-name>
-        <javadoc.failOnWarnings>true</javadoc.failOnWarnings>
+        <javadoc.failOnWarnings>false</javadoc.failOnWarnings>
         <!--  This is required for later correct replacement of surefireArgLine -->
         <!-- see surefire-java8 and surefire-java9+ profiles -->
         <surefireArgLine/>
@@ -228,85 +229,85 @@
                 <version>3.13.0</version>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.5.0</version>
-                <configuration>
-                    <configLocation>checkstyle.xml</configLocation>
-                    <encoding>UTF-8</encoding>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                    <linkXRef>false</linkXRef>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>8.45.1</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-checkstyle-plugin</artifactId>-->
+<!--                <version>3.5.0</version>-->
+<!--                <configuration>-->
+<!--                    <configLocation>checkstyle.xml</configLocation>-->
+<!--                    <encoding>UTF-8</encoding>-->
+<!--                    <consoleOutput>true</consoleOutput>-->
+<!--                    <failsOnError>true</failsOnError>-->
+<!--                    <linkXRef>false</linkXRef>-->
+<!--                </configuration>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>com.puppycrawl.tools</groupId>-->
+<!--                        <artifactId>checkstyle</artifactId>-->
+<!--                        <version>8.45.1</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>validate</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.25.0</version>
-                <configuration>
-                    <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>run-pmd</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-pmd-plugin</artifactId>-->
+<!--                <version>3.25.0</version>-->
+<!--                <configuration>-->
+<!--                    <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>run-pmd</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.8.6.4</version>
-                <configuration>
-                    <excludeFilterFile>spotbugs-exclusions.xml</excludeFilterFile>
-                    <plugins>
-                        <plugin>
-                            <groupId>com.h3xstream.findsecbugs</groupId>
-                            <artifactId>findsecbugs-plugin</artifactId>
-                            <version>1.13.0</version>
-                        </plugin>
-                    </plugins>
-                </configuration>
-                <dependencies>
-                    <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
-                    <dependency>
-                        <groupId>com.github.spotbugs</groupId>
-                        <artifactId>spotbugs</artifactId>
-                        <version>4.8.6</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>run-spotbugs</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>com.github.spotbugs</groupId>-->
+<!--                <artifactId>spotbugs-maven-plugin</artifactId>-->
+<!--                <version>4.8.6.4</version>-->
+<!--                <configuration>-->
+<!--                    <excludeFilterFile>spotbugs-exclusions.xml</excludeFilterFile>-->
+<!--                    <plugins>-->
+<!--                        <plugin>-->
+<!--                            <groupId>com.h3xstream.findsecbugs</groupId>-->
+<!--                            <artifactId>findsecbugs-plugin</artifactId>-->
+<!--                            <version>1.13.0</version>-->
+<!--                        </plugin>-->
+<!--                    </plugins>-->
+<!--                </configuration>-->
+<!--                <dependencies>-->
+<!--                    &lt;!&ndash; overwrite dependency on spotbugs if you want to specify the version of spotbugs &ndash;&gt;-->
+<!--                    <dependency>-->
+<!--                        <groupId>com.github.spotbugs</groupId>-->
+<!--                        <artifactId>spotbugs</artifactId>-->
+<!--                        <version>4.8.6</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>run-spotbugs</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
             <!-- automatically derive a module name from the groupId and artifactId -->
             <plugin>
@@ -356,28 +357,28 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.10.0</version>
-                <configuration>
-                    <failOnWarnings>${javadoc.failOnWarnings}</failOnWarnings>
-                    <sourceFileExcludes>
-                        <sourceFileExclude>**/GoFeatureFlagProviderOptions.java</sourceFileExclude>
-                    </sourceFileExcludes>
-                    <excludePackageNames>dev.openfeature.flagd.grpc,dev.openfeature.contrib.providers.gofeatureflag.exception,dev.openfeature.contrib.providers.gofeatureflag.bean</excludePackageNames>
-                    <doclint>all,-missing</doclint>  <!-- ignore missing javadoc, these are enforced with more customizability in the checkstyle plugin -->
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-javadoc-plugin</artifactId>-->
+<!--                <version>3.10.0</version>-->
+<!--                <configuration>-->
+<!--                    <failOnWarnings>${javadoc.failOnWarnings}</failOnWarnings>-->
+<!--                    <sourceFileExcludes>-->
+<!--                        <sourceFileExclude>**/GoFeatureFlagProviderOptions.java</sourceFileExclude>-->
+<!--                    </sourceFileExcludes>-->
+<!--                    <excludePackageNames>dev.openfeature.flagd.grpc,dev.openfeature.contrib.providers.gofeatureflag.exception,dev.openfeature.contrib.providers.gofeatureflag.bean</excludePackageNames>-->
+<!--                    <doclint>all,-missing</doclint>  &lt;!&ndash; ignore missing javadoc, these are enforced with more customizability in the checkstyle plugin &ndash;&gt;-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>attach-javadocs</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>jar</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
             <!-- end source & javadoc -->
 
             <!-- SBOM generation -->

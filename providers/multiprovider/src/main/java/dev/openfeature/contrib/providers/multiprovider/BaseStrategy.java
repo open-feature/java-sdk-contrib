@@ -7,6 +7,9 @@ import lombok.Getter;
 
 import java.util.Map;
 
+/**
+ * Base strategy.
+ */
 @AllArgsConstructor
 public abstract class BaseStrategy implements Strategy {
 
