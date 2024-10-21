@@ -29,6 +29,10 @@ public class MultiProvider extends EventProvider {
     private Map<String, FeatureProvider> providers;
     private Strategy strategy;
 
+    public MultiProvider(List<FeatureProvider> providers) {
+        this(providers, null);
+    }
+
     /**
      * constructor.
      * @param providers providers list
@@ -70,7 +74,6 @@ public class MultiProvider extends EventProvider {
         return () -> metadataName;
     }
 
-    @SneakyThrows
     @Override
     @SuppressFBWarnings(value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "reason can be null")
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
@@ -92,7 +95,6 @@ public class MultiProvider extends EventProvider {
         return strategy.evaluate(p -> p.getDoubleEvaluation(key, defaultValue, ctx));
     }
 
-    @SneakyThrows
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         return strategy.evaluate(p -> p.getObjectEvaluation(key, defaultValue, ctx));
@@ -101,10 +103,15 @@ public class MultiProvider extends EventProvider {
     @SneakyThrows
     @Override
     public void shutdown() {
-        log.info("shutdown");
+        log.debug("shutdown begin");
         for (FeatureProvider provider: providers.values()) {
-            provider.shutdown();
+            try {
+                provider.shutdown();
+            } catch (Exception e) {
+                log.error("error shutdown provider", provider.getMetadata().getName());
+            }
         }
+        log.debug("shutdown end");
     }
 
 }

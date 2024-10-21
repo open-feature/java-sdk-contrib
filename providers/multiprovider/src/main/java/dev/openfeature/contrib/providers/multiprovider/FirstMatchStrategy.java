@@ -3,34 +3,41 @@ package dev.openfeature.contrib.providers.multiprovider;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
-import dev.openfeature.sdk.exceptions.GeneralError;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static dev.openfeature.sdk.ErrorCode.GENERAL;
+import static dev.openfeature.sdk.ErrorCode.FLAG_NOT_FOUND;
 
 /**
- * First Successful Strategy.
+ * First match strategy.
  */
-public class FirstSuccessfulStrategy extends BaseStrategy {
+public class FirstMatchStrategy extends BaseStrategy {
 
-    public FirstSuccessfulStrategy(Map<String, FeatureProvider> providers) {
+    public FirstMatchStrategy(Map<String, FeatureProvider> providers) {
         super(providers);
     }
 
+    /**
+     * Represents a strategy that evaluates providers based on a first-match approach.
+     * Provides a method to evaluate providers using a specified function and return the evaluation result.
+     *
+     * @param providerFunction provider function
+     * @param <T> ProviderEvaluation type
+     * @return the provider evaluation
+     */
     public <T> ProviderEvaluation<T> evaluate(Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
         for (FeatureProvider provider: getProviders().values()) {
             ProviderEvaluation<T> result;
             try {
                 result = providerFunction.apply(provider);
-            } catch (Exception e) {
+            } catch (FlagNotFoundError e) {
                 continue;
             }
             return result;
         }
 
-        throw new GeneralError("evaluation error");
+        throw new FlagNotFoundError("flag not found");
     }
 }
