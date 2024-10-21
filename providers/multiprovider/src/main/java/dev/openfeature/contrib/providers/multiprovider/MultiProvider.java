@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,18 +43,23 @@ public class MultiProvider extends EventProvider {
      * @param strategy the strategy
      */
     public MultiProvider(List<FeatureProvider> providers, Strategy strategy) {
-        this.providers = new LinkedHashMap<>(providers.size());
+        this.providers = buildProviders(providers);
+        if (strategy != null) {
+            this.strategy = strategy;
+        } else {
+            this.strategy = new FirstMatchStrategy(providers);
+        }
+    }
+
+    protected static Map<String, FeatureProvider> buildProviders(List<FeatureProvider> providers) {
+        Map<String, FeatureProvider> providersMap = new LinkedHashMap<>(providers.size());
         for (FeatureProvider provider: providers) {
-            FeatureProvider prevProvider = this.providers.put(provider.getMetadata().getName(), provider);
+            FeatureProvider prevProvider = providersMap.put(provider.getMetadata().getName(), provider);
             if (prevProvider != null) {
                 log.warn("duplicated provider name: {}", provider.getMetadata().getName());
             }
         }
-        if (strategy != null) {
-            this.strategy = strategy;
-        } else {
-            this.strategy = new FirstMatchStrategy(this.providers);
-        }
+        return Collections.unmodifiableMap(providersMap);
     }
 
     /**

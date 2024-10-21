@@ -139,10 +139,7 @@ class MultiProviderTest {
             finalMultiProvider1.getStringEvaluation("non-existing", "", null));
 
         multiProvider.shutdown();
-        Map<String, FeatureProvider> providersMap = new LinkedHashMap<>(2);
-        providersMap.put(provider1.getMetadata().getName(), provider1);
-        providersMap.put(provider2.getMetadata().getName(), provider2);
-        multiProvider = new MultiProvider(providers, new FirstSuccessfulStrategy(providersMap));
+        multiProvider = new MultiProvider(providers, new FirstSuccessfulStrategy(providers));
         multiProvider.initialize(null);
 
         assertEquals(true, multiProvider.getBooleanEvaluation("b1", false, null)
@@ -163,9 +160,8 @@ class MultiProviderTest {
             finalMultiProvider2.getStringEvaluation("non-existing", "", null));
 
         multiProvider.shutdown();
-        Map<String, FeatureProvider> finalProvidersMap = providersMap;
-        Strategy customStrategy = new BaseStrategy(finalProvidersMap) {
-            final FirstMatchStrategy fallbackStrategy = new FirstMatchStrategy(finalProvidersMap);
+        Strategy customStrategy = new BaseStrategy(providers) {
+            final FirstMatchStrategy fallbackStrategy = new FirstMatchStrategy(providers);
             @Override
             public <T> ProviderEvaluation<T> evaluate(String key, T defaultValue, EvaluationContext ctx, Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
                 Value contextProvider = null;
@@ -173,14 +169,11 @@ class MultiProviderTest {
                     contextProvider = ctx.getValue("provider");
                 }
                 if (contextProvider != null && "new-provider".equals(contextProvider.asString())) {
-                    return providerFunction.apply(finalProvidersMap.get("new-provider"));
+                    return providerFunction.apply(getProviders().get("new-provider"));
                 }
                 return fallbackStrategy.evaluate(key, defaultValue, ctx, providerFunction);
             }
         };
-        providersMap = new LinkedHashMap<>(2);
-        providersMap.put(provider1.getMetadata().getName(), provider1);
-        providersMap.put(provider2.getMetadata().getName(), provider2);
         multiProvider = new MultiProvider(providers, customStrategy);
         multiProvider.initialize(null);
 

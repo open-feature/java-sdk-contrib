@@ -6,6 +6,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -18,7 +19,7 @@ import java.util.function.Function;
 @Slf4j
 public class FirstSuccessfulStrategy extends BaseStrategy {
 
-    public FirstSuccessfulStrategy(Map<String, FeatureProvider> providers) {
+    public FirstSuccessfulStrategy(List<FeatureProvider> providers) {
         super(providers);
     }
 
@@ -27,9 +28,12 @@ public class FirstSuccessfulStrategy extends BaseStrategy {
               Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
         for (FeatureProvider provider: getProviders().values()) {
             try {
-                return providerFunction.apply(provider);
+                ProviderEvaluation<T> res = providerFunction.apply(provider);
+                if (res.getErrorCode() == null) {
+                    return res;
+                }
             } catch (Exception e) {
-                log.debug("flag not found {}", e.getMessage());
+                log.debug("evaluation exception {}", e.getMessage());
             }
         }
 
