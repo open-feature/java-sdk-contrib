@@ -139,7 +139,7 @@ class MultiProviderTest {
             finalMultiProvider1.getStringEvaluation("non-existing", "", null));
 
         multiProvider.shutdown();
-        multiProvider = new MultiProvider(providers, new FirstSuccessfulStrategy(providers));
+        multiProvider = new MultiProvider(providers, new FirstSuccessfulStrategy());
         multiProvider.initialize(null);
 
         assertEquals(true, multiProvider.getBooleanEvaluation("b1", false, null)
@@ -160,18 +160,18 @@ class MultiProviderTest {
             finalMultiProvider2.getStringEvaluation("non-existing", "", null));
 
         multiProvider.shutdown();
-        Strategy customStrategy = new BaseStrategy(providers) {
-            final FirstMatchStrategy fallbackStrategy = new FirstMatchStrategy(providers);
+        Strategy customStrategy = new Strategy() {
+            final FirstMatchStrategy fallbackStrategy = new FirstMatchStrategy();
             @Override
-            public <T> ProviderEvaluation<T> evaluate(String key, T defaultValue, EvaluationContext ctx, Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
+            public <T> ProviderEvaluation<T> evaluate(Map<String, FeatureProvider> providers, String key, T defaultValue, EvaluationContext ctx, Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
                 Value contextProvider = null;
                 if (ctx != null) {
                     contextProvider = ctx.getValue("provider");
                 }
                 if (contextProvider != null && "new-provider".equals(contextProvider.asString())) {
-                    return providerFunction.apply(getProviders().get("new-provider"));
+                    return providerFunction.apply(providers.get("new-provider"));
                 }
-                return fallbackStrategy.evaluate(key, defaultValue, ctx, providerFunction);
+                return fallbackStrategy.evaluate(providers, key, defaultValue, ctx, providerFunction);
             }
         };
         multiProvider = new MultiProvider(providers, customStrategy);

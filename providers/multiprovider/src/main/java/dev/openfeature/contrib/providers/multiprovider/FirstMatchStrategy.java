@@ -4,9 +4,10 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static dev.openfeature.sdk.ErrorCode.FLAG_NOT_FOUND;
@@ -22,11 +23,8 @@ import static dev.openfeature.sdk.ErrorCode.FLAG_NOT_FOUND;
  * the rest of the providers.
  */
 @Slf4j
-public class FirstMatchStrategy extends BaseStrategy {
-
-    public FirstMatchStrategy(List<FeatureProvider> providers) {
-        super(providers);
-    }
+@NoArgsConstructor
+public class FirstMatchStrategy implements Strategy {
 
     /**
      * Represents a strategy that evaluates providers based on a first-match approach.
@@ -37,9 +35,9 @@ public class FirstMatchStrategy extends BaseStrategy {
      * @return the provider evaluation
      */
     @Override
-    public <T> ProviderEvaluation<T> evaluate(String key, T defaultValue, EvaluationContext ctx,
-              Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
-        for (FeatureProvider provider: getProviders().values()) {
+    public <T> ProviderEvaluation<T> evaluate(Map<String, FeatureProvider> providers, String key, T defaultValue,
+          EvaluationContext ctx, Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
+        for (FeatureProvider provider: providers.values()) {
             try {
                 ProviderEvaluation<T> res = providerFunction.apply(provider);
                 if (!FLAG_NOT_FOUND.equals(res.getErrorCode())) {

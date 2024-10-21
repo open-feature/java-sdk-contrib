@@ -24,7 +24,7 @@ public class MultiProvider extends EventProvider {
     @Getter
     private static final String NAME = "multiprovider";
     private final Map<String, FeatureProvider> providers;
-    private Strategy strategy;
+    private final Strategy strategy;
     private String metadataName;
 
     /**
@@ -47,7 +47,7 @@ public class MultiProvider extends EventProvider {
         if (strategy != null) {
             this.strategy = strategy;
         } else {
-            this.strategy = new FirstMatchStrategy(providers);
+            this.strategy = new FirstMatchStrategy();
         }
     }
 
@@ -89,27 +89,32 @@ public class MultiProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(key, defaultValue, ctx, p -> p.getBooleanEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx,
+            p -> p.getBooleanEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(key, defaultValue, ctx, p -> p.getStringEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx,
+            p -> p.getStringEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(key, defaultValue, ctx, p -> p.getIntegerEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx,
+            p -> p.getIntegerEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(key, defaultValue, ctx, p -> p.getDoubleEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx,
+            p -> p.getDoubleEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(key, defaultValue, ctx, p -> p.getObjectEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx,
+            p -> p.getObjectEvaluation(key, defaultValue, ctx));
     }
 
     @Override
