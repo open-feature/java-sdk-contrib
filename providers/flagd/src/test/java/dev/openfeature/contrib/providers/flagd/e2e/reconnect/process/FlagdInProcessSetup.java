@@ -17,14 +17,15 @@ import org.testcontainers.containers.GenericContainer;
 @Order(value = Integer.MAX_VALUE)
 public class FlagdInProcessSetup {
 
-    private static final GenericContainer flagdContainer = ContainerConfig.sync(true);
+    private static final GenericContainer flagdContainer = ContainerConfig.sync(true, false);
     @BeforeAll()
     public static void setup() throws InterruptedException {
         flagdContainer.start();
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Resolver.IN_PROCESS)
-        .deadline(3000)
         .port(flagdContainer.getFirstMappedPort())
+        // set a generous deadline, to prevent timeouts in actions
+        .deadline(3000)
         .build());
         StepDefinitions.setUnstableProvider(workingProvider);
 

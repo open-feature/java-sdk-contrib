@@ -1,11 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.extern.slf4j.Slf4j;
+import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +12,16 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.stream.Collectors;
+
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
+import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.Structure;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Feature flag storage.
@@ -94,15 +100,17 @@ public class FlagStore implements Storage {
     }
 
     private void streamerListener(final Connector connector) throws InterruptedException {
-        final BlockingQueue<StreamPayload> streamPayloads = connector.getStream();
+        final BlockingQueue<QueuePayload> streamPayloads = connector.getStream();
 
         while (!shutdown.get()) {
-            final StreamPayload take = streamPayloads.take();
-            switch (take.getType()) {
+            final QueuePayload payload = streamPayloads.take();
+            switch (payload.getType()) {
                 case DATA:
                     try {
                         List<String> changedFlagsKeys;
-                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getData(), throwIfInvalid);
+                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(payload.getFlagData(),
+                                throwIfInvalid);
+                        Structure metadata = parseSyncMetadata(payload.getMetadataResponse());
                         writeLock.lock();
                         try {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);
@@ -111,7 +119,8 @@ public class FlagStore implements Storage {
                         } finally {
                             writeLock.unlock();
                         }
-                        if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.OK, changedFlagsKeys))) {
+                        if (!stateBlockingQueue
+                                .offer(new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
                             log.warn("Failed to convey OK satus, queue is full");
                         }
                     } catch (Throwable e) {
@@ -128,11 +137,20 @@ public class FlagStore implements Storage {
                     }
                     break;
                 default:
-                    log.info(String.format("Payload with unknown type: %s", take.getType()));
+                    log.info(String.format("Payload with unknown type: %s", payload.getType()));
             }
         }
 
         log.info("Shutting down store stream listener");
+    }
+
+    private Structure parseSyncMetadata(GetMetadataResponse metadataResponse) {
+        try {
+            return convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap());
+        } catch (Exception exception) {
+            log.error("Failed to parse metadataResponse, provider metadata may not be up-to-date");
+        }
+        return new ImmutableStructure();
     }
 
     private List<String> getChangedFlagsKeys(Map<String, FeatureFlag> newFlags) {

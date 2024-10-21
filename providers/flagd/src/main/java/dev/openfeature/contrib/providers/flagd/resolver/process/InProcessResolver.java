@@ -2,12 +2,12 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
-import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
@@ -29,30 +29,35 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * flagd in-process resolver. Resolves feature flags in-process. Flags are
- * retrieved from {@link Storage}, where the
- * {@link Storage} maintain flag configurations obtained from known source.
+ * Resolves flag values using
+ * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+ * Flags are evaluated locally.
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
-    private final BiConsumer<Boolean, List<String>> onResolverConnectionChanged;
+    private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Operator operator;
     private final long deadline;
     private final ImmutableMetadata metadata;
     private final Supplier<Boolean> connectedSupplier;
 
     /**
-     * Initialize an in-process resolver.
-     * @param options flagd options
-     * @param connectedSupplier supplier for connection state
-     * @param onResolverConnectionChanged handler for connection change
+     * Resolves flag values using
+     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+     * Flags are evaluated locally.
+     * 
+     * @param options           flagd options
+     * @param connectedSupplier lambda providing current connection status from
+     *                          caller
+     * @param onConnectionEvent lambda which handles changes in the
+     *                          connection/stream
      */
     public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
-            BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
+            Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
-        this.onResolverConnectionChanged = onResolverConnectionChanged;
+        this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
         this.connectedSupplier = connectedSupplier;
         this.metadata = options.getSelector() == null ? null
@@ -72,10 +77,11 @@ public class InProcessResolver implements Resolver {
                     final StorageStateChange storageStateChange = flagStore.getStateQueue().take();
                     switch (storageStateChange.getStorageState()) {
                         case OK:
-                            onResolverConnectionChanged.accept(true, storageStateChange.getChangedFlagsKeys());
+                            onConnectionEvent.accept(new ConnectionEvent(true, storageStateChange.getChangedFlagsKeys(),
+                                    storageStateChange.getSyncMetadata()));
                             break;
                         case ERROR:
-                            onResolverConnectionChanged.accept(false, null);
+                            onConnectionEvent.accept(new ConnectionEvent(false));
                             break;
                         default:
                             log.info(String.format("Storage emitted unhandled status: %s",
@@ -101,7 +107,7 @@ public class InProcessResolver implements Resolver {
      */
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
-        onResolverConnectionChanged.accept(false, null);
+        onConnectionEvent.accept(new ConnectionEvent(false));
     }
 
     /**

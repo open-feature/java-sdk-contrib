@@ -1,21 +1,21 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.jupiter.api.extension.ExtensionContext;
+
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.providers.memory.Flag;
 import dev.openfeature.sdk.providers.memory.InMemoryProvider;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.extension.ExtensionContext;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * TestProvider based on InMemoryProvider but with another dimension added to the maps of flags.
@@ -100,23 +100,6 @@ public class TestProvider extends EventProvider {
         return providerMap
                 .getOrDefault(CURRENT_NAMESPACE.get(), FALLBACK_PROVIDER)
                 .getObjectEvaluation(key, defaultValue, evaluationContext);
-    }
-
-    @Override
-    public ProviderState getState() {
-        return providerMap
-                .values()
-                .stream()
-                .map(InMemoryProvider::getState)
-                .reduce(
-                        (providerState, providerState2) -> {
-                            if (providerState.ordinal() < providerState2.ordinal()) {
-                                return providerState2;
-                            }
-                            return providerState;
-                        }
-                )
-                .orElse(ProviderState.READY);
     }
 
     public static void setCurrentNamespace(ExtensionContext.Namespace namespace) {

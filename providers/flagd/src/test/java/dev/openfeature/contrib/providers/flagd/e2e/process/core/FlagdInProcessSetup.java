@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e.process;
+package dev.openfeature.contrib.providers.flagd.e2e.process.core;
 
 import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
 import io.cucumber.java.AfterAll;
@@ -26,7 +26,8 @@ public class FlagdInProcessSetup {
         flagdContainer.start();
         FlagdInProcessSetup.provider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Resolver.IN_PROCESS)
-        .deadline(3000)
+        .deadline(1000)
+        .streamDeadlineMs(0) // this makes reconnect tests more predictable
         .port(flagdContainer.getFirstMappedPort())
         .build());
         StepDefinitions.setProvider(provider);

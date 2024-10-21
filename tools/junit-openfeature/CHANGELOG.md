@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.1.0...dev.openfeature.contrib.tools.junitopenfeature-v0.1.1) (2024-09-27)
+
+
+### 🐛 Bug Fixes
+
+* race condition causing default when multiple flags are used ([#983](https://github.com/open-feature/java-sdk-contrib/issues/983)) ([356a973](https://github.com/open-feature/java-sdk-contrib/commit/356a973cf2b6ddf82b8311ea200fa30df4f1d048))
+
 ## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.0.3...dev.openfeature.contrib.tools.junitopenfeature-v0.1.0) (2024-09-25)
 
 

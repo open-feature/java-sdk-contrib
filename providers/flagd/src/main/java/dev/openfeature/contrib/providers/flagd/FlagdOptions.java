@@ -1,13 +1,18 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
+import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
+
+import java.util.function.Function;
+
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.Structure;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
-
-import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
-import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 /**
  * FlagdOptions is a builder to build flagd provider options.
@@ -88,6 +93,15 @@ public class FlagdOptions {
     private int deadline = fallBackToEnvOrDefault(Config.DEADLINE_MS_ENV_VAR_NAME, Config.DEFAULT_DEADLINE);
 
     /**
+     * Streaming connection deadline in milliseconds.
+     * Set to 0 to disable the deadline.
+     * Defaults to 600000 (10 minutes); recommended to prevent infrastructure from killing idle connections.
+     */
+    @Builder.Default
+    private int streamDeadlineMs = fallBackToEnvOrDefault(Config.STREAM_DEADLINE_MS_ENV_VAR_NAME,
+            Config.DEFAULT_STREAM_DEADLINE_MS);
+
+    /**
      * Selector to be used with flag sync gRPC contract.
      **/
     @Builder.Default
@@ -96,7 +110,7 @@ public class FlagdOptions {
     /**
      * gRPC client KeepAlive in milliseconds. Disabled with 0.
      * Defaults to 0 (disabled).
-     * 
+     *
      **/
     @Builder.Default
     private long keepAlive = fallBackToEnvOrDefault(Config.KEEP_ALIVE_MS_ENV_VAR_NAME,
@@ -108,6 +122,31 @@ public class FlagdOptions {
      */
     @Builder.Default
     private String offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+
+
+    /**
+     * gRPC custom target string.
+     *
+     * <p>Setting this will allow user to use custom gRPC name resolver at present
+     * we are supporting all core resolver along with a custom resolver for envoy proxy
+     * resolution. For more visit (https://grpc.io/docs/guides/custom-name-resolution/)
+     */
+    @Builder.Default
+    private String targetUri = fallBackToEnvOrDefault(Config.GRPC_TARGET_ENV_VAR_NAME, null);
+
+
+    /**
+     * Function providing an EvaluationContext to mix into every evaluations.
+     * The sync-metadata response
+     * (https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.GetMetadataResponse),
+     * represented as a {@link dev.openfeature.sdk.Structure}, is passed as an
+     * argument.
+     * This function runs every time the provider (re)connects, and its result is cached and used in every evaluation.
+     * By default, the entire sync response (converted to a Structure) is used.
+     */
+    @Builder.Default
+    private Function<Structure, EvaluationContext> contextEnricher = (syncMetadata) -> new ImmutableContext(
+            syncMetadata.asMap());
 
     /**
      * Inject a Custom Connector for fetching flags.

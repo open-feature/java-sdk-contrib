@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayloadType;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -31,16 +31,16 @@ class FileConnectorTest {
         connector.init();
 
         // then
-        final BlockingQueue<StreamPayload> stream = connector.getStream();
-        final StreamPayload[] payload = new StreamPayload[1];
+        final BlockingQueue<QueuePayload> stream = connector.getStream();
+        final QueuePayload[] payload = new QueuePayload[1];
 
         assertNotNull(stream);
         assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
             payload[0] = stream.take();
         });
 
-        assertNotNull(payload[0].getData());
-        assertEquals(StreamPayloadType.DATA, payload[0].getType());
+        assertNotNull(payload[0].getFlagData());
+        assertEquals(QueuePayloadType.DATA, payload[0].getType());
     }
 
     @Test
@@ -52,16 +52,16 @@ class FileConnectorTest {
         connector.init();
 
         // then
-        final BlockingQueue<StreamPayload> stream = connector.getStream();
+        final BlockingQueue<QueuePayload> stream = connector.getStream();
 
         // Must emit an error within considerable time
-        final StreamPayload[] payload = new StreamPayload[1];
+        final QueuePayload[] payload = new QueuePayload[1];
         assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
             payload[0] = stream.take();
         });
 
-        assertNotNull(payload[0].getData());
-        assertEquals(StreamPayloadType.ERROR, payload[0].getType());
+        assertNotNull(payload[0].getFlagData());
+        assertEquals(QueuePayloadType.ERROR, payload[0].getType());
     }
 
     @Test
@@ -80,15 +80,15 @@ class FileConnectorTest {
         connector.init();
 
         // then
-        final BlockingQueue<StreamPayload> stream = connector.getStream();
-        final StreamPayload[] payload = new StreamPayload[1];
+        final BlockingQueue<QueuePayload> stream = connector.getStream();
+        final QueuePayload[] payload = new QueuePayload[1];
 
         // first validate the initial payload
         assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
             payload[0] = stream.take();
         });
 
-        assertEquals(initial, payload[0].getData());
+        assertEquals(initial, payload[0].getFlagData());
 
         // then update the flags
         Files.write(updPath, updatedFlags.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -98,7 +98,7 @@ class FileConnectorTest {
             payload[0] = stream.take();
         });
 
-        assertEquals(updatedFlags, payload[0].getData());
+        assertEquals(updatedFlags, payload[0].getFlagData());
     }
 
 }

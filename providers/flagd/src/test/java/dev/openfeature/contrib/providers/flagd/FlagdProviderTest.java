@@ -11,8 +11,8 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,20 +23,25 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.Collections;
+import java.util.Optional;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import com.google.protobuf.Struct;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
@@ -44,23 +49,25 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolve
 import dev.openfeature.contrib.providers.flagd.resolver.process.MockStorage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
-import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveFloatResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveIntResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveObjectResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringResponse;
+import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.FlagValueType;
+import dev.openfeature.sdk.HookContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.OpenFeatureAPI;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
@@ -87,7 +94,8 @@ class FlagdProviderTest {
     private static final String INNER_STRUCT_VALUE = "inner_value";
     private static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE = Struct.newBuilder()
             .putFields(INNER_STRUCT_KEY,
-                    com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE).build())
+                    com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE)
+                            .build())
             .build();
     private static final String STRING_VALUE = "hi!";
 
@@ -140,27 +148,34 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
+                .thenReturn(booleanResponse);
         when(serviceBlockingStubMock
-                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey())))).thenReturn(floatResponse);
+                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey()))))
+                .thenReturn(floatResponse);
         when(serviceBlockingStubMock
-                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey())))).thenReturn(intResponse);
+                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
+                .thenReturn(intResponse);
         when(serviceBlockingStubMock
-                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey())))).thenReturn(stringResponse);
+                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey()))))
+                .thenReturn(stringResponse);
         when(serviceBlockingStubMock
-                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
+                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
+                .thenReturn(objectResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
         when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN,
+                false);
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(DEFAULT.toString(), booleanDetails.getReason());
 
-        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
+        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING,
+                "wrong");
         assertEquals(STRING_VALUE, stringDetails.getValue());
         assertEquals(STRING_VARIANT, stringDetails.getVariant());
         assertEquals(DEFAULT.toString(), stringDetails.getReason());
@@ -175,7 +190,8 @@ class FlagdProviderTest {
         assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
         assertEquals(DEFAULT.toString(), floatDetails.getReason());
 
-        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT,
+                new Value());
         assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
@@ -213,27 +229,34 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
+                .thenReturn(booleanResponse);
         when(serviceBlockingStubMock
-                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey())))).thenReturn(floatResponse);
+                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey()))))
+                .thenReturn(floatResponse);
         when(serviceBlockingStubMock
-                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey())))).thenReturn(intResponse);
+                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
+                .thenReturn(intResponse);
         when(serviceBlockingStubMock
-                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey())))).thenReturn(stringResponse);
+                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey()))))
+                .thenReturn(stringResponse);
         when(serviceBlockingStubMock
-                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
+                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
+                .thenReturn(objectResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
         when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN,
+                false);
         assertEquals(false, booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(DEFAULT.toString(), booleanDetails.getReason());
 
-        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
+        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING,
+                "wrong");
         assertEquals("", stringDetails.getValue());
         assertEquals(STRING_VARIANT, stringDetails.getVariant());
         assertEquals(DEFAULT.toString(), stringDetails.getReason());
@@ -248,7 +271,8 @@ class FlagdProviderTest {
         assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
         assertEquals(DEFAULT.toString(), floatDetails.getReason());
 
-        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT,
+                new Value());
         assertEquals(new MutableStructure(), objectDetails.getValue().asObject());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT.toString(), objectDetails.getReason());
@@ -259,7 +283,8 @@ class FlagdProviderTest {
         // given
         final Map<String, com.google.protobuf.Value> metadataInput = new HashMap<>();
 
-        com.google.protobuf.Value scope = com.google.protobuf.Value.newBuilder().setStringValue("flagd-scope").build();
+        com.google.protobuf.Value scope = com.google.protobuf.Value.newBuilder().setStringValue("flagd-scope")
+                .build();
         metadataInput.put("scope", scope);
 
         com.google.protobuf.Value bool = com.google.protobuf.Value.newBuilder().setBoolValue(true).build();
@@ -282,14 +307,16 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(
                 serviceBlockingStubMock);
         when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
+                .thenReturn(booleanResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
         when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
         // when
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN,
+                false);
 
         // then
         final ImmutableMetadata metadata = booleanDetails.getFlagMetadata();
@@ -334,7 +361,8 @@ class FlagdProviderTest {
             }
         };
         final String STRUCT_ATTR_INNER_VALUE = "struct-inner-value";
-        final Structure STRUCT_ATTR_VALUE = new MutableStructure().add(STRUCT_ATTR_INNER_KEY, STRUCT_ATTR_INNER_VALUE);
+        final Structure STRUCT_ATTR_VALUE = new MutableStructure().add(STRUCT_ATTR_INNER_KEY,
+                STRUCT_ATTR_INNER_VALUE);
         final String DEFAULT_STRING = "DEFAULT";
 
         ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
@@ -353,14 +381,19 @@ class FlagdProviderTest {
 
                     return STRING_ATTR_VALUE.equals(valueMap.get(STRING_ATTR_KEY).getStringValue())
                             && INT_ATTR_VALUE == valueMap.get(INT_ATTR_KEY).getNumberValue()
-                            && DOUBLE_ATTR_VALUE == valueMap.get(DOUBLE_ATTR_KEY).getNumberValue()
+                            && DOUBLE_ATTR_VALUE == valueMap.get(DOUBLE_ATTR_KEY)
+                                    .getNumberValue()
                             && valueMap.get(BOOLEAN_ATTR_KEY).getBoolValue()
-                            && "MY_TARGETING_KEY".equals(valueMap.get("targetingKey").getStringValue())
-                            && LIST_ATTR_VALUE.get(0).asInteger() == valueMap.get(LIST_ATTR_KEY).getListValue()
+                            && "MY_TARGETING_KEY".equals(
+                                    valueMap.get("targetingKey").getStringValue())
+                            && LIST_ATTR_VALUE.get(0).asInteger() == valueMap
+                                    .get(LIST_ATTR_KEY).getListValue()
                                     .getValuesList().get(0).getNumberValue()
                             && STRUCT_ATTR_INNER_VALUE.equals(
-                                    valueMap.get(STRUCT_ATTR_KEY).getStructValue().getFieldsMap()
-                                            .get(STRUCT_ATTR_INNER_KEY).getStringValue());
+                                    valueMap.get(STRUCT_ATTR_KEY).getStructValue()
+                                            .getFieldsMap()
+                                            .get(STRUCT_ATTR_INNER_KEY)
+                                            .getStringValue());
                 }))).thenReturn(booleanResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
@@ -376,7 +409,8 @@ class FlagdProviderTest {
         context.add(STRING_ATTR_KEY, STRING_ATTR_VALUE);
         context.add(STRUCT_ATTR_KEY, STRUCT_ATTR_VALUE);
 
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false, context);
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY, false,
+                context);
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(DEFAULT.toString(), booleanDetails.getReason());
@@ -425,7 +459,8 @@ class FlagdProviderTest {
         ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class))).thenReturn(badReasonResponse);
+        when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class)))
+                .thenReturn(badReasonResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
         when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
@@ -434,7 +469,8 @@ class FlagdProviderTest {
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient()
                 .getBooleanDetails(FLAG_KEY, false, new MutableContext());
-        assertEquals(Reason.UNKNOWN.toString(), booleanDetails.getReason()); // reason should be converted to UNKNOWN
+        assertEquals(Reason.UNKNOWN.toString(), booleanDetails.getReason()); // reason should be converted to
+                                                                             // UNKNOWN
     }
 
     @Test
@@ -482,15 +518,20 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
+                .thenReturn(booleanResponse);
         when(serviceBlockingStubMock
-                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey())))).thenReturn(floatResponse);
+                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey()))))
+                .thenReturn(floatResponse);
         when(serviceBlockingStubMock
-                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey())))).thenReturn(intResponse);
+                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
+                .thenReturn(intResponse);
         when(serviceBlockingStubMock
-                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey())))).thenReturn(stringResponse);
+                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey()))))
+                .thenReturn(stringResponse);
         when(serviceBlockingStubMock
-                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
+                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
+                .thenReturn(objectResponse);
 
         GrpcConnector grpc;
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
@@ -502,15 +543,19 @@ class FlagdProviderTest {
             final Cache cache = new Cache("lru", 5);
 
             class NoopInitGrpcConnector extends GrpcConnector {
-                public NoopInitGrpcConnector(FlagdOptions options, Cache cache, Supplier<Boolean> connectedSupplier, BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
-                    super(options, cache, connectedSupplier, onResolverConnectionChanged);
+                public NoopInitGrpcConnector(FlagdOptions options, Cache cache,
+                        Supplier<Boolean> connectedSupplier,
+                        Consumer<ConnectionEvent> onConnectionEvent) {
+                    super(options, cache, connectedSupplier, onConnectionEvent);
                 }
 
-                public void initialize() throws Exception {};
-            } 
+                public void initialize() throws Exception {
+                };
+            }
 
-            grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys) -> {
-            });
+            grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true,
+                    (connectionEvent) -> {
+                    });
         }
 
         FlagdProvider provider = createProvider(grpc);
@@ -603,15 +648,20 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
+                .thenReturn(booleanResponse);
         when(serviceBlockingStubMock
-                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey())))).thenReturn(floatResponse);
+                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey()))))
+                .thenReturn(floatResponse);
         when(serviceBlockingStubMock
-                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey())))).thenReturn(intResponse);
+                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
+                .thenReturn(intResponse);
         when(serviceBlockingStubMock
-                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey())))).thenReturn(stringResponse);
+                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey()))))
+                .thenReturn(stringResponse);
         when(serviceBlockingStubMock
-                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
+                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
+                .thenReturn(objectResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
         when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
@@ -620,14 +670,17 @@ class FlagdProviderTest {
         // stream is alive
         OpenFeatureAPI.getInstance().setProviderAndWait(provider);
 
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN,
+                false);
         booleanDetails = api.getClient()
-                .getBooleanDetails(FLAG_KEY_BOOLEAN, false); // should retrieve from cache on second invocation
+                .getBooleanDetails(FLAG_KEY_BOOLEAN, false); // should retrieve from cache on second
+                                                             // invocation
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(expectedReason, booleanDetails.getReason());
 
-        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
+        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING,
+                "wrong");
         stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
         assertEquals(STRING_VALUE, stringDetails.getValue());
         assertEquals(STRING_VARIANT, stringDetails.getVariant());
@@ -645,7 +698,8 @@ class FlagdProviderTest {
         assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
         assertEquals(expectedReason, floatDetails.getReason());
 
-        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT,
+                new Value());
         objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
         assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
                 .asMap().get(INNER_STRUCT_KEY).asString());
@@ -696,39 +750,45 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
                 .thenReturn(serviceBlockingStubMock);
         when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey())))).thenReturn(booleanResponse);
+                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
+                .thenReturn(booleanResponse);
         when(serviceBlockingStubMock
-                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey())))).thenReturn(floatResponse);
+                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey()))))
+                .thenReturn(floatResponse);
         when(serviceBlockingStubMock
-                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey())))).thenReturn(intResponse);
+                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
+                .thenReturn(intResponse);
         when(serviceBlockingStubMock
-                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey())))).thenReturn(stringResponse);
+                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey()))))
+                .thenReturn(stringResponse);
         when(serviceBlockingStubMock
-                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey())))).thenReturn(objectResponse);
+                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
+                .thenReturn(objectResponse);
 
         // disabled cache
         final Cache cache = new Cache("disabled", 0);
 
         GrpcConnector grpc;
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                                .thenReturn(serviceBlockingStubMock);
-                mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                                .thenReturn(serviceStubMock);
+            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+                    .thenReturn(serviceBlockingStubMock);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
+                    .thenReturn(serviceStubMock);
 
-                class NoopInitGrpcConnector extends GrpcConnector {
-                        public NoopInitGrpcConnector(FlagdOptions options, Cache cache,
-                                        Supplier<Boolean> connectedSupplier,
-                                        BiConsumer<Boolean, List<String>> onResolverConnectionChanged) {
-                                super(options, cache, connectedSupplier, onResolverConnectionChanged);
-                        }
-
-                        public void initialize() throws Exception {
-                        };
+            class NoopInitGrpcConnector extends GrpcConnector {
+                public NoopInitGrpcConnector(FlagdOptions options, Cache cache,
+                        Supplier<Boolean> connectedSupplier,
+                        Consumer<ConnectionEvent> onConnectionEvent) {
+                    super(options, cache, connectedSupplier, onConnectionEvent);
                 }
 
-                grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true, (state, changedFlagKeys) -> {
-                });
+                public void initialize() throws Exception {
+                };
+            }
+
+            grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true,
+                    (connectionEvent) -> {
+                    });
         }
 
         FlagdProvider provider = createProvider(grpc, cache, () -> true);
@@ -751,11 +811,14 @@ class FlagdProviderTest {
                 .setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
 
         // should not cache results
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
-        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
+        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN,
+                false);
+        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING,
+                "wrong");
         FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
         FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
-        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
+        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT,
+                new Value());
 
         // assert values are not cached
         booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
@@ -786,39 +849,6 @@ class FlagdProviderTest {
     }
 
     @Test
-    void contextMerging() throws Exception {
-        // given
-        final FlagdProvider provider = new FlagdProvider();
-
-        final Resolver resolverMock = mock(Resolver.class);
-
-        Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
-        flagResolver.setAccessible(true);
-        flagResolver.set(provider, resolverMock);
-
-        final HashMap<String, Value> globalCtxMap = new HashMap<>();
-        globalCtxMap.put("id", new Value("GlobalID"));
-        globalCtxMap.put("env", new Value("A"));
-
-        final HashMap<String, Value> localCtxMap = new HashMap<>();
-        localCtxMap.put("id", new Value("localID"));
-        localCtxMap.put("client", new Value("999"));
-
-        final HashMap<String, Value> expectedCtx = new HashMap<>();
-        expectedCtx.put("id", new Value("localID"));
-        expectedCtx.put("env", new Value("A"));
-        localCtxMap.put("client", new Value("999"));
-
-        // when
-        provider.initialize(new ImmutableContext(globalCtxMap));
-        provider.getBooleanEvaluation("ket", false, new ImmutableContext(localCtxMap));
-
-        // then
-        verify(resolverMock).booleanEvaluation(any(), any(), argThat(
-                ctx -> ctx.asMap().entrySet().containsAll(expectedCtx.entrySet())));
-    }
-
-    @Test
     void initializationAndShutdown() throws Exception {
         // given
         final FlagdProvider provider = new FlagdProvider();
@@ -845,6 +875,87 @@ class FlagdProviderTest {
         verify(resolverMock, times(1)).shutdown();
     }
 
+    @Test
+    void contextEnrichment() throws Exception {
+
+        final EvaluationContext ctx = new ImmutableContext();
+        String key = "key1";
+        String val = "val1";
+        MutableStructure metadata = new MutableStructure();
+        metadata.add(key, val);
+        // given
+        final Function<Structure, EvaluationContext> mockEnricher = mock(Function.class);
+
+        // mock a resolver
+        try (MockedConstruction<InProcessResolver> mockResolver = mockConstruction(InProcessResolver.class,
+                (mock, context) -> {
+                    Consumer<ConnectionEvent> onConnectionEvent;
+
+                    // get a reference to the onConnectionEvent callback
+                    onConnectionEvent = (Consumer<ConnectionEvent>) context
+                            .arguments().get(2);
+
+                    // when our mock resolver initializes, it runs the passed onConnectionEvent
+                    // callback
+                    doAnswer(invocation -> {
+                        onConnectionEvent.accept(
+                                new ConnectionEvent(true, metadata));
+                        return null;
+                    }).when(mock).init();
+                })) {
+
+            final FlagdProvider provider = new FlagdProvider(
+                    FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).contextEnricher(mockEnricher).build());
+            provider.initialize(ctx);
+
+            // the enricher should run with init events, and be passed the metadata
+            verify(mockEnricher).apply(argThat(arg -> arg.getValue(key).asString().equals(val)));
+        }
+    }
+
+    @Test
+    void updatesSyncMetadataWithCallback() throws Exception {
+        // given
+        final EvaluationContext ctx = new ImmutableContext();
+        String key = "key1";
+        String val = "val1";
+        MutableStructure metadata = new MutableStructure();
+        metadata.add(key, val);
+
+        // mock a resolver
+        try (MockedConstruction<InProcessResolver> mockResolver = mockConstruction(InProcessResolver.class,
+                (mock, context) -> {
+                    Consumer<ConnectionEvent> onConnectionEvent;
+
+                    // get a reference to the onConnectionEvent callback
+                    onConnectionEvent = (Consumer<ConnectionEvent>) context
+                            .arguments().get(2);
+
+                    // when our mock resolver initializes, it runs the passed onConnectionEvent
+                    // callback
+                    doAnswer(invocation -> {
+                        onConnectionEvent.accept(
+                                new ConnectionEvent(true, metadata));
+                        return null;
+                    }).when(mock).init();
+                })) {
+
+            FlagdProvider provider = new FlagdProvider(
+                    FlagdOptions.builder().resolverType(Config.Resolver.IN_PROCESS).build());
+            provider.initialize(ctx);
+
+            // the onConnectionEvent should have updated the sync metadata and the
+            assertEquals(val, provider.getSyncMetadata().getValue(key).asString());
+            assertEquals(val, provider.getEnrichedContext().getValue(key).asString());
+
+            // call the hook manually and make sure the enriched context is returned
+            Optional<EvaluationContext> contextFromHook = provider.getProviderHooks().get(0)
+                    .before(HookContext.builder().flagKey("some-flag").defaultValue(false)
+                            .type(FlagValueType.BOOLEAN).ctx(new ImmutableContext()).build(), Collections.emptyMap());
+            assertEquals(val, contextFromHook.get().getValue(key).asString());
+        }
+    }
+
     // test helper
 
     // create provider with given grpc connector
@@ -863,7 +974,7 @@ class FlagdProviderTest {
     private FlagdProvider createProvider(GrpcConnector grpc, Cache cache, Supplier<Boolean> getConnected) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
         final GrpcResolver grpcResolver = new GrpcResolver(flagdOptions, cache, getConnected,
-                (providerState, changedFlagKeys) -> {
+                (connectionEvent) -> {
                 });
 
         final FlagdProvider provider = new FlagdProvider();
@@ -892,7 +1003,8 @@ class FlagdProviderTest {
                 .build();
         final FlagdProvider provider = new FlagdProvider(flagdOptions);
         final MockStorage mockStorage = new MockStorage(new HashMap<String, FeatureFlag>(),
-                new LinkedBlockingQueue<StorageStateChange>(Arrays.asList(new StorageStateChange(StorageState.OK))));
+                new LinkedBlockingQueue<StorageStateChange>(
+                        Arrays.asList(new StorageStateChange(StorageState.OK))));
 
         try {
             final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
