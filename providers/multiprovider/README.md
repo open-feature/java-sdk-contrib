@@ -55,7 +55,7 @@ an error result.
 ### User Defined
 
 Rather than making assumptions about when to use a provider’s result and when not to (which may not hold across all
-providers) there is also a way for the user to define their own strategy that determines whether or not to use a result
+providers) there is also a way for the user to define their own strategy that determines whether to use a result
 or fall through to the next one.
 
 ## Installation
@@ -88,13 +88,7 @@ MultiProvider multiProvider = new MultiProvider(providers);
 OpenFeatureAPI.getInstance().setProviderAndWait(multiProvider);
 
 // initialize using a different strategy
-
-// notice LinkedHashMap is used, since order is important
-Map<String, FeatureProvider> providersMap = new LinkedHashMap<>(2);
-
-providersMap.put(provider1.getMetadata().getName(), provider1);
-providersMap.put(provider2.getMetadata().getName(), provider2);
-multiProvider = new MultiProvider(providers, new FirstSuccessfulStrategy(providersMap));
+multiProvider = new MultiProvider(providers, new FirstSuccessfulStrategy());
 ...
 ```
 
