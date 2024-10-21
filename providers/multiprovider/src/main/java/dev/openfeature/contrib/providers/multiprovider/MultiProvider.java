@@ -23,7 +23,7 @@ public class MultiProvider extends EventProvider {
     @Getter
     private static final String NAME = "multiprovider";
     private final Map<String, FeatureProvider> providers;
-    private final Strategy strategy;
+    private Strategy strategy;
     private String metadataName;
 
     /**
@@ -43,24 +43,16 @@ public class MultiProvider extends EventProvider {
      */
     public MultiProvider(List<FeatureProvider> providers, Strategy strategy) {
         this.providers = new LinkedHashMap<>(providers.size());
-        JSONObject json = new JSONObject();
-        json.put("name", NAME);
-        JSONObject providersMetadata = new JSONObject();
-        json.put("originalMetadata", providersMetadata);
         for (FeatureProvider provider: providers) {
             FeatureProvider prevProvider = this.providers.put(provider.getMetadata().getName(), provider);
             if (prevProvider != null) {
                 log.warn("duplicated provider name: {}", provider.getMetadata().getName());
             }
-            JSONObject providerMetadata = new JSONObject();
-            providerMetadata.put("name", provider.getMetadata().getName());
-            providersMetadata.put(provider.getMetadata().getName(), providerMetadata);
         }
-        metadataName = json.toString();
-        if (strategy == null) {
-            this.strategy = new FirstMatchStrategy(this.providers);
-        } else {
+        if (strategy != null) {
             this.strategy = strategy;
+        } else {
+            this.strategy = new FirstMatchStrategy(this.providers);
         }
     }
 
@@ -71,9 +63,17 @@ public class MultiProvider extends EventProvider {
      */
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
+        JSONObject json = new JSONObject();
+        json.put("name", NAME);
+        JSONObject providersMetadata = new JSONObject();
+        json.put("originalMetadata", providersMetadata);
         for (FeatureProvider provider: providers.values()) {
             provider.initialize(evaluationContext);
+            JSONObject providerMetadata = new JSONObject();
+            providerMetadata.put("name", provider.getMetadata().getName());
+            providersMetadata.put(provider.getMetadata().getName(), providerMetadata);
         }
+        metadataName = json.toString();
     }
 
     @Override
