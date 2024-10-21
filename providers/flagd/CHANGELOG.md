@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.2...dev.openfeature.contrib.providers.flagd-v0.9.3) (2024-10-21)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.semver4j:semver4j to v5.4.1 ([#1025](https://github.com/open-feature/java-sdk-contrib/issues/1025)) ([c58af09](https://github.com/open-feature/java-sdk-contrib/commit/c58af09d35d60bb13bdc4395b7bf9a8017e48344))
+* protobuf-java version for CVE-2024-7254 ([#1030](https://github.com/open-feature/java-sdk-contrib/issues/1030)) ([1c3633c](https://github.com/open-feature/java-sdk-contrib/commit/1c3633c817bff2eaac33eb32ec28393f7df768c8))
+
+
+### 🧹 Chore
+
+* **deps:** update junit5 monorepo ([#1029](https://github.com/open-feature/java-sdk-contrib/issues/1029)) ([39f0c22](https://github.com/open-feature/java-sdk-contrib/commit/39f0c22e9a77f66d379848cee5dc2d5a3d711df9))
+
 ## [0.9.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.1...dev.openfeature.contrib.providers.flagd-v0.9.2) (2024-10-16)
 
 
