@@ -1,11 +1,6 @@
 package dev.openfeature.contrib.providers.multiprovider;
 
-import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.EventProvider;
-import dev.openfeature.sdk.FeatureProvider;
-import dev.openfeature.sdk.Metadata;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -13,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +33,7 @@ public class MultiProvider extends EventProvider {
      * @param providers providers list
      */
     public MultiProvider(List<FeatureProvider> providers, Strategy strategy) {
-        this.providers = new HashMap<>(providers.size());
+        this.providers = new LinkedHashMap<>(providers.size());
         for (FeatureProvider provider: providers) {
             FeatureProvider prevProvider = this.providers.put(provider.getMetadata().getName(), provider);
             if (prevProvider != null) {
@@ -77,27 +72,27 @@ public class MultiProvider extends EventProvider {
     @Override
     @SuppressFBWarnings(value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "reason can be null")
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(p -> p.getBooleanEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(key, defaultValue, ctx, p -> p.getBooleanEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(p -> p.getStringEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(key, defaultValue, ctx, p -> p.getStringEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(p -> p.getIntegerEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(key, defaultValue, ctx, p -> p.getIntegerEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(p -> p.getDoubleEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(key, defaultValue, ctx, p -> p.getDoubleEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(p -> p.getObjectEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(key, defaultValue, ctx, p -> p.getObjectEvaluation(key, defaultValue, ctx));
     }
 
     @SneakyThrows

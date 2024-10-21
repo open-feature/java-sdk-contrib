@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.multiprovider;
 
+import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
@@ -20,7 +21,8 @@ public class FirstSuccessfulStrategy extends BaseStrategy {
         super(providers);
     }
 
-    public <T> ProviderEvaluation<T> evaluate(Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
+    @Override
+    public <T> ProviderEvaluation<T> evaluate(String key, T defaultValue, EvaluationContext ctx, Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
         for (FeatureProvider provider: getProviders().values()) {
             ProviderEvaluation<T> result;
             try {
