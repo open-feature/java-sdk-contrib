@@ -14,7 +14,7 @@
 
     <name>multiprovider</name>
     <description>OpenFeature Multi-Provider</description>
-    <url>https://github.com/open-feature/java-sdk-contrib/tree/main/providers/multi-provider</url>
+    <url>https://github.com/open-feature/java-sdk-contrib/tree/main/providers/multiprovider</url>
 
     <dependencies>
         <dependency>

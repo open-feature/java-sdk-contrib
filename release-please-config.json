@@ -100,7 +100,7 @@
         "README.md"
       ]
     },
-    "providers/multi-provider": {
+    "providers/multiprovider": {
       "package-name": "dev.openfeature.contrib.providers.multiprovider",
       "release-type": "simple",
       "bump-minor-pre-major": true,
