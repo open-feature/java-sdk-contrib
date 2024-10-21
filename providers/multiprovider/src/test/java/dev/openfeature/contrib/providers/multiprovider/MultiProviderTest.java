@@ -1,6 +1,11 @@
 package dev.openfeature.contrib.providers.multiprovider;
 
-import dev.openfeature.sdk.*;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.Metadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.providers.memory.Flag;
@@ -9,10 +14,17 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +34,7 @@ class MultiProviderTest {
     void setUp() {
     }
 
+    @SneakyThrows
     @Test
     public void testInit() {
         FeatureProvider provider1 = mock(FeatureProvider.class);
@@ -34,10 +47,12 @@ class MultiProviderTest {
         providers.add(provider2);
         Strategy strategy = mock(Strategy.class);
         MultiProvider multiProvider = new MultiProvider(providers, strategy);
+        multiProvider.initialize(null);
 
         assertNotNull(multiProvider);
-        assertEquals("Multi-Provider[" + providers.get(0).getMetadata().getName() + "," +
-            providers.get(1).getMetadata().getName() + "]", multiProvider.getMetadata().getName());
+        assertEquals("{\"originalMetadata\":{\"provider1\":{\"name\":\"provider1\"}," +
+            "\"provider2\":{\"name\":\"provider2\"}},\"name\":\"multiprovider\"}",
+                multiProvider.getMetadata().getName());
     }
 
     @Test
@@ -51,21 +66,22 @@ class MultiProviderTest {
         providers.add(provider1);
         providers.add(provider2);
 
-        assertThrows(IllegalArgumentException.class, () -> new MultiProvider(providers, null));
+        assertDoesNotThrow(() -> new MultiProvider(providers, null).initialize(null));
     }
 
+    @SneakyThrows
     @Test
     public void testRetrieveMetadataName() {
-        // Prepare
         List<FeatureProvider> providers = new ArrayList<>();
         FeatureProvider mockProvider = mock(FeatureProvider.class);
         when(mockProvider.getMetadata()).thenReturn(() -> "MockProvider");
         providers.add(mockProvider);
         Strategy mockStrategy = mock(Strategy.class);
         MultiProvider multiProvider = new MultiProvider(providers, mockStrategy);
+        multiProvider.initialize(null);
 
-        // Verify
-        assertEquals("Multi-Provider[MockProvider]", multiProvider.getMetadata().getName());
+        assertEquals("{\"originalMetadata\":{\"MockProvider\":{\"name\":\"MockProvider\"}}," +
+            "\"name\":\"multiprovider\"}", multiProvider.getMetadata().getName());
     }
 
     @SneakyThrows
@@ -119,9 +135,8 @@ class MultiProviderTest {
         assertEquals("s2str2", multiProvider.getStringEvaluation("s2", "", null)
             .getValue());
         MultiProvider finalMultiProvider1 = multiProvider;
-        assertThrows(FlagNotFoundError.class, () -> {
-            finalMultiProvider1.getStringEvaluation("non-existing", "", null);
-        });
+        assertThrows(FlagNotFoundError.class, () ->
+            finalMultiProvider1.getStringEvaluation("non-existing", "", null));
 
         multiProvider.shutdown();
         Map<String, FeatureProvider> providersMap = new LinkedHashMap<>(2);
@@ -144,14 +159,13 @@ class MultiProviderTest {
         assertEquals("s2str2", multiProvider.getStringEvaluation("s2", "", null)
             .getValue());
         MultiProvider finalMultiProvider2 = multiProvider;
-        assertThrows(GeneralError.class, () -> {
-            finalMultiProvider2.getStringEvaluation("non-existing", "", null);
-        });
+        assertThrows(GeneralError.class, () ->
+            finalMultiProvider2.getStringEvaluation("non-existing", "", null));
 
         multiProvider.shutdown();
         Map<String, FeatureProvider> finalProvidersMap = providersMap;
         Strategy customStrategy = new BaseStrategy(finalProvidersMap) {
-            FirstMatchStrategy fallbackStrategy = new FirstMatchStrategy(finalProvidersMap);
+            final FirstMatchStrategy fallbackStrategy = new FirstMatchStrategy(finalProvidersMap);
             @Override
             public <T> ProviderEvaluation<T> evaluate(String key, T defaultValue, EvaluationContext ctx, Function<FeatureProvider, ProviderEvaluation<T>> providerFunction) {
                 Value contextProvider = null;
