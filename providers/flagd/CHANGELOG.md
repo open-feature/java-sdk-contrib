@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.3...dev.openfeature.contrib.providers.flagd-v0.9.4) (2024-10-24)
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.5.0 ([#1034](https://github.com/open-feature/java-sdk-contrib/issues/1034)) ([e377b74](https://github.com/open-feature/java-sdk-contrib/commit/e377b749f41e30975d0dcf3030a72fe0c8598382))
+* **deps:** update testcontainers-java monorepo to v1.20.3 ([#1037](https://github.com/open-feature/java-sdk-contrib/issues/1037)) ([373381d](https://github.com/open-feature/java-sdk-contrib/commit/373381d74d38d15d49c56d9395945a30750cd746))
+
 ## [0.9.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.2...dev.openfeature.contrib.providers.flagd-v0.9.3) (2024-10-21)
 
 
