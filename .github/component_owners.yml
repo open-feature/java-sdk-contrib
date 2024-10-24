@@ -35,6 +35,8 @@ components:
     - novalisdenahi
   providers/statsig:
     - liran2000
+  providers/multiprovider:
+    - liran2000
 
 ignored-authors:
   - renovate-bot

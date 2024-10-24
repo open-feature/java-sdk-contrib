@@ -100,6 +100,17 @@
         "README.md"
       ]
     },
+    "providers/multiprovider": {
+      "package-name": "dev.openfeature.contrib.providers.multiprovider",
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
+    },
     "hooks/open-telemetry": {
       "package-name": "dev.openfeature.contrib.hooks.otel",
       "release-type": "simple",
