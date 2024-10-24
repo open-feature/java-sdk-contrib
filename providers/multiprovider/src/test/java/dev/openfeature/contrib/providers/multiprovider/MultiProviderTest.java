@@ -11,28 +11,25 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.providers.memory.Flag;
 import dev.openfeature.sdk.providers.memory.InMemoryProvider;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class MultiProviderTest {
-
-    @BeforeEach
-    void setUp() {
-    }
 
     @SneakyThrows
     @Test
@@ -53,6 +50,25 @@ class MultiProviderTest {
         assertEquals("{\"originalMetadata\":{\"provider1\":{\"name\":\"provider1\"}," +
             "\"provider2\":{\"name\":\"provider2\"}},\"name\":\"multiprovider\"}",
                 multiProvider.getMetadata().getName());
+    }
+
+    @SneakyThrows
+    @Test
+    public void testInitOneFails() {
+        FeatureProvider provider1 = mock(FeatureProvider.class);
+        FeatureProvider provider2 = mock(FeatureProvider.class);
+        when(provider1.getMetadata()).thenReturn(() -> "provider1");
+        when(provider2.getMetadata()).thenReturn(() -> "provider2");
+        doThrow(new GeneralError()).when(provider1).initialize(any());
+        doThrow(new GeneralError()).when(provider1).shutdown();
+
+        List<FeatureProvider> providers = new ArrayList<>(2);
+        providers.add(provider1);
+        providers.add(provider2);
+        Strategy strategy = mock(Strategy.class);
+        MultiProvider multiProvider = new MultiProvider(providers, strategy);
+        assertThrows(ExecutionException.class, () -> multiProvider.initialize(null));
+        assertDoesNotThrow(() -> multiProvider.shutdown());
     }
 
     @Test

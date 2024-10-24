@@ -6,14 +6,21 @@ import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Provider implementation for Multi-provider.
@@ -23,6 +30,7 @@ public class MultiProvider extends EventProvider {
 
     @Getter
     private static final String NAME = "multiprovider";
+    public static final int INIT_THREADS_COUNT = 8;
     private final Map<String, FeatureProvider> providers;
     private final Strategy strategy;
     private String metadataName;
@@ -73,11 +81,22 @@ public class MultiProvider extends EventProvider {
         json.put("name", NAME);
         JSONObject providersMetadata = new JSONObject();
         json.put("originalMetadata", providersMetadata);
+        ExecutorService initPool = Executors.newFixedThreadPool(INIT_THREADS_COUNT);
+        Collection<Callable<Boolean>> tasks = new ArrayList<>(providers.size());
         for (FeatureProvider provider: providers.values()) {
-            provider.initialize(evaluationContext);
+            tasks.add(() -> {
+                provider.initialize(evaluationContext);
+                return true;
+            });
             JSONObject providerMetadata = new JSONObject();
             providerMetadata.put("name", provider.getMetadata().getName());
             providersMetadata.put(provider.getMetadata().getName(), providerMetadata);
+        }
+        List<Future<Boolean>> results = initPool.invokeAll(tasks);
+        for (Future<Boolean> result: results) {
+            if (!result.get()) {
+                throw new GeneralError("init failed");
+            }
         }
         metadataName = json.toString();
     }
