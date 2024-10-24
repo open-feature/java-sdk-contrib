@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.1.0...dev.openfeature.contrib.providers.configcat-v0.1.1) (2024-10-24)
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.1 ([#986](https://github.com/open-feature/java-sdk-contrib/issues/986)) ([1e53431](https://github.com/open-feature/java-sdk-contrib/commit/1e53431353c1de0856db6bdb815d2218d9ac94a2))
+
+
+### 📚 Documentation
+
+* **configcat:** Revise docs in README.md ([#990](https://github.com/open-feature/java-sdk-contrib/issues/990)) ([a58a64e](https://github.com/open-feature/java-sdk-contrib/commit/a58a64e0477dd48c4b715ae0e05413b37e653379))
+
 ## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.0.4...dev.openfeature.contrib.providers.configcat-v0.1.0) (2024-09-25)
 
 
