@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.3...dev.openfeature.contrib.providers.flagd-v0.10.0) (2024-10-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* change FLAGD_GRPC_TARGET env to FLAGD_TARGET_URI ([#1050](https://github.com/open-feature/java-sdk-contrib/issues/1050))
+
+### 🐛 Bug Fixes
+
+* change FLAGD_GRPC_TARGET env to FLAGD_TARGET_URI ([#1050](https://github.com/open-feature/java-sdk-contrib/issues/1050)) ([521f776](https://github.com/open-feature/java-sdk-contrib/commit/521f776ad1abbc6de1ee94f056e84659e8665243))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.1 ([#1047](https://github.com/open-feature/java-sdk-contrib/issues/1047)) ([a2ee3e6](https://github.com/open-feature/java-sdk-contrib/commit/a2ee3e6ed0c15c3ebaf55adc10198760f51a4a30))
+* **deps:** update grpc-java monorepo to v1.68.1 ([#1049](https://github.com/open-feature/java-sdk-contrib/issues/1049)) ([da41a95](https://github.com/open-feature/java-sdk-contrib/commit/da41a950c291ace0b9fbc82a3ae1867ce2fe4e82))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.5.0 ([#1034](https://github.com/open-feature/java-sdk-contrib/issues/1034)) ([e377b74](https://github.com/open-feature/java-sdk-contrib/commit/e377b749f41e30975d0dcf3030a72fe0c8598382))
+* **deps:** update testcontainers-java monorepo to v1.20.3 ([#1037](https://github.com/open-feature/java-sdk-contrib/issues/1037)) ([373381d](https://github.com/open-feature/java-sdk-contrib/commit/373381d74d38d15d49c56d9395945a30750cd746))
+
 ## [0.9.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.2...dev.openfeature.contrib.providers.flagd-v0.9.3) (2024-10-21)
 
 
