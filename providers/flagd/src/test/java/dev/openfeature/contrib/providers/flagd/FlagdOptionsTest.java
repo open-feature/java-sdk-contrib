@@ -191,7 +191,7 @@ class FlagdOptionsTest {
     }
 
     @Test
-    @SetEnvironmentVariable(key = GRPC_TARGET_ENV_VAR_NAME, value = "envoy://localhost:1234/foo.service")
+    @SetEnvironmentVariable(key = TARGET_URI_ENV_VAR_NAME, value = "envoy://localhost:1234/foo.service")
     void testTargetOverrideFromEnv() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
 

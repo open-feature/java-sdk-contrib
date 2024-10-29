@@ -132,7 +132,7 @@ public class FlagdOptions {
      * resolution. For more visit (https://grpc.io/docs/guides/custom-name-resolution/)
      */
     @Builder.Default
-    private String targetUri = fallBackToEnvOrDefault(Config.GRPC_TARGET_ENV_VAR_NAME, null);
+    private String targetUri = fallBackToEnvOrDefault(Config.TARGET_URI_ENV_VAR_NAME, null);
 
 
     /**
