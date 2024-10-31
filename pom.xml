@@ -231,7 +231,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.6.0</version>
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
                     <encoding>UTF-8</encoding>
@@ -260,7 +260,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.25.0</version>
+                <version>3.26.0</version>
                 <configuration>
                     <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
                 </configuration>

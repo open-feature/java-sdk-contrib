@@ -8,7 +8,7 @@ This provider is designed to use flagd's [evaluation protocol](https://github.co
 <dependency>
   <groupId>dev.openfeature.contrib.providers</groupId>
   <artifactId>flagd</artifactId>
-  <version>0.9.3</version>
+  <version>0.10.0</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
@@ -104,11 +104,11 @@ variables.
 Given below are the supported configurations:
 
 | Option name           | Environment variable name      | Type & Values            | Default   | Compatible resolver |
-|-----------------------|--------------------------------|--------------------------|-----------|---------------------|
+| --------------------- | ------------------------------ | ------------------------ | --------- | ------------------- |
 | resolver              | FLAGD_RESOLVER                 | String - rpc, in-process | rpc       |                     |
 | host                  | FLAGD_HOST                     | String                   | localhost | rpc & in-process    |
 | port                  | FLAGD_PORT                     | int                      | 8013      | rpc & in-process    |
-| targetUri             | FLAGD_GRPC_TARGET              | string                   | null      | rpc & in-process    |
+| targetUri             | FLAGD_TARGET_URI               | string                   | null      | rpc & in-process    |
 | tls                   | FLAGD_TLS                      | boolean                  | false     | rpc & in-process    |
 | socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process    |
 | certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process    |
