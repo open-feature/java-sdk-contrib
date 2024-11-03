@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import dev.openfeature.sdk.ProviderEvaluation;
 import lombok.Builder;
 import lombok.Getter;
@@ -49,14 +50,26 @@ public class GoFeatureFlagProviderOptions {
 
     /**
      * (optional) If cache custom configuration is wanted, you should provide
-     * a cache builder.
+     * a cache configuration caffeine object.
+     * Example:
+     * <pre>
+     * <code>GoFeatureFlagProviderOptions.builder()
+     *   .caffeineConfig(
+     *      Caffeine.newBuilder()
+     *          .initialCapacity(100)
+     *          .maximumSize(100000)
+     *          .expireAfterWrite(Duration.ofMillis(5L * 60L * 1000L))
+     *          .build()
+     *    )
+     *   .build();
+     * </code>
+     * </pre>
      * Default:
      * CACHE_TTL_MS: 5min
-     * CACHE_CONCURRENCY_LEVEL: 1
      * CACHE_INITIAL_CAPACITY: 100
      * CACHE_MAXIMUM_SIZE: 100000
      */
-    private CacheBuilder<String, ProviderEvaluation<?>> cacheBuilder;
+    private Caffeine<String, ProviderEvaluation<?>> cacheConfig;
 
     /**
      * (optional) enable cache value.
