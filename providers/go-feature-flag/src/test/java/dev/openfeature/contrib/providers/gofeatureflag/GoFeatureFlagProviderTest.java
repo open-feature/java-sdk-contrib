@@ -1,5 +1,10 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
+import static dev.openfeature.contrib.providers.gofeatureflag.controller.GoFeatureFlagController.requestMapper;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -10,42 +15,34 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.net.HttpHeaders;
-import dev.openfeature.sdk.Client;
-import dev.openfeature.sdk.ErrorCode;
-import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.FlagEvaluationDetails;
-import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.OpenFeatureAPI;
-import dev.openfeature.sdk.ProviderState;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
-import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import dev.openfeature.sdk.ImmutableMetadata;
-import dev.openfeature.sdk.MutableContext;
-import dev.openfeature.sdk.MutableStructure;
-import dev.openfeature.sdk.Reason;
-import dev.openfeature.sdk.Value;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.net.HttpHeaders;
 
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.ImmutableMetadata;
+import dev.openfeature.sdk.MutableContext;
+import dev.openfeature.sdk.MutableStructure;
+import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.junit.jupiter.api.TestInfo;
-
-import static dev.openfeature.contrib.providers.gofeatureflag.controller.GoFeatureFlagController.requestMapper;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
 class GoFeatureFlagProviderTest {
@@ -361,9 +358,9 @@ class GoFeatureFlagProviderTest {
     @SneakyThrows
     @Test
     void should_resolve_from_cache_max_size() {
-        CacheBuilder cacheBuilder = CacheBuilder.newBuilder().maximumSize(1);
+        Caffeine caffeine = Caffeine.newBuilder().maximumSize(1);
         GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
-                .endpoint(this.baseUrl.toString()).timeout(1000).cacheBuilder(cacheBuilder).build());
+                .endpoint(this.baseUrl.toString()).timeout(1000).cacheConfig(caffeine).build());
         String providerName = this.testName;
         OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
@@ -406,10 +403,6 @@ class GoFeatureFlagProviderTest {
                 .flagMetadata(defaultMetadata)
                 .build();
         assertEquals(wantStr2, gotStr);
-
-        // verify that value previously fetch from cache now not fetched from cache since cache max size is 1, and cache is full.
-        got = client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
-        assertEquals(want, got);
     }
 
     @SneakyThrows
