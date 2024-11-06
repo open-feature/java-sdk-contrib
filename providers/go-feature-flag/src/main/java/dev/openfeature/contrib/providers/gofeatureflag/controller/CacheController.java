@@ -17,7 +17,6 @@ import lombok.Builder;
  */
 public class CacheController {
     public static final long DEFAULT_CACHE_TTL_MS = 5L * 60L * 1000L;
-    public static final int DEFAULT_CACHE_CONCURRENCY_LEVEL = 1;
     public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
     public static final int DEFAULT_CACHE_MAXIMUM_SIZE = 100000;
     private final Cache<String, ProviderEvaluation<?>> cache;
