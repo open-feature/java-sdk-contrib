@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.common.net.HttpHeaders;
 import dev.openfeature.contrib.providers.gofeatureflag.EvaluationResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.ConfigurationChange;
@@ -59,6 +58,11 @@ public class GoFeatureFlagController {
     private static final ObjectMapper responseMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final String BEARER_TOKEN = "Bearer ";
+
+    private static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String HTTP_HEADER_AUTHORIZATION = "Authorization";
+    private static final String HTTP_HEADER_ETAG = "ETag";
+    private static final String HTTP_HEADER_IF_NONE_MATCH = "If-None-Match";
 
     /**
      * apiKey contains the token to use while calling GO Feature Flag relay proxy.
@@ -137,13 +141,13 @@ public class GoFeatureFlagController {
 
             Request.Builder reqBuilder = new Request.Builder()
                     .url(url)
-                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                    .addHeader(HTTP_HEADER_CONTENT_TYPE, APPLICATION_JSON)
                     .post(RequestBody.create(
                             requestMapper.writeValueAsBytes(goffRequest),
                             MediaType.get("application/json; charset=utf-8")));
 
             if (this.apiKey != null && !this.apiKey.isEmpty()) {
-                reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
+                reqBuilder.addHeader(HTTP_HEADER_AUTHORIZATION, BEARER_TOKEN + this.apiKey);
             }
 
             try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
@@ -216,13 +220,13 @@ public class GoFeatureFlagController {
 
             Request.Builder reqBuilder = new Request.Builder()
                     .url(url)
-                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                    .addHeader(HTTP_HEADER_CONTENT_TYPE, APPLICATION_JSON)
                     .post(RequestBody.create(
                             requestMapper.writeValueAsBytes(events),
                             MediaType.get("application/json; charset=utf-8")));
 
             if (this.apiKey != null && !this.apiKey.isEmpty()) {
-                reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
+                reqBuilder.addHeader(HTTP_HEADER_AUTHORIZATION, BEARER_TOKEN + this.apiKey);
             }
 
             try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
@@ -259,14 +263,14 @@ public class GoFeatureFlagController {
 
         Request.Builder reqBuilder = new Request.Builder()
                 .url(url)
-                .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .addHeader(HTTP_HEADER_CONTENT_TYPE, APPLICATION_JSON)
                 .get();
 
         if (this.etag != null && !this.etag.isEmpty()) {
-            reqBuilder.addHeader(HttpHeaders.IF_NONE_MATCH, this.etag);
+            reqBuilder.addHeader(HTTP_HEADER_IF_NONE_MATCH, this.etag);
         }
         if (this.apiKey != null && !this.apiKey.isEmpty()) {
-            reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
+            reqBuilder.addHeader(HTTP_HEADER_AUTHORIZATION, BEARER_TOKEN + this.apiKey);
         }
 
         try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
@@ -283,7 +287,7 @@ public class GoFeatureFlagController {
             }
 
             boolean isInitialConfiguration = this.etag == null;
-            this.etag = response.header(HttpHeaders.ETAG);
+            this.etag = response.header(HTTP_HEADER_ETAG);
             return isInitialConfiguration
                     ? ConfigurationChange.FLAG_CONFIGURATION_INITIALIZED
                     : ConfigurationChange.FLAG_CONFIGURATION_UPDATED;
