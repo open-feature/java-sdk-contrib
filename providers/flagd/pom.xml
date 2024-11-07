@@ -32,13 +32,6 @@
     </developers>
 
     <dependencies>
-        <!-- temporary to fix CVE-2024-7254 (see: https://github.com/advisories/GHSA-735f-pc8j-v9w8) - remove once this is in gRPC-java -->
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>3.25.5</version>
-        </dependency>
-
         <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
         <dependency>
             <groupId>io.grpc</groupId>
