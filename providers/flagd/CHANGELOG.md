@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.0...dev.openfeature.contrib.providers.flagd-v0.10.1) (2024-11-18)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.3 ([#1052](https://github.com/open-feature/java-sdk-contrib/issues/1052)) ([a720f41](https://github.com/open-feature/java-sdk-contrib/commit/a720f4105b9da8bfd58307b38144b0d6000375ad))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.115.final ([#1071](https://github.com/open-feature/java-sdk-contrib/issues/1071)) ([6e311dc](https://github.com/open-feature/java-sdk-contrib/commit/6e311dc99e5cc2e51729d5086437c706de19b9a5))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.44.0 ([#1069](https://github.com/open-feature/java-sdk-contrib/issues/1069)) ([2cd0489](https://github.com/open-feature/java-sdk-contrib/commit/2cd0489e61aecd7a8f87043cbd4382aaf6485f77))
+* **deps:** update opentelemetry-java monorepo to v1.44.1 ([#1070](https://github.com/open-feature/java-sdk-contrib/issues/1070)) ([4d5fe86](https://github.com/open-feature/java-sdk-contrib/commit/4d5fe86a488a8781ab7efefb4a5958c4fae01c17))
+* remove pinned protobuf version ([#1067](https://github.com/open-feature/java-sdk-contrib/issues/1067)) ([c8531e3](https://github.com/open-feature/java-sdk-contrib/commit/c8531e3dfabac49b8b492939bffb4f7da27e4f4c))
+
 ## [0.10.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.9.3...dev.openfeature.contrib.providers.flagd-v0.10.0) (2024-10-29)
 
 
