@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.1...dev.openfeature.contrib.providers.flagd-v0.10.2) (2024-11-20)
+
+
+### 🧹 Chore
+
+* pin protobuf-java ([#1074](https://github.com/open-feature/java-sdk-contrib/issues/1074)) ([f29969e](https://github.com/open-feature/java-sdk-contrib/commit/f29969e215914535f6733c45bcb9b22e490d02c6))
+
 ## [0.10.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.0...dev.openfeature.contrib.providers.flagd-v0.10.1) (2024-11-18)
 
 
