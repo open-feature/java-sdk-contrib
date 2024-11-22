@@ -38,9 +38,9 @@ public class ContainerConfig {
      * @return a {@link org.testcontainers.containers.GenericContainer} instance of a sync flagd server with the port 9090 exposed
      */
     public static GenericContainer sync(boolean unstable, boolean addNetwork) {
-        String container = generateContainerName("sync", unstable);
+        String container = generateContainerName("flagd", unstable);
         GenericContainer genericContainer = new GenericContainer(DockerImageName.parse(container))
-                .withExposedPorts(9090);
+                .withExposedPorts(8015);
 
         if (addNetwork) {
             genericContainer.withNetwork(network);
