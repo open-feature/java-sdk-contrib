@@ -34,13 +34,13 @@ public class ContainerConfig {
     /**
      *
      * @param unstable if an unstable version of the container, which terminates the connection regularly should be used.
-     * @param addNetwork if set to true a custom network is attached for cross container access e.g. envoy --> sync:9090
-     * @return a {@link org.testcontainers.containers.GenericContainer} instance of a sync flagd server with the port 9090 exposed
+     * @param addNetwork if set to true a custom network is attached for cross container access e.g. envoy --> sync:8015
+     * @return a {@link org.testcontainers.containers.GenericContainer} instance of a sync flagd server with the port 8015 exposed
      */
     public static GenericContainer sync(boolean unstable, boolean addNetwork) {
-        String container = generateContainerName("sync", unstable);
+        String container = generateContainerName("flagd", unstable);
         GenericContainer genericContainer = new GenericContainer(DockerImageName.parse(container))
-                .withExposedPorts(9090);
+                .withExposedPorts(8015);
 
         if (addNetwork) {
             genericContainer.withNetwork(network);
