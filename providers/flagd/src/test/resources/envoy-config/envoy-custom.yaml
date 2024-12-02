@@ -46,4 +46,4 @@ static_resources:
                   address:
                     socket_address:
                       address: sync-service
-                      port_value: 9090
+                      port_value: 8015
