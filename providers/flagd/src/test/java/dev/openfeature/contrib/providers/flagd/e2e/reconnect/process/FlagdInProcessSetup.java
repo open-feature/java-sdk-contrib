@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd.e2e.reconnect.process;
 
 import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
 import io.cucumber.java.AfterAll;
+import io.cucumber.java.Before;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -21,6 +22,9 @@ public class FlagdInProcessSetup {
     @BeforeAll()
     public static void setup() throws InterruptedException {
         flagdContainer.start();
+    }
+    @Before()
+    public static void setupTest() throws InterruptedException {
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
         .resolverType(Config.Resolver.IN_PROCESS)
         .port(flagdContainer.getFirstMappedPort())

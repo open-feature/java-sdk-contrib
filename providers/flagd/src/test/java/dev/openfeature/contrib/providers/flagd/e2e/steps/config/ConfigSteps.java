@@ -53,10 +53,10 @@ public class ConfigSteps {
     Map<String, String> envVarsSet = new HashMap<>();
 
     @When("we have an environment variable {string} with value {string}")
-    public void we_have_an_environment_variable_with_value(String string, String string2) throws IllegalAccessException, NoSuchFieldException {
-        String getenv = System.getenv(string);
-        envVarsSet.put(string, getenv);
-        EnvironmentVariableUtils.set(string, string2);
+    public void we_have_an_environment_variable_with_value(String varName, String value) throws IllegalAccessException, NoSuchFieldException {
+        String getenv = System.getenv(varName);
+        envVarsSet.put(varName, getenv);
+        EnvironmentVariableUtils.set(varName, value);
     }
 
     private Object convert(String value, String type) throws ClassNotFoundException {

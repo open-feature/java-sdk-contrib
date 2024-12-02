@@ -1,20 +1,18 @@
 package dev.openfeature.contrib.providers.flagd.e2e.reconnect.rpc;
 
-import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
-import io.cucumber.java.AfterAll;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.parallel.Isolated;
-
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
+import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
 import dev.openfeature.contrib.providers.flagd.e2e.reconnect.steps.StepDefinitions;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 import dev.openfeature.sdk.FeatureProvider;
+import io.cucumber.java.AfterAll;
+import io.cucumber.java.Before;
 import io.cucumber.java.BeforeAll;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 
 @Isolated()
 @Order(value = Integer.MAX_VALUE)
@@ -22,8 +20,12 @@ public class FlagdRpcSetup {
     private static final GenericContainer flagdContainer = ContainerConfig.flagd(true);
 
     @BeforeAll()
-    public static void setup() throws InterruptedException {
+    public static void setups() throws InterruptedException {
         flagdContainer.start();
+    }
+
+    @Before()
+    public static void setupTest() throws InterruptedException {
 
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
                 .resolverType(Config.Resolver.RPC)
