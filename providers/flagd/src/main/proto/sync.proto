@@ -1,0 +1,78 @@
+/**
+ * Flag definition sync API
+ *
+ * This proto defines a simple API to synchronize a feature flag definition.
+ * It supports establishing a stream for getting notifications about changes in a flag definition.
+ */
+syntax = "proto3";
+
+package flagd.sync.v1;
+
+import "google/protobuf/struct.proto";
+
+option csharp_namespace = "OpenFeature.Flagd.Grpc.Sync";
+option go_package = "flagd/sync/v1";
+option java_package = "dev.openfeature.flagd.grpc.sync";
+option php_namespace = "OpenFeature\\Providers\\Flagd\\Schema\\Grpc\\Sync";
+option ruby_package = "OpenFeature::Flagd::Provider::Grpc::Sync";
+
+// SyncFlagsRequest is the request initiating the server-streaming rpc.
+// Implementations of Flagd providers and Flagd itself send this request, acting as the client.
+message SyncFlagsRequest {
+  // Optional: A unique identifier for flagd(grpc client) initiating the request. The server implementations may
+  // utilize this identifier to uniquely identify, validate(ex:- enforce authentication/authorization) and filter
+  // flag configurations that it can expose to this request. This field is intended to be optional. However server
+  // implementations may enforce it.
+  //    ex:- provider_id: flagd-weatherapp-sidecar
+  string provider_id = 1;
+
+  // Optional: A selector for the flag configuration request. The server implementation may utilize this to select
+  // flag configurations from a collection, select the source of the flag or combine this to any desired underlying
+  // filtering mechanism.
+  //    ex:- selector: 'source=database,app=weatherapp'
+  string selector = 2;
+}
+
+// SyncFlagsResponse is the server response containing feature flag configurations and the state
+message SyncFlagsResponse {
+  // flagd feature flag configuration. Must be validated to schema - https://raw.githubusercontent.com/open-feature/schemas/main/json/flagd-definitions.json
+  string flag_configuration = 1;
+}
+
+// FetchAllFlagsRequest is the request to fetch all flags. Clients send this request as the client in order to resync their internal state
+message FetchAllFlagsRequest {
+  // Optional: A unique identifier for clients initiating the request. The server implementations may
+  // utilize this identifier to uniquely identify, validate(ex:- enforce authentication/authorization) and filter
+  // flag configurations that it can expose to this request. This field is intended to be optional. However server
+  // implementations may enforce it.
+  //    ex:- provider_id: flagd-weatherapp-sidecar
+  string provider_id = 1;
+
+  // Optional: A selector for the flag configuration request. The server implementation may utilize this to select
+  // flag configurations from a collection, select the source of the flag or combine this to any desired underlying
+  // filtering mechanism.
+  //    ex:- selector: 'source=database,app=weatherapp'
+  string selector = 2;
+}
+
+// FetchAllFlagsResponse is the server response containing feature flag configurations
+message FetchAllFlagsResponse {
+  // flagd feature flag configuration. Must be validated to schema - https://raw.githubusercontent.com/open-feature/schemas/main/json/flagd-definitions.json
+  string flag_configuration = 1;
+}
+
+// GetMetadataRequest is the request for retrieving metadata from the sync service
+message GetMetadataRequest {}
+
+// GetMetadataResponse contains metadata from the sync service
+message GetMetadataResponse {
+  reserved 1; // old key/value metadata impl
+  google.protobuf.Struct metadata = 2;
+}
+
+// FlagService implements a server streaming to provide realtime flag configurations
+service FlagSyncService {
+  rpc SyncFlags(SyncFlagsRequest) returns (stream SyncFlagsResponse) {}
+  rpc FetchAllFlags(FetchAllFlagsRequest) returns (FetchAllFlagsResponse) {}
+  rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse) {}
+}

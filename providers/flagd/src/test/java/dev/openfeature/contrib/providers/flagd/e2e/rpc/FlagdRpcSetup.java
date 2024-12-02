@@ -30,8 +30,7 @@ public class FlagdRpcSetup {
         FlagdRpcSetup.provider = new FlagdProvider(FlagdOptions.builder()
                 .resolverType(Config.Resolver.RPC)
                 .port(flagdContainer.getFirstMappedPort())
-                .deadline(1000)
-                .cacheType(CacheType.DISABLED.getValue())
+                .deadline(500)
                 .build());
         StepDefinitions.setProvider(provider);
     }
