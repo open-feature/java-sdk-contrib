@@ -4,6 +4,8 @@ import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,6 +47,14 @@ class BooleanFlagTest {
             assertThat(client.getBooleanValue(FLAG + "2", false)).isTrue();
             assertThat(client.getBooleanValue(FLAG + "3", false)).isTrue();
         }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = "true")
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getBooleanValue(FLAG, false)).isTrue();
+        }
     }
 
     @Nested
@@ -80,6 +90,14 @@ class BooleanFlagTest {
             assertThat(client.getBooleanValue(FLAG, false)).isTrue();
             assertThat(client.getBooleanValue(FLAG + "2", false)).isTrue();
             assertThat(client.getBooleanValue(FLAG + "3", false)).isTrue();
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = "true")
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient("testSpecific");
+            assertThat(client.getBooleanValue(FLAG, false)).isTrue();
         }
     }
 
@@ -123,6 +141,16 @@ class BooleanFlagTest {
             assertThat(client.getBooleanValue(FLAG, false)).isTrue();
             assertThat(client.getBooleanValue(FLAG + "2", false)).isTrue();
             assertThat(client.getBooleanValue(FLAG + "3", false)).isTrue();
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @OpenFeature({
+                @Flag(name = FLAG, value = "true")
+        })
+        void existingFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getBooleanValue(FLAG, false)).isTrue();
         }
 
         @Nested
