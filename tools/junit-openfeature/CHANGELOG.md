@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.1.1...dev.openfeature.contrib.tools.junitopenfeature-v0.1.2) (2024-12-03)
+
+
+### ✨ New Features
+
+* added interception of parameterized tests to Junit OpenFeature Extension ([#1093](https://github.com/open-feature/java-sdk-contrib/issues/1093)) ([a78c906](https://github.com/open-feature/java-sdk-contrib/commit/a78c906b24b53f7d25eb01aad85ed614eb30ca05))
+
 ## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.1.0...dev.openfeature.contrib.tools.junitopenfeature-v0.1.1) (2024-09-27)
 
 
