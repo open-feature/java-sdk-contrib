@@ -4,6 +4,8 @@ import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,6 +52,14 @@ class StringFlagTest {
             assertThat(client.getStringValue(FLAG + "2", FALLBACK)).isEqualTo(FLAG_VALUE);
             assertThat(client.getStringValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
         }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = FLAG_VALUE, valueType = String.class)
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getStringValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
+        }
     }
 
     @Nested
@@ -85,6 +95,14 @@ class StringFlagTest {
             assertThat(client.getStringValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
             assertThat(client.getStringValue(FLAG + "2", FALLBACK)).isEqualTo(FLAG_VALUE);
             assertThat(client.getStringValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = FLAG_VALUE, valueType = String.class)
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient(SPECIFIC_DOMAIN);
+            assertThat(client.getStringValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
         }
     }
 
@@ -128,6 +146,16 @@ class StringFlagTest {
             assertThat(client.getStringValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
             assertThat(client.getStringValue(FLAG + "2", FALLBACK)).isEqualTo(FLAG_VALUE);
             assertThat(client.getStringValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @OpenFeature({
+                @Flag(name = FLAG , value = FLAG_VALUE, valueType = String.class)
+        })
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getStringValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
         }
 
         @Nested

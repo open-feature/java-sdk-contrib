@@ -3,11 +3,7 @@ package dev.openfeature.contrib.tools.junitopenfeature;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.providers.memory.Flag;
 import org.apache.commons.lang3.BooleanUtils;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.InvocationInterceptor;
-import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+import org.junit.jupiter.api.extension.*;
 import org.junitpioneer.internal.PioneerAnnotationUtils;
 
 import java.lang.reflect.Method;
@@ -97,9 +93,15 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
             ReflectiveInvocationContext<Method> invocationContext,
             ExtensionContext extensionContext
     ) throws Throwable {
-        TestProvider.setCurrentNamespace(getNamespace(extensionContext));
-        invocation.proceed();
-        TestProvider.clearCurrentNamespace();
+        executeWithNamespace(invocation, extensionContext);
+    }
+
+    @Override
+    public void interceptTestTemplateMethod(
+            Invocation<Void> invocation,
+            ReflectiveInvocationContext<Method> invocationContext,
+            ExtensionContext extensionContext) throws Throwable {
+        executeWithNamespace(invocation, extensionContext);
     }
 
     @Override
@@ -149,5 +151,16 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
 
     private ExtensionContext.Store getStore(ExtensionContext context) {
         return context.getStore(ExtensionContext.Namespace.create(getClass()));
+    }
+
+    private void executeWithNamespace(
+            Invocation<Void> invocation,
+            ExtensionContext extensionContext) throws Throwable {
+        TestProvider.setCurrentNamespace(getNamespace(extensionContext));
+        try {
+            invocation.proceed();
+        } finally {
+            TestProvider.clearCurrentNamespace();
+        }
     }
 }

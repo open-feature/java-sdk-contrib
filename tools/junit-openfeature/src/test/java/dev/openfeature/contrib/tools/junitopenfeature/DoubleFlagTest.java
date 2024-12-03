@@ -4,6 +4,8 @@ import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,6 +54,14 @@ class DoubleFlagTest {
                 assertThat(client.getDoubleValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
             }
         }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
+        }
     }
 
     @Nested
@@ -87,6 +97,14 @@ class DoubleFlagTest {
                 assertThat(client.getDoubleValue(FLAG + "2", FALLBACK)).isEqualTo(FLAG_VALUE);
                 assertThat(client.getDoubleValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
             }
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient(SPECIFIC_DOMAIN);
+            assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
         }
     }
 
@@ -130,6 +148,16 @@ class DoubleFlagTest {
             assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
             assertThat(client.getDoubleValue(FLAG + "2", FALLBACK)).isEqualTo(FLAG_VALUE);
             assertThat(client.getDoubleValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @OpenFeature({
+                @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
+        })
+        void existingFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
         }
 
         @Nested
