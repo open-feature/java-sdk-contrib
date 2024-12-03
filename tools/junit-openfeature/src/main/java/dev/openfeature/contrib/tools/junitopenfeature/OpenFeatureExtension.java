@@ -3,7 +3,11 @@ package dev.openfeature.contrib.tools.junitopenfeature;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.providers.memory.Flag;
 import org.apache.commons.lang3.BooleanUtils;
-import org.junit.jupiter.api.extension.*;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junitpioneer.internal.PioneerAnnotationUtils;
 
 import java.lang.reflect.Method;
