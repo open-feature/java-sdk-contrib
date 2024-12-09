@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.9...dev.openfeature.contrib.providers.flagsmith-v0.0.10) (2024-12-09)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v7.4.3 ([#1098](https://github.com/open-feature/java-sdk-contrib/issues/1098)) ([a4b7809](https://github.com/open-feature/java-sdk-contrib/commit/a4b7809b03ae5384cc150c74fc7f7fb8068537d8))
+
 ## [0.0.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.8...dev.openfeature.contrib.providers.flagsmith-v0.0.9) (2024-09-13)
 
 
