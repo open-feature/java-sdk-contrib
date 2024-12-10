@@ -75,7 +75,7 @@ public class StepDefinitions {
      * Injects the client to use for this test.
      * Tests run one at a time, but just in case, a lock is used to make sure the
      * client is not updated mid-test.
-     * 
+     *
      * @param client client to inject into test.
      */
     public static void setProvider(FeatureProvider provider) {
@@ -206,6 +206,12 @@ public class StepDefinitions {
             String defaultValue) {
         this.stringFlagKey = flagKey;
         this.stringFlagDefaultValue = defaultValue;
+    }
+
+    @When("a string flag with key {string} is evaluated with details")
+    public void a_string_flag_with_key_is_evaluated_with_details(String flagKey) {
+        this.stringFlagKey = flagKey;
+        this.stringFlagDefaultValue = "";
     }
 
     @Then("the resolved string details value should be {string}, the variant should be {string}, and the reason should be {string}")
@@ -346,6 +352,7 @@ public class StepDefinitions {
         typeErrorDefaultValue = defaultValue;
         typeErrorDetails = client.getIntegerDetails(typeErrorFlagKey, typeErrorDefaultValue);
     }
+
 
     @Then("the default integer value should be returned")
     public void then_the_default_integer_value_should_be_returned() {
@@ -525,7 +532,7 @@ public class StepDefinitions {
         String value = client.getStringValue(this.stringFlagKey, this.stringFlagDefaultValue);
         assertEquals(expected, value);
     }
-    
+
     @When("a context containing a targeting key with value {string}")
     public void a_context_containing_a_targeting_key_with_value(String targetingKey) {
         this.context = new ImmutableContext(targetingKey);
