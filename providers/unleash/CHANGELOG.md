@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.1-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.0-alpha...dev.openfeature.contrib.providers.unleash-v0.1.1-alpha) (2024-12-10)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.2.5 ([#1078](https://github.com/open-feature/java-sdk-contrib/issues/1078)) ([ed10f3f](https://github.com/open-feature/java-sdk-contrib/commit/ed10f3f2e9b992d5429e7eb89268640d52a5003f))
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.2.6 ([#1085](https://github.com/open-feature/java-sdk-contrib/issues/1085)) ([f174e94](https://github.com/open-feature/java-sdk-contrib/commit/f174e94627595a8d71c593c6e9563c52ff4b602f))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.1 ([#986](https://github.com/open-feature/java-sdk-contrib/issues/986)) ([1e53431](https://github.com/open-feature/java-sdk-contrib/commit/1e53431353c1de0856db6bdb815d2218d9ac94a2))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.2 ([#1079](https://github.com/open-feature/java-sdk-contrib/issues/1079)) ([804cd45](https://github.com/open-feature/java-sdk-contrib/commit/804cd455d6e9e79e1fa72b003245027ed7450487))
+
 ## [0.1.0-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.4-alpha...dev.openfeature.contrib.providers.unleash-v0.1.0-alpha) (2024-09-25)
 
 
