@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.10.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.2...dev.openfeature.contrib.providers.flagd-v0.10.3) (2024-12-10)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.2 ([#1089](https://github.com/open-feature/java-sdk-contrib/issues/1089)) ([9b40e22](https://github.com/open-feature/java-sdk-contrib/commit/9b40e22e57739c7da417f834dd4f6822e6657ca8))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.4 ([#1082](https://github.com/open-feature/java-sdk-contrib/issues/1082)) ([57b6c9a](https://github.com/open-feature/java-sdk-contrib/commit/57b6c9a84328891618d069e72bb16b7d0d36eb23))
+* **deps:** update grpc-java monorepo to v1.68.2 ([#1084](https://github.com/open-feature/java-sdk-contrib/issues/1084)) ([3edf48b](https://github.com/open-feature/java-sdk-contrib/commit/3edf48b1930c4ddd0ef25803ff4f4054f6a8ab02))
+* **deps:** update grpc-java monorepo to v1.69.0 ([#1101](https://github.com/open-feature/java-sdk-contrib/issues/1101)) ([2fc6af0](https://github.com/open-feature/java-sdk-contrib/commit/2fc6af0994e6643b704e0f1cd7aba8fa5af688f6))
+* **deps:** update opentelemetry-java monorepo to v1.45.0 ([#1096](https://github.com/open-feature/java-sdk-contrib/issues/1096)) ([b8a79e7](https://github.com/open-feature/java-sdk-contrib/commit/b8a79e75850567a512849f2bc70aad2c88443445))
+
+
+### 🧹 Chore
+
+* **deps:** update testcontainers-java monorepo to v1.20.4 ([#1076](https://github.com/open-feature/java-sdk-contrib/issues/1076)) ([0bf3b83](https://github.com/open-feature/java-sdk-contrib/commit/0bf3b83a0d4966ae0ab8cf308d16934487c2cce1))
+
 ## [0.10.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.1...dev.openfeature.contrib.providers.flagd-v0.10.2) (2024-11-20)
 
 
