@@ -50,7 +50,7 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
-        <junit.jupiter.version>5.11.3</junit.jupiter.version>
+        <junit.jupiter.version>5.11.4</junit.jupiter.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <module-name>${groupId}.${artifactId}</module-name>
@@ -160,7 +160,7 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
-            <version>1.11.3</version>
+            <version>1.11.4</version>
             <scope>test</scope>
         </dependency>
 
