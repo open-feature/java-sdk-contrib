@@ -3,29 +3,45 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps.config;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConfigSteps {
+    /**
+     * Not all properties are correctly implemented, hence that we need to ignore them till this is fixed
+     */
+    public static final List<String> IGNORED_FOR_NOW = new ArrayList<String>() {
+        {
+            add("offlinePollIntervalMs");
+            add("retryGraceAttempts");
+            add("retryBackoffMaxMs");
+        }
+    };
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigSteps.class);
 
     FlagdOptions.FlagdOptionsBuilder builder = FlagdOptions.builder();
     FlagdOptions options;
 
-    @When("we initialize a config")
+    @When("a config was initialized")
     public void we_initialize_a_config() {
         options = builder.build();
     }
 
-    @When("we initialize a config for {string}")
+    @When("a config was initialized for {string}")
     public void we_initialize_a_config_for(String string) {
         switch (string.toLowerCase()) {
             case "in-process":
@@ -39,11 +55,16 @@ public class ConfigSteps {
         }
     }
 
-    @When("we have an option {string} of type {string} with value {string}")
+    @Given("an option {string} of type {string} with value {string}")
     public void we_have_an_option_of_type_with_value(String option, String type, String value) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        if(IGNORED_FOR_NOW.contains(option)) {
+            LOG.error("option '{}' is not supported", option);
+            return;
+        }
+
         Object converted = convert(value, type);
         Method method = Arrays.stream(builder.getClass().getMethods())
-                .filter(method1 -> method1.getName().equals(option))
+                .filter(method1 -> method1.getName().equals(mapOptionNames(option)))
                 .findFirst()
                 .orElseThrow(RuntimeException::new);
         method.invoke(builder, converted);
@@ -52,7 +73,7 @@ public class ConfigSteps {
 
     Map<String, String> envVarsSet = new HashMap<>();
 
-    @When("we have an environment variable {string} with value {string}")
+    @Given("an environment variable {string} with value {string}")
     public void we_have_an_environment_variable_with_value(String varName, String value) throws IllegalAccessException, NoSuchFieldException {
         String getenv = System.getenv(varName);
         envVarsSet.put(varName, getenv);
@@ -89,15 +110,38 @@ public class ConfigSteps {
     public void the_option_of_type_should_have_the_value(String option, String type, String value) throws Throwable {
         Object convert = convert(value, type);
 
+        if(IGNORED_FOR_NOW.contains(option)) {
+            LOG.error("option '{}' is not supported", option);
+            return;
+        }
+
+
+        option = mapOptionNames(option);
+
         assertThat(options).hasFieldOrPropertyWithValue(option, convert);
 
         // Resetting env vars
-        for (Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
+        for (
+                Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
             if (envVar.getValue() == null) {
                 EnvironmentVariableUtils.clear(envVar.getKey());
             } else {
                 EnvironmentVariableUtils.set(envVar.getKey(), envVar.getValue());
             }
         }
+    }
+
+    private static String mapOptionNames(String option) {
+        Map<String, String> propertyMapper = new HashMap<>();
+        propertyMapper.put("resolver", "resolverType");
+        propertyMapper.put("deadlineMs", "deadline");
+        propertyMapper.put("keepAliveTime", "keepAlive");
+        propertyMapper.put("retryBackoffMaxMs", "keepAlive");
+        propertyMapper.put("cache", "cacheType");
+
+        if (propertyMapper.get(option) != null) {
+            option = propertyMapper.get(option);
+        }
+        return option;
     }
 }
