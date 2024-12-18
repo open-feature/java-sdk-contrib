@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.0...dev.openfeature.contrib.providers.go-feature-flag-v0.4.1) (2024-12-18)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.2 ([#1089](https://github.com/open-feature/java-sdk-contrib/issues/1089)) ([9b40e22](https://github.com/open-feature/java-sdk-contrib/commit/9b40e22e57739c7da417f834dd4f6822e6657ca8))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.18.2 ([#1088](https://github.com/open-feature/java-sdk-contrib/issues/1088)) ([34ec5a8](https://github.com/open-feature/java-sdk-contrib/commit/34ec5a83685100ac014def681286c59f0f939188))
+* **deps:** update dependency io.reactivex.rxjava3:rxjava to v3.1.10 ([#1083](https://github.com/open-feature/java-sdk-contrib/issues/1083)) ([67d6308](https://github.com/open-feature/java-sdk-contrib/commit/67d63081c8b5f56ce7ac32a30f2bc1e67b6afe5d))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.2 ([#1079](https://github.com/open-feature/java-sdk-contrib/issues/1079)) ([804cd45](https://github.com/open-feature/java-sdk-contrib/commit/804cd455d6e9e79e1fa72b003245027ed7450487))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.3 ([#1103](https://github.com/open-feature/java-sdk-contrib/issues/1103)) ([e2b8160](https://github.com/open-feature/java-sdk-contrib/commit/e2b8160dda2b82b43f665753187ab85a4e1abe13))
+
 ## [0.4.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.3.0...dev.openfeature.contrib.providers.go-feature-flag-v0.4.0) (2024-11-21)
 
 
