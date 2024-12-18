@@ -57,7 +57,6 @@ public final class Config {
     public static final String LRU_CACHE = CacheType.LRU.getValue();
     static final String DEFAULT_CACHE = LRU_CACHE;
 
-    static final int DEFAULT_MAX_EVENT_STREAM_RETRIES = 7;
     static final int BASE_EVENT_STREAM_RETRY_BACKOFF_MS = 1000;
 
     static String fallBackToEnvOrDefault(String key, String defaultValue) {

@@ -70,13 +70,6 @@ public class FlagdOptions {
             Config.DEFAULT_MAX_CACHE_SIZE);
 
     /**
-     * Max event stream connection retries.
-     */
-    @Builder.Default
-    private int maxEventStreamRetries = fallBackToEnvOrDefault(Config.MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME,
-            Config.DEFAULT_MAX_EVENT_STREAM_RETRIES);
-
-    /**
      * Backoff interval in milliseconds.
      */
     @Builder.Default
@@ -102,11 +95,12 @@ public class FlagdOptions {
             Config.DEFAULT_STREAM_DEADLINE_MS);
 
     /**
-     * Amount of stream retry attempts before provider moves from STALE to ERROR
-     * Defaults to 5
+     * Grace time period in milliseconds before provider moves from STALE to ERROR.
+     * Defaults to 50_000
      */
     @Builder.Default
-    private int streamRetryGracePeriod = fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
+    private int streamRetryGracePeriod = fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD,
+            Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
     /**
      * Selector to be used with flag sync gRPC contract.
      **/
@@ -116,7 +110,6 @@ public class FlagdOptions {
     /**
      * gRPC client KeepAlive in milliseconds. Disabled with 0.
      * Defaults to 0 (disabled).
-     *
      **/
     @Builder.Default
     private long keepAlive = fallBackToEnvOrDefault(Config.KEEP_ALIVE_MS_ENV_VAR_NAME,
