@@ -18,6 +18,7 @@ public final class Config {
 
     static final int DEFAULT_DEADLINE = 500;
     static final int DEFAULT_STREAM_DEADLINE_MS = 10 * 60 * 1000;
+    static final int DEFAULT_STREAM_RETRY_GRACE_PERIOD = 50_000;
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
     static final long DEFAULT_KEEP_ALIVE = 0;
 
@@ -38,6 +39,7 @@ public final class Config {
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME_OLD = "FLAGD_KEEP_ALIVE_TIME";
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME = "FLAGD_KEEP_ALIVE_TIME_MS";
     static final String TARGET_URI_ENV_VAR_NAME = "FLAGD_TARGET_URI";
+    static final String STREAM_RETRY_GRACE_PERIOD = "FLAGD_RETRY_GRACE_PERIOD_MS";
 
     static final String RESOLVER_RPC = "rpc";
     static final String RESOLVER_IN_PROCESS = "in-process";
@@ -55,7 +57,7 @@ public final class Config {
     public static final String LRU_CACHE = CacheType.LRU.getValue();
     static final String DEFAULT_CACHE = LRU_CACHE;
 
-    static final int DEFAULT_MAX_EVENT_STREAM_RETRIES = 5;
+    static final int DEFAULT_MAX_EVENT_STREAM_RETRIES = 7;
     static final int BASE_EVENT_STREAM_RETRY_BACKOFF_MS = 1000;
 
     static String fallBackToEnvOrDefault(String key, String defaultValue) {

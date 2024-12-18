@@ -1,10 +1,5 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
-import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
-
-import java.util.function.Function;
-
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
@@ -13,6 +8,11 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.util.function.Function;
+
+import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
+import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 /**
  * FlagdOptions is a builder to build flagd provider options.
@@ -101,6 +101,12 @@ public class FlagdOptions {
     private int streamDeadlineMs = fallBackToEnvOrDefault(Config.STREAM_DEADLINE_MS_ENV_VAR_NAME,
             Config.DEFAULT_STREAM_DEADLINE_MS);
 
+    /**
+     * Amount of stream retry attempts before provider moves from STALE to ERROR
+     * Defaults to 5
+     */
+    @Builder.Default
+    private int streamRetryGracePeriod = fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
     /**
      * Selector to be used with flag sync gRPC contract.
      **/
