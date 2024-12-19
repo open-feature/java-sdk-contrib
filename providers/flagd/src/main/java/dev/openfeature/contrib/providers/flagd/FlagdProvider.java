@@ -1,10 +1,5 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
@@ -22,16 +17,21 @@ import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+
 /**
  * OpenFeature provider for flagd.
  */
 @Slf4j
-@SuppressWarnings({ "PMD.TooManyStaticImports", "checkstyle:NoFinalizer" })
+@SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
 public class FlagdProvider extends EventProvider {
     private Function<Structure, EvaluationContext> contextEnricher;
     private static final String FLAGD_PROVIDER = "flagd";
     private final Resolver flagResolver;
-    private volatile boolean initialized = false;
+    private volatile boolean isInitialized = false;
     private volatile boolean connected = false;
     private volatile Structure syncMetadata = new ImmutableStructure();
     private volatile EvaluationContext enrichedContext = new ImmutableContext();
@@ -62,7 +62,6 @@ public class FlagdProvider extends EventProvider {
             case Config.RESOLVER_RPC:
                 this.flagResolver = new GrpcResolver(options,
                         new Cache(options.getCacheType(), options.getMaxCacheSize()),
-                        this::isConnected,
                         this::onConnectionEvent);
                 break;
             default:
@@ -80,17 +79,17 @@ public class FlagdProvider extends EventProvider {
 
     @Override
     public synchronized void initialize(EvaluationContext evaluationContext) throws Exception {
-        if (this.initialized) {
+        if (this.isInitialized) {
             return;
         }
 
         this.flagResolver.init();
-        this.initialized = true;
+        this.isInitialized = true;
     }
 
     @Override
     public synchronized void shutdown() {
-        if (!this.initialized) {
+        if (!this.isInitialized) {
             return;
         }
 
@@ -99,7 +98,7 @@ public class FlagdProvider extends EventProvider {
         } catch (Exception e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
         } finally {
-            this.initialized = false;
+            this.isInitialized = false;
         }
     }
 
@@ -139,7 +138,7 @@ public class FlagdProvider extends EventProvider {
      * Set on initial connection and updated with every reconnection.
      * see:
      * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata
-     * 
+     *
      * @return Object map representing sync metadata
      */
     protected Structure getSyncMetadata() {
@@ -148,6 +147,7 @@ public class FlagdProvider extends EventProvider {
 
     /**
      * The updated context mixed into all evaluations based on the sync-metadata.
+     *
      * @return context
      */
     EvaluationContext getEnrichedContext() {
@@ -159,33 +159,41 @@ public class FlagdProvider extends EventProvider {
     }
 
     private void onConnectionEvent(ConnectionEvent connectionEvent) {
-        boolean previous = connected;
-        boolean current = connected = connectionEvent.isConnected();
+        final boolean wasConnected = connected;
+        final boolean isConnected = connected = connectionEvent.isConnected();
+
         syncMetadata = connectionEvent.getSyncMetadata();
         enrichedContext = contextEnricher.apply(connectionEvent.getSyncMetadata());
 
-        // configuration changed
-        if (initialized && previous && current) {
-            log.debug("Configuration changed");
+        if (!isInitialized) {
+            return;
+        }
+
+        if (!wasConnected && isConnected) {
             ProviderEventDetails details = ProviderEventDetails.builder()
                     .flagsChanged(connectionEvent.getFlagsChanged())
-                    .message("configuration changed").build();
-            this.emitProviderConfigurationChanged(details);
-            return;
-        }
-        // there was an error
-        if (initialized && previous && !current) {
-            log.debug("There has been an error");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("there has been an error").build();
-            this.emitProviderError(details);
-            return;
-        }
-        // we recovered from an error
-        if (initialized && !previous && current) {
-            log.debug("Recovered from error");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("recovered from error").build();
+                    .message("connected to flagd")
+                    .build();
             this.emitProviderReady(details);
+            return;
+        }
+
+        if (wasConnected && isConnected) {
+            ProviderEventDetails details = ProviderEventDetails.builder()
+                    .flagsChanged(connectionEvent.getFlagsChanged())
+                    .message("configuration changed")
+                    .build();
             this.emitProviderConfigurationChanged(details);
+            return;
+        }
+
+        if (connectionEvent.isStale()) {
+            this.emitProviderStale(ProviderEventDetails.builder().message("there has been an error").build());
+        } else {
+            this.emitProviderError(ProviderEventDetails.builder().message("there has been an error").build());
         }
     }
 }
+
+
+

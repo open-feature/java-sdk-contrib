@@ -1,47 +1,52 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
-
 import com.google.protobuf.Value;
-
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
 /**
- * EventStreamObserver handles events emitted by flagd.
+ * Observer for a gRPC event stream that handles notifications about flag changes and provider readiness events.
+ * This class updates a cache and notifies listeners via a lambda callback when events occur.
  */
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
+
+    /**
+     * A consumer to handle connection events with a flag indicating success and a list of changed flags.
+     */
     private final BiConsumer<Boolean, List<String>> onConnectionEvent;
-    private final Supplier<Boolean> shouldRetrySilently;
-    private final Object sync;
+
+    /**
+     * The cache to update based on received events.
+     */
     private final Cache cache;
 
     /**
-     * Create a gRPC stream that get notified about flag changes.
+     * Constructs a new {@code EventStreamObserver} instance.
      *
-     * @param sync                synchronization object from caller
-     * @param cache               cache to update
-     * @param onConnectionEvent   lambda to call to handle the response
-     * @param shouldRetrySilently Boolean supplier indicating if the GRPC connector will try to recover silently
+     * @param cache             the cache to update based on received events
+     * @param onConnectionEvent a consumer to handle connection events with a boolean and a list of changed flags
      */
-    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent,
-                        Supplier<Boolean> shouldRetrySilently) {
-        this.sync = sync;
+    EventStreamObserver(Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent) {
         this.cache = cache;
         this.onConnectionEvent = onConnectionEvent;
-        this.shouldRetrySilently = shouldRetrySilently;
     }
 
+    /**
+     * Called when a new event is received from the stream.
+     *
+     * @param value the event stream response containing event data
+     */
     @Override
     public void onNext(EventStreamResponse value) {
         switch (value.getType()) {
@@ -52,37 +57,38 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
                 this.handleProviderReadyEvent();
                 break;
             default:
-                log.debug("unhandled event type {}", value.getType());
+                log.debug("Unhandled event type {}", value.getType());
         }
     }
 
+    /**
+     * Called when an error occurs in the stream.
+     *
+     * @param throwable the error that occurred
+     */
     @Override
     public void onError(Throwable throwable) {
-        if (Boolean.TRUE.equals(shouldRetrySilently.get())) {
-            log.debug("Event stream error, trying to recover", throwable);
-        } else {
-            log.error("Event stream error", throwable);
-            if (this.cache.getEnabled()) {
-                this.cache.clear();
-            }
-            this.onConnectionEvent.accept(false, Collections.emptyList());
+        if (this.cache.getEnabled().equals(Boolean.TRUE)) {
+            this.cache.clear();
         }
-
-        // handle last call of this stream
-        handleEndOfStream();
     }
 
+    /**
+     * Called when the stream is completed.
+     */
     @Override
     public void onCompleted() {
-        if (this.cache.getEnabled()) {
+        if (this.cache.getEnabled().equals(Boolean.TRUE)) {
             this.cache.clear();
         }
         this.onConnectionEvent.accept(false, Collections.emptyList());
-
-        // handle last call of this stream
-        handleEndOfStream();
     }
 
+    /**
+     * Handles configuration change events by updating the cache and notifying listeners about changed flags.
+     *
+     * @param value the event stream response containing configuration change data
+     */
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
         List<String> changedFlags = new ArrayList<>();
         boolean cachingEnabled = this.cache.getEnabled();
@@ -95,7 +101,6 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
             }
         } else {
             Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
-            this.cache.getEnabled();
             for (String flagKey : flags.keySet()) {
                 changedFlags.add(flagKey);
                 if (cachingEnabled) {
@@ -107,16 +112,13 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         this.onConnectionEvent.accept(true, changedFlags);
     }
 
+    /**
+     * Handles provider readiness events by clearing the cache (if enabled) and notifying listeners of readiness.
+     */
     private void handleProviderReadyEvent() {
         this.onConnectionEvent.accept(true, Collections.emptyList());
-        if (this.cache.getEnabled()) {
+        if (this.cache.getEnabled().equals(Boolean.TRUE)) {
             this.cache.clear();
-        }
-    }
-
-    private void handleEndOfStream() {
-        synchronized (this.sync) {
-            this.sync.notifyAll();
         }
     }
 }

@@ -25,7 +25,7 @@ public class ContainerConfig {
 
     /**
      *
-     * @return a {@link org.testcontainers.containers.GenericContainer} instance of a stable sync flagd server with the port 9090 exposed
+     * @return a {@link GenericContainer} instance of a stable sync flagd server with the port 9090 exposed
      */
     public static GenericContainer sync()  {
         return sync(false, false);
@@ -35,7 +35,7 @@ public class ContainerConfig {
      *
      * @param unstable if an unstable version of the container, which terminates the connection regularly should be used.
      * @param addNetwork if set to true a custom network is attached for cross container access e.g. envoy --> sync:8015
-     * @return a {@link org.testcontainers.containers.GenericContainer} instance of a sync flagd server with the port 8015 exposed
+     * @return a {@link GenericContainer} instance of a sync flagd server with the port 8015 exposed
      */
     public static GenericContainer sync(boolean unstable, boolean addNetwork) {
         String container = generateContainerName("flagd", unstable);
@@ -52,7 +52,7 @@ public class ContainerConfig {
 
     /**
      *
-     * @return a {@link org.testcontainers.containers.GenericContainer} instance of a stable flagd server with the port 8013 exposed
+     * @return a {@link GenericContainer} instance of a stable flagd server with the port 8013 exposed
      */
     public static GenericContainer flagd() {
         return flagd(false);
@@ -61,7 +61,7 @@ public class ContainerConfig {
     /**
      *
      * @param unstable if an unstable version of the container, which terminates the connection regularly should be used.
-     * @return a {@link org.testcontainers.containers.GenericContainer} instance of a flagd server with the port 8013 exposed
+     * @return a {@link GenericContainer} instance of a flagd server with the port 8013 exposed
      */
     public static GenericContainer flagd(boolean unstable) {
         String container = generateContainerName("flagd", unstable);
@@ -71,7 +71,7 @@ public class ContainerConfig {
 
 
     /**
-     * @return a {@link org.testcontainers.containers.GenericContainer} instance of envoy container using
+     * @return a {@link GenericContainer} instance of envoy container using
      * flagd sync service as backend expose on port 9211
      *
      */

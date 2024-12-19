@@ -150,7 +150,12 @@
             <version>1.20.4</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-testing</artifactId>
+            <version>1.69.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

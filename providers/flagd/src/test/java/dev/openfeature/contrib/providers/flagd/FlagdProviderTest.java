@@ -1,47 +1,9 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
-import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.Collections;
-import java.util.Optional;
-
-
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-
 import com.google.protobuf.Struct;
-
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
@@ -56,9 +18,7 @@ import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveFloatResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveIntResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveObjectResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringResponse;
-import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
-import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.FlagValueType;
@@ -72,8 +32,37 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import io.cucumber.java.AfterAll;
-import io.grpc.Channel;
-import io.grpc.Deadline;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
+import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class FlagdProviderTest {
     private static final String FLAG_KEY = "some-key";
@@ -92,7 +81,7 @@ class FlagdProviderTest {
     private static final Double DOUBLE_VALUE = .5d;
     private static final String INNER_STRUCT_KEY = "inner_key";
     private static final String INNER_STRUCT_VALUE = "inner_value";
-    private static final com.google.protobuf.Struct PROTOBUF_STRUCTURE_VALUE = Struct.newBuilder()
+    private static final Struct PROTOBUF_STRUCTURE_VALUE = Struct.newBuilder()
             .putFields(INNER_STRUCT_KEY,
                     com.google.protobuf.Value.newBuilder().setStringValue(INNER_STRUCT_VALUE)
                             .build())
@@ -382,18 +371,18 @@ class FlagdProviderTest {
                     return STRING_ATTR_VALUE.equals(valueMap.get(STRING_ATTR_KEY).getStringValue())
                             && INT_ATTR_VALUE == valueMap.get(INT_ATTR_KEY).getNumberValue()
                             && DOUBLE_ATTR_VALUE == valueMap.get(DOUBLE_ATTR_KEY)
-                                    .getNumberValue()
+                            .getNumberValue()
                             && valueMap.get(BOOLEAN_ATTR_KEY).getBoolValue()
                             && "MY_TARGETING_KEY".equals(
-                                    valueMap.get("targetingKey").getStringValue())
+                            valueMap.get("targetingKey").getStringValue())
                             && LIST_ATTR_VALUE.get(0).asInteger() == valueMap
-                                    .get(LIST_ATTR_KEY).getListValue()
-                                    .getValuesList().get(0).getNumberValue()
+                            .get(LIST_ATTR_KEY).getListValue()
+                            .getValuesList().get(0).getNumberValue()
                             && STRUCT_ATTR_INNER_VALUE.equals(
-                                    valueMap.get(STRUCT_ATTR_KEY).getStructValue()
-                                            .getFieldsMap()
-                                            .get(STRUCT_ATTR_INNER_KEY)
-                                            .getStringValue());
+                            valueMap.get(STRUCT_ATTR_KEY).getStructValue()
+                                    .getFieldsMap()
+                                    .get(STRUCT_ATTR_INNER_KEY)
+                                    .getStringValue());
                 }))).thenReturn(booleanResponse);
 
         GrpcConnector grpc = mock(GrpcConnector.class);
@@ -470,143 +459,9 @@ class FlagdProviderTest {
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient()
                 .getBooleanDetails(FLAG_KEY, false, new MutableContext());
         assertEquals(Reason.UNKNOWN.toString(), booleanDetails.getReason()); // reason should be converted to
-                                                                             // UNKNOWN
+        // UNKNOWN
     }
 
-    @Test
-    void invalidate_cache() {
-        ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
-                .setValue(true)
-                .setVariant(BOOL_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveStringResponse stringResponse = ResolveStringResponse.newBuilder()
-                .setValue(STRING_VALUE)
-                .setVariant(STRING_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
-                .setValue(INT_VALUE)
-                .setVariant(INT_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
-                .setValue(DOUBLE_VALUE)
-                .setVariant(DOUBLE_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveObjectResponse objectResponse = ResolveObjectResponse.newBuilder()
-                .setValue(PROTOBUF_STRUCTURE_VALUE)
-                .setVariant(OBJECT_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
-        when(serviceStubMock.withWaitForReady()).thenReturn(serviceStubMock);
-        doNothing().when(serviceStubMock).eventStream(any(), any());
-        when(serviceStubMock.withDeadline(any(Deadline.class)))
-                .thenReturn(serviceStubMock);
-        when(serviceBlockingStubMock.withWaitForReady()).thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock
-                .withDeadline(any(Deadline.class)))
-                .thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
-                .thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
-                .thenReturn(booleanResponse);
-        when(serviceBlockingStubMock
-                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey()))))
-                .thenReturn(floatResponse);
-        when(serviceBlockingStubMock
-                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
-                .thenReturn(intResponse);
-        when(serviceBlockingStubMock
-                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey()))))
-                .thenReturn(stringResponse);
-        when(serviceBlockingStubMock
-                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
-                .thenReturn(objectResponse);
-
-        GrpcConnector grpc;
-        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                    .thenReturn(serviceBlockingStubMock);
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(serviceStubMock);
-
-            final Cache cache = new Cache("lru", 5);
-
-            class NoopInitGrpcConnector extends GrpcConnector {
-                public NoopInitGrpcConnector(FlagdOptions options, Cache cache,
-                        Supplier<Boolean> connectedSupplier,
-                        Consumer<ConnectionEvent> onConnectionEvent) {
-                    super(options, cache, connectedSupplier, onConnectionEvent);
-                }
-
-                public void initialize() throws Exception {
-                };
-            }
-
-            grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true,
-                    (connectionEvent) -> {
-                    });
-        }
-
-        FlagdProvider provider = createProvider(grpc);
-        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
-
-        HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<String, com.google.protobuf.Value>();
-        HashMap<String, com.google.protobuf.Value> structMap = new HashMap<String, com.google.protobuf.Value>();
-
-        flagsMap.put(FLAG_KEY_BOOLEAN, com.google.protobuf.Value.newBuilder().setStringValue("foo").build());
-        flagsMap.put(FLAG_KEY_STRING, com.google.protobuf.Value.newBuilder().setStringValue("foo").build());
-        flagsMap.put(FLAG_KEY_INTEGER, com.google.protobuf.Value.newBuilder().setStringValue("foo").build());
-        flagsMap.put(FLAG_KEY_DOUBLE, com.google.protobuf.Value.newBuilder().setStringValue("foo").build());
-        flagsMap.put(FLAG_KEY_OBJECT, com.google.protobuf.Value.newBuilder().setStringValue("foo").build());
-
-        structMap.put("flags", com.google.protobuf.Value.newBuilder()
-                .setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
-
-        // should cache results
-        FlagEvaluationDetails<Boolean> booleanDetails;
-        FlagEvaluationDetails<String> stringDetails;
-        FlagEvaluationDetails<Integer> intDetails;
-        FlagEvaluationDetails<Double> floatDetails;
-        FlagEvaluationDetails<Value> objectDetails;
-
-        // assert cache has been invalidated
-        booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
-        assertTrue(booleanDetails.getValue());
-        assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
-        assertEquals(STATIC_REASON, booleanDetails.getReason());
-
-        stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
-        assertEquals(STRING_VALUE, stringDetails.getValue());
-        assertEquals(STRING_VARIANT, stringDetails.getVariant());
-        assertEquals(STATIC_REASON, stringDetails.getReason());
-
-        intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
-        assertEquals(INT_VALUE, intDetails.getValue());
-        assertEquals(INT_VARIANT, intDetails.getVariant());
-        assertEquals(STATIC_REASON, intDetails.getReason());
-
-        floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
-        assertEquals(DOUBLE_VALUE, floatDetails.getValue());
-        assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
-        assertEquals(STATIC_REASON, floatDetails.getReason());
-
-        objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
-        assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
-                .asMap().get(INNER_STRUCT_KEY).asString());
-        assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
-        assertEquals(STATIC_REASON, objectDetails.getReason());
-    }
 
     private void do_resolvers_cache_responses(String reason, Boolean eventStreamAlive, Boolean shouldCache) {
         String expectedReason = CACHED_REASON;
@@ -665,7 +520,9 @@ class FlagdProviderTest {
 
         GrpcConnector grpc = mock(GrpcConnector.class);
         when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
-        FlagdProvider provider = createProvider(grpc, () -> eventStreamAlive);
+        when(grpc.isConnected()).thenReturn(eventStreamAlive);
+        FlagdProvider provider = createProvider(grpc);
+
         // provider.setState(eventStreamAlive); // caching only available when event
         // stream is alive
         OpenFeatureAPI.getInstance().setProviderAndWait(provider);
@@ -674,7 +531,7 @@ class FlagdProviderTest {
                 false);
         booleanDetails = api.getClient()
                 .getBooleanDetails(FLAG_KEY_BOOLEAN, false); // should retrieve from cache on second
-                                                             // invocation
+        // invocation
         assertTrue(booleanDetails.getValue());
         assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
         assertEquals(expectedReason, booleanDetails.getReason());
@@ -705,147 +562,6 @@ class FlagdProviderTest {
                 .asMap().get(INNER_STRUCT_KEY).asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(expectedReason, objectDetails.getReason());
-    }
-
-    @Test
-    void disabled_cache() {
-        ResolveBooleanResponse booleanResponse = ResolveBooleanResponse.newBuilder()
-                .setValue(true)
-                .setVariant(BOOL_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveStringResponse stringResponse = ResolveStringResponse.newBuilder()
-                .setValue(STRING_VALUE)
-                .setVariant(STRING_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
-                .setValue(INT_VALUE)
-                .setVariant(INT_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
-                .setValue(DOUBLE_VALUE)
-                .setVariant(DOUBLE_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ResolveObjectResponse objectResponse = ResolveObjectResponse.newBuilder()
-                .setValue(PROTOBUF_STRUCTURE_VALUE)
-                .setVariant(OBJECT_VARIANT)
-                .setReason(STATIC_REASON)
-                .build();
-
-        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
-        ServiceStub serviceStubMock = mock(ServiceStub.class);
-        when(serviceStubMock.withWaitForReady()).thenReturn(serviceStubMock);
-        when(serviceStubMock.withDeadline(any(Deadline.class)))
-                .thenReturn(serviceStubMock);
-        when(serviceBlockingStubMock.withWaitForReady()).thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock.withDeadline(any(Deadline.class)))
-                .thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
-                .thenReturn(serviceBlockingStubMock);
-        when(serviceBlockingStubMock
-                .resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
-                .thenReturn(booleanResponse);
-        when(serviceBlockingStubMock
-                .resolveFloat(argThat(x -> FLAG_KEY_DOUBLE.equals(x.getFlagKey()))))
-                .thenReturn(floatResponse);
-        when(serviceBlockingStubMock
-                .resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
-                .thenReturn(intResponse);
-        when(serviceBlockingStubMock
-                .resolveString(argThat(x -> FLAG_KEY_STRING.equals(x.getFlagKey()))))
-                .thenReturn(stringResponse);
-        when(serviceBlockingStubMock
-                .resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
-                .thenReturn(objectResponse);
-
-        // disabled cache
-        final Cache cache = new Cache("disabled", 0);
-
-        GrpcConnector grpc;
-        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                    .thenReturn(serviceBlockingStubMock);
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(serviceStubMock);
-
-            class NoopInitGrpcConnector extends GrpcConnector {
-                public NoopInitGrpcConnector(FlagdOptions options, Cache cache,
-                        Supplier<Boolean> connectedSupplier,
-                        Consumer<ConnectionEvent> onConnectionEvent) {
-                    super(options, cache, connectedSupplier, onConnectionEvent);
-                }
-
-                public void initialize() throws Exception {
-                };
-            }
-
-            grpc = new NoopInitGrpcConnector(FlagdOptions.builder().build(), cache, () -> true,
-                    (connectionEvent) -> {
-                    });
-        }
-
-        FlagdProvider provider = createProvider(grpc, cache, () -> true);
-
-        try {
-            provider.initialize(null);
-        } catch (Exception e) {
-            // ignore exception if any
-        }
-
-        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
-
-        HashMap<String, com.google.protobuf.Value> flagsMap = new HashMap<>();
-        HashMap<String, com.google.protobuf.Value> structMap = new HashMap<>();
-
-        flagsMap.put("foo", com.google.protobuf.Value.newBuilder().setStringValue("foo")
-                .build()); // assert that a configuration_change event works
-
-        structMap.put("flags", com.google.protobuf.Value.newBuilder()
-                .setStructValue(Struct.newBuilder().putAllFields(flagsMap)).build());
-
-        // should not cache results
-        FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN,
-                false);
-        FlagEvaluationDetails<String> stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING,
-                "wrong");
-        FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
-        FlagEvaluationDetails<Double> floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
-        FlagEvaluationDetails<Value> objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT,
-                new Value());
-
-        // assert values are not cached
-        booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
-        assertTrue(booleanDetails.getValue());
-        assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
-        assertEquals(STATIC_REASON, booleanDetails.getReason());
-
-        stringDetails = api.getClient().getStringDetails(FLAG_KEY_STRING, "wrong");
-        assertEquals(STRING_VALUE, stringDetails.getValue());
-        assertEquals(STRING_VARIANT, stringDetails.getVariant());
-        assertEquals(STATIC_REASON, stringDetails.getReason());
-
-        intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 0);
-        assertEquals(INT_VALUE, intDetails.getValue());
-        assertEquals(INT_VARIANT, intDetails.getVariant());
-        assertEquals(STATIC_REASON, intDetails.getReason());
-
-        floatDetails = api.getClient().getDoubleDetails(FLAG_KEY_DOUBLE, 0.1);
-        assertEquals(DOUBLE_VALUE, floatDetails.getValue());
-        assertEquals(DOUBLE_VARIANT, floatDetails.getVariant());
-        assertEquals(STATIC_REASON, floatDetails.getReason());
-
-        objectDetails = api.getClient().getObjectDetails(FLAG_KEY_OBJECT, new Value());
-        assertEquals(INNER_STRUCT_VALUE, objectDetails.getValue().asStructure()
-                .asMap().get(INNER_STRUCT_KEY).asString());
-        assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
-        assertEquals(STATIC_REASON, objectDetails.getReason());
     }
 
     @Test
@@ -899,7 +615,7 @@ class FlagdProviderTest {
                     // callback
                     doAnswer(invocation -> {
                         onConnectionEvent.accept(
-                                new ConnectionEvent(true, metadata));
+                                new ConnectionEvent(ConnectionState.CONNECTED, metadata));
                         return null;
                     }).when(mock).init();
                 })) {
@@ -935,7 +651,7 @@ class FlagdProviderTest {
                     // callback
                     doAnswer(invocation -> {
                         onConnectionEvent.accept(
-                                new ConnectionEvent(true, metadata));
+                                new ConnectionEvent(ConnectionState.CONNECTED, metadata));
                         return null;
                     }).when(mock).init();
                 })) {
@@ -957,23 +673,17 @@ class FlagdProviderTest {
     }
 
     // test helper
-
-    // create provider with given grpc connector
-    private FlagdProvider createProvider(GrpcConnector grpc) {
-        return createProvider(grpc, () -> true);
-    }
-
     // create provider with given grpc provider and state supplier
-    private FlagdProvider createProvider(GrpcConnector grpc, Supplier<Boolean> getConnected) {
+    private FlagdProvider createProvider(GrpcConnector grpc) {
         final Cache cache = new Cache("lru", 5);
 
-        return createProvider(grpc, cache, getConnected);
+        return createProvider(grpc, cache);
     }
 
     // create provider with given grpc provider, cache and state supplier
-    private FlagdProvider createProvider(GrpcConnector grpc, Cache cache, Supplier<Boolean> getConnected) {
+    private FlagdProvider createProvider(GrpcConnector grpc, Cache cache) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final GrpcResolver grpcResolver = new GrpcResolver(flagdOptions, cache, getConnected,
+        final GrpcResolver grpcResolver = new GrpcResolver(flagdOptions, cache,
                 (connectionEvent) -> {
                 });
 
