@@ -25,8 +25,8 @@ public class FlagdInProcessEnvoySetup {
     public static void setup() throws InterruptedException {
         flagdContainer.start();
         envoyContainer.start();
-        final String targetUri = String.format("envoy://localhost:%s/flagd-sync.service",
-                envoyContainer.getFirstMappedPort());
+        final String targetUri =
+                String.format("envoy://localhost:%s/flagd-sync.service", envoyContainer.getFirstMappedPort());
 
         FlagdInProcessEnvoySetup.provider = new FlagdProvider(FlagdOptions.builder()
                 .resolverType(Config.Resolver.IN_PROCESS)

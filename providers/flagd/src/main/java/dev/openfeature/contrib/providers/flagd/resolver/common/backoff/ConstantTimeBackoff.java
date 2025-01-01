@@ -1,8 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
 /**
- * A backoff strategy that always returns the same backoff time.
- * This backoff is never exhausted.
+ * A backoff strategy that always returns the same backoff time. This backoff is never exhausted.
  */
 public class ConstantTimeBackoff implements BackoffStrategy {
     final long millis;
@@ -22,10 +21,8 @@ public class ConstantTimeBackoff implements BackoffStrategy {
     }
 
     @Override
-    public void nextBackoff() {
-    }
+    public void nextBackoff() {}
 
     @Override
-    public void reset() {
-    }
+    public void reset() {}
 }

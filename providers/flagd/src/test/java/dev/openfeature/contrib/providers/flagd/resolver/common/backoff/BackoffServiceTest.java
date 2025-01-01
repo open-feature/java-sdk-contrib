@@ -1,11 +1,10 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
-import org.junit.jupiter.api.Test;
-
-import java.time.Instant;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import java.time.Instant;
+import org.junit.jupiter.api.Test;
 
 class BackoffServiceTest {
     @Test

@@ -4,9 +4,7 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.Getter;
 
-/**
- * A Flagsmith provider exception is the main exception for the provider.
- */
+/** A Flagsmith provider exception is the main exception for the provider. */
 @Getter
 public class FlagsmithProviderException extends GeneralError {
     private static final long serialVersionUID = 1L;
@@ -15,5 +13,4 @@ public class FlagsmithProviderException extends GeneralError {
     public FlagsmithProviderException(String message) {
         super(message);
     }
-
 }

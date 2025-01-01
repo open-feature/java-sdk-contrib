@@ -1,9 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import org.junit.jupiter.api.Test;
 
 class NumberOfRetriesBackoffTest {
     @Test

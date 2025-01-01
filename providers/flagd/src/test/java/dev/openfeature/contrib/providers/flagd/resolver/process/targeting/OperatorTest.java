@@ -4,15 +4,13 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.time.Instant;
-
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.Value;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 class OperatorTest {
     private static Operator OPERATOR;
@@ -82,31 +80,31 @@ class OperatorTest {
         // given
 
         // fractional rule with email as expression key
-        final String targetingRule = "" +
-                "{\n" +
-                "  \"fractional\": [\n" +
-                "    {\"cat\":[\n" +
-                "      {\"var\":\"$flagd.flagKey\"},\n" +
-                "      {\"var\": \"email\"}\n" +
-                "    ]},\n" +
-                "    [\n" +
-                "      \"red\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"blue\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"green\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"yellow\",\n" +
-                "      25\n" +
-                "    ]\n" +
-                "  ]\n" +
-                "}";
+        final String targetingRule = ""
+                + "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      \"red\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"blue\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"green\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"yellow\",\n"
+                + "      25\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("rachel@faas.com"));
@@ -123,31 +121,31 @@ class OperatorTest {
         // given
 
         // fractional rule with email as expression key
-        final String targetingRule = "" +
-                "{\n" +
-                "  \"fractional\": [\n" +
-                "    {\"cat\":[\n" +
-                "      {\"var\":\"$flagd.flagKey\"},\n" +
-                "      {\"var\": \"email\"}\n" +
-                "    ]},\n" +
-                "    [\n" +
-                "      \"red\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"blue\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"green\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"yellow\",\n" +
-                "      25\n" +
-                "    ]\n" +
-                "  ]\n" +
-                "}";
+        final String targetingRule = ""
+                + "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      \"red\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"blue\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"green\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"yellow\",\n"
+                + "      25\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("monica@faas.com"));
@@ -164,31 +162,31 @@ class OperatorTest {
         // given
 
         // fractional rule with email as expression key
-        final String targetingRule = "" +
-                "{\n" +
-                "  \"fractional\": [\n" +
-                "    {\"cat\":[\n" +
-                "      {\"var\":\"$flagd.flagKey\"},\n" +
-                "      {\"var\": \"email\"}\n" +
-                "    ]},\n" +
-                "    [\n" +
-                "      \"red\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"blue\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"green\",\n" +
-                "      25\n" +
-                "    ],\n" +
-                "    [\n" +
-                "      \"yellow\",\n" +
-                "      25\n" +
-                "    ]\n" +
-                "  ]\n" +
-                "}";
+        final String targetingRule = ""
+                + "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      \"red\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"blue\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"green\",\n"
+                + "      25\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"yellow\",\n"
+                + "      25\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("joey@faas.com"));
@@ -205,13 +203,13 @@ class OperatorTest {
         // given
 
         // starts with rule with email as expression key
-        final String targetingRule = "" +
-                "{\n" +
-                "  \"starts_with\": [\n" +
-                "    {\"var\": \"email\"},\n" +
-                "    \"admin\"\n" +
-                "  ]\n" +
-                "}";
+        final String targetingRule = ""
+                + "{\n"
+                + "  \"starts_with\": [\n"
+                + "    {\"var\": \"email\"},\n"
+                + "    \"admin\"\n"
+                + "  ]\n"
+                + "}";
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("admin@faas.com"));
@@ -228,13 +226,13 @@ class OperatorTest {
         // given
 
         // ends with rule with email as expression key
-        final String targetingRule = "" +
-                "{\n" +
-                "  \"ends_with\": [\n" +
-                "    {\"var\": \"email\"},\n" +
-                "    \"@faas.com\"\n" +
-                "  ]\n" +
-                "}";
+        final String targetingRule = ""
+                + "{\n"
+                + "  \"ends_with\": [\n"
+                + "    {\"var\": \"email\"},\n"
+                + "    \"@faas.com\"\n"
+                + "  ]\n"
+                + "}";
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("email", new Value("admin@faas.com"));
@@ -251,14 +249,14 @@ class OperatorTest {
         // given
 
         // sem_ver rule with version as expression key
-        final String targetingRule = "{\n" +
-                "  \"if\": [\n" +
-                "    {\n" +
-                "      \"sem_ver\": [{\"var\": \"version\"}, \">=\", \"1.0.0\"]\n" +
-                "    },\n" +
-                "    \"red\", null\n" +
-                "  ]\n" +
-                "}";
+        final String targetingRule = "{\n"
+                + "  \"if\": [\n"
+                + "    {\n"
+                + "      \"sem_ver\": [{\"var\": \"version\"}, \">=\", \"1.0.0\"]\n"
+                + "    },\n"
+                + "    \"red\", null\n"
+                + "  ]\n"
+                + "}";
 
         Map<String, Value> ctxData = new HashMap<>();
         ctxData.put("version", new Value("1.1.0"));
@@ -269,5 +267,4 @@ class OperatorTest {
         // then
         assertEquals("red", evalVariant);
     }
-
 }

@@ -4,9 +4,7 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 
-/**
- * Abstraction that resolves flag values in from some source. 
- */
+/** Abstraction that resolves flag values in from some source. */
 public interface Resolver {
     void init() throws Exception;
 

@@ -1,14 +1,13 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Named.named;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.converter.ArgumentConversionException;
-import org.junit.jupiter.params.converter.ConvertWith;
-import org.junit.jupiter.params.converter.TypedArgumentConverter;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,11 +17,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Named.named;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.converter.ArgumentConversionException;
+import org.junit.jupiter.params.converter.ConvertWith;
+import org.junit.jupiter.params.converter.TypedArgumentConverter;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class FractionalTest {
 
@@ -75,6 +74,7 @@ class FractionalTest {
     static class TestData {
         @JsonProperty("result")
         Object result;
+
         @JsonProperty("rule")
         List<Object> rule;
     }

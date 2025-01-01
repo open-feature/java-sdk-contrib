@@ -3,16 +3,14 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 import dev.openfeature.sdk.EvaluationContext;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
-import lombok.Getter;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Getter;
 
 /**
- * Targeting operator wraps JsonLogic handlers and expose a simple API for
- * external layers.
- * This helps to isolate external dependencies to this package.
+ * Targeting operator wraps JsonLogic handlers and expose a simple API for external layers. This
+ * helps to isolate external dependencies to this package.
  */
 public class Operator {
 
@@ -23,9 +21,7 @@ public class Operator {
 
     private final JsonLogic jsonLogicHandler;
 
-    /**
-     * Construct a targeting operator.
-     */
+    /** Construct a targeting operator. */
     public Operator() {
         jsonLogicHandler = new JsonLogic();
         jsonLogicHandler.addOperation(new Fractional());
@@ -34,9 +30,7 @@ public class Operator {
         jsonLogicHandler.addOperation(new StringComp(StringComp.Type.ENDS_WITH));
     }
 
-    /**
-     * Apply this operator on the provided rule.
-     */
+    /** Apply this operator on the provided rule. */
     public Object apply(final String flagKey, final String targetingRule, final EvaluationContext ctx)
             throws TargetingRuleException {
         final Map<String, Object> flagdProperties = new HashMap<>();
@@ -47,7 +41,8 @@ public class Operator {
 
         final Map<String, Object> targetingCtxData = ctx.asObjectMap();
 
-        // asObjectMap() does not provide explicitly set targeting key (ex:- new ImmutableContext("TargetingKey") ).
+        // asObjectMap() does not provide explicitly set targeting key (ex:- new
+        // ImmutableContext("TargetingKey") ).
         // Hence, we add this explicitly here for targeting rule processing.
         targetingCtxData.put(TARGET_KEY, ctx.getTargetingKey());
         targetingCtxData.put(FLAGD_PROPS_KEY, flagdProperties);
@@ -60,8 +55,8 @@ public class Operator {
     }
 
     /**
-     * A utility class to extract well-known properties such as flag key, targeting key and timestamp from json logic
-     * evaluation context data for further processing at evaluators.
+     * A utility class to extract well-known properties such as flag key, targeting key and timestamp
+     * from json logic evaluation context data for further processing at evaluators.
      */
     @Getter
     static class FlagProperties {

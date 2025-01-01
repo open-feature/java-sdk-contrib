@@ -1,17 +1,16 @@
 package dev.openfeature.contrib.providers.flagd.e2e.reconnect.process;
 
-import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
-import io.cucumber.java.AfterAll;
-import io.cucumber.java.Before;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.parallel.Isolated;
-
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
+import dev.openfeature.contrib.providers.flagd.e2e.ContainerConfig;
 import dev.openfeature.contrib.providers.flagd.e2e.reconnect.steps.StepDefinitions;
 import dev.openfeature.sdk.FeatureProvider;
+import io.cucumber.java.AfterAll;
+import io.cucumber.java.Before;
 import io.cucumber.java.BeforeAll;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.testcontainers.containers.GenericContainer;
 
 @Isolated()
@@ -19,25 +18,27 @@ import org.testcontainers.containers.GenericContainer;
 public class FlagdInProcessSetup {
 
     private static final GenericContainer flagdContainer = ContainerConfig.sync(true, false);
+
     @BeforeAll()
     public static void setup() throws InterruptedException {
         flagdContainer.start();
     }
+
     @Before()
     public static void setupTest() throws InterruptedException {
         FeatureProvider workingProvider = new FlagdProvider(FlagdOptions.builder()
-        .resolverType(Config.Resolver.IN_PROCESS)
-        .port(flagdContainer.getFirstMappedPort())
-        // set a generous deadline, to prevent timeouts in actions
-        .deadline(3000)
-        .build());
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .port(flagdContainer.getFirstMappedPort())
+                // set a generous deadline, to prevent timeouts in actions
+                .deadline(3000)
+                .build());
         StepDefinitions.setUnstableProvider(workingProvider);
 
         FeatureProvider unavailableProvider = new FlagdProvider(FlagdOptions.builder()
-        .resolverType(Config.Resolver.IN_PROCESS)
-        .deadline(100)
-        .port(9092) // this port isn't serving anything, error expected
-        .build());
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .deadline(100)
+                .port(9092) // this port isn't serving anything, error expected
+                .build());
         StepDefinitions.setUnavailableProvider(unavailableProvider);
     }
 

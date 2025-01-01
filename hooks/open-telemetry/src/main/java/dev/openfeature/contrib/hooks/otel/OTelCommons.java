@@ -1,10 +1,10 @@
 package dev.openfeature.contrib.hooks.otel;
 
-import io.opentelemetry.api.common.AttributeKey;
-
 import static io.opentelemetry.semconv.incubating.FeatureFlagIncubatingAttributes.FEATURE_FLAG_KEY;
 import static io.opentelemetry.semconv.incubating.FeatureFlagIncubatingAttributes.FEATURE_FLAG_PROVIDER_NAME;
 import static io.opentelemetry.semconv.incubating.FeatureFlagIncubatingAttributes.FEATURE_FLAG_VARIANT;
+
+import io.opentelemetry.api.common.AttributeKey;
 
 class OTelCommons {
     // Define semantic conventions
