@@ -135,7 +135,7 @@ public class GrpcStreamConnector implements Connector {
             log.debug("Initializing sync stream request");
             final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
-            GetMetadataResponse metadataResponse = GetMetadataResponse.getDefaultInstance();
+            GetMetadataResponse metadataResponse = null;
 
             if (selector != null) {
                 syncRequest.setSelector(selector);

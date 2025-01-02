@@ -6,7 +6,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.GrpcStreamConnectorBackoffService;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -133,7 +132,7 @@ public class GrpcConnector {
                 localServiceStub = localServiceStub.withDeadlineAfter(this.streamDeadlineMs, TimeUnit.MILLISECONDS);
             }
 
-            localServiceStub.eventStream(EventStreamRequest.getDefaultInstance(), responseObserver);
+            localServiceStub.eventStream(null, responseObserver);
 
             try {
                 synchronized (sync) {

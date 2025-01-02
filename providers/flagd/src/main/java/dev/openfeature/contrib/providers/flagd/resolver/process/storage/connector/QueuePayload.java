@@ -15,6 +15,6 @@ public class QueuePayload {
     private final GetMetadataResponse metadataResponse;
 
     public QueuePayload(QueuePayloadType type, String flagData) {
-        this(type, flagData, GetMetadataResponse.getDefaultInstance());
+        this(type, flagData, null);
     }
 }
