@@ -34,12 +34,11 @@
     <dependencies>
         <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
 
-        <!-- pin protobuf-java to version used by io.grpc deps; update to 4.0 when io.grpc requires it -->
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <!-- 4.0.0-rc < 4.0.0, unfortunately -->
-            <version>[3.25.5,3.999999)</version>
+            <!-- 5.0.0-rc < 5.0.0, unfortunately -->
+            <version>[3.25.5,4.999999)</version>
         </dependency>
 
         <dependency>
@@ -220,9 +219,9 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:3.21.1:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:3.25.5:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.48.1:exe:${os.detected.classifier}</pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.69.0:exe:${os.detected.classifier}</pluginArtifact>
                     <protoSourceRoot>${project.basedir}/schemas/protobuf/</protoSourceRoot>
                 </configuration>
                 <executions>
