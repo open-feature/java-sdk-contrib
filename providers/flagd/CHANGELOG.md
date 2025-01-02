@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.10.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.2...dev.openfeature.contrib.providers.flagd-v0.10.3) (2025-01-02)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.2 ([#1089](https://github.com/open-feature/java-sdk-contrib/issues/1089)) ([9b40e22](https://github.com/open-feature/java-sdk-contrib/commit/9b40e22e57739c7da417f834dd4f6822e6657ca8))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.4 ([#1082](https://github.com/open-feature/java-sdk-contrib/issues/1082)) ([57b6c9a](https://github.com/open-feature/java-sdk-contrib/commit/57b6c9a84328891618d069e72bb16b7d0d36eb23))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.116.final ([#1108](https://github.com/open-feature/java-sdk-contrib/issues/1108)) ([4cd4542](https://github.com/open-feature/java-sdk-contrib/commit/4cd4542fa0109b688116456b8fb0f2fdd5d2b391))
+* **deps:** update dependency org.semver4j:semver4j to v5.5.0 ([#1120](https://github.com/open-feature/java-sdk-contrib/issues/1120)) ([90e9ce0](https://github.com/open-feature/java-sdk-contrib/commit/90e9ce00c419744359eaffa9b4be55f8a2922c32))
+* **deps:** update grpc-java monorepo to v1.68.2 ([#1084](https://github.com/open-feature/java-sdk-contrib/issues/1084)) ([3edf48b](https://github.com/open-feature/java-sdk-contrib/commit/3edf48b1930c4ddd0ef25803ff4f4054f6a8ab02))
+* **deps:** update grpc-java monorepo to v1.69.0 ([#1101](https://github.com/open-feature/java-sdk-contrib/issues/1101)) ([2fc6af0](https://github.com/open-feature/java-sdk-contrib/commit/2fc6af0994e6643b704e0f1cd7aba8fa5af688f6))
+* **deps:** update junit5 monorepo ([#1106](https://github.com/open-feature/java-sdk-contrib/issues/1106)) ([a7a6d3f](https://github.com/open-feature/java-sdk-contrib/commit/a7a6d3f7ab0cc3d24a10d3cecd483a9d0d9340e5))
+* **deps:** update opentelemetry-java monorepo to v1.45.0 ([#1096](https://github.com/open-feature/java-sdk-contrib/issues/1096)) ([b8a79e7](https://github.com/open-feature/java-sdk-contrib/commit/b8a79e75850567a512849f2bc70aad2c88443445))
+
+
+### ✨ New Features
+
+* **flagd:** Improve e2e coverage ([#1092](https://github.com/open-feature/java-sdk-contrib/issues/1092)) ([d5110e3](https://github.com/open-feature/java-sdk-contrib/commit/d5110e3511eabdf9113e9bdb76a865e4036b624c))
+* **flagd:** ssl e2e tests ([#1111](https://github.com/open-feature/java-sdk-contrib/issues/1111)) ([819abe3](https://github.com/open-feature/java-sdk-contrib/commit/819abe31898adc90dd0bbd3dde191f43afd8cb73))
+* protobuf-java@4 compatibility ([#1125](https://github.com/open-feature/java-sdk-contrib/issues/1125)) ([e535976](https://github.com/open-feature/java-sdk-contrib/commit/e535976bf0b3fcb76519866b6f657d69fe85910a))
+
+
+### 🧹 Chore
+
+* **deps:** update providers/flagd/schemas digest to b81a56e ([#1117](https://github.com/open-feature/java-sdk-contrib/issues/1117)) ([828bd2c](https://github.com/open-feature/java-sdk-contrib/commit/828bd2ceb4b8ac2c220ab57c7186cffa040990a0))
+* **deps:** update providers/flagd/spec digest to d261f68 ([#1123](https://github.com/open-feature/java-sdk-contrib/issues/1123)) ([4fa4ba2](https://github.com/open-feature/java-sdk-contrib/commit/4fa4ba279716365c817e8f06c9e6f4a9e1578cc0))
+* **deps:** update providers/flagd/spec digest to ed0f9ef ([#1118](https://github.com/open-feature/java-sdk-contrib/issues/1118)) ([bb9767e](https://github.com/open-feature/java-sdk-contrib/commit/bb9767ede57627ecb2901707ba275bfe44fdcb08))
+* **deps:** update testcontainers-java monorepo to v1.20.4 ([#1076](https://github.com/open-feature/java-sdk-contrib/issues/1076)) ([0bf3b83](https://github.com/open-feature/java-sdk-contrib/commit/0bf3b83a0d4966ae0ab8cf308d16934487c2cce1))
+
 ## [0.10.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.1...dev.openfeature.contrib.providers.flagd-v0.10.2) (2024-11-20)
 
 
