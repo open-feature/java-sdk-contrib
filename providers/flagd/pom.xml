@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
@@ -16,6 +16,7 @@
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.69.0</io.grpc.version>
+        <protobuf-java.min.version>3.25.5</protobuf-java.min.version>
     </properties>
 
     <name>flagd</name>
@@ -38,7 +39,7 @@
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <!-- 5.0.0-rc < 5.0.0, unfortunately -->
-            <version>[3.25.5,4.999999)</version>
+            <version>[${protobuf-java.min.version},4.999999)</version>
         </dependency>
 
         <dependency>
@@ -221,7 +222,7 @@
                 <configuration>
                     <protocArtifact>com.google.protobuf:protoc:3.25.5:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.69.0:exe:${os.detected.classifier}</pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.68.2:exe:${os.detected.classifier}</pluginArtifact>
                     <protoSourceRoot>${project.basedir}/schemas/protobuf/</protoSourceRoot>
                 </configuration>
                 <executions>
@@ -237,6 +238,24 @@
     </build>
 
     <profiles>
+        <profile>
+            <!-- this profile forces us to compile against our minimum version of protobuf-java,
+            which is required so we can be compatible with both protobuf-java@v3 and protobuf-java@v4 consumers -->
+            <id>build</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <dependencies>
+                <dependency>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                    <!-- must match minimum version in protobuf-java dependency range above -->
+                    <version>${protobuf-java.min.version}</version>
+                </dependency>
+            </dependencies>
+
+        </profile>
         <profile>
             <!-- this profile handles running the flagd e2e tests -->
             <id>e2e</id>
