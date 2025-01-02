@@ -11,7 +11,10 @@
       "metadata": {
         "string": "string",
         "boolean": true,
-        "float": 1.234
+        "float": 1.234,
+        "invalid": {
+          "a": "a"
+        }
       }
     }
   }

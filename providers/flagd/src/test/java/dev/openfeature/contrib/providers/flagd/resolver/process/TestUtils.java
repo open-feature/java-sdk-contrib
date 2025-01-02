@@ -15,6 +15,7 @@ public class TestUtils {
     public static final String VALID_SIMPLE_EXTRA_FIELD = "flagConfigurations/valid-simple-with-extra-fields.json";
     public static final String VALID_LONG = "flagConfigurations/valid-long.json";
     public static final String INVALID_FLAG = "flagConfigurations/invalid-flag.json";
+    public static final String INVALID_FLAG_METADATA = "flagConfigurations/invalid-metadata.json";
     public static final String INVALID_CFG = "flagConfigurations/invalid-configuration.json";
     public static final String UPDATABLE_FILE = "flagConfigurations/updatableFlags.json";
 

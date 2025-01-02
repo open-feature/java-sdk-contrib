@@ -25,6 +25,7 @@ public class FeatureFlag {
     private final String defaultVariant;
     private final Map<String, Object> variants;
     private final String targeting;
+    private final Map<String, Object> metadata;
 
     /**
      * Construct a flagd feature flag.
@@ -33,11 +34,14 @@ public class FeatureFlag {
     public FeatureFlag(@JsonProperty("state") String state,
                        @JsonProperty("defaultVariant") String defaultVariant,
                        @JsonProperty("variants") Map<String, Object> variants,
-                       @JsonProperty("targeting") @JsonDeserialize(using = StringSerializer.class) String targeting) {
+                       @JsonProperty("targeting") @JsonDeserialize(using = StringSerializer.class) String targeting,
+                       @JsonProperty("metadata") Map<String, Object> metadata
+    ) {
         this.state = state;
         this.defaultVariant = defaultVariant;
         this.variants = variants;
         this.targeting = targeting;
+        this.metadata = metadata;
     }
 
     /**
