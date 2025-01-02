@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.3...dev.openfeature.contrib.providers.flagd-v0.10.4) (2025-01-02)
+
+
+### 🐛 Bug Fixes
+
+* protobuf 3 support ([#1127](https://github.com/open-feature/java-sdk-contrib/issues/1127)) ([816239b](https://github.com/open-feature/java-sdk-contrib/commit/816239b7937e1d29a5473959600166fe296e0a28))
+
 ## [0.10.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.2...dev.openfeature.contrib.providers.flagd-v0.10.3) (2025-01-02)
 
 
