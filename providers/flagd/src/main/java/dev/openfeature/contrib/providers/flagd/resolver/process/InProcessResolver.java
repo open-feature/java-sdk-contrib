@@ -2,6 +2,10 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
@@ -37,8 +41,9 @@ public class InProcessResolver implements Resolver {
     private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Operator operator;
     private final long deadline;
-    private final ImmutableMetadata metadata;
+    private final ImmutableMetadata fallBackMetadata;
     private final Supplier<Boolean> connectedSupplier;
+    private final String scope;
 
     /**
      * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1. Flags
@@ -48,20 +53,22 @@ public class InProcessResolver implements Resolver {
      * @param connectedSupplier lambda providing current connection status from caller
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
-    public InProcessResolver(
-            FlagdOptions options,
-            final Supplier<Boolean> connectedSupplier,
-            Consumer<ConnectionEvent> onConnectionEvent) {
+    public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
+                             Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
         this.connectedSupplier = connectedSupplier;
-        this.metadata = options.getSelector() == null
-                ? null
-                : ImmutableMetadata.builder()
-                        .addString("scope", options.getSelector())
-                        .build();
+        if (options.getSelector() == null) {
+            this.scope = null;
+            this.fallBackMetadata = null;
+        } else {
+            this.scope = options.getSelector();
+            this.fallBackMetadata = ImmutableMetadata.builder()
+                    .addString("scope", this.scope)
+                    .build();
+        }
     }
 
     /** Initialize in-process resolver. */
@@ -109,8 +116,14 @@ public class InProcessResolver implements Resolver {
         onConnectionEvent.accept(new ConnectionEvent(false));
     }
 
-    /** Resolve a boolean flag. */
-    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
+    /**
+     * Resolve a boolean flag.
+     */
+    public ProviderEvaluation<Boolean> booleanEvaluation(
+            String key,
+            Boolean defaultValue,
+            EvaluationContext ctx
+    ) {
         return resolve(Boolean.class, key, ctx);
     }
 
@@ -161,6 +174,7 @@ public class InProcessResolver implements Resolver {
             return ProviderEvaluation.<T>builder()
                     .errorMessage("flag: " + key + " not found")
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .flagMetadata(fallBackMetadata)
                     .build();
         }
 
@@ -169,6 +183,7 @@ public class InProcessResolver implements Resolver {
             return ProviderEvaluation.<T>builder()
                     .errorMessage("flag: " + key + " is disabled")
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .flagMetadata(getFlagMetadata(flag))
                     .build();
         }
 
@@ -215,13 +230,51 @@ public class InProcessResolver implements Resolver {
             throw new TypeMismatchError(message);
         }
 
-        final ProviderEvaluation.ProviderEvaluationBuilder<T> evaluationBuilder = ProviderEvaluation.<T>builder()
+        return ProviderEvaluation.<T>builder()
                 .value((T) value)
                 .variant(resolvedVariant)
-                .reason(reason);
+                .reason(reason)
+                .flagMetadata(getFlagMetadata(flag))
+                .build();
+    }
 
-        return this.metadata == null
-                ? evaluationBuilder.build()
-                : evaluationBuilder.flagMetadata(this.metadata).build();
+    private ImmutableMetadata getFlagMetadata(FeatureFlag flag) {
+        if (flag == null) {
+            return fallBackMetadata;
+        }
+
+        ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
+        if (scope != null) {
+            metadataBuilder.addString("scope", scope);
+        }
+
+        for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof Number) {
+                if (value instanceof Long) {
+                    metadataBuilder.addLong(entry.getKey(), (Long) value);
+                    continue;
+                } else if (value instanceof Double) {
+                    metadataBuilder.addDouble(entry.getKey(), (Double) value);
+                    continue;
+                } else if (value instanceof Integer) {
+                    metadataBuilder.addInteger(entry.getKey(), (Integer) value);
+                    continue;
+                } else if (value instanceof Float) {
+                    metadataBuilder.addFloat(entry.getKey(), (Float) value);
+                    continue;
+                }
+            } else if (value instanceof Boolean) {
+                metadataBuilder.addBoolean(entry.getKey(), (Boolean) value);
+                continue;
+            } else if (value instanceof String) {
+                metadataBuilder.addString(entry.getKey(), (String) value);
+                continue;
+            }
+            throw new IllegalArgumentException("The type of the Metadata entry with key " + entry.getKey()
+                    + " and value " + entry.getValue() + " is not supported");
+        }
+
+        return metadataBuilder.build();
     }
 }
