@@ -8,8 +8,8 @@ import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOption
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsException;
 
 /**
- * FlagsmithClientConfigurer helps set up and validate the options for the FlagsmithClient
- * used by the FlagsmithProvider class.
+ * FlagsmithClientConfigurer helps set up and validate the options for the FlagsmithClient used by
+ * the FlagsmithProvider class.
  */
 public class FlagsmithClientConfigurer {
 
@@ -22,8 +22,7 @@ public class FlagsmithClientConfigurer {
 
         validateOptions(options);
 
-        FlagsmithClient.Builder flagsmithBuilder = FlagsmithClient
-            .newBuilder();
+        FlagsmithClient.Builder flagsmithBuilder = FlagsmithClient.newBuilder();
         // Set main configuration settings
         flagsmithBuilder.setApiKey(options.getApiKey());
 
@@ -43,8 +42,7 @@ public class FlagsmithClientConfigurer {
     }
 
     /**
-     * Sets the cache related configuration for the provider using
-     * the FlagsmithCacheConfig builder.
+     * Sets the cache related configuration for the provider using the FlagsmithCacheConfig builder.
      *
      * @param options the options used to create the provider
      * @return a FlagsmithCacheConfig object containing the FlagsmithClient cache options
@@ -57,18 +55,14 @@ public class FlagsmithClientConfigurer {
             flagsmithCacheConfig.enableEnvLevelCaching(options.getEnvFlagsCacheKey());
         }
 
-        if (options.getExpireCacheAfterWrite() > -1
-            && options.getExpireCacheAfterWriteTimeUnit() != null) {
+        if (options.getExpireCacheAfterWrite() > -1 && options.getExpireCacheAfterWriteTimeUnit() != null) {
             flagsmithCacheConfig.expireAfterAccess(
-                options.getExpireCacheAfterWrite(),
-                options.getExpireCacheAfterWriteTimeUnit());
+                    options.getExpireCacheAfterWrite(), options.getExpireCacheAfterWriteTimeUnit());
         }
 
-        if (options.getExpireCacheAfterAccess() > -1
-            && options.getExpireCacheAfterAccessTimeUnit() != null) {
+        if (options.getExpireCacheAfterAccess() > -1 && options.getExpireCacheAfterAccessTimeUnit() != null) {
             flagsmithCacheConfig.expireAfterAccess(
-                options.getExpireCacheAfterAccess(),
-                options.getExpireCacheAfterAccessTimeUnit());
+                    options.getExpireCacheAfterAccess(), options.getExpireCacheAfterAccessTimeUnit());
         }
 
         if (options.getMaxCacheSize() > -1) {
@@ -83,8 +77,7 @@ public class FlagsmithClientConfigurer {
     }
 
     /**
-     * Set the configuration options for the FlagsmithClient using
-     * the FlagsmithConfig builder.
+     * Set the configuration options for the FlagsmithClient using the FlagsmithConfig builder.
      *
      * @param options The options used to create the provider
      * @return a FlagsmithConfig object with the FlagsmithClient settings
@@ -110,8 +103,7 @@ public class FlagsmithClientConfigurer {
         }
 
         if (options.getSslSocketFactory() != null && options.getTrustManager() != null) {
-            flagsmithConfig
-                .sslSocketFactory(options.getSslSocketFactory(), options.getTrustManager());
+            flagsmithConfig.sslSocketFactory(options.getSslSocketFactory(), options.getTrustManager());
         }
 
         if (options.getHttpInterceptor() != null) {
@@ -127,15 +119,15 @@ public class FlagsmithClientConfigurer {
         }
 
         if (options.getEnvironmentRefreshIntervalSeconds() > -1) {
-            flagsmithConfig.withEnvironmentRefreshIntervalSeconds(options
-                .getEnvironmentRefreshIntervalSeconds());
+            flagsmithConfig.withEnvironmentRefreshIntervalSeconds(options.getEnvironmentRefreshIntervalSeconds());
         }
 
         if (options.isEnableAnalytics()) {
             flagsmithConfig.withEnableAnalytics(options.isEnableAnalytics());
         }
 
-        if (options.getSupportedProtocols() != null && !options.getSupportedProtocols().isEmpty()) {
+        if (options.getSupportedProtocols() != null
+                && !options.getSupportedProtocols().isEmpty()) {
             flagsmithConfig.withSupportedProtocols(options.getSupportedProtocols());
         }
 
@@ -143,8 +135,8 @@ public class FlagsmithClientConfigurer {
     }
 
     /**
-     * Check the options that have been provided to see if there are any issues.
-     * Exceptions will be thrown if there are issues found with the options.
+     * Check the options that have been provided to see if there are any issues. Exceptions will be
+     * thrown if there are issues found with the options.
      *
      * @param options the options used to create the provider
      */
@@ -158,13 +150,12 @@ public class FlagsmithClientConfigurer {
         }
 
         if (options.getEnvFlagsCacheKey() == null
-            && (options.getExpireCacheAfterWrite() > -1
-            || options.getExpireCacheAfterAccess() > -1
-            || options.getMaxCacheSize() > -1
-            || options.isRecordCacheStats())) {
+                && (options.getExpireCacheAfterWrite() > -1
+                        || options.getExpireCacheAfterAccess() > -1
+                        || options.getMaxCacheSize() > -1
+                        || options.isRecordCacheStats())) {
             throw new InvalidCacheOptionsException(
-                "No Flagsmith cache key provided but other cache settings have been set."
-            );
+                    "No Flagsmith cache key provided but other cache settings have been set.");
         }
     }
 }

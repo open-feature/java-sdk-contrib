@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
-/**
- * Event data.
- */
+/** Event data. */
 @Builder
 @Data
 public class Event {

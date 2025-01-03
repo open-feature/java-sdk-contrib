@@ -1,12 +1,11 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Annotation for Flag Configuration for the default domain.
@@ -32,5 +31,3 @@ public @interface Flag {
      */
     Class<?> valueType() default Boolean.class;
 }
-
-

@@ -5,14 +5,8 @@ import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.co
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.getField;
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.getFieldDescriptor;
 
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.protobuf.Message;
 import com.google.protobuf.Struct;
-
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
@@ -37,6 +31,10 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
@@ -54,13 +52,16 @@ public final class GrpcResolver implements Resolver {
     /**
      * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
      * Flags are evaluated remotely.
-     * 
+     *
      * @param options flagd options
      * @param cache cache to use
      * @param connectedSupplier lambda providing current connection status from caller
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
-    public GrpcResolver(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
+    public GrpcResolver(
+            final FlagdOptions options,
+            final Cache cache,
+            final Supplier<Boolean> connectedSupplier,
             final Consumer<ConnectionEvent> onConnectionEvent) {
         this.cache = cache;
         this.connectedSupplier = connectedSupplier;
@@ -68,80 +69,68 @@ public final class GrpcResolver implements Resolver {
         this.connector = new GrpcConnector(options, cache, connectedSupplier, onConnectionEvent);
     }
 
-    /**
-     * Initialize Grpc resolver.
-     */
+    /** Initialize Grpc resolver. */
     public void init() throws Exception {
         this.connector.initialize();
     }
 
-    /**
-     * Shutdown Grpc resolver.
-     */
+    /** Shutdown Grpc resolver. */
     public void shutdown() throws Exception {
         this.connector.shutdown();
     }
 
-    /**
-     * Boolean evaluation from grpc resolver.
-     */
-    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-            EvaluationContext ctx) {
+    /** Boolean evaluation from grpc resolver. */
+    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveBoolean, null);
     }
 
-    /**
-     * String evaluation from grpc resolver.
-     */
-    public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
-            EvaluationContext ctx) {
+    /** String evaluation from grpc resolver. */
+    public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveString, null);
     }
 
-    /**
-     * Double evaluation from grpc resolver.
-     */
-    public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
-            EvaluationContext ctx) {
+    /** Double evaluation from grpc resolver. */
+    public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
 
         return resolve(key, ctx, request, this.connector.getResolver()::resolveFloat, null);
     }
 
-    /**
-     * Integer evaluation from grpc resolver.
-     */
-    public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
-            EvaluationContext ctx) {
+    /** Integer evaluation from grpc resolver. */
+    public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
 
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
 
-        return resolve(key, ctx, request, this.connector.getResolver()::resolveInt,
-                (Object value) -> ((Long) value).intValue());
+        return resolve(key, ctx, request, this.connector.getResolver()::resolveInt, (Object value) -> ((Long) value)
+                .intValue());
     }
 
-    /**
-     * Object evaluation from grpc resolver.
-     */
-    public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue,
-            EvaluationContext ctx) {
+    /** Object evaluation from grpc resolver. */
+    public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
 
         ResolveObjectRequest request = ResolveObjectRequest.newBuilder().buildPartial();
 
-        return resolve(key, ctx, request, this.connector.getResolver()::resolveObject,
+        return resolve(
+                key,
+                ctx,
+                request,
+                this.connector.getResolver()::resolveObject,
                 (Object value) -> convertObjectResponse((Struct) value));
     }
 
     /**
-     * A generic resolve method that takes a resolverRef and an optional converter
-     * lambda to transform the result.
+     * A generic resolve method that takes a resolverRef and an optional converter lambda to transform
+     * the result.
      */
     private <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
-            String key, EvaluationContext ctx, ReqT request, Function<ReqT, ResT> resolverRef,
+            String key,
+            EvaluationContext ctx,
+            ReqT request,
+            Function<ReqT, ResT> resolverRef,
             Convert<ValT, Object> converter) {
 
         // return from cache if available and item is present
@@ -169,7 +158,8 @@ public final class GrpcResolver implements Resolver {
         }
 
         // parse the response
-        ValT value = converter == null ? getField(response, Config.VALUE_FIELD)
+        ValT value = converter == null
+                ? getField(response, Config.VALUE_FIELD)
                 : converter.convert(getField(response, Config.VALUE_FIELD));
 
         // Extract metadata from response
@@ -211,7 +201,8 @@ public final class GrpcResolver implements Resolver {
 
         ImmutableMetadata.ImmutableMetadataBuilder builder = ImmutableMetadata.builder();
 
-        for (Map.Entry<String, com.google.protobuf.Value> entry : struct.getFieldsMap().entrySet()) {
+        for (Map.Entry<String, com.google.protobuf.Value> entry :
+                struct.getFieldsMap().entrySet()) {
             if (entry.getValue().hasStringValue()) {
                 builder.addString(entry.getKey(), entry.getValue().getStringValue());
             } else if (entry.getValue().hasBoolValue()) {

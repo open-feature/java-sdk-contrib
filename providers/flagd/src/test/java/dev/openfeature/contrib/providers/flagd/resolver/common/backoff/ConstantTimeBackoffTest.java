@@ -1,10 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
-
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import org.junit.jupiter.api.Test;
 
 class ConstantTimeBackoffTest {
     @Test

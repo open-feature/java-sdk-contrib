@@ -4,9 +4,7 @@ import io.flipt.api.FliptClient.FliptClientBuilder;
 import lombok.Builder;
 import lombok.Getter;
 
-/**
- * FliptProvider config.
- */
+/** FliptProvider config. */
 @Getter
 @Builder
 public class FliptProviderConfig {

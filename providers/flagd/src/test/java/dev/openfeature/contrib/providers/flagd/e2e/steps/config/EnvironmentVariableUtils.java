@@ -8,12 +8,11 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps.config;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.function.Consumer;
-
 import org.junit.platform.commons.PreconditionViolationException;
 
 /**
- * This class modifies the internals of the environment variables map with reflection.
- * Warning: If your {@link SecurityManager} does not allow modifications, it fails.
+ * This class modifies the internals of the environment variables map with reflection. Warning: If
+ * your {@link SecurityManager} does not allow modifications, it fails.
  */
 class EnvironmentVariableUtils {
 
@@ -24,7 +23,7 @@ class EnvironmentVariableUtils {
     /**
      * Set a value of an environment variable.
      *
-     * @param name  of the environment variable
+     * @param name of the environment variable
      * @param value of the environment variable
      */
     public static void set(String name, String value) {
@@ -43,18 +42,16 @@ class EnvironmentVariableUtils {
     private static void modifyEnvironmentVariables(Consumer<Map<String, String>> consumer) {
         try {
             setInProcessEnvironmentClass(consumer);
-        }
-        catch (ReflectiveOperationException ex) {
+        } catch (ReflectiveOperationException ex) {
             trySystemEnvClass(consumer, ex);
         }
     }
 
-    private static void trySystemEnvClass(Consumer<Map<String, String>> consumer,
-                                          ReflectiveOperationException processEnvironmentClassEx) {
+    private static void trySystemEnvClass(
+            Consumer<Map<String, String>> consumer, ReflectiveOperationException processEnvironmentClassEx) {
         try {
             setInSystemEnvClass(consumer);
-        }
-        catch (ReflectiveOperationException ex) {
+        } catch (ReflectiveOperationException ex) {
             ex.addSuppressed(processEnvironmentClassEx);
             throw new PreconditionViolationException("Could not modify environment variables", ex);
         }
@@ -66,13 +63,16 @@ class EnvironmentVariableUtils {
     private static void setInProcessEnvironmentClass(Consumer<Map<String, String>> consumer)
             throws ReflectiveOperationException {
         Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
-        // The order of operations is critical here: On some operating systems, theEnvironment is present but
+        // The order of operations is critical here: On some operating systems, theEnvironment is
+        // present but
         // theCaseInsensitiveEnvironment is not present. In such cases, this method must throw a
-        // ReflectiveOperationException without modifying theEnvironment. Otherwise, the contents of theEnvironment will
-        // be corrupted. For this reason, both fields are fetched by reflection before either field is modified.
+        // ReflectiveOperationException without modifying theEnvironment. Otherwise, the contents of
+        // theEnvironment will
+        // be corrupted. For this reason, both fields are fetched by reflection before either field is
+        // modified.
         Map<String, String> theEnvironment = getFieldValue(processEnvironmentClass, null, "theEnvironment");
-        Map<String, String> theCaseInsensitiveEnvironment = getFieldValue(processEnvironmentClass, null,
-                "theCaseInsensitiveEnvironment");
+        Map<String, String> theCaseInsensitiveEnvironment =
+                getFieldValue(processEnvironmentClass, null, "theCaseInsensitiveEnvironment");
         consumer.accept(theEnvironment);
         consumer.accept(theCaseInsensitiveEnvironment);
     }
@@ -82,7 +82,7 @@ class EnvironmentVariableUtils {
      */
     private static void setInSystemEnvClass(Consumer<Map<String, String>> consumer)
             throws ReflectiveOperationException {
-        Map<String, String> env = System.getenv(); //NOSONAR access required to implement the extension
+        Map<String, String> env = System.getenv(); // NOSONAR access required to implement the extension
         consumer.accept(getFieldValue(env.getClass(), env, "m"));
     }
 
@@ -91,9 +91,8 @@ class EnvironmentVariableUtils {
             throws ReflectiveOperationException {
         Field field = clazz.getDeclaredField(name);
         try {
-            field.setAccessible(true); //NOSONAR illegal access required to implement the extension
-        }
-        catch (Exception ex) {
+            field.setAccessible(true); // NOSONAR illegal access required to implement the extension
+        } catch (Exception ex) {
             throw new PreconditionViolationException(
                     "Cannot access and modify JDK internals to modify environment variables. "
                             + "Have a look at the documentation for possible solutions: "
@@ -102,5 +101,4 @@ class EnvironmentVariableUtils {
         }
         return (Map<String, String>) field.get(object);
     }
-
 }

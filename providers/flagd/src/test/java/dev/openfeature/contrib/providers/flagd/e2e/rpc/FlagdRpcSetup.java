@@ -39,5 +39,4 @@ public class FlagdRpcSetup {
     public static void tearDown() {
         flagdContainer.stop();
     }
-
 }

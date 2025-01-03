@@ -1,12 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.Getter;
 
-import java.util.concurrent.ThreadLocalRandom;
-
-/**
- * A service that provides backoff functionality.
- */
+/** A service that provides backoff functionality. */
 public class BackoffService {
     public static final int DEFAULT_MAX_JITTER = 0x1 << 8; // 256; Random likes boundaries that are a power of 2
 
@@ -17,8 +14,8 @@ public class BackoffService {
     private final int maxJitter;
 
     /**
-     * Creates a new BackoffService with the given strategy and default maximum jitter.
-     * The default maximum jitter is 256.
+     * Creates a new BackoffService with the given strategy and default maximum jitter. The default
+     * maximum jitter is 256.
      *
      * @param strategy The backoff strategy to use
      */
@@ -38,8 +35,8 @@ public class BackoffService {
     }
 
     /**
-     * Returns the current backoff time in milliseconds.
-     * This backoff time will be used in waitUntilNextAttempt.
+     * Returns the current backoff time in milliseconds. This backoff time will be used in
+     * waitUntilNextAttempt.
      *
      * @return the current backoff time in milliseconds
      */
@@ -60,15 +57,14 @@ public class BackoffService {
         return ThreadLocalRandom.current().nextInt(maxJitter);
     }
 
-    /**
-     * Resets the backoff strategy to its initial state.
-     */
+    /** Resets the backoff strategy to its initial state. */
     public void reset() {
         strategy.reset();
     }
 
     /**
      * Returns whether the backoff strategy has more attempts left.
+     *
      * @return true if the backoff strategy has more attempts left, false otherwise
      */
     public boolean shouldRetry() {
@@ -76,8 +72,8 @@ public class BackoffService {
     }
 
     /**
-     * Bolocks the current thread until the next attempt should be made.
-     * The time to wait is determined by the backoff strategy and a random jitter.
+     * Bolocks the current thread until the next attempt should be made. The time to wait is
+     * determined by the backoff strategy and a random jitter.
      *
      * @throws InterruptedException if the thread is interrupted while waiting
      */

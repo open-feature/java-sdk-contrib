@@ -2,6 +2,14 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
 
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
+import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.Structure;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,23 +20,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.stream.Collectors;
-
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
-import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
-import dev.openfeature.sdk.ImmutableStructure;
-import dev.openfeature.sdk.Structure;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Feature flag storage.
- */
+/** Feature flag storage. */
 @Slf4j
-@SuppressFBWarnings(value = {
-    "EI_EXPOSE_REP" }, justification = "Feature flag comes as a Json configuration, hence they must be exposed")
+@SuppressFBWarnings(
+        value = {"EI_EXPOSE_REP"},
+        justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagStore implements Storage {
     private final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
     private final ReadLock readLock = sync.readLock();
@@ -50,9 +48,7 @@ public class FlagStore implements Storage {
         this.throwIfInvalid = throwIfInvalid;
     }
 
-    /**
-     * Initialize storage layer.
-     */
+    /** Initialize storage layer. */
     public void init() throws Exception {
         connector.init();
         Thread streamer = new Thread(() -> {
@@ -80,9 +76,7 @@ public class FlagStore implements Storage {
         connector.shutdown();
     }
 
-    /**
-     * Retrieve flag for the given key.
-     */
+    /** Retrieve flag for the given key. */
     public FeatureFlag getFlag(final String key) {
         readLock.lock();
         try {
@@ -92,9 +86,7 @@ public class FlagStore implements Storage {
         }
     }
 
-    /**
-     * Retrieve blocking queue to check storage status.
-     */
+    /** Retrieve blocking queue to check storage status. */
     public BlockingQueue<StorageStateChange> getStateQueue() {
         return stateBlockingQueue;
     }
@@ -108,8 +100,8 @@ public class FlagStore implements Storage {
                 case DATA:
                     try {
                         List<String> changedFlagsKeys;
-                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(payload.getFlagData(),
-                                throwIfInvalid);
+                        Map<String, FeatureFlag> flagMap =
+                                FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
                         Structure metadata = parseSyncMetadata(payload.getMetadataResponse());
                         writeLock.lock();
                         try {
@@ -119,8 +111,8 @@ public class FlagStore implements Storage {
                         } finally {
                             writeLock.unlock();
                         }
-                        if (!stateBlockingQueue
-                                .offer(new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
+                        if (!stateBlockingQueue.offer(
+                                new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
                             log.warn("Failed to convey OK satus, queue is full");
                         }
                     } catch (Throwable e) {
@@ -175,5 +167,4 @@ public class FlagStore implements Storage {
         changedFlags.putAll(updatedFeatureFlags);
         return changedFlags.keySet().stream().collect(Collectors.toList());
     }
-
 }

@@ -1,21 +1,17 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common;
 
+import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.function.Supplier;
 
-import dev.openfeature.sdk.exceptions.GeneralError;
-
-/**
- * Utils for flagd resolvers.
- */
+/** Utils for flagd resolvers. */
 public class Util {
 
-    private Util() {
-    }
+    private Util() {}
 
     /**
      * A helper to block the caller for given conditions.
-     * 
-     * @param deadline          number of milliseconds to block
+     *
+     * @param deadline number of milliseconds to block
      * @param connectedSupplier func to check for status true
      * @throws InterruptedException if interrupted
      */
@@ -25,9 +21,8 @@ public class Util {
 
         do {
             if (deadline <= System.currentTimeMillis() - start) {
-                throw new GeneralError(
-                        String.format("Deadline exceeded. Condition did not complete within the %d deadline",
-                                deadline));
+                throw new GeneralError(String.format(
+                        "Deadline exceeded. Condition did not complete within the %d deadline", deadline));
             }
 
             Thread.sleep(50L);

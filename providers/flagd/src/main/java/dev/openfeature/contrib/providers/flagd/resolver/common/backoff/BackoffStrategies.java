@@ -1,11 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
-/**
- * A factory class for creating common backoff strategies.
- */
+/** A factory class for creating common backoff strategies. */
 public class BackoffStrategies {
-    private BackoffStrategies() {
-    }
+    private BackoffStrategies() {}
 
     public static BackoffStrategy exponentialTimeBackoff(long initialBackoffMillis) {
         return new ExponentialTimeBackoff(initialBackoffMillis);
@@ -23,8 +20,8 @@ public class BackoffStrategies {
         return new ConstantTimeBackoff(0L);
     }
 
-    public static BackoffStrategy maxRetriesWithExponentialTimeBackoffStrategy(int maxRetries,
-                                                                               long initialBackoffMillis) {
+    public static BackoffStrategy maxRetriesWithExponentialTimeBackoffStrategy(
+            int maxRetries, long initialBackoffMillis) {
         return new NumberOfRetriesBackoff(maxRetries, exponentialTimeBackoff(initialBackoffMillis));
     }
 }

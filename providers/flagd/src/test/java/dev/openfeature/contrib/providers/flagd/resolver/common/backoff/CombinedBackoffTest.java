@@ -1,17 +1,15 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import org.junit.jupiter.api.Test;
 
 class CombinedBackoffTest {
     @Test
     void currentBackoffIsFirstBackoff() {
-        BackoffStrategy[] backoffStrategies = new BackoffStrategy[]{
-                new ConstantTimeBackoff(1),
-                new ConstantTimeBackoff(2)
-        };
+        BackoffStrategy[] backoffStrategies =
+                new BackoffStrategy[] {new ConstantTimeBackoff(1), new ConstantTimeBackoff(2)};
 
         CombinedBackoff target = new CombinedBackoff(backoffStrategies);
 
@@ -23,11 +21,8 @@ class CombinedBackoffTest {
         BackoffStrategy exhaustedBackoff = mock(BackoffStrategy.class);
         when(exhaustedBackoff.isExhausted()).thenReturn(true);
 
-        BackoffStrategy[] backoffStrategies = new BackoffStrategy[]{
-                exhaustedBackoff,
-                exhaustedBackoff,
-                new ConstantTimeBackoff(3)
-        };
+        BackoffStrategy[] backoffStrategies =
+                new BackoffStrategy[] {exhaustedBackoff, exhaustedBackoff, new ConstantTimeBackoff(3)};
 
         CombinedBackoff target = new CombinedBackoff(backoffStrategies);
 
@@ -42,10 +37,7 @@ class CombinedBackoffTest {
         BackoffStrategy secondBackoff = mock(BackoffStrategy.class);
         when(secondBackoff.isExhausted()).thenReturn(true);
 
-        BackoffStrategy[] backoffStrategies = new BackoffStrategy[]{
-                firstBackoff,
-                secondBackoff
-        };
+        BackoffStrategy[] backoffStrategies = new BackoffStrategy[] {firstBackoff, secondBackoff};
 
         CombinedBackoff target = new CombinedBackoff(backoffStrategies);
 
@@ -54,9 +46,8 @@ class CombinedBackoffTest {
 
     @Test
     void currentBackoffSwitchesToNextBackoffWhenExhausted() {
-        BackoffStrategy[] backoffStrategies = new BackoffStrategy[]{
-                new NumberOfRetriesBackoff(2, new ConstantTimeBackoff(1)),
-                new ConstantTimeBackoff(2)
+        BackoffStrategy[] backoffStrategies = new BackoffStrategy[] {
+            new NumberOfRetriesBackoff(2, new ConstantTimeBackoff(1)), new ConstantTimeBackoff(2)
         };
 
         CombinedBackoff target = new CombinedBackoff(backoffStrategies);
@@ -76,9 +67,9 @@ class CombinedBackoffTest {
 
     @Test
     void isExhaustedIsTrueAfterAllBackoffsAreExhausted() {
-        BackoffStrategy[] backoffStrategies = new BackoffStrategy[]{
-                new NumberOfRetriesBackoff(2, new ConstantTimeBackoff(1)),
-                new NumberOfRetriesBackoff(2, new ConstantTimeBackoff(2))
+        BackoffStrategy[] backoffStrategies = new BackoffStrategy[] {
+            new NumberOfRetriesBackoff(2, new ConstantTimeBackoff(1)),
+            new NumberOfRetriesBackoff(2, new ConstantTimeBackoff(2))
         };
 
         CombinedBackoff target = new CombinedBackoff(backoffStrategies);
@@ -106,10 +97,10 @@ class CombinedBackoffTest {
         BackoffStrategy secondBackoff = mock(BackoffStrategy.class);
         BackoffStrategy thirdBackoff = mock(BackoffStrategy.class);
 
-        BackoffStrategy[] backoffStrategies = new BackoffStrategy[]{
-                new NumberOfRetriesBackoff(1, firstBackoff),
-                new NumberOfRetriesBackoff(1, secondBackoff),
-                new NumberOfRetriesBackoff(1, thirdBackoff)
+        BackoffStrategy[] backoffStrategies = new BackoffStrategy[] {
+            new NumberOfRetriesBackoff(1, firstBackoff),
+            new NumberOfRetriesBackoff(1, secondBackoff),
+            new NumberOfRetriesBackoff(1, thirdBackoff)
         };
 
         CombinedBackoff target = new CombinedBackoff(backoffStrategies);
