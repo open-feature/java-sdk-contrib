@@ -57,7 +57,7 @@ jobs:
           modules=($(cat pom.xml | grep "<module>" | sed 's/\s*<.*>\(.*\)<.*>/\1/'))
           for module in "${modules[@]}"
           do
-              mvn --batch-mode --projects $module --settings release/m2-settings.xml -DskipTests clean deploy
+            mvn --batch-mode --projects $module --settings release/m2-settings.xml -DskipTests clean install && mvn --batch-mode --projects $module --settings release/m2-settings.xml -DskipTests -P release deploy:deploy
           done
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}

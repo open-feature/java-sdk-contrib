@@ -38,8 +38,8 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <!-- 5.0.0-rc < 5.0.0, unfortunately -->
-            <version>[${protobuf-java.min.version},4.999999)</version>
+            <!-- we use the force the minium protobuf-java version for max compatibility of grpc generated sources; the "release" profile specifies a range for publish -->
+            <version>${protobuf-java.min.version}</version>
         </dependency>
 
         <dependency>
@@ -239,19 +239,14 @@
 
     <profiles>
         <profile>
-            <!-- this profile forces us to compile against our minimum version of protobuf-java,
-            which is required so we can be compatible with both protobuf-java@v3 and protobuf-java@v4 consumers -->
-            <id>build</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-
+            <!-- override protobuf-java with a range in release mode, for maximum compatibility -->
+            <id>release</id>
             <dependencies>
                 <dependency>
                     <groupId>com.google.protobuf</groupId>
                     <artifactId>protobuf-java</artifactId>
-                    <!-- must match minimum version in protobuf-java dependency range above -->
-                    <version>${protobuf-java.min.version}</version>
+                    <!-- 5.0.0-rc < 5.0.0, unfortunately -->
+                    <version>[${protobuf-java.min.version},4.999999)</version>
                 </dependency>
             </dependencies>
 
