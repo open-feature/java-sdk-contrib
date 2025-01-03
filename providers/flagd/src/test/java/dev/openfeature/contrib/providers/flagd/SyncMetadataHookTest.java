@@ -2,20 +2,16 @@ package dev.openfeature.contrib.providers.flagd;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagValueType;
 import dev.openfeature.sdk.HookContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.junit.Test;
 
-/**
- * SyncMetadataHookTest
- */
+/** SyncMetadataHookTest */
 public class SyncMetadataHookTest {
 
     @Test
@@ -29,8 +25,14 @@ public class SyncMetadataHookTest {
 
         // when(contextSupplier.get()).thenReturn(new ImmutableContext("some-key"));
         SyncMetadataHook hook = new SyncMetadataHook(contextSupplier);
-        Optional<EvaluationContext> context = hook.before(HookContext.builder().flagKey("some-flag").defaultValue(false)
-                .type(FlagValueType.BOOLEAN).ctx(new ImmutableContext()).build(), null);
+        Optional<EvaluationContext> context = hook.before(
+                HookContext.builder()
+                        .flagKey("some-flag")
+                        .defaultValue(false)
+                        .type(FlagValueType.BOOLEAN)
+                        .ctx(new ImmutableContext())
+                        .build(),
+                null);
         assertEquals(val1, context.get().getValue(key1).asString());
     }
 }

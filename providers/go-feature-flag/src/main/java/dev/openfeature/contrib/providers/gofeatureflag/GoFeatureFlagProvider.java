@@ -1,13 +1,6 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.jetbrains.annotations.NotNull;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import dev.openfeature.contrib.providers.gofeatureflag.bean.ConfigurationChange;
 import dev.openfeature.contrib.providers.gofeatureflag.controller.CacheController;
 import dev.openfeature.contrib.providers.gofeatureflag.controller.GoFeatureFlagController;
@@ -30,10 +23,15 @@ import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
+ * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO
+ * Feature Flag.
  */
 @Slf4j
 @SuppressWarnings({"checkstyle:NoFinalizer"})
@@ -73,43 +71,39 @@ public class GoFeatureFlagProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(
-            String key, Boolean defaultValue, EvaluationContext evaluationContext
-    ) {
+            String key, Boolean defaultValue, EvaluationContext evaluationContext) {
         return getEvaluation(key, defaultValue, evaluationContext, Boolean.class);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(
-            String key, String defaultValue, EvaluationContext evaluationContext
-    ) {
+            String key, String defaultValue, EvaluationContext evaluationContext) {
         return getEvaluation(key, defaultValue, evaluationContext, String.class);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(
-            String key, Integer defaultValue, EvaluationContext evaluationContext
-    ) {
+            String key, Integer defaultValue, EvaluationContext evaluationContext) {
         return getEvaluation(key, defaultValue, evaluationContext, Integer.class);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(
-            String key, Double defaultValue, EvaluationContext evaluationContext
-    ) {
+            String key, Double defaultValue, EvaluationContext evaluationContext) {
         return getEvaluation(key, defaultValue, evaluationContext, Double.class);
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(
-            String key, Value defaultValue, EvaluationContext evaluationContext
-    ) {
+            String key, Value defaultValue, EvaluationContext evaluationContext) {
         return getEvaluation(key, defaultValue, evaluationContext, Value.class);
     }
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
         super.initialize(evaluationContext);
-        this.gofeatureflagController = GoFeatureFlagController.builder().options(options).build();
+        this.gofeatureflagController =
+                GoFeatureFlagController.builder().options(options).build();
 
         if (options.getEnableCache() == null || options.getEnableCache()) {
             this.cacheCtrl = CacheController.builder().options(options).build();
@@ -122,23 +116,24 @@ public class GoFeatureFlagProvider extends EventProvider {
                         .build());
                 this.hooks.add(this.dataCollectorHook);
             }
-            this.flagChangeDisposable =
-                    this.startCheckFlagConfigurationChangesDaemon();
+            this.flagChangeDisposable = this.startCheckFlagConfigurationChangesDaemon();
         }
-        super.emitProviderReady(ProviderEventDetails.builder().message("Provider is ready to call the API").build());
+        super.emitProviderReady(ProviderEventDetails.builder()
+                .message("Provider is ready to call the API")
+                .build());
         log.info("finishing initializing provider");
     }
 
-
     /**
-     * startCheckFlagConfigurationChangesDaemon is a daemon that will check if the flag configuration has changed.
+     * startCheckFlagConfigurationChangesDaemon is a daemon that will check if the flag configuration
+     * has changed.
      *
      * @return Disposable - the subscription to the observable
      */
-    @NotNull
-    private Disposable startCheckFlagConfigurationChangesDaemon() {
+    @NotNull private Disposable startCheckFlagConfigurationChangesDaemon() {
         long pollingIntervalMs = options.getFlagChangePollingIntervalMs() != null
-                ? options.getFlagChangePollingIntervalMs() : DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
+                ? options.getFlagChangePollingIntervalMs()
+                : DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
 
         PublishSubject<Object> stopSignal = PublishSubject.create();
         Observable<Long> intervalObservable = Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS);
@@ -156,31 +151,30 @@ public class GoFeatureFlagProvider extends EventProvider {
                         }))
                 .subscribeOn(Schedulers.io());
 
-        return apiCallObservable
-                .subscribe(
-                        response -> {
-                            if (response == ConfigurationChange.FLAG_CONFIGURATION_UPDATED) {
-                                log.info("clean up the cache because the flag configuration has changed");
-                                this.cacheCtrl.invalidateAll();
-                                super.emitProviderConfigurationChanged(ProviderEventDetails.builder()
-                                        .message("GO Feature Flag Configuration changed, clearing the cache").build());
-                            } else {
-                                log.debug("flag configuration has not changed: {}", response);
-                            }
-                        },
-                        throwable -> log.error("error while calling flag change API, error: {}", throwable.getMessage())
-                );
+        return apiCallObservable.subscribe(
+                response -> {
+                    if (response == ConfigurationChange.FLAG_CONFIGURATION_UPDATED) {
+                        log.info("clean up the cache because the flag configuration has changed");
+                        this.cacheCtrl.invalidateAll();
+                        super.emitProviderConfigurationChanged(ProviderEventDetails.builder()
+                                .message("GO Feature Flag Configuration changed, clearing the cache")
+                                .build());
+                    } else {
+                        log.debug("flag configuration has not changed: {}", response);
+                    }
+                },
+                throwable -> log.error("error while calling flag change API, error: {}", throwable.getMessage()));
     }
 
     /**
-     * getEvaluation is the function resolving the flag, it will 1st check in the cache and if it is not available
-     * will call the evaluation endpoint to get the value of the flag.
+     * getEvaluation is the function resolving the flag, it will 1st check in the cache and if it is
+     * not available will call the evaluation endpoint to get the value of the flag.
      *
-     * @param key               - name of the feature flag
-     * @param defaultValue      - value used if something is not working as expected
+     * @param key - name of the feature flag
+     * @param defaultValue - value used if something is not working as expected
      * @param evaluationContext - EvaluationContext used for the request
-     * @param expectedType      - type expected for the value
-     * @param <T>               the type of your evaluation
+     * @param expectedType - type expected for the value
+     * @param <T> the type of your evaluation
      * @return a ProviderEvaluation that contains the open-feature response
      */
     @SuppressWarnings("unchecked")
@@ -195,8 +189,8 @@ public class GoFeatureFlagProvider extends EventProvider {
 
             ProviderEvaluation<?> cachedProviderEvaluation = this.cacheCtrl.getIfPresent(key, evaluationContext);
             if (cachedProviderEvaluation == null) {
-                EvaluationResponse<T> proxyRes = this.gofeatureflagController.evaluateFlag(
-                        key, defaultValue, evaluationContext, expectedType);
+                EvaluationResponse<T> proxyRes =
+                        this.gofeatureflagController.evaluateFlag(key, defaultValue, evaluationContext, expectedType);
 
                 if (Boolean.TRUE.equals(proxyRes.getCacheable())) {
                     this.cacheCtrl.put(key, evaluationContext, proxyRes.getProviderEvaluation());
@@ -205,7 +199,8 @@ public class GoFeatureFlagProvider extends EventProvider {
             }
             cachedProviderEvaluation.setReason(CACHED_REASON);
             if (cachedProviderEvaluation.getValue().getClass() != expectedType) {
-                throw new InvalidTypeInCache(expectedType, cachedProviderEvaluation.getValue().getClass());
+                throw new InvalidTypeInCache(
+                        expectedType, cachedProviderEvaluation.getValue().getClass());
             }
             return (ProviderEvaluation<T>) cachedProviderEvaluation;
         } catch (JsonProcessingException e) {
@@ -239,7 +234,7 @@ public class GoFeatureFlagProvider extends EventProvider {
      * validateInputOptions is validating the different options provided when creating the provider.
      *
      * @param options - Options used while creating the provider
-     * @throws InvalidOptions  - if no options are provided
+     * @throws InvalidOptions - if no options are provided
      * @throws InvalidEndpoint - if the endpoint provided is not valid
      */
     private void validateInputOptions(GoFeatureFlagProviderOptions options) throws InvalidOptions {

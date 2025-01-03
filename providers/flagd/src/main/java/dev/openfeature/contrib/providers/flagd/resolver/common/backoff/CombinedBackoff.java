@@ -3,9 +3,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 import lombok.Getter;
 
 /**
- * A backoff strategy that combines multiple backoff strategies.
- * The strategy starts with the first provided strategy and will switch to the next backoff strategy in the list when
- * the current one is exhausted.
+ * A backoff strategy that combines multiple backoff strategies. The strategy starts with the first
+ * provided strategy and will switch to the next backoff strategy in the list when the current one
+ * is exhausted.
  */
 public class CombinedBackoff implements BackoffStrategy {
     private final BackoffStrategy[] backoffStrategies;
@@ -15,13 +15,11 @@ public class CombinedBackoff implements BackoffStrategy {
     private BackoffStrategy currentStrategy;
 
     /**
-     * Creates a new combined backoff strategy.
-     * The strategy starts with the first provided strategy and will switch to the next backoff strategy in the list
-     * when the current one is exhausted.
+     * Creates a new combined backoff strategy. The strategy starts with the first provided strategy
+     * and will switch to the next backoff strategy in the list when the current one is exhausted.
      *
      * @param backoffStrategies the list of backoff strategies to combine
      */
-
     public CombinedBackoff(BackoffStrategy[] backoffStrategies) {
         this.backoffStrategies = backoffStrategies.clone();
         this.currentStrategyIndex = 0;
@@ -46,9 +44,7 @@ public class CombinedBackoff implements BackoffStrategy {
         currentStrategy.nextBackoff();
     }
 
-    /**
-     * Switches to the next backoff strategy if the current one is exhausted.
-     */
+    /** Switches to the next backoff strategy if the current one is exhausted. */
     private void updateCurrentStrategy() {
         // Move to the next non-exhausted strategy if the current one is exhausted
         while (!isLastStrategy() && currentStrategy.isExhausted()) {

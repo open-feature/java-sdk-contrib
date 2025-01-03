@@ -14,5 +14,4 @@ public class InvalidCacheOptionsException extends FlagsmithProviderException {
     public InvalidCacheOptionsException(String message) {
         super(message);
     }
-
 }

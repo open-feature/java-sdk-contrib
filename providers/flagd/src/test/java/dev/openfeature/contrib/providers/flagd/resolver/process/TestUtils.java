@@ -1,7 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;

@@ -2,9 +2,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
@@ -26,12 +23,13 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Resolves flag values using
- * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
- * Flags are evaluated locally.
+ * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1. Flags
+ * are evaluated locally.
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
@@ -43,49 +41,50 @@ public class InProcessResolver implements Resolver {
     private final Supplier<Boolean> connectedSupplier;
 
     /**
-     * Resolves flag values using
-     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
-     * Flags are evaluated locally.
-     * 
-     * @param options           flagd options
-     * @param connectedSupplier lambda providing current connection status from
-     *                          caller
-     * @param onConnectionEvent lambda which handles changes in the
-     *                          connection/stream
+     * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1. Flags
+     * are evaluated locally.
+     *
+     * @param options flagd options
+     * @param connectedSupplier lambda providing current connection status from caller
+     * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
-    public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
+    public InProcessResolver(
+            FlagdOptions options,
+            final Supplier<Boolean> connectedSupplier,
             Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
         this.connectedSupplier = connectedSupplier;
-        this.metadata = options.getSelector() == null ? null
+        this.metadata = options.getSelector() == null
+                ? null
                 : ImmutableMetadata.builder()
                         .addString("scope", options.getSelector())
                         .build();
     }
 
-    /**
-     * Initialize in-process resolver.
-     */
+    /** Initialize in-process resolver. */
     public void init() throws Exception {
         flagStore.init();
         final Thread stateWatcher = new Thread(() -> {
             try {
                 while (true) {
-                    final StorageStateChange storageStateChange = flagStore.getStateQueue().take();
+                    final StorageStateChange storageStateChange =
+                            flagStore.getStateQueue().take();
                     switch (storageStateChange.getStorageState()) {
                         case OK:
-                            onConnectionEvent.accept(new ConnectionEvent(true, storageStateChange.getChangedFlagsKeys(),
+                            onConnectionEvent.accept(new ConnectionEvent(
+                                    true,
+                                    storageStateChange.getChangedFlagsKeys(),
                                     storageStateChange.getSyncMetadata()));
                             break;
                         case ERROR:
                             onConnectionEvent.accept(new ConnectionEvent(false));
                             break;
                         default:
-                            log.info(String.format("Storage emitted unhandled status: %s",
-                                    storageStateChange.getStorageState()));
+                            log.info(String.format(
+                                    "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
                     }
                 }
             } catch (InterruptedException e) {
@@ -110,38 +109,27 @@ public class InProcessResolver implements Resolver {
         onConnectionEvent.accept(new ConnectionEvent(false));
     }
 
-    /**
-     * Resolve a boolean flag.
-     */
-    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-            EvaluationContext ctx) {
+    /** Resolve a boolean flag. */
+    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         return resolve(Boolean.class, key, ctx);
     }
 
-    /**
-     * Resolve a string flag.
-     */
+    /** Resolve a string flag. */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         return resolve(String.class, key, ctx);
     }
 
-    /**
-     * Resolve a double flag.
-     */
+    /** Resolve a double flag. */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         return resolve(Double.class, key, ctx);
     }
 
-    /**
-     * Resolve an integer flag.
-     */
+    /** Resolve an integer flag. */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         return resolve(Integer.class, key, ctx);
     }
 
-    /**
-     * Resolve an object flag.
-     */
+    /** Resolve an object flag. */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         final ProviderEvaluation<Object> evaluation = resolve(Object.class, key, ctx);
 
@@ -159,7 +147,8 @@ public class InProcessResolver implements Resolver {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
-        return options.getOfflineFlagSourcePath() != null && !options.getOfflineFlagSourcePath().isEmpty()
+        return options.getOfflineFlagSourcePath() != null
+                        && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileConnector(options.getOfflineFlagSourcePath())
                 : new GrpcStreamConnector(options);
     }
@@ -231,7 +220,8 @@ public class InProcessResolver implements Resolver {
                 .variant(resolvedVariant)
                 .reason(reason);
 
-        return this.metadata == null ? evaluationBuilder.build()
+        return this.metadata == null
+                ? evaluationBuilder.build()
                 : evaluationBuilder.flagMetadata(this.metadata).build();
     }
 }

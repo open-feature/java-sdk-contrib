@@ -4,10 +4,7 @@ import com.statsig.sdk.StatsigOptions;
 import lombok.Builder;
 import lombok.Getter;
 
-
-/**
- * Configuration for initializing statsig provider.
- */
+/** Configuration for initializing statsig provider. */
 @Getter
 @Builder
 public class StatsigProviderConfig {

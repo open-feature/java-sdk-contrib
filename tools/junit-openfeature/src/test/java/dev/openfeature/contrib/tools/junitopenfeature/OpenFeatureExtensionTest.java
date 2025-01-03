@@ -1,11 +1,11 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class OpenFeatureExtensionTest {
 
@@ -24,7 +24,9 @@ class OpenFeatureExtensionTest {
             }
 
             @OpenFeature({})
-            @OpenFeature(domain = "test", value = {})
+            @OpenFeature(
+                    domain = "test",
+                    value = {})
             void clientIsSetMultipleTimes() {
                 assertThat(api).isNotNull();
                 assertThat(api.getProvider()).isInstanceOf(TestProvider.class);
@@ -36,7 +38,9 @@ class OpenFeatureExtensionTest {
             }
 
             @Test
-            @OpenFeature(domain = "domain", value = {})
+            @OpenFeature(
+                    domain = "domain",
+                    value = {})
             void clientIsSetWithDomain() {
                 assertThat(api).isNotNull();
                 assertThat(api.getProvider("domain")).isInstanceOf(TestProvider.class);
@@ -58,7 +62,9 @@ class OpenFeatureExtensionTest {
         }
 
         @Nested
-        @OpenFeature(domain = "domain", value = {})
+        @OpenFeature(
+                domain = "domain",
+                value = {})
         class OnClassWithDomain {
             @Test
             void clientIsSetWithDomain() {

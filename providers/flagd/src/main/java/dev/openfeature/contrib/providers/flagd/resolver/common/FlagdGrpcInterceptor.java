@@ -10,13 +10,12 @@ import io.grpc.MethodDescriptor;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapSetter;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * FlagdGrpcInterceptor is an interceptor for grpc communication from java-sdk to flagd.
- * <a href="https://github.com/open-telemetry/opentelemetry-java-docs">credits</a>
+ * FlagdGrpcInterceptor is an interceptor for grpc communication from java-sdk to flagd. <a
+ * href="https://github.com/open-telemetry/opentelemetry-java-docs">credits</a>
  */
 public final class FlagdGrpcInterceptor implements ClientInterceptor {
     private static final TextMapSetter<Metadata> SETTER = new Setter();
@@ -32,8 +31,9 @@ public final class FlagdGrpcInterceptor implements ClientInterceptor {
         this.openTelemetry = openTelemetry;
     }
 
-    @Override public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> methodDescriptor,
-                                                                         CallOptions callOptions, Channel channel) {
+    @Override
+    public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+            MethodDescriptor<ReqT, RespT> methodDescriptor, CallOptions callOptions, Channel channel) {
 
         final ClientCall<ReqT, RespT> call = channel.newCall(methodDescriptor, callOptions);
 
@@ -46,9 +46,7 @@ public final class FlagdGrpcInterceptor implements ClientInterceptor {
         };
     }
 
-    /**
-     * Setter implements TextMapSetter with carrier check.
-     */
+    /** Setter implements TextMapSetter with carrier check. */
     static class Setter implements TextMapSetter<Metadata> {
         @Override
         public void set(@Nullable Metadata carrier, String key, String value) {

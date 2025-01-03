@@ -1,13 +1,10 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.function.Function;
-
-/**
- * Helper class to hold configuration default values.
- */
+/** Helper class to hold configuration default values. */
 @Slf4j
 public final class Config {
     static final Resolver DEFAULT_RESOLVER_TYPE = Resolver.RPC;
@@ -95,22 +92,20 @@ public final class Config {
         }
     }
 
-    /**
-     * intermediate interface to unify deprecated Evaluator and new Resolver.
-     **/
+    /** intermediate interface to unify deprecated Evaluator and new Resolver. */
     public interface EvaluatorType {
         String asString();
     }
 
     /**
-     * flagd evaluator type.
-     * Deprecated : Please use {@code Config.Resolver}, which is a drop-in replacement of this.
+     * flagd evaluator type. Deprecated : Please use {@code Config.Resolver}, which is a drop-in
+     * replacement of this.
      */
     @Deprecated
     public enum Evaluator implements EvaluatorType {
         /**
-         * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC contract.
-         * Evaluations are performed remotely.
+         * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC
+         * contract. Evaluations are performed remotely.
          */
         RPC {
             public String asString() {
@@ -118,26 +113,21 @@ public final class Config {
             }
         },
         /**
-         * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract and stored
-         * locally for in-process evaluation.
-         * Evaluations are preformed in-process.
+         * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract
+         * and stored locally for in-process evaluation. Evaluations are preformed in-process.
          */
         IN_PROCESS {
             public String asString() {
                 return RESOLVER_IN_PROCESS;
             }
         }
-
     }
 
-
-    /**
-     * flagd Resolver type.
-     */
+    /** flagd Resolver type. */
     public enum Resolver implements EvaluatorType {
         /**
-         * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC contract.
-         * Evaluations are performed remotely.
+         * This is the default resolver type, which connects to flagd instance with flag evaluation gRPC
+         * contract. Evaluations are performed remotely.
          */
         RPC {
             public String asString() {
@@ -145,9 +135,8 @@ public final class Config {
             }
         },
         /**
-         * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract and stored
-         * locally for in-process evaluation.
-         * Evaluations are preformed in-process.
+         * This is the in-process resolving type, where flags are fetched with flag sync gRPC contract
+         * and stored locally for in-process evaluation. Evaluations are preformed in-process.
          */
         IN_PROCESS {
             public String asString() {

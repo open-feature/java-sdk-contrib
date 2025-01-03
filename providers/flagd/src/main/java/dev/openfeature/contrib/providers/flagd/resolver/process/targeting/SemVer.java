@@ -2,12 +2,11 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import lombok.extern.slf4j.Slf4j;
-import org.semver4j.Semver;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.semver4j.Semver;
 
 @Slf4j
 class SemVer implements PreEvaluatedArgumentsExpression {
@@ -106,5 +105,4 @@ class SemVer implements PreEvaluatedArgumentsExpression {
                         String.format("Unsupported operator received. Operator: %s", operator));
         }
     }
-
 }

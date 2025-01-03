@@ -1,7 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -70,17 +69,23 @@ public class MockFlags {
     static final FeatureFlag VARIANT_MISMATCH_FLAG = new FeatureFlag("ENABLED", "true", stringVariants, null);
 
     // flag with targeting rule - string
-    static final FeatureFlag FLAG_WIH_IF_IN_TARGET = new FeatureFlag("ENABLED", "loop", stringVariants,
+    static final FeatureFlag FLAG_WIH_IF_IN_TARGET = new FeatureFlag(
+            "ENABLED",
+            "loop",
+            stringVariants,
             "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}");
 
-    static final FeatureFlag FLAG_WITH_TARGETING_KEY = new FeatureFlag("ENABLED", "loop", stringVariants,
+    static final FeatureFlag FLAG_WITH_TARGETING_KEY = new FeatureFlag(
+            "ENABLED",
+            "loop",
+            stringVariants,
             "{\"if\":[{\"==\":[{\"var\":\"targetingKey\"},\"xyz\"]},\"binet\",null]}");
 
     // flag with incorrect targeting rule
-    static final FeatureFlag FLAG_WIH_INVALID_TARGET = new FeatureFlag("ENABLED", "loop", stringVariants,
-            "{if this, then that}");
+    static final FeatureFlag FLAG_WIH_INVALID_TARGET =
+            new FeatureFlag("ENABLED", "loop", stringVariants, "{if this, then that}");
 
     // flag with shorthand rule
-    static final FeatureFlag FLAG_WIH_SHORTHAND_TARGETING = new FeatureFlag("ENABLED", "false", shorthandVariant,
-    "{ \"if\": [true, true, false] }");
+    static final FeatureFlag FLAG_WIH_SHORTHAND_TARGETING =
+            new FeatureFlag("ENABLED", "false", shorthandVariant, "{ \"if\": [true, true, false] }");
 }

@@ -12,20 +12,16 @@ import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
-
-import javax.net.ssl.SSLException;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLException;
 
-/**
- * gRPC channel builder helper.
- */
+/** gRPC channel builder helper. */
 public class ChannelBuilder {
 
-    private ChannelBuilder() {
-    }
+    private ChannelBuilder() {}
 
     /**
      * This method is a helper to build a {@link ManagedChannel} from provided {@link FlagdOptions}.
@@ -33,7 +29,8 @@ public class ChannelBuilder {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "certificate path is a user input")
     public static ManagedChannel nettyChannel(final FlagdOptions options) {
 
-        // keepAliveTime: Long.MAX_VALUE disables keepAlive; very small values are increased automatically
+        // keepAliveTime: Long.MAX_VALUE disables keepAlive; very small values are increased
+        // automatically
         long keepAliveMs = options.getKeepAlive() == 0 ? Long.MAX_VALUE : options.getKeepAlive();
 
         // we have a socket path specified, build a channel with a unix socket
@@ -43,8 +40,7 @@ public class ChannelBuilder {
                 throw new IllegalStateException("unix socket cannot be used", Epoll.unavailabilityCause());
             }
 
-            return NettyChannelBuilder
-                    .forAddress(new DomainSocketAddress(options.getSocketPath()))
+            return NettyChannelBuilder.forAddress(new DomainSocketAddress(options.getSocketPath()))
                     .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS)
                     .eventLoopGroup(new EpollEventLoopGroup())
                     .channelType(EpollDomainSocketChannel.class)
@@ -62,12 +58,10 @@ public class ChannelBuilder {
             // default to current `dns` resolution i.e. <host>:<port>, if valid / supported
             // target string use the user provided target uri.
             final String defaultTarget = String.format("%s:%s", options.getHost(), options.getPort());
-            final String targetUri = isValidTargetUri(options.getTargetUri()) ? options.getTargetUri() :
-                    defaultTarget;
+            final String targetUri = isValidTargetUri(options.getTargetUri()) ? options.getTargetUri() : defaultTarget;
 
-            final NettyChannelBuilder builder = NettyChannelBuilder
-                    .forTarget(targetUri)
-                    .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS);
+            final NettyChannelBuilder builder =
+                    NettyChannelBuilder.forTarget(targetUri).keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS);
 
             if (options.isTls()) {
                 SslContextBuilder sslContext = GrpcSslContexts.forClient();
@@ -95,21 +89,22 @@ public class ChannelBuilder {
             sslConfigException.initCause(ssle);
             throw sslConfigException;
         } catch (IllegalArgumentException argumentException) {
-            GenericConfigException genericConfigException = new GenericConfigException(
-                    "Error with gRPC target string configuration");
+            GenericConfigException genericConfigException =
+                    new GenericConfigException("Error with gRPC target string configuration");
             genericConfigException.initCause(argumentException);
             throw genericConfigException;
         }
     }
 
-    private static  boolean isValidTargetUri(String targetUri) {
+    private static boolean isValidTargetUri(String targetUri) {
         if (targetUri == null) {
             return false;
         }
 
         try {
             final String scheme = new URI(targetUri).getScheme();
-            if (scheme.equals(SupportedScheme.ENVOY.getScheme()) || scheme.equals(SupportedScheme.DNS.getScheme())
+            if (scheme.equals(SupportedScheme.ENVOY.getScheme())
+                    || scheme.equals(SupportedScheme.DNS.getScheme())
                     || scheme.equals(SupportedScheme.XDS.getScheme())
                     || scheme.equals(SupportedScheme.UDS.getScheme())) {
                 return true;
@@ -136,6 +131,5 @@ public class ChannelBuilder {
         }
 
         return false;
-
     }
 }

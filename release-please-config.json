@@ -5,6 +5,7 @@
     "providers/flagd": {
       "package-name": "dev.openfeature.contrib.providers.flagd",
       "release-type": "simple",
+      "release-as": "0.10.5",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",

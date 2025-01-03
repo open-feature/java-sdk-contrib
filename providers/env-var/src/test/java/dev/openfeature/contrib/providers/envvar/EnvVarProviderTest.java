@@ -1,27 +1,24 @@
 package dev.openfeature.contrib.providers.envvar;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import dev.openfeature.sdk.*;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.ValueNotConvertableError;
-import org.junit.jupiter.api.*;
-
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.*;
 
 class EnvVarProviderTest {
 
     @Test
     void shouldThrowOnGetObjectEvaluation() {
-        assertThrows(
-                ValueNotConvertableError.class,
-                () -> new EnvVarProvider().getObjectEvaluation("any-key", new Value(), new ImmutableContext())
-        );
+        assertThrows(ValueNotConvertableError.class, () -> new EnvVarProvider()
+                .getObjectEvaluation("any-key", new Value(), new ImmutableContext()));
     }
 
     @TestFactory
@@ -32,44 +29,37 @@ class EnvVarProviderTest {
                         "bool_true",
                         "true",
                         provider -> provider.getBooleanEvaluation("bool_true", null, null),
-                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, true)
-                ),
+                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, true)),
                 evaluationTest(
                         "bool_false",
                         "bool_false",
                         "FaLsE",
                         provider -> provider.getBooleanEvaluation("bool_false", null, null),
-                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, false)
-                ),
+                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, false)),
                 evaluationTest(
                         "bool_false",
                         "bool_false",
                         "not-a-bool",
                         provider -> provider.getBooleanEvaluation("bool_false", null, null),
-                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, false)
-                ),
+                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, false)),
                 evaluationTest(
                         "string",
                         "string",
                         "value",
                         provider -> provider.getStringEvaluation("string", null, null),
-                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, "value")
-                ),
+                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, "value")),
                 evaluationTest(
                         "int",
                         "INT",
                         "42",
                         provider -> provider.getIntegerEvaluation("INT", null, null),
-                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, 42)
-                ),
+                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, 42)),
                 evaluationTest(
                         "double",
                         "double",
                         "42.0",
                         provider -> provider.getDoubleEvaluation("double", null, null),
-                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, 42.0)
-                )
-        );
+                        evaluation -> evaluationChecks(evaluation, REASON_STATIC, 42.0)));
     }
 
     @TestFactory
@@ -80,37 +70,31 @@ class EnvVarProviderTest {
                         "other",
                         "other",
                         provider -> provider.getBooleanEvaluation("bool_default", true, null),
-                        FlagNotFoundError.class
-                ),
+                        FlagNotFoundError.class),
                 throwingEvaluationTest(
                         "string_default",
                         "other",
                         "other",
                         provider -> provider.getStringEvaluation("string_default", "value", null),
-                        FlagNotFoundError.class
-                ),
+                        FlagNotFoundError.class),
                 throwingEvaluationTest(
                         "int_default",
                         "other",
                         "other",
                         provider -> provider.getIntegerEvaluation("int_default", 42, null),
-                        FlagNotFoundError.class
-                ),
+                        FlagNotFoundError.class),
                 throwingEvaluationTest(
                         "double_default",
                         "other",
                         "other",
                         provider -> provider.getDoubleEvaluation("double_default", 42.0, null),
-                        FlagNotFoundError.class
-                ),
+                        FlagNotFoundError.class),
                 throwingEvaluationTest(
                         "null_default",
                         "other",
                         "other",
                         provider -> provider.getStringEvaluation("null_default", null, null),
-                        FlagNotFoundError.class
-                )
-        );
+                        FlagNotFoundError.class));
     }
 
     @TestFactory
@@ -121,16 +105,13 @@ class EnvVarProviderTest {
                         "int_incorrect",
                         "fourty-two",
                         provider -> provider.getIntegerEvaluation("int_incorrect", null, null),
-                        ParseError.class
-                ),
+                        ParseError.class),
                 throwingEvaluationTest(
                         "double_incorrect",
                         "double_incorrect",
                         "fourty-two",
                         provider -> provider.getDoubleEvaluation("double_incorrect", null, null),
-                        ParseError.class
-                )
-        );
+                        ParseError.class));
     }
 
     @Test
@@ -143,7 +124,8 @@ class EnvVarProviderTest {
         EnvironmentGateway gateway = s -> s;
         EnvVarProvider provider = new EnvVarProvider(gateway, transformer);
 
-        String environmentVariableValue = provider.getStringEvaluation(key, "failed", null).getValue();
+        String environmentVariableValue =
+                provider.getStringEvaluation(key, "failed", null).getValue();
 
         assertThat(environmentVariableValue).isEqualTo(expected);
     }
@@ -165,21 +147,17 @@ class EnvVarProviderTest {
             String variableName,
             String value,
             Function<FeatureProvider, ProviderEvaluation<T>> callback,
-            Consumer<ProviderEvaluation<T>> checks
-    ) {
-        return DynamicTest.dynamicTest(
-                testName,
-                () -> {
-                    // Given
-                    final FeatureProvider provider = provider(variableName, value);
+            Consumer<ProviderEvaluation<T>> checks) {
+        return DynamicTest.dynamicTest(testName, () -> {
+            // Given
+            final FeatureProvider provider = provider(variableName, value);
 
-                    // When
-                    final ProviderEvaluation<T> evaluation = callback.apply(provider);
+            // When
+            final ProviderEvaluation<T> evaluation = callback.apply(provider);
 
-                    // Then
-                    checks.accept(evaluation);
-                }
-        );
+            // Then
+            checks.accept(evaluation);
+        });
     }
 
     private <T> DynamicTest throwingEvaluationTest(
@@ -187,27 +165,20 @@ class EnvVarProviderTest {
             String variableName,
             String value,
             Function<FeatureProvider, ProviderEvaluation<T>> callback,
-            Class<? extends Exception> throwing
-    ) {
-        return DynamicTest.dynamicTest(
-                testName,
-                () -> {
-                    // Given
-                    final FeatureProvider provider = provider(variableName, value);
+            Class<? extends Exception> throwing) {
+        return DynamicTest.dynamicTest(testName, () -> {
+            // Given
+            final FeatureProvider provider = provider(variableName, value);
 
-                    // Then
-                    assertThrows(throwing, () -> {
-                        // When
-                        callback.apply(provider);
-                    });
-                }
-        );
+            // Then
+            assertThrows(throwing, () -> {
+                // When
+                callback.apply(provider);
+            });
+        });
     }
 
-    private FeatureProvider provider(
-            String variableName,
-            String value
-    ) {
+    private FeatureProvider provider(String variableName, String value) {
         return new EnvVarProvider(name -> {
             if (name.equals(variableName)) {
                 return value;

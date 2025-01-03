@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.common.backoff.BackoffStrategies.maxRetriesWithExponentialTimeBackoffStrategy;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
@@ -12,19 +14,14 @@ import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.common.backoff.BackoffStrategies.maxRetriesWithExponentialTimeBackoffStrategy;
-
-/**
- * Class that abstracts the gRPC communication with flagd.
- */
+/** Class that abstracts the gRPC communication with flagd. */
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 public class GrpcConnector {
@@ -48,13 +45,16 @@ public class GrpcConnector {
     /**
      * GrpcConnector creates an abstraction over gRPC communication.
      *
-     * @param options           flagd options
-     * @param cache             cache to use
+     * @param options flagd options
+     * @param cache cache to use
      * @param connectedSupplier lambda providing current connection status from caller
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
-    public GrpcConnector(final FlagdOptions options, final Cache cache, final Supplier<Boolean> connectedSupplier,
-                         Consumer<ConnectionEvent> onConnectionEvent) {
+    public GrpcConnector(
+            final FlagdOptions options,
+            final Cache cache,
+            final Supplier<Boolean> connectedSupplier,
+            Consumer<ConnectionEvent> onConnectionEvent) {
         this.channel = ChannelBuilder.nettyChannel(options);
         this.serviceStub = ServiceGrpc.newStub(channel);
         this.serviceBlockingStub = ServiceGrpc.newBlockingStub(channel);
@@ -64,14 +64,10 @@ public class GrpcConnector {
         this.onConnectionEvent = onConnectionEvent;
         this.connectedSupplier = connectedSupplier;
         this.backoff = new GrpcStreamConnectorBackoffService(maxRetriesWithExponentialTimeBackoffStrategy(
-                options.getMaxEventStreamRetries(),
-                options.getRetryBackoffMs())
-        );
+                options.getMaxEventStreamRetries(), options.getRetryBackoffMs()));
     }
 
-    /**
-     * Initialize the gRPC stream.
-     */
+    /** Initialize the gRPC stream. */
     public void initialize() throws Exception {
         eventObserverThread = new Thread(this::observeEventStream);
         eventObserverThread.setDaemon(true);
@@ -84,8 +80,7 @@ public class GrpcConnector {
     /**
      * Shuts down all gRPC resources.
      *
-     * @throws Exception is something goes wrong while terminating the
-     *                   communication.
+     * @throws Exception is something goes wrong while terminating the communication.
      */
     public void shutdown() throws Exception {
         // first shutdown the event listener
@@ -119,13 +114,13 @@ public class GrpcConnector {
     }
 
     /**
-     * Event stream observer logic. This contains blocking mechanisms, hence must be
-     * run in a dedicated thread.
+     * Event stream observer logic. This contains blocking mechanisms, hence must be run in a
+     * dedicated thread.
      */
     private void observeEventStream() {
         while (backoff.shouldRetry()) {
-            final StreamObserver<EventStreamResponse> responseObserver = new EventStreamObserver(sync, this.cache,
-                    this::onConnectionEvent, backoff::shouldRetrySilently);
+            final StreamObserver<EventStreamResponse> responseObserver =
+                    new EventStreamObserver(sync, this.cache, this::onConnectionEvent, backoff::shouldRetrySilently);
 
             ServiceGrpc.ServiceStub localServiceStub = this.serviceStub;
 

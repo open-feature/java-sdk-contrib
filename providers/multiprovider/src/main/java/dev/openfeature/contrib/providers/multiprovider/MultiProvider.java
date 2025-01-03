@@ -7,10 +7,6 @@ import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,15 +17,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 
-/**
- * Provider implementation for Multi-provider.
- */
+/** Provider implementation for Multi-provider. */
 @Slf4j
 public class MultiProvider extends EventProvider {
 
     @Getter
     private static final String NAME = "multiprovider";
+
     public static final int INIT_THREADS_COUNT = 8;
     private final Map<String, FeatureProvider> providers;
     private final Strategy strategy;
@@ -61,8 +59,9 @@ public class MultiProvider extends EventProvider {
 
     protected static Map<String, FeatureProvider> buildProviders(List<FeatureProvider> providers) {
         Map<String, FeatureProvider> providersMap = new LinkedHashMap<>(providers.size());
-        for (FeatureProvider provider: providers) {
-            FeatureProvider prevProvider = providersMap.put(provider.getMetadata().getName(), provider);
+        for (FeatureProvider provider : providers) {
+            FeatureProvider prevProvider =
+                    providersMap.put(provider.getMetadata().getName(), provider);
             if (prevProvider != null) {
                 log.warn("duplicated provider name: {}", provider.getMetadata().getName());
             }
@@ -72,6 +71,7 @@ public class MultiProvider extends EventProvider {
 
     /**
      * Initialize the provider.
+     *
      * @param evaluationContext evaluation context
      * @throws Exception on error
      */
@@ -83,7 +83,7 @@ public class MultiProvider extends EventProvider {
         json.put("originalMetadata", providersMetadata);
         ExecutorService initPool = Executors.newFixedThreadPool(INIT_THREADS_COUNT);
         Collection<Callable<Boolean>> tasks = new ArrayList<>(providers.size());
-        for (FeatureProvider provider: providers.values()) {
+        for (FeatureProvider provider : providers.values()) {
             tasks.add(() -> {
                 provider.initialize(evaluationContext);
                 return true;
@@ -93,7 +93,7 @@ public class MultiProvider extends EventProvider {
             providersMetadata.put(provider.getMetadata().getName(), providerMetadata);
         }
         List<Future<Boolean>> results = initPool.invokeAll(tasks);
-        for (Future<Boolean> result: results) {
+        for (Future<Boolean> result : results) {
             if (!result.get()) {
                 throw new GeneralError("init failed");
             }
@@ -108,38 +108,35 @@ public class MultiProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(providers, key, defaultValue, ctx,
-            p -> p.getBooleanEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(
+                providers, key, defaultValue, ctx, p -> p.getBooleanEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(providers, key, defaultValue, ctx,
-            p -> p.getStringEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx, p -> p.getStringEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(providers, key, defaultValue, ctx,
-            p -> p.getIntegerEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(
+                providers, key, defaultValue, ctx, p -> p.getIntegerEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(providers, key, defaultValue, ctx,
-            p -> p.getDoubleEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx, p -> p.getDoubleEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return strategy.evaluate(providers, key, defaultValue, ctx,
-            p -> p.getObjectEvaluation(key, defaultValue, ctx));
+        return strategy.evaluate(providers, key, defaultValue, ctx, p -> p.getObjectEvaluation(key, defaultValue, ctx));
     }
 
     @Override
     public void shutdown() {
         log.debug("shutdown begin");
-        for (FeatureProvider provider: providers.values()) {
+        for (FeatureProvider provider : providers.values()) {
             try {
                 provider.shutdown();
             } catch (Exception e) {
@@ -148,5 +145,4 @@ public class MultiProvider extends EventProvider {
         }
         log.debug("shutdown end");
     }
-
 }

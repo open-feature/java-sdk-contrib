@@ -4,7 +4,10 @@ import lombok.Getter;
 
 @Getter
 enum SupportedScheme {
-    ENVOY("envoy"), DNS("dns"), XDS("xds"), UDS("uds");
+    ENVOY("envoy"),
+    DNS("dns"),
+    XDS("xds"),
+    UDS("uds");
 
     private final String scheme;
 

@@ -8,14 +8,14 @@ This provider is designed to use flagd's [evaluation protocol](https://github.co
 <dependency>
   <groupId>dev.openfeature.contrib.providers</groupId>
   <artifactId>flagd</artifactId>
-  <version>0.10.2</version>
+  <version>0.10.5</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
 
 ## Configuration and Usage
 
-The flagd provider can operate in two modes: [RPC](#remote-resolver-rpc) (evaluation takes place in flagd, via gRPC calls) or [in-process](#in-process-resolver) (evaluation takes place in-process, with the provider getting a ruleset from a compliant sync-source).
+The flagd provider can operate in two modes: [RPC](#remote-resolver-rpc) (evaluation takes place in remote flagd daemon, via gRPC calls) or [in-process](#in-process-resolver) (evaluation takes place in-process, with the provider getting a ruleset from flagd or a compliant sync-source).
 
 ### Remote resolver (RPC)
 

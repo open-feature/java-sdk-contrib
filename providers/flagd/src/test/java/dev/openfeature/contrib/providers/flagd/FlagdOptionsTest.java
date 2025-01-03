@@ -1,18 +1,17 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import static dev.openfeature.contrib.providers.flagd.Config.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import io.opentelemetry.api.OpenTelemetry;
+import java.util.function.Function;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.mockito.Mockito;
-
-import java.util.function.Function;
-
-import static dev.openfeature.contrib.providers.flagd.Config.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 class FlagdOptionsTest {
 
@@ -73,7 +72,6 @@ class FlagdOptionsTest {
         assertEquals("dns:///localhost:8016", flagdOptions.getTargetUri());
         assertEquals(1000, flagdOptions.getKeepAlive());
     }
-
 
     @Test
     void testValueProviderForEdgeCase_valid() {
@@ -136,13 +134,10 @@ class FlagdOptionsTest {
         }
     }
 
-
-
     @Test
     void testInProcessProvider_noPortConfigured_defaultsToCorrectPort() {
-        FlagdOptions flagdOptions = FlagdOptions.builder()
-                .resolverType(Resolver.IN_PROCESS)
-                .build();
+        FlagdOptions flagdOptions =
+                FlagdOptions.builder().resolverType(Resolver.IN_PROCESS).build();
 
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
         assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_IN_PROCESS_PORT));
@@ -151,9 +146,7 @@ class FlagdOptionsTest {
     @Test
     @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
     void testInProcessProviderFromEnv_portConfigured_usesConfiguredPort() {
-        FlagdOptions flagdOptions = FlagdOptions.builder()
-                .port(1000)
-                .build();
+        FlagdOptions flagdOptions = FlagdOptions.builder().port(1000).build();
 
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
         assertThat(flagdOptions.getPort()).isEqualTo(1000);
@@ -170,9 +163,8 @@ class FlagdOptionsTest {
 
     @Test
     void testRpcProvider_noPortConfigured_defaultsToCorrectPort() {
-        FlagdOptions flagdOptions = FlagdOptions.builder()
-                .resolverType(Resolver.RPC)
-                .build();
+        FlagdOptions flagdOptions =
+                FlagdOptions.builder().resolverType(Resolver.RPC).build();
 
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
         assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_RPC_PORT));
@@ -181,13 +173,10 @@ class FlagdOptionsTest {
     @Test
     @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_RPC)
     void testRpcProviderFromEnv_portConfigured_usesConfiguredPort() {
-        FlagdOptions flagdOptions = FlagdOptions.builder()
-                .port(1534)
-                .build();
+        FlagdOptions flagdOptions = FlagdOptions.builder().port(1534).build();
 
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
         assertThat(flagdOptions.getPort()).isEqualTo(1534);
-
     }
 
     @Test

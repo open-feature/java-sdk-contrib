@@ -1,18 +1,15 @@
 package dev.openfeature.contrib.providers.flagd.e2e;
 
 import dev.openfeature.contrib.providers.flagd.Config;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.List;
 import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.containers.wait.strategy.WaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
-
-import java.io.File;
-import java.nio.file.Files;
-import java.util.List;
 
 public class FlagdContainer extends GenericContainer<FlagdContainer> {
     private static final String version;
@@ -50,7 +47,6 @@ public class FlagdContainer extends GenericContainer<FlagdContainer> {
         }
     }
 
-
     /**
      * @return a {@link org.testcontainers.containers.GenericContainer} instance of envoy container using
      * flagd sync service as backend expose on port 9211
@@ -58,8 +54,8 @@ public class FlagdContainer extends GenericContainer<FlagdContainer> {
     public static GenericContainer envoy() {
         final String container = "envoyproxy/envoy:v1.31.0";
         return new GenericContainer(DockerImageName.parse(container))
-                .withCopyFileToContainer(MountableFile.forClasspathResource("/envoy-config/envoy-custom.yaml"),
-                        "/etc/envoy/envoy.yaml")
+                .withCopyFileToContainer(
+                        MountableFile.forClasspathResource("/envoy-config/envoy-custom.yaml"), "/etc/envoy/envoy.yaml")
                 .withExposedPorts(9211)
                 .withNetwork(network)
                 .withNetworkAliases("envoy");

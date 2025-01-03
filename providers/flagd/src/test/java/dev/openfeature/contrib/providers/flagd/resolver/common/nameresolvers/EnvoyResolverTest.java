@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.nameresolvers;
 
+import java.net.URI;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import java.net.URI;
 
 class EnvoyResolverTest {
     @Test

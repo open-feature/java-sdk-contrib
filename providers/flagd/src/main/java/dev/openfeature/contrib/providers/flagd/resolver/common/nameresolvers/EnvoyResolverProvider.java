@@ -5,8 +5,7 @@ import io.grpc.NameResolverProvider;
 import java.net.URI;
 
 /**
- * A custom NameResolver provider to resolve gRPC target uri for envoy in the
- * format of.
+ * A custom NameResolver provider to resolve gRPC target uri for envoy in the format of.
  *
  * <p>envoy://[proxy-agent-host]:[proxy-agent-port]/[service-name]
  */
@@ -35,8 +34,12 @@ public class EnvoyResolverProvider extends NameResolverProvider {
 
         if (!isValidPath(targetUri.getPath()) || targetUri.getHost() == null || targetUri.getPort() == -1) {
             throw new IllegalArgumentException("Incorrectly formatted target uri; "
-                    + "expected: '" + ENVOY_SCHEME + ":[//]<proxy-agent-host>:<proxy-agent-port>/<service-name>';"
-                    + "but was '" + targetUri + "'");
+                    + "expected: '"
+                    + ENVOY_SCHEME
+                    + ":[//]<proxy-agent-host>:<proxy-agent-port>/<service-name>';"
+                    + "but was '"
+                    + targetUri
+                    + "'");
         }
 
         return new EnvoyResolver(targetUri);
@@ -48,7 +51,8 @@ public class EnvoyResolverProvider extends NameResolverProvider {
     }
 
     private static boolean isValidPath(String path) {
-        return !path.isEmpty() && !path.substring(1).isEmpty()
+        return !path.isEmpty()
+                && !path.substring(1).isEmpty()
                 && !path.substring(1).contains("/");
     }
 }

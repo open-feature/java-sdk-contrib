@@ -1,15 +1,13 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
-import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-class StringCompTest {
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
+import java.util.Arrays;
+import org.junit.jupiter.api.Test;
 
+class StringCompTest {
 
     @Test
     public void startsWithEvaluation() throws JsonLogicEvaluationException {
@@ -20,7 +18,7 @@ class StringCompTest {
         Object result = startsWith.evaluate(Arrays.asList("abc@123.com", "abc"), new Object());
 
         // then
-        if (!(result instanceof Boolean)){
+        if (!(result instanceof Boolean)) {
             fail("Result is not of type Boolean");
         }
 
@@ -33,10 +31,10 @@ class StringCompTest {
         final StringComp endsWith = new StringComp(StringComp.Type.ENDS_WITH);
 
         // when
-        Object result = endsWith.evaluate( Arrays.asList("abc@123.com", "123.com"), new Object());
+        Object result = endsWith.evaluate(Arrays.asList("abc@123.com", "123.com"), new Object());
 
         // then
-        if (!(result instanceof Boolean)){
+        if (!(result instanceof Boolean)) {
             fail("Result is not of type Boolean");
         }
 
@@ -78,5 +76,4 @@ class StringCompTest {
         // then
         assertThat(result).isNull();
     }
-
 }

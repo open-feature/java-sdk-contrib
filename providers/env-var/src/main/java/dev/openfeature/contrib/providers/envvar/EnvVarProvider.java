@@ -9,12 +9,9 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.ValueNotConvertableError;
-
 import java.util.function.Function;
 
-/**
- * EnvVarProvider is the Java provider implementation for the environment variables.
- */
+/** EnvVarProvider is the Java provider implementation for the environment variables. */
 public final class EnvVarProvider implements FeatureProvider {
     private static final String NAME = "Environment Variables Provider";
 
@@ -68,10 +65,7 @@ public final class EnvVarProvider implements FeatureProvider {
         throw new ValueNotConvertableError("EnvVarProvider supports only primitives");
     }
 
-    private <T> ProviderEvaluation<T> evaluateEnvironmentVariable(
-            String key,
-            Function<String, T> parse
-    ) {
+    private <T> ProviderEvaluation<T> evaluateEnvironmentVariable(String key, Function<String, T> parse) {
         final String value = environmentGateway.getEnvironmentVariable(keyTransformer.transformKey(key));
 
         if (value == null) {
@@ -84,10 +78,7 @@ public final class EnvVarProvider implements FeatureProvider {
                     .reason(Reason.STATIC.toString())
                     .build();
         } catch (Exception e) {
-            throw new ParseError(
-                    e.getMessage() != null ? e.getMessage() : "Unknown parsing error",
-                    e
-            );
+            throw new ParseError(e.getMessage() != null ? e.getMessage() : "Unknown parsing error", e);
         }
     }
 }

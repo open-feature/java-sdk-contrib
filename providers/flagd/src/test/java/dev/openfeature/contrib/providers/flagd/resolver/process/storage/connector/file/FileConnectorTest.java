@@ -1,10 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.UPDATABLE_FILE;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getResourcePath;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,13 +16,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
-
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.UPDATABLE_FILE;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getResourcePath;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 class FileConnectorTest {
 
@@ -67,8 +66,10 @@ class FileConnectorTest {
     @Test
     @Disabled("Disabled as unstable on GH Action. Useful for functionality validation")
     void watchForFileUpdatesAndEmitThem() throws IOException {
-        final String initial = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"}}}";
-        final String updatedFlags = "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"off\"}}}";
+        final String initial =
+                "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"}}}";
+        final String updatedFlags =
+                "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"off\"}}}";
 
         // given
         final Path updPath = Paths.get(getResourcePath(UPDATABLE_FILE));
@@ -100,5 +101,4 @@ class FileConnectorTest {
 
         assertEquals(updatedFlags, payload[0].getFlagData());
     }
-
 }

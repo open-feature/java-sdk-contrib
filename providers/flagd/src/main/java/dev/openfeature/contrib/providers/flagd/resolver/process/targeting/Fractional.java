@@ -3,14 +3,13 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.MurmurHash3;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.MurmurHash3;
 
 @Slf4j
 class Fractional implements PreEvaluatedArgumentsExpression {
@@ -68,9 +67,8 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     private static String distributeValue(
-            final String hashKey,
-            final List<FractionProperty> propertyList,
-            int totalWeight) throws JsonLogicEvaluationException {
+            final String hashKey, final List<FractionProperty> propertyList, int totalWeight)
+            throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
         float bucket = Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE * 100;
@@ -89,7 +87,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     @Getter
-    @SuppressWarnings({ "checkstyle:NoFinalizer" })
+    @SuppressWarnings({"checkstyle:NoFinalizer"})
     private static class FractionProperty {
         private final String variant;
         private final int weight;

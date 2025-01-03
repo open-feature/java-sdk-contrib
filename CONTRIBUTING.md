@@ -66,6 +66,38 @@ Sample pom.xml:
 Any published modules must have documentation in their root directory, explaining the basic purpose of the module as well as installation and usage instructions.
 Instructions for how to develop a module should also be included (required system dependencies, instructions for testing locally, etc).
 
+## Code Styles
+
+### Overview
+Our project follows strict code formatting standards to maintain consistency and readability across the codebase. We use [Spotless](https://github.com/diffplug/spotless) integrated with the [Palantir Java Format](https://github.com/palantir/palantir-java-format) for code formatting.
+
+**Spotless** ensures that all code complies with the formatting rules automatically, reducing style-related issues during code reviews.
+
+### How to Format Your Code
+1. **Before Committing Changes:**
+   Run the Spotless plugin to format your code. This will apply the Palantir Java Format style:
+   ```bash
+   mvn spotless:apply
+   ```
+
+2. **Verify Formatting:**
+   To check if your code adheres to the style guidelines without making changes:
+   ```bash
+   mvn spotless:check
+   ```
+
+    - If this command fails, your code does not follow the required formatting. Use `mvn spotless:apply` to fix it.
+
+### CI/CD Integration
+Our Continuous Integration (CI) pipeline automatically checks code formatting using the Spotless plugin. Any code that does not pass the `spotless:check` step will cause the build to fail.
+
+### Best Practices
+- Regularly run `mvn spotless:apply` during your work to ensure your code remains aligned with the standards.
+- Configure your IDE (e.g., IntelliJ IDEA or Eclipse) to follow the Palantir Java format guidelines to reduce discrepancies during development.
+
+### Support
+If you encounter issues with code formatting, please raise a GitHub issue or contact the maintainers.
+
 ## Testing
 
 Any published modules must have reasonable test coverage.

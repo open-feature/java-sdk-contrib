@@ -1,10 +1,5 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.jupiter.api.extension.ExtensionContext;
-
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableContext;
@@ -13,9 +8,12 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.providers.memory.Flag;
 import dev.openfeature.sdk.providers.memory.InMemoryProvider;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
  * TestProvider based on InMemoryProvider but with another dimension added to the maps of flags.
@@ -61,16 +59,16 @@ public class TestProvider extends EventProvider {
     }
 
     @Override
-    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue,
-                                                            EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Boolean> getBooleanEvaluation(
+            String key, Boolean defaultValue, EvaluationContext evaluationContext) {
         return providerMap
                 .getOrDefault(CURRENT_NAMESPACE.get(), FALLBACK_PROVIDER)
                 .getBooleanEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
-    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue,
-                                                          EvaluationContext evaluationContext) {
+    public ProviderEvaluation<String> getStringEvaluation(
+            String key, String defaultValue, EvaluationContext evaluationContext) {
 
         return providerMap
                 .getOrDefault(CURRENT_NAMESPACE.get(), FALLBACK_PROVIDER)
@@ -78,16 +76,16 @@ public class TestProvider extends EventProvider {
     }
 
     @Override
-    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue,
-                                                            EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Integer> getIntegerEvaluation(
+            String key, Integer defaultValue, EvaluationContext evaluationContext) {
         return providerMap
                 .getOrDefault(CURRENT_NAMESPACE.get(), FALLBACK_PROVIDER)
                 .getIntegerEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
-    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue,
-                                                          EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Double> getDoubleEvaluation(
+            String key, Double defaultValue, EvaluationContext evaluationContext) {
         return providerMap
                 .getOrDefault(CURRENT_NAMESPACE.get(), FALLBACK_PROVIDER)
                 .getDoubleEvaluation(key, defaultValue, evaluationContext);
@@ -95,8 +93,8 @@ public class TestProvider extends EventProvider {
 
     @SneakyThrows
     @Override
-    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue,
-                                                         EvaluationContext evaluationContext) {
+    public ProviderEvaluation<Value> getObjectEvaluation(
+            String key, Value defaultValue, EvaluationContext evaluationContext) {
         return providerMap
                 .getOrDefault(CURRENT_NAMESPACE.get(), FALLBACK_PROVIDER)
                 .getObjectEvaluation(key, defaultValue, evaluationContext);

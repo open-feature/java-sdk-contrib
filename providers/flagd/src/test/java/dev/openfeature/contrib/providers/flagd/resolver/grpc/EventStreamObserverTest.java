@@ -12,22 +12,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.Supplier;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.Supplier;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class EventStreamObserverTest {
 
@@ -49,7 +46,8 @@ class EventStreamObserverTest {
             reconnect = mock(Runnable.class);
             when(cache.getEnabled()).thenReturn(true);
             shouldRetrySilently = mock(Supplier.class);
-            when(shouldRetrySilently.get()).thenReturn(true, false); // 1st time we should retry silently, subsequent calls should not
+            when(shouldRetrySilently.get())
+                    .thenReturn(true, false); // 1st time we should retry silently, subsequent calls should not
             stream = new EventStreamObserver(sync, cache, (state, changed) -> states.add(state), shouldRetrySilently);
         }
 

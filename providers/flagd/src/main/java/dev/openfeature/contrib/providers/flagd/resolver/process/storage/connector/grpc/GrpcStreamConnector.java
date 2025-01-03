@@ -1,10 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.GrpcStreamConnectorBackoffService;
@@ -22,16 +17,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Context;
 import io.grpc.Context.CancellableContext;
 import io.grpc.ManagedChannel;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
 
 /**
- * Implements the {@link Connector} contract and emit flags obtained from flagd
- * sync gRPC contract.
+ * Implements the {@link Connector} contract and emit flags obtained from flagd sync gRPC contract.
  */
 @Slf4j
-@SuppressFBWarnings(value = { "PREDICTABLE_RANDOM",
-    "EI_EXPOSE_REP" }, justification = "Random is used to generate a variation & flag configurations require exposing")
+@SuppressFBWarnings(
+        value = {"PREDICTABLE_RANDOM", "EI_EXPOSE_REP"},
+        justification = "Random is used to generate a variation & flag configurations require exposing")
 public class GrpcStreamConnector implements Connector {
     private static final int QUEUE_SIZE = 5;
 
@@ -60,14 +59,19 @@ public class GrpcStreamConnector implements Connector {
         retryBackoffMillis = options.getRetryBackoffMs();
     }
 
-    /**
-     * Initialize gRPC stream connector.
-     */
+    /** Initialize gRPC stream connector. */
     public void init() {
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, serviceStub, serviceBlockingStub, selector, deadline,
-                        streamDeadlineMs, retryBackoffMillis);
+                observeEventStream(
+                        blockingQueue,
+                        shutdown,
+                        serviceStub,
+                        serviceBlockingStub,
+                        selector,
+                        deadline,
+                        streamDeadlineMs,
+                        retryBackoffMillis);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -78,9 +82,7 @@ public class GrpcStreamConnector implements Connector {
         listener.start();
     }
 
-    /**
-     * Get blocking queue to obtain payloads exposed by this connector.
-     */
+    /** Get blocking queue to obtain payloads exposed by this connector. */
     public BlockingQueue<QueuePayload> getStream() {
         return blockingQueue;
     }
@@ -109,17 +111,16 @@ public class GrpcStreamConnector implements Connector {
         }
     }
 
-    /**
-     * Contains blocking calls, to be used concurrently.
-     */
-    static void observeEventStream(final BlockingQueue<QueuePayload> writeTo,
-                                   final AtomicBoolean shutdown,
-                                   final FlagSyncServiceStub serviceStub,
-                                   final FlagSyncServiceBlockingStub serviceBlockingStub,
-                                   final String selector,
-                                   final int deadline,
-                                   final int streamDeadlineMs,
-                                   int retryBackoffMillis)
+    /** Contains blocking calls, to be used concurrently. */
+    static void observeEventStream(
+            final BlockingQueue<QueuePayload> writeTo,
+            final AtomicBoolean shutdown,
+            final FlagSyncServiceStub serviceStub,
+            final FlagSyncServiceBlockingStub serviceBlockingStub,
+            final String selector,
+            final int deadline,
+            final int streamDeadlineMs,
+            int retryBackoffMillis)
             throws InterruptedException {
 
         final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -150,7 +151,8 @@ public class GrpcStreamConnector implements Connector {
                 localServiceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
 
                 try {
-                    metadataResponse = serviceBlockingStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS)
+                    metadataResponse = serviceBlockingStub
+                            .withDeadlineAfter(deadline, TimeUnit.MILLISECONDS)
                             .getMetadata(metadataRequest.build());
                 } catch (Exception e) {
                     // the chances this call fails but the syncRequest does not are slim
@@ -179,8 +181,8 @@ public class GrpcStreamConnector implements Connector {
                             logExceptions(Level.INFO, streamException, metadataException, retryDelay);
                         } else {
                             logExceptions(Level.ERROR, streamException, metadataException, retryDelay);
-                            if (!writeTo.offer(new QueuePayload(QueuePayloadType.ERROR,
-                                    "Error from stream or metadata", metadataResponse))) {
+                            if (!writeTo.offer(new QueuePayload(
+                                    QueuePayloadType.ERROR, "Error from stream or metadata", metadataResponse))) {
                                 log.error("Failed to convey ERROR status, queue is full");
                             }
                         }
@@ -213,8 +215,8 @@ public class GrpcStreamConnector implements Connector {
         log.info("Shutdown invoked, exiting event stream listener");
     }
 
-    private static void logExceptions(Level logLevel, Throwable streamException, Exception metadataException,
-                                      long retryDelay) {
+    private static void logExceptions(
+            Level logLevel, Throwable streamException, Exception metadataException, long retryDelay) {
         if (streamException != null) {
             log.atLevel(logLevel)
                     .setCause(streamException)

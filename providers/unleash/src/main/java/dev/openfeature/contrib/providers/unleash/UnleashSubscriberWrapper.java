@@ -1,7 +1,5 @@
 package dev.openfeature.contrib.providers.unleash;
 
-import javax.annotation.Nullable;
-
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEventDetails;
@@ -17,12 +15,11 @@ import io.getunleash.metric.ClientRegistration;
 import io.getunleash.repository.FeatureCollection;
 import io.getunleash.repository.FeatureToggleResponse;
 import io.getunleash.repository.ToggleCollection;
+import javax.annotation.Nullable;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * UnleashSubscriber wrapper for emitting event provider events.
- */
+/** UnleashSubscriber wrapper for emitting event provider events. */
 @Slf4j
 @Generated
 public class UnleashSubscriberWrapper implements UnleashSubscriber {
@@ -32,11 +29,11 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
 
     /**
      * Constructor.
-     * 
+     *
      * @param unleashSubscriber subscriber
-     * @param eventProvider     events provider for emitting events.
+     * @param eventProvider events provider for emitting events.
      */
-    @SuppressFBWarnings(value = { "EI_EXPOSE_REP" })
+    @SuppressFBWarnings(value = {"EI_EXPOSE_REP"})
     public UnleashSubscriberWrapper(@Nullable UnleashSubscriber unleashSubscriber, EventProvider eventProvider) {
         this.unleashSubscriber = unleashSubscriber;
         this.eventProvider = eventProvider;
@@ -47,7 +44,8 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
         unleashSubscriber.onError(unleashException);
         log.info("unleashException: ", unleashException);
 
-        // Not emitting provider error, since some unleashException not expects to change provider state to error
+        // Not emitting provider error, since some unleashException not expects to change provider state
+        // to error
     }
 
     @Override
@@ -59,8 +57,8 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
     public void onReady(UnleashReady unleashReady) {
         unleashSubscriber.onReady(unleashReady);
         eventProvider.emitProviderReady(ProviderEventDetails.builder()
-            .eventMetadata(ImmutableMetadata.builder()
-                .build()).build());
+                .eventMetadata(ImmutableMetadata.builder().build())
+                .build());
     }
 
     @Override
@@ -73,8 +71,8 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
         unleashSubscriber.togglesFetched(toggleResponse);
         if (FeatureToggleResponse.Status.CHANGED.equals(toggleResponse.getStatus())) {
             eventProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder()
-                .eventMetadata(ImmutableMetadata.builder()
-                    .build()).build());
+                    .eventMetadata(ImmutableMetadata.builder().build())
+                    .build());
         }
     }
 

@@ -2,13 +2,10 @@ package dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 
-/**
- * Factory to create a ResolveStrategy.
- */
+/** Factory to create a ResolveStrategy. */
 public final class ResolveFactory {
 
-    private ResolveFactory() {
-    }
+    private ResolveFactory() {}
 
     /**
      * Factory method to initialize the resolving strategy.

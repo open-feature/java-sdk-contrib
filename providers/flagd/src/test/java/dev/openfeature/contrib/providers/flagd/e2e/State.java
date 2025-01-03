@@ -8,7 +8,6 @@ import dev.openfeature.contrib.providers.flagd.e2e.steps.ProviderType;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.MutableContext;
-
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -18,12 +17,9 @@ public class State {
     public ArrayList<Event> events = new ArrayList<>();
     public Optional<Event> lastEvent;
     public FlagSteps.Flag flag;
-    public MutableContext context
-            = new MutableContext();
+    public MutableContext context = new MutableContext();
     public FlagEvaluationDetails evaluation;
     public FlagdOptions options;
     public FlagdOptions.FlagdOptionsBuilder builder = FlagdOptions.builder();
     public static Config.Resolver resolverType;
-
-
 }

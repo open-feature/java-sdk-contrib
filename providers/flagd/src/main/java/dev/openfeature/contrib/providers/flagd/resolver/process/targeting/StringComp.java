@@ -2,9 +2,8 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.targeting;
 
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class StringComp implements PreEvaluatedArgumentsExpression {
@@ -52,7 +51,6 @@ class StringComp implements PreEvaluatedArgumentsExpression {
                 return null;
         }
     }
-
 
     enum Type {
         STARTS_WITH("starts_with"),

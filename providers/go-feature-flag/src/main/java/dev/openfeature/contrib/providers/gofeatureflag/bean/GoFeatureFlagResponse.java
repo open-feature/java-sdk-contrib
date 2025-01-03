@@ -1,12 +1,9 @@
 package dev.openfeature.contrib.providers.gofeatureflag.bean;
 
+import java.util.Map;
 import lombok.Data;
 
-import java.util.Map;
-
-/**
- * GoFeatureFlagResponse is the response returned by the relay proxy.
- */
+/** GoFeatureFlagResponse is the response returned by the relay proxy. */
 @Data
 public class GoFeatureFlagResponse {
     private boolean trackEvents;
@@ -19,5 +16,3 @@ public class GoFeatureFlagResponse {
     private Boolean cacheable;
     private Map<String, Object> metadata;
 }
-
-

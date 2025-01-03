@@ -1,17 +1,17 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.nameresolvers;
 
+import io.grpc.Attributes;
 import io.grpc.EquivalentAddressGroup;
 import io.grpc.NameResolver;
-import java.net.InetSocketAddress;
-import io.grpc.Attributes;
 import io.grpc.Status;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Envoy NameResolver, will always override the authority with the specified authority and
- * use the socketAddress to connect.
+ * Envoy NameResolver, will always override the authority with the specified authority and use the
+ * socketAddress to connect.
  *
  * <p>Custom URI Scheme:
  *
@@ -35,8 +35,7 @@ public class EnvoyResolver extends NameResolver {
     }
 
     @Override
-    public void shutdown() {
-    }
+    public void shutdown() {}
 
     @Override
     public void start(Listener2 listener) {
@@ -55,15 +54,16 @@ public class EnvoyResolver extends NameResolver {
             Attributes addressGroupAttributes = Attributes.newBuilder()
                     .set(EquivalentAddressGroup.ATTR_AUTHORITY_OVERRIDE, this.authority)
                     .build();
-            List<EquivalentAddressGroup> equivalentAddressGroup = Collections.singletonList(
-                    new EquivalentAddressGroup(address, addressGroupAttributes)
-            );
+            List<EquivalentAddressGroup> equivalentAddressGroup =
+                    Collections.singletonList(new EquivalentAddressGroup(address, addressGroupAttributes));
             ResolutionResult resolutionResult = ResolutionResult.newBuilder()
                     .setAddresses(equivalentAddressGroup)
                     .build();
             this.listener.onResult(resolutionResult);
         } catch (Exception e) {
-            this.listener.onError(Status.UNAVAILABLE.withDescription("Unable to resolve host ").withCause(e));
+            this.listener.onError(Status.UNAVAILABLE
+                    .withDescription("Unable to resolve host ")
+                    .withCause(e));
         }
     }
 }

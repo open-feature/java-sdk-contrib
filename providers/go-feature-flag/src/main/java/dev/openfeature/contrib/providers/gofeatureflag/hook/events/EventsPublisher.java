@@ -1,9 +1,6 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook.events;
 
-
 import dev.openfeature.contrib.providers.gofeatureflag.util.ConcurrentUtils;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -15,6 +12,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Events publisher.
@@ -39,7 +37,7 @@ public class EventsPublisher<T> {
     /**
      * Constructor.
      *
-     * @param publisher       events publisher
+     * @param publisher events publisher
      * @param flushIntervalMs data flush interval
      */
     public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMs, int maxPendingEvents) {
@@ -98,9 +96,7 @@ public class EventsPublisher<T> {
         return publishedEvents;
     }
 
-    /**
-     * Shutdown.
-     */
+    /** Shutdown. */
     public void shutdown() {
         log.info("shutdown");
         try {

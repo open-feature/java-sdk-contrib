@@ -1,5 +1,10 @@
 package dev.openfeature.contrib.hooks.otel;
 
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.EVENT_NAME;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey;
+
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
@@ -8,14 +13,8 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
-
 import java.util.Map;
 import java.util.function.Function;
-
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.EVENT_NAME;
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey;
 
 /**
  * The OpenTelemetry hook provides a way to automatically add a feature flag evaluation to a span as a span event.
@@ -63,7 +62,8 @@ public class TracesHook implements Hook {
         final AttributesBuilder attributesBuilder = Attributes.builder();
 
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
-        attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
+        attributesBuilder.put(
+                providerNameAttributeKey, ctx.getProviderMetadata().getName());
         attributesBuilder.put(variantAttributeKey, variant);
         attributesBuilder.putAll(extraAttributes);
 

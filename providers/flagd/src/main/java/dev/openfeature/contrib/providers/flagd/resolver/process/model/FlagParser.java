@@ -1,13 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,15 +7,20 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * flagd feature flag configuration parser.
- */
+/** flagd feature flag configuration parser. */
 @Slf4j
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
+@SuppressFBWarnings(
+        value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagParser {
     private static final String FLAG_KEY = "flags";
@@ -32,8 +29,7 @@ public class FlagParser {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static JsonSchema SCHEMA_VALIDATOR;
 
-    private FlagParser() {
-    }
+    private FlagParser() {}
 
     static {
         try {
@@ -43,10 +39,9 @@ public class FlagParser {
             mappings.put("https://flagd.dev/schema/v0/targeting.json", "classpath:flagd/schemas/targeting.json");
             mappings.put("https://flagd.dev/schema/v0/flags.json", "classpath:flagd/schemas/flags.json");
 
-            SCHEMA_VALIDATOR = JsonSchemaFactory
-                    .getInstance(SpecVersion.VersionFlag.V7,
-                            builder -> builder
-                                    .schemaMappers(schemaMappers -> schemaMappers.mappings(mappings)))
+            SCHEMA_VALIDATOR = JsonSchemaFactory.getInstance(
+                            SpecVersion.VersionFlag.V7,
+                            builder -> builder.schemaMappers(schemaMappers -> schemaMappers.mappings(mappings)))
                     .getSchema(new URI("https://flagd.dev/schema/v0/flags.json"));
         } catch (Throwable e) {
             // log only, do not throw
@@ -54,9 +49,7 @@ public class FlagParser {
         }
     }
 
-    /**
-     * Parse {@link String} for feature flags.
-     */
+    /** Parse {@link String} for feature flags. */
     public static Map<String, FeatureFlag> parseString(final String configuration, boolean throwIfInvalid)
             throws IOException {
         if (SCHEMA_VALIDATOR != null) {
@@ -121,7 +114,8 @@ public class FlagParser {
                         patternMap.computeIfAbsent(replacePattern, s -> Pattern.compile(replacePattern));
 
                 // finally replace all references
-                replacedConfigurations = reg_replace.matcher(replacedConfigurations).replaceAll(replacer);
+                replacedConfigurations =
+                        reg_replace.matcher(replacedConfigurations).replaceAll(replacer);
             }
 
             return replacedConfigurations;

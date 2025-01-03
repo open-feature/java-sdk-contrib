@@ -3,15 +3,12 @@ package dev.openfeature.contrib.providers.gofeatureflag.bean;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * GoFeatureFlagUser is the representation of a user for GO Feature Flag.
- */
+/** GoFeatureFlagUser is the representation of a user for GO Feature Flag. */
 @Builder
 @Getter
 public class GoFeatureFlagUser {
@@ -36,7 +33,11 @@ public class GoFeatureFlagUser {
         if (ctx.getValue(anonymousFieldName) != null) {
             custom.remove(anonymousFieldName);
         }
-        return GoFeatureFlagUser.builder().anonymous(anonymous).key(key).custom(custom).build();
+        return GoFeatureFlagUser.builder()
+                .anonymous(anonymous)
+                .key(key)
+                .custom(custom)
+                .build();
     }
 
     /**

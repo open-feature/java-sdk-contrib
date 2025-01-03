@@ -5,7 +5,7 @@ package dev.openfeature.contrib.providers.gofeatureflag.exception;
  */
 public class InvalidTypeInCache extends GoFeatureFlagException {
     public InvalidTypeInCache(Class<?> expected, Class<?> got) {
-        super("cache value is not from the expected type, we try a remote evaluation,"
-                + " expected: " + expected + ", got: " + got);
+        super("cache value is not from the expected type, we try a remote evaluation," + " expected: " + expected
+                + ", got: " + got);
     }
 }

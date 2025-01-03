@@ -1,14 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc.cache;
 
-import dev.openfeature.sdk.ProviderEvaluation;
-import org.junit.jupiter.api.Test;
-
 import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.DISABLED;
 import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.LRU;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import dev.openfeature.sdk.ProviderEvaluation;
+import org.junit.jupiter.api.Test;
 
 class CacheTest {
 
@@ -25,17 +25,14 @@ class CacheTest {
         assertFalse(undefined.getEnabled());
     }
 
-
     @Test
     void lruOperationValidation() {
         // given
         final Cache lru = new Cache(LRU.getValue(), 1);
 
         // when
-        final ProviderEvaluation<Object> evaluation = ProviderEvaluation.builder()
-                .value("value")
-                .variant("one")
-                .build();
+        final ProviderEvaluation<Object> evaluation =
+                ProviderEvaluation.builder().value("value").variant("one").build();
         lru.put("key", evaluation);
 
         // then

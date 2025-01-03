@@ -3,15 +3,12 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
-import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import io.cucumber.java.AfterAll;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.parallel.Isolated;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Isolated()
 public class ProviderSteps extends AbstractSteps {
@@ -35,7 +33,8 @@ public class ProviderSteps extends AbstractSteps {
         containers.put(ProviderType.DEFAULT, new FlagdContainer());
         containers.put(ProviderType.SSL, new FlagdContainer("ssl"));
         tmpdir = Files.createTempDirectory("flagd").toFile().getAbsolutePath();
-        //containers.put(ProviderType.SOCKET, new FlagdContainer("socket").withFileSystemBind(tmpdir, "/tmp", BindMode.READ_WRITE));
+        // containers.put(ProviderType.SOCKET, new FlagdContainer("socket").withFileSystemBind(tmpdir, "/tmp",
+        // BindMode.READ_WRITE));
 
         containers.forEach((name, container) -> container.start());
     }
@@ -45,13 +44,9 @@ public class ProviderSteps extends AbstractSteps {
         containers.forEach((name, container) -> container.stop());
     }
 
-
     @Given("a {} flagd provider")
     public void setupProvider(String providerType) {
-        state.builder
-                .deadline(500)
-                .keepAlive(0)
-                .maxEventStreamRetries(2);
+        state.builder.deadline(500).keepAlive(0).maxEventStreamRetries(2);
         boolean wait = true;
         switch (providerType) {
             case "unavailable":
@@ -69,8 +64,7 @@ public class ProviderSteps extends AbstractSteps {
                 File file = new File(path);
                 String absolutePath = file.getAbsolutePath();
                 this.state.providerType = ProviderType.SSL;
-                state
-                        .builder
+                state.builder
                         .port(getContainer().getPort(State.resolverType))
                         .tls(true)
                         .certPath(absolutePath);
@@ -81,9 +75,8 @@ public class ProviderSteps extends AbstractSteps {
                 state.builder.port(getContainer().getPort(State.resolverType));
                 break;
         }
-        FeatureProvider provider = new FlagdProvider(state.builder
-                .resolverType(State.resolverType)
-                .build());
+        FeatureProvider provider =
+                new FlagdProvider(state.builder.resolverType(State.resolverType).build());
 
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
         if (wait) {

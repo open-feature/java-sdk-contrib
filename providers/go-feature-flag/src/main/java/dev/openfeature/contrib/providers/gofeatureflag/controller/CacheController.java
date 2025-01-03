@@ -1,20 +1,16 @@
 package dev.openfeature.contrib.providers.gofeatureflag.controller;
 
-import java.time.Duration;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.BeanUtils;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
+import java.time.Duration;
 import lombok.Builder;
 
-/**
- * CacheController is a controller to manage the cache of the provider.
- */
+/** CacheController is a controller to manage the cache of the provider. */
 public class CacheController {
     public static final long DEFAULT_CACHE_TTL_MS = 5L * 60L * 1000L;
     public static final int DEFAULT_CACHE_INITIAL_CAPACITY = 100;
@@ -34,8 +30,9 @@ public class CacheController {
                 .build();
     }
 
-    public void put(final String key, final EvaluationContext evaluationContext,
-                    final ProviderEvaluation<?> providerEvaluation) throws JsonProcessingException {
+    public void put(
+            final String key, final EvaluationContext evaluationContext, final ProviderEvaluation<?> providerEvaluation)
+            throws JsonProcessingException {
         this.cache.put(buildCacheKey(key, evaluationContext), providerEvaluation);
     }
 

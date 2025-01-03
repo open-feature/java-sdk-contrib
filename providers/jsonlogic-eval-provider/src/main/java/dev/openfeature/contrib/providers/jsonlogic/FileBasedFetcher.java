@@ -2,23 +2,19 @@ package dev.openfeature.contrib.providers.jsonlogic;
 
 import dev.openfeature.sdk.EvaluationContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
- * A {@link RuleFetcher} which reads in the rules from a file. It assumes that the keys are the flag keys and the
- * values are the json logic rules.
+ * A {@link RuleFetcher} which reads in the rules from a file. It assumes that the keys are the flag
+ * keys and the values are the json logic rules.
  */
-@SuppressFBWarnings(
-        value = "PATH_TRAVERSAL_IN",
-        justification = "This is expected to read files based on user input"
-)
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This is expected to read files based on user input")
 @SuppressWarnings({"checkstyle:NoFinalizer"})
 public class FileBasedFetcher implements RuleFetcher {
     private static final Logger log = Logger.getLogger(String.valueOf(FileBasedFetcher.class));
@@ -30,6 +26,7 @@ public class FileBasedFetcher implements RuleFetcher {
 
     /**
      * Create a file based fetcher give a file URI.
+     *
      * @param filename URI to a given file.
      * @throws IOException when we can't load the file correctly
      */
@@ -48,6 +45,6 @@ public class FileBasedFetcher implements RuleFetcher {
         return null;
     }
 
-    @Override public void initialize(EvaluationContext initialContext) {
-    }
+    @Override
+    public void initialize(EvaluationContext initialContext) {}
 }

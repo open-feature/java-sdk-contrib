@@ -6,9 +6,7 @@ import dev.openfeature.sdk.EvaluationContext;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * Bean utils.
- */
+/** Bean utils. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BeanUtils {
 

@@ -3,10 +3,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
-
-import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import javax.annotation.Nullable;
 
 public class MockStorage implements Storage {
 
@@ -35,9 +34,7 @@ public class MockStorage implements Storage {
         return mockFlags.get(key);
     }
 
-
-    @Nullable
-    public BlockingQueue<StorageStateChange> getStateQueue() {
+    @Nullable public BlockingQueue<StorageStateChange> getStateQueue() {
         return mockQueue;
     }
 }

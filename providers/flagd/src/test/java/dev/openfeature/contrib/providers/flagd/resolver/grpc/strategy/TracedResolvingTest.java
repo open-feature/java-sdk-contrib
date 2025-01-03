@@ -7,15 +7,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.Test;
-
 import com.google.protobuf.Message;
-
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
+import org.junit.jupiter.api.Test;
 
 class TracedResolvingTest {
 
@@ -48,5 +46,4 @@ class TracedResolvingTest {
         verify(span, times(1)).setAttribute("feature_flag.provider_name", "flagd");
         verify(span, times(1)).end();
     }
-
 }

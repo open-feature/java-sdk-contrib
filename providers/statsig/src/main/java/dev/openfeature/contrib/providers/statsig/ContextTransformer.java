@@ -5,14 +5,11 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Transformer from OpenFeature context to statsig User.
- */
+/** Transformer from OpenFeature context to statsig User. */
 class ContextTransformer {
     public static final String CONTEXT_APP_VERSION = "appVersion";
     public static final String CONTEXT_COUNTRY = "country";
@@ -69,5 +66,4 @@ class ContextTransformer {
         }
         return user;
     }
-
 }

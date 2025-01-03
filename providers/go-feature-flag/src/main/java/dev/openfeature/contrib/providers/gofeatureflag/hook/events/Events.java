@@ -1,15 +1,12 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook.events;
 
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 
-/**
- * Events data.
- */
+/** Events data. */
 @Getter
 public class Events {
     private static final Map<String, String> meta = new HashMap<>();

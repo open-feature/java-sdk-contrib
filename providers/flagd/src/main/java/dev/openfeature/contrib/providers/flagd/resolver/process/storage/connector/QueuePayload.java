@@ -4,9 +4,7 @@ import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/**
- * Payload emitted by a {@link Connector}.
- */
+/** Payload emitted by a {@link Connector}. */
 @AllArgsConstructor
 @Getter
 public class QueuePayload {

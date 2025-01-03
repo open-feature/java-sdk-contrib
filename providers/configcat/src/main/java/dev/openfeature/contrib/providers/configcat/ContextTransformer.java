@@ -2,13 +2,10 @@ package dev.openfeature.contrib.providers.configcat;
 
 import com.configcat.User;
 import dev.openfeature.sdk.EvaluationContext;
-
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Transformer from OpenFeature context to ConfigCat User.
- */
+/** Transformer from OpenFeature context to ConfigCat User. */
 public class ContextTransformer {
 
     public static final String CONTEXT_EMAIL = "Email";
@@ -33,5 +30,4 @@ public class ContextTransformer {
         userBuilder.custom(customMap);
         return userBuilder.build(ctx.getTargetingKey());
     }
-
 }

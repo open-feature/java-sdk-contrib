@@ -9,16 +9,12 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ParseError;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
-
 import java.util.function.Function;
 
-/**
- * A provider which evaluates JsonLogic rules provided by a {@link RuleFetcher}.
- */
+/** A provider which evaluates JsonLogic rules provided by a {@link RuleFetcher}. */
 public class JsonlogicProvider implements FeatureProvider {
     private final JsonLogic logic;
     private final RuleFetcher fetcher;
-
 
     public void initialize(EvaluationContext initialContext) {
         fetcher.initialize(initialContext);

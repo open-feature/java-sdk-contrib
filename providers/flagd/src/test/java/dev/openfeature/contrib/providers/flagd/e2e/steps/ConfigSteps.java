@@ -1,13 +1,12 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -15,12 +14,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfigSteps extends AbstractSteps {
     /**
-     * Not all properties are correctly implemented, hence that we need to ignore them till this is fixed
+     * Not all properties are correctly implemented, hence that we need to ignore them till this is
+     * fixed
      */
     public static final List<String> IGNORED_FOR_NOW = new ArrayList<String>() {
         {
@@ -29,8 +29,8 @@ public class ConfigSteps extends AbstractSteps {
             add("retryBackoffMaxMs");
         }
     };
-    private static final Logger LOG = LoggerFactory.getLogger(ConfigSteps.class);
 
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigSteps.class);
 
     public ConfigSteps(State state) {
         super(state);
@@ -45,7 +45,8 @@ public class ConfigSteps extends AbstractSteps {
     public void we_initialize_a_config_for(String string) {
         switch (string.toLowerCase()) {
             case "in-process":
-                state.options = state.builder.resolverType(Config.Resolver.IN_PROCESS).build();
+                state.options =
+                        state.builder.resolverType(Config.Resolver.IN_PROCESS).build();
                 break;
             case "rpc":
                 state.options = state.builder.resolverType(Config.Resolver.RPC).build();
@@ -56,8 +57,9 @@ public class ConfigSteps extends AbstractSteps {
     }
 
     @Given("an option {string} of type {string} with value {string}")
-    public void we_have_an_option_of_type_with_value(String option, String type, String value) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        if(IGNORED_FOR_NOW.contains(option)) {
+    public void we_have_an_option_of_type_with_value(String option, String type, String value)
+            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        if (IGNORED_FOR_NOW.contains(option)) {
             LOG.error("option '{}' is not supported", option);
             return;
         }
@@ -70,34 +72,31 @@ public class ConfigSteps extends AbstractSteps {
         method.invoke(state.builder, converted);
     }
 
-
     Map<String, String> envVarsSet = new HashMap<>();
 
     @Given("an environment variable {string} with value {string}")
-    public void we_have_an_environment_variable_with_value(String varName, String value) throws IllegalAccessException, NoSuchFieldException {
+    public void we_have_an_environment_variable_with_value(String varName, String value)
+            throws IllegalAccessException, NoSuchFieldException {
         String getenv = System.getenv(varName);
         envVarsSet.put(varName, getenv);
         EnvironmentVariableUtils.set(varName, value);
     }
 
-
     @Then("the option {string} of type {string} should have the value {string}")
     public void the_option_of_type_should_have_the_value(String option, String type, String value) throws Throwable {
         Object convert = Utils.convert(value, type);
 
-        if(IGNORED_FOR_NOW.contains(option)) {
+        if (IGNORED_FOR_NOW.contains(option)) {
             LOG.error("option '{}' is not supported", option);
             return;
         }
-
 
         option = mapOptionNames(option);
 
         assertThat(state.options).hasFieldOrPropertyWithValue(option, convert);
 
         // Resetting env vars
-        for (
-                Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
+        for (Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
             if (envVar.getValue() == null) {
                 EnvironmentVariableUtils.clear(envVar.getKey());
             } else {

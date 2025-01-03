@@ -1,11 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.concurrent.BlockingQueue;
-
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
+import io.grpc.stub.StreamObserver;
+import java.util.concurrent.BlockingQueue;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class GrpcStreamHandler implements StreamObserver<SyncFlagsResponse> {

@@ -1,20 +1,19 @@
 package dev.openfeature.contrib.providers.gofeatureflag.util;
 
 import dev.openfeature.sdk.ImmutableMetadata;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
-
 /**
- * MetadataUtil is a utility class to convert the metadata received from the server
- * to an ImmutableMetadata format known by Open Feature.
+ * MetadataUtil is a utility class to convert the metadata received from the server to an
+ * ImmutableMetadata format known by Open Feature.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MetadataUtil {
     /**
-     * convertFlagMetadata is converting the flagMetadata object received from the server
-     * to an ImmutableMetadata format known by Open Feature.
+     * convertFlagMetadata is converting the flagMetadata object received from the server to an
+     * ImmutableMetadata format known by Open Feature.
      *
      * @param flagMetadata - metadata received from the server
      * @return a converted metadata object.
