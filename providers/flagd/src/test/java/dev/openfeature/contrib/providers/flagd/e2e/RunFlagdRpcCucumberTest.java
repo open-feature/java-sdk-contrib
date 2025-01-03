@@ -6,7 +6,7 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 import org.apache.logging.log4j.core.config.Order;
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.SelectFile;
 import org.junit.platform.suite.api.Suite;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -17,10 +17,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Order(value = Integer.MAX_VALUE)
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/evaluation.feature")
-@SelectClasspathResource("features/flagd-json-evaluator.feature")
-@SelectClasspathResource("features/flagd.feature")
-@SelectClasspathResource("features/flagd-rpc-caching.feature")
+@SelectFile("spec/specification/assets/gherkin/evaluation.feature")
+@SelectFile("test-harness/gherkin/flagd-json-evaluator.feature")
+@SelectFile("test-harness/gherkin/flagd.feature")
+@SelectFile("test-harness/gherkin/flagd-rpc-caching.feature")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
 @ConfigurationParameter(
         key = GLUE_PROPERTY_NAME,
