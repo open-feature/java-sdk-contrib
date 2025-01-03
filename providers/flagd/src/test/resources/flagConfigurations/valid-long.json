@@ -7,7 +7,12 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "on"
+      "defaultVariant": "on",
+      "metadata": {
+        "string": "string",
+        "boolean": true,
+        "float": 1.234
+      }
     },
     "myStringFlag": {
       "state": "ENABLED",

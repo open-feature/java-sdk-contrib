@@ -7,17 +7,19 @@ import java.util.Map;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_CFG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_METADATA;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE_EXTRA_FIELD;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FlagParserTest {
     @Test
-    public void validJsonConfigurationParsing() throws IOException {
+    void validJsonConfigurationParsing() throws IOException {
         Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true);
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
@@ -29,10 +31,21 @@ class FlagParserTest {
 
         assertEquals(true, variants.get("on"));
         assertEquals(false, variants.get("off"));
+
+        Map<String, Object> metadata = boolFlag.getMetadata();
+
+        assertInstanceOf(String.class, metadata.get("string"));
+        assertEquals("string", metadata.get("string"));
+
+        assertInstanceOf(Boolean.class, metadata.get("boolean"));
+        assertEquals(true, metadata.get("boolean"));
+
+        assertInstanceOf(Double.class, metadata.get("float"));
+        assertEquals(1.234, metadata.get("float"));
     }
 
     @Test
-    public void validJsonConfigurationWithExtraFieldsParsing() throws IOException {
+    void validJsonConfigurationWithExtraFieldsParsing() throws IOException {
         Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD), true);
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
@@ -47,7 +60,7 @@ class FlagParserTest {
     }
 
     @Test
-    public void validJsonConfigurationWithTargetingRulesParsing() throws IOException {
+    void validJsonConfigurationWithTargetingRulesParsing() throws IOException {
         Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_LONG), true);
         FeatureFlag stringFlag = flagMap.get("fibAlgo");
 
@@ -68,16 +81,26 @@ class FlagParserTest {
 
 
     @Test
-    public void invalidFlagThrowsError() {
+    void invalidFlagThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG);
         assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(getFlagsFromResource(INVALID_FLAG), true);
+            FlagParser.parseString(flagString, true);
         });
     }
 
     @Test
-    public void invalidConfigurationsThrowsError() {
+    void invalidFlagMetadataThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG_METADATA);
         assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(getFlagsFromResource(INVALID_CFG), true);
+            FlagParser.parseString(flagString, true);
+        });
+    }
+
+    @Test
+    void invalidConfigurationsThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_CFG);
+        assertThrows(IllegalArgumentException.class, () -> {
+            FlagParser.parseString(flagString, true);
         });
     }
 }
