@@ -16,7 +16,7 @@
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.69.0</io.grpc.version>
-        <protobuf-java.min.version>3.25.5</protobuf-java.min.version>
+        <protobuf-java.min.version>4.29.2</protobuf-java.min.version>
     </properties>
 
     <name>flagd</name>
