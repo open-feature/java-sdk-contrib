@@ -16,6 +16,7 @@
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.69.0</io.grpc.version>
+        <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.5</protobuf-java.min.version>
     </properties>
 
@@ -38,8 +39,6 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <!-- 5.0.0-rc < 5.0.0, unfortunately -->
-            <version>[${protobuf-java.min.version},4.999999)</version>
         </dependency>
 
         <dependency>
@@ -153,6 +152,19 @@
 
     </dependencies>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- we need to generate protobuf sources with the minium protobuf version we want to be compatible with -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <!-- caution - updating this will break compatibility with older protobuf-java versions -->
+                <version>${protobuf-java.min.version}</version>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
+
     <build>
         <!-- required for protobuf generation -->
         <extensions>
@@ -238,24 +250,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <!-- this profile forces us to compile against our minimum version of protobuf-java,
-            which is required so we can be compatible with both protobuf-java@v3 and protobuf-java@v4 consumers -->
-            <id>build</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-
-            <dependencies>
-                <dependency>
-                    <groupId>com.google.protobuf</groupId>
-                    <artifactId>protobuf-java</artifactId>
-                    <!-- must match minimum version in protobuf-java dependency range above -->
-                    <version>${protobuf-java.min.version}</version>
-                </dependency>
-            </dependencies>
-
-        </profile>
         <profile>
             <!-- this profile handles running the flagd e2e tests -->
             <id>e2e</id>
