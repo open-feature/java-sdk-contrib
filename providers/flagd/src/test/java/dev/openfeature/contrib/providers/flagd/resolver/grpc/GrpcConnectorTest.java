@@ -31,12 +31,16 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
 class GrpcConnectorTest {
+
+    public static final String HOST = "server.com";
+    public static final int PORT = 4321;
+    public static final String SOCKET_PATH = "/some/other/path";
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3})
@@ -330,39 +334,39 @@ class GrpcConnectorTest {
     }
 
     @Test
+    @SetEnvironmentVariable(key = "FLAGD_HOST", value = HOST)
+    @SetEnvironmentVariable(key = "FLAGD_PORT", value = "" + PORT)
     void no_args_host_and_port_env_set_should_build_tcp_socket() throws Exception {
-        final String host = "server.com";
-        final int port = 4321;
-        final String targetUri = String.format("%s:%s", host, port);
+        final String targetUri = String.format("%s:%s", HOST, PORT);
 
-        new EnvironmentVariables("FLAGD_HOST", host, "FLAGD_PORT", String.valueOf(port)).execute(() -> {
-            ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
-            ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
-            NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
+        ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
+        ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
+        NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
-            try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService
-                        .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                        .thenReturn(mockBlockingStub);
-                mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService
+                    .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+                    .thenReturn(mockBlockingStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
-                try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder =
-                        mockStatic(NettyChannelBuilder.class)) {
+            try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
 
-                    mockStaticChannelBuilder
-                            .when(() -> NettyChannelBuilder.forTarget(anyString()))
-                            .thenReturn(mockChannelBuilder);
+                mockStaticChannelBuilder
+                        .when(() -> NettyChannelBuilder.forTarget(anyString()))
+                        .thenReturn(mockChannelBuilder);
 
-                    new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
+                new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
-                    // verify host/port matches & called times(= 1 as we rely on reusable channel)
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forTarget(targetUri), times(1));
-                }
+                // verify host/port matches & called times(= 1 as we rely on reusable channel)
+                mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forTarget(targetUri), times(1));
             }
-        });
+        }
     }
 
-    /** OS Specific test - This test is valid only on Linux system as it rely on epoll availability */
+    /**
+     * OS Specific test - This test is valid only on Linux system as it rely on
+     * epoll availability
+     */
     @Test
     @EnabledOnOs(OS.LINUX)
     void path_arg_should_build_domain_socket_with_correct_path() {
@@ -390,7 +394,7 @@ class GrpcConnectorTest {
                     // verify path matches
                     mockStaticChannelBuilder.verify(
                             () -> NettyChannelBuilder.forAddress(argThat((DomainSocketAddress d) -> {
-                                assertEquals(d.path(), path); // path should match
+                                assertEquals(path, d.path()); // path should match
                                 return true;
                             })),
                             times(1));
@@ -399,44 +403,45 @@ class GrpcConnectorTest {
         }
     }
 
-    /** OS Specific test - This test is valid only on Linux system as it rely on epoll availability */
+    /**
+     * OS Specific test - This test is valid only on Linux system as it rely on
+     * epoll availability
+     */
     @Test
     @EnabledOnOs(OS.LINUX)
+    @SetEnvironmentVariable(key = "FLAGD_SOCKET_PATH", value = SOCKET_PATH)
     void no_args_socket_env_should_build_domain_socket_with_correct_path() throws Exception {
-        final String path = "/some/other/path";
 
-        new EnvironmentVariables("FLAGD_SOCKET_PATH", path).execute(() -> {
-            ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
-            ServiceStub mockStub = mock(ServiceStub.class);
-            NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
+        ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
+        ServiceStub mockStub = mock(ServiceStub.class);
+        NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
-            try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService
-                        .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                        .thenReturn(mockBlockingStub);
-                mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService
+                    .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+                    .thenReturn(mockBlockingStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
-                try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder =
-                        mockStatic(NettyChannelBuilder.class)) {
+            try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
 
-                    try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup =
-                            mockConstruction(EpollEventLoopGroup.class, (mock, context) -> {})) {
-                        mockStaticChannelBuilder
-                                .when(() -> NettyChannelBuilder.forAddress(any(DomainSocketAddress.class)))
-                                .thenReturn(mockChannelBuilder);
+                try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup =
+                        mockConstruction(EpollEventLoopGroup.class, (mock, context) -> {})) {
+                    mockStaticChannelBuilder
+                            .when(() -> NettyChannelBuilder.forAddress(any(DomainSocketAddress.class)))
+                            .thenReturn(mockChannelBuilder);
 
-                        new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
+                    new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
-                        // verify path matches & called times(= 1 as we rely on reusable channel)
-                        mockStaticChannelBuilder.verify(
-                                () -> NettyChannelBuilder.forAddress(argThat((DomainSocketAddress d) -> {
-                                    return d.path() == path;
-                                })),
-                                times(1));
-                    }
+                    // verify path matches & called times(= 1 as we rely on reusable channel)
+                    mockStaticChannelBuilder.verify(
+                            () -> NettyChannelBuilder.forAddress(argThat((DomainSocketAddress d) -> {
+                                assertEquals(SOCKET_PATH, d.path()); // path should match
+                                return true;
+                            })),
+                            times(1));
                 }
             }
-        });
+        }
     }
 
     @Test
