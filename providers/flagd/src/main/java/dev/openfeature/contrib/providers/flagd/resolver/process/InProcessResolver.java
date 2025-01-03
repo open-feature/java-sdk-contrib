@@ -1,13 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
-
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
@@ -28,6 +24,11 @@ import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
+
 /**
  * Resolves flag values using
  * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
@@ -46,7 +47,7 @@ public class InProcessResolver implements Resolver {
      * Resolves flag values using
      * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
      * Flags are evaluated locally.
-     * 
+     *
      * @param options           flagd options
      * @param connectedSupplier lambda providing current connection status from
      *                          caller
@@ -54,7 +55,7 @@ public class InProcessResolver implements Resolver {
      *                          connection/stream
      */
     public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
-            Consumer<ConnectionEvent> onConnectionEvent) {
+                             Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
@@ -62,8 +63,8 @@ public class InProcessResolver implements Resolver {
         this.connectedSupplier = connectedSupplier;
         this.metadata = options.getSelector() == null ? null
                 : ImmutableMetadata.builder()
-                        .addString("scope", options.getSelector())
-                        .build();
+                .addString("scope", options.getSelector())
+                .build();
     }
 
     /**
@@ -77,7 +78,8 @@ public class InProcessResolver implements Resolver {
                     final StorageStateChange storageStateChange = flagStore.getStateQueue().take();
                     switch (storageStateChange.getStorageState()) {
                         case OK:
-                            onConnectionEvent.accept(new ConnectionEvent(true, storageStateChange.getChangedFlagsKeys(),
+                            onConnectionEvent.accept(new ConnectionEvent(ConnectionState.CONNECTED,
+                                    storageStateChange.getChangedFlagsKeys(),
                                     storageStateChange.getSyncMetadata()));
                             break;
                         case ERROR:
@@ -114,7 +116,7 @@ public class InProcessResolver implements Resolver {
      * Resolve a boolean flag.
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-            EvaluationContext ctx) {
+                                                         EvaluationContext ctx) {
         return resolve(Boolean.class, key, ctx);
     }
 

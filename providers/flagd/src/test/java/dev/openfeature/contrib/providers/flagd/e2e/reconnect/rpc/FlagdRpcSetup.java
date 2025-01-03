@@ -31,6 +31,7 @@ public class FlagdRpcSetup {
                 .resolverType(Config.Resolver.RPC)
                 .port(flagdContainer.getFirstMappedPort())
                 .deadline(1000)
+                .streamRetryGracePeriod(1)
                 .streamDeadlineMs(0) // this makes reconnect tests more predictable
                 .cacheType(CacheType.DISABLED.getValue())
                 .build());

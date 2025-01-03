@@ -27,7 +27,6 @@ class FlagdOptionsTest {
         assertNull(builder.getSocketPath());
         assertEquals(DEFAULT_CACHE, builder.getCacheType());
         assertEquals(DEFAULT_MAX_CACHE_SIZE, builder.getMaxCacheSize());
-        assertEquals(DEFAULT_MAX_EVENT_STREAM_RETRIES, builder.getMaxEventStreamRetries());
         assertNull(builder.getSelector());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getCustomConnector());
@@ -48,7 +47,6 @@ class FlagdOptionsTest {
                 .certPath("etc/cert/ca.crt")
                 .cacheType("lru")
                 .maxCacheSize(100)
-                .maxEventStreamRetries(1)
                 .selector("app=weatherApp")
                 .offlineFlagSourcePath("some-path")
                 .openTelemetry(openTelemetry)
@@ -64,7 +62,6 @@ class FlagdOptionsTest {
         assertEquals("etc/cert/ca.crt", flagdOptions.getCertPath());
         assertEquals("lru", flagdOptions.getCacheType());
         assertEquals(100, flagdOptions.getMaxCacheSize());
-        assertEquals(1, flagdOptions.getMaxEventStreamRetries());
         assertEquals("app=weatherApp", flagdOptions.getSelector());
         assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
@@ -135,7 +132,6 @@ class FlagdOptionsTest {
             assertThat(flagdOptions.getKeepAlive()).isEqualTo(1338);
         }
     }
-
 
 
     @Test
