@@ -1,10 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.util.Map;
-
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_CFG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_METADATA;
@@ -16,6 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.IOException;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 class FlagParserTest {
     @Test
@@ -75,10 +74,9 @@ class FlagParserTest {
         assertEquals("loop", variants.get("loop"));
         assertEquals("binet", variants.get("binet"));
 
-        assertEquals("{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}",
-                stringFlag.getTargeting());
+        assertEquals(
+                "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}", stringFlag.getTargeting());
     }
-
 
     @Test
     void invalidFlagThrowsError() throws IOException {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>dev.openfeature.contrib</groupId>
@@ -8,17 +9,17 @@
     <packaging>pom</packaging>
 
     <name>java-sdk-contrib</name>
-	<description>Contrib parent</description>
-	<url>https://openfeature.dev</url>
+    <description>Contrib parent</description>
+    <url>https://openfeature.dev</url>
 
-	<developers>
-		<developer>
-			<id>toddbaert</id>
-			<name>Todd Baert</name>
-			<organization>OpenFeature</organization>
-			<url>https://openfeature.dev/</url>
-		</developer>
-	</developers>
+    <developers>
+        <developer>
+            <id>toddbaert</id>
+            <name>Todd Baert</name>
+            <organization>OpenFeature</organization>
+            <url>https://openfeature.dev/</url>
+        </developer>
+    </developers>
     <licenses>
         <license>
             <name>Apache License 2.0</name>
@@ -125,7 +126,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.27.0</version>
+            <version>3.27.2</version>
             <scope>test</scope>
         </dependency>
 
@@ -186,20 +187,6 @@
         </dependency>
 
         <dependency>
-            <groupId>uk.org.webcompere</groupId>
-            <artifactId>system-stubs-core</artifactId>
-            <version>2.0.3</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>uk.org.webcompere</groupId>
-            <artifactId>system-stubs-jupiter</artifactId>
-            <version>2.1.7</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
             <version>7.20.1</version>
@@ -239,12 +226,13 @@
                     <consoleOutput>true</consoleOutput>
                     <failsOnError>true</failsOnError>
                     <linkXRef>false</linkXRef>
+                    <excludeGeneratedSources>true</excludeGeneratedSources>
                 </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.45.1</version>
+                        <version>9.3</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -315,11 +303,11 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.2</version>
                 <configuration>
-                <archive>
-                    <manifestEntries>
-                    <Automatic-Module-Name>${module-name}</Automatic-Module-Name>
-                    </manifestEntries>
-                </archive>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>${module-name}</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
 
@@ -366,8 +354,11 @@
                     <sourceFileExcludes>
                         <sourceFileExclude>**/GoFeatureFlagProviderOptions.java</sourceFileExclude>
                     </sourceFileExcludes>
-                    <excludePackageNames>dev.openfeature.flagd.grpc,dev.openfeature.contrib.providers.gofeatureflag.exception,dev.openfeature.contrib.providers.gofeatureflag.bean</excludePackageNames>
-                    <doclint>all,-missing</doclint>  <!-- ignore missing javadoc, these are enforced with more customizability in the checkstyle plugin -->
+                    <excludePackageNames>
+                        dev.openfeature.flagd.grpc,dev.openfeature.contrib.providers.gofeatureflag.exception,dev.openfeature.contrib.providers.gofeatureflag.bean
+                    </excludePackageNames>
+                    <doclint>all,-missing
+                    </doclint>  <!-- ignore missing javadoc, these are enforced with more customizability in the checkstyle plugin -->
                 </configuration>
                 <executions>
                     <execution>
@@ -400,11 +391,11 @@
                 </configuration>
                 <executions>
                     <execution>
-                    <phase>package</phase>
-                    <goals>
-                        <!-- "makeAggregateBom" pollutes each module with the deps of other modules, so we use "makeBom" -->
-                        <goal>makeBom</goal>
-                    </goals>
+                        <phase>package</phase>
+                        <goals>
+                            <!-- "makeAggregateBom" pollutes each module with the deps of other modules, so we use "makeBom" -->
+                            <goal>makeBom</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
@@ -440,7 +431,55 @@
                 </configuration>
             </plugin>
             <!-- End publish to maven central -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.30.0</version>
+                <configuration>
+                    <!-- optional: limit format enforcement to just the files changed by this feature branch -->
+                    <!--                <ratchetFrom>origin/main</ratchetFrom>-->
+                    <formats>
+                        <!-- you can define as many formats as you want, each is independent -->
+                        <format>
+                            <!-- define the files to apply to -->
+                            <includes>
+                                <include>.gitattributes</include>
+                                <include>.gitignore</include>
+                            </includes>
+                            <!-- define the steps to apply to those files -->
+                            <trimTrailingWhitespace/>
+                            <endWithNewline/>
+                            <indent>
+                                <spaces>true</spaces>
+                                <spacesPerTab>4</spacesPerTab>
+                            </indent>
+                        </format>
+                    </formats>
+                    <!-- define a language-specific format -->
+                    <java>
+                        <palantirJavaFormat />
+
+                        <indent>
+                            <spaces>true</spaces>
+                            <spacesPerTab>4</spacesPerTab>
+                        </indent>
+                        <importOrder/>
+
+                        <removeUnusedImports/>
+                        <formatAnnotations/>
+
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+
     </build>
 
     <profiles>
@@ -489,7 +528,9 @@
                                 <!-- tests to exclude -->
                                 <exclude>${testExclusions}</exclude>
                             </excludes>
-                            <argLine>@{surefireArgLine} --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                            <argLine>@{surefireArgLine} --add-opens java.base/java.util=ALL-UNNAMED --add-opens
+                                java.base/java.lang=ALL-UNNAMED
+                            </argLine>
                         </configuration>
                     </plugin>
                 </plugins>

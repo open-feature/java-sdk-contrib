@@ -1,19 +1,16 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc.cache;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.DISABLED;
+import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.LRU;
+
 import dev.openfeature.sdk.ProviderEvaluation;
+import java.util.Collections;
+import java.util.Map;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.LRUMap;
 
-import java.util.Collections;
-import java.util.Map;
-
-import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.DISABLED;
-import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.LRU;
-
-/**
- * Exposes caching mechanism for flag evaluations.
- */
+/** Exposes caching mechanism for flag evaluations. */
 @Slf4j
 public class Cache {
     private Map<String, ProviderEvaluation<?>> store;
@@ -24,7 +21,7 @@ public class Cache {
     /**
      * Initialize the cache.
      *
-     * @param forType      type of the cache.
+     * @param forType type of the cache.
      * @param maxCacheSize max amount of element to keep.
      */
     public Cache(final String forType, int maxCacheSize) {

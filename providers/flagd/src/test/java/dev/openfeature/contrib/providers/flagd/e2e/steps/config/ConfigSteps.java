@@ -1,14 +1,13 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -17,12 +16,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfigSteps {
     /**
-     * Not all properties are correctly implemented, hence that we need to ignore them till this is fixed
+     * Not all properties are correctly implemented, hence that we need to ignore them till this is
+     * fixed
      */
     public static final List<String> IGNORED_FOR_NOW = new ArrayList<String>() {
         {
@@ -31,6 +31,7 @@ public class ConfigSteps {
             add("retryBackoffMaxMs");
         }
     };
+
     private static final Logger LOG = LoggerFactory.getLogger(ConfigSteps.class);
 
     FlagdOptions.FlagdOptionsBuilder builder = FlagdOptions.builder();
@@ -56,8 +57,9 @@ public class ConfigSteps {
     }
 
     @Given("an option {string} of type {string} with value {string}")
-    public void we_have_an_option_of_type_with_value(String option, String type, String value) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        if(IGNORED_FOR_NOW.contains(option)) {
+    public void we_have_an_option_of_type_with_value(String option, String type, String value)
+            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        if (IGNORED_FOR_NOW.contains(option)) {
             LOG.error("option '{}' is not supported", option);
             return;
         }
@@ -70,11 +72,11 @@ public class ConfigSteps {
         method.invoke(builder, converted);
     }
 
-
     Map<String, String> envVarsSet = new HashMap<>();
 
     @Given("an environment variable {string} with value {string}")
-    public void we_have_an_environment_variable_with_value(String varName, String value) throws IllegalAccessException, NoSuchFieldException {
+    public void we_have_an_environment_variable_with_value(String varName, String value)
+            throws IllegalAccessException, NoSuchFieldException {
         String getenv = System.getenv(varName);
         envVarsSet.put(varName, getenv);
         EnvironmentVariableUtils.set(varName, value);
@@ -110,19 +112,17 @@ public class ConfigSteps {
     public void the_option_of_type_should_have_the_value(String option, String type, String value) throws Throwable {
         Object convert = convert(value, type);
 
-        if(IGNORED_FOR_NOW.contains(option)) {
+        if (IGNORED_FOR_NOW.contains(option)) {
             LOG.error("option '{}' is not supported", option);
             return;
         }
-
 
         option = mapOptionNames(option);
 
         assertThat(options).hasFieldOrPropertyWithValue(option, convert);
 
         // Resetting env vars
-        for (
-                Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
+        for (Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
             if (envVar.getValue() == null) {
                 EnvironmentVariableUtils.clear(envVar.getKey());
             } else {

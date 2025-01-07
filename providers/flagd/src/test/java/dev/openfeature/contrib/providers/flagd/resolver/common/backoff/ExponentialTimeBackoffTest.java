@@ -1,10 +1,10 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common.backoff;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ExponentialTimeBackoffTest {
     @Test
@@ -42,9 +42,9 @@ class ExponentialTimeBackoffTest {
     void getCurrentBackoffMillisDoesNotIncreaseBeyondMaxBackoff() {
         ExponentialTimeBackoff target = new ExponentialTimeBackoff(1000, 5000);
 
-        target.nextBackoff();   // 2000
-        target.nextBackoff();   // 4000
-        target.nextBackoff();   // 5000 (8000)
+        target.nextBackoff(); // 2000
+        target.nextBackoff(); // 4000
+        target.nextBackoff(); // 5000 (8000)
 
         assertEquals(5000, target.getCurrentBackoffMillis());
     }

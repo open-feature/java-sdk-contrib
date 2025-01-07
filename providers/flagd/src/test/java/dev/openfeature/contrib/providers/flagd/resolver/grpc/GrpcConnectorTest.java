@@ -3,25 +3,10 @@ package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
-
-import java.lang.reflect.Field;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.invocation.InvocationOnMock;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
@@ -37,12 +22,28 @@ import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.invocation.InvocationOnMock;
 
 class GrpcConnectorTest {
 
+    public static final String HOST = "server.com";
+    public static final int PORT = 4321;
+    public static final String SOCKET_PATH = "/some/other/path";
+
     @ParameterizedTest
-    @ValueSource(ints = { 1, 2, 3 })
+    @ValueSource(ints = {1, 2, 3})
     void validate_retry_calls(int retries) throws Exception {
         final int backoffMs = 100;
 
@@ -57,9 +58,7 @@ class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         doAnswer(invocation -> null).when(mockStub).eventStream(any(), any());
 
-        final GrpcConnector connector = new GrpcConnector(options, cache, () -> true,
-                (connectionEvent) -> {
-                });
+        final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, (connectionEvent) -> {});
 
         Field serviceStubField = GrpcConnector.class.getDeclaredField("serviceStub");
         serviceStubField.setAccessible(true);
@@ -89,26 +88,30 @@ class GrpcConnectorTest {
         final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
         doAnswer((InvocationOnMock invocation) -> {
-            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
-            eventStreamObserver
-                    .onNext(EventStreamResponse.newBuilder().setType(Constants.PROVIDER_READY).build());
-            return null;
-        }).when(mockStub).eventStream(any(), any());
+                    EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+                    eventStreamObserver.onNext(EventStreamResponse.newBuilder()
+                            .setType(Constants.PROVIDER_READY)
+                            .build());
+                    return null;
+                })
+                .when(mockStub)
+                .eventStream(any(), any());
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(mockStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
             // pass true in connected lambda
-            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> {
-                try {
-                    Thread.sleep(100);
-                    return true;
-                } catch (Exception e) {
-                }
-                return false;
-
-            },
+            final GrpcConnector connector = new GrpcConnector(
+                    FlagdOptions.builder().build(),
+                    cache,
+                    () -> {
+                        try {
+                            Thread.sleep(100);
+                            return true;
+                        } catch (Exception e) {
+                        }
+                        return false;
+                    },
                     onConnectionEvent);
 
             assertDoesNotThrow(connector::initialize);
@@ -123,27 +126,28 @@ class GrpcConnectorTest {
         final ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
         doAnswer((InvocationOnMock invocation) -> {
-            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
-            eventStreamObserver
-                    .onError(new Exception("fake"));
-            return null;
-        }).when(mockStub).eventStream(any(), any());
+                    EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+                    eventStreamObserver.onError(new Exception("fake"));
+                    return null;
+                })
+                .when(mockStub)
+                .eventStream(any(), any());
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(mockStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
             // pass true in connected lambda
-            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache,
+            final GrpcConnector connector = new GrpcConnector(
+                    FlagdOptions.builder().build(),
+                    cache,
                     () -> {
-                try {
-                    Thread.sleep(100);
-                    return true;
-                } catch (Exception e) {
-                }
-                return false;
-
-            },
+                        try {
+                            Thread.sleep(100);
+                            return true;
+                        } catch (Exception e) {
+                        }
+                        return false;
+                    },
                     onConnectionEvent);
 
             assertDoesNotThrow(connector::initialize);
@@ -164,11 +168,12 @@ class GrpcConnectorTest {
 
         final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         doAnswer((InvocationOnMock invocation) -> {
-            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
-            eventStreamObserver
-                    .onError(new Exception("fake"));
-            return null;
-        }).when(mockStub).eventStream(any(), any());
+                    EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+                    eventStreamObserver.onError(new Exception("fake"));
+                    return null;
+                })
+                .when(mockStub)
+                .eventStream(any(), any());
 
         final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, onConnectionEvent);
 
@@ -194,7 +199,6 @@ class GrpcConnectorTest {
         // 2nd try
         verify(mockStub, timeout(300).times(2)).eventStream(any(), any());
         verify(onConnectionEvent, timeout(300).times(1)).accept(argThat(arg -> !arg.isConnected()));
-
     }
 
     @Test
@@ -210,17 +214,19 @@ class GrpcConnectorTest {
         final AtomicBoolean successMessage = new AtomicBoolean(false);
         final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
         doAnswer((InvocationOnMock invocation) -> {
-            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+                    EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
 
-            if (successMessage.get()) {
-                eventStreamObserver
-                        .onNext(EventStreamResponse.newBuilder().setType(Constants.PROVIDER_READY).build());
-            } else {
-                eventStreamObserver
-                        .onError(new Exception("fake"));
-            }
-            return null;
-        }).when(mockStub).eventStream(any(), any());
+                    if (successMessage.get()) {
+                        eventStreamObserver.onNext(EventStreamResponse.newBuilder()
+                                .setType(Constants.PROVIDER_READY)
+                                .build());
+                    } else {
+                        eventStreamObserver.onError(new Exception("fake"));
+                    }
+                    return null;
+                })
+                .when(mockStub)
+                .eventStream(any(), any());
 
         final GrpcConnector connector = new GrpcConnector(options, cache, () -> true, onConnectionEvent);
 
@@ -253,7 +259,6 @@ class GrpcConnectorTest {
             syncObject.notify();
         }
 
-
         // 3nd message with error
         verify(mockStub, timeout(300).times(2)).eventStream(any(), any());
         verify(onConnectionEvent, timeout(300).times(0)).accept(argThat(arg -> !arg.isConnected()));
@@ -265,26 +270,28 @@ class GrpcConnectorTest {
         final ServiceStub mockStub = createServiceStubMock();
         Consumer<ConnectionEvent> onConnectionEvent = mock(Consumer.class);
         doAnswer((InvocationOnMock invocation) -> {
-            EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
-            eventStreamObserver
-                    .onError(new StatusRuntimeException(Status.DEADLINE_EXCEEDED));
-            return null;
-        }).when(mockStub).eventStream(any(), any());
+                    EventStreamObserver eventStreamObserver = (EventStreamObserver) invocation.getArgument(1);
+                    eventStreamObserver.onError(new StatusRuntimeException(Status.DEADLINE_EXCEEDED));
+                    return null;
+                })
+                .when(mockStub)
+                .eventStream(any(), any());
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(mockStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
             // pass true in connected lambda
-            final GrpcConnector connector = new GrpcConnector(FlagdOptions.builder().build(), cache, () -> {
-                try {
-                    Thread.sleep(100);
-                    return true;
-                } catch (Exception e) {
-                }
-                return false;
-
-            },
+            final GrpcConnector connector = new GrpcConnector(
+                    FlagdOptions.builder().build(),
+                    cache,
+                    () -> {
+                        try {
+                            Thread.sleep(100);
+                            return true;
+                        } catch (Exception e) {
+                        }
+                        return false;
+                    },
                     onConnectionEvent);
 
             assertDoesNotThrow(connector::initialize);
@@ -304,56 +311,56 @@ class GrpcConnectorTest {
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+            mockStaticService
+                    .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                     .thenReturn(mockBlockingStub);
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(mockStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
             try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
 
-                mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                        .forTarget(anyString())).thenReturn(mockChannelBuilder);
+                mockStaticChannelBuilder
+                        .when(() -> NettyChannelBuilder.forTarget(anyString()))
+                        .thenReturn(mockChannelBuilder);
 
-                final FlagdOptions flagdOptions = FlagdOptions.builder().host(host).port(port).tls(false).build();
+                final FlagdOptions flagdOptions =
+                        FlagdOptions.builder().host(host).port(port).tls(false).build();
                 new GrpcConnector(flagdOptions, null, null, null);
 
                 // verify host/port matches
-                mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                        .forTarget(String.format(targetUri)), times(1));
+                mockStaticChannelBuilder.verify(
+                        () -> NettyChannelBuilder.forTarget(String.format(targetUri)), times(1));
             }
         }
     }
 
     @Test
+    @SetEnvironmentVariable(key = "FLAGD_HOST", value = HOST)
+    @SetEnvironmentVariable(key = "FLAGD_PORT", value = "" + PORT)
     void no_args_host_and_port_env_set_should_build_tcp_socket() throws Exception {
-        final String host = "server.com";
-        final int port = 4321;
-        final String targetUri = String.format("%s:%s", host, port);
+        final String targetUri = String.format("%s:%s", HOST, PORT);
 
-        new EnvironmentVariables("FLAGD_HOST", host, "FLAGD_PORT", String.valueOf(port)).execute(() -> {
-            ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
-            ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
-            NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
+        ServiceGrpc.ServiceBlockingStub mockBlockingStub = mock(ServiceGrpc.ServiceBlockingStub.class);
+        ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
+        NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
-            try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                        .thenReturn(mockBlockingStub);
-                mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                        .thenReturn(mockStub);
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService
+                    .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+                    .thenReturn(mockBlockingStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
-                try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(
-                        NettyChannelBuilder.class)) {
+            try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
 
-                    mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                            .forTarget(anyString())).thenReturn(mockChannelBuilder);
+                mockStaticChannelBuilder
+                        .when(() -> NettyChannelBuilder.forTarget(anyString()))
+                        .thenReturn(mockChannelBuilder);
 
-                    new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
+                new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
-                    // verify host/port matches & called times(= 1 as we rely on reusable channel)
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forTarget(targetUri), times(1));
-                }
+                // verify host/port matches & called times(= 1 as we rely on reusable channel)
+                mockStaticChannelBuilder.verify(() -> NettyChannelBuilder.forTarget(targetUri), times(1));
             }
-        });
+        }
     }
 
     /**
@@ -370,27 +377,27 @@ class GrpcConnectorTest {
         NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
         try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-            mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+            mockStaticService
+                    .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
                     .thenReturn(mockBlockingStub);
-            mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                    .thenReturn(mockStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
             try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
 
-                try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup = mockConstruction(
-                        EpollEventLoopGroup.class,
-                        (mock, context) -> {
-                        })) {
-                    when(NettyChannelBuilder.forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
+                try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup =
+                        mockConstruction(EpollEventLoopGroup.class, (mock, context) -> {})) {
+                    when(NettyChannelBuilder.forAddress(any(DomainSocketAddress.class)))
+                            .thenReturn(mockChannelBuilder);
 
                     new GrpcConnector(FlagdOptions.builder().socketPath(path).build(), null, null, null);
 
                     // verify path matches
-                    mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                            .forAddress(argThat((DomainSocketAddress d) -> {
-                                assertEquals(d.path(), path); // path should match
+                    mockStaticChannelBuilder.verify(
+                            () -> NettyChannelBuilder.forAddress(argThat((DomainSocketAddress d) -> {
+                                assertEquals(path, d.path()); // path should match
                                 return true;
-                            })), times(1));
+                            })),
+                            times(1));
                 }
             }
         }
@@ -402,49 +409,45 @@ class GrpcConnectorTest {
      */
     @Test
     @EnabledOnOs(OS.LINUX)
+    @SetEnvironmentVariable(key = "FLAGD_SOCKET_PATH", value = SOCKET_PATH)
     void no_args_socket_env_should_build_domain_socket_with_correct_path() throws Exception {
-        final String path = "/some/other/path";
 
-        new EnvironmentVariables("FLAGD_SOCKET_PATH", path).execute(() -> {
+        ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
+        ServiceStub mockStub = mock(ServiceStub.class);
+        NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
 
-            ServiceBlockingStub mockBlockingStub = mock(ServiceBlockingStub.class);
-            ServiceStub mockStub = mock(ServiceStub.class);
-            NettyChannelBuilder mockChannelBuilder = getMockChannelBuilderSocket();
+        try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
+            mockStaticService
+                    .when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
+                    .thenReturn(mockBlockingStub);
+            mockStaticService.when(() -> ServiceGrpc.newStub(any())).thenReturn(mockStub);
 
-            try (MockedStatic<ServiceGrpc> mockStaticService = mockStatic(ServiceGrpc.class)) {
-                mockStaticService.when(() -> ServiceGrpc.newBlockingStub(any(Channel.class)))
-                        .thenReturn(mockBlockingStub);
-                mockStaticService.when(() -> ServiceGrpc.newStub(any()))
-                        .thenReturn(mockStub);
+            try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(NettyChannelBuilder.class)) {
 
-                try (MockedStatic<NettyChannelBuilder> mockStaticChannelBuilder = mockStatic(
-                        NettyChannelBuilder.class)) {
+                try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup =
+                        mockConstruction(EpollEventLoopGroup.class, (mock, context) -> {})) {
+                    mockStaticChannelBuilder
+                            .when(() -> NettyChannelBuilder.forAddress(any(DomainSocketAddress.class)))
+                            .thenReturn(mockChannelBuilder);
 
-                    try (MockedConstruction<EpollEventLoopGroup> mockEpollEventLoopGroup = mockConstruction(
-                            EpollEventLoopGroup.class,
-                            (mock, context) -> {
-                            })) {
-                        mockStaticChannelBuilder.when(() -> NettyChannelBuilder
-                                .forAddress(any(DomainSocketAddress.class))).thenReturn(mockChannelBuilder);
+                    new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
 
-                        new GrpcConnector(FlagdOptions.builder().build(), null, null, null);
-
-                        // verify path matches & called times(= 1 as we rely on reusable channel)
-                        mockStaticChannelBuilder.verify(() -> NettyChannelBuilder
-                                .forAddress(argThat((DomainSocketAddress d) -> {
-                                    return d.path() == path;
-                                })), times(1));
-                    }
+                    // verify path matches & called times(= 1 as we rely on reusable channel)
+                    mockStaticChannelBuilder.verify(
+                            () -> NettyChannelBuilder.forAddress(argThat((DomainSocketAddress d) -> {
+                                assertEquals(SOCKET_PATH, d.path()); // path should match
+                                return true;
+                            })),
+                            times(1));
                 }
             }
-        });
+        }
     }
 
     @Test
     void initialization_with_stream_deadline() throws NoSuchFieldException, IllegalAccessException {
-        final FlagdOptions options = FlagdOptions.builder()
-                .streamDeadlineMs(16983)
-                .build();
+        final FlagdOptions options =
+                FlagdOptions.builder().streamDeadlineMs(16983).build();
 
         final Cache cache = new Cache("disabled", 0);
         final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();
@@ -461,9 +464,7 @@ class GrpcConnectorTest {
 
     @Test
     void initialization_without_stream_deadline() throws NoSuchFieldException, IllegalAccessException {
-        final FlagdOptions options = FlagdOptions.builder()
-                .streamDeadlineMs(0)
-                .build();
+        final FlagdOptions options = FlagdOptions.builder().streamDeadlineMs(0).build();
 
         final Cache cache = new Cache("disabled", 0);
         final ServiceGrpc.ServiceStub mockStub = createServiceStubMock();

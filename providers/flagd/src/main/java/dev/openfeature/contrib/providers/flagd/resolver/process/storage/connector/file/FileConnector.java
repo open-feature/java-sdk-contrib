@@ -1,5 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file;
 
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -7,19 +11,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * File connector reads flag configurations from a given file, polls for changes and expose the content through
- * {@code Connector} contract.
- * The implementation is kept minimal and suites testing, local development needs.
+ * File connector reads flag configurations from a given file, polls for changes and expose the
+ * content through {@code Connector} contract. The implementation is kept minimal and suites
+ * testing, local development needs.
  */
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP", "PATH_TRAVERSAL_IN"},
+@SuppressFBWarnings(
+        value = {"EI_EXPOSE_REP", "PATH_TRAVERSAL_IN"},
         justification = "File connector read feature flag from a file source.")
 @Slf4j
 public class FileConnector implements Connector {
@@ -36,7 +36,8 @@ public class FileConnector implements Connector {
     }
 
     /**
-     * Initialize file connector. Reads file content, poll for changes and offer content through the queue.
+     * Initialize file connector. Reads file content, poll for changes and offer content through the
+     * queue.
      */
     public void init() throws IOException {
         Thread watcherT = new Thread(() -> {
@@ -83,16 +84,12 @@ public class FileConnector implements Connector {
         log.info(String.format("Using feature flag configurations from file %s", flagSourcePath));
     }
 
-    /**
-     * Expose the queue to fulfil the {@code Connector} contract.
-     */
+    /** Expose the queue to fulfil the {@code Connector} contract. */
     public BlockingQueue<QueuePayload> getStream() {
         return queue;
     }
 
-    /**
-     * Shutdown file connector.
-     */
+    /** Shutdown file connector. */
     public void shutdown() throws InterruptedException {
         shutdown = true;
     }

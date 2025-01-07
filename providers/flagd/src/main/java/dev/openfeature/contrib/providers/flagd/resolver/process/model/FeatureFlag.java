@@ -5,16 +5,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-import java.util.Map;
-
-/**
- * flagd feature flag model.
- */
+/** flagd feature flag model. */
 @Getter
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
+@SuppressFBWarnings(
+        value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be parsed and exposed")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @EqualsAndHashCode
@@ -27,9 +25,7 @@ public class FeatureFlag {
     private final String targeting;
     private final Map<String, Object> metadata;
 
-    /**
-     * Construct a flagd feature flag.
-     */
+    /** Construct a flagd feature flag. */
     @JsonCreator
     public FeatureFlag(@JsonProperty("state") String state,
                        @JsonProperty("defaultVariant") String defaultVariant,
@@ -44,9 +40,7 @@ public class FeatureFlag {
         this.metadata = metadata;
     }
 
-    /**
-     * Get targeting rule of the flag.
-     */
+    /** Get targeting rule of the flag. */
     public String getTargeting() {
         return this.targeting == null ? EMPTY_TARGETING_STRING : this.targeting;
     }

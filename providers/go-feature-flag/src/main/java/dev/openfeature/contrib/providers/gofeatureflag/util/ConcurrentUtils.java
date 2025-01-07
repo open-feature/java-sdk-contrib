@@ -1,11 +1,10 @@
 package dev.openfeature.contrib.providers.gofeatureflag.util;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Concurrent / Concurrency utilities.
@@ -18,12 +17,14 @@ public class ConcurrentUtils {
 
     /**
      * Graceful shutdown a thread pool. <br>
-     * See <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html">
+     * See <a
+     * href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html">
      * https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html</a>
      *
-     * @param pool           thread pool
-     * @param timeoutSeconds grace period timeout in seconds - timeout can be twice than this value, as first it
-     *                       waits for existing tasks to terminate, then waits for cancelled tasks to terminate.
+     * @param pool thread pool
+     * @param timeoutSeconds grace period timeout in seconds - timeout can be twice than this value,
+     *     as first it waits for existing tasks to terminate, then waits for cancelled tasks to
+     *     terminate.
      */
     public static void shutdownAndAwaitTermination(ExecutorService pool, int timeoutSeconds) {
 
@@ -34,7 +35,8 @@ public class ConcurrentUtils {
             // Wait a while for existing tasks to terminate
             if (!pool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) {
 
-                // Cancel currently executing tasks - best effort, based on interrupt handling implementation.
+                // Cancel currently executing tasks - best effort, based on interrupt handling
+                // implementation.
                 pool.shutdownNow();
 
                 // Wait a while for tasks to respond to being cancelled
@@ -53,5 +55,4 @@ public class ConcurrentUtils {
             Thread.currentThread().interrupt();
         }
     }
-
 }

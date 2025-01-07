@@ -2,12 +2,9 @@ package dev.openfeature.contrib.providers.unleash;
 
 import dev.openfeature.sdk.EvaluationContext;
 import io.getunleash.UnleashContext;
-
 import java.time.ZonedDateTime;
 
-/**
- * Transformer from Unleash context to OpenFeature context and vice versa.
- */
+/** Transformer from Unleash context to OpenFeature context and vice versa. */
 public class ContextTransformer {
 
     public static final String CONTEXT_APP_NAME = "appName";
@@ -46,5 +43,4 @@ public class ContextTransformer {
         });
         return unleashContextBuilder.build();
     }
-
 }

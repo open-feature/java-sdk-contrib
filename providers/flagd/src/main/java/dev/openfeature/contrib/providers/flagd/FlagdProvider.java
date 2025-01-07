@@ -1,10 +1,5 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
@@ -20,13 +15,15 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * OpenFeature provider for flagd.
- */
+/** OpenFeature provider for flagd. */
 @Slf4j
-@SuppressWarnings({ "PMD.TooManyStaticImports", "checkstyle:NoFinalizer" })
+@SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
 public class FlagdProvider extends EventProvider {
     private Function<Structure, EvaluationContext> contextEnricher;
     private static final String FLAGD_PROVIDER = "flagd";
@@ -41,9 +38,7 @@ public class FlagdProvider extends EventProvider {
         // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
     }
 
-    /**
-     * Create a new FlagdProvider instance with default options.
-     */
+    /** Create a new FlagdProvider instance with default options. */
     public FlagdProvider() {
         this(FlagdOptions.builder().build());
     }
@@ -56,11 +51,11 @@ public class FlagdProvider extends EventProvider {
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
             case Config.RESOLVER_IN_PROCESS:
-                this.flagResolver = new InProcessResolver(options, this::isConnected,
-                        this::onConnectionEvent);
+                this.flagResolver = new InProcessResolver(options, this::isConnected, this::onConnectionEvent);
                 break;
             case Config.RESOLVER_RPC:
-                this.flagResolver = new GrpcResolver(options,
+                this.flagResolver = new GrpcResolver(
+                        options,
                         new Cache(options.getCacheType(), options.getMaxCacheSize()),
                         this::isConnected,
                         this::onConnectionEvent);
@@ -134,12 +129,10 @@ public class FlagdProvider extends EventProvider {
     }
 
     /**
-     * An unmodifiable view of a Structure representing the latest result of the
-     * SyncMetadata.
-     * Set on initial connection and updated with every reconnection.
-     * see:
+     * An unmodifiable view of a Structure representing the latest result of the SyncMetadata. Set on
+     * initial connection and updated with every reconnection. see:
      * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata
-     * 
+     *
      * @return Object map representing sync metadata
      */
     protected Structure getSyncMetadata() {
@@ -148,6 +141,7 @@ public class FlagdProvider extends EventProvider {
 
     /**
      * The updated context mixed into all evaluations based on the sync-metadata.
+     *
      * @return context
      */
     EvaluationContext getEnrichedContext() {
@@ -169,21 +163,26 @@ public class FlagdProvider extends EventProvider {
             log.debug("Configuration changed");
             ProviderEventDetails details = ProviderEventDetails.builder()
                     .flagsChanged(connectionEvent.getFlagsChanged())
-                    .message("configuration changed").build();
+                    .message("configuration changed")
+                    .build();
             this.emitProviderConfigurationChanged(details);
             return;
         }
         // there was an error
         if (initialized && previous && !current) {
             log.debug("There has been an error");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("there has been an error").build();
+            ProviderEventDetails details = ProviderEventDetails.builder()
+                    .message("there has been an error")
+                    .build();
             this.emitProviderError(details);
             return;
         }
         // we recovered from an error
         if (initialized && !previous && current) {
             log.debug("Recovered from error");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("recovered from error").build();
+            ProviderEventDetails details = ProviderEventDetails.builder()
+                    .message("recovered from error")
+                    .build();
             this.emitProviderReady(details);
             this.emitProviderConfigurationChanged(details);
         }

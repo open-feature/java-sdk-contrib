@@ -1,23 +1,19 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
+import com.google.protobuf.Value;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
-
-import com.google.protobuf.Value;
-
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * EventStreamObserver handles events emitted by flagd.
- */
+/** EventStreamObserver handles events emitted by flagd. */
 @Slf4j
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
@@ -29,13 +25,17 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     /**
      * Create a gRPC stream that get notified about flag changes.
      *
-     * @param sync                synchronization object from caller
-     * @param cache               cache to update
-     * @param onConnectionEvent   lambda to call to handle the response
-     * @param shouldRetrySilently Boolean supplier indicating if the GRPC connector will try to recover silently
+     * @param sync synchronization object from caller
+     * @param cache cache to update
+     * @param onConnectionEvent lambda to call to handle the response
+     * @param shouldRetrySilently Boolean supplier indicating if the GRPC connector will try to
+     *     recover silently
      */
-    EventStreamObserver(Object sync, Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent,
-                        Supplier<Boolean> shouldRetrySilently) {
+    EventStreamObserver(
+            Object sync,
+            Cache cache,
+            BiConsumer<Boolean, List<String>> onConnectionEvent,
+            Supplier<Boolean> shouldRetrySilently) {
         this.sync = sync;
         this.cache = cache;
         this.onConnectionEvent = onConnectionEvent;

@@ -1,5 +1,11 @@
 package dev.openfeature.contrib.hooks.otel;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.FlagValueType;
 import dev.openfeature.sdk.HookContext;
@@ -17,12 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class TracesHookTest {
@@ -65,9 +65,13 @@ class TracesHookTest {
         TracesHook tracesHook = new TracesHook();
         tracesHook.after(hookContext, details, null);
 
-        Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
-                providerNameAttributeKey, "test provider",
-                variantAttributeKey, "test_variant");
+        Attributes expectedAttr = Attributes.of(
+                flagKeyAttributeKey,
+                "test_key",
+                providerNameAttributeKey,
+                "test provider",
+                variantAttributeKey,
+                "test_variant");
 
         verify(span).addEvent("feature_flag", expectedAttr);
     }
@@ -75,18 +79,20 @@ class TracesHookTest {
     @Test
     @DisplayName("attribute should fallback to value field when variant is null")
     void attribute_should_fallback_to_value_field_when_variant_is_null() {
-        FlagEvaluationDetails<String> details = FlagEvaluationDetails.<String>builder()
-                .value("variant_value")
-                .build();
+        FlagEvaluationDetails<String> details =
+                FlagEvaluationDetails.<String>builder().value("variant_value").build();
         mockedSpan.when(Span::current).thenReturn(span);
-
 
         TracesHook tracesHook = new TracesHook();
         tracesHook.after(hookContext, details, null);
 
-        Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
-                providerNameAttributeKey, "test provider",
-                variantAttributeKey, "variant_value");
+        Attributes expectedAttr = Attributes.of(
+                flagKeyAttributeKey,
+                "test_key",
+                providerNameAttributeKey,
+                "test provider",
+                variantAttributeKey,
+                "variant_value");
 
         verify(span).addEvent("feature_flag", expectedAttr);
     }
@@ -119,12 +125,9 @@ class TracesHookTest {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(span);
 
-        final TracesHook tracesHook = new TracesHook(
-                TracesHookOptions.builder()
-                        .extraAttributes(Attributes.builder()
-                                .put("scope", "app-a")
-                                .build())
-                        .build());
+        final TracesHook tracesHook = new TracesHook(TracesHookOptions.builder()
+                .extraAttributes(Attributes.builder().put("scope", "app-a").build())
+                .build());
 
         tracesHook.error(hookContext, runtimeException, null);
 
@@ -144,15 +147,12 @@ class TracesHookTest {
         RuntimeException runtimeException = new RuntimeException("could not resolve the flag");
         mockedSpan.when(Span::current).thenReturn(span);
 
-        TracesHook tracesHook =
-                new TracesHook(TracesHookOptions
-                        .builder()
-                        .setSpanErrorStatus(true)
-                        .build());
+        TracesHook tracesHook = new TracesHook(
+                TracesHookOptions.builder().setSpanErrorStatus(true).build());
         tracesHook.error(hookContext, runtimeException, null);
 
-        Attributes expectedAttr = Attributes.of(flagKeyAttributeKey, "test_key",
-                providerNameAttributeKey, "test provider");
+        Attributes expectedAttr =
+                Attributes.of(flagKeyAttributeKey, "test_key", providerNameAttributeKey, "test provider");
 
         verify(span).recordException(runtimeException, expectedAttr);
         verify(span, times(1)).setStatus(any());
@@ -195,8 +195,7 @@ class TracesHookTest {
                         .put("float", metadata.getFloat("float"))
                         .put("double", metadata.getDouble("double"))
                         .put("string", metadata.getString("string"))
-                        .build()
-                )
+                        .build())
                 .extraAttributes(Attributes.builder().put("scope", "value").build())
                 .build();
 
@@ -218,5 +217,4 @@ class TracesHookTest {
         // verify span built with given attributes
         verify(span).addEvent("feature_flag", attributesBuilder.build());
     }
-
 }
