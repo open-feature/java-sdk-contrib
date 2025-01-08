@@ -98,7 +98,7 @@ public class FlagdOptions {
      * Defaults to 5
      */
     @Builder.Default
-    private int streamRetryGracePeriod =
+    private int retryGracePeriod =
             fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
     /**
      * Selector to be used with flag sync gRPC contract.

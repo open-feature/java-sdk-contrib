@@ -112,7 +112,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
         this.streamDeadlineMs = options.getStreamDeadlineMs();
         this.onConnectionEvent = onConnectionEvent;
         this.streamObserver = eventStreamObserver;
-        this.gracePeriod = options.getStreamRetryGracePeriod();
+        this.gracePeriod = options.getRetryGracePeriod();
         this.reconnectExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
