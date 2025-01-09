@@ -51,8 +51,7 @@ public class MockFlags {
     static final FeatureFlag BOOLEAN_FLAG = new FeatureFlag("ENABLED", "on", booleanVariant, null);
 
     // correct flag - boolean
-    static final FeatureFlag SHORTHAND_FLAG =
-            new FeatureFlag("ENABLED", "false", booleanVariant, null);
+    static final FeatureFlag SHORTHAND_FLAG = new FeatureFlag("ENABLED", "false", booleanVariant, null);
 
     // correct flag - double
     static final FeatureFlag DOUBLE_FLAG = new FeatureFlag("ENABLED", "one", doubleVariants, null);
@@ -67,23 +66,20 @@ public class MockFlags {
     static final FeatureFlag DISABLED_FLAG = new FeatureFlag("DISABLED", "on", booleanVariant, null);
 
     // incorrect flag - variant mismatch
-    static final FeatureFlag VARIANT_MISMATCH_FLAG =
-            new FeatureFlag("ENABLED", "true", stringVariants, null);
+    static final FeatureFlag VARIANT_MISMATCH_FLAG = new FeatureFlag("ENABLED", "true", stringVariants, null);
 
     // flag with targeting rule - string
     static final FeatureFlag FLAG_WIH_IF_IN_TARGET = new FeatureFlag(
             "ENABLED",
             "loop",
             stringVariants,
-            "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}",
-            new HashMap<>());
+            "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}");
 
     static final FeatureFlag FLAG_WITH_TARGETING_KEY = new FeatureFlag(
             "ENABLED",
             "loop",
             stringVariants,
-            "{\"if\":[{\"==\":[{\"var\":\"targetingKey\"},\"xyz\"]},\"binet\",null]}",
-            new HashMap<>());
+            "{\"if\":[{\"==\":[{\"var\":\"targetingKey\"},\"xyz\"]},\"binet\",null]}");
 
     // flag with incorrect targeting rule
     static final FeatureFlag FLAG_WIH_INVALID_TARGET =

@@ -64,7 +64,8 @@ public class InProcessResolver implements Resolver {
             this.fallBackMetadata = null;
         } else {
             this.scope = options.getSelector();
-            this.fallBackMetadata = ImmutableMetadata.builder().addString("scope", this.scope).build();
+            this.fallBackMetadata =
+                    ImmutableMetadata.builder().addString("scope", this.scope).build();
         }
     }
 
