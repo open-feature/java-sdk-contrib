@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../main/resources/flagd/schemas/flags.json",
+  "metadata": {
+    "string": "string",
+    "boolean": true,
+    "float": 1.234,
+    "invalid": {
+      "a": "a"
+    }
+  },
+  "flags": {
+    "myBoolFlag": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    }
+  }
+}

@@ -3,6 +3,8 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_CFG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_METADATA;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_GLOBAL_FLAG_METADATA;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_GLOBAL_FLAG_METADATA;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE_EXTRA_FIELD;
@@ -41,6 +43,12 @@ class FlagParserTest {
 
         assertInstanceOf(Double.class, metadata.get("float"));
         assertEquals(1.234, metadata.get("float"));
+
+        assertNotNull(boolFlag.getMetadata());
+        assertEquals(3, boolFlag.getMetadata().size());
+        assertEquals("string", boolFlag.getMetadata().get("string"));
+        assertEquals(true, boolFlag.getMetadata().get("boolean"));
+        assertEquals(1.234, boolFlag.getMetadata().get("float"));
     }
 
     @Test
@@ -79,26 +87,58 @@ class FlagParserTest {
     }
 
     @Test
+    void validJsonConfigurationWithGlobalMetadataParsing() throws IOException {
+        Map<String, FeatureFlag> flagMap =
+                FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+        FeatureFlag flag = flagMap.get("without-metadata");
+
+        assertNotNull(flag);
+
+        Map<String, Object> metadata = flag.getMetadata();
+
+        assertNotNull(metadata);
+        assertEquals("some string", metadata.get("string"));
+        assertEquals(true, metadata.get("boolean"));
+        assertEquals(1.234, metadata.get("float"));
+    }
+
+    @Test
+    void validJsonConfigurationWithGlobalMetadataGetsOverwrittenParsing() throws IOException {
+        Map<String, FeatureFlag> flagMap =
+                FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+        FeatureFlag flag = flagMap.get("with-metadata");
+
+        assertNotNull(flag);
+
+        Map<String, Object> metadata = flag.getMetadata();
+
+        assertNotNull(metadata);
+        assertEquals("other string", metadata.get("string"));
+        assertEquals(true, metadata.get("boolean"));
+        assertEquals(2.71828, metadata.get("float"));
+    }
+
+    @Test
     void invalidFlagThrowsError() throws IOException {
         String flagString = getFlagsFromResource(INVALID_FLAG);
-        assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(flagString, true);
-        });
+        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
     }
 
     @Test
     void invalidFlagMetadataThrowsError() throws IOException {
         String flagString = getFlagsFromResource(INVALID_FLAG_METADATA);
-        assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(flagString, true);
-        });
+        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
+    }
+
+    @Test
+    void invalidGlobalFlagMetadataThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_GLOBAL_FLAG_METADATA);
+        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
     }
 
     @Test
     void invalidConfigurationsThrowsError() throws IOException {
         String flagString = getFlagsFromResource(INVALID_CFG);
-        assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(flagString, true);
-        });
+        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
     }
 }

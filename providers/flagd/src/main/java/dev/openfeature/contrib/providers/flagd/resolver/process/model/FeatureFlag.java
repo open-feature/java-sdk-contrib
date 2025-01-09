@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -27,17 +28,42 @@ public class FeatureFlag {
 
     /** Construct a flagd feature flag. */
     @JsonCreator
-    public FeatureFlag(@JsonProperty("state") String state,
-                       @JsonProperty("defaultVariant") String defaultVariant,
-                       @JsonProperty("variants") Map<String, Object> variants,
-                       @JsonProperty("targeting") @JsonDeserialize(using = StringSerializer.class) String targeting,
-                       @JsonProperty("metadata") Map<String, Object> metadata
-    ) {
+    public FeatureFlag(
+            @JsonProperty("state") String state,
+            @JsonProperty("defaultVariant") String defaultVariant,
+            @JsonProperty("variants") Map<String, Object> variants,
+            @JsonProperty("targeting") @JsonDeserialize(using = StringSerializer.class) String targeting,
+            @JsonProperty("metadata") Map<String, Object> metadata) {
         this.state = state;
         this.defaultVariant = defaultVariant;
         this.variants = variants;
         this.targeting = targeting;
-        this.metadata = metadata;
+        if (metadata == null) {
+            this.metadata = new HashMap<>();
+        } else {
+            this.metadata = metadata;
+        }
+    }
+
+    /** Construct a flagd feature flag. */
+    public FeatureFlag(String state, String defaultVariant, Map<String, Object> variants, String targeting) {
+        this.state = state;
+        this.defaultVariant = defaultVariant;
+        this.variants = variants;
+        this.targeting = targeting;
+        this.metadata = new HashMap<>();
+    }
+
+    /**
+     * Add global metadata to this FeatureFlag. Keys that already exist in the metadata of this flag are not
+     * overwritten.
+     *
+     * @param metadata The metadata to add to this flag
+     */
+    public void addMetadata(Map<String, Object> metadata) {
+        for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+            this.metadata.putIfAbsent(entry.getKey(), entry.getValue());
+        }
     }
 
     /** Get targeting rule of the flag. */

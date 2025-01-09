@@ -1,7 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -24,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagParser {
     private static final String FLAG_KEY = "flags";
+    private static final String METADATA_KEY = "metadata";
     private static final String EVALUATOR_KEY = "$evaluators";
     private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -73,6 +76,8 @@ public class FlagParser {
         try (JsonParser parser = MAPPER.createParser(transposedConfiguration)) {
             final TreeNode treeNode = parser.readValueAsTree();
             final TreeNode flagNode = treeNode.get(FLAG_KEY);
+            final TreeNode metadataNode = treeNode.get(METADATA_KEY);
+            final Map<String, Object> metadata = parseMetadata(metadataNode);
 
             if (flagNode == null) {
                 throw new IllegalArgumentException("No flag configurations found in the payload");
@@ -81,11 +86,22 @@ public class FlagParser {
             final Iterator<String> it = flagNode.fieldNames();
             while (it.hasNext()) {
                 final String key = it.next();
-                flagMap.put(key, MAPPER.treeToValue(flagNode.get(key), FeatureFlag.class));
+                FeatureFlag flag = MAPPER.treeToValue(flagNode.get(key), FeatureFlag.class);
+                flag.addMetadata(metadata);
+                flagMap.put(key, flag);
             }
         }
 
         return flagMap;
+    }
+
+    private static Map<String, Object> parseMetadata(TreeNode metadataNode) throws JsonProcessingException {
+        if (metadataNode == null) {
+            return new HashMap<>();
+        }
+
+        TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
+        return MAPPER.treeToValue(metadataNode, typeRef);
     }
 
     private static String transposeEvaluators(final String configuration) throws IOException {

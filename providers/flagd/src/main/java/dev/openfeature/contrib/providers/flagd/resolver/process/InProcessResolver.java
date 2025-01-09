@@ -2,10 +2,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
 
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
@@ -27,6 +23,7 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
@@ -53,8 +50,10 @@ public class InProcessResolver implements Resolver {
      * @param connectedSupplier lambda providing current connection status from caller
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
-    public InProcessResolver(FlagdOptions options, final Supplier<Boolean> connectedSupplier,
-                             Consumer<ConnectionEvent> onConnectionEvent) {
+    public InProcessResolver(
+            FlagdOptions options,
+            final Supplier<Boolean> connectedSupplier,
+            Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
@@ -65,9 +64,7 @@ public class InProcessResolver implements Resolver {
             this.fallBackMetadata = null;
         } else {
             this.scope = options.getSelector();
-            this.fallBackMetadata = ImmutableMetadata.builder()
-                    .addString("scope", this.scope)
-                    .build();
+            this.fallBackMetadata = ImmutableMetadata.builder().addString("scope", this.scope).build();
         }
     }
 
@@ -119,11 +116,7 @@ public class InProcessResolver implements Resolver {
     /**
      * Resolve a boolean flag.
      */
-    public ProviderEvaluation<Boolean> booleanEvaluation(
-            String key,
-            Boolean defaultValue,
-            EvaluationContext ctx
-    ) {
+    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         return resolve(Boolean.class, key, ctx);
     }
 
