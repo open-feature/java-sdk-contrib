@@ -27,7 +27,6 @@ public class ConfigSteps {
     public static final List<String> IGNORED_FOR_NOW = new ArrayList<String>() {
         {
             add("offlinePollIntervalMs");
-            add("retryGraceAttempts");
             add("retryBackoffMaxMs");
         }
     };
