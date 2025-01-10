@@ -57,7 +57,7 @@ public class InProcessResolver implements Resolver {
             FlagdOptions options,
             final Supplier<Boolean> connectedSupplier,
             Consumer<ConnectionEvent> onConnectionEvent) {
-        this.flagStore = new FlagStore(getConnector(options));
+        this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
@@ -160,14 +160,14 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    static Connector getConnector(final FlagdOptions options) {
+    static Connector getConnector(final FlagdOptions options, Consumer<ConnectionEvent> onConnectionEvent) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
         return options.getOfflineFlagSourcePath() != null
                         && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileConnector(options.getOfflineFlagSourcePath())
-                : new GrpcStreamConnector(options);
+                : new GrpcStreamConnector(options, onConnectionEvent);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {

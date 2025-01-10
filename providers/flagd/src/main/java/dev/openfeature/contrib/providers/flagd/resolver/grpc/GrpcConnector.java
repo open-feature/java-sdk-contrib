@@ -1,6 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import com.google.common.annotations.VisibleForTesting;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelMonitor;
@@ -125,8 +124,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      * @param onConnectionEvent   a consumer to handle connection events
      * @param eventStreamObserver a consumer to handle the event stream
      */
-    @VisibleForTesting
-    GrpcConnector(
+    public GrpcConnector(
             final FlagdOptions options,
             final Function<ManagedChannel, T> stub,
             final Function<ManagedChannel, K> blockingStub,

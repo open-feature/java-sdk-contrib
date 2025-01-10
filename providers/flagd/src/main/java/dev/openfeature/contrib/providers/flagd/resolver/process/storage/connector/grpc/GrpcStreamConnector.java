@@ -1,14 +1,12 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
-import dev.openfeature.contrib.providers.flagd.resolver.common.backoff.GrpcStreamConnectorBackoffService;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc;
-import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceBlockingStub;
-import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceStub;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
@@ -16,13 +14,12 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Context;
 import io.grpc.Context.CancellableContext;
-import io.grpc.ManagedChannel;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.event.Level;
 
 /**
  * Implements the {@link Connector} contract and emit flags obtained from flagd sync gRPC contract.
@@ -36,42 +33,34 @@ public class GrpcStreamConnector implements Connector {
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final BlockingQueue<QueuePayload> blockingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-    private final ManagedChannel channel;
-    private final FlagSyncServiceStub serviceStub;
-    private final FlagSyncServiceBlockingStub serviceBlockingStub;
     private final int deadline;
-    private final int streamDeadlineMs;
     private final String selector;
-    private final int retryBackoffMillis;
+    private final GrpcConnector<
+                    FlagSyncServiceGrpc.FlagSyncServiceStub, FlagSyncServiceGrpc.FlagSyncServiceBlockingStub>
+            grpcConnector;
+    private final LinkedBlockingQueue<GrpcResponseModel> streamReceiver;
 
     /**
-     * Construct a new GrpcStreamConnector.
-     *
-     * @param options flagd options
+     * Creates a new GrpcStreamConnector responsible for observing the event stream.
      */
-    public GrpcStreamConnector(final FlagdOptions options) {
-        channel = ChannelBuilder.nettyChannel(options);
-        serviceStub = FlagSyncServiceGrpc.newStub(channel);
-        serviceBlockingStub = FlagSyncServiceGrpc.newBlockingStub(channel);
+    public GrpcStreamConnector(final FlagdOptions options, Consumer<ConnectionEvent> onConnectionEvent) {
         deadline = options.getDeadline();
-        streamDeadlineMs = options.getStreamDeadlineMs();
         selector = options.getSelector();
-        retryBackoffMillis = options.getRetryBackoffMs();
+        streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        grpcConnector = new GrpcConnector<>(
+                options,
+                FlagSyncServiceGrpc::newStub,
+                FlagSyncServiceGrpc::newBlockingStub,
+                onConnectionEvent,
+                stub -> stub.syncFlags(SyncFlagsRequest.getDefaultInstance(), new GrpcStreamHandler(streamReceiver)));
     }
 
     /** Initialize gRPC stream connector. */
-    public void init() {
+    public void init() throws Exception {
+        grpcConnector.initialize();
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(
-                        blockingQueue,
-                        shutdown,
-                        serviceStub,
-                        serviceBlockingStub,
-                        selector,
-                        deadline,
-                        streamDeadlineMs,
-                        retryBackoffMillis);
+                observeEventStream(blockingQueue, shutdown, selector, deadline);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -96,36 +85,16 @@ public class GrpcStreamConnector implements Connector {
         if (shutdown.getAndSet(true)) {
             return;
         }
-
-        try {
-            if (this.channel != null && !this.channel.isShutdown()) {
-                this.channel.shutdown();
-                this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
-            }
-        } finally {
-            if (this.channel != null && !this.channel.isShutdown()) {
-                this.channel.shutdownNow();
-                this.channel.awaitTermination(this.deadline, TimeUnit.MILLISECONDS);
-                log.warn(String.format("Unable to shut down channel by %d deadline", this.deadline));
-            }
-        }
+        this.grpcConnector.shutdown();
     }
 
     /** Contains blocking calls, to be used concurrently. */
-    static void observeEventStream(
+    void observeEventStream(
             final BlockingQueue<QueuePayload> writeTo,
             final AtomicBoolean shutdown,
-            final FlagSyncServiceStub serviceStub,
-            final FlagSyncServiceBlockingStub serviceBlockingStub,
             final String selector,
-            final int deadline,
-            final int streamDeadlineMs,
-            int retryBackoffMillis)
+            final int deadline)
             throws InterruptedException {
-
-        final BlockingQueue<GrpcResponseModel> streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        final GrpcStreamConnectorBackoffService backoffService =
-                new GrpcStreamConnectorBackoffService(retryBackoffMillis);
 
         log.info("Initializing sync stream observer");
 
@@ -143,15 +112,10 @@ public class GrpcStreamConnector implements Connector {
             }
 
             try (CancellableContext context = Context.current().withCancellation()) {
-                FlagSyncServiceStub localServiceStub = serviceStub;
-                if (streamDeadlineMs > 0) {
-                    localServiceStub = localServiceStub.withDeadlineAfter(streamDeadlineMs, TimeUnit.MILLISECONDS);
-                }
-
-                localServiceStub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
 
                 try {
-                    metadataResponse = serviceBlockingStub
+                    metadataResponse = grpcConnector
+                            .getResolver()
                             .withDeadlineAfter(deadline, TimeUnit.MILLISECONDS)
                             .getMetadata(metadataRequest.build());
                 } catch (Exception e) {
@@ -164,27 +128,18 @@ public class GrpcStreamConnector implements Connector {
 
                 while (!shutdown.get()) {
                     final GrpcResponseModel response = streamReceiver.take();
-
                     if (response.isComplete()) {
                         log.info("Sync stream completed");
-                        // The stream is complete, this isn't really an error but we should try to
+                        // The stream is complete, this isn't really an error, but we should try to
                         // reconnect
                         break;
                     }
 
                     Throwable streamException = response.getError();
                     if (streamException != null || metadataException != null) {
-                        long retryDelay = backoffService.getCurrentBackoffMillis();
-
-                        // if we are in silent recover mode, we should not expose the error to the client
-                        if (backoffService.shouldRetrySilently()) {
-                            logExceptions(Level.INFO, streamException, metadataException, retryDelay);
-                        } else {
-                            logExceptions(Level.ERROR, streamException, metadataException, retryDelay);
-                            if (!writeTo.offer(new QueuePayload(
-                                    QueuePayloadType.ERROR, "Error from stream or metadata", metadataResponse))) {
-                                log.error("Failed to convey ERROR status, queue is full");
-                            }
+                        if (!writeTo.offer(new QueuePayload(
+                                QueuePayloadType.ERROR, "Error from stream or metadata", metadataResponse))) {
+                            log.error("Failed to convey ERROR status, queue is full");
                         }
 
                         // close the context to cancel the stream in case just the metadata call failed
@@ -199,34 +154,10 @@ public class GrpcStreamConnector implements Connector {
                     if (!writeTo.offer(new QueuePayload(QueuePayloadType.DATA, data, metadataResponse))) {
                         log.error("Stream writing failed");
                     }
-
-                    // reset backoff if we succeeded in a retry attempt
-                    backoffService.reset();
                 }
-            }
-
-            // check for shutdown and avoid sleep
-            if (!shutdown.get()) {
-                log.debug("Stream failed, retrying in {}ms", backoffService.getCurrentBackoffMillis());
-                backoffService.waitUntilNextAttempt();
             }
         }
 
         log.info("Shutdown invoked, exiting event stream listener");
-    }
-
-    private static void logExceptions(
-            Level logLevel, Throwable streamException, Exception metadataException, long retryDelay) {
-        if (streamException != null) {
-            log.atLevel(logLevel)
-                    .setCause(streamException)
-                    .log("Error initializing stream, retrying in {}ms", retryDelay);
-        }
-
-        if (metadataException != null) {
-            log.atLevel(logLevel)
-                    .setCause(metadataException)
-                    .log("Error initializing metadata, retrying in {}ms", retryDelay);
-        }
     }
 }
