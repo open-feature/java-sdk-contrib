@@ -41,7 +41,6 @@ public class InProcessResolver implements Resolver {
     private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Operator operator;
     private final long deadline;
-    private final ImmutableMetadata fallBackMetadata;
     private final Supplier<Boolean> connectedSupplier;
     private final String scope;
 
@@ -65,14 +64,7 @@ public class InProcessResolver implements Resolver {
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
         this.connectedSupplier = connectedSupplier;
-        if (options.getSelector() == null) {
-            this.scope = null;
-            this.fallBackMetadata = null;
-        } else {
-            this.scope = options.getSelector();
-            this.fallBackMetadata =
-                    ImmutableMetadata.builder().addString("scope", this.scope).build();
-        }
+        this.scope = options.getSelector();
     }
 
     /**
