@@ -1,10 +1,6 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelMonitor;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
 import dev.openfeature.sdk.ImmutableStructure;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;

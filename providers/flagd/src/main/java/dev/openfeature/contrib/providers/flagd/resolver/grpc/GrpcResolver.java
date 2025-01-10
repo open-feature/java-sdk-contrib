@@ -12,6 +12,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
+import dev.openfeature.contrib.providers.flagd.resolver.common.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveFactory;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveStrategy;

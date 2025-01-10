@@ -1,8 +1,7 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import com.google.common.collect.Lists;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import io.grpc.ManagedChannel;
@@ -30,7 +29,7 @@ class GrpcConnectorTest {
     private static final boolean DISCONNECTED = false;
 
     @Mock
-    private EventStreamObserver mockEventStreamObserver;
+    private StreamObserver mockEventStreamObserver;
 
     private final ServiceGrpc.ServiceImplBase testServiceImpl = new ServiceGrpc.ServiceImplBase() {
         @Override

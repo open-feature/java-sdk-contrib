@@ -2,7 +2,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.common.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
