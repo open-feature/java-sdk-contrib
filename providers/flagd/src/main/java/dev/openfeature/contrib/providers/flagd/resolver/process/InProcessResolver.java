@@ -5,6 +5,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.model.Fea
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
@@ -30,8 +31,9 @@ import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1. Flags
- * are evaluated locally.
+ * Resolves flag values using
+ * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+ * Flags are evaluated locally.
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
@@ -44,12 +46,15 @@ public class InProcessResolver implements Resolver {
     private final String scope;
 
     /**
-     * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1. Flags
-     * are evaluated locally.
+     * Resolves flag values using
+     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+     * Flags are evaluated locally.
      *
      * @param options           flagd options
-     * @param connectedSupplier lambda providing current connection status from caller
-     * @param onConnectionEvent lambda which handles changes in the connection/stream
+     * @param connectedSupplier lambda providing current connection status from
+     *                          caller
+     * @param onConnectionEvent lambda which handles changes in the
+     *                          connection/stream
      */
     public InProcessResolver(
             FlagdOptions options,
@@ -70,7 +75,9 @@ public class InProcessResolver implements Resolver {
         }
     }
 
-    /** Initialize in-process resolver. */
+    /**
+     * Initialize in-process resolver.
+     */
     public void init() throws Exception {
         flagStore.init();
         final Thread stateWatcher = new Thread(() -> {
@@ -81,7 +88,7 @@ public class InProcessResolver implements Resolver {
                     switch (storageStateChange.getStorageState()) {
                         case OK:
                             onConnectionEvent.accept(new ConnectionEvent(
-                                    true,
+                                    ConnectionState.CONNECTED,
                                     storageStateChange.getChangedFlagsKeys(),
                                     storageStateChange.getSyncMetadata()));
                             break;
@@ -122,22 +129,30 @@ public class InProcessResolver implements Resolver {
         return resolve(Boolean.class, key, ctx);
     }
 
-    /** Resolve a string flag. */
+    /**
+     * Resolve a string flag.
+     */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         return resolve(String.class, key, ctx);
     }
 
-    /** Resolve a double flag. */
+    /**
+     * Resolve a double flag.
+     */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         return resolve(Double.class, key, ctx);
     }
 
-    /** Resolve an integer flag. */
+    /**
+     * Resolve an integer flag.
+     */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         return resolve(Integer.class, key, ctx);
     }
 
-    /** Resolve an object flag. */
+    /**
+     * Resolve an object flag.
+     */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         final ProviderEvaluation<Object> evaluation = resolve(Object.class, key, ctx);
 
