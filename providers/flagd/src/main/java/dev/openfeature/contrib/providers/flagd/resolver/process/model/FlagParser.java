@@ -53,8 +53,7 @@ public class FlagParser {
     }
 
     /** Parse {@link String} for feature flags. */
-    public static Map<String, FeatureFlag> parseString(final String configuration, boolean throwIfInvalid)
-            throws IOException {
+    public static ParsingResult parseString(final String configuration, boolean throwIfInvalid) throws IOException {
         if (SCHEMA_VALIDATOR != null) {
             try (JsonParser parser = MAPPER.createParser(configuration)) {
                 Set<ValidationMessage> validationMessages = SCHEMA_VALIDATOR.validate(parser.readValueAsTree());
@@ -72,12 +71,12 @@ public class FlagParser {
         final String transposedConfiguration = transposeEvaluators(configuration);
 
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
-
+        final Map<String, Object> metadata;
         try (JsonParser parser = MAPPER.createParser(transposedConfiguration)) {
             final TreeNode treeNode = parser.readValueAsTree();
             final TreeNode flagNode = treeNode.get(FLAG_KEY);
             final TreeNode metadataNode = treeNode.get(METADATA_KEY);
-            final Map<String, Object> metadata = parseMetadata(metadataNode);
+            metadata = parseMetadata(metadataNode);
 
             if (flagNode == null) {
                 throw new IllegalArgumentException("No flag configurations found in the payload");
@@ -86,13 +85,11 @@ public class FlagParser {
             final Iterator<String> it = flagNode.fieldNames();
             while (it.hasNext()) {
                 final String key = it.next();
-                FeatureFlag flag = MAPPER.treeToValue(flagNode.get(key), FeatureFlag.class);
-                flag.addMetadata(metadata);
-                flagMap.put(key, flag);
+                flagMap.put(key, MAPPER.treeToValue(flagNode.get(key), FeatureFlag.class));
             }
         }
 
-        return flagMap;
+        return new ParsingResult(flagMap, metadata);
     }
 
     private static Map<String, Object> parseMetadata(TreeNode metadataNode) throws JsonProcessingException {

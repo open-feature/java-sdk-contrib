@@ -12,6 +12,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
@@ -21,7 +22,8 @@ import org.junit.jupiter.api.Test;
 class FlagParserTest {
     @Test
     void validJsonConfigurationParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true);
+        Map<String, FeatureFlag> flagMap =
+                FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true).getFlags();
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
         assertNotNull(boolFlag);
@@ -53,7 +55,8 @@ class FlagParserTest {
 
     @Test
     void validJsonConfigurationWithExtraFieldsParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD), true);
+        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD), true)
+                .getFlags();
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
         assertNotNull(boolFlag);
@@ -68,7 +71,8 @@ class FlagParserTest {
 
     @Test
     void validJsonConfigurationWithTargetingRulesParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_LONG), true);
+        Map<String, FeatureFlag> flagMap =
+                FlagParser.parseString(getFlagsFromResource(VALID_LONG), true).getFlags();
         FeatureFlag stringFlag = flagMap.get("fibAlgo");
 
         assertNotNull(stringFlag);
@@ -88,30 +92,40 @@ class FlagParserTest {
 
     @Test
     void validJsonConfigurationWithGlobalMetadataParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap =
-                FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+        Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
         FeatureFlag flag = flagMap.get("without-metadata");
 
         assertNotNull(flag);
 
         Map<String, Object> metadata = flag.getMetadata();
+        Map<String, Object> globalMetadata = parsingResult.getGlobalFlagMetadata();
 
         assertNotNull(metadata);
-        assertEquals("some string", metadata.get("string"));
-        assertEquals(true, metadata.get("boolean"));
-        assertEquals(1.234, metadata.get("float"));
+        assertNull(metadata.get("string"));
+        assertNull(metadata.get("boolean"));
+        assertNull(metadata.get("float"));
+        assertNotNull(globalMetadata);
+        assertEquals("some string", globalMetadata.get("string"));
+        assertEquals(true, globalMetadata.get("boolean"));
+        assertEquals(1.234, globalMetadata.get("float"));
     }
 
     @Test
-    void validJsonConfigurationWithGlobalMetadataGetsOverwrittenParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap =
-                FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+    void validJsonConfigurationWithFlagMetadataParsing() throws IOException {
+        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+        Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
         FeatureFlag flag = flagMap.get("with-metadata");
 
         assertNotNull(flag);
 
         Map<String, Object> metadata = flag.getMetadata();
+        Map<String, Object> globalMetadata = parsingResult.getGlobalFlagMetadata();
 
+        assertNotNull(globalMetadata);
+        assertEquals("some string", globalMetadata.get("string"));
+        assertEquals(true, globalMetadata.get("boolean"));
+        assertEquals(1.234, globalMetadata.get("float"));
         assertNotNull(metadata);
         assertEquals("other string", metadata.get("string"));
         assertEquals(true, metadata.get("boolean"));

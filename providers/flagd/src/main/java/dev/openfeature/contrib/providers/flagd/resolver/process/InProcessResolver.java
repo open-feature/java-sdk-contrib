@@ -9,6 +9,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
@@ -46,7 +47,7 @@ public class InProcessResolver implements Resolver {
      * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1. Flags
      * are evaluated locally.
      *
-     * @param options flagd options
+     * @param options           flagd options
      * @param connectedSupplier lambda providing current connection status from caller
      * @param onConnectionEvent lambda which handles changes in the connection/stream
      */
@@ -161,14 +162,15 @@ public class InProcessResolver implements Resolver {
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {
-        final FeatureFlag flag = flagStore.getFlag(key);
+        final StorageQueryResult storageQueryResult = flagStore.getFlag(key);
+        final FeatureFlag flag = storageQueryResult.getFeatureFlag();
 
         // missing flag
         if (flag == null) {
             return ProviderEvaluation.<T>builder()
                     .errorMessage("flag: " + key + " not found")
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(fallBackMetadata)
+                    .flagMetadata(getFlagMetadata(storageQueryResult))
                     .build();
         }
 
@@ -177,7 +179,7 @@ public class InProcessResolver implements Resolver {
             return ProviderEvaluation.<T>builder()
                     .errorMessage("flag: " + key + " is disabled")
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(getFlagMetadata(flag))
+                    .flagMetadata(getFlagMetadata(storageQueryResult))
                     .build();
         }
 
@@ -228,47 +230,55 @@ public class InProcessResolver implements Resolver {
                 .value((T) value)
                 .variant(resolvedVariant)
                 .reason(reason)
-                .flagMetadata(getFlagMetadata(flag))
+                .flagMetadata(getFlagMetadata(storageQueryResult))
                 .build();
     }
 
-    private ImmutableMetadata getFlagMetadata(FeatureFlag flag) {
-        if (flag == null) {
-            return fallBackMetadata;
+    private ImmutableMetadata getFlagMetadata(StorageQueryResult storageQueryResult) {
+        ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
+        for (Map.Entry<String, Object> entry :
+                storageQueryResult.getGlobalFlagMetadata().entrySet()) {
+            addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
         }
 
-        ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
         if (scope != null) {
             metadataBuilder.addString("scope", scope);
         }
 
-        for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
-            Object value = entry.getValue();
-            if (value instanceof Number) {
-                if (value instanceof Long) {
-                    metadataBuilder.addLong(entry.getKey(), (Long) value);
-                    continue;
-                } else if (value instanceof Double) {
-                    metadataBuilder.addDouble(entry.getKey(), (Double) value);
-                    continue;
-                } else if (value instanceof Integer) {
-                    metadataBuilder.addInteger(entry.getKey(), (Integer) value);
-                    continue;
-                } else if (value instanceof Float) {
-                    metadataBuilder.addFloat(entry.getKey(), (Float) value);
-                    continue;
-                }
-            } else if (value instanceof Boolean) {
-                metadataBuilder.addBoolean(entry.getKey(), (Boolean) value);
-                continue;
-            } else if (value instanceof String) {
-                metadataBuilder.addString(entry.getKey(), (String) value);
-                continue;
+        FeatureFlag flag = storageQueryResult.getFeatureFlag();
+        if (flag != null) {
+            for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
+                addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
             }
-            throw new IllegalArgumentException("The type of the Metadata entry with key " + entry.getKey()
-                    + " and value " + entry.getValue() + " is not supported");
         }
 
         return metadataBuilder.build();
+    }
+
+    private void addEntryToMetadataBuilder(
+            ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder, String key, Object value) {
+        if (value instanceof Number) {
+            if (value instanceof Long) {
+                metadataBuilder.addLong(key, (Long) value);
+                return;
+            } else if (value instanceof Double) {
+                metadataBuilder.addDouble(key, (Double) value);
+                return;
+            } else if (value instanceof Integer) {
+                metadataBuilder.addInteger(key, (Integer) value);
+                return;
+            } else if (value instanceof Float) {
+                metadataBuilder.addFloat(key, (Float) value);
+                return;
+            }
+        } else if (value instanceof Boolean) {
+            metadataBuilder.addBoolean(key, (Boolean) value);
+            return;
+        } else if (value instanceof String) {
+            metadataBuilder.addString(key, (String) value);
+            return;
+        }
+        throw new IllegalArgumentException(
+                "The type of the Metadata entry with key " + key + " and value " + value + " is not supported");
     }
 }

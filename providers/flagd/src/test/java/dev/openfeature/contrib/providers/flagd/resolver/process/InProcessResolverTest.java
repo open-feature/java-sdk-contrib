@@ -451,6 +451,71 @@ class InProcessResolverTest {
         assertThat(providerEvaluation.getFlagMetadata().getString("scope")).isEqualTo("new selector");
     }
 
+    @Test
+    void globalFlagMetadataIsAddedToEvaluation() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        final Map<String, Object> flagMetadata = new HashMap<>();
+        flagMetadata.put("scope", "new selector");
+        flagMap.put("flag", new FeatureFlag("stage", "loop", stringVariants, "", flagMetadata));
+
+        final Map<String, Object> globalFlagMetadata = new HashMap<>();
+        globalFlagMetadata.put("global", "metadata");
+        InProcessResolver inProcessResolver = getInProcessResolverWith(
+                new MockStorage(flagMap, globalFlagMetadata), connectionEvent -> {}, "selector");
+
+        // when
+        ProviderEvaluation<String> providerEvaluation =
+                inProcessResolver.stringEvaluation("flag", "def", new ImmutableContext());
+
+        // then
+        assertThat(providerEvaluation.getFlagMetadata()).isNotNull();
+        assertThat(providerEvaluation.getFlagMetadata().getString("scope")).isEqualTo("new selector");
+        assertThat(providerEvaluation.getFlagMetadata().getString("global")).isEqualTo("metadata");
+    }
+
+    @Test
+    void globalFlagMetadataIsAddedToFailingEvaluation() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+
+        final Map<String, Object> globalFlagMetadata = new HashMap<>();
+        globalFlagMetadata.put("global", "metadata");
+        InProcessResolver inProcessResolver = getInProcessResolverWith(
+                new MockStorage(flagMap, globalFlagMetadata), connectionEvent -> {}, "selector");
+
+        // when
+        ProviderEvaluation<String> providerEvaluation =
+                inProcessResolver.stringEvaluation("does not exist", "def", new ImmutableContext());
+
+        // then
+        assertThat(providerEvaluation.getReason()).isNull();
+        assertThat(providerEvaluation.getFlagMetadata()).isNotNull();
+        assertThat(providerEvaluation.getFlagMetadata().getString("global")).isEqualTo("metadata");
+    }
+
+    @Test
+    void globalFlagMetadataIsOverwrittenByFlagMetadataToEvaluation() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        final Map<String, Object> flagMetadata = new HashMap<>();
+        flagMetadata.put("key", "expected");
+        flagMap.put("flag", new FeatureFlag("stage", "loop", stringVariants, "", flagMetadata));
+
+        final Map<String, Object> globalFlagMetadata = new HashMap<>();
+        globalFlagMetadata.put("key", "unexpected");
+        InProcessResolver inProcessResolver = getInProcessResolverWith(
+                new MockStorage(flagMap, globalFlagMetadata), connectionEvent -> {}, "selector");
+
+        // when
+        ProviderEvaluation<String> providerEvaluation =
+                inProcessResolver.stringEvaluation("flag", "def", new ImmutableContext());
+
+        // then
+        assertThat(providerEvaluation.getFlagMetadata()).isNotNull();
+        assertThat(providerEvaluation.getFlagMetadata().getString("key")).isEqualTo("expected");
+    }
+
     private InProcessResolver getInProcessResolverWith(final FlagdOptions options, final MockStorage storage)
             throws NoSuchFieldException, IllegalAccessException {
 

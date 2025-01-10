@@ -54,18 +54,6 @@ public class FeatureFlag {
         this.metadata = new HashMap<>();
     }
 
-    /**
-     * Add global metadata to this FeatureFlag. Keys that already exist in the metadata of this flag are not
-     * overwritten.
-     *
-     * @param metadata The metadata to add to this flag
-     */
-    public void addMetadata(Map<String, Object> metadata) {
-        for (Map.Entry<String, Object> entry : metadata.entrySet()) {
-            this.metadata.putIfAbsent(entry.getKey(), entry.getValue());
-        }
-    }
-
     /** Get targeting rule of the flag. */
     public String getTargeting() {
         return this.targeting == null ? EMPTY_TARGETING_STRING : this.targeting;
