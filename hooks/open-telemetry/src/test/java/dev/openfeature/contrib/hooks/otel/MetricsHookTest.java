@@ -188,7 +188,7 @@ class MetricsHookTest {
         final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry());
 
         // when
-        metricHook.finallyAfter(commonHookContext, null);
+        metricHook.finallyAfter(commonHookContext, null, null);
         List<MetricData> metrics = telemetryExtension.getMetrics();
 
         // then

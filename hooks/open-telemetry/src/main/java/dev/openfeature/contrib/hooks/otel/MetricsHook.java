@@ -134,7 +134,7 @@ public class MetricsHook implements Hook {
     }
 
     @Override
-    public void finallyAfter(HookContext ctx, Map hints) {
+    public void finallyAfter(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         activeFlagEvaluationsCounter.add(-1, Attributes.of(flagKeyAttributeKey, ctx.getFlagKey()));
     }
 
