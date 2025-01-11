@@ -10,7 +10,6 @@ import org.junit.platform.suite.api.SelectFile;
 import org.junit.platform.suite.api.Suite;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/** Class for running the reconnection tests for the RPC provider */
 @Order(value = Integer.MAX_VALUE)
 @Suite
 @IncludeEngines("cucumber")

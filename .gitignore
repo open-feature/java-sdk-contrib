@@ -13,3 +13,6 @@ target
 
 # IntelliJ files
 *.iml
+
+# tmp files
+providers/flagd/tmp
