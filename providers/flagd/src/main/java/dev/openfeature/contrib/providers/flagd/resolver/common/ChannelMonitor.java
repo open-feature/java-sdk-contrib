@@ -4,6 +4,8 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,10 +34,18 @@ public class ChannelMonitor {
             ConnectivityState currentState = channel.getState(true);
             log.info("Channel state changed to: {}", currentState);
             if (currentState == ConnectivityState.READY) {
-                onConnectionReady.run();
+                if (onConnectionReady != null) {
+                    onConnectionReady.run();
+                } else {
+                    log.debug("onConnectionReady is null");
+                }
             } else if (currentState == ConnectivityState.TRANSIENT_FAILURE
                     || currentState == ConnectivityState.SHUTDOWN) {
-                onConnectionLost.run();
+                if (onConnectionLost != null) {
+                    onConnectionLost.run();
+                } else {
+                    log.debug("onConnectionLost is null");
+                }
             }
             // Re-register the state monitor to watch for the next state transition.
             monitorChannelState(currentState, channel, onConnectionReady, onConnectionLost);
@@ -43,54 +53,39 @@ public class ChannelMonitor {
     }
 
     /**
-     * Waits for the channel to reach a desired state within a specified timeout period.
+     * Waits for the channel to reach the desired connectivity state within the specified timeout.
      *
-     * @param channel         the ManagedChannel to monitor.
-     * @param desiredState    the ConnectivityState to wait for.
-     * @param connectCallback callback invoked when the desired state is reached.
-     * @param timeout         the maximum amount of time to wait.
-     * @param unit            the time unit of the timeout.
-     * @throws InterruptedException if the current thread is interrupted while waiting.
+     * @param desiredState    the desired {@link ConnectivityState} to wait for
+     * @param channel         the {@link ManagedChannel} to monitor
+     * @param connectCallback the {@link Runnable} to execute when the desired state is reached
+     * @param timeout         the maximum time to wait
+     * @param unit            the time unit of the timeout argument
+     * @throws InterruptedException if the current thread is interrupted while waiting
+     * @throws GeneralError         if the desired state is not reached within the timeout
      */
     public static void waitForDesiredState(
-            ManagedChannel channel,
             ConnectivityState desiredState,
+            ManagedChannel channel,
             Runnable connectCallback,
             long timeout,
             TimeUnit unit)
             throws InterruptedException {
-        waitForDesiredState(channel, desiredState, connectCallback, new CountDownLatch(1), timeout, unit);
-    }
+        CountDownLatch latch = new CountDownLatch(1);
 
-    private static void waitForDesiredState(
-            ManagedChannel channel,
-            ConnectivityState desiredState,
-            Runnable connectCallback,
-            CountDownLatch latch,
-            long timeout,
-            TimeUnit unit)
-            throws InterruptedException {
-        channel.notifyWhenStateChanged(ConnectivityState.SHUTDOWN, () -> {
-            try {
-                ConnectivityState state = channel.getState(true);
-                log.debug("Channel state changed to: {}", state);
-
-                if (state == desiredState) {
-                    connectCallback.run();
-                    latch.countDown();
-                    return;
-                }
-                waitForDesiredState(channel, desiredState, connectCallback, latch, timeout, unit);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.error("Thread interrupted while waiting for desired state", e);
-            } catch (Exception e) {
-                log.error("Error occurred while waiting for desired state", e);
+        Runnable waitForStateTask = () -> {
+            ConnectivityState currentState = channel.getState(true);
+            if (currentState == desiredState) {
+                connectCallback.run();
+                latch.countDown();
             }
-        });
+        };
 
-        // Await the latch or timeout for the state change
-        if (!latch.await(timeout, unit)) {
+        ScheduledFuture<?> scheduledFuture = Executors.newSingleThreadScheduledExecutor()
+                .scheduleWithFixedDelay(waitForStateTask, 0, 100, TimeUnit.MILLISECONDS);
+
+        boolean success = latch.await(timeout, unit);
+        scheduledFuture.cancel(true);
+        if (!success) {
             throw new GeneralError(String.format(
                     "Deadline exceeded. Condition did not complete within the %d " + "deadline", timeout));
         }

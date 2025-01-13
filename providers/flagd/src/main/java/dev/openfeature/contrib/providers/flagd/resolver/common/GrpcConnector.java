@@ -137,7 +137,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     public void initialize() throws Exception {
         log.info("Initializing GRPC connection...");
         ChannelMonitor.waitForDesiredState(
-                channel, ConnectivityState.READY, this::onInitialConnect, deadline, TimeUnit.MILLISECONDS);
+                ConnectivityState.READY, channel, this::onInitialConnect, deadline, TimeUnit.MILLISECONDS);
         ChannelMonitor.monitorChannelState(ConnectivityState.READY, channel, this::onReady, this::onConnectionLost);
     }
 
