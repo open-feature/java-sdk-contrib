@@ -14,11 +14,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConfigSteps extends AbstractSteps {
     /**
@@ -34,7 +31,6 @@ public class ConfigSteps extends AbstractSteps {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigSteps.class);
 
-
     public ConfigSteps(State state) {
         super(state);
     }
@@ -48,7 +44,8 @@ public class ConfigSteps extends AbstractSteps {
     public void we_initialize_a_config_for(String string) {
         switch (string.toLowerCase()) {
             case "in-process":
-                state.options = state.builder.resolverType(Config.Resolver.IN_PROCESS).build();
+                state.options =
+                        state.builder.resolverType(Config.Resolver.IN_PROCESS).build();
                 break;
             case "rpc":
                 state.options = state.builder.resolverType(Config.Resolver.RPC).build();
@@ -83,7 +80,6 @@ public class ConfigSteps extends AbstractSteps {
         envVarsSet.put(varName, getenv);
         EnvironmentVariableUtils.set(varName, value);
     }
-
 
     @Then("the option {string} of type {string} should have the value {string}")
     public void the_option_of_type_should_have_the_value(String option, String type, String value) throws Throwable {

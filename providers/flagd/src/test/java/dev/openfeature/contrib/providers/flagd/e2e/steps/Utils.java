@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
-
 import java.util.Objects;
 
 public final class Utils {

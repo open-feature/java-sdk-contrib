@@ -34,6 +34,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.parallel.Isolated;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.ToxiproxyContainer;
+import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
 @Isolated()
 public class ProviderSteps extends AbstractSteps {
@@ -45,7 +53,8 @@ public class ProviderSteps extends AbstractSteps {
     static Map<ProviderType, Map<Config.Resolver, String>> proxyports = new HashMap<>();
     public static Network network = Network.newNetwork();
     public static ToxiproxyContainer toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0")
-            .withNetwork(network).withCreateContainerCmdModifier((cmd -> cmd.withName("toxiproxy")));
+            .withNetwork(network)
+            .withCreateContainerCmdModifier((cmd -> cmd.withName("toxiproxy")));
     public static ToxiproxyClient toxiproxyClient;
 
     static Path sharedTempDir;
@@ -72,23 +81,23 @@ public class ProviderSteps extends AbstractSteps {
         toxiproxy.start();
         toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
         toxiproxyClient.createProxy(
-                generateProxyName(Config.Resolver.RPC, ProviderType.DEFAULT),
-                "0.0.0.0:8666", "default:8013");
+                generateProxyName(Config.Resolver.RPC, ProviderType.DEFAULT), "0.0.0.0:8666", "default:8013");
 
-        toxiproxyClient.createProxy(generateProxyName(Config.Resolver.IN_PROCESS, ProviderType.DEFAULT), "0.0.0.0:8667", "default:8015");
-        toxiproxyClient.createProxy(generateProxyName(Config.Resolver.RPC, ProviderType.SSL), "0.0.0.0:8668", "ssl:8013");
-        toxiproxyClient.createProxy(generateProxyName(Config.Resolver.IN_PROCESS, ProviderType.SSL), "0.0.0.0:8669", "ssl:8015");
+        toxiproxyClient.createProxy(
+                generateProxyName(Config.Resolver.IN_PROCESS, ProviderType.DEFAULT), "0.0.0.0:8667", "default:8015");
+        toxiproxyClient.createProxy(
+                generateProxyName(Config.Resolver.RPC, ProviderType.SSL), "0.0.0.0:8668", "ssl:8013");
+        toxiproxyClient.createProxy(
+                generateProxyName(Config.Resolver.IN_PROCESS, ProviderType.SSL), "0.0.0.0:8669", "ssl:8015");
 
-        containers.put(ProviderType.DEFAULT,
-                new FlagdContainer().withNetwork(network).withNetworkAliases("default")
-        );
-        containers.put(ProviderType.SSL,
-                new FlagdContainer("ssl").withNetwork(network).withNetworkAliases("ssl")
-        );
-        containers.put(ProviderType.SOCKET, new FlagdContainer("socket")
-                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE));
-
-
+        containers.put(
+                ProviderType.DEFAULT, new FlagdContainer().withNetwork(network).withNetworkAliases("default"));
+        containers.put(
+                ProviderType.SSL, new FlagdContainer("ssl").withNetwork(network).withNetworkAliases("ssl"));
+        containers.put(
+                ProviderType.SOCKET,
+                new FlagdContainer("socket")
+                        .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE));
     }
 
     @AfterAll
@@ -101,7 +110,8 @@ public class ProviderSteps extends AbstractSteps {
     @Before
     public void before() throws IOException {
 
-        containers.values().stream().filter(containers -> !containers.isRunning())
+        containers.values().stream()
+                .filter(containers -> !containers.isRunning())
                 .forEach(FlagdContainer::start);
     }
 
@@ -110,14 +120,21 @@ public class ProviderSteps extends AbstractSteps {
         OpenFeatureAPI.getInstance().shutdown();
     }
 
+    public int getPort(Config.Resolver resolver, ProviderType providerType) {
+        switch (resolver) {
+            case RPC:
+                return this.getMappedPort(8013);
+            case IN_PROCESS:
+                return this.getMappedPort(8015);
+            default:
+                throw new IllegalArgumentException("Unsupported resolver: " + resolver);
+        }
+    }
 
 
     @Given("a {} flagd provider")
     public void setupProvider(String providerType) {
-        state.builder
-                .deadline(500)
-                .keepAlive(0)
-                .retryGracePeriod(1);
+        state.builder.deadline(500).keepAlive(0).retryGracePeriod(1);
         boolean wait = true;
         switch (providerType) {
             case "unavailable":
@@ -127,7 +144,8 @@ public class ProviderSteps extends AbstractSteps {
                 break;
             case "socket":
                 this.state.providerType = ProviderType.SOCKET;
-                String socketPath = sharedTempDir.resolve("socket.sock").toAbsolutePath().toString();
+                String socketPath =
+                        sharedTempDir.resolve("socket.sock").toAbsolutePath().toString();
                 state.builder.socketPath(socketPath);
                 state.builder.port(UNAVAILABLE_PORT);
                 break;
@@ -137,8 +155,7 @@ public class ProviderSteps extends AbstractSteps {
                 File file = new File(path);
                 String absolutePath = file.getAbsolutePath();
                 this.state.providerType = ProviderType.SSL;
-                state
-                        .builder
+                state.builder
                         .port(getContainer(state.providerType).getPort(State.resolverType))
                         .tls(true)
                         .certPath(absolutePath);
@@ -149,9 +166,8 @@ public class ProviderSteps extends AbstractSteps {
                 state.builder.port(toxiproxy.getMappedPort(8666));
                 break;
         }
-        FeatureProvider provider = new FlagdProvider(state.builder
-                .resolverType(State.resolverType)
-                .build());
+        FeatureProvider provider =
+                new FlagdProvider(state.builder.resolverType(State.resolverType).build());
 
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
         if (wait) {
@@ -166,9 +182,7 @@ public class ProviderSteps extends AbstractSteps {
     public void the_connection_is_lost_for(int seconds) throws InterruptedException, IOException {
         LOG.info("Timeout and wait for {} seconds", seconds);
         Proxy proxy = toxiproxyClient.getProxy(generateProxyName(State.resolverType, state.providerType));
-        Timeout restart = proxy
-                .toxics()
-                .timeout("restart", ToxicDirection.UPSTREAM, seconds);
+        Timeout restart = proxy.toxics().timeout("restart", ToxicDirection.UPSTREAM, seconds);
 
         TimerTask task = new TimerTask() {
             public void run() {
@@ -182,7 +196,6 @@ public class ProviderSteps extends AbstractSteps {
         Timer timer = new Timer("Timer");
 
         timer.schedule(task, seconds * 1000L);
-
     }
 
     static FlagdContainer getContainer(ProviderType providerType) {

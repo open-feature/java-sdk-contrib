@@ -4,6 +4,9 @@ import com.github.dockerjava.api.command.PauseContainerCmd;
 import com.github.dockerjava.api.command.SyncDockerCmd;
 import com.github.dockerjava.api.command.UnpauseContainerCmd;
 import dev.openfeature.contrib.providers.flagd.Config;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.List;
 import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.testcontainers.containers.GenericContainer;
@@ -42,23 +45,8 @@ public class FlagdContainer extends GenericContainer<FlagdContainer> {
         super(generateContainerName(feature));
         this.withReuse(true);
         this.feature = feature;
-        if (!"socket".equals(this.feature))
-            this.addExposedPorts(8013, 8014, 8015, 8016);
+        if (!"socket".equals(this.feature)) this.addExposedPorts(8013, 8014, 8015, 8016);
     }
-
-
-    public int getPort(Config.Resolver resolver) {
-        waitUntilContainerStarted();
-        switch (resolver) {
-            case RPC:
-                return this.getMappedPort(8013);
-            case IN_PROCESS:
-                return this.getMappedPort(8015);
-            default:
-                throw new IllegalArgumentException("Unsupported resolver: " + resolver);
-        }
-    }
-
 
     /**
      * @return a {@link org.testcontainers.containers.GenericContainer} instance of envoy container using
@@ -67,8 +55,8 @@ public class FlagdContainer extends GenericContainer<FlagdContainer> {
     public static GenericContainer envoy() {
         final String container = "envoyproxy/envoy:v1.31.0";
         return new GenericContainer(DockerImageName.parse(container))
-                .withCopyFileToContainer(MountableFile.forClasspathResource("/envoy-config/envoy-custom.yaml"),
-                        "/etc/envoy/envoy.yaml")
+                .withCopyFileToContainer(
+                        MountableFile.forClasspathResource("/envoy-config/envoy-custom.yaml"), "/etc/envoy/envoy.yaml")
                 .withExposedPorts(9211)
                 .withNetwork(network)
                 .withNetworkAliases("envoy");

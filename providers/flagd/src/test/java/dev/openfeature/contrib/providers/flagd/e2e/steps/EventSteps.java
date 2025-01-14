@@ -1,10 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.awaitility.Awaitility.await;
+
 import dev.openfeature.contrib.providers.flagd.e2e.State;
 import dev.openfeature.sdk.ProviderEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.util.LinkedList;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.slf4j.Logger;
@@ -19,7 +23,6 @@ import static org.awaitility.Awaitility.await;
 @Isolated()
 public class EventSteps extends AbstractSteps {
     private static final Logger LOG = LoggerFactory.getLogger(EventSteps.class);
-
 
     public EventSteps(State state) {
         super(state);
@@ -62,10 +65,11 @@ public class EventSteps extends AbstractSteps {
     @Then("the {} event handler should have been executed within {int}ms")
     public void eventHandlerShouldBeExecutedWithin(String eventType, int ms) {
         LOG.info("waiting for eventtype: {}", eventType);
-        await()
-                .atMost(ms, MILLISECONDS)
+        await().atMost(ms, MILLISECONDS)
                 .until(() -> state.events.stream().anyMatch(event -> event.type.equals(eventType)));
-        state.lastEvent = state.events.stream().filter(event -> event.type.equals(eventType)).findFirst();
+        state.lastEvent = state.events.stream()
+                .filter(event -> event.type.equals(eventType))
+                .findFirst();
         state.events.removeIf(event -> event.type.equals(eventType));
     }
 }
