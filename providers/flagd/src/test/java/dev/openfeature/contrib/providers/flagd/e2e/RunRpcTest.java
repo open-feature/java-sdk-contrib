@@ -12,7 +12,6 @@ import org.junit.platform.suite.api.ExcludeTags;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.IncludeTags;
 import org.junit.platform.suite.api.SelectFile;
-import org.junit.platform.suite.api.SelectFile;
 import org.junit.platform.suite.api.Suite;
 import org.testcontainers.junit.jupiter.Testcontainers;
 

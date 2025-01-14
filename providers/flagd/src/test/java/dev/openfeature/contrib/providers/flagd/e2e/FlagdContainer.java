@@ -1,9 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.e2e;
 
-import com.github.dockerjava.api.command.PauseContainerCmd;
-import com.github.dockerjava.api.command.SyncDockerCmd;
-import com.github.dockerjava.api.command.UnpauseContainerCmd;
-import dev.openfeature.contrib.providers.flagd.Config;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
@@ -13,12 +9,6 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
-
-import java.io.File;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class FlagdContainer extends GenericContainer<FlagdContainer> {
     private static final String version;

@@ -16,15 +16,6 @@ import io.cucumber.java.Before;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.parallel.Isolated;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.ToxiproxyContainer;
-import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -130,7 +121,6 @@ public class ProviderSteps extends AbstractSteps {
                 throw new IllegalArgumentException("Unsupported resolver: " + resolver);
         }
     }
-
 
     @Given("a {} flagd provider")
     public void setupProvider(String providerType) {

@@ -14,12 +14,6 @@ import org.junit.jupiter.api.parallel.Isolated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.awaitility.Awaitility.await;
-
 @Isolated()
 public class EventSteps extends AbstractSteps {
     private static final Logger LOG = LoggerFactory.getLogger(EventSteps.class);
@@ -32,7 +26,7 @@ public class EventSteps extends AbstractSteps {
     @Given("a {} event handler")
     public void a_stale_event_handler(String eventType) {
         state.client.on(mapEventType(eventType), eventDetails -> {
-           LOG.info("event tracked for {} ", eventType);
+            LOG.info("event tracked for {} ", eventType);
             state.events.add(new Event(eventType, eventDetails));
         });
     }

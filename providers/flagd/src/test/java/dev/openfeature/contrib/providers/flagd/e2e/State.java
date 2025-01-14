@@ -10,8 +10,6 @@ import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.MutableContext;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Optional;
 
 public class State {
