@@ -10,11 +10,8 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
-<<<<<<< HEAD
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
-=======
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
->>>>>>> main
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
