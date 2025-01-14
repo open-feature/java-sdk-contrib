@@ -461,8 +461,8 @@ class InProcessResolverTest {
 
         final Map<String, Object> flagSetMetadata = new HashMap<>();
         flagSetMetadata.put("flagSetMetadata", "metadata");
-        InProcessResolver inProcessResolver = getInProcessResolverWith(
-                new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
+        InProcessResolver inProcessResolver =
+                getInProcessResolverWith(new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
 
         // when
         ProviderEvaluation<String> providerEvaluation =
@@ -471,7 +471,8 @@ class InProcessResolverTest {
         // then
         assertThat(providerEvaluation.getFlagMetadata()).isNotNull();
         assertThat(providerEvaluation.getFlagMetadata().getString("scope")).isEqualTo("new selector");
-        assertThat(providerEvaluation.getFlagMetadata().getString("flagSetMetadata")).isEqualTo("metadata");
+        assertThat(providerEvaluation.getFlagMetadata().getString("flagSetMetadata"))
+                .isEqualTo("metadata");
     }
 
     @Test
@@ -481,8 +482,8 @@ class InProcessResolverTest {
 
         final Map<String, Object> flagSetMetadata = new HashMap<>();
         flagSetMetadata.put("flagSetMetadata", "metadata");
-        InProcessResolver inProcessResolver = getInProcessResolverWith(
-                new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
+        InProcessResolver inProcessResolver =
+                getInProcessResolverWith(new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
 
         // when
         ProviderEvaluation<String> providerEvaluation =
@@ -491,7 +492,8 @@ class InProcessResolverTest {
         // then
         assertThat(providerEvaluation.getReason()).isNull();
         assertThat(providerEvaluation.getFlagMetadata()).isNotNull();
-        assertThat(providerEvaluation.getFlagMetadata().getString("flagSetMetadata")).isEqualTo("metadata");
+        assertThat(providerEvaluation.getFlagMetadata().getString("flagSetMetadata"))
+                .isEqualTo("metadata");
     }
 
     @Test
@@ -504,8 +506,8 @@ class InProcessResolverTest {
 
         final Map<String, Object> flagSetMetadata = new HashMap<>();
         flagSetMetadata.put("key", "unexpected");
-        InProcessResolver inProcessResolver = getInProcessResolverWith(
-                new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
+        InProcessResolver inProcessResolver =
+                getInProcessResolverWith(new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
 
         // when
         ProviderEvaluation<String> providerEvaluation =
