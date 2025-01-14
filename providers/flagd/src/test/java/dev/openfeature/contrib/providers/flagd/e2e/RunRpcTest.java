@@ -11,6 +11,7 @@ import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.ExcludeTags;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.IncludeTags;
+import org.junit.platform.suite.api.SelectDirectories;
 import org.junit.platform.suite.api.SelectFile;
 import org.junit.platform.suite.api.Suite;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,13 +22,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Order(value = Integer.MAX_VALUE)
 @Suite
 @IncludeEngines("cucumber")
-// @SelectDirectories("test-harness/gherkin")
-@SelectFile("test-harness/gherkin/connection.feature")
+@SelectDirectories("test-harness/gherkin")
+//@SelectFile("test-harness/gherkin/rpc-caching.feature")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.steps")
 @ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
-@IncludeTags({"rpc", "reconnect"})
-@ExcludeTags({"targetURI", "customCert", "unixsocket"})
+@IncludeTags({"rpc"})
+@ExcludeTags({ "unixsocket", "targetURI"})
 @Testcontainers
 public class RunRpcTest {
 

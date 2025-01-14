@@ -101,8 +101,8 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
             ManagedChannel channel) {
 
         this.channel = channel;
-        this.serviceStub = stub.apply(channel);
-        this.blockingStub = blockingStub.apply(channel);
+        this.serviceStub = stub.apply(channel).withWaitForReady();
+        this.blockingStub = blockingStub.apply(channel).withWaitForReady();
         this.deadline = options.getDeadline();
         this.streamDeadlineMs = options.getStreamDeadlineMs();
         this.onConnectionEvent = onConnectionEvent;
@@ -190,7 +190,6 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
             log.debug("Reconnection task cancelled as connection became READY.");
         }
         restartStream();
-        this.onConnectionEvent.accept(new ConnectionEvent(true));
     }
 
     /**

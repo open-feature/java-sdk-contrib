@@ -116,6 +116,15 @@ public class ConnectionEvent {
 
     /**
      * Indicates
+     * whether the current connection state is disconnected.
+     *
+     * @return {@code true} if disconnected, otherwise {@code false}.
+     */
+    public boolean isDisconnected() {
+        return this.connected == ConnectionState.DISCONNECTED;
+    }
+    /**
+     * Indicates
      * whether the current connection state is stale.
      *
      * @return {@code true} if stale, otherwise {@code false}.

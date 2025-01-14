@@ -44,8 +44,7 @@ public class ProviderSteps extends AbstractSteps {
     static Map<ProviderType, Map<Config.Resolver, String>> proxyports = new HashMap<>();
     public static Network network = Network.newNetwork();
     public static ToxiproxyContainer toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0")
-            .withNetwork(network)
-            .withCreateContainerCmdModifier((cmd -> cmd.withName("toxiproxy")));
+            .withNetwork(network);
     public static ToxiproxyClient toxiproxyClient;
 
     static Path sharedTempDir;
@@ -58,6 +57,8 @@ public class ProviderSteps extends AbstractSteps {
             throw new RuntimeException(e);
         }
     }
+
+    private Timer restartTimer;
 
     public ProviderSteps(State state) {
         super(state);
@@ -96,10 +97,27 @@ public class ProviderSteps extends AbstractSteps {
 
         containers.forEach((name, container) -> container.stop());
         FileUtils.deleteDirectory(sharedTempDir.toFile());
+        toxiproxyClient.reset();
+        toxiproxy.stop();
     }
 
     @Before
     public void before() throws IOException {
+
+        toxiproxyClient.getProxies().forEach(proxy ->
+        {
+            try {
+                proxy.toxics().getAll().forEach(toxic -> {
+                    try {
+                        toxic.remove();
+                    } catch (IOException e) {
+                        LOG.debug("Failed to remove timout", e);
+                    }
+                });
+            } catch (IOException e) {
+                LOG.debug("Failed to remove timout", e);
+            }
+        });
 
         containers.values().stream()
                 .filter(containers -> !containers.isRunning())
@@ -114,9 +132,19 @@ public class ProviderSteps extends AbstractSteps {
     public int getPort(Config.Resolver resolver, ProviderType providerType) {
         switch (resolver) {
             case RPC:
-                return this.getMappedPort(8013);
+                switch (providerType) {
+                    case DEFAULT:
+                        return toxiproxy.getMappedPort(8666);
+                    case SSL:
+                        return toxiproxy.getMappedPort(8668);
+                }
             case IN_PROCESS:
-                return this.getMappedPort(8015);
+                switch (providerType) {
+                    case DEFAULT:
+                        return toxiproxy.getMappedPort(8667);
+                    case SSL:
+                        return toxiproxy.getMappedPort(8669);
+                }
             default:
                 throw new IllegalArgumentException("Unsupported resolver: " + resolver);
         }
@@ -124,7 +152,7 @@ public class ProviderSteps extends AbstractSteps {
 
     @Given("a {} flagd provider")
     public void setupProvider(String providerType) {
-        state.builder.deadline(500).keepAlive(0).retryGracePeriod(1);
+        state.builder.deadline(500).keepAlive(0).retryGracePeriod(3);
         boolean wait = true;
         switch (providerType) {
             case "unavailable":
@@ -146,14 +174,14 @@ public class ProviderSteps extends AbstractSteps {
                 String absolutePath = file.getAbsolutePath();
                 this.state.providerType = ProviderType.SSL;
                 state.builder
-                        .port(getContainer(state.providerType).getPort(State.resolverType))
+                        .port(getPort(State.resolverType, state.providerType))
                         .tls(true)
                         .certPath(absolutePath);
                 break;
 
             default:
                 this.state.providerType = ProviderType.DEFAULT;
-                state.builder.port(toxiproxy.getMappedPort(8666));
+                state.builder.port(getPort(State.resolverType, state.providerType));
                 break;
         }
         FeatureProvider provider =
@@ -171,22 +199,25 @@ public class ProviderSteps extends AbstractSteps {
     @When("the connection is lost for {int}s")
     public void the_connection_is_lost_for(int seconds) throws InterruptedException, IOException {
         LOG.info("Timeout and wait for {} seconds", seconds);
+        String randomizer = RandomStringUtils.randomAlphanumeric(5);
+        String timoutName = "restart" + randomizer;
         Proxy proxy = toxiproxyClient.getProxy(generateProxyName(State.resolverType, state.providerType));
-        Timeout restart = proxy.toxics().timeout("restart", ToxicDirection.UPSTREAM, seconds);
+        proxy.toxics().timeout(timoutName, ToxicDirection.UPSTREAM, seconds);
 
         TimerTask task = new TimerTask() {
             public void run() {
                 try {
-                    proxy.toxics().get("restart").remove();
+                    proxy.toxics().get(timoutName).remove();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    LOG.debug("Failed to remove timout", e);
                 }
             }
         };
-        Timer timer = new Timer("Timer");
+        restartTimer = new Timer("Timer" + randomizer);
 
-        timer.schedule(task, seconds * 1000L);
+        restartTimer.schedule(task, seconds * 1000L);
     }
+
 
     static FlagdContainer getContainer(ProviderType providerType) {
         LOG.info("getting container for {}", providerType);

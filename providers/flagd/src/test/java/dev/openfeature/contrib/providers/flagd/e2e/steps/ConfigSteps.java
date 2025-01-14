@@ -7,6 +7,7 @@ import dev.openfeature.contrib.providers.flagd.e2e.State;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -57,7 +58,7 @@ public class ConfigSteps extends AbstractSteps {
 
     @Given("an option {string} of type {string} with value {string}")
     public void we_have_an_option_of_type_with_value(String option, String type, String value)
-            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+            throws Throwable {
         if (IGNORED_FOR_NOW.contains(option)) {
             LOG.error("option '{}' is not supported", option);
             return;

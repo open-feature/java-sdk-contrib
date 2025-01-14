@@ -67,13 +67,23 @@ public final class GrpcResolver implements Resolver {
                 options,
                 ServiceGrpc::newStub,
                 ServiceGrpc::newBlockingStub,
-                onConnectionEvent,
+                (event) -> {
+                    if( cache != null && event.isDisconnected()) {
+                        cache.clear();
+                    }
+                    onConnectionEvent.accept(event);
+                },
                 stub -> stub.eventStream(
                         Evaluation.EventStreamRequest.getDefaultInstance(),
                         new EventStreamObserver(
-                                cache,
-                                (k, e) ->
-                                        onConnectionEvent.accept(new ConnectionEvent(ConnectionState.CONNECTED, e)))));
+                                (flags) -> {
+                                    if( cache != null) {
+                                        flags.forEach(cache::remove);
+                                    }
+                                    onConnectionEvent.accept(new ConnectionEvent(ConnectionState.CONNECTED, flags));
+                                },
+                                onConnectionEvent
+                                )));
     }
 
     /**
@@ -207,7 +217,7 @@ public final class GrpcResolver implements Resolver {
     }
 
     private Boolean cacheAvailable() {
-        return this.cache.getEnabled() && this.connector.isConnected();
+        return this.cache.getEnabled();
     }
 
     private static ImmutableMetadata metadataFromResponse(Message response) {

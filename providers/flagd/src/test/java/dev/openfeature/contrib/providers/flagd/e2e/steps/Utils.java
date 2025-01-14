@@ -2,13 +2,17 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import dev.openfeature.sdk.Value;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 
 public final class Utils {
 
     private Utils() {}
 
-    public static Object convert(String value, String type) throws ClassNotFoundException {
+    public static Object convert(String value, String type) throws ClassNotFoundException, IOException {
         if (Objects.equals(value, "null")) return null;
         switch (type) {
             case "Boolean":
@@ -32,6 +36,8 @@ public final class Utils {
                 }
             case "CacheType":
                 return CacheType.valueOf(value.toUpperCase()).getValue();
+            case "Object":
+                return Value.objectToValue(new ObjectMapper().readValue(value, Object.class));
         }
         throw new RuntimeException("Unknown config type: " + type);
     }

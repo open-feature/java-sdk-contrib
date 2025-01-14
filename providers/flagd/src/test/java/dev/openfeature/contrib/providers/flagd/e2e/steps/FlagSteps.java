@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.providers.flagd.e2e.State;
 import dev.openfeature.sdk.FlagEvaluationDetails;
@@ -18,12 +20,12 @@ public class FlagSteps extends AbstractSteps {
     }
 
     @Given("a {}-flag with key {string} and a default value {string}")
-    public void givenAFlag(String type, String name, String defaultValue) throws ClassNotFoundException {
+    public void givenAFlag(String type, String name, String defaultValue) throws Throwable {
         state.flag = new Flag(type, name, Utils.convert(defaultValue, type));
     }
 
     @When("the flag was evaluated with details")
-    public void the_flag_was_evaluated_with_details() {
+    public void the_flag_was_evaluated_with_details() throws InterruptedException {
         FlagEvaluationDetails details;
         switch (state.flag.type) {
             case "String":
@@ -52,8 +54,8 @@ public class FlagSteps extends AbstractSteps {
         state.evaluation = details;
     }
 
-    @Then("the resolved details value should be {string}")
-    public void the_resolved_details_value_should_be(String value) throws ClassNotFoundException {
+    @Then("the resolved details value should be \"{}\"")
+    public void the_resolved_details_value_should_be(String value) throws Throwable {
         assertThat(state.evaluation.getValue()).isEqualTo(Utils.convert(value, state.flag.type));
     }
 
@@ -66,13 +68,14 @@ public class FlagSteps extends AbstractSteps {
     public void the_variant_should_be(String variant) {
         assertThat(state.evaluation.getVariant()).isEqualTo(variant);
     }
-
+    @Then("the flag should be part of the event payload")
     @Then("the flag was modified")
     public void the_flag_was_modified() {
-        assertThat(state.lastEvent).isPresent().hasValueSatisfying((event) -> {
-            assertThat(event.type).isEqualTo("change");
-            assertThat(event.details.getFlagsChanged()).contains(state.flag.name);
-        });
+        await().atMost(5000, MILLISECONDS)
+                .until(() -> state.events.stream().anyMatch(event -> event.type.equals("change") && event.details.getFlagsChanged().contains(state.flag.name)));
+        state.lastEvent = state.events.stream()
+                .filter(event -> event.type.equals("change") && event.details.getFlagsChanged().contains(state.flag.name))
+                .findFirst();
     }
 
     public class Flag {

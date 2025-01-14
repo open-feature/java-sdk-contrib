@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 import com.google.protobuf.Value;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -10,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -20,25 +22,18 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
 
-    /**
-     * A consumer to handle connection events with a flag indicating success and a list of changed flags.
-     */
-    private final BiConsumer<Boolean, List<String>> onConnectionEvent;
 
-    /**
-     * The cache to update based on received events.
-     */
-    private final Cache cache;
+    private final Consumer<List<String>> onConfigurationChange;
+    private final Consumer<ConnectionEvent> onReady;
 
     /**
      * Constructs a new {@code EventStreamObserver} instance.
      *
-     * @param cache             the cache to update based on received events
      * @param onConnectionEvent a consumer to handle connection events with a boolean and a list of changed flags
      */
-    EventStreamObserver(Cache cache, BiConsumer<Boolean, List<String>> onConnectionEvent) {
-        this.cache = cache;
-        this.onConnectionEvent = onConnectionEvent;
+    EventStreamObserver(Consumer<List<String>> onConfigurationChange, Consumer<ConnectionEvent> onReady) {
+        this.onConfigurationChange = onConfigurationChange;
+        this.onReady = onReady;
     }
 
     /**
@@ -60,27 +55,14 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
         }
     }
 
-    /**
-     * Called when an error occurs in the stream.
-     *
-     * @param throwable the error that occurred
-     */
     @Override
     public void onError(Throwable throwable) {
-        if (this.cache.getEnabled().equals(Boolean.TRUE)) {
-            this.cache.clear();
-        }
+
     }
 
-    /**
-     * Called when the stream is completed.
-     */
     @Override
     public void onCompleted() {
-        if (this.cache.getEnabled().equals(Boolean.TRUE)) {
-            this.cache.clear();
-        }
-        this.onConnectionEvent.accept(false, Collections.emptyList());
+
     }
 
     /**
@@ -90,33 +72,22 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
      */
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
         List<String> changedFlags = new ArrayList<>();
-        boolean cachingEnabled = this.cache.getEnabled();
 
         Map<String, Value> data = value.getData().getFieldsMap();
         Value flagsValue = data.get(Constants.FLAGS_KEY);
-        if (flagsValue == null) {
-            if (cachingEnabled) {
-                this.cache.clear();
-            }
-        } else {
+        if (flagsValue != null) {
             Map<String, Value> flags = flagsValue.getStructValue().getFieldsMap();
-            for (String flagKey : flags.keySet()) {
-                changedFlags.add(flagKey);
-                if (cachingEnabled) {
-                    this.cache.remove(flagKey);
-                }
-            }
+            changedFlags.addAll(flags.keySet());
         }
 
-        this.onConnectionEvent.accept(true, changedFlags);
+        onConfigurationChange.accept(changedFlags);
     }
 
     /**
      * Handles provider readiness events by clearing the cache (if enabled) and notifying listeners of readiness.
      */
     private void handleProviderReadyEvent() {
-        if (this.cache.getEnabled().equals(Boolean.TRUE)) {
-            this.cache.clear();
-        }
+        log.info("Received provider ready event");
+        onReady.accept(new ConnectionEvent(true));
     }
 }
