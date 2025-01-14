@@ -10,6 +10,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
@@ -57,7 +58,7 @@ public class InProcessResolver implements Resolver {
             FlagdOptions options,
             final Supplier<Boolean> connectedSupplier,
             Consumer<ConnectionEvent> onConnectionEvent) {
-        this.flagStore = new FlagStore(getConnector(options));
+        this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
@@ -79,20 +80,15 @@ public class InProcessResolver implements Resolver {
                 while (true) {
                     final StorageStateChange storageStateChange =
                             flagStore.getStateQueue().take();
-                    switch (storageStateChange.getStorageState()) {
-                        case OK:
-                            onConnectionEvent.accept(new ConnectionEvent(
-                                    ConnectionState.CONNECTED,
-                                    storageStateChange.getChangedFlagsKeys(),
-                                    storageStateChange.getSyncMetadata()));
-                            break;
-                        case ERROR:
-                            onConnectionEvent.accept(new ConnectionEvent(false));
-                            break;
-                        default:
-                            log.info(String.format(
-                                    "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
+                    if (storageStateChange.getStorageState() != StorageState.OK) {
+                        log.info(
+                                String.format("Storage returned NOK status: %s", storageStateChange.getStorageState()));
+                        continue;
                     }
+                    onConnectionEvent.accept(new ConnectionEvent(
+                            ConnectionState.CONNECTED,
+                            storageStateChange.getChangedFlagsKeys(),
+                            storageStateChange.getSyncMetadata()));
                 }
             } catch (InterruptedException e) {
                 log.warn("Storage state watcher interrupted", e);
@@ -160,14 +156,14 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    static Connector getConnector(final FlagdOptions options) {
+    static Connector getConnector(final FlagdOptions options, Consumer<ConnectionEvent> onConnectionEvent) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
         return options.getOfflineFlagSourcePath() != null
                         && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileConnector(options.getOfflineFlagSourcePath())
-                : new GrpcStreamConnector(options);
+                : new GrpcStreamConnector(options, onConnectionEvent);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {
