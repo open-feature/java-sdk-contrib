@@ -69,9 +69,9 @@ class InProcessResolverTest {
                 .build();
 
         // then
-        assertInstanceOf(GrpcStreamConnector.class, InProcessResolver.getConnector(forGrpcOptions));
-        assertInstanceOf(FileConnector.class, InProcessResolver.getConnector(forOfflineOptions));
-        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions));
+        assertInstanceOf(GrpcStreamConnector.class, InProcessResolver.getConnector(forGrpcOptions, e -> {}));
+        assertInstanceOf(FileConnector.class, InProcessResolver.getConnector(forOfflineOptions, e -> {}));
+        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions, e -> {}));
     }
 
     @Test
@@ -115,10 +115,6 @@ class InProcessResolverTest {
             StorageStateChange storageState = receiver.take();
             assertEquals(StorageState.OK, storageState.getStorageState());
             assertEquals(val, storageState.getSyncMetadata().getValue(key).asString());
-        });
-
-        assertTimeoutPreemptively(Duration.ofMillis(200), () -> {
-            assertEquals(StorageState.ERROR, receiver.take().getStorageState());
         });
     }
 

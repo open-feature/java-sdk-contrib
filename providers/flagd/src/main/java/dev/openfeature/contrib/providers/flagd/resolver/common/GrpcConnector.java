@@ -1,11 +1,6 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.common;
 
-import com.google.common.annotations.VisibleForTesting;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelMonitor;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
 import dev.openfeature.sdk.ImmutableStructure;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
@@ -125,8 +120,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      * @param onConnectionEvent   a consumer to handle connection events
      * @param eventStreamObserver a consumer to handle the event stream
      */
-    @VisibleForTesting
-    GrpcConnector(
+    public GrpcConnector(
             final FlagdOptions options,
             final Function<ManagedChannel, T> stub,
             final Function<ManagedChannel, K> blockingStub,
@@ -143,7 +137,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     public void initialize() throws Exception {
         log.info("Initializing GRPC connection...");
         ChannelMonitor.waitForDesiredState(
-                channel, ConnectivityState.READY, this::onInitialConnect, deadline, TimeUnit.MILLISECONDS);
+                ConnectivityState.READY, channel, this::onInitialConnect, deadline, TimeUnit.MILLISECONDS);
         ChannelMonitor.monitorChannelState(ConnectivityState.READY, channel, this::onReady, this::onConnectionLost);
     }
 
