@@ -3,8 +3,8 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_CFG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_METADATA;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_GLOBAL_FLAG_METADATA;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_GLOBAL_FLAG_METADATA;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_SET_METADATA;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_FLAG_SET_METADATA;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE_EXTRA_FIELD;
@@ -91,41 +91,41 @@ class FlagParserTest {
     }
 
     @Test
-    void validJsonConfigurationWithGlobalMetadataParsing() throws IOException {
-        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+    void validJsonConfigurationWithFlagSetMetadataParsing() throws IOException {
+        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_FLAG_SET_METADATA), true);
         Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
         FeatureFlag flag = flagMap.get("without-metadata");
 
         assertNotNull(flag);
 
         Map<String, Object> metadata = flag.getMetadata();
-        Map<String, Object> globalMetadata = parsingResult.getGlobalFlagMetadata();
+        Map<String, Object> flagSetMetadata = parsingResult.getFlagSetMetadata();
 
         assertNotNull(metadata);
         assertNull(metadata.get("string"));
         assertNull(metadata.get("boolean"));
         assertNull(metadata.get("float"));
-        assertNotNull(globalMetadata);
-        assertEquals("some string", globalMetadata.get("string"));
-        assertEquals(true, globalMetadata.get("boolean"));
-        assertEquals(1.234, globalMetadata.get("float"));
+        assertNotNull(flagSetMetadata);
+        assertEquals("some string", flagSetMetadata.get("string"));
+        assertEquals(true, flagSetMetadata.get("boolean"));
+        assertEquals(1.234, flagSetMetadata.get("float"));
     }
 
     @Test
     void validJsonConfigurationWithFlagMetadataParsing() throws IOException {
-        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_GLOBAL_FLAG_METADATA), true);
+        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_FLAG_SET_METADATA), true);
         Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
         FeatureFlag flag = flagMap.get("with-metadata");
 
         assertNotNull(flag);
 
         Map<String, Object> metadata = flag.getMetadata();
-        Map<String, Object> globalMetadata = parsingResult.getGlobalFlagMetadata();
+        Map<String, Object> flagSetMetadata = parsingResult.getFlagSetMetadata();
 
-        assertNotNull(globalMetadata);
-        assertEquals("some string", globalMetadata.get("string"));
-        assertEquals(true, globalMetadata.get("boolean"));
-        assertEquals(1.234, globalMetadata.get("float"));
+        assertNotNull(flagSetMetadata);
+        assertEquals("some string", flagSetMetadata.get("string"));
+        assertEquals(true, flagSetMetadata.get("boolean"));
+        assertEquals(1.234, flagSetMetadata.get("float"));
         assertNotNull(metadata);
         assertEquals("other string", metadata.get("string"));
         assertEquals(true, metadata.get("boolean"));
@@ -145,8 +145,8 @@ class FlagParserTest {
     }
 
     @Test
-    void invalidGlobalFlagMetadataThrowsError() throws IOException {
-        String flagString = getFlagsFromResource(INVALID_GLOBAL_FLAG_METADATA);
+    void invalidFlagSetMetadataThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG_SET_METADATA);
         assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
     }
 

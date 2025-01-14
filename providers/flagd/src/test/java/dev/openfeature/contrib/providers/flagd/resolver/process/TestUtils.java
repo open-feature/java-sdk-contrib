@@ -15,8 +15,8 @@ public class TestUtils {
     public static final String VALID_LONG = "flagConfigurations/valid-long.json";
     public static final String INVALID_FLAG = "flagConfigurations/invalid-flag.json";
     public static final String INVALID_FLAG_METADATA = "flagConfigurations/invalid-metadata.json";
-    public static final String INVALID_GLOBAL_FLAG_METADATA = "flagConfigurations/invalid-global-metadata.json";
-    public static final String VALID_GLOBAL_FLAG_METADATA = "flagConfigurations/valid-global-metadata.json";
+    public static final String INVALID_FLAG_SET_METADATA = "flagConfigurations/invalid-flag-set-metadata.json";
+    public static final String VALID_FLAG_SET_METADATA = "flagConfigurations/valid-flag-set-metadata.json";
     public static final String INVALID_CFG = "flagConfigurations/invalid-configuration.json";
     public static final String UPDATABLE_FILE = "flagConfigurations/updatableFlags.json";
 

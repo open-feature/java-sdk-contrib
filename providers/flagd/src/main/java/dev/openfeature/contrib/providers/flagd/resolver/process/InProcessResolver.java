@@ -244,7 +244,7 @@ public class InProcessResolver implements Resolver {
     private ImmutableMetadata getFlagMetadata(StorageQueryResult storageQueryResult) {
         ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
         for (Map.Entry<String, Object> entry :
-                storageQueryResult.getGlobalFlagMetadata().entrySet()) {
+                storageQueryResult.getFlagSetMetadata().entrySet()) {
             addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
         }
 

@@ -13,10 +13,10 @@ import lombok.Getter;
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class ParsingResult {
     private final Map<String, FeatureFlag> flags;
-    private final Map<String, Object> globalFlagMetadata;
+    private final Map<String, Object> flagSetMetadata;
 
-    public ParsingResult(Map<String, FeatureFlag> flags, Map<String, Object> globalFlagMetadata) {
+    public ParsingResult(Map<String, FeatureFlag> flags, Map<String, Object> flagSetMetadata) {
         this.flags = flags;
-        this.globalFlagMetadata = globalFlagMetadata;
+        this.flagSetMetadata = flagSetMetadata;
     }
 }

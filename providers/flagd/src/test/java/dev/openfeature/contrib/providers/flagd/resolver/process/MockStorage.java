@@ -12,25 +12,25 @@ import javax.annotation.Nullable;
 public class MockStorage implements Storage {
 
     private final Map<String, FeatureFlag> mockFlags;
-    private final Map<String, Object> metadata;
+    private final Map<String, Object> flagSetMetadata;
     private final BlockingQueue<StorageStateChange> mockQueue;
 
-    public MockStorage(Map<String, FeatureFlag> mockFlags, Map<String, Object> globalFlagMetadata) {
+    public MockStorage(Map<String, FeatureFlag> mockFlags, Map<String, Object> flagSetMetadata) {
         this.mockFlags = mockFlags;
         this.mockQueue = null;
-        this.metadata = globalFlagMetadata;
+        this.flagSetMetadata = flagSetMetadata;
     }
 
     public MockStorage(Map<String, FeatureFlag> mockFlags, BlockingQueue<StorageStateChange> mockQueue) {
         this.mockFlags = mockFlags;
         this.mockQueue = mockQueue;
-        this.metadata = Collections.emptyMap();
+        this.flagSetMetadata = Collections.emptyMap();
     }
 
     public MockStorage(Map<String, FeatureFlag> flagMap) {
         this.mockFlags = flagMap;
         this.mockQueue = null;
-        this.metadata = Collections.emptyMap();
+        this.flagSetMetadata = Collections.emptyMap();
     }
 
     public void init() {
@@ -43,7 +43,7 @@ public class MockStorage implements Storage {
 
     @Override
     public StorageQueryResult getFlag(String key) {
-        return new StorageQueryResult(mockFlags.get(key), metadata);
+        return new StorageQueryResult(mockFlags.get(key), flagSetMetadata);
     }
 
     @Nullable public BlockingQueue<StorageStateChange> getStateQueue() {

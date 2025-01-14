@@ -36,7 +36,7 @@ public class FlagStore implements Storage {
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(1);
     private final Map<String, FeatureFlag> flags = new HashMap<>();
-    private final Map<String, Object> globalFlagMetadata = new HashMap<>();
+    private final Map<String, Object> flagSetMetadata = new HashMap<>();
 
     private final Connector connector;
     private final boolean throwIfInvalid;
@@ -80,7 +80,7 @@ public class FlagStore implements Storage {
         connector.shutdown();
     }
 
-    /** Retrieve flag for the given key and the global flag metadata. */
+    /** Retrieve flag for the given key and the flag set metadata. */
     @Override
     public StorageQueryResult getFlag(final String key) {
         readLock.lock();
@@ -88,7 +88,7 @@ public class FlagStore implements Storage {
         Map<String, Object> metadata;
         try {
             flag = flags.get(key);
-            metadata = new HashMap<>(globalFlagMetadata);
+            metadata = new HashMap<>(flagSetMetadata);
         } finally {
             readLock.unlock();
         }
@@ -112,7 +112,7 @@ public class FlagStore implements Storage {
                         List<String> changedFlagsKeys;
                         ParsingResult parsingResult = FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
                         Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
-                        Map<String, Object> globalFlagMetadataMap = parsingResult.getGlobalFlagMetadata();
+                        Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
 
                         Structure metadata = parseSyncMetadata(payload.getMetadataResponse());
                         writeLock.lock();
@@ -120,8 +120,8 @@ public class FlagStore implements Storage {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);
                             flags.clear();
                             flags.putAll(flagMap);
-                            globalFlagMetadata.clear();
-                            globalFlagMetadata.putAll(globalFlagMetadataMap);
+                            flagSetMetadata.clear();
+                            flagSetMetadata.putAll(flagSetMetadataMap);
                         } finally {
                             writeLock.unlock();
                         }

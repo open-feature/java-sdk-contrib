@@ -71,12 +71,12 @@ public class FlagParser {
         final String transposedConfiguration = transposeEvaluators(configuration);
 
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
-        final Map<String, Object> metadata;
+        final Map<String, Object> flagSetMetadata;
         try (JsonParser parser = MAPPER.createParser(transposedConfiguration)) {
             final TreeNode treeNode = parser.readValueAsTree();
             final TreeNode flagNode = treeNode.get(FLAG_KEY);
             final TreeNode metadataNode = treeNode.get(METADATA_KEY);
-            metadata = parseMetadata(metadataNode);
+            flagSetMetadata = parseMetadata(metadataNode);
 
             if (flagNode == null) {
                 throw new IllegalArgumentException("No flag configurations found in the payload");
@@ -89,7 +89,7 @@ public class FlagParser {
             }
         }
 
-        return new ParsingResult(flagMap, metadata);
+        return new ParsingResult(flagMap, flagSetMetadata);
     }
 
     private static Map<String, Object> parseMetadata(TreeNode metadataNode) throws JsonProcessingException {
