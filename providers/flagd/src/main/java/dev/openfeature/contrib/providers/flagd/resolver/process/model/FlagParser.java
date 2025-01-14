@@ -1,7 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -24,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagParser {
     private static final String FLAG_KEY = "flags";
+    private static final String METADATA_KEY = "metadata";
     private static final String EVALUATOR_KEY = "$evaluators";
     private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -50,8 +53,7 @@ public class FlagParser {
     }
 
     /** Parse {@link String} for feature flags. */
-    public static Map<String, FeatureFlag> parseString(final String configuration, boolean throwIfInvalid)
-            throws IOException {
+    public static ParsingResult parseString(final String configuration, boolean throwIfInvalid) throws IOException {
         if (SCHEMA_VALIDATOR != null) {
             try (JsonParser parser = MAPPER.createParser(configuration)) {
                 Set<ValidationMessage> validationMessages = SCHEMA_VALIDATOR.validate(parser.readValueAsTree());
@@ -69,10 +71,12 @@ public class FlagParser {
         final String transposedConfiguration = transposeEvaluators(configuration);
 
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
-
+        final Map<String, Object> flagSetMetadata;
         try (JsonParser parser = MAPPER.createParser(transposedConfiguration)) {
             final TreeNode treeNode = parser.readValueAsTree();
             final TreeNode flagNode = treeNode.get(FLAG_KEY);
+            final TreeNode metadataNode = treeNode.get(METADATA_KEY);
+            flagSetMetadata = parseMetadata(metadataNode);
 
             if (flagNode == null) {
                 throw new IllegalArgumentException("No flag configurations found in the payload");
@@ -85,7 +89,16 @@ public class FlagParser {
             }
         }
 
-        return flagMap;
+        return new ParsingResult(flagMap, flagSetMetadata);
+    }
+
+    private static Map<String, Object> parseMetadata(TreeNode metadataNode) throws JsonProcessingException {
+        if (metadataNode == null) {
+            return new HashMap<>();
+        }
+
+        TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
+        return MAPPER.treeToValue(metadataNode, typeRef);
     }
 
     private static String transposeEvaluators(final String configuration) throws IOException {

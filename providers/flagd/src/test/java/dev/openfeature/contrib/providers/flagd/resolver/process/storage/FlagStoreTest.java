@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class FlagStoreTest {
 
     @Test
-    public void connectorHandling() throws Exception {
+    void connectorHandling() throws Exception {
         final int maxDelay = 1000;
 
         final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<>();
@@ -100,7 +100,7 @@ class FlagStoreTest {
         });
         // flags changed for first time
         assertEquals(
-                FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true).keySet().stream()
+                FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true).getFlags().keySet().stream()
                         .collect(Collectors.toList()),
                 storageStateDTOS.take().getChangedFlagsKeys());
 
@@ -108,7 +108,8 @@ class FlagStoreTest {
             payload.offer(new QueuePayload(
                     QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), GetMetadataResponse.getDefaultInstance()));
         });
-        Map<String, FeatureFlag> expectedChangedFlags = FlagParser.parseString(getFlagsFromResource(VALID_LONG), true);
+        Map<String, FeatureFlag> expectedChangedFlags =
+                FlagParser.parseString(getFlagsFromResource(VALID_LONG), true).getFlags();
         expectedChangedFlags.remove("myBoolFlag");
         // flags changed from initial VALID_SIMPLE flag, as a set because we don't care about order
         Assert.assertEquals(

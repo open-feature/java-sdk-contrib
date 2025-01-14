@@ -4,6 +4,7 @@ import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.co
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
@@ -35,6 +36,7 @@ public class FlagStore implements Storage {
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(1);
     private final Map<String, FeatureFlag> flags = new HashMap<>();
+    private final Map<String, Object> flagSetMetadata = new HashMap<>();
 
     private final Connector connector;
     private final boolean throwIfInvalid;
@@ -49,6 +51,7 @@ public class FlagStore implements Storage {
     }
 
     /** Initialize storage layer. */
+    @Override
     public void init() throws Exception {
         connector.init();
         Thread streamer = new Thread(() -> {
@@ -68,6 +71,7 @@ public class FlagStore implements Storage {
      *
      * @throws InterruptedException if stream can't be closed within deadline.
      */
+    @Override
     public void shutdown() throws InterruptedException {
         if (shutdown.getAndSet(true)) {
             return;
@@ -76,17 +80,23 @@ public class FlagStore implements Storage {
         connector.shutdown();
     }
 
-    /** Retrieve flag for the given key. */
-    public FeatureFlag getFlag(final String key) {
+    /** Retrieve flag for the given key and the flag set metadata. */
+    @Override
+    public StorageQueryResult getFlag(final String key) {
         readLock.lock();
+        FeatureFlag flag;
+        Map<String, Object> metadata;
         try {
-            return flags.get(key);
+            flag = flags.get(key);
+            metadata = new HashMap<>(flagSetMetadata);
         } finally {
             readLock.unlock();
         }
+        return new StorageQueryResult(flag, metadata);
     }
 
     /** Retrieve blocking queue to check storage status. */
+    @Override
     public BlockingQueue<StorageStateChange> getStateQueue() {
         return stateBlockingQueue;
     }
@@ -100,14 +110,18 @@ public class FlagStore implements Storage {
                 case DATA:
                     try {
                         List<String> changedFlagsKeys;
-                        Map<String, FeatureFlag> flagMap =
-                                FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
+                        ParsingResult parsingResult = FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
+                        Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
+                        Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
+
                         Structure metadata = parseSyncMetadata(payload.getMetadataResponse());
                         writeLock.lock();
                         try {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);
                             flags.clear();
                             flags.putAll(flagMap);
+                            flagSetMetadata.clear();
+                            flagSetMetadata.putAll(flagSetMetadataMap);
                         } finally {
                             writeLock.unlock();
                         }
