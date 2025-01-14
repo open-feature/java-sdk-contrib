@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
+import lombok.Getter;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,6 +17,7 @@ public class ConnectionEvent {
     /**
      * The current state of the connection.
      */
+    @Getter
     private final ConnectionState connected;
 
     /**
@@ -121,4 +123,5 @@ public class ConnectionEvent {
     public boolean isStale() {
         return this.connected == ConnectionState.STALE;
     }
+
 }

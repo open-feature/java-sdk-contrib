@@ -1,11 +1,15 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
+import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
-import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import eu.rekawek.toxiproxy.Proxy;
+import eu.rekawek.toxiproxy.ToxiproxyClient;
+import eu.rekawek.toxiproxy.model.ToxicDirection;
+import eu.rekawek.toxiproxy.model.toxic.Timeout;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterAll;
 import io.cucumber.java.Before;
@@ -17,6 +21,8 @@ import org.junit.jupiter.api.parallel.Isolated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -36,6 +42,11 @@ public class ProviderSteps extends AbstractSteps {
 
     public static final int UNAVAILABLE_PORT = 9999;
     static Map<ProviderType, FlagdContainer> containers = new HashMap<>();
+    static Map<ProviderType, Map<Config.Resolver, String>> proxyports = new HashMap<>();
+    public static Network network = Network.newNetwork();
+    public static ToxiproxyContainer toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0")
+            .withNetwork(network).withCreateContainerCmdModifier((cmd -> cmd.withName("toxiproxy")));
+    public static ToxiproxyClient toxiproxyClient;
 
     static Path sharedTempDir;
 
@@ -52,12 +63,31 @@ public class ProviderSteps extends AbstractSteps {
         super(state);
     }
 
+    static String generateProxyName(Config.Resolver resolver, ProviderType providerType) {
+        return providerType + "-" + resolver;
+    }
+
     @BeforeAll
     public static void beforeAll() throws IOException {
-        containers.put(ProviderType.DEFAULT, new FlagdContainer());
-        containers.put(ProviderType.SSL, new FlagdContainer("ssl"));
+        toxiproxy.start();
+        toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
+        toxiproxyClient.createProxy(
+                generateProxyName(Config.Resolver.RPC, ProviderType.DEFAULT),
+                "0.0.0.0:8666", "default:8013");
+
+        toxiproxyClient.createProxy(generateProxyName(Config.Resolver.IN_PROCESS, ProviderType.DEFAULT), "0.0.0.0:8667", "default:8015");
+        toxiproxyClient.createProxy(generateProxyName(Config.Resolver.RPC, ProviderType.SSL), "0.0.0.0:8668", "ssl:8013");
+        toxiproxyClient.createProxy(generateProxyName(Config.Resolver.IN_PROCESS, ProviderType.SSL), "0.0.0.0:8669", "ssl:8015");
+
+        containers.put(ProviderType.DEFAULT,
+                new FlagdContainer().withNetwork(network).withNetworkAliases("default")
+        );
+        containers.put(ProviderType.SSL,
+                new FlagdContainer("ssl").withNetwork(network).withNetworkAliases("ssl")
+        );
         containers.put(ProviderType.SOCKET, new FlagdContainer("socket")
                 .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE));
+
 
     }
 
@@ -69,14 +99,17 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @Before
-    public void before() {
+    public void before() throws IOException {
+
         containers.values().stream().filter(containers -> !containers.isRunning())
                 .forEach(FlagdContainer::start);
     }
+
     @After
     public void tearDown() {
         OpenFeatureAPI.getInstance().shutdown();
     }
+
 
 
     @Given("a {} flagd provider")
@@ -106,14 +139,14 @@ public class ProviderSteps extends AbstractSteps {
                 this.state.providerType = ProviderType.SSL;
                 state
                         .builder
-                        .port(getContainer().getPort(State.resolverType))
+                        .port(getContainer(state.providerType).getPort(State.resolverType))
                         .tls(true)
                         .certPath(absolutePath);
                 break;
 
             default:
                 this.state.providerType = ProviderType.DEFAULT;
-                state.builder.port(getContainer().getPort(State.resolverType));
+                state.builder.port(toxiproxy.getMappedPort(8666));
                 break;
         }
         FeatureProvider provider = new FlagdProvider(state.builder
@@ -130,30 +163,30 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @When("the connection is lost for {int}s")
-    public void the_connection_is_lost_for(int seconds) throws InterruptedException {
-        FlagdContainer container = getContainer();
+    public void the_connection_is_lost_for(int seconds) throws InterruptedException, IOException {
+        LOG.info("Timeout and wait for {} seconds", seconds);
+        Proxy proxy = toxiproxyClient.getProxy(generateProxyName(State.resolverType, state.providerType));
+        Timeout restart = proxy
+                .toxics()
+                .timeout("restart", ToxicDirection.UPSTREAM, seconds);
 
-/*        TimerTask task = new TimerTask() {
+        TimerTask task = new TimerTask() {
             public void run() {
-                container.start();
-                int port = container.getPort(State.resolverType);
+                try {
+                    proxy.toxics().get("restart").remove();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
-        Timer timer = new Timer("Timer");*/
+        Timer timer = new Timer("Timer");
 
-        LOG.info("stopping container for {}", state.providerType);
-        container.stop();
+        timer.schedule(task, seconds * 1000L);
 
-        //timer.schedule(task, seconds * 1000L);
-        Thread.sleep(seconds * 1000L);
-
-        LOG.info("starting container for {}", state.providerType);
-        container.start();
     }
 
-    private FlagdContainer getContainer() {
-        LOG.info("getting container for {}", state.providerType);
-        System.out.println("getting container for " + state.providerType);
-        return containers.getOrDefault(state.providerType, containers.get(ProviderType.DEFAULT));
+    static FlagdContainer getContainer(ProviderType providerType) {
+        LOG.info("getting container for {}", providerType);
+        return containers.getOrDefault(providerType, containers.get(ProviderType.DEFAULT));
     }
 }

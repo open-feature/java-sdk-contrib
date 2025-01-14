@@ -10,12 +10,14 @@ import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.MutableContext;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 
 public class State {
     public ProviderType providerType;
     public Client client;
-    public ArrayList<Event> events = new ArrayList<>();
+    public List<Event> events = new LinkedList<>();
     public Optional<Event> lastEvent;
     public FlagSteps.Flag flag;
     public MutableContext context
