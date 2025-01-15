@@ -143,11 +143,6 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
         }
     }
 
-    private synchronized void onInitialConnect() {
-        connected = true;
-        restartStream();
-    }
-
     /**
      * Handles the event when the GRPC channel becomes ready, marking the connection as established.
      * Cancels any pending reconnection task and restarts the event stream.

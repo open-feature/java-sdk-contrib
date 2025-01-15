@@ -1,5 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.google.gson.JsonObject;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
@@ -22,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import lombok.extern.slf4j.Slf4j;
@@ -38,24 +42,12 @@ public class ProviderSteps extends AbstractSteps {
 
     public static final int UNAVAILABLE_PORT = 9999;
     static Map<ProviderType, FlagdContainer> containers = new HashMap<>();
-    static Map<ProviderType, Map<Config.Resolver, String>> proxyports = new HashMap<>();
     public static Network network = Network.newNetwork();
     public static ToxiproxyContainer toxiproxy =
             new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0").withNetwork(network);
     public static ToxiproxyClient toxiproxyClient;
 
     static Path sharedTempDir;
-
-    static {
-        try {
-            sharedTempDir = Files.createDirectories(
-                    Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private Timer restartTimer;
 
     public ProviderSteps(State state) {
         super(state);
@@ -83,6 +75,8 @@ public class ProviderSteps extends AbstractSteps {
                 ProviderType.DEFAULT, new FlagdContainer().withNetwork(network).withNetworkAliases("default"));
         containers.put(
                 ProviderType.SSL, new FlagdContainer("ssl").withNetwork(network).withNetworkAliases("ssl"));
+        sharedTempDir = Files.createDirectories(
+                Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
         containers.put(
                 ProviderType.SOCKET,
                 new FlagdContainer("socket")
@@ -147,7 +141,7 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @Given("a {} flagd provider")
-    public void setupProvider(String providerType) {
+    public void setupProvider(String providerType) throws IOException {
         state.builder.deadline(500).keepAlive(0).retryGracePeriod(3);
         boolean wait = true;
         switch (providerType) {
@@ -173,6 +167,21 @@ public class ProviderSteps extends AbstractSteps {
                         .port(getPort(State.resolverType, state.providerType))
                         .tls(true)
                         .certPath(absolutePath);
+                break;
+            case "offline":
+                File flags = new File("test-harness/flags");
+                ObjectMapper objectMapper = new ObjectMapper();
+                Object merged = new Object();
+                for (File listFile : Objects.requireNonNull(flags.listFiles())) {
+                    ObjectReader updater = objectMapper.readerForUpdating(merged);
+                    merged = updater.readValue(listFile, Object.class);
+                }
+                Path offlinePath = Files.createTempFile("flags", ".json");
+                objectMapper.writeValue(offlinePath.toFile(), merged);
+
+                state.builder
+                        .port(UNAVAILABLE_PORT)
+                        .offlineFlagSourcePath(offlinePath.toAbsolutePath().toString());
                 break;
 
             default:
@@ -209,7 +218,7 @@ public class ProviderSteps extends AbstractSteps {
                 }
             }
         };
-        restartTimer = new Timer("Timer" + randomizer);
+        Timer restartTimer = new Timer("Timer" + randomizer);
 
         restartTimer.schedule(task, seconds * 1000L);
     }

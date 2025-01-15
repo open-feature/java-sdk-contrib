@@ -111,7 +111,8 @@ public class FlagdProvider extends EventProvider {
         this.flagResolver.init();
         // block till ready - this works with deadline fine for rpc, but with in_process we also need to take parsing
         // into the equation
-        Util.busyWaitAndCheck(this.deadline + 1000, () -> initialized);
+        // TODO: evaluate where we are losing time, so we can remove this magic number - follow up
+        Util.busyWaitAndCheck(this.deadline + 200, () -> initialized);
     }
 
     @Override
@@ -184,6 +185,7 @@ public class FlagdProvider extends EventProvider {
         return enrichedContext;
     }
 
+    @SuppressWarnings("checkstyle:fallthrough")
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
         syncMetadata = flagdProviderEvent.getSyncMetadata();
@@ -211,6 +213,8 @@ public class FlagdProvider extends EventProvider {
                 }
                 previousEvent = ProviderEvent.PROVIDER_ERROR;
                 break;
+            default:
+                log.info("Unknown event {}", flagdProviderEvent.getEvent());
         }
     }
 
@@ -247,7 +251,6 @@ public class FlagdProvider extends EventProvider {
                         this.emitProviderError(ProviderEventDetails.builder()
                                 .message("there has been an error")
                                 .build());
-                        ;
                     },
                     gracePeriod,
                     TimeUnit.SECONDS);
