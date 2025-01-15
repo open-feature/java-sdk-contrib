@@ -43,17 +43,19 @@ public class FlagdProvider extends EventProvider {
     private volatile ProviderEvent previousEvent = null;
 
     /**
-     * An executor service responsible for scheduling reconnection attempts.
+     * An executor service responsible for emitting {@link ProviderEvent#PROVIDER_ERROR} after the provider went
+     * {@link ProviderEvent#PROVIDER_STALE} for {@link #gracePeriod} seconds.
      */
-    private final ScheduledExecutorService reconnectExecutor;
+    private final ScheduledExecutorService errorExecutor;
 
     /**
-     * A scheduled task for managing reconnection attempts.
+     * A scheduled task for emitting {@link ProviderEvent#PROVIDER_ERROR}.
      */
     private ScheduledFuture<?> reconnectTask;
 
     /**
-     * The grace period in milliseconds to wait for reconnection before emitting an error event.
+     * The grace period in milliseconds to wait after {@link ProviderEvent#PROVIDER_STALE} before emitting a
+     * {@link ProviderEvent#PROVIDER_ERROR}.
      */
     private final long gracePeriod;
     /**
@@ -92,7 +94,7 @@ public class FlagdProvider extends EventProvider {
         }
         hooks.add(new SyncMetadataHook(this::getEnrichedContext));
         contextEnricher = options.getContextEnricher();
-        this.reconnectExecutor = Executors.newSingleThreadScheduledExecutor();
+        this.errorExecutor = Executors.newSingleThreadScheduledExecutor();
         this.gracePeriod = options.getRetryGracePeriod();
         this.deadline = options.getDeadline();
     }
@@ -122,9 +124,9 @@ public class FlagdProvider extends EventProvider {
         }
         try {
             this.flagResolver.shutdown();
-            if (reconnectExecutor != null) {
-                reconnectExecutor.shutdownNow();
-                reconnectExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+            if (errorExecutor != null) {
+                errorExecutor.shutdownNow();
+                errorExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS);
             }
         } catch (Exception e) {
             log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
@@ -242,8 +244,8 @@ public class FlagdProvider extends EventProvider {
             reconnectTask.cancel(false);
         }
 
-        if (!reconnectExecutor.isShutdown()) {
-            reconnectTask = reconnectExecutor.schedule(
+        if (!errorExecutor.isShutdown()) {
+            reconnectTask = errorExecutor.schedule(
                     () -> {
                         log.debug(
                                 "Provider did not reconnect successfully within {}s. Emit ERROR event...", gracePeriod);
