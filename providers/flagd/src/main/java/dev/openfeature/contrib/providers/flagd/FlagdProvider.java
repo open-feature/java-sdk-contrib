@@ -114,7 +114,7 @@ public class FlagdProvider extends EventProvider {
         // block till ready - this works with deadline fine for rpc, but with in_process we also need to take parsing
         // into the equation
         // TODO: evaluate where we are losing time, so we can remove this magic number - follow up
-        Util.busyWaitAndCheck(this.deadline + 200, () -> initialized);
+        Util.busyWaitAndCheck(this.deadline + 500, () -> initialized);
     }
 
     @Override
@@ -195,15 +195,19 @@ public class FlagdProvider extends EventProvider {
             enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
         }
 
+        /*
+        We only use Error and Ready as previous states.
+        As error will first be emitted as Stale, and only turns after a while into an emitted Error.
+        Ready is needed, as the InProcessResolver does not have a dedicated ready event, hence we need to
+        forward a configuration changed to the ready, if we are not in the ready state.
+         */
         switch (flagdProviderEvent.getEvent()) {
             case PROVIDER_CONFIGURATION_CHANGED:
                 if (previousEvent == ProviderEvent.PROVIDER_READY) {
-                    this.emitProviderConfigurationChanged(ProviderEventDetails.builder()
-                            .flagsChanged(flagdProviderEvent.getFlagsChanged())
-                            .message("configuration changed")
-                            .build());
+                    onConfigurationChanged(flagdProviderEvent);
                     break;
                 }
+                // intentional fall through, a not-ready change will trigger a ready.
             case PROVIDER_READY:
                 onReady();
                 previousEvent = ProviderEvent.PROVIDER_READY;
@@ -218,6 +222,13 @@ public class FlagdProvider extends EventProvider {
             default:
                 log.info("Unknown event {}", flagdProviderEvent.getEvent());
         }
+    }
+
+    private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
+        this.emitProviderConfigurationChanged(ProviderEventDetails.builder()
+                .flagsChanged(flagdProviderEvent.getFlagsChanged())
+                .message("configuration changed")
+                .build());
     }
 
     private void onReady() {

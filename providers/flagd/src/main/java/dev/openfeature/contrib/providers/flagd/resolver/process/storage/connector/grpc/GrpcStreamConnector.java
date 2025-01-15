@@ -112,7 +112,6 @@ public class GrpcStreamConnector implements Connector {
                 try {
                     metadataResponse = grpcConnector
                             .getResolver()
-                            .withDeadlineAfter(deadline, TimeUnit.MILLISECONDS)
                             .getMetadata(metadataRequest.build());
                 } catch (Exception e) {
                     // the chances this call fails but the syncRequest does not are slim
@@ -122,6 +121,7 @@ public class GrpcStreamConnector implements Connector {
                     metadataException = e;
                 }
 
+                log.info("stream");
                 while (!shutdown.get()) {
                     final GrpcResponseModel response = streamReceiver.take();
                     if (response.isComplete()) {

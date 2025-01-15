@@ -156,14 +156,13 @@
             <scope>test</scope>
         </dependency>
         <!-- uncomment for logoutput during test runs -->
-        <!--
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>2.0.16</version>
             <scope>test</scope>
         </dependency>
-        -->
     </dependencies>
 
     <dependencyManagement>

@@ -17,7 +17,6 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -69,39 +68,6 @@ class GrpcConnectorTest {
             testServer.shutdownNow();
             testServer.awaitTermination();
         }
-    }
-
-    @Test
-    @Disabled("not sure this test makes sense in this kind of way")
-    void whenShuttingDownAndRestartingGrpcServer_ConsumerReceivesDisconnectedAndConnectedEvent() throws Exception {
-        CountDownLatch sync = new CountDownLatch(2);
-        ArrayList<Boolean> connectionStateChanges = Lists.newArrayList();
-        Consumer<FlagdProviderEvent> testConsumer = event -> {
-            connectionStateChanges.add(!event.isDisconnected());
-            sync.countDown();
-        };
-
-        GrpcConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> instance = new GrpcConnector<>(
-                FlagdOptions.builder().build(),
-                ServiceGrpc::newStub,
-                ServiceGrpc::newBlockingStub,
-                testConsumer,
-                stub -> stub.eventStream(Evaluation.EventStreamRequest.getDefaultInstance(), mockEventStreamObserver),
-                testChannel);
-
-        instance.initialize();
-
-        // when shutting down server
-        testServer.shutdown();
-        testServer.awaitTermination(1, TimeUnit.SECONDS);
-
-        // when restarting server
-        setupTestGrpcServer();
-
-        // then consumer received DISCONNECTED and CONNECTED event
-        boolean finished = sync.await(10, TimeUnit.SECONDS);
-        Assertions.assertTrue(finished);
-        Assertions.assertEquals(Lists.newArrayList(DISCONNECTED, CONNECTED), connectionStateChanges);
     }
 
     @Test

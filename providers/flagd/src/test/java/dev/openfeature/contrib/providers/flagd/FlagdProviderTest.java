@@ -61,7 +61,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
@@ -318,13 +317,6 @@ class FlagdProviderTest {
     @Test
     void resolvers_should_not_cache_responses_if_not_static() {
         do_resolvers_cache_responses(DEFAULT.toString(), true, false);
-    }
-
-    @Test
-    @Disabled(
-            "This test seems to be wrong on the way, we are handling caching, as we return values as long as we are in stale mode")
-    void resolvers_should_not_cache_responses_if_event_stream_not_alive() {
-        do_resolvers_cache_responses(STATIC_REASON, false, false);
     }
 
     @Test
