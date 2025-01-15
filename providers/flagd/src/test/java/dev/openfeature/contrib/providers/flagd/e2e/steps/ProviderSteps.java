@@ -204,16 +204,19 @@ public class ProviderSteps extends AbstractSteps {
     public void the_connection_is_lost_for(int seconds) throws InterruptedException, IOException {
         log.info("Timeout and wait for {} seconds", seconds);
         String randomizer = RandomStringUtils.randomAlphanumeric(5);
-        String timoutName = "restart" + randomizer;
+        String timeoutUpName = "restart-up-" + randomizer;
+        String timeoutDownName = "restart-down-" + randomizer;
         Proxy proxy = toxiproxyClient.getProxy(generateProxyName(State.resolverType, state.providerType));
-        proxy.toxics().timeout(timoutName, ToxicDirection.UPSTREAM, seconds);
+        proxy.toxics().timeout(timeoutDownName, ToxicDirection.DOWNSTREAM, seconds);
+        proxy.toxics().timeout(timeoutUpName, ToxicDirection.UPSTREAM, seconds);
 
         TimerTask task = new TimerTask() {
             public void run() {
                 try {
-                    proxy.toxics().get(timoutName).remove();
+                    proxy.toxics().get(timeoutUpName).remove();
+                    proxy.toxics().get(timeoutDownName).remove();
                 } catch (IOException e) {
-                    log.debug("Failed to remove timout", e);
+                    log.debug("Failed to remove timeout", e);
                 }
             }
         };
