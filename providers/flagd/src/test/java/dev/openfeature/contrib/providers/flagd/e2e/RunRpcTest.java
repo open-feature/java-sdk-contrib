@@ -22,6 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Suite
 @IncludeEngines("cucumber")
 @SelectDirectories("test-harness/gherkin")
+// if you want to run just one feature file, use the following line instead of @SelectDirectories
 // @SelectFile("test-harness/gherkin/rpc-caching.feature")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.steps")

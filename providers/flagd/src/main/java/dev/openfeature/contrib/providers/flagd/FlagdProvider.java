@@ -51,7 +51,7 @@ public class FlagdProvider extends EventProvider {
     /**
      * A scheduled task for emitting {@link ProviderEvent#PROVIDER_ERROR}.
      */
-    private ScheduledFuture<?> reconnectTask;
+    private ScheduledFuture<?> errorTask;
 
     /**
      * The grace period in milliseconds to wait after {@link ProviderEvent#PROVIDER_STALE} before emitting a
@@ -114,7 +114,7 @@ public class FlagdProvider extends EventProvider {
         // block till ready - this works with deadline fine for rpc, but with in_process we also need to take parsing
         // into the equation
         // TODO: evaluate where we are losing time, so we can remove this magic number - follow up
-        Util.busyWaitAndCheck(this.deadline + 500, () -> initialized);
+        Util.busyWaitAndCheck(this.deadline + 200, () -> initialized);
     }
 
     @Override
@@ -188,7 +188,7 @@ public class FlagdProvider extends EventProvider {
     }
 
     @SuppressWarnings("checkstyle:fallthrough")
-    private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
+    private synchronized void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
         syncMetadata = flagdProviderEvent.getSyncMetadata();
         if (flagdProviderEvent.getSyncMetadata() != null) {
@@ -236,8 +236,8 @@ public class FlagdProvider extends EventProvider {
             initialized = true;
             log.info("initialized FlagdProvider");
         }
-        if (reconnectTask != null && !reconnectTask.isCancelled()) {
-            reconnectTask.cancel(false);
+        if (errorTask != null && !errorTask.isCancelled()) {
+            errorTask.cancel(false);
             log.debug("Reconnection task cancelled as connection became READY.");
         }
         this.emitProviderReady(
@@ -251,19 +251,22 @@ public class FlagdProvider extends EventProvider {
                 .message("there has been an error")
                 .build());
 
-        if (reconnectTask != null && !reconnectTask.isCancelled()) {
-            reconnectTask.cancel(false);
+        if (errorTask != null && !errorTask.isCancelled()) {
+            errorTask.cancel(false);
         }
 
         if (!errorExecutor.isShutdown()) {
-            reconnectTask = errorExecutor.schedule(
+            errorTask = errorExecutor.schedule(
                     () -> {
-                        log.debug(
-                                "Provider did not reconnect successfully within {}s. Emit ERROR event...", gracePeriod);
-                        flagResolver.onError();
-                        this.emitProviderError(ProviderEventDetails.builder()
-                                .message("there has been an error")
-                                .build());
+                        if(previousEvent == ProviderEvent.PROVIDER_ERROR) {
+                            log.debug(
+                                    "Provider did not reconnect successfully within {}s. Emit ERROR event...",
+                                    gracePeriod);
+                            flagResolver.onError();
+                            this.emitProviderError(ProviderEventDetails.builder()
+                                    .message("there has been an error")
+                                    .build());
+                        }
                     },
                     gracePeriod,
                     TimeUnit.SECONDS);

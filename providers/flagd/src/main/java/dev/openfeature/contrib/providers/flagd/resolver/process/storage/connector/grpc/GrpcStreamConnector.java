@@ -16,7 +16,6 @@ import io.grpc.Context;
 import io.grpc.Context.CancellableContext;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -121,6 +120,7 @@ public class GrpcStreamConnector implements Connector {
                     metadataException = e;
                 }
 
+                log.info("stream");
                 while (!shutdown.get()) {
                     final GrpcResponseModel response = streamReceiver.take();
                     if (response.isComplete()) {
