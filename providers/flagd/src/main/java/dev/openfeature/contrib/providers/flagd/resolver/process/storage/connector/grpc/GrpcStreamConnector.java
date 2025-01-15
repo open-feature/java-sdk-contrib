@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
@@ -43,7 +43,7 @@ public class GrpcStreamConnector implements Connector {
     /**
      * Creates a new GrpcStreamConnector responsible for observing the event stream.
      */
-    public GrpcStreamConnector(final FlagdOptions options, Consumer<ConnectionEvent> onConnectionEvent) {
+    public GrpcStreamConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         deadline = options.getDeadline();
         selector = options.getSelector();
         streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -60,7 +60,7 @@ public class GrpcStreamConnector implements Connector {
         grpcConnector.initialize();
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, selector, deadline);
+                observeEventStream(blockingQueue, shutdown, deadline);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -89,11 +89,7 @@ public class GrpcStreamConnector implements Connector {
     }
 
     /** Contains blocking calls, to be used concurrently. */
-    void observeEventStream(
-            final BlockingQueue<QueuePayload> writeTo,
-            final AtomicBoolean shutdown,
-            final String selector,
-            final int deadline)
+    void observeEventStream(final BlockingQueue<QueuePayload> writeTo, final AtomicBoolean shutdown, final int deadline)
             throws InterruptedException {
 
         log.info("Initializing sync stream observer");
@@ -137,6 +133,7 @@ public class GrpcStreamConnector implements Connector {
 
                     Throwable streamException = response.getError();
                     if (streamException != null || metadataException != null) {
+                        log.debug("Exception in GRPC connection");
                         if (!writeTo.offer(new QueuePayload(
                                 QueuePayloadType.ERROR, "Error from stream or metadata", metadataResponse))) {
                             log.error("Failed to convey ERROR status, queue is full");

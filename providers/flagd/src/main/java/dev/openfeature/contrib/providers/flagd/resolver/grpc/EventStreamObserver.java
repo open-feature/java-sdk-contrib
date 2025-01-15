@@ -1,16 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
 import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
+import dev.openfeature.sdk.ProviderEvent;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,16 +20,15 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
 class EventStreamObserver implements StreamObserver<EventStreamResponse> {
 
-
     private final Consumer<List<String>> onConfigurationChange;
-    private final Consumer<ConnectionEvent> onReady;
+    private final Consumer<FlagdProviderEvent> onReady;
 
     /**
      * Constructs a new {@code EventStreamObserver} instance.
      *
      * @param onConnectionEvent a consumer to handle connection events with a boolean and a list of changed flags
      */
-    EventStreamObserver(Consumer<List<String>> onConfigurationChange, Consumer<ConnectionEvent> onReady) {
+    EventStreamObserver(Consumer<List<String>> onConfigurationChange, Consumer<FlagdProviderEvent> onReady) {
         this.onConfigurationChange = onConfigurationChange;
         this.onReady = onReady;
     }
@@ -56,14 +53,10 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
     }
 
     @Override
-    public void onError(Throwable throwable) {
-
-    }
+    public void onError(Throwable throwable) {}
 
     @Override
-    public void onCompleted() {
-
-    }
+    public void onCompleted() {}
 
     /**
      * Handles configuration change events by updating the cache and notifying listeners about changed flags.
@@ -88,6 +81,6 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
      */
     private void handleProviderReadyEvent() {
         log.info("Received provider ready event");
-        onReady.accept(new ConnectionEvent(true));
+        onReady.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
     }
 }

@@ -68,13 +68,16 @@ public class FlagSteps extends AbstractSteps {
     public void the_variant_should_be(String variant) {
         assertThat(state.evaluation.getVariant()).isEqualTo(variant);
     }
+
     @Then("the flag should be part of the event payload")
     @Then("the flag was modified")
     public void the_flag_was_modified() {
-        await().atMost(5000, MILLISECONDS)
-                .until(() -> state.events.stream().anyMatch(event -> event.type.equals("change") && event.details.getFlagsChanged().contains(state.flag.name)));
+        await().atMost(5000, MILLISECONDS).until(() -> state.events.stream()
+                .anyMatch(event -> event.type.equals("change")
+                        && event.details.getFlagsChanged().contains(state.flag.name)));
         state.lastEvent = state.events.stream()
-                .filter(event -> event.type.equals("change") && event.details.getFlagsChanged().contains(state.flag.name))
+                .filter(event -> event.type.equals("change")
+                        && event.details.getFlagsChanged().contains(state.flag.name))
                 .findFirst();
     }
 

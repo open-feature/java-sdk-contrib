@@ -7,17 +7,15 @@ import dev.openfeature.contrib.providers.flagd.e2e.State;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ConfigSteps extends AbstractSteps {
     /**
      * Not all properties are correctly implemented, hence that we need to ignore them till this is
@@ -29,8 +27,6 @@ public class ConfigSteps extends AbstractSteps {
             add("retryBackoffMaxMs");
         }
     };
-
-    private static final Logger LOG = LoggerFactory.getLogger(ConfigSteps.class);
 
     public ConfigSteps(State state) {
         super(state);
@@ -57,10 +53,9 @@ public class ConfigSteps extends AbstractSteps {
     }
 
     @Given("an option {string} of type {string} with value {string}")
-    public void we_have_an_option_of_type_with_value(String option, String type, String value)
-            throws Throwable {
+    public void we_have_an_option_of_type_with_value(String option, String type, String value) throws Throwable {
         if (IGNORED_FOR_NOW.contains(option)) {
-            LOG.error("option '{}' is not supported", option);
+            log.error("option '{}' is not supported", option);
             return;
         }
 
@@ -87,7 +82,7 @@ public class ConfigSteps extends AbstractSteps {
         Object convert = Utils.convert(value, type);
 
         if (IGNORED_FOR_NOW.contains(option)) {
-            LOG.error("option '{}' is not supported", option);
+            log.error("option '{}' is not supported", option);
             return;
         }
 

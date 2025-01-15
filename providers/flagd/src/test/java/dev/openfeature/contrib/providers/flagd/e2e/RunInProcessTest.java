@@ -22,6 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Suite
 @IncludeEngines("cucumber")
 @SelectDirectories("test-harness/gherkin")
+// @SelectFile("test-harness/gherkin/connection.feature")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.steps")
 @ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")

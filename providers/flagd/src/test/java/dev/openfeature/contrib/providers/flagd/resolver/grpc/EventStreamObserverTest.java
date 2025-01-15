@@ -1,29 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.resolver.grpc;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atMost;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.google.protobuf.Struct;
-import com.google.protobuf.Value;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 class EventStreamObserverTest {
 
-  /*  @Nested
+    /*  @Nested
     class StateChange {
 
         Cache cache;

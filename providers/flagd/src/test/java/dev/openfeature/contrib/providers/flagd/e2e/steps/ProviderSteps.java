@@ -9,7 +9,6 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
-import eu.rekawek.toxiproxy.model.toxic.Timeout;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterAll;
 import io.cucumber.java.Before;
@@ -25,26 +24,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.parallel.Isolated;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
 @Isolated()
+@Slf4j
 public class ProviderSteps extends AbstractSteps {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ProviderSteps.class);
 
     public static final int UNAVAILABLE_PORT = 9999;
     static Map<ProviderType, FlagdContainer> containers = new HashMap<>();
     static Map<ProviderType, Map<Config.Resolver, String>> proxyports = new HashMap<>();
     public static Network network = Network.newNetwork();
-    public static ToxiproxyContainer toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0")
-            .withNetwork(network);
+    public static ToxiproxyContainer toxiproxy =
+            new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0").withNetwork(network);
     public static ToxiproxyClient toxiproxyClient;
 
     static Path sharedTempDir;
@@ -104,18 +101,17 @@ public class ProviderSteps extends AbstractSteps {
     @Before
     public void before() throws IOException {
 
-        toxiproxyClient.getProxies().forEach(proxy ->
-        {
+        toxiproxyClient.getProxies().forEach(proxy -> {
             try {
                 proxy.toxics().getAll().forEach(toxic -> {
                     try {
                         toxic.remove();
                     } catch (IOException e) {
-                        LOG.debug("Failed to remove timout", e);
+                        log.debug("Failed to remove timout", e);
                     }
                 });
             } catch (IOException e) {
-                LOG.debug("Failed to remove timout", e);
+                log.debug("Failed to remove timout", e);
             }
         });
 
@@ -198,7 +194,7 @@ public class ProviderSteps extends AbstractSteps {
 
     @When("the connection is lost for {int}s")
     public void the_connection_is_lost_for(int seconds) throws InterruptedException, IOException {
-        LOG.info("Timeout and wait for {} seconds", seconds);
+        log.info("Timeout and wait for {} seconds", seconds);
         String randomizer = RandomStringUtils.randomAlphanumeric(5);
         String timoutName = "restart" + randomizer;
         Proxy proxy = toxiproxyClient.getProxy(generateProxyName(State.resolverType, state.providerType));
@@ -209,7 +205,7 @@ public class ProviderSteps extends AbstractSteps {
                 try {
                     proxy.toxics().get(timoutName).remove();
                 } catch (IOException e) {
-                    LOG.debug("Failed to remove timout", e);
+                    log.debug("Failed to remove timout", e);
                 }
             }
         };
@@ -218,9 +214,8 @@ public class ProviderSteps extends AbstractSteps {
         restartTimer.schedule(task, seconds * 1000L);
     }
 
-
     static FlagdContainer getContainer(ProviderType providerType) {
-        LOG.info("getting container for {}", providerType);
+        log.info("getting container for {}", providerType);
         return containers.getOrDefault(providerType, containers.get(ProviderType.DEFAULT));
     }
 }

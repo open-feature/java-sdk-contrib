@@ -3,10 +3,9 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
 import dev.openfeature.sdk.Value;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class Utils {
 

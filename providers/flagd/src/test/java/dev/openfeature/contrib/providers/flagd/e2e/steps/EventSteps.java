@@ -9,14 +9,13 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.util.LinkedList;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.parallel.Isolated;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Isolated()
+@Slf4j
 public class EventSteps extends AbstractSteps {
-    private static final Logger LOG = LoggerFactory.getLogger(EventSteps.class);
 
     public EventSteps(State state) {
         super(state);
@@ -26,7 +25,7 @@ public class EventSteps extends AbstractSteps {
     @Given("a {} event handler")
     public void a_stale_event_handler(String eventType) {
         state.client.on(mapEventType(eventType), eventDetails -> {
-            LOG.info("event tracked for {} ", eventType);
+            log.info("event tracked for {} ", eventType);
             state.events.add(new Event(eventType, eventDetails));
         });
     }
@@ -47,8 +46,10 @@ public class EventSteps extends AbstractSteps {
     }
 
     @When("a {} event was fired")
-    public void eventWasFired(String eventType) {
+    public void eventWasFired(String eventType) throws InterruptedException {
         eventHandlerShouldBeExecutedWithin(eventType, 10000);
+        // we might be too fast in the execution
+        Thread.sleep(500);
     }
 
     @Then("the {} event handler should have been executed")
@@ -58,7 +59,7 @@ public class EventSteps extends AbstractSteps {
 
     @Then("the {} event handler should have been executed within {int}ms")
     public void eventHandlerShouldBeExecutedWithin(String eventType, int ms) {
-        LOG.info("waiting for eventtype: {}", eventType);
+        log.info("waiting for eventtype: {}", eventType);
         await().atMost(ms, MILLISECONDS)
                 .until(() -> state.events.stream().anyMatch(event -> event.type.equals(eventType)));
         state.lastEvent = state.events.stream()
