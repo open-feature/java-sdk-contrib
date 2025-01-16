@@ -109,9 +109,7 @@ public class GrpcStreamConnector implements Connector {
             try (CancellableContext context = Context.current().withCancellation()) {
 
                 try {
-                    metadataResponse = grpcConnector
-                            .getResolver()
-                            .getMetadata(metadataRequest.build());
+                    metadataResponse = grpcConnector.getResolver().getMetadata(metadataRequest.build());
                 } catch (Exception e) {
                     // the chances this call fails but the syncRequest does not are slim
                     // it could be that the server doesn't implement this RPC

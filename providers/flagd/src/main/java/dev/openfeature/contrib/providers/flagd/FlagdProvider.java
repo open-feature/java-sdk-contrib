@@ -41,6 +41,7 @@ public class FlagdProvider extends EventProvider {
     private volatile EvaluationContext enrichedContext = new ImmutableContext();
     private final List<Hook> hooks = new ArrayList<>();
     private volatile ProviderEvent previousEvent = null;
+    private final Object eventLock;
 
     /**
      * An executor service responsible for emitting {@link ProviderEvent#PROVIDER_ERROR} after the provider went
@@ -97,6 +98,7 @@ public class FlagdProvider extends EventProvider {
         this.errorExecutor = Executors.newSingleThreadScheduledExecutor();
         this.gracePeriod = options.getRetryGracePeriod();
         this.deadline = options.getDeadline();
+        this.eventLock = new Object();
     }
 
     @Override
@@ -188,39 +190,42 @@ public class FlagdProvider extends EventProvider {
     }
 
     @SuppressWarnings("checkstyle:fallthrough")
-    private synchronized void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
+    private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
-        syncMetadata = flagdProviderEvent.getSyncMetadata();
-        if (flagdProviderEvent.getSyncMetadata() != null) {
-            enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
-        }
+        synchronized (eventLock) {
+            log.info("FlagdProviderEvent: {}", flagdProviderEvent);
+            syncMetadata = flagdProviderEvent.getSyncMetadata();
+            if (flagdProviderEvent.getSyncMetadata() != null) {
+                enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
+            }
 
-        /*
-        We only use Error and Ready as previous states.
-        As error will first be emitted as Stale, and only turns after a while into an emitted Error.
-        Ready is needed, as the InProcessResolver does not have a dedicated ready event, hence we need to
-        forward a configuration changed to the ready, if we are not in the ready state.
-         */
-        switch (flagdProviderEvent.getEvent()) {
-            case PROVIDER_CONFIGURATION_CHANGED:
-                if (previousEvent == ProviderEvent.PROVIDER_READY) {
-                    onConfigurationChanged(flagdProviderEvent);
+            /*
+            We only use Error and Ready as previous states.
+            As error will first be emitted as Stale, and only turns after a while into an emitted Error.
+            Ready is needed, as the InProcessResolver does not have a dedicated ready event, hence we need to
+            forward a configuration changed to the ready, if we are not in the ready state.
+             */
+            switch (flagdProviderEvent.getEvent()) {
+                case PROVIDER_CONFIGURATION_CHANGED:
+                    if (previousEvent == ProviderEvent.PROVIDER_READY) {
+                        onConfigurationChanged(flagdProviderEvent);
+                        break;
+                    }
+                    // intentional fall through, a not-ready change will trigger a ready.
+                case PROVIDER_READY:
+                    onReady();
+                    previousEvent = ProviderEvent.PROVIDER_READY;
                     break;
-                }
-                // intentional fall through, a not-ready change will trigger a ready.
-            case PROVIDER_READY:
-                onReady();
-                previousEvent = ProviderEvent.PROVIDER_READY;
-                break;
 
-            case PROVIDER_ERROR:
-                if (previousEvent != ProviderEvent.PROVIDER_ERROR) {
-                    onError();
-                }
-                previousEvent = ProviderEvent.PROVIDER_ERROR;
-                break;
-            default:
-                log.info("Unknown event {}", flagdProviderEvent.getEvent());
+                case PROVIDER_ERROR:
+                    if (previousEvent != ProviderEvent.PROVIDER_ERROR) {
+                        onError();
+                    }
+                    previousEvent = ProviderEvent.PROVIDER_ERROR;
+                    break;
+                default:
+                    log.info("Unknown event {}", flagdProviderEvent.getEvent());
+            }
         }
     }
 
@@ -258,7 +263,7 @@ public class FlagdProvider extends EventProvider {
         if (!errorExecutor.isShutdown()) {
             errorTask = errorExecutor.schedule(
                     () -> {
-                        if(previousEvent == ProviderEvent.PROVIDER_ERROR) {
+                        if (previousEvent == ProviderEvent.PROVIDER_ERROR) {
                             log.debug(
                                     "Provider did not reconnect successfully within {}s. Emit ERROR event...",
                                     gracePeriod);
