@@ -121,7 +121,6 @@ public class GrpcStreamConnector implements Connector {
                     metadataException = e;
                 }
 
-                log.info("stream");
                 while (!shutdown.get()) {
                     final GrpcResponseModel response = streamReceiver.take();
                     if (response.isComplete()) {
