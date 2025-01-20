@@ -1,9 +1,12 @@
-package dev.openfeature.contrib.providers.flagd.e2e.steps;
+package dev.openfeature.contrib.providers.flagd.e2e.steps.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
+import dev.openfeature.contrib.providers.flagd.e2e.steps.AbstractSteps;
+import dev.openfeature.contrib.providers.flagd.e2e.steps.EnvironmentVariableUtils;
+import dev.openfeature.contrib.providers.flagd.e2e.steps.Utils;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
