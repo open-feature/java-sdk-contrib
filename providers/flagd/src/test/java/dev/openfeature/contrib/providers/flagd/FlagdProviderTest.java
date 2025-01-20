@@ -700,24 +700,14 @@ class FlagdProviderTest {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
         final GrpcResolver grpcResolver = new GrpcResolver(flagdOptions, cache, (connectionEvent) -> {});
 
-        final FlagdProvider provider = new FlagdProvider();
-
         try {
             Field connector = GrpcResolver.class.getDeclaredField("connector");
             connector.setAccessible(true);
             connector.set(grpcResolver, grpc);
-
-            Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
-            flagResolver.setAccessible(true);
-            flagResolver.set(provider, grpcResolver);
-
-            Field initialized = FlagdProvider.class.getDeclaredField("initialized");
-            initialized.setAccessible(true);
-            initialized.set(provider, true);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-
+        final FlagdProvider provider = new FlagdProvider(grpcResolver, true);
         return provider;
     }
 

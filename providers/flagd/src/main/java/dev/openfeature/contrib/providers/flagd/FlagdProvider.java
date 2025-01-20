@@ -36,15 +36,12 @@ public class FlagdProvider extends EventProvider {
     private Function<Structure, EvaluationContext> contextEnricher;
     private static final String FLAGD_PROVIDER = "flagd";
     private final Resolver flagResolver;
-    private volatile boolean initialized = false;
-    private volatile Structure syncMetadata = new ImmutableStructure();
-    private volatile EvaluationContext enrichedContext = new ImmutableContext();
     private final List<Hook> hooks = new ArrayList<>();
-    private volatile ProviderEvent previousEvent = null;
-    private final Object eventLock;
+    private final EventsLock eventsLock = new EventsLock();
 
     /**
-     * An executor service responsible for emitting {@link ProviderEvent#PROVIDER_ERROR} after the provider went
+     * An executor service responsible for emitting
+     * {@link ProviderEvent#PROVIDER_ERROR} after the provider went
      * {@link ProviderEvent#PROVIDER_STALE} for {@link #gracePeriod} seconds.
      */
     private final ScheduledExecutorService errorExecutor;
@@ -55,7 +52,8 @@ public class FlagdProvider extends EventProvider {
     private ScheduledFuture<?> errorTask;
 
     /**
-     * The grace period in milliseconds to wait after {@link ProviderEvent#PROVIDER_STALE} before emitting a
+     * The grace period in milliseconds to wait after
+     * {@link ProviderEvent#PROVIDER_STALE} before emitting a
      * {@link ProviderEvent#PROVIDER_ERROR}.
      */
     private final long gracePeriod;
@@ -95,10 +93,22 @@ public class FlagdProvider extends EventProvider {
         }
         hooks.add(new SyncMetadataHook(this::getEnrichedContext));
         contextEnricher = options.getContextEnricher();
-        this.errorExecutor = Executors.newSingleThreadScheduledExecutor();
-        this.gracePeriod = options.getRetryGracePeriod();
-        this.deadline = options.getDeadline();
-        this.eventLock = new Object();
+        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        gracePeriod = options.getRetryGracePeriod();
+        deadline = options.getDeadline();
+    }
+
+    /**
+     * Internal constructor for test cases.
+     * DO NOT MAKE PUBLIC
+     */
+    FlagdProvider(Resolver resolver, boolean initialized) {
+        this.flagResolver = resolver;
+        deadline = Config.DEFAULT_DEADLINE;
+        gracePeriod = Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD;
+        hooks.add(new SyncMetadataHook(this::getEnrichedContext));
+        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        this.eventsLock.initialized = initialized;
     }
 
     @Override
@@ -107,33 +117,39 @@ public class FlagdProvider extends EventProvider {
     }
 
     @Override
-    public synchronized void initialize(EvaluationContext evaluationContext) throws Exception {
-        if (this.initialized) {
-            return;
-        }
+    public void initialize(EvaluationContext evaluationContext) throws Exception {
+        synchronized (eventsLock) {
+            if (eventsLock.initialized) {
+                return;
+            }
 
-        this.flagResolver.init();
-        // block till ready - this works with deadline fine for rpc, but with in_process we also need to take parsing
-        // into the equation
-        // TODO: evaluate where we are losing time, so we can remove this magic number - follow up
-        Util.busyWaitAndCheck(this.deadline + 200, () -> initialized);
+            flagResolver.init();
+        }
+        // block till ready - this works with deadline fine for rpc, but with in_process
+        // we also need to take parsing into the equation
+        // TODO: evaluate where we are losing time, so we can remove this magic number -
+        // follow up
+        // wait outside of the synchonrization or we'll deadlock
+        Util.busyWaitAndCheck(this.deadline * 2, () -> eventsLock.initialized);
     }
 
     @Override
-    public synchronized void shutdown() {
-        if (!this.initialized) {
-            return;
-        }
-        try {
-            this.flagResolver.shutdown();
-            if (errorExecutor != null) {
-                errorExecutor.shutdownNow();
-                errorExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+    public void shutdown() {
+        synchronized (eventsLock) {
+            if (!eventsLock.initialized) {
+                return;
             }
-        } catch (Exception e) {
-            log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
-        } finally {
-            this.initialized = false;
+            try {
+                this.flagResolver.shutdown();
+                if (errorExecutor != null) {
+                    errorExecutor.shutdownNow();
+                    errorExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+                }
+            } catch (Exception e) {
+                log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
+            } finally {
+                eventsLock.initialized = false;
+            }
         }
     }
 
@@ -144,27 +160,27 @@ public class FlagdProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.booleanEvaluation(key, defaultValue, ctx);
+        return flagResolver.booleanEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.stringEvaluation(key, defaultValue, ctx);
+        return flagResolver.stringEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.doubleEvaluation(key, defaultValue, ctx);
+        return flagResolver.doubleEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.integerEvaluation(key, defaultValue, ctx);
+        return flagResolver.integerEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.objectEvaluation(key, defaultValue, ctx);
+        return flagResolver.objectEvaluation(key, defaultValue, ctx);
     }
 
     /**
@@ -177,7 +193,7 @@ public class FlagdProvider extends EventProvider {
      * @return Object map representing sync metadata
      */
     protected Structure getSyncMetadata() {
-        return new ImmutableStructure(syncMetadata.asMap());
+        return new ImmutableStructure(eventsLock.syncMetadata.asMap());
     }
 
     /**
@@ -186,42 +202,45 @@ public class FlagdProvider extends EventProvider {
      * @return context
      */
     EvaluationContext getEnrichedContext() {
-        return enrichedContext;
+        return eventsLock.enrichedContext;
     }
 
     @SuppressWarnings("checkstyle:fallthrough")
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
-        synchronized (eventLock) {
+        synchronized (eventsLock) {
             log.info("FlagdProviderEvent: {}", flagdProviderEvent);
-            syncMetadata = flagdProviderEvent.getSyncMetadata();
+            eventsLock.syncMetadata = flagdProviderEvent.getSyncMetadata();
             if (flagdProviderEvent.getSyncMetadata() != null) {
-                enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
+                eventsLock.enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
             }
 
             /*
-            We only use Error and Ready as previous states.
-            As error will first be emitted as Stale, and only turns after a while into an emitted Error.
-            Ready is needed, as the InProcessResolver does not have a dedicated ready event, hence we need to
-            forward a configuration changed to the ready, if we are not in the ready state.
+             * We only use Error and Ready as previous states.
+             * As error will first be emitted as Stale, and only turns after a while into an
+             * emitted Error.
+             * Ready is needed, as the InProcessResolver does not have a dedicated ready
+             * event, hence we need to
+             * forward a configuration changed to the ready, if we are not in the ready
+             * state.
              */
             switch (flagdProviderEvent.getEvent()) {
                 case PROVIDER_CONFIGURATION_CHANGED:
-                    if (previousEvent == ProviderEvent.PROVIDER_READY) {
+                    if (eventsLock.previousEvent == ProviderEvent.PROVIDER_READY) {
                         onConfigurationChanged(flagdProviderEvent);
                         break;
                     }
                     // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
                     onReady();
-                    previousEvent = ProviderEvent.PROVIDER_READY;
+                    eventsLock.previousEvent = ProviderEvent.PROVIDER_READY;
                     break;
 
                 case PROVIDER_ERROR:
-                    if (previousEvent != ProviderEvent.PROVIDER_ERROR) {
+                    if (eventsLock.previousEvent != ProviderEvent.PROVIDER_ERROR) {
                         onError();
                     }
-                    previousEvent = ProviderEvent.PROVIDER_ERROR;
+                    eventsLock.previousEvent = ProviderEvent.PROVIDER_ERROR;
                     break;
                 default:
                     log.info("Unknown event {}", flagdProviderEvent.getEvent());
@@ -237,8 +256,8 @@ public class FlagdProvider extends EventProvider {
     }
 
     private void onReady() {
-        if (!initialized) {
-            initialized = true;
+        if (!eventsLock.initialized) {
+            eventsLock.initialized = true;
             log.info("initialized FlagdProvider");
         }
         if (errorTask != null && !errorTask.isCancelled()) {
@@ -263,7 +282,7 @@ public class FlagdProvider extends EventProvider {
         if (!errorExecutor.isShutdown()) {
             errorTask = errorExecutor.schedule(
                     () -> {
-                        if (previousEvent == ProviderEvent.PROVIDER_ERROR) {
+                        if (eventsLock.previousEvent == ProviderEvent.PROVIDER_ERROR) {
                             log.debug(
                                     "Provider did not reconnect successfully within {}s. Emit ERROR event...",
                                     gracePeriod);
@@ -276,5 +295,16 @@ public class FlagdProvider extends EventProvider {
                     gracePeriod,
                     TimeUnit.SECONDS);
         }
+    }
+
+    /**
+     * Contains all fields we need to worry about locking, used as intrinsic lock
+     * for sync blocks.
+     */
+    static class EventsLock {
+        volatile ProviderEvent previousEvent = null;
+        volatile Structure syncMetadata = new ImmutableStructure();
+        volatile boolean initialized = false;
+        volatile EvaluationContext enrichedContext = new ImmutableContext();
     }
 }
