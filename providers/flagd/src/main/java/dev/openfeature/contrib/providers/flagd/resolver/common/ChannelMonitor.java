@@ -32,7 +32,7 @@ public class ChannelMonitor {
             Runnable onConnectionLost) {
         channel.notifyWhenStateChanged(expectedState, () -> {
             ConnectivityState currentState = channel.getState(true);
-            log.info("Channel state changed to: {}", currentState);
+            log.debug("Channel state changed to: {}", currentState);
             if (currentState == ConnectivityState.READY) {
                 if (onConnectionReady != null) {
                     onConnectionReady.run();

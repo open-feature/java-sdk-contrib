@@ -2,14 +2,12 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.ProviderEvent;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 import java.util.Collections;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -54,7 +52,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     /**
      * A consumer that handles connection events such as connection loss or reconnection.
      */
-    private final Consumer<ConnectionEvent> onConnectionEvent;
+    private final Consumer<FlagdProviderEvent> onConnectionEvent;
 
     /**
      * A consumer that handles GRPC service stubs for event stream handling.
@@ -62,25 +60,10 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     private final Consumer<T> streamObserver;
 
     /**
-     * An executor service responsible for scheduling reconnection attempts.
-     */
-    private final ScheduledExecutorService reconnectExecutor;
-
-    /**
-     * The grace period in milliseconds to wait for reconnection before emitting an error event.
-     */
-    private final long gracePeriod;
-
-    /**
      * Indicates whether the connector is currently connected to the GRPC service.
      */
     @Getter
     private boolean connected = false;
-
-    /**
-     * A scheduled task for managing reconnection attempts.
-     */
-    private ScheduledFuture<?> reconnectTask;
 
     /**
      * Constructs a new {@code GrpcConnector} instance with the specified options and parameters.
@@ -96,19 +79,17 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
             final FlagdOptions options,
             final Function<ManagedChannel, T> stub,
             final Function<ManagedChannel, K> blockingStub,
-            final Consumer<ConnectionEvent> onConnectionEvent,
+            final Consumer<FlagdProviderEvent> onConnectionEvent,
             final Consumer<T> eventStreamObserver,
             ManagedChannel channel) {
 
         this.channel = channel;
-        this.serviceStub = stub.apply(channel);
-        this.blockingStub = blockingStub.apply(channel);
+        this.serviceStub = stub.apply(channel).withWaitForReady();
+        this.blockingStub = blockingStub.apply(channel).withWaitForReady();
         this.deadline = options.getDeadline();
         this.streamDeadlineMs = options.getStreamDeadlineMs();
         this.onConnectionEvent = onConnectionEvent;
         this.streamObserver = eventStreamObserver;
-        this.gracePeriod = options.getRetryGracePeriod();
-        this.reconnectExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
     /**
@@ -124,7 +105,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
             final FlagdOptions options,
             final Function<ManagedChannel, T> stub,
             final Function<ManagedChannel, K> blockingStub,
-            final Consumer<ConnectionEvent> onConnectionEvent,
+            final Consumer<FlagdProviderEvent> onConnectionEvent,
             final Consumer<T> eventStreamObserver) {
         this(options, stub, blockingStub, onConnectionEvent, eventStreamObserver, ChannelBuilder.nettyChannel(options));
     }
@@ -136,8 +117,6 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      */
     public void initialize() throws Exception {
         log.info("Initializing GRPC connection...");
-        ChannelMonitor.waitForDesiredState(
-                ConnectivityState.READY, channel, this::onInitialConnect, deadline, TimeUnit.MILLISECONDS);
         ChannelMonitor.monitorChannelState(ConnectivityState.READY, channel, this::onReady, this::onConnectionLost);
     }
 
@@ -157,25 +136,11 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      */
     public void shutdown() throws InterruptedException {
         log.info("Shutting down GRPC connection...");
-        if (reconnectExecutor != null) {
-            reconnectExecutor.shutdownNow();
-            reconnectExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS);
-        }
 
         if (!channel.isShutdown()) {
             channel.shutdownNow();
             channel.awaitTermination(deadline, TimeUnit.MILLISECONDS);
         }
-
-        if (connected) {
-            this.onConnectionEvent.accept(new ConnectionEvent(false));
-            connected = false;
-        }
-    }
-
-    private synchronized void onInitialConnect() {
-        connected = true;
-        restartStream();
     }
 
     /**
@@ -184,13 +149,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      */
     private synchronized void onReady() {
         connected = true;
-
-        if (reconnectTask != null && !reconnectTask.isCancelled()) {
-            reconnectTask.cancel(false);
-            log.debug("Reconnection task cancelled as connection became READY.");
-        }
         restartStream();
-        this.onConnectionEvent.accept(new ConnectionEvent(true));
     }
 
     /**
@@ -198,27 +157,10 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      * Schedules a reconnection task after a grace period and emits a stale connection event.
      */
     private synchronized void onConnectionLost() {
-        log.debug("Connection lost. Emit STALE event...");
-        log.debug("Waiting {}s for connection to become available...", gracePeriod);
         connected = false;
 
-        this.onConnectionEvent.accept(
-                new ConnectionEvent(ConnectionState.STALE, Collections.emptyList(), new ImmutableStructure()));
-
-        if (reconnectTask != null && !reconnectTask.isCancelled()) {
-            reconnectTask.cancel(false);
-        }
-
-        if (!reconnectExecutor.isShutdown()) {
-            reconnectTask = reconnectExecutor.schedule(
-                    () -> {
-                        log.debug(
-                                "Provider did not reconnect successfully within {}s. Emit ERROR event...", gracePeriod);
-                        this.onConnectionEvent.accept(new ConnectionEvent(false));
-                    },
-                    gracePeriod,
-                    TimeUnit.SECONDS);
-        }
+        this.onConnectionEvent.accept(new FlagdProviderEvent(
+                ProviderEvent.PROVIDER_ERROR, Collections.emptyList(), new ImmutableStructure()));
     }
 
     /**

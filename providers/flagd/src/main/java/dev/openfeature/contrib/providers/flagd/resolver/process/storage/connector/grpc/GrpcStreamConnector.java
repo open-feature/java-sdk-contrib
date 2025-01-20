@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
@@ -16,7 +16,6 @@ import io.grpc.Context;
 import io.grpc.Context.CancellableContext;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +42,7 @@ public class GrpcStreamConnector implements Connector {
     /**
      * Creates a new GrpcStreamConnector responsible for observing the event stream.
      */
-    public GrpcStreamConnector(final FlagdOptions options, Consumer<ConnectionEvent> onConnectionEvent) {
+    public GrpcStreamConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         deadline = options.getDeadline();
         selector = options.getSelector();
         streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -60,7 +59,7 @@ public class GrpcStreamConnector implements Connector {
         grpcConnector.initialize();
         Thread listener = new Thread(() -> {
             try {
-                observeEventStream(blockingQueue, shutdown, selector, deadline);
+                observeEventStream(blockingQueue, shutdown, deadline);
             } catch (InterruptedException e) {
                 log.warn("gRPC event stream interrupted, flag configurations are stale", e);
                 Thread.currentThread().interrupt();
@@ -89,11 +88,7 @@ public class GrpcStreamConnector implements Connector {
     }
 
     /** Contains blocking calls, to be used concurrently. */
-    void observeEventStream(
-            final BlockingQueue<QueuePayload> writeTo,
-            final AtomicBoolean shutdown,
-            final String selector,
-            final int deadline)
+    void observeEventStream(final BlockingQueue<QueuePayload> writeTo, final AtomicBoolean shutdown, final int deadline)
             throws InterruptedException {
 
         log.info("Initializing sync stream observer");
@@ -114,10 +109,7 @@ public class GrpcStreamConnector implements Connector {
             try (CancellableContext context = Context.current().withCancellation()) {
 
                 try {
-                    metadataResponse = grpcConnector
-                            .getResolver()
-                            .withDeadlineAfter(deadline, TimeUnit.MILLISECONDS)
-                            .getMetadata(metadataRequest.build());
+                    metadataResponse = grpcConnector.getResolver().getMetadata(metadataRequest.build());
                 } catch (Exception e) {
                     // the chances this call fails but the syncRequest does not are slim
                     // it could be that the server doesn't implement this RPC
@@ -126,6 +118,7 @@ public class GrpcStreamConnector implements Connector {
                     metadataException = e;
                 }
 
+                log.info("stream");
                 while (!shutdown.get()) {
                     final GrpcResponseModel response = streamReceiver.take();
                     if (response.isComplete()) {
@@ -137,6 +130,7 @@ public class GrpcStreamConnector implements Connector {
 
                     Throwable streamException = response.getError();
                     if (streamException != null || metadataException != null) {
+                        log.debug("Exception in GRPC connection");
                         if (!writeTo.offer(new QueuePayload(
                                 QueuePayloadType.ERROR, "Error from stream or metadata", metadataResponse))) {
                             log.error("Failed to convey ERROR status, queue is full");
