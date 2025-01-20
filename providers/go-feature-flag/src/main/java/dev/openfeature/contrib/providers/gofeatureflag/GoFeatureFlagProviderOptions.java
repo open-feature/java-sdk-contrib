@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.gofeatureflag;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.openfeature.sdk.ProviderEvaluation;
+import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -90,4 +91,12 @@ public class GoFeatureFlagProviderOptions {
      * retrieved in the cache. default: false
      */
     private boolean disableDataCollection;
+
+    /**
+     * (optional) exporterMetadata is the metadata we send to the GO Feature Flag relay proxy when we report the
+     * evaluation data usage.
+     * ‼️Important: If you are using a GO Feature Flag relay proxy before version v1.41.0, the information of this
+     * field will not be added to your feature events.
+     */
+    private Map<String, Object> exporterMetadata;
 }
