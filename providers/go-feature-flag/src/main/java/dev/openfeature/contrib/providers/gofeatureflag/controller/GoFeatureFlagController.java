@@ -31,7 +31,10 @@ import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +72,9 @@ public class GoFeatureFlagController {
 
     private final HttpUrl parsedEndpoint;
 
+    /** exporterMetadata contains the metadata to send to the collector API. */
+    private Map<String, Object> exporterMetadata = new HashMap<>();
+
     /**
      * etag contains the etag of the configuration, if null, it means that the configuration has never
      * been retrieved.
@@ -85,6 +91,7 @@ public class GoFeatureFlagController {
     @Builder
     private GoFeatureFlagController(final GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.apiKey = options.getApiKey();
+        this.exporterMetadata = options.getExporterMetadata();
 
         this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
         if (this.parsedEndpoint == null) {
@@ -218,7 +225,7 @@ public class GoFeatureFlagController {
      */
     public void sendEventToDataCollector(List<Event> eventsList) {
         try {
-            Events events = new Events(eventsList);
+            Events events = new Events(eventsList, this.exporterMetadata);
             HttpUrl url = this.parsedEndpoint
                     .newBuilder()
                     .addEncodedPathSegment("v1")

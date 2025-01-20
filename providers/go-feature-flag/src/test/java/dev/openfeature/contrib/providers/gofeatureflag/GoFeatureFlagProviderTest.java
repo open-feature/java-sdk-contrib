@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -44,6 +45,7 @@ import org.junit.jupiter.api.TestInfo;
 @Slf4j
 class GoFeatureFlagProviderTest {
     private int publishEventsRequestsReceived = 0;
+    private Map exporterMetadata;
     private int flagChangeCallCounter = 0;
     private boolean flagChanged404 = false;
 
@@ -67,6 +69,7 @@ class GoFeatureFlagProviderTest {
                 String requestBody = request.getBody().readString(StandardCharsets.UTF_8);
                 Map<String, Object> map = requestMapper.readValue(requestBody, Map.class);
                 publishEventsRequestsReceived = ((List) map.get("events")).size();
+                exporterMetadata = ((Map) map.get("meta"));
                 if (requestBody.contains("fail_500") && publishEventsRequestsReceived == 1) {
                     return new MockResponse().setResponseCode(502);
                 }
@@ -942,6 +945,44 @@ class GoFeatureFlagProviderTest {
         Client client = OpenFeatureAPI.getInstance().getClient(providerName);
         Thread.sleep(150L);
         assertEquals(1, this.flagChangeCallCounter);
+    }
+
+    @SneakyThrows
+    @Test
+    void should_send_exporter_metadata() {
+        Map<String, Object> customExporterMetadata = new HashMap<>();
+        customExporterMetadata.put("version", "1.0.0");
+        customExporterMetadata.put("intTest", 1234567890);
+        customExporterMetadata.put("doubleTest", 12345.67890);
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .enableCache(true)
+                .flushIntervalMs(150L)
+                .exporterMetadata(customExporterMetadata)
+                .build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        Thread.sleep(150);
+
+        Map<String, Object> want = new HashMap<>();
+        want.put("version", "1.0.0");
+        want.put("intTest", 1234567890);
+        want.put("doubleTest", 12345.6789);
+        want.put("openfeature",true);
+        want.put("provider", "java");
+        assertEquals(want, this.exporterMetadata,
+                "we should have the exporter metadata in the last event sent to the data collector");
     }
 
     private String readMockResponse(String filename) throws Exception {
