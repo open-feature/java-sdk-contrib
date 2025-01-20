@@ -10,8 +10,7 @@ import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.GrpcConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveFactory;
@@ -26,6 +25,7 @@ import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
@@ -57,23 +57,28 @@ public final class GrpcResolver implements Resolver {
      *
      * @param options           flagd options
      * @param cache             cache to use
-     * @param onConnectionEvent lambda which handles changes in the connection/stream
+     * @param onProviderEvent lambda which handles changes in the connection/stream
      */
     public GrpcResolver(
-            final FlagdOptions options, final Cache cache, final Consumer<ConnectionEvent> onConnectionEvent) {
+            final FlagdOptions options, final Cache cache, final Consumer<FlagdProviderEvent> onProviderEvent) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
         this.connector = new GrpcConnector<>(
                 options,
                 ServiceGrpc::newStub,
                 ServiceGrpc::newBlockingStub,
-                onConnectionEvent,
+                onProviderEvent,
                 stub -> stub.eventStream(
                         Evaluation.EventStreamRequest.getDefaultInstance(),
                         new EventStreamObserver(
-                                cache,
-                                (k, e) ->
-                                        onConnectionEvent.accept(new ConnectionEvent(ConnectionState.CONNECTED, e)))));
+                                (flags) -> {
+                                    if (cache != null) {
+                                        flags.forEach(cache::remove);
+                                    }
+                                    onProviderEvent.accept(new FlagdProviderEvent(
+                                            ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, flags));
+                                },
+                                onProviderEvent)));
     }
 
     /**
@@ -88,6 +93,13 @@ public final class GrpcResolver implements Resolver {
      */
     public void shutdown() throws Exception {
         this.connector.shutdown();
+    }
+
+    @Override
+    public void onError() {
+        if (cache != null) {
+            cache.clear();
+        }
     }
 
     /**
@@ -207,7 +219,7 @@ public final class GrpcResolver implements Resolver {
     }
 
     private Boolean cacheAvailable() {
-        return this.cache.getEnabled() && this.connector.isConnected();
+        return this.cache.getEnabled();
     }
 
     private static ImmutableMetadata metadataFromResponse(Message response) {

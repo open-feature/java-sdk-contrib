@@ -71,43 +71,11 @@ class GrpcConnectorTest {
     }
 
     @Test
-    void whenShuttingDownAndRestartingGrpcServer_ConsumerReceivesDisconnectedAndConnectedEvent() throws Exception {
-        CountDownLatch sync = new CountDownLatch(2);
-        ArrayList<Boolean> connectionStateChanges = Lists.newArrayList();
-        Consumer<ConnectionEvent> testConsumer = event -> {
-            connectionStateChanges.add(event.isConnected());
-            sync.countDown();
-        };
-
-        GrpcConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> instance = new GrpcConnector<>(
-                FlagdOptions.builder().build(),
-                ServiceGrpc::newStub,
-                ServiceGrpc::newBlockingStub,
-                testConsumer,
-                stub -> stub.eventStream(Evaluation.EventStreamRequest.getDefaultInstance(), mockEventStreamObserver),
-                testChannel);
-
-        instance.initialize();
-
-        // when shutting down server
-        testServer.shutdown();
-        testServer.awaitTermination(1, TimeUnit.SECONDS);
-
-        // when restarting server
-        setupTestGrpcServer();
-
-        // then consumer received DISCONNECTED and CONNECTED event
-        boolean finished = sync.await(10, TimeUnit.SECONDS);
-        Assertions.assertTrue(finished);
-        Assertions.assertEquals(Lists.newArrayList(DISCONNECTED, CONNECTED), connectionStateChanges);
-    }
-
-    @Test
     void whenShuttingDownGrpcConnector_ConsumerReceivesDisconnectedEvent() throws Exception {
         CountDownLatch sync = new CountDownLatch(1);
         ArrayList<Boolean> connectionStateChanges = Lists.newArrayList();
-        Consumer<ConnectionEvent> testConsumer = event -> {
-            connectionStateChanges.add(event.isConnected());
+        Consumer<FlagdProviderEvent> testConsumer = event -> {
+            connectionStateChanges.add(!event.isDisconnected());
             sync.countDown();
         };
 

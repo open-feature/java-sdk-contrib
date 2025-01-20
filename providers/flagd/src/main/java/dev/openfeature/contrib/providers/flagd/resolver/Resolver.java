@@ -10,6 +10,8 @@ public interface Resolver {
 
     void shutdown() throws Exception;
 
+    default void onError() {}
+
     ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx);
 
     ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx);

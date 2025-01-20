@@ -1,25 +1,22 @@
-package dev.openfeature.contrib.providers.flagd.e2e.steps.config;
+package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.Config;
-import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import dev.openfeature.contrib.providers.flagd.e2e.State;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-public class ConfigSteps {
+@Slf4j
+public class ConfigSteps extends AbstractSteps {
     /**
      * Not all properties are correctly implemented, hence that we need to ignore them till this is
      * fixed
@@ -31,24 +28,24 @@ public class ConfigSteps {
         }
     };
 
-    private static final Logger LOG = LoggerFactory.getLogger(ConfigSteps.class);
-
-    FlagdOptions.FlagdOptionsBuilder builder = FlagdOptions.builder();
-    FlagdOptions options;
+    public ConfigSteps(State state) {
+        super(state);
+    }
 
     @When("a config was initialized")
     public void we_initialize_a_config() {
-        options = builder.build();
+        state.options = state.builder.build();
     }
 
     @When("a config was initialized for {string}")
     public void we_initialize_a_config_for(String string) {
         switch (string.toLowerCase()) {
             case "in-process":
-                options = builder.resolverType(Config.Resolver.IN_PROCESS).build();
+                state.options =
+                        state.builder.resolverType(Config.Resolver.IN_PROCESS).build();
                 break;
             case "rpc":
-                options = builder.resolverType(Config.Resolver.RPC).build();
+                state.options = state.builder.resolverType(Config.Resolver.RPC).build();
                 break;
             default:
                 throw new RuntimeException("Unknown resolver type: " + string);
@@ -56,19 +53,18 @@ public class ConfigSteps {
     }
 
     @Given("an option {string} of type {string} with value {string}")
-    public void we_have_an_option_of_type_with_value(String option, String type, String value)
-            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void we_have_an_option_of_type_with_value(String option, String type, String value) throws Throwable {
         if (IGNORED_FOR_NOW.contains(option)) {
-            LOG.error("option '{}' is not supported", option);
+            log.error("option '{}' is not supported", option);
             return;
         }
 
-        Object converted = convert(value, type);
-        Method method = Arrays.stream(builder.getClass().getMethods())
+        Object converted = Utils.convert(value, type);
+        Method method = Arrays.stream(state.builder.getClass().getMethods())
                 .filter(method1 -> method1.getName().equals(mapOptionNames(option)))
                 .findFirst()
                 .orElseThrow(RuntimeException::new);
-        method.invoke(builder, converted);
+        method.invoke(state.builder, converted);
     }
 
     Map<String, String> envVarsSet = new HashMap<>();
@@ -81,44 +77,18 @@ public class ConfigSteps {
         EnvironmentVariableUtils.set(varName, value);
     }
 
-    private Object convert(String value, String type) throws ClassNotFoundException {
-        if (Objects.equals(value, "null")) return null;
-        switch (type) {
-            case "Boolean":
-                return Boolean.parseBoolean(value);
-            case "String":
-                return value;
-            case "Integer":
-                return Integer.parseInt(value);
-            case "Long":
-                return Long.parseLong(value);
-            case "ResolverType":
-                switch (value.toLowerCase()) {
-                    case "in-process":
-                        return Config.Resolver.IN_PROCESS;
-                    case "rpc":
-                        return Config.Resolver.RPC;
-                    default:
-                        throw new RuntimeException("Unknown resolver type: " + value);
-                }
-            case "CacheType":
-                return CacheType.valueOf(value.toUpperCase()).getValue();
-        }
-        throw new RuntimeException("Unknown config type: " + type);
-    }
-
     @Then("the option {string} of type {string} should have the value {string}")
     public void the_option_of_type_should_have_the_value(String option, String type, String value) throws Throwable {
-        Object convert = convert(value, type);
+        Object convert = Utils.convert(value, type);
 
         if (IGNORED_FOR_NOW.contains(option)) {
-            LOG.error("option '{}' is not supported", option);
+            log.error("option '{}' is not supported", option);
             return;
         }
 
         option = mapOptionNames(option);
 
-        assertThat(options).hasFieldOrPropertyWithValue(option, convert);
+        assertThat(state.options).hasFieldOrPropertyWithValue(option, convert);
 
         // Resetting env vars
         for (Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
