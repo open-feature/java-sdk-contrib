@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.10.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.5...dev.openfeature.contrib.providers.flagd-v0.10.5) (2025-01-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* implement grpc reconnect for inprocess mode ([#1150](https://github.com/open-feature/java-sdk-contrib/issues/1150))
+* Use grpc intern reconnections for  rpc event stream ([#1112](https://github.com/open-feature/java-sdk-contrib/issues/1112))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.5 ([#1156](https://github.com/open-feature/java-sdk-contrib/issues/1156)) ([514004f](https://github.com/open-feature/java-sdk-contrib/commit/514004fa77180c12bf24c64aba83b3b37471f0c7))
+* **deps:** update dependency commons-codec:commons-codec to v1.17.2 ([#1145](https://github.com/open-feature/java-sdk-contrib/issues/1145)) ([ee91441](https://github.com/open-feature/java-sdk-contrib/commit/ee91441b97b0622d54bc36d1be9be85f7f2372c6))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.117.final ([#1155](https://github.com/open-feature/java-sdk-contrib/issues/1155)) ([5a293bb](https://github.com/open-feature/java-sdk-contrib/commit/5a293bbd2ee387d62f3f27e617e79e143d4e8b06))
+* **deps:** update dependency io.opentelemetry:opentelemetry-api to v1.46.0 ([#1151](https://github.com/open-feature/java-sdk-contrib/issues/1151)) ([8fb4194](https://github.com/open-feature/java-sdk-contrib/commit/8fb41945fe5c5a5d1ec0847ed3eaa595629b4362))
+* **deps:** update grpc-java monorepo to v1.69.1 ([#1161](https://github.com/open-feature/java-sdk-contrib/issues/1161)) ([23db163](https://github.com/open-feature/java-sdk-contrib/commit/23db16318ef5d7cff3f6a701717addfef0d482cc))
+
+
+### ✨ New Features
+
+* implement grpc reconnect for inprocess mode ([#1150](https://github.com/open-feature/java-sdk-contrib/issues/1150)) ([d2410c7](https://github.com/open-feature/java-sdk-contrib/commit/d2410c70edcb59d3c5eedcff6071ca4963a096ac))
+* Update in-process resolver to support flag metadata [#1102](https://github.com/open-feature/java-sdk-contrib/issues/1102) ([#1122](https://github.com/open-feature/java-sdk-contrib/issues/1122)) ([a330bd6](https://github.com/open-feature/java-sdk-contrib/commit/a330bd66aa50b85661feae8534e7e3def9287e5d))
+* Use grpc intern reconnections for  rpc event stream ([#1112](https://github.com/open-feature/java-sdk-contrib/issues/1112)) ([d66adc9](https://github.com/open-feature/java-sdk-contrib/commit/d66adc914111c773dfbcfb78617a633b96f7f7c0))
+
+
+### 🧹 Chore
+
+* **deps:** update providers/flagd/schemas digest to 37baa2c ([#1142](https://github.com/open-feature/java-sdk-contrib/issues/1142)) ([d75e620](https://github.com/open-feature/java-sdk-contrib/commit/d75e62006a105f9f1a7e1d4e4d2d2c0f412ed6c6))
+* **deps:** update providers/flagd/spec digest to 6c673d7 ([#1157](https://github.com/open-feature/java-sdk-contrib/issues/1157)) ([cd0ea9e](https://github.com/open-feature/java-sdk-contrib/commit/cd0ea9e8d3d303b675b5d33287d94394e3c3aa6c))
+
 ## [0.10.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.2...dev.openfeature.contrib.providers.flagd-v0.10.5) (2025-01-03)
 
 
