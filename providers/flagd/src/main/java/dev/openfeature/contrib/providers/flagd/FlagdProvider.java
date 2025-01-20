@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.Wait;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
@@ -35,6 +36,7 @@ public class FlagdProvider extends EventProvider {
     private volatile Structure syncMetadata = new ImmutableStructure();
     private volatile EvaluationContext enrichedContext = new ImmutableContext();
     private final List<Hook> hooks = new ArrayList<>();
+    private final Wait connectionWait = new Wait();
 
     protected final void finalize() {
         // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
@@ -55,7 +57,7 @@ public class FlagdProvider extends EventProvider {
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
             case Config.RESOLVER_IN_PROCESS:
-                this.flagResolver = new InProcessResolver(options, this::isConnected, this::onConnectionEvent);
+                this.flagResolver = new InProcessResolver(options, connectionWait, this::onConnectionEvent);
                 break;
             case Config.RESOLVER_RPC:
                 this.flagResolver = new GrpcResolver(
@@ -82,6 +84,7 @@ public class FlagdProvider extends EventProvider {
 
         this.flagResolver.init();
         this.initialized = this.connected = true;
+        connectionWait.onFinished();
     }
 
     @Override
@@ -151,13 +154,12 @@ public class FlagdProvider extends EventProvider {
         return enrichedContext;
     }
 
-    private boolean isConnected() {
-        return this.connected;
-    }
-
     private void onConnectionEvent(ConnectionEvent connectionEvent) {
         final boolean wasConnected = connected;
         final boolean isConnected = connected = connectionEvent.isConnected();
+        if (isConnected) {
+            connectionWait.onFinished();
+        }
 
         syncMetadata = connectionEvent.getSyncMetadata();
         enrichedContext = contextEnricher.apply(connectionEvent.getSyncMetadata());

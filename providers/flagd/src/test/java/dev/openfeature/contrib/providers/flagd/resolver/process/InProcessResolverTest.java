@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.Wait;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
@@ -517,7 +518,7 @@ class InProcessResolverTest {
     private InProcessResolver getInProcessResolverWith(final FlagdOptions options, final MockStorage storage)
             throws NoSuchFieldException, IllegalAccessException {
 
-        final InProcessResolver resolver = new InProcessResolver(options, () -> true, connectionEvent -> {});
+        final InProcessResolver resolver = new InProcessResolver(options, Wait.finished(), connectionEvent -> {});
         return injectFlagStore(resolver, storage);
     }
 
@@ -525,8 +526,8 @@ class InProcessResolverTest {
             final MockStorage storage, final Consumer<ConnectionEvent> onConnectionEvent)
             throws NoSuchFieldException, IllegalAccessException {
 
-        final InProcessResolver resolver =
-                new InProcessResolver(FlagdOptions.builder().deadline(1000).build(), () -> true, onConnectionEvent);
+        final InProcessResolver resolver = new InProcessResolver(
+                FlagdOptions.builder().deadline(1000).build(), Wait.finished(), onConnectionEvent);
         return injectFlagStore(resolver, storage);
     }
 
@@ -535,7 +536,7 @@ class InProcessResolverTest {
             throws NoSuchFieldException, IllegalAccessException {
 
         final InProcessResolver resolver = new InProcessResolver(
-                FlagdOptions.builder().selector(selector).deadline(1000).build(), () -> true, onConnectionEvent);
+                FlagdOptions.builder().selector(selector).deadline(1000).build(), Wait.finished(), onConnectionEvent);
         return injectFlagStore(resolver, storage);
     }
 

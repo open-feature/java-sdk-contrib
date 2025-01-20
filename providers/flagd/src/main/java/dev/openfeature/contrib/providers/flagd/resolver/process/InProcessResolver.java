@@ -6,7 +6,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
-import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
+import dev.openfeature.contrib.providers.flagd.resolver.common.Wait;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
@@ -28,7 +28,6 @@ import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -42,7 +41,7 @@ public class InProcessResolver implements Resolver {
     private final Consumer<ConnectionEvent> onConnectionEvent;
     private final Operator operator;
     private final long deadline;
-    private final Supplier<Boolean> connectedSupplier;
+    private final Wait connectionWait;
     private final String scope;
 
     /**
@@ -51,20 +50,17 @@ public class InProcessResolver implements Resolver {
      * Flags are evaluated locally.
      *
      * @param options           flagd options
-     * @param connectedSupplier lambda providing current connection status from
-     *                          caller
+     * @param connectionWait    A {@link Wait} object, which waits until a connection is established
      * @param onConnectionEvent lambda which handles changes in the
      *                          connection/stream
      */
     public InProcessResolver(
-            FlagdOptions options,
-            final Supplier<Boolean> connectedSupplier,
-            Consumer<ConnectionEvent> onConnectionEvent) {
+            FlagdOptions options, final Wait connectionWait, Consumer<ConnectionEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
-        this.connectedSupplier = connectedSupplier;
+        this.connectionWait = connectionWait;
         this.scope = options.getSelector();
     }
 
@@ -97,7 +93,7 @@ public class InProcessResolver implements Resolver {
         stateWatcher.start();
 
         // block till ready
-        Util.busyWaitAndCheck(this.deadline, this.connectedSupplier);
+        connectionWait.waitUntilFinished(deadline);
     }
 
     /**
