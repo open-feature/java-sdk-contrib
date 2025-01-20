@@ -979,9 +979,11 @@ class GoFeatureFlagProviderTest {
         want.put("version", "1.0.0");
         want.put("intTest", 1234567890);
         want.put("doubleTest", 12345.6789);
-        want.put("openfeature",true);
+        want.put("openfeature", true);
         want.put("provider", "java");
-        assertEquals(want, this.exporterMetadata,
+        assertEquals(
+                want,
+                this.exporterMetadata,
                 "we should have the exporter metadata in the last event sent to the data collector");
     }
 
