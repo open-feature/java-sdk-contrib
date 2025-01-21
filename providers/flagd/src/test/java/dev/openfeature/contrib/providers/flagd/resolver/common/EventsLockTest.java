@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common;
 
-import dev.openfeature.contrib.providers.flagd.EventsLock;
+import dev.openfeature.contrib.providers.flagd.FlagdProviderSyncResources;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -12,11 +12,11 @@ import org.junit.jupiter.api.Timeout;
 class EventsLockTest {
     private static final long PERMISSIBLE_EPSILON = 20;
 
-    private EventsLock eventsLock;
+    private FlagdProviderSyncResources eventsLock;
 
     @BeforeEach
     void setUp() {
-        eventsLock = new EventsLock();
+        eventsLock = new FlagdProviderSyncResources();
     }
 
     @Timeout(2)

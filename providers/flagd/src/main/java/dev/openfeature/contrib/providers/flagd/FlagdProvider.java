@@ -34,7 +34,7 @@ public class FlagdProvider extends EventProvider {
     private static final String FLAGD_PROVIDER = "flagd";
     private final Resolver flagResolver;
     private final List<Hook> hooks = new ArrayList<>();
-    private final EventsLock eventsLock = new EventsLock();
+    private final FlagdProviderSyncResources syncResources = new FlagdProviderSyncResources();
 
     /**
      * An executor service responsible for emitting
@@ -106,7 +106,7 @@ public class FlagdProvider extends EventProvider {
         hooks.add(new SyncMetadataHook(this::getEnrichedContext));
         errorExecutor = Executors.newSingleThreadScheduledExecutor();
         if (initialized) {
-            this.eventsLock.initialize();
+            this.syncResources.initialize();
         }
     }
 
@@ -117,8 +117,8 @@ public class FlagdProvider extends EventProvider {
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        synchronized (eventsLock) {
-            if (eventsLock.isInitialized()) {
+        synchronized (syncResources) {
+            if (syncResources.isInitialized()) {
                 return;
             }
 
@@ -126,15 +126,15 @@ public class FlagdProvider extends EventProvider {
             // block till ready - this works with deadline fine for rpc, but with in_process
             // we also need to take parsing into the equation
             // TODO: evaluate where we are losing time, so we can remove this magic number -
-            eventsLock.waitForInitialization(this.deadline * 2);
+            syncResources.waitForInitialization(this.deadline * 2);
         }
     }
 
     @Override
     public void shutdown() {
-        synchronized (eventsLock) {
+        synchronized (syncResources) {
             try {
-                if (!eventsLock.isInitialized() || eventsLock.isShutDown()) {
+                if (!syncResources.isInitialized() || syncResources.isShutDown()) {
                     return;
                 }
 
@@ -146,7 +146,7 @@ public class FlagdProvider extends EventProvider {
             } catch (Exception e) {
                 log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
             } finally {
-                eventsLock.shutdown();
+                syncResources.shutdown();
             }
         }
     }
@@ -191,7 +191,7 @@ public class FlagdProvider extends EventProvider {
      * @return Object map representing sync metadata
      */
     protected Structure getSyncMetadata() {
-        return eventsLock.getSyncMetadata();
+        return syncResources.getSyncMetadata();
     }
 
     /**
@@ -200,17 +200,17 @@ public class FlagdProvider extends EventProvider {
      * @return context
      */
     EvaluationContext getEnrichedContext() {
-        return eventsLock.getEnrichedContext();
+        return syncResources.getEnrichedContext();
     }
 
     @SuppressWarnings("checkstyle:fallthrough")
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
-        synchronized (eventsLock) {
+        synchronized (syncResources) {
             log.info("FlagdProviderEvent: {}", flagdProviderEvent);
-            eventsLock.setSyncMetadata(flagdProviderEvent.getSyncMetadata());
+            syncResources.setSyncMetadata(flagdProviderEvent.getSyncMetadata());
             if (flagdProviderEvent.getSyncMetadata() != null) {
-                eventsLock.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
+                syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
             }
 
             /*
@@ -224,20 +224,20 @@ public class FlagdProvider extends EventProvider {
              */
             switch (flagdProviderEvent.getEvent()) {
                 case PROVIDER_CONFIGURATION_CHANGED:
-                    if (eventsLock.getPreviousEvent() == ProviderEvent.PROVIDER_READY) {
+                    if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_READY) {
                         onConfigurationChanged(flagdProviderEvent);
                         break;
                     }
                     // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
                     onReady();
-                    eventsLock.setPreviousEvent(ProviderEvent.PROVIDER_READY);
+                    syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;
 
                 case PROVIDER_ERROR:
-                    if (eventsLock.getPreviousEvent() != ProviderEvent.PROVIDER_ERROR) {
+                    if (syncResources.getPreviousEvent() != ProviderEvent.PROVIDER_ERROR) {
                         onError();
-                        eventsLock.setPreviousEvent(ProviderEvent.PROVIDER_ERROR);
+                        syncResources.setPreviousEvent(ProviderEvent.PROVIDER_ERROR);
                     }
 
                     break;
@@ -255,7 +255,7 @@ public class FlagdProvider extends EventProvider {
     }
 
     private void onReady() {
-        if (eventsLock.initialize()) {
+        if (syncResources.initialize()) {
             log.info("initialized FlagdProvider");
         }
         if (errorTask != null && !errorTask.isCancelled()) {
@@ -280,7 +280,7 @@ public class FlagdProvider extends EventProvider {
         if (!errorExecutor.isShutdown()) {
             errorTask = errorExecutor.schedule(
                     () -> {
-                        if (eventsLock.getPreviousEvent() == ProviderEvent.PROVIDER_ERROR) {
+                        if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_ERROR) {
                             log.debug(
                                     "Provider did not reconnect successfully within {}s. Emit ERROR event...",
                                     gracePeriod);

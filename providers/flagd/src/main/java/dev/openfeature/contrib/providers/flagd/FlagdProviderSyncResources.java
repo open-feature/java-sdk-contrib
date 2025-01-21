@@ -14,7 +14,7 @@ import lombok.Setter;
  * for sync blocks.
  */
 @Getter
-public class EventsLock {
+public class FlagdProviderSyncResources {
     @Setter
     private volatile ProviderEvent previousEvent = null;
 
