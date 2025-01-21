@@ -20,8 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.Wait;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
@@ -89,7 +88,7 @@ class InProcessResolverTest {
         InProcessResolver inProcessResolver = getInProcessResolverWith(
                 new MockStorage(new HashMap<>(), sender),
                 connectionEvent -> receiver.offer(new StorageStateChange(
-                        connectionEvent.isConnected() ? StorageState.OK : StorageState.ERROR,
+                        connectionEvent.isDisconnected() ? StorageState.ERROR : StorageState.OK,
                         connectionEvent.getFlagsChanged(),
                         connectionEvent.getSyncMetadata())));
 
@@ -518,25 +517,25 @@ class InProcessResolverTest {
     private InProcessResolver getInProcessResolverWith(final FlagdOptions options, final MockStorage storage)
             throws NoSuchFieldException, IllegalAccessException {
 
-        final InProcessResolver resolver = new InProcessResolver(options, Wait.finished(), connectionEvent -> {});
+        final InProcessResolver resolver = new InProcessResolver(options, connectionEvent -> {});
         return injectFlagStore(resolver, storage);
     }
 
     private InProcessResolver getInProcessResolverWith(
-            final MockStorage storage, final Consumer<ConnectionEvent> onConnectionEvent)
+            final MockStorage storage, final Consumer<FlagdProviderEvent> onConnectionEvent)
             throws NoSuchFieldException, IllegalAccessException {
 
-        final InProcessResolver resolver = new InProcessResolver(
-                FlagdOptions.builder().deadline(1000).build(), Wait.finished(), onConnectionEvent);
+        final InProcessResolver resolver =
+                new InProcessResolver(FlagdOptions.builder().deadline(1000).build(), onConnectionEvent);
         return injectFlagStore(resolver, storage);
     }
 
     private InProcessResolver getInProcessResolverWith(
-            final MockStorage storage, final Consumer<ConnectionEvent> onConnectionEvent, String selector)
+            final MockStorage storage, final Consumer<FlagdProviderEvent> onConnectionEvent, String selector)
             throws NoSuchFieldException, IllegalAccessException {
 
         final InProcessResolver resolver = new InProcessResolver(
-                FlagdOptions.builder().selector(selector).deadline(1000).build(), Wait.finished(), onConnectionEvent);
+                FlagdOptions.builder().selector(selector).deadline(1000).build(), onConnectionEvent);
         return injectFlagStore(resolver, storage);
     }
 

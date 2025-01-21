@@ -7,11 +7,11 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
 import dev.openfeature.contrib.providers.flagd.resolver.common.Wait;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
@@ -22,6 +22,7 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ParseError;
@@ -38,10 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
-    private final Consumer<ConnectionEvent> onConnectionEvent;
+    private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final Operator operator;
     private final long deadline;
-    private final Wait connectionWait;
     private final String scope;
 
     /**
@@ -50,17 +50,14 @@ public class InProcessResolver implements Resolver {
      * Flags are evaluated locally.
      *
      * @param options           flagd options
-     * @param connectionWait    A {@link Wait} object, which waits until a connection is established
      * @param onConnectionEvent lambda which handles changes in the
      *                          connection/stream
      */
-    public InProcessResolver(
-            FlagdOptions options, final Wait connectionWait, Consumer<ConnectionEvent> onConnectionEvent) {
+    public InProcessResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
-        this.connectionWait = connectionWait;
         this.scope = options.getSelector();
     }
 
@@ -74,15 +71,20 @@ public class InProcessResolver implements Resolver {
                 while (true) {
                     final StorageStateChange storageStateChange =
                             flagStore.getStateQueue().take();
-                    if (storageStateChange.getStorageState() != StorageState.OK) {
-                        log.info(
-                                String.format("Storage returned NOK status: %s", storageStateChange.getStorageState()));
-                        continue;
+                    switch (storageStateChange.getStorageState()) {
+                        case OK:
+                            onConnectionEvent.accept(new FlagdProviderEvent(
+                                    ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                                    storageStateChange.getChangedFlagsKeys(),
+                                    storageStateChange.getSyncMetadata()));
+                            break;
+                        case ERROR:
+                            onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
+                            break;
+                        default:
+                            log.info(String.format(
+                                    "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
                     }
-                    onConnectionEvent.accept(new ConnectionEvent(
-                            ConnectionState.CONNECTED,
-                            storageStateChange.getChangedFlagsKeys(),
-                            storageStateChange.getSyncMetadata()));
                 }
             } catch (InterruptedException e) {
                 log.warn("Storage state watcher interrupted", e);
@@ -91,9 +93,6 @@ public class InProcessResolver implements Resolver {
         });
         stateWatcher.setDaemon(true);
         stateWatcher.start();
-
-        // block till ready
-        connectionWait.waitUntilFinished(deadline);
     }
 
     /**
@@ -103,7 +102,6 @@ public class InProcessResolver implements Resolver {
      */
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
-        onConnectionEvent.accept(new ConnectionEvent(false));
     }
 
     /**
@@ -150,7 +148,7 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    static Connector getConnector(final FlagdOptions options, Consumer<ConnectionEvent> onConnectionEvent) {
+    static Connector getConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
