@@ -1,33 +1,40 @@
 package dev.openfeature.contrib.providers.flagd.resolver.common;
 
+import dev.openfeature.contrib.providers.flagd.EventsLock;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-class WaitTest {
+class EventsLockTest {
     private static final long PERMISSIBLE_EPSILON = 20;
 
-    @Timeout(2)
-    @Test
-    void waitUntilFinished_failsWhenDeadlineElapses() {
-        final Wait wait = new Wait();
-        Assertions.assertThrows(GeneralError.class, () -> wait.waitUntilFinished(10));
+    private EventsLock eventsLock;
+
+    @BeforeEach
+    void setUp() {
+        eventsLock = new EventsLock();
     }
 
     @Timeout(2)
     @Test
-    void waitUntilFinished_WaitsApproxForDeadline() {
-        final Wait wait = new Wait();
+    void waitForInitialization_failsWhenDeadlineElapses() {
+        Assertions.assertThrows(GeneralError.class, () -> eventsLock.waitForInitialization(2));
+    }
+
+    @Timeout(2)
+    @Test
+    void waitForInitialization_waitsApproxForDeadline() {
         final AtomicLong start = new AtomicLong();
         final AtomicLong end = new AtomicLong();
         final long deadline = 45;
         Assertions.assertThrows(GeneralError.class, () -> {
             start.set(System.currentTimeMillis());
             try {
-                wait.waitUntilFinished(deadline);
+                eventsLock.waitForInitialization(deadline);
             } catch (Exception e) {
                 end.set(System.currentTimeMillis());
                 throw e;
@@ -44,68 +51,92 @@ class WaitTest {
     @Test
     void interruptingWaitingThread_isIgnored() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
-        final Wait wait = new Wait();
         final long deadline = 500;
-        Thread t0 = new Thread(() -> {
+        Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            wait.waitUntilFinished(deadline);
+            eventsLock.waitForInitialization(deadline);
             long end = System.currentTimeMillis();
             long duration = end - start;
             // even though thread was interrupted, it still waited for the deadline
             Assertions.assertTrue(duration >= deadline);
             Assertions.assertTrue(duration < deadline + PERMISSIBLE_EPSILON);
         });
-        t0.start();
+        waitingThread.start();
 
         while (!isWaiting.get()) {
             Thread.yield();
         }
 
-        Thread.sleep(10); // t0 should have started waiting in the meantime
+        Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
 
         for (int i = 0; i < 50; i++) {
-            t0.interrupt();
+            waitingThread.interrupt();
             Thread.sleep(10);
         }
 
-        t0.join();
+        waitingThread.join();
     }
 
     @Timeout(2)
     @Test
-    void callingOnFinished_wakesUpWaitingThread() throws InterruptedException {
+    void callingInitialize_wakesUpWaitingThread() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
-        final Wait wait = new Wait();
-        Thread t0 = new Thread(() -> {
+        Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            wait.waitUntilFinished(10000);
+            eventsLock.waitForInitialization(10000);
             long end = System.currentTimeMillis();
             long duration = end - start;
             Assertions.assertTrue(duration < PERMISSIBLE_EPSILON);
         });
-        t0.start();
+        waitingThread.start();
 
         while (!isWaiting.get()) {
             Thread.yield();
         }
 
-        Thread.sleep(10); // t0 should have started waiting in the meantime
+        Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
 
-        wait.onFinished();
+        eventsLock.initialize();
 
-        t0.join();
+        waitingThread.join();
     }
 
     @Timeout(2)
     @Test
-    void waitingOnFinished_returnsInstantly() {
-        Wait finished = Wait.finished();
+    void callingShutdown_wakesUpWaitingThreadWithException() throws InterruptedException {
+        final AtomicBoolean isWaiting = new AtomicBoolean();
+        Thread waitingThread = new Thread(() -> {
+            long start = System.currentTimeMillis();
+            isWaiting.set(true);
+            Assertions.assertThrows(IllegalArgumentException.class, () -> eventsLock.waitForInitialization(10000));
+
+            long end = System.currentTimeMillis();
+            long duration = end - start;
+            Assertions.assertTrue(duration < PERMISSIBLE_EPSILON);
+        });
+        waitingThread.start();
+
+        while (!isWaiting.get()) {
+            Thread.yield();
+        }
+
+        Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
+
+        eventsLock.shutdown();
+
+        waitingThread.join();
+    }
+
+    @Timeout(2)
+    @Test
+    void waitForInitializationAfterCallingInitialize_returnsInstantly() {
+        eventsLock.initialize();
         long start = System.currentTimeMillis();
-        finished.waitUntilFinished(10000);
+        eventsLock.waitForInitialization(10000);
         long end = System.currentTimeMillis();
         // do not use PERMISSIBLE_EPSILON here, this should happen faster than that
-        Assertions.assertTrue(start + 2 > end);
+        Assertions.assertTrue(start + 1 >= end);
     }
 }

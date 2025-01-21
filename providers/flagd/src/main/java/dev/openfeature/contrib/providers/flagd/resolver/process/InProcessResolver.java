@@ -4,9 +4,6 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.model.Fea
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.ConnectionState;
-import dev.openfeature.contrib.providers.flagd.resolver.common.Wait;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
@@ -41,7 +38,6 @@ public class InProcessResolver implements Resolver {
     private final Storage flagStore;
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final Operator operator;
-    private final long deadline;
     private final String scope;
 
     /**
@@ -55,7 +51,6 @@ public class InProcessResolver implements Resolver {
      */
     public InProcessResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
-        this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
         this.scope = options.getSelector();
