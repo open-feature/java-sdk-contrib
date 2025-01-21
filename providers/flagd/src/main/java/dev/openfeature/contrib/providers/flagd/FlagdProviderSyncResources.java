@@ -1,6 +1,5 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import com.google.common.annotations.VisibleForTesting;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableStructure;
@@ -15,8 +14,7 @@ import lombok.Setter;
  * for sync blocks in the {@link FlagdProvider}.
  */
 @Getter
-@VisibleForTesting
-public class FlagdProviderSyncResources {
+class FlagdProviderSyncResources {
     @Setter
     private volatile ProviderEvent previousEvent = null;
 
@@ -57,8 +55,9 @@ public class FlagdProviderSyncResources {
      * Otherwise, the method will return cleanly.
      *
      * @param deadline the maximum time in ms to wait
-     * @throws GeneralError when the deadline is exceeded before {@link EventsLock#initialize()} is called on this
-     *                      object
+     * @throws GeneralError          when the deadline is exceeded before {@link EventsLock#initialize()} is called on
+     *                               this
+     *                               object
      * @throws IllegalStateException when {@link EventsLock#shutdown()} is called or has been called on this object
      */
     public void waitForInitialization(long deadline) {

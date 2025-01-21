@@ -1,6 +1,5 @@
-package dev.openfeature.contrib.providers.flagd.resolver.common;
+package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.contrib.providers.flagd.FlagdProviderSyncResources;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -110,7 +109,8 @@ class FlagdProviderSyncResourcesTest {
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            Assertions.assertThrows(IllegalArgumentException.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
+            Assertions.assertThrows(
+                    IllegalArgumentException.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
 
             long end = System.currentTimeMillis();
             long duration = end - start;
