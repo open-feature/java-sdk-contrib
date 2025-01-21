@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import com.google.common.annotations.VisibleForTesting;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableStructure;
@@ -11,9 +12,10 @@ import lombok.Setter;
 
 /**
  * Contains all fields we need to worry about locking, used as intrinsic lock
- * for sync blocks.
+ * for sync blocks in the {@link FlagdProvider}.
  */
 @Getter
+@VisibleForTesting
 public class FlagdProviderSyncResources {
     @Setter
     private volatile ProviderEvent previousEvent = null;

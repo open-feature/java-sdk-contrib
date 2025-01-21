@@ -9,20 +9,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-class EventsLockTest {
+class FlagdProviderSyncResourcesTest {
     private static final long PERMISSIBLE_EPSILON = 20;
 
-    private FlagdProviderSyncResources eventsLock;
+    private FlagdProviderSyncResources flagdProviderSyncResources;
 
     @BeforeEach
     void setUp() {
-        eventsLock = new FlagdProviderSyncResources();
+        flagdProviderSyncResources = new FlagdProviderSyncResources();
     }
 
     @Timeout(2)
     @Test
     void waitForInitialization_failsWhenDeadlineElapses() {
-        Assertions.assertThrows(GeneralError.class, () -> eventsLock.waitForInitialization(2));
+        Assertions.assertThrows(GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(2));
     }
 
     @Timeout(2)
@@ -34,7 +34,7 @@ class EventsLockTest {
         Assertions.assertThrows(GeneralError.class, () -> {
             start.set(System.currentTimeMillis());
             try {
-                eventsLock.waitForInitialization(deadline);
+                flagdProviderSyncResources.waitForInitialization(deadline);
             } catch (Exception e) {
                 end.set(System.currentTimeMillis());
                 throw e;
@@ -55,7 +55,7 @@ class EventsLockTest {
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            eventsLock.waitForInitialization(deadline);
+            flagdProviderSyncResources.waitForInitialization(deadline);
             long end = System.currentTimeMillis();
             long duration = end - start;
             // even though thread was interrupted, it still waited for the deadline
@@ -85,7 +85,7 @@ class EventsLockTest {
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            eventsLock.waitForInitialization(10000);
+            flagdProviderSyncResources.waitForInitialization(10000);
             long end = System.currentTimeMillis();
             long duration = end - start;
             Assertions.assertTrue(duration < PERMISSIBLE_EPSILON);
@@ -98,7 +98,7 @@ class EventsLockTest {
 
         Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
 
-        eventsLock.initialize();
+        flagdProviderSyncResources.initialize();
 
         waitingThread.join();
     }
@@ -110,7 +110,7 @@ class EventsLockTest {
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            Assertions.assertThrows(IllegalArgumentException.class, () -> eventsLock.waitForInitialization(10000));
+            Assertions.assertThrows(IllegalArgumentException.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
 
             long end = System.currentTimeMillis();
             long duration = end - start;
@@ -124,7 +124,7 @@ class EventsLockTest {
 
         Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
 
-        eventsLock.shutdown();
+        flagdProviderSyncResources.shutdown();
 
         waitingThread.join();
     }
@@ -132,9 +132,9 @@ class EventsLockTest {
     @Timeout(2)
     @Test
     void waitForInitializationAfterCallingInitialize_returnsInstantly() {
-        eventsLock.initialize();
+        flagdProviderSyncResources.initialize();
         long start = System.currentTimeMillis();
-        eventsLock.waitForInitialization(10000);
+        flagdProviderSyncResources.waitForInitialization(10000);
         long end = System.currentTimeMillis();
         // do not use PERMISSIBLE_EPSILON here, this should happen faster than that
         Assertions.assertTrue(start + 1 >= end);
