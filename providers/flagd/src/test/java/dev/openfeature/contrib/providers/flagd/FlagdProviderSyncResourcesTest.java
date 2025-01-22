@@ -30,15 +30,11 @@ class FlagdProviderSyncResourcesTest {
         final AtomicLong start = new AtomicLong();
         final AtomicLong end = new AtomicLong();
         final long deadline = 45;
-        Assertions.assertThrows(GeneralError.class, () -> {
-            start.set(System.currentTimeMillis());
-            try {
-                flagdProviderSyncResources.waitForInitialization(deadline);
-            } catch (Exception e) {
-                end.set(System.currentTimeMillis());
-                throw e;
-            }
-        });
+
+        start.set(System.currentTimeMillis());
+        Assertions.assertThrows(GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(deadline));
+        end.set(System.currentTimeMillis());
+
         final long elapsed = end.get() - start.get();
         // should wait at least for the deadline
         Assertions.assertTrue(elapsed >= deadline);
@@ -54,7 +50,9 @@ class FlagdProviderSyncResourcesTest {
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            flagdProviderSyncResources.waitForInitialization(deadline);
+            Assertions.assertThrows(
+                    GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(deadline));
+
             long end = System.currentTimeMillis();
             long duration = end - start;
             // even though thread was interrupted, it still waited for the deadline
@@ -110,7 +108,7 @@ class FlagdProviderSyncResourcesTest {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
             Assertions.assertThrows(
-                    IllegalArgumentException.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
+                    IllegalStateException.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
 
             long end = System.currentTimeMillis();
             long duration = end - start;

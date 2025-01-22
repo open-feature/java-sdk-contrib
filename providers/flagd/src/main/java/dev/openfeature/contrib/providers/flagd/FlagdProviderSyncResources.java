@@ -46,6 +46,7 @@ class FlagdProviderSyncResources {
         }
         this.initialized = true;
         this.notifyAll();
+        log.info("notified all");
         return true;
     }
 
@@ -77,6 +78,7 @@ class FlagdProviderSyncResources {
             long remaining = end - now;
             synchronized (this) {
                 if (initialized) { // might have changed in the meantime
+                    log.info("post wait for init in loop");
                     return;
                 }
                 if (isShutDown) {

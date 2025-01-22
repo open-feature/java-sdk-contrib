@@ -208,8 +208,13 @@ public class FlagdProvider extends EventProvider {
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
         synchronized (syncResources) {
-            log.info("FlagdProviderEvent: {} of type {}", flagdProviderEvent, flagdProviderEvent.getClass().getName());
-            log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent().toString());
+            log.info(
+                    "FlagdProviderEvent: {} of type {}",
+                    flagdProviderEvent,
+                    flagdProviderEvent.getClass().getName());
+            log.info(
+                    "FlagdProviderEvent event {} ",
+                    flagdProviderEvent.getEvent().toString());
             syncResources.setSyncMetadata(flagdProviderEvent.getSyncMetadata());
             if (flagdProviderEvent.getSyncMetadata() != null) {
                 syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
@@ -231,6 +236,9 @@ public class FlagdProvider extends EventProvider {
                         break;
                     }
                     log.info("config change not ready");
+                    onReady();
+                    syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
+                    break;
                     // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
                     onReady();
@@ -270,6 +278,7 @@ public class FlagdProvider extends EventProvider {
         }
         this.emitProviderReady(
                 ProviderEventDetails.builder().message("connected to flagd").build());
+        log.info("post onready");
     }
 
     private void onError() {
