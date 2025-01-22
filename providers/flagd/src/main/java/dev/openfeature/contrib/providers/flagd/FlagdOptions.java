@@ -12,6 +12,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import java.util.function.Function;
 import lombok.Builder;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * FlagdOptions is a builder to build flagd provider options.
@@ -119,8 +120,7 @@ public class FlagdOptions {
      * File source of flags to be used by offline mode.
      * Setting this enables the offline mode of the in-process provider.
      */
-    @Builder.Default
-    private String offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+    private String offlineFlagSourcePath;
 
     /**
      * gRPC custom target string.
@@ -193,7 +193,20 @@ public class FlagdOptions {
                 resolverType = fromValueProvider(System::getenv);
             }
 
-            if (port == 0) {
+            if (StringUtils.isEmpty(offlineFlagSourcePath)) {
+                offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+            }
+
+            if (!StringUtils.isEmpty(offlineFlagSourcePath) && resolverType == Config.Resolver.IN_PROCESS) {
+                resolverType = Config.Resolver.FILE;
+            }
+
+            // We need a file path for FILE Provider
+            if (StringUtils.isEmpty(offlineFlagSourcePath) && resolverType == Config.Resolver.FILE) {
+                throw new IllegalArgumentException("Resolver Type 'FILE' requires a offlineFlagSourcePath");
+            }
+
+            if (port == 0 && resolverType != Config.Resolver.FILE) {
                 port = Integer.parseInt(
                         fallBackToEnvOrDefault(Config.PORT_ENV_VAR_NAME, determineDefaultPortForResolver()));
             }

@@ -134,6 +134,8 @@ public class ProviderSteps extends AbstractSteps {
                     case SSL:
                         return toxiproxy.getMappedPort(8669);
                 }
+            case FILE:
+                return 0;
             default:
                 throw new IllegalArgumentException("Unsupported resolver: " + resolver);
         }
@@ -143,10 +145,23 @@ public class ProviderSteps extends AbstractSteps {
     public void setupProvider(String providerType) throws IOException {
         state.builder.deadline(500).keepAlive(0).retryGracePeriod(3);
         boolean wait = true;
+        File flags = new File("test-harness/flags");
+        ObjectMapper objectMapper = new ObjectMapper();
+        Object merged = new Object();
+        for (File listFile : Objects.requireNonNull(flags.listFiles())) {
+            ObjectReader updater = objectMapper.readerForUpdating(merged);
+            merged = updater.readValue(listFile, Object.class);
+        }
+        Path offlinePath = Files.createTempFile("flags", ".json");
+        objectMapper.writeValue(offlinePath.toFile(), merged);
         switch (providerType) {
             case "unavailable":
                 this.state.providerType = ProviderType.SOCKET;
                 state.builder.port(UNAVAILABLE_PORT);
+                if (State.resolverType == Config.Resolver.FILE) {
+
+                    state.builder.offlineFlagSourcePath("not-existing");
+                }
                 wait = false;
                 break;
             case "socket":
@@ -167,25 +182,17 @@ public class ProviderSteps extends AbstractSteps {
                         .tls(true)
                         .certPath(absolutePath);
                 break;
-            case "offline":
-                File flags = new File("test-harness/flags");
-                ObjectMapper objectMapper = new ObjectMapper();
-                Object merged = new Object();
-                for (File listFile : Objects.requireNonNull(flags.listFiles())) {
-                    ObjectReader updater = objectMapper.readerForUpdating(merged);
-                    merged = updater.readValue(listFile, Object.class);
-                }
-                Path offlinePath = Files.createTempFile("flags", ".json");
-                objectMapper.writeValue(offlinePath.toFile(), merged);
-
-                state.builder
-                        .port(UNAVAILABLE_PORT)
-                        .offlineFlagSourcePath(offlinePath.toAbsolutePath().toString());
-                break;
 
             default:
                 this.state.providerType = ProviderType.DEFAULT;
-                state.builder.port(getPort(State.resolverType, state.providerType));
+                if (State.resolverType == Config.Resolver.FILE) {
+
+                    state.builder
+                            .port(UNAVAILABLE_PORT)
+                            .offlineFlagSourcePath(offlinePath.toAbsolutePath().toString());
+                } else {
+                    state.builder.port(getPort(State.resolverType, state.providerType));
+                }
                 break;
         }
         FeatureProvider provider =

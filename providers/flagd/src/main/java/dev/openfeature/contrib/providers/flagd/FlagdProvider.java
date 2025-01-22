@@ -80,6 +80,7 @@ public class FlagdProvider extends EventProvider {
      */
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
+            case Config.RESOLVER_FILE:
             case Config.RESOLVER_IN_PROCESS:
                 this.flagResolver = new InProcessResolver(options, this::onProviderEvent);
                 break;
