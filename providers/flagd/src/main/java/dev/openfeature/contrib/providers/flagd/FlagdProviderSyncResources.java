@@ -46,7 +46,8 @@ class FlagdProviderSyncResources {
         }
         this.initialized = true;
         this.notifyAll();
-        log.info("notified all");
+        log.info("notified all " + this.toString());
+
         return true;
     }
 
@@ -65,7 +66,7 @@ class FlagdProviderSyncResources {
      *                               this object
      */
     public void waitForInitialization(long deadline) {
-        log.info("wait for init");
+        log.info("wait for init " + this);
         long start = System.currentTimeMillis();
         long end = start + deadline;
         while (!initialized && !isShutDown) {
@@ -84,12 +85,14 @@ class FlagdProviderSyncResources {
                 if (isShutDown) {
                     break;
                 }
+                log.info("waiting for " + remaining + " at " + System.currentTimeMillis());
                 try {
                     this.wait(remaining);
                 } catch (InterruptedException e) {
                     // try again. Leave the continue to make PMD happy
                     continue;
                 }
+                log.info("waiting ended  at " + System.currentTimeMillis());
             }
         }
         if (isShutDown) {

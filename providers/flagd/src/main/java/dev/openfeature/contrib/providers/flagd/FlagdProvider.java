@@ -239,7 +239,7 @@ public class FlagdProvider extends EventProvider {
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;
-                    // intentional fall through, a not-ready change will trigger a ready.
+                // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
@@ -256,6 +256,8 @@ public class FlagdProvider extends EventProvider {
                     log.info("Unknown event {}", flagdProviderEvent.getEvent());
             }
         }
+
+        log.info("give up lock on sync");
     }
 
     private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
@@ -272,12 +274,19 @@ public class FlagdProvider extends EventProvider {
         if (syncResources.initialize()) {
             log.info("initialized FlagdProvider");
         }
+        log.info("on ready before error cancel");
         if (errorTask != null && !errorTask.isCancelled()) {
             errorTask.cancel(false);
             log.debug("Reconnection task cancelled as connection became READY.");
         }
-        this.emitProviderReady(
-                ProviderEventDetails.builder().message("connected to flagd").build());
+        log.info("on ready post error cancel");
+
+        // todo run in external thread to prevent deadlock
+        //new Thread(() -> {
+            this.emitProviderReady(
+                    ProviderEventDetails.builder().message("connected to flagd").build());
+        //}).start();
+
         log.info("post onready");
     }
 
