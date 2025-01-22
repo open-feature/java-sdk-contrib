@@ -8,11 +8,13 @@ import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Contains all fields we need to worry about locking, used as intrinsic lock
  * for sync blocks in the {@link FlagdProvider}.
  */
+@Slf4j
 @Getter
 class FlagdProviderSyncResources {
     @Setter
@@ -38,6 +40,7 @@ class FlagdProviderSyncResources {
      * @return true iff this was the first call to {@code initialize()}
      */
     public synchronized boolean initialize() {
+        log.info("initialize in wait");
         if (this.initialized) {
             return false;
         }
@@ -47,20 +50,21 @@ class FlagdProviderSyncResources {
     }
 
     /**
-     * Blocks the calling thread until either {@link EventsLock#initialize()} or {@link EventsLock#shutdown()} is called
-     * or the deadline is exceeded, whatever happens first. If {@link EventsLock#initialize()} has been executed before
-     * {@code waitForInitialization(long)} is called, it will return instantly.
-     * If the deadline is exceeded, a GeneralError will be thrown.
-     * If {@link EventsLock#shutdown()} is called in the meantime, an {@link IllegalStateException} will be thrown.
-     * Otherwise, the method will return cleanly.
+     * Blocks the calling thread until either {@link FlagdProviderSyncResources#initialize()} or
+     * {@link FlagdProviderSyncResources#shutdown()} is called or the deadline is exceeded, whatever happens first. If
+     * {@link FlagdProviderSyncResources#initialize()} has been executed before {@code waitForInitialization(long)} is
+     * called, it will return instantly. If the deadline is exceeded, a GeneralError will be thrown.
+     * If {@link FlagdProviderSyncResources#shutdown()} is called in the meantime, an {@link IllegalStateException} will
+     * be thrown. Otherwise, the method will return cleanly.
      *
      * @param deadline the maximum time in ms to wait
-     * @throws GeneralError          when the deadline is exceeded before {@link EventsLock#initialize()} is called on
-     *                               this
-     *                               object
-     * @throws IllegalStateException when {@link EventsLock#shutdown()} is called or has been called on this object
+     * @throws GeneralError          when the deadline is exceeded before
+     *                               {@link FlagdProviderSyncResources#initialize()} is called on this object
+     * @throws IllegalStateException when {@link FlagdProviderSyncResources#shutdown()} is called or has been called on
+     *                               this object
      */
     public void waitForInitialization(long deadline) {
+        log.info("wait for init");
         long start = System.currentTimeMillis();
         long end = start + deadline;
         while (!initialized && !isShutDown) {
@@ -89,12 +93,14 @@ class FlagdProviderSyncResources {
         if (isShutDown) {
             throw new IllegalStateException("Already shut down");
         }
+        log.info("post wait for init");
     }
 
     /**
      * Signals a shutdown. Threads waiting for initialization will wake up and throw an {@link IllegalStateException}.
      */
     public synchronized void shutdown() {
+        log.info("shutdown in wait");
         isShutDown = true;
         this.notifyAll();
     }

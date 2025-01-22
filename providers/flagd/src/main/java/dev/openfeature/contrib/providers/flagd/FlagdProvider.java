@@ -117,6 +117,7 @@ public class FlagdProvider extends EventProvider {
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
+        log.info("called initialize");
         synchronized (syncResources) {
             if (syncResources.isInitialized()) {
                 return;
@@ -207,7 +208,8 @@ public class FlagdProvider extends EventProvider {
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
         synchronized (syncResources) {
-            log.info("FlagdProviderEvent: {}", flagdProviderEvent);
+            log.info("FlagdProviderEvent: {} of type {}", flagdProviderEvent, flagdProviderEvent.getClass().getName());
+            log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent().toString());
             syncResources.setSyncMetadata(flagdProviderEvent.getSyncMetadata());
             if (flagdProviderEvent.getSyncMetadata() != null) {
                 syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
@@ -228,6 +230,7 @@ public class FlagdProvider extends EventProvider {
                         onConfigurationChanged(flagdProviderEvent);
                         break;
                     }
+                    log.info("config change not ready");
                     // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
                     onReady();
@@ -248,13 +251,16 @@ public class FlagdProvider extends EventProvider {
     }
 
     private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
+        log.info("FlagdProvider.onConfigurationChanged");
         this.emitProviderConfigurationChanged(ProviderEventDetails.builder()
                 .flagsChanged(flagdProviderEvent.getFlagsChanged())
                 .message("configuration changed")
                 .build());
+        log.info("post FlagdProvider.onConfigurationChanged");
     }
 
     private void onReady() {
+        log.info("on ready");
         if (syncResources.initialize()) {
             log.info("initialized FlagdProvider");
         }
