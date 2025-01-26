@@ -17,7 +17,7 @@
         <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.70.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
-        <protobuf-java.min.version>3.25.5</protobuf-java.min.version>
+        <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
     </properties>
 
     <name>flagd</name>
