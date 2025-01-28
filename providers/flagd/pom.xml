@@ -15,9 +15,9 @@
     <properties>
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
-        <io.grpc.version>1.69.1</io.grpc.version>
+        <io.grpc.version>1.70.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
-        <protobuf-java.min.version>3.25.5</protobuf-java.min.version>
+        <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
     </properties>
 
     <name>flagd</name>
@@ -122,13 +122,13 @@
         <dependency>
             <groupId>org.semver4j</groupId>
             <artifactId>semver4j</artifactId>
-            <version>5.5.0</version>
+            <version>5.6.0</version>
         </dependency>
 
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.17.2</version>
+            <version>1.18.0</version>
         </dependency>
 
         <dependency>
