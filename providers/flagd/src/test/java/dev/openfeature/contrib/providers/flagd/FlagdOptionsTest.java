@@ -61,7 +61,6 @@ class FlagdOptionsTest {
                 .cacheType("lru")
                 .maxCacheSize(100)
                 .selector("app=weatherApp")
-                .offlineFlagSourcePath("some-path")
                 .openTelemetry(openTelemetry)
                 .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
@@ -76,7 +75,6 @@ class FlagdOptionsTest {
         assertEquals("lru", flagdOptions.getCacheType());
         assertEquals(100, flagdOptions.getMaxCacheSize());
         assertEquals("app=weatherApp", flagdOptions.getSelector());
-        assertEquals("some-path", flagdOptions.getOfflineFlagSourcePath());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
         assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());

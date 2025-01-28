@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e;
+package dev.openfeature.contrib.providers.flagd;
 
 import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;

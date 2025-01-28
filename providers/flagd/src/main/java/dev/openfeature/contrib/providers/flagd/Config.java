@@ -40,6 +40,7 @@ public final class Config {
 
     static final String RESOLVER_RPC = "rpc";
     static final String RESOLVER_IN_PROCESS = "in-process";
+    static final String RESOLVER_FILE = "file";
 
     public static final String STATIC_REASON = "STATIC";
     public static final String CACHED_REASON = "CACHED";
@@ -87,6 +88,8 @@ public final class Config {
                 return Resolver.IN_PROCESS;
             case "rpc":
                 return Resolver.RPC;
+            case "file":
+                return Resolver.FILE;
             default:
                 log.warn("Unsupported resolver variable: {}", resolverVar);
                 return DEFAULT_RESOLVER_TYPE;
@@ -142,6 +145,11 @@ public final class Config {
         IN_PROCESS {
             public String asString() {
                 return RESOLVER_IN_PROCESS;
+            }
+        },
+        FILE {
+            public String asString() {
+                return RESOLVER_FILE;
             }
         }
     }

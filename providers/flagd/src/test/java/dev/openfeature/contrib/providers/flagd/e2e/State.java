@@ -23,4 +23,5 @@ public class State {
     public FlagdOptions options;
     public FlagdOptions.FlagdOptionsBuilder builder = FlagdOptions.builder();
     public static Config.Resolver resolverType;
+    public boolean hasError;
 }
