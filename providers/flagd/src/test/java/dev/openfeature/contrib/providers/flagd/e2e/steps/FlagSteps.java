@@ -1,8 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.providers.flagd.e2e.State;
 import dev.openfeature.sdk.FlagEvaluationDetails;
@@ -70,15 +68,9 @@ public class FlagSteps extends AbstractSteps {
     }
 
     @Then("the flag should be part of the event payload")
-    @Then("the flag was modified")
     public void the_flag_was_modified() {
-        await().atMost(5000, MILLISECONDS).until(() -> state.events.stream()
-                .anyMatch(event -> event.type.equals("change")
-                        && event.details.getFlagsChanged().contains(state.flag.name)));
-        state.lastEvent = state.events.stream()
-                .filter(event -> event.type.equals("change")
-                        && event.details.getFlagsChanged().contains(state.flag.name))
-                .findFirst();
+        Event event = state.lastEvent.orElseThrow(AssertionError::new);
+        assertThat(event.details.getFlagsChanged()).contains(state.flag.name);
     }
 
     public class Flag {
