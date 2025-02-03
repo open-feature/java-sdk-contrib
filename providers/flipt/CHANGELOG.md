@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.1...dev.openfeature.contrib.providers.flipt-v0.1.2) (2025-02-03)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.0 ([#996](https://github.com/open-feature/java-sdk-contrib/issues/996)) ([a701161](https://github.com/open-feature/java-sdk-contrib/commit/a7011611765f121145773d06717a19f143f75d63))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.1 ([#1047](https://github.com/open-feature/java-sdk-contrib/issues/1047)) ([a2ee3e6](https://github.com/open-feature/java-sdk-contrib/commit/a2ee3e6ed0c15c3ebaf55adc10198760f51a4a30))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.2 ([#1089](https://github.com/open-feature/java-sdk-contrib/issues/1089)) ([9b40e22](https://github.com/open-feature/java-sdk-contrib/commit/9b40e22e57739c7da417f834dd4f6822e6657ca8))
+* **deps:** update dependency io.flipt:flipt-java to v1.1.2 ([#1027](https://github.com/open-feature/java-sdk-contrib/issues/1027)) ([eb9f891](https://github.com/open-feature/java-sdk-contrib/commit/eb9f89152ec8c775f242c97087c4fabd41b41e36))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-annotations to v2.18.1 ([#1045](https://github.com/open-feature/java-sdk-contrib/issues/1045)) ([d9f2d89](https://github.com/open-feature/java-sdk-contrib/commit/d9f2d89d6e045bb2a393b9e5a446a2956927bb2a))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-annotations to v2.18.2 ([#1086](https://github.com/open-feature/java-sdk-contrib/issues/1086)) ([7f10440](https://github.com/open-feature/java-sdk-contrib/commit/7f1044027c193259969718854a2fc86651c59a24))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-core to v2.18.1 ([#1046](https://github.com/open-feature/java-sdk-contrib/issues/1046)) ([862ceb2](https://github.com/open-feature/java-sdk-contrib/commit/862ceb232ce27a8633d5a887822fc82b009ec6be))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-core to v2.18.2 ([#1087](https://github.com/open-feature/java-sdk-contrib/issues/1087)) ([51c0252](https://github.com/open-feature/java-sdk-contrib/commit/51c0252ecd55901c7a3d1346e9ee700980b77d0a))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.2 ([#1079](https://github.com/open-feature/java-sdk-contrib/issues/1079)) ([804cd45](https://github.com/open-feature/java-sdk-contrib/commit/804cd455d6e9e79e1fa72b003245027ed7450487))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.3 ([#1103](https://github.com/open-feature/java-sdk-contrib/issues/1103)) ([e2b8160](https://github.com/open-feature/java-sdk-contrib/commit/e2b8160dda2b82b43f665753187ab85a4e1abe13))
+
 ## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.0...dev.openfeature.contrib.providers.flipt-v0.1.1) (2024-10-02)
 
 
