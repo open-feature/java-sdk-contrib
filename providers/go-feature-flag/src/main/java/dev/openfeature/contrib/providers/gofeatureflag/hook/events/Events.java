@@ -27,8 +27,6 @@ public class Events {
      */
     public Events(List<Event> events, Map<String, Object> exporterMetadata) {
         this.events = new ArrayList<>(events);
-        this.meta.put("provider", "java");
-        this.meta.put("openfeature", true);
         if (exporterMetadata != null) {
             this.meta.putAll(exporterMetadata);
         }

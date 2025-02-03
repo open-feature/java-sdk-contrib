@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.net.HttpHeaders;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
@@ -21,6 +22,7 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -48,12 +50,14 @@ class GoFeatureFlagProviderTest {
     private Map exporterMetadata;
     private int flagChangeCallCounter = 0;
     private boolean flagChanged404 = false;
+    private List<RecordedRequest> requests = new ArrayList<>();
 
     // Dispatcher is the configuration of the mock server to test the provider.
     final Dispatcher dispatcher = new Dispatcher() {
         @NotNull @SneakyThrows
         @Override
         public MockResponse dispatch(RecordedRequest request) {
+            requests.add(request);
             assert request.getPath() != null;
             if (request.getPath().contains("fail_500")) {
                 return new MockResponse().setResponseCode(500);
@@ -985,6 +989,42 @@ class GoFeatureFlagProviderTest {
                 want,
                 this.exporterMetadata,
                 "we should have the exporter metadata in the last event sent to the data collector");
+    }
+
+    @SneakyThrows
+    @Test
+    void should_add_exporter_metadata_into_evaluation_call() {
+        Map<String, Object> customExporterMetadata = new HashMap<>();
+        customExporterMetadata.put("version", "1.0.0");
+        customExporterMetadata.put("intTest", 1234567890);
+        customExporterMetadata.put("doubleTest", 12345.67890);
+        GoFeatureFlagProvider g = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(this.baseUrl.toString())
+                .timeout(1000)
+                .enableCache(true)
+                .flushIntervalMs(150L)
+                .exporterMetadata(customExporterMetadata)
+                .build());
+        String providerName = this.testName;
+        OpenFeatureAPI.getInstance().setProviderAndWait(providerName, g);
+        Client client = OpenFeatureAPI.getInstance().getClient(providerName);
+        client.getBooleanDetails("bool_targeting_match", false, this.evaluationContext);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String want = objectMapper
+                .readValue(
+                        "{ \"user\" : { \"key\" : \"d45e303a-38c2-11ed-a261-0242ac120002\", "
+                                + "\"anonymous\" : false, \"custom\" : { \"firstname\" : \"john\", \"gofeatureflag\" : { "
+                                + "\"exporterMetadata\" : { \"openfeature\" : true, \"provider\" : \"java\", \"doubleTest\" : 12345.6789, "
+                                + "\"intTest\" : 1234567890, \"version\" : \"1.0.0\" } }, \"rate\" : 3.14, \"targetingKey\" : "
+                                + "\"d45e303a-38c2-11ed-a261-0242ac120002\", \"company_info\" : { \"size\" : 120, \"name\" : \"my_company\" }, "
+                                + "\"email\" : \"john.doe@gofeatureflag.org\", \"age\" : 30, \"lastname\" : \"doe\", \"professional\" : true, "
+                                + "\"labels\" : [ \"pro\", \"beta\" ] } }, \"defaultValue\" : false }",
+                        Object.class)
+                .toString();
+        String got = objectMapper
+                .readValue(this.requests.get(0).getBody().readString(Charset.defaultCharset()), Object.class)
+                .toString();
+        assertEquals(want, got, "we should have the exporter metadata in the last event sent to the data collector");
     }
 
     private String readMockResponse(String filename) throws Exception {
