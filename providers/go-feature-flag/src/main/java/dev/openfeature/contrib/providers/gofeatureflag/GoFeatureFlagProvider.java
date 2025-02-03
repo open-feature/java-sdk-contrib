@@ -10,6 +10,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidTypeInCache;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.hook.EnrichEvaluationContextHook;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
@@ -104,6 +105,7 @@ public class GoFeatureFlagProvider extends EventProvider {
         super.initialize(evaluationContext);
         this.gofeatureflagController =
                 GoFeatureFlagController.builder().options(options).build();
+        this.hooks.add(new EnrichEvaluationContextHook(options.getExporterMetadata()));
 
         if (options.getEnableCache() == null || options.getEnableCache()) {
             this.cacheCtrl = CacheController.builder().options(options).build();
