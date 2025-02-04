@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
@@ -24,6 +25,7 @@ import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.platform.suite.api.BeforeSuite;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
@@ -41,31 +43,27 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @BeforeAll
-    public static void beforeAll() throws IOException {
-
-        sharedTempDir = Files.createDirectories(
-                Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
-        container = new FlagdContainer()
-                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE);
-        ;
-    }
-
-    @AfterAll
-    public static void afterAll() throws IOException {
-        container.stop();
-        FileUtils.deleteDirectory(sharedTempDir.toFile());
+    public static void beforeAll() {
+        State.resolverType = Config.Resolver.RPC;
     }
 
     @Before
     public void before() throws IOException {
+        state.events.clear();
+        sharedTempDir = Files.createDirectories(
+                Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
+        container = new FlagdContainer()
+                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE);
         if (!container.isRunning()) {
             container.start();
         }
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         OpenFeatureAPI.getInstance().shutdown();
+        container.stop();
+        FileUtils.deleteDirectory(sharedTempDir.toFile());
     }
 
     @Given("a {} flagd provider")
