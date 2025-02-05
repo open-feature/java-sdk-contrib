@@ -25,7 +25,6 @@ import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.parallel.Isolated;
-import org.junit.platform.suite.api.BeforeSuite;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
@@ -42,7 +41,6 @@ public class ProviderSteps extends AbstractSteps {
         super(state);
     }
 
-    /*
     @BeforeAll
     public static void beforeAll() throws IOException {
         State.resolverType = Config.Resolver.RPC;
@@ -66,33 +64,13 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @After
-    public void tearDown() {
-        OpenFeatureAPI.getInstance().shutdown();
-    }
-    */
-
-    @BeforeAll
-    public static void beforeAll() {
-        State.resolverType = Config.Resolver.RPC;
-    }
-
-    @Before
-    public void before() throws IOException {
-        state.events.clear();
-        sharedTempDir = Files.createDirectories(
-                Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
-        container = new FlagdContainer()
-                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE);
-        if (!container.isRunning()) {
-            container.start();
+    public void tearDown() throws InterruptedException {
+        if (state.client != null) {
+            when().post("http://" + container.getLaunchpadUrl() + "/stop")
+                    .then()
+                    .statusCode(200);
         }
-    }
-
-    @After
-    public void tearDown() throws IOException {
         OpenFeatureAPI.getInstance().shutdown();
-        container.stop();
-        FileUtils.deleteDirectory(sharedTempDir.toFile());
     }
 
     @Given("a {} flagd provider")
@@ -167,16 +145,16 @@ public class ProviderSteps extends AbstractSteps {
         this.state.client = api.getClient(providerName);
     }
 
+    @When("the connection is lost")
+    public void the_connection_is_lost() throws InterruptedException {
+        when().post("http://" + container.getLaunchpadUrl() + "/stop").then().statusCode(200);
+    }
+
     @When("the connection is lost for {int}s")
     public void the_connection_is_lost_for(int seconds) throws InterruptedException {
-        log.info("Timeout and wait for {} seconds starting at {} ms, should resume at {} ms", seconds,
-                System.currentTimeMillis() % 100_000, System.currentTimeMillis() % 100_000 + seconds * 1000L);
-
         when().post("http://" + container.getLaunchpadUrl() + "/restart?seconds={seconds}", seconds)
                 .then()
                 .statusCode(200);
-        // we might be too fast in the execution
-        Thread.sleep(100);
     }
 
     @When("the flag was modified")

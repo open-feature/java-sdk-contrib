@@ -6,6 +6,7 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import org.apache.logging.log4j.core.config.Order;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.platform.suite.api.BeforeSuite;
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.ExcludeTags;
@@ -30,6 +31,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @IncludeTags("in-process")
 @ExcludeTags({"unixsocket", "targetURI"})
 @Testcontainers
+@Isolated
 public class RunInProcessTest {
 
     @BeforeSuite
