@@ -42,6 +42,35 @@ public class ProviderSteps extends AbstractSteps {
         super(state);
     }
 
+    /*
+    @BeforeAll
+    public static void beforeAll() throws IOException {
+        State.resolverType = Config.Resolver.RPC;
+        sharedTempDir = Files.createDirectories(
+                Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
+        container = new FlagdContainer()
+                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE);
+    }
+
+    @AfterAll
+    public static void afterAll() throws IOException {
+        container.stop();
+        FileUtils.deleteDirectory(sharedTempDir.toFile());
+    }
+
+    @Before
+    public void before() throws IOException {
+        if (!container.isRunning()) {
+            container.start();
+        }
+    }
+
+    @After
+    public void tearDown() {
+        OpenFeatureAPI.getInstance().shutdown();
+    }
+    */
+
     @BeforeAll
     public static void beforeAll() {
         State.resolverType = Config.Resolver.RPC;
@@ -97,6 +126,7 @@ public class ProviderSteps extends AbstractSteps {
                 flagdConfig = "ssl";
                 break;
             case "offline":
+                State.resolverType = Config.Resolver.IN_PROCESS;
                 File flags = new File("test-harness/flags");
                 ObjectMapper objectMapper = new ObjectMapper();
                 Object merged = new Object();
@@ -127,17 +157,20 @@ public class ProviderSteps extends AbstractSteps {
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
 
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
+        String providerName = providerType + Math.random();
         if (wait) {
-            api.setProviderAndWait(providerType, provider);
+            api.setProviderAndWait(providerName, provider);
         } else {
-            api.setProvider(providerType, provider);
+            api.setProvider(providerName, provider);
         }
-        this.state.client = api.getClient(providerType);
+        log.info("provider name: {}", providerName);
+        this.state.client = api.getClient(providerName);
     }
 
     @When("the connection is lost for {int}s")
     public void the_connection_is_lost_for(int seconds) throws InterruptedException {
-        log.info("Timeout and wait for {} seconds", seconds);
+        log.info("Timeout and wait for {} seconds starting at {} ms, should resume at {} ms", seconds,
+                System.currentTimeMillis() % 100_000, System.currentTimeMillis() % 100_000 + seconds * 1000L);
 
         when().post("http://" + container.getLaunchpadUrl() + "/restart?seconds={seconds}", seconds)
                 .then()

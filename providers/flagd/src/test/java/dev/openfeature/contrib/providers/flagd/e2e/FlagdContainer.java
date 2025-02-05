@@ -25,11 +25,8 @@ public class FlagdContainer extends GenericContainer<FlagdContainer> {
         }
     }
 
-    private String feature;
-
     public FlagdContainer() {
         super(generateContainerName());
-        this.feature = feature;
         this.addExposedPorts(8013, 8014, 8015, 8080);
     }
 

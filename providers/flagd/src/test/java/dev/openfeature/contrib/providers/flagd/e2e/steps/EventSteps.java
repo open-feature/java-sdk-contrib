@@ -25,7 +25,7 @@ public class EventSteps extends AbstractSteps {
     @Given("a {} event handler")
     public void a_stale_event_handler(String eventType) {
         state.client.on(mapEventType(eventType), eventDetails -> {
-            log.info("event tracked for {} ", eventType);
+            log.info("event tracked for {} at {} ms ", eventType, System.currentTimeMillis()%100_000);
             state.events.add(new Event(eventType, eventDetails));
         });
     }
@@ -59,6 +59,7 @@ public class EventSteps extends AbstractSteps {
     public void eventHandlerShouldBeExecutedWithin(String eventType, int ms) {
         log.info("waiting for eventtype: {}", eventType);
         await().atMost(ms, MILLISECONDS)
+                .pollInterval(10, MILLISECONDS)
                 .until(() -> state.events.stream().anyMatch(event -> event.type.equals(eventType)));
         state.lastEvent = state.events.stream()
                 .filter(event -> event.type.equals(eventType))
