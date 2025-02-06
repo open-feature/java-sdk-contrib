@@ -2,8 +2,6 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static io.restassured.RestAssured.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
@@ -21,7 +19,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -47,7 +44,7 @@ public class ProviderSteps extends AbstractSteps {
         sharedTempDir = Files.createDirectories(
                 Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
         container = new FlagdContainer()
-                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/tmp", BindMode.READ_WRITE);
+                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/flags", BindMode.READ_WRITE);
     }
 
     @AfterAll
@@ -78,15 +75,7 @@ public class ProviderSteps extends AbstractSteps {
         String flagdConfig = "default";
         state.builder.deadline(1000).keepAlive(0).retryGracePeriod(2);
         boolean wait = true;
-        File flags = new File("test-harness/flags");
-        ObjectMapper objectMapper = new ObjectMapper();
-        Object merged = new Object();
-        for (File listFile : Objects.requireNonNull(flags.listFiles())) {
-            ObjectReader updater = objectMapper.readerForUpdating(merged);
-            merged = updater.readValue(listFile, Object.class);
-        }
-        Path offlinePath = Files.createTempFile("flags", ".json");
-        objectMapper.writeValue(offlinePath.toFile(), merged);
+
         switch (providerType) {
             case "unavailable":
                 this.state.providerType = ProviderType.SOCKET;
@@ -123,7 +112,7 @@ public class ProviderSteps extends AbstractSteps {
 
                     state.builder
                             .port(UNAVAILABLE_PORT)
-                            .offlineFlagSourcePath(offlinePath.toAbsolutePath().toString());
+                            .offlineFlagSourcePath(sharedTempDir.resolve("allFlags.json").toAbsolutePath().toString());
                 } else {
                     state.builder.port(container.getPort(State.resolverType));
                 }
@@ -134,7 +123,7 @@ public class ProviderSteps extends AbstractSteps {
                 .statusCode(200);
 
         // giving flagd a little time to start
-        Thread.sleep(100);
+        Thread.sleep(30);
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
 
@@ -163,10 +152,9 @@ public class ProviderSteps extends AbstractSteps {
 
     @When("the flag was modified")
     public void the_flag_was_modded() throws InterruptedException {
-
         when().post("http://" + container.getLaunchpadUrl() + "/change").then().statusCode(200);
 
         // we might be too fast in the execution
-        Thread.sleep(100);
+        Thread.sleep(1000);
     }
 }

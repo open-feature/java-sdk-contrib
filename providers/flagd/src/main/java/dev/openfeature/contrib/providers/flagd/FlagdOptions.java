@@ -193,7 +193,7 @@ public class FlagdOptions {
                 resolverType = fromValueProvider(System::getenv);
             }
 
-            if (StringUtils.isEmpty(offlineFlagSourcePath)) {
+            if (StringUtils.isBlank(offlineFlagSourcePath)) {
                 offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
             }
 
