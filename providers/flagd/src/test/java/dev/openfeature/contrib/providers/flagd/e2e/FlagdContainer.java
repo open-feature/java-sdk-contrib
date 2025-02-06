@@ -1,9 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.e2e;
 
+import dev.openfeature.contrib.providers.flagd.Config;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
-import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -25,19 +25,25 @@ public class FlagdContainer extends GenericContainer<FlagdContainer> {
         }
     }
 
-    private String feature;
-
     public FlagdContainer() {
-        this("");
+        super(generateContainerName());
+        this.addExposedPorts(8013, 8014, 8015, 8080);
     }
 
-    public FlagdContainer(String feature) {
-        super(generateContainerName(feature));
-        this.withReuse(true);
-        this.feature = feature;
-        if (!"socket".equals(this.feature)) this.addExposedPorts(8013, 8014, 8015, 8016);
+    public int getPort(Config.Resolver resolver) {
+        switch (resolver) {
+            case RPC:
+                return getMappedPort(8013);
+            case IN_PROCESS:
+                return getMappedPort(8015);
+            default:
+                return 0;
+        }
     }
 
+    public String getLaunchpadUrl() {
+        return this.getHost() + ":" + this.getMappedPort(8080);
+    }
     /**
      * @return a {@link org.testcontainers.containers.GenericContainer} instance of envoy container using
      * flagd sync service as backend expose on port 9211
@@ -52,11 +58,8 @@ public class FlagdContainer extends GenericContainer<FlagdContainer> {
                 .withNetworkAliases("envoy");
     }
 
-    public static @NotNull String generateContainerName(String feature) {
+    public static @NotNull String generateContainerName() {
         String container = "ghcr.io/open-feature/flagd-testbed";
-        if (!Strings.isBlank(feature)) {
-            container += "-" + feature;
-        }
         container += ":v" + version;
         return container;
     }

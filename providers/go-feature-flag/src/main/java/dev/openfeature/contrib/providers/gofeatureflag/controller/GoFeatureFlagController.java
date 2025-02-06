@@ -90,7 +90,9 @@ public class GoFeatureFlagController {
     @Builder
     private GoFeatureFlagController(final GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.apiKey = options.getApiKey();
-        this.exporterMetadata = options.getExporterMetadata();
+        this.exporterMetadata = options.getExporterMetadata() == null ? new HashMap<>() : options.getExporterMetadata();
+        this.exporterMetadata.put("provider", "java");
+        this.exporterMetadata.put("openfeature", true);
 
         this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
         if (this.parsedEndpoint == null) {

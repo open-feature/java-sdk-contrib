@@ -46,7 +46,6 @@ import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import io.cucumber.java.AfterAll;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -60,7 +59,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
@@ -90,15 +90,15 @@ class FlagdProviderTest {
             .build();
     private static final String STRING_VALUE = "hi!";
 
-    private static OpenFeatureAPI api;
+    private OpenFeatureAPI api;
 
-    @BeforeAll
-    public static void init() {
+    @BeforeEach
+    public void init() {
         api = OpenFeatureAPI.getInstance();
     }
 
-    @AfterAll
-    public static void cleanUp() {
+    @AfterEach
+    public void cleanUp() {
         api.shutdown();
     }
 

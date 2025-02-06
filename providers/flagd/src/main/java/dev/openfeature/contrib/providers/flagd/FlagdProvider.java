@@ -210,7 +210,7 @@ public class FlagdProvider extends EventProvider {
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
         synchronized (eventsLock) {
-            log.info("FlagdProviderEvent: {}", flagdProviderEvent);
+            log.info("FlagdProviderEvent: {}", flagdProviderEvent.getEvent());
             eventsLock.syncMetadata = flagdProviderEvent.getSyncMetadata();
             if (flagdProviderEvent.getSyncMetadata() != null) {
                 eventsLock.enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());

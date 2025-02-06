@@ -15,9 +15,9 @@
     <properties>
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
-        <io.grpc.version>1.69.1</io.grpc.version>
+        <io.grpc.version>1.70.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
-        <protobuf-java.min.version>3.25.5</protobuf-java.min.version>
+        <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
     </properties>
 
     <name>flagd</name>
@@ -84,7 +84,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.11.0</version>
+            <version>2.12.1</version>
         </dependency>
 
         <dependency>
@@ -128,7 +128,7 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.17.2</version>
+            <version>1.18.0</version>
         </dependency>
 
         <dependency>
@@ -150,14 +150,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>toxiproxy</artifactId>
-            <version>1.20.4</version>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>5.5.0</version>
             <scope>test</scope>
         </dependency>
         <!-- uncomment for logoutput during test runs -->
-
-        <dependency>
+         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>2.0.16</version>
@@ -254,7 +253,7 @@
                 <configuration>
                     <protocArtifact>com.google.protobuf:protoc:3.25.5:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.68.2:exe:${os.detected.classifier}</pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.69.1:exe:${os.detected.classifier}</pluginArtifact>
                     <protoSourceRoot>${project.basedir}/schemas/protobuf/</protoSourceRoot>
                 </configuration>
                 <executions>

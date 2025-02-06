@@ -25,7 +25,7 @@ public class EventSteps extends AbstractSteps {
     @Given("a {} event handler")
     public void a_stale_event_handler(String eventType) {
         state.client.on(mapEventType(eventType), eventDetails -> {
-            log.info("event tracked for {} ", eventType);
+            log.info("event tracked for {} at {} ms ", eventType, System.currentTimeMillis() % 100_000);
             state.events.add(new Event(eventType, eventDetails));
         });
     }
@@ -47,24 +47,24 @@ public class EventSteps extends AbstractSteps {
 
     @When("a {} event was fired")
     public void eventWasFired(String eventType) throws InterruptedException {
-        eventHandlerShouldBeExecutedWithin(eventType, 10000);
-        // we might be too fast in the execution
-        Thread.sleep(500);
+        eventHandlerShouldBeExecutedWithin(eventType, 8000);
     }
 
     @Then("the {} event handler should have been executed")
     public void eventHandlerShouldBeExecuted(String eventType) {
-        eventHandlerShouldBeExecutedWithin(eventType, 30000);
+        eventHandlerShouldBeExecutedWithin(eventType, 10000);
     }
 
     @Then("the {} event handler should have been executed within {int}ms")
     public void eventHandlerShouldBeExecutedWithin(String eventType, int ms) {
         log.info("waiting for eventtype: {}", eventType);
-        await().atMost(ms, MILLISECONDS)
+        await().alias("waiting for eventtype " + eventType)
+                .atMost(ms, MILLISECONDS)
+                .pollInterval(10, MILLISECONDS)
                 .until(() -> state.events.stream().anyMatch(event -> event.type.equals(eventType)));
         state.lastEvent = state.events.stream()
                 .filter(event -> event.type.equals(eventType))
                 .findFirst();
-        state.events.removeIf(event -> event.type.equals(eventType));
+        state.events.clear();
     }
 }

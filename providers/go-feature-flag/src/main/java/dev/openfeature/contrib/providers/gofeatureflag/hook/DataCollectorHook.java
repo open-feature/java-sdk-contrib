@@ -62,7 +62,7 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
                 .variation(details.getVariant())
                 .value(details.getValue())
                 .userKey(ctx.getCtx().getTargetingKey())
-                .creationDate(System.currentTimeMillis())
+                .creationDate(System.currentTimeMillis() / 1000L)
                 .build();
         eventsPublisher.add(event);
     }
@@ -73,7 +73,7 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
                 .key(ctx.getFlagKey())
                 .kind("feature")
                 .contextKind(GoFeatureFlagUser.isAnonymousUser(ctx.getCtx()) ? "anonymousUser" : "user")
-                .creationDate(System.currentTimeMillis())
+                .creationDate(System.currentTimeMillis() / 1000L)
                 .defaultValue(true)
                 .variation("SdkDefault")
                 .value(ctx.getDefaultValue())
