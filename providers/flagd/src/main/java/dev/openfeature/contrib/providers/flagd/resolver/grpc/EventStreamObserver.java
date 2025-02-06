@@ -64,6 +64,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
      * @param value the event stream response containing configuration change data
      */
     private void handleConfigurationChangeEvent(EventStreamResponse value) {
+        log.debug("Received provider change event");
         List<String> changedFlags = new ArrayList<>();
 
         Map<String, Value> data = value.getData().getFieldsMap();
@@ -80,7 +81,7 @@ class EventStreamObserver implements StreamObserver<EventStreamResponse> {
      * Handles provider readiness events by clearing the cache (if enabled) and notifying listeners of readiness.
      */
     private void handleProviderReadyEvent() {
-        log.info("Received provider ready event");
+        log.debug("Received provider ready event");
         onReady.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
     }
 }
