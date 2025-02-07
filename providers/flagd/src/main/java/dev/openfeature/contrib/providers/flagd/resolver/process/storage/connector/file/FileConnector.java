@@ -24,15 +24,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class FileConnector implements Connector {
 
-    private static final int POLL_INTERVAL_MS = 5000;
     private static final String OFFER_WARN = "Unable to offer file content to queue: queue is full";
 
     private final String flagSourcePath;
+    private final int pollInterval;
     private final BlockingQueue<QueuePayload> queue = new LinkedBlockingQueue<>(1);
     private boolean shutdown = false;
 
-    public FileConnector(final String flagSourcePath) {
+    public FileConnector(final String flagSourcePath, int pollInterval) {
         this.flagSourcePath = flagSourcePath;
+        this.pollInterval = pollInterval;
     }
 
     /**
@@ -64,7 +65,7 @@ public class FileConnector implements Connector {
                         }
                     }
 
-                    Thread.sleep(POLL_INTERVAL_MS);
+                    Thread.sleep(pollInterval);
                 }
 
                 log.info("Shutting down file connector.");

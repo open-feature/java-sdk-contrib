@@ -26,7 +26,6 @@ public class ConfigSteps extends AbstractSteps {
      */
     public static final List<String> IGNORED_FOR_NOW = new ArrayList<String>() {
         {
-            add("offlinePollIntervalMs");
             add("retryBackoffMaxMs");
         }
     };

@@ -123,6 +123,13 @@ public class FlagdOptions {
     private String offlineFlagSourcePath;
 
     /**
+     * File polling interval.
+     * Defaults to 0 (disabled).
+     **/
+    @Builder.Default
+    private int offlinePollIntervalMs = fallBackToEnvOrDefault(Config.OFFLINE_POLL_MS, Config.DEFAULT_OFFLINE_POLL_MS);
+
+    /**
      * gRPC custom target string.
      *
      * <p>Setting this will allow user to use custom gRPC name resolver at present

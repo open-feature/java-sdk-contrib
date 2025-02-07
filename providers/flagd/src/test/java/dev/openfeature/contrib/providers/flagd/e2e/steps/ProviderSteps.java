@@ -112,7 +112,10 @@ public class ProviderSteps extends AbstractSteps {
 
                     state.builder
                             .port(UNAVAILABLE_PORT)
-                            .offlineFlagSourcePath(sharedTempDir.resolve("allFlags.json").toAbsolutePath().toString());
+                            .offlineFlagSourcePath(sharedTempDir
+                                    .resolve("allFlags.json")
+                                    .toAbsolutePath()
+                                    .toString());
                 } else {
                     state.builder.port(container.getPort(State.resolverType));
                 }
