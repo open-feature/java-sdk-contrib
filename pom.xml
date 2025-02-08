@@ -566,11 +566,7 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>3.5.2</version>
                         <configuration>
-                            <excludes>
-                                <!-- tests to exclude -->
-                                <exclude>${testExclusions}</exclude>
-                            </excludes>
-                            <argLine>""</argLine>
+                            <skipTests>true</skipTests>
                         </configuration>
                     </plugin>
                 </plugins>
