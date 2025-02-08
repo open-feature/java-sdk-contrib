@@ -12,7 +12,7 @@ import lombok.Getter;
 public class GoFeatureFlagProviderOptions {
 
     /**
-     * (mandatory) endpoint contains the DNS of your GO Feature Flag relay proxy example:
+     * (mandatory) endpoint contains the DNS of your GO Feature Flag relay proxy. example:
      * https://mydomain.com/gofeatureflagproxy/
      */
     private String endpoint;
