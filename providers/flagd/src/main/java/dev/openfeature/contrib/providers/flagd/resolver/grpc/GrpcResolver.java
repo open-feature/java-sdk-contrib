@@ -72,8 +72,8 @@ public final class GrpcResolver implements Resolver {
                         Evaluation.EventStreamRequest.getDefaultInstance(),
                         new EventStreamObserver(
                                 (flags) -> {
-                                    if (cache != null) {
-                                        flags.forEach(cache::remove);
+                                    if (this.cache != null) {
+                                        flags.forEach(this.cache::remove);
                                     }
                                     onProviderEvent.accept(new FlagdProviderEvent(
                                             ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, flags));

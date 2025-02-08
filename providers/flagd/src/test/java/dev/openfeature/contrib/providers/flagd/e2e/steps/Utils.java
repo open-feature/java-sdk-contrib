@@ -30,6 +30,8 @@ public final class Utils {
                         return Config.Resolver.IN_PROCESS;
                     case "rpc":
                         return Config.Resolver.RPC;
+                    case "file":
+                        return Config.Resolver.FILE;
                     default:
                         throw new RuntimeException("Unknown resolver type: " + value);
                 }
