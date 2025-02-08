@@ -62,6 +62,9 @@
             --add-opens java.base/java.util=ALL-UNNAMED
             --add-opens java.base/java.lang=ALL-UNNAMED
         </surefireArgLine>
+        <skip.tests>false</skip.tests>
+        <!-- this will throw an error if we use wrong apis -->
+        <maven.compiler.release>8</maven.compiler.release>
     </properties>
 
     <dependencies>
@@ -97,7 +100,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.11.0</version>
+            <version>5.2.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -236,11 +239,6 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
-
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
             </plugin>
 
             <!-- automatically derive a module name from the groupId and artifactId -->
@@ -545,6 +543,7 @@
             <id>java8</id>
             <properties>
                 <toolchain.jdk.version>(1.8,9)</toolchain.jdk.version>
+                <skip.tests>true</skip.tests>
             </properties>
 
             <build>
@@ -566,8 +565,25 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>3.5.2</version>
                         <configuration>
-                            <skipTests>true</skipTests>
+                            <skipTests>${skip.tests}</skipTests>
                         </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.13.0</version>
+                        <executions>
+                            <execution>
+                                <id>default-testCompile</id>
+                                <phase>test-compile</phase>
+                                <goals>
+                                    <goal>testCompile</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
