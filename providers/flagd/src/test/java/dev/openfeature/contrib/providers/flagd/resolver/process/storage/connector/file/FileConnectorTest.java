@@ -24,7 +24,7 @@ class FileConnectorTest {
     @Test
     void readAndExposeFeatureFlagsFromSource() throws IOException {
         // given
-        final FileConnector connector = new FileConnector(getResourcePath(VALID_LONG));
+        final FileConnector connector = new FileConnector(getResourcePath(VALID_LONG), 5000);
 
         // when
         connector.init();
@@ -45,7 +45,7 @@ class FileConnectorTest {
     @Test
     void emitErrorStateForInvalidPath() throws IOException {
         // given
-        final FileConnector connector = new FileConnector("INVALID_PATH");
+        final FileConnector connector = new FileConnector("INVALID_PATH", 5000);
 
         // when
         connector.init();
@@ -75,7 +75,7 @@ class FileConnectorTest {
         final Path updPath = Paths.get(getResourcePath(UPDATABLE_FILE));
         Files.write(updPath, initial.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
-        final FileConnector connector = new FileConnector(updPath.toString());
+        final FileConnector connector = new FileConnector(updPath.toString(), 5000);
 
         // when
         connector.init();

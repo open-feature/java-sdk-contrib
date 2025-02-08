@@ -17,6 +17,7 @@ public final class Config {
     static final int DEFAULT_STREAM_DEADLINE_MS = 10 * 60 * 1000;
     static final int DEFAULT_STREAM_RETRY_GRACE_PERIOD = 5;
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
+    static final int DEFAULT_OFFLINE_POLL_MS = 5000;
     static final long DEFAULT_KEEP_ALIVE = 0;
 
     static final String RESOLVER_ENV_VAR = "FLAGD_RESOLVER";
@@ -33,6 +34,7 @@ public final class Config {
     static final String STREAM_DEADLINE_MS_ENV_VAR_NAME = "FLAGD_STREAM_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
     static final String OFFLINE_SOURCE_PATH = "FLAGD_OFFLINE_FLAG_SOURCE_PATH";
+    static final String OFFLINE_POLL_MS = "FLAGD_OFFLINE_POLL_MS";
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME_OLD = "FLAGD_KEEP_ALIVE_TIME";
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME = "FLAGD_KEEP_ALIVE_TIME_MS";
     static final String TARGET_URI_ENV_VAR_NAME = "FLAGD_TARGET_URI";
@@ -40,6 +42,7 @@ public final class Config {
 
     static final String RESOLVER_RPC = "rpc";
     static final String RESOLVER_IN_PROCESS = "in-process";
+    static final String RESOLVER_FILE = "file";
 
     public static final String STATIC_REASON = "STATIC";
     public static final String CACHED_REASON = "CACHED";
@@ -87,6 +90,8 @@ public final class Config {
                 return Resolver.IN_PROCESS;
             case "rpc":
                 return Resolver.RPC;
+            case "file":
+                return Resolver.FILE;
             default:
                 log.warn("Unsupported resolver variable: {}", resolverVar);
                 return DEFAULT_RESOLVER_TYPE;
@@ -142,6 +147,11 @@ public final class Config {
         IN_PROCESS {
             public String asString() {
                 return RESOLVER_IN_PROCESS;
+            }
+        },
+        FILE {
+            public String asString() {
+                return RESOLVER_FILE;
             }
         }
     }
