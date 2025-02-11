@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.1...dev.openfeature.contrib.providers.go-feature-flag-v0.4.2) (2025-02-10)
+
+
+### 🐛 Bug Fixes
+
+* Use seconds instead of milliseconds ([#1174](https://github.com/open-feature/java-sdk-contrib/issues/1174)) ([921231a](https://github.com/open-feature/java-sdk-contrib/commit/921231a2031098fb97bf96e506912e2dee2b225c))
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Add exporterMetadata in the evaluation call ([#1193](https://github.com/open-feature/java-sdk-contrib/issues/1193)) ([16a8287](https://github.com/open-feature/java-sdk-contrib/commit/16a8287d8ac4e952f4bb934bd731e4301ce3c261))
+
 ## [0.4.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.0...dev.openfeature.contrib.providers.go-feature-flag-v0.4.1) (2025-01-20)
 
 
