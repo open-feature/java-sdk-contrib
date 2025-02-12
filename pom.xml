@@ -591,33 +591,6 @@
                 </plugins>
             </build>
         </profile>
-
-        <!-- profile for running tests under java 9+ (used for dev environments where people don't want to be locked to Java 8) -->
-        <!-- selected automatically by JDK activeation (see https://maven.apache.org/guides/introduction/introduction-to-profiles.html#implicit-profile-activation) -->
-        <profile>
-            <id>java11</id>
-
-            <properties>
-                <toolchain.jdk.version>(11,12)</toolchain.jdk.version>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>3.5.2</version>
-                        <configuration>
-                            <excludes>
-                                <!-- tests to exclude -->
-                                <exclude>${testExclusions}</exclude>
-                            </excludes>
-                            <argLine>@{surefireArgLine}
-                            </argLine>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
 
     <distributionManagement>

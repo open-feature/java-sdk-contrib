@@ -17,8 +17,6 @@ jobs:
           build:
               - java: 17
                 profile: codequality
-              - java: 11
-                profile: java11
               - java: 8
                 profile: java8
 
