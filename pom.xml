@@ -12,6 +12,19 @@
     <description>Contrib parent</description>
     <url>https://openfeature.dev</url>
 
+    <repositories>
+        <repository>
+            <id>oss.sonatype.org-snapshot</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <developers>
         <developer>
             <id>toddbaert</id>
@@ -69,7 +82,7 @@
             <groupId>dev.openfeature</groupId>
             <artifactId>sdk</artifactId>
             <!-- 1.14 <= v < 2.0 (excluding 2.0 pre-releases)-->
-            <version>[1.14,1.99999)</version>
+            <version>1.14.1-RC-SNAPSHOT</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
         </dependency>
