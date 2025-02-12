@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.0...dev.openfeature.contrib.providers.flagd-v0.11.1) (2025-02-12)
+
+
+### 🐛 Bug Fixes
+
+* missing common lang dep ([#1216](https://github.com/open-feature/java-sdk-contrib/issues/1216)) ([379a89d](https://github.com/open-feature/java-sdk-contrib/commit/379a89d0563982dcb65ca060678d049e2e39f264))
+
 ## [0.11.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.10.5...dev.openfeature.contrib.providers.flagd-v0.11.0) (2025-02-12)
 
 
