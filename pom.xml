@@ -64,7 +64,7 @@
             --add-opens java.base/java.lang=ALL-UNNAMED
         </surefireArgLine>
         <skip.tests>false</skip.tests>
-        <!-- this will throw an error if we use wrong apis -->
+        <!-- this will throw an error if we use APIs not available in the specified version -->
        <maven.compiler.release>8</maven.compiler.release>
     </properties>
 
