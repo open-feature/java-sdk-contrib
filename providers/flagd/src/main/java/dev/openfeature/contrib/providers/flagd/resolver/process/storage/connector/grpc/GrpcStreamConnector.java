@@ -51,7 +51,16 @@ public class GrpcStreamConnector implements Connector {
                 FlagSyncServiceGrpc::newStub,
                 FlagSyncServiceGrpc::newBlockingStub,
                 onConnectionEvent,
-                stub -> stub.syncFlags(SyncFlagsRequest.getDefaultInstance(), new GrpcStreamHandler(streamReceiver)));
+                stub -> {
+                    String localSelector = selector;
+
+                    final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
+                    if (localSelector != null) {
+                        syncRequest.setSelector(localSelector);
+                    }
+
+                    stub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
+                });
     }
 
     /** Initialize gRPC stream connector. */
@@ -98,13 +107,8 @@ public class GrpcStreamConnector implements Connector {
             Exception metadataException = null;
 
             log.debug("Initializing sync stream request");
-            final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
             GetMetadataResponse metadataResponse = GetMetadataResponse.getDefaultInstance();
-
-            if (selector != null) {
-                syncRequest.setSelector(selector);
-            }
 
             try (CancellableContext context = Context.current().withCancellation()) {
 

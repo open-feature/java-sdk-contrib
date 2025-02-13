@@ -40,7 +40,6 @@ public class ProviderSteps extends AbstractSteps {
 
     @BeforeAll
     public static void beforeAll() throws IOException {
-        State.resolverType = Config.Resolver.RPC;
         sharedTempDir = Files.createDirectories(
                 Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
         container = new FlagdContainer()
