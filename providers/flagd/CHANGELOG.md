@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.1...dev.openfeature.contrib.providers.flagd-v0.11.2) (2025-02-13)
+
+
+### 🐛 Bug Fixes
+
+* selector not being sent in sync call ([#1220](https://github.com/open-feature/java-sdk-contrib/issues/1220)) ([99e25ce](https://github.com/open-feature/java-sdk-contrib/commit/99e25cead7c501e62a454b0ff37fe971b9fd5b13))
+
+
+### 🧹 Chore
+
+* **flagd:** Improve grpc logging ([#1219](https://github.com/open-feature/java-sdk-contrib/issues/1219)) ([34f83c5](https://github.com/open-feature/java-sdk-contrib/commit/34f83c5933ab5f2df81af348036f9c403c7963af))
+
 ## [0.11.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.0...dev.openfeature.contrib.providers.flagd-v0.11.1) (2025-02-12)
 
 
