@@ -48,7 +48,7 @@ public class ChannelMonitor {
                 }
             }
             if (currentState != ConnectivityState.SHUTDOWN) {
-                log.debug("shutting down grpc channel");
+                log.debug("continuing to monitor the grpc channel");
                 // Re-register the state monitor to watch for the next state transition.
                 monitorChannelState(currentState, channel, onConnectionReady, onConnectionLost);
             }
