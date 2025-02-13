@@ -120,6 +120,7 @@ public class GrpcStreamConnector implements Connector {
                     // instead of logging and throwing here, retain the exception and handle in the
                     // stream logic below
                     metadataException = e;
+                    log.debug("Metadata exception: {}", e.getMessage(), e);
                 }
 
                 while (!shutdown.get()) {
@@ -133,7 +134,10 @@ public class GrpcStreamConnector implements Connector {
 
                     Throwable streamException = response.getError();
                     if (streamException != null || metadataException != null) {
-                        log.debug("Exception in GRPC connection");
+                        log.debug(
+                                "Exception in GRPC connection, streamException {}, metadataException {}",
+                                streamException,
+                                metadataException);
                         if (!writeTo.offer(new QueuePayload(
                                 QueuePayloadType.ERROR, "Error from stream or metadata", metadataResponse))) {
                             log.error("Failed to convey ERROR status, queue is full");
