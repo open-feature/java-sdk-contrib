@@ -77,6 +77,7 @@ public class FlagdProvider extends EventProvider {
      */
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
+            case Config.RESOLVER_FILE:
             case Config.RESOLVER_IN_PROCESS:
                 this.flagResolver = new InProcessResolver(options, this::onProviderEvent);
                 break;
@@ -208,13 +209,7 @@ public class FlagdProvider extends EventProvider {
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
 
         synchronized (syncResources) {
-            log.info(
-                    "FlagdProviderEvent: {} of type {}",
-                    flagdProviderEvent,
-                    flagdProviderEvent.getClass().getName());
-            log.info(
-                    "FlagdProviderEvent event {} ",
-                    flagdProviderEvent.getEvent().toString());
+            log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
             syncResources.setSyncMetadata(flagdProviderEvent.getSyncMetadata());
             if (flagdProviderEvent.getSyncMetadata() != null) {
                 syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
@@ -235,7 +230,6 @@ public class FlagdProvider extends EventProvider {
                         onConfigurationChanged(flagdProviderEvent);
                         break;
                     }
-                    log.info("config change not ready");
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;
@@ -256,38 +250,25 @@ public class FlagdProvider extends EventProvider {
                     log.info("Unknown event {}", flagdProviderEvent.getEvent());
             }
         }
-
-        log.info("give up lock on sync");
     }
 
     private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
-        log.info("FlagdProvider.onConfigurationChanged");
         this.emitProviderConfigurationChanged(ProviderEventDetails.builder()
                 .flagsChanged(flagdProviderEvent.getFlagsChanged())
                 .message("configuration changed")
                 .build());
-        log.info("post FlagdProvider.onConfigurationChanged");
     }
 
     private void onReady() {
-        log.info("on ready");
         if (syncResources.initialize()) {
             log.info("initialized FlagdProvider");
         }
-        log.info("on ready before error cancel");
         if (errorTask != null && !errorTask.isCancelled()) {
             errorTask.cancel(false);
             log.debug("Reconnection task cancelled as connection became READY.");
         }
-        log.info("on ready post error cancel");
-
-        // todo run in external thread to prevent deadlock
-        //new Thread(() -> {
-            this.emitProviderReady(
-                    ProviderEventDetails.builder().message("connected to flagd").build());
-        //}).start();
-
-        log.info("post onready");
+        this.emitProviderReady(
+                ProviderEventDetails.builder().message("connected to flagd").build());
     }
 
     private void onError() {

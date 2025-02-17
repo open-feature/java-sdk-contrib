@@ -1,9 +1,12 @@
-package dev.openfeature.contrib.providers.flagd.e2e.steps;
+package dev.openfeature.contrib.providers.flagd.e2e.steps.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
+import dev.openfeature.contrib.providers.flagd.e2e.steps.AbstractSteps;
+import dev.openfeature.contrib.providers.flagd.e2e.steps.EnvironmentVariableUtils;
+import dev.openfeature.contrib.providers.flagd.e2e.steps.Utils;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -23,7 +26,6 @@ public class ConfigSteps extends AbstractSteps {
      */
     public static final List<String> IGNORED_FOR_NOW = new ArrayList<String>() {
         {
-            add("offlinePollIntervalMs");
             add("retryBackoffMaxMs");
         }
     };
@@ -34,7 +36,12 @@ public class ConfigSteps extends AbstractSteps {
 
     @When("a config was initialized")
     public void we_initialize_a_config() {
-        state.options = state.builder.build();
+        try {
+            state.options = state.builder.build();
+        } catch (IllegalArgumentException e) {
+            state.options = null;
+            state.hasError = true;
+        }
     }
 
     @When("a config was initialized for {string}")
@@ -87,17 +94,23 @@ public class ConfigSteps extends AbstractSteps {
         }
 
         option = mapOptionNames(option);
-
-        assertThat(state.options).hasFieldOrPropertyWithValue(option, convert);
-
-        // Resetting env vars
-        for (Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
-            if (envVar.getValue() == null) {
-                EnvironmentVariableUtils.clear(envVar.getKey());
-            } else {
-                EnvironmentVariableUtils.set(envVar.getKey(), envVar.getValue());
+        try {
+            assertThat(state.options).hasFieldOrPropertyWithValue(option, convert);
+        } finally {
+            // Resetting env vars
+            for (Map.Entry<String, String> envVar : envVarsSet.entrySet()) {
+                if (envVar.getValue() == null) {
+                    EnvironmentVariableUtils.clear(envVar.getKey());
+                } else {
+                    EnvironmentVariableUtils.set(envVar.getKey(), envVar.getValue());
+                }
             }
         }
+    }
+
+    @Then("we should have an error")
+    public void we_should_have_an_error() {
+        assertThat(state.hasError).isTrue();
     }
 
     private static String mapOptionNames(String option) {

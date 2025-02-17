@@ -14,7 +14,7 @@ import org.junit.platform.commons.PreconditionViolationException;
  * This class modifies the internals of the environment variables map with reflection. Warning: If
  * your {@link SecurityManager} does not allow modifications, it fails.
  */
-class EnvironmentVariableUtils {
+public class EnvironmentVariableUtils {
 
     private EnvironmentVariableUtils() {
         // private constructor to prevent instantiation of utility class

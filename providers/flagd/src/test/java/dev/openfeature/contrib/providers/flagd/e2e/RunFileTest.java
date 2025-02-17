@@ -6,7 +6,6 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import org.apache.logging.log4j.core.config.Order;
-import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.platform.suite.api.BeforeSuite;
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.ExcludeTags;
@@ -24,18 +23,17 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @IncludeEngines("cucumber")
 @SelectDirectories("test-harness/gherkin")
 // if you want to run just one feature file, use the following line instead of @SelectDirectories
-// @SelectFile("test-harness/gherkin/selector.feature")
+// @SelectFile("test-harness/gherkin/connection.feature")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.steps")
 @ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
-@IncludeTags("in-process")
-@ExcludeTags({"unixsocket", "targetURI"})
+@IncludeTags("file")
+@ExcludeTags({"unixsocket", "targetURI", "reconnect", "customCert", "events"})
 @Testcontainers
-@Isolated
-public class RunInProcessTest {
+public class RunFileTest {
 
     @BeforeSuite
     public static void before() {
-        State.resolverType = Config.Resolver.IN_PROCESS;
+        State.resolverType = Config.Resolver.FILE;
     }
 }

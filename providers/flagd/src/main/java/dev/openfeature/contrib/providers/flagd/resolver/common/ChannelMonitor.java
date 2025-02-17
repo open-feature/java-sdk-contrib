@@ -47,8 +47,11 @@ public class ChannelMonitor {
                     log.debug("onConnectionLost is null");
                 }
             }
-            // Re-register the state monitor to watch for the next state transition.
-            monitorChannelState(currentState, channel, onConnectionReady, onConnectionLost);
+            if (currentState != ConnectivityState.SHUTDOWN) {
+                log.debug("continuing to monitor the grpc channel");
+                // Re-register the state monitor to watch for the next state transition.
+                monitorChannelState(currentState, channel, onConnectionReady, onConnectionLost);
+            }
         });
     }
 

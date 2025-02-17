@@ -151,7 +151,7 @@ public class InProcessResolver implements Resolver {
         }
         return options.getOfflineFlagSourcePath() != null
                         && !options.getOfflineFlagSourcePath().isEmpty()
-                ? new FileConnector(options.getOfflineFlagSourcePath())
+                ? new FileConnector(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
                 : new GrpcStreamConnector(options, onConnectionEvent);
     }
 
