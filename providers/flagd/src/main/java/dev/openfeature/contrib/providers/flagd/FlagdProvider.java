@@ -205,11 +205,9 @@ public class FlagdProvider extends EventProvider {
         return syncResources.getEnrichedContext();
     }
 
-    @SuppressWarnings("checkstyle:fallthrough")
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
-
+        log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
         synchronized (syncResources) {
-            log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
             syncResources.setSyncMetadata(flagdProviderEvent.getSyncMetadata());
             if (flagdProviderEvent.getSyncMetadata() != null) {
                 syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
@@ -233,7 +231,7 @@ public class FlagdProvider extends EventProvider {
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;
-                // intentional fall through, a not-ready change will trigger a ready.
+
                 case PROVIDER_READY:
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
@@ -244,8 +242,8 @@ public class FlagdProvider extends EventProvider {
                         onError();
                         syncResources.setPreviousEvent(ProviderEvent.PROVIDER_ERROR);
                     }
-
                     break;
+
                 default:
                     log.info("Unknown event {}", flagdProviderEvent.getEvent());
             }
