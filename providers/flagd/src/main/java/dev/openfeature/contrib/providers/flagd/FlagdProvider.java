@@ -10,7 +10,6 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.ImmutableContext;
-import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
@@ -216,7 +215,10 @@ public class FlagdProvider extends EventProvider {
                     }
                     // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
-                    // sync metadata is used to enrich the context, and is immutable in flagd, so only need to be fetched onces at READY
+                    /*
+                     * sync metadata is used to enrich the context, and is immutable in flagd,
+                     * so only need to be fetched onces at READY
+                     */
                     if (flagdProviderEvent.getSyncMetadata() != null) {
                         eventsLock.enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
                     }
