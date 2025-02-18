@@ -53,14 +53,14 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @Before
-    public void before() throws IOException {
+    public void before() {
         if (!container.isRunning()) {
             container.start();
         }
     }
 
     @After
-    public void tearDown() throws InterruptedException {
+    public void tearDown() {
         if (state.client != null) {
             when().post("http://" + container.getLaunchpadUrl() + "/stop")
                     .then()
@@ -70,7 +70,7 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @Given("a {} flagd provider")
-    public void setupProvider(String providerType) throws IOException, InterruptedException {
+    public void setupProvider(String providerType) throws InterruptedException {
         String flagdConfig = "default";
         state.builder.deadline(1000).keepAlive(0).retryGracePeriod(2);
         boolean wait = true;
@@ -125,28 +125,26 @@ public class ProviderSteps extends AbstractSteps {
                 .statusCode(200);
 
         // giving flagd a little time to start
-        Thread.sleep(30);
+        Thread.sleep(100);
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
 
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
-        String providerName = providerType + Math.random();
         if (wait) {
-            api.setProviderAndWait(providerName, provider);
+            api.setProviderAndWait(provider);
         } else {
-            api.setProvider(providerName, provider);
+            api.setProvider(provider);
         }
-        log.info("provider name: {}", providerName);
-        this.state.client = api.getClient(providerName);
+        this.state.client = api.getClient();
     }
 
     @When("the connection is lost")
-    public void the_connection_is_lost() throws InterruptedException {
+    public void the_connection_is_lost() {
         when().post("http://" + container.getLaunchpadUrl() + "/stop").then().statusCode(200);
     }
 
     @When("the connection is lost for {int}s")
-    public void the_connection_is_lost_for(int seconds) throws InterruptedException {
+    public void the_connection_is_lost_for(int seconds) {
         when().post("http://" + container.getLaunchpadUrl() + "/restart?seconds={seconds}", seconds)
                 .then()
                 .statusCode(200);
