@@ -128,14 +128,14 @@ public class ProviderSteps extends AbstractSteps {
         Thread.sleep(300);
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
-
+        String providerName = "Provider " + Math.random();
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
         if (wait) {
-            api.setProviderAndWait(provider);
+            api.setProviderAndWait(providerName, provider);
         } else {
-            api.setProvider(provider);
+            api.setProvider(providerName, provider);
         }
-        this.state.client = api.getClient();
+        this.state.client = api.getClient(providerName);
     }
 
     @When("the connection is lost")
