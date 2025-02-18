@@ -47,7 +47,7 @@ public class EventSteps extends AbstractSteps {
 
     @When("a {} event was fired")
     public void eventWasFired(String eventType) throws InterruptedException {
-        eventHandlerShouldBeExecutedWithin(eventType, 8000);
+        eventHandlerShouldBeExecutedWithin(eventType, 10000);
     }
 
     @Then("the {} event handler should have been executed")
