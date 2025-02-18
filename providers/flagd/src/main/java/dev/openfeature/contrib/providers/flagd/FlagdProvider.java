@@ -216,8 +216,8 @@ public class FlagdProvider extends EventProvider {
                     // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
                     /*
-                     * sync metadata is used to enrich the context, and is immutable in flagd,
-                     * so only need to be fetched onces at READY
+                     * Sync metadata is used to enrich the context, and is immutable in flagd,
+                     * so we only need it to be fetched once at READY.
                      */
                     if (flagdProviderEvent.getSyncMetadata() != null) {
                         eventsLock.enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
