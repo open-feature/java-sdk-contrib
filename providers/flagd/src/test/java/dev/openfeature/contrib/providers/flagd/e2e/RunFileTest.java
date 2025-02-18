@@ -28,7 +28,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.steps")
 @ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
 @IncludeTags("file")
-@ExcludeTags({"unixsocket", "targetURI", "reconnect", "customCert", "events", "flagdcontext"})
+@ExcludeTags({"unixsocket", "targetURI", "reconnect", "customCert", "events", "contextEnrichment"})
 @Testcontainers
 public class RunFileTest {
 

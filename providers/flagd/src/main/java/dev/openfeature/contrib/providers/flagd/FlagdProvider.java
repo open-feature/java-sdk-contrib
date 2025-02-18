@@ -185,19 +185,6 @@ public class FlagdProvider extends EventProvider {
     }
 
     /**
-     * An unmodifiable view of a Structure representing the latest result of the
-     * SyncMetadata.
-     * Set on initial connection and updated with every reconnection.
-     * see:
-     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata
-     *
-     * @return Object map representing sync metadata
-     */
-    protected Structure getSyncMetadata() {
-        return new ImmutableStructure(eventsLock.syncMetadata.asMap());
-    }
-
-    /**
      * The updated context mixed into all evaluations based on the sync-metadata.
      *
      * @return context
@@ -211,10 +198,6 @@ public class FlagdProvider extends EventProvider {
 
         synchronized (eventsLock) {
             log.info("FlagdProviderEvent: {}", flagdProviderEvent.getEvent());
-            eventsLock.syncMetadata = flagdProviderEvent.getSyncMetadata();
-            if (flagdProviderEvent.getSyncMetadata() != null) {
-                eventsLock.enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
-            }
 
             /*
              * We only use Error and Ready as previous states.
@@ -233,6 +216,10 @@ public class FlagdProvider extends EventProvider {
                     }
                     // intentional fall through, a not-ready change will trigger a ready.
                 case PROVIDER_READY:
+                    // sync metadata is used to enrich the context, and is immutable in flagd, so only need to be fetched onces at READY
+                    if (flagdProviderEvent.getSyncMetadata() != null) {
+                        eventsLock.enrichedContext = contextEnricher.apply(flagdProviderEvent.getSyncMetadata());
+                    }
                     onReady();
                     eventsLock.previousEvent = ProviderEvent.PROVIDER_READY;
                     break;
@@ -304,7 +291,6 @@ public class FlagdProvider extends EventProvider {
      */
     static class EventsLock {
         volatile ProviderEvent previousEvent = null;
-        volatile Structure syncMetadata = new ImmutableStructure();
         volatile boolean initialized = false;
         volatile EvaluationContext enrichedContext = new ImmutableContext();
     }
