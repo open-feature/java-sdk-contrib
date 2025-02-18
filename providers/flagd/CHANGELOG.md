@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.2...dev.openfeature.contrib.providers.flagd-v0.11.3) (2025-02-18)
+
+
+### 🐛 Bug Fixes
+
+* enriched context lost on some events ([#1226](https://github.com/open-feature/java-sdk-contrib/issues/1226)) ([aefa941](https://github.com/open-feature/java-sdk-contrib/commit/aefa9410442baa5d801350e9b039ea27b9b8a41d))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency providers/flagd/test-harness to v2.2.0 ([#1223](https://github.com/open-feature/java-sdk-contrib/issues/1223)) ([5f75991](https://github.com/open-feature/java-sdk-contrib/commit/5f75991a59a2bb098ef5b927ecdace61e1baf0fd))
+* **deps:** update providers/flagd/spec digest to 54952f3 ([#1218](https://github.com/open-feature/java-sdk-contrib/issues/1218)) ([5a19a8d](https://github.com/open-feature/java-sdk-contrib/commit/5a19a8ddf881b9591b9416d4b859d8c656a63519))
+* **deps:** update providers/flagd/test-harness digest to ec1d75c ([#1198](https://github.com/open-feature/java-sdk-contrib/issues/1198)) ([3fe0871](https://github.com/open-feature/java-sdk-contrib/commit/3fe0871d4765228983cc6da5de0bf8b2f66854a6))
+* update testbed ([#1225](https://github.com/open-feature/java-sdk-contrib/issues/1225)) ([020c9a1](https://github.com/open-feature/java-sdk-contrib/commit/020c9a14fedddd3fec450a87db45dead0c33f4c2))
+
 ## [0.11.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.1...dev.openfeature.contrib.providers.flagd-v0.11.2) (2025-02-13)
 
 
