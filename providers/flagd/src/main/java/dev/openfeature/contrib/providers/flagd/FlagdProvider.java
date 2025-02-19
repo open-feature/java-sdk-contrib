@@ -195,11 +195,6 @@ public class FlagdProvider extends EventProvider {
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
         log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
         synchronized (syncResources) {
-            syncResources.setSyncMetadata(flagdProviderEvent.getSyncMetadata());
-            if (flagdProviderEvent.getSyncMetadata() != null) {
-                syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
-            }
-
             /*
              * We only use Error and Ready as previous states.
              * As error will first be emitted as Stale, and only turns after a while into an
