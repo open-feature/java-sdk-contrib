@@ -32,7 +32,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     /**
      * The blocking service stub for making blocking GRPC calls.
      */
-    private final K blockingStub;
+    private final Function<ManagedChannel, K> blockingStubFunction;
 
     /**
      * The GRPC managed channel for managing the underlying GRPC connection.
@@ -58,6 +58,8 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      * A consumer that handles GRPC service stubs for event stream handling.
      */
     private final Consumer<T> streamObserver;
+
+    private final FlagdOptions options;
 
     /**
      * Indicates whether the connector is currently connected to the GRPC service.
@@ -85,11 +87,12 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
 
         this.channel = channel;
         this.serviceStub = stub.apply(channel).withWaitForReady();
-        this.blockingStub = blockingStub.apply(channel).withWaitForReady();
+        this.blockingStubFunction = blockingStub;
         this.deadline = options.getDeadline();
         this.streamDeadlineMs = options.getStreamDeadlineMs();
         this.onConnectionEvent = onConnectionEvent;
         this.streamObserver = eventStreamObserver;
+        this.options = options;
     }
 
     /**
@@ -126,7 +129,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      * @return the blocking service stub
      */
     public K getResolver() {
-        return blockingStub;
+        return blockingStubFunction.apply(channel).withWaitForReady();
     }
 
     /**
