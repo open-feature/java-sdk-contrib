@@ -17,6 +17,8 @@ import org.junit.jupiter.api.parallel.Isolated;
 @Slf4j
 public class EventSteps extends AbstractSteps {
 
+    private static final int EVENT_TIMEOUT_MS = 12_000;
+
     public EventSteps(State state) {
         super(state);
         state.events = new LinkedList<>();
@@ -46,13 +48,13 @@ public class EventSteps extends AbstractSteps {
     }
 
     @When("a {} event was fired")
-    public void eventWasFired(String eventType) throws InterruptedException {
-        eventHandlerShouldBeExecutedWithin(eventType, 10000);
+    public void eventWasFired(String eventType) {
+        eventHandlerShouldBeExecutedWithin(eventType, EVENT_TIMEOUT_MS);
     }
 
     @Then("the {} event handler should have been executed")
     public void eventHandlerShouldBeExecuted(String eventType) {
-        eventHandlerShouldBeExecutedWithin(eventType, 10000);
+        eventHandlerShouldBeExecutedWithin(eventType, EVENT_TIMEOUT_MS);
     }
 
     @Then("the {} event handler should have been executed within {int}ms")

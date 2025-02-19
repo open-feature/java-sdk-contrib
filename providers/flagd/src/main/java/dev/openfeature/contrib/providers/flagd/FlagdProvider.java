@@ -118,7 +118,6 @@ public class FlagdProvider extends EventProvider {
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        log.info("called initialize");
         synchronized (syncResources) {
             if (syncResources.isInitialized()) {
                 return;
@@ -184,19 +183,6 @@ public class FlagdProvider extends EventProvider {
     }
 
     /**
-     * An unmodifiable view of a Structure representing the latest result of the
-     * SyncMetadata.
-     * Set on initial connection and updated with every reconnection.
-     * see:
-     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata
-     *
-     * @return Object map representing sync metadata
-     */
-    protected Structure getSyncMetadata() {
-        return syncResources.getSyncMetadata();
-    }
-
-    /**
      * The updated context mixed into all evaluations based on the sync-metadata.
      *
      * @return context
@@ -205,6 +191,7 @@ public class FlagdProvider extends EventProvider {
         return syncResources.getEnrichedContext();
     }
 
+    @SuppressWarnings("checkstyle:fallthrough")
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
         log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
         synchronized (syncResources) {
@@ -228,11 +215,15 @@ public class FlagdProvider extends EventProvider {
                         onConfigurationChanged(flagdProviderEvent);
                         break;
                     }
-                    onReady();
-                    syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
-                    break;
-
+                    // intentional fall through
                 case PROVIDER_READY:
+                    /*
+                     * Sync metadata is used to enrich the context, and is immutable in flagd,
+                     * so we only need it to be fetched once at READY.
+                     */
+                    if (flagdProviderEvent.getSyncMetadata() != null) {
+                        syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
+                    }
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;

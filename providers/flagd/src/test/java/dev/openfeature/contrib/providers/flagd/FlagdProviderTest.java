@@ -671,7 +671,6 @@ class FlagdProviderTest {
             provider.initialize(ctx);
 
             // the onConnectionEvent should have updated the sync metadata and the
-            assertEquals(val, provider.getSyncMetadata().getValue(key).asString());
             assertEquals(val, provider.getEnrichedContext().getValue(key).asString());
 
             // call the hook manually and make sure the enriched context is returned
