@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.3...dev.openfeature.contrib.providers.flagd-v0.11.4) (2025-02-20)
+
+
+### 🧹 Chore
+
+* **deps:** update dependency io.rest-assured:rest-assured to v5.5.1 ([#1224](https://github.com/open-feature/java-sdk-contrib/issues/1224)) ([1b8fa75](https://github.com/open-feature/java-sdk-contrib/commit/1b8fa75178baf7f0b87703efeadcaac208f26f01))
+* **deps:** update providers/flagd/spec digest to a69f748 ([#1229](https://github.com/open-feature/java-sdk-contrib/issues/1229)) ([1a884d5](https://github.com/open-feature/java-sdk-contrib/commit/1a884d50686156a3e93592683bf2bdbcb5db0ade))
+* **deps:** update providers/flagd/test-harness digest to f5afee5 ([#1232](https://github.com/open-feature/java-sdk-contrib/issues/1232)) ([dad7648](https://github.com/open-feature/java-sdk-contrib/commit/dad7648a33c79362936ace209c9b061ba370998d))
+
 ## [0.11.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.2...dev.openfeature.contrib.providers.flagd-v0.11.3) (2025-02-18)
 
 
