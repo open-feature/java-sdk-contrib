@@ -12,6 +12,7 @@ public class GoFeatureFlagResponse {
     private String version;
     private String reason;
     private String errorCode;
+    private String message;
     private Object value;
     private Boolean cacheable;
     private Map<String, Object> metadata;
