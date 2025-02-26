@@ -49,17 +49,23 @@
     </scm>
 
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+        <toolchain.jdk.version>[17,)</toolchain.jdk.version>
         <junit.jupiter.version>5.11.4</junit.jupiter.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <module-name>${groupId}.${artifactId}</module-name>
         <io.cucumber.version>7.21.1</io.cucumber.version>
+        <org.mockito.version>5.2.0</org.mockito.version>
         <javadoc.failOnWarnings>true</javadoc.failOnWarnings>
         <!--  This is required for later correct replacement of surefireArgLine -->
         <!-- see surefire-java8 and surefire-java9+ profiles -->
-        <surefireArgLine/>
+        <surefireArgLine>
+            --add-opens java.base/java.util=ALL-UNNAMED
+            --add-opens java.base/java.lang=ALL-UNNAMED
+        </surefireArgLine>
+        <skip.tests>false</skip.tests>
+        <!-- this will throw an error if we use APIs not available in the specified version -->
+       <maven.compiler.release>8</maven.compiler.release>
     </properties>
 
     <dependencies>
@@ -95,7 +101,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.11.0</version>
+            <version>${org.mockito.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -105,14 +111,14 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-            <version>1.17.0</version>
+            <version>1.17.1</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
-            <version>1.17.0</version>
+            <version>1.17.1</version>
             <scope>test</scope>
         </dependency>
         <!-- End mockito workaround-->
@@ -169,21 +175,21 @@
         <dependency>
             <groupId>org.junit-pioneer</groupId>
             <artifactId>junit-pioneer</artifactId>
-            <version>1.9.1</version>
+            <version>2.3.0</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.11.0</version>
+            <version>5.15.2</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-inline</artifactId>
-            <version>4.11.0</version>
+            <version>${org.mockito.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -220,89 +226,20 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-toolchains-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>select-jdk-toolchain</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.6.0</version>
-                <configuration>
-                    <configLocation>checkstyle.xml</configLocation>
-                    <encoding>UTF-8</encoding>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                    <linkXRef>false</linkXRef>
-                    <excludeGeneratedSources>true</excludeGeneratedSources>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>9.3</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.26.0</version>
-                <configuration>
-                    <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>run-pmd</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.8.6.6</version>
-                <configuration>
-                    <excludeFilterFile>spotbugs-exclusions.xml</excludeFilterFile>
-                    <plugins>
-                        <plugin>
-                            <groupId>com.h3xstream.findsecbugs</groupId>
-                            <artifactId>findsecbugs-plugin</artifactId>
-                            <version>1.13.0</version>
-                        </plugin>
-                    </plugins>
-                </configuration>
-                <dependencies>
-                    <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
-                    <dependency>
-                        <groupId>com.github.spotbugs</groupId>
-                        <artifactId>spotbugs</artifactId>
-                        <version>4.8.6</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>run-spotbugs</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <!-- automatically derive a module name from the groupId and artifactId -->
@@ -367,6 +304,8 @@
                     </excludePackageNames>
                     <doclint>all,-missing
                     </doclint>  <!-- ignore missing javadoc, these are enforced with more customizability in the checkstyle plugin -->
+
+                    <source>8</source>
                 </configuration>
                 <executions>
                     <execution>
@@ -438,108 +377,216 @@
                     <skipNexusStagingDeployMojo>${maven.deploy.skip}</skipNexusStagingDeployMojo>
                 </configuration>
             </plugin>
-            <!-- End publish to maven central -->
             <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>2.30.0</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
                 <configuration>
-                    <!-- optional: limit format enforcement to just the files changed by this feature branch -->
-                    <!--                <ratchetFrom>origin/main</ratchetFrom>-->
-                    <formats>
-                        <!-- you can define as many formats as you want, each is independent -->
-                        <format>
-                            <!-- define the files to apply to -->
-                            <includes>
-                                <include>.gitattributes</include>
-                                <include>.gitignore</include>
-                            </includes>
-                            <!-- define the steps to apply to those files -->
-                            <trimTrailingWhitespace/>
-                            <endWithNewline/>
-                            <indent>
-                                <spaces>true</spaces>
-                                <spacesPerTab>4</spacesPerTab>
-                            </indent>
-                        </format>
-                    </formats>
-                    <!-- define a language-specific format -->
-                    <java>
-                        <palantirJavaFormat />
-
-                        <indent>
-                            <spaces>true</spaces>
-                            <spacesPerTab>4</spacesPerTab>
-                        </indent>
-                        <importOrder/>
-
-                        <removeUnusedImports/>
-                        <formatAnnotations/>
-
-                    </java>
+                    <excludes>
+                        <!-- tests to exclude -->
+                        <exclude>${testExclusions}</exclude>
+                    </excludes>
+                    <argLine>
+                        @{surefireArgLine}
+                    </argLine>
                 </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
+            <!-- End publish to maven central -->
         </plugins>
-
     </build>
 
     <profiles>
-        <!-- profile for running tests under java 8 (used mostly in CI) -->
-        <!-- selected automatically by JDK activeation (see https://maven.apache.org/guides/introduction/introduction-to-profiles.html#implicit-profile-activation) -->
         <profile>
-            <id>surefire-java8</id>
+            <id>codequality</id>
             <activation>
-                <!-- JDK 1.8 -->
-                <jdk>1.8</jdk>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <build>
                 <plugins>
+                    <!-- CODE QUALITY TOOLS -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>3.5.2</version>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <version>3.6.0</version>
                         <configuration>
-                            <excludes>
-                                <!-- tests to exclude -->
-                                <exclude>${testExclusions}</exclude>
-                            </excludes>
-                            <argLine>@{surefireArgLine}</argLine>
+                            <configLocation>checkstyle.xml</configLocation>
+                            <encoding>UTF-8</encoding>
+                            <consoleOutput>true</consoleOutput>
+                            <failsOnError>true</failsOnError>
+                            <linkXRef>false</linkXRef>
+                            <excludeGeneratedSources>true</excludeGeneratedSources>
                         </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.puppycrawl.tools</groupId>
+                                <artifactId>checkstyle</artifactId>
+                                <version>10.21.3</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>validate</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-pmd-plugin</artifactId>
+                        <version>3.26.0</version>
+                        <configuration>
+                            <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>run-pmd</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- SpotBugs -->
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <version>4.8.6.6</version>
+                        <configuration>
+                            <excludeFilterFile>spotbugs-exclusions.xml</excludeFilterFile>
+                            <plugins>
+                                <plugin>
+                                    <groupId>com.h3xstream.findsecbugs</groupId>
+                                    <artifactId>findsecbugs-plugin</artifactId>
+                                    <version>1.13.0</version>
+                                </plugin>
+                            </plugins>
+                        </configuration>
+                        <dependencies>
+                            <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
+                            <dependency>
+                                <groupId>com.github.spotbugs</groupId>
+                                <artifactId>spotbugs</artifactId>
+                                <version>4.9.0</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>run-spotbugs</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Spotless -->
+                    <plugin>
+                        <groupId>com.diffplug.spotless</groupId>
+                        <artifactId>spotless-maven-plugin</artifactId>
+                        <version>2.43.0</version>
+                        <configuration>
+                            <!-- optional: limit format enforcement to just the files changed by this feature branch -->
+                            <!--                <ratchetFrom>origin/main</ratchetFrom>-->
+                            <formats>
+                                <!-- you can define as many formats as you want, each is independent -->
+                                <format>
+                                    <!-- define the files to apply to -->
+                                    <includes>
+                                        <include>.gitattributes</include>
+                                        <include>.gitignore</include>
+                                    </includes>
+                                    <!-- define the steps to apply to those files -->
+                                    <trimTrailingWhitespace/>
+                                    <endWithNewline/>
+                                    <indent>
+                                        <spaces>true</spaces>
+                                        <spacesPerTab>4</spacesPerTab>
+                                    </indent>
+                                </format>
+                            </formats>
+                            <!-- define a language-specific format -->
+                            <java>
+                                <palantirJavaFormat/>
+
+                                <indent>
+                                    <spaces>true</spaces>
+                                    <spacesPerTab>4</spacesPerTab>
+                                </indent>
+                                <importOrder/>
+
+                                <removeUnusedImports/>
+                                <formatAnnotations/>
+
+                            </java>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
         </profile>
 
-        <!-- profile for running tests under java 9+ (used for dev environments where people don't want to be locked to Java 8) -->
+        <!-- profile for running tests under java 8 (used mostly in CI) -->
         <!-- selected automatically by JDK activeation (see https://maven.apache.org/guides/introduction/introduction-to-profiles.html#implicit-profile-activation) -->
         <profile>
-            <id>surefire-java9+</id>
-            <activation>
-                <!-- JDK 1.9+ -->
-                <jdk>[1.9,)</jdk>
-            </activation>
+            <id>java8</id>
+            <!-- with the next block we can define a set of artifacts which still support java 8, if any of the artifacts is not supporting java 8 anymore -->
+            <!--<modules><module></module></modules>-->
+            <properties>
+                <toolchain.jdk.version>(1.8,9)</toolchain.jdk.version>
+                <skip.tests>true</skip.tests>
+            </properties>
+
             <build>
                 <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-toolchains-plugin</artifactId>
+                        <version>3.2.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>select-jdk-toolchain</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>3.5.2</version>
                         <configuration>
-                            <excludes>
-                                <!-- tests to exclude -->
-                                <exclude>${testExclusions}</exclude>
-                            </excludes>
-                            <argLine>@{surefireArgLine} --add-opens java.base/java.util=ALL-UNNAMED --add-opens
-                                java.base/java.lang=ALL-UNNAMED
-                            </argLine>
+                            <skipTests>${skip.tests}</skipTests>
                         </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.13.0</version>
+                        <executions>
+                            <execution>
+                                <id>default-testCompile</id>
+                                <phase>test-compile</phase>
+                                <goals>
+                                    <goal>testCompile</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
