@@ -5,6 +5,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -600,7 +601,8 @@ class FlagdProviderTest {
         MutableStructure metadata = new MutableStructure();
         metadata.add(key, val);
         // given
-        final Function<Structure, EvaluationContext> mockEnricher = mock(Function.class);
+        final Function<Structure, EvaluationContext> enricher = structure -> new ImmutableContext(structure.asMap());
+        final Function<Structure, EvaluationContext> mockEnricher = mock(Function.class, delegatesTo(enricher));
 
         // mock a resolver
         try (MockedConstruction<InProcessResolver> mockResolver =
