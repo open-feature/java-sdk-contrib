@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 class FlagdProviderSyncResourcesTest {
-    private static final long PERMISSIBLE_EPSILON = 20;
+    private static final long MAX_TIME_TOLERANCE = 20;
 
     private FlagdProviderSyncResources flagdProviderSyncResources;
 
@@ -39,7 +39,7 @@ class FlagdProviderSyncResourcesTest {
         // should wait at least for the deadline
         Assertions.assertTrue(elapsed >= deadline);
         // should not wait much longer than the deadline
-        Assertions.assertTrue(elapsed < deadline + PERMISSIBLE_EPSILON);
+        Assertions.assertTrue(elapsed < deadline + MAX_TIME_TOLERANCE);
     }
 
     @Timeout(2)
@@ -57,7 +57,7 @@ class FlagdProviderSyncResourcesTest {
             long duration = end - start;
             // even though thread was interrupted, it still waited for the deadline
             Assertions.assertTrue(duration >= deadline);
-            Assertions.assertTrue(duration < deadline + PERMISSIBLE_EPSILON);
+            Assertions.assertTrue(duration < deadline + MAX_TIME_TOLERANCE);
         });
         waitingThread.start();
 
@@ -65,7 +65,7 @@ class FlagdProviderSyncResourcesTest {
             Thread.yield();
         }
 
-        Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
+        Thread.sleep(MAX_TIME_TOLERANCE); // waitingThread should have started waiting in the meantime
 
         for (int i = 0; i < 50; i++) {
             waitingThread.interrupt();
@@ -85,7 +85,7 @@ class FlagdProviderSyncResourcesTest {
             flagdProviderSyncResources.waitForInitialization(10000);
             long end = System.currentTimeMillis();
             long duration = end - start;
-            Assertions.assertTrue(duration < PERMISSIBLE_EPSILON);
+            Assertions.assertTrue(duration < MAX_TIME_TOLERANCE);
         });
         waitingThread.start();
 
@@ -93,7 +93,7 @@ class FlagdProviderSyncResourcesTest {
             Thread.yield();
         }
 
-        Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
+        Thread.sleep(MAX_TIME_TOLERANCE); // waitingThread should have started waiting in the meantime
 
         flagdProviderSyncResources.initialize();
 
@@ -112,7 +112,7 @@ class FlagdProviderSyncResourcesTest {
 
             long end = System.currentTimeMillis();
             long duration = end - start;
-            Assertions.assertTrue(duration < PERMISSIBLE_EPSILON);
+            Assertions.assertTrue(duration < MAX_TIME_TOLERANCE);
         });
         waitingThread.start();
 
@@ -120,7 +120,7 @@ class FlagdProviderSyncResourcesTest {
             Thread.yield();
         }
 
-        Thread.sleep(PERMISSIBLE_EPSILON); // waitingThread should have started waiting in the meantime
+        Thread.sleep(MAX_TIME_TOLERANCE); // waitingThread should have started waiting in the meantime
 
         flagdProviderSyncResources.shutdown();
 
@@ -134,7 +134,7 @@ class FlagdProviderSyncResourcesTest {
         long start = System.currentTimeMillis();
         flagdProviderSyncResources.waitForInitialization(10000);
         long end = System.currentTimeMillis();
-        // do not use PERMISSIBLE_EPSILON here, this should happen faster than that
+        // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
         Assertions.assertTrue(start + 1 >= end);
     }
 }
