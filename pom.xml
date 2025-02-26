@@ -239,7 +239,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.14.0</version>
             </plugin>
 
             <!-- automatically derive a module name from the groupId and artifactId -->
@@ -456,7 +456,7 @@
                     <plugin>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-maven-plugin</artifactId>
-                        <version>4.8.6.6</version>
+                        <version>4.9.1.0</version>
                         <configuration>
                             <excludeFilterFile>spotbugs-exclusions.xml</excludeFilterFile>
                             <plugins>
@@ -574,7 +574,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.13.0</version>
+                        <version>3.14.0</version>
                         <executions>
                             <execution>
                                 <id>default-testCompile</id>
