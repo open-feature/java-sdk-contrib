@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.2...dev.openfeature.contrib.providers.go-feature-flag-v0.4.3) (2025-02-26)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+
 ## [0.4.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.1...dev.openfeature.contrib.providers.go-feature-flag-v0.4.2) (2025-02-10)
 
 
