@@ -48,7 +48,7 @@ public class EventSteps extends AbstractSteps {
     }
 
     @When("a {} event was fired")
-    public void eventWasFired(String eventType) throws InterruptedException {
+    public void eventWasFired(String eventType) {
         eventHandlerShouldBeExecutedWithin(eventType, EVENT_TIMEOUT_MS);
     }
 
