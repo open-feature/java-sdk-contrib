@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.11.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.3...dev.openfeature.contrib.providers.flagd-v0.11.4) (2025-02-27)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.google.protobuf:protobuf-java to v4 ([#1176](https://github.com/open-feature/java-sdk-contrib/issues/1176)) ([945f914](https://github.com/open-feature/java-sdk-contrib/commit/945f914531436195c8a5882507436e7a848e587c))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.6 ([#1238](https://github.com/open-feature/java-sdk-contrib/issues/1238)) ([3a37dfc](https://github.com/open-feature/java-sdk-contrib/commit/3a37dfc26b8a232d6f34e886f5ffe3599340e806))
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.1.119.final ([#1249](https://github.com/open-feature/java-sdk-contrib/issues/1249)) ([46f0c7b](https://github.com/open-feature/java-sdk-contrib/commit/46f0c7b26dd61826cbaa9cb3cb59be7b1fd3dde4))
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+* **flagd:** improve error messages for validation, if there are multiple errors ([#1250](https://github.com/open-feature/java-sdk-contrib/issues/1250)) ([82ca797](https://github.com/open-feature/java-sdk-contrib/commit/82ca797922731cd4451365c4aa99c30ea22072ea))
+* RPC mode does not honor timeout ([#1230](https://github.com/open-feature/java-sdk-contrib/issues/1230)) ([5b509d0](https://github.com/open-feature/java-sdk-contrib/commit/5b509d01f08daed55b776960f1089023e25b30d3))
+
+
+### ✨ New Features
+
+* Improve wait logic to a more elegant solution [#1160](https://github.com/open-feature/java-sdk-contrib/issues/1160) ([#1169](https://github.com/open-feature/java-sdk-contrib/issues/1169)) ([4f484b7](https://github.com/open-feature/java-sdk-contrib/commit/4f484b72b23ff97b862726767d032dd5b94cf3a6))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.github.spotbugs:spotbugs-maven-plugin to v4.9.1.0 ([#1241](https://github.com/open-feature/java-sdk-contrib/issues/1241)) ([9ef867d](https://github.com/open-feature/java-sdk-contrib/commit/9ef867dee4e4a33bb0a7f66316129f0622e8f687))
+* **deps:** update dependency io.rest-assured:rest-assured to v5.5.1 ([#1224](https://github.com/open-feature/java-sdk-contrib/issues/1224)) ([1b8fa75](https://github.com/open-feature/java-sdk-contrib/commit/1b8fa75178baf7f0b87703efeadcaac208f26f01))
+* **deps:** update providers/flagd/schemas digest to bb76343 ([#1204](https://github.com/open-feature/java-sdk-contrib/issues/1204)) ([69ccfef](https://github.com/open-feature/java-sdk-contrib/commit/69ccfef67f502a2d16ef0a383809f3589a2e4151))
+* **deps:** update providers/flagd/spec digest to 0cd553d ([#1240](https://github.com/open-feature/java-sdk-contrib/issues/1240)) ([7419c69](https://github.com/open-feature/java-sdk-contrib/commit/7419c692e066c436f588d787beee7a2a0d0348a7))
+* **deps:** update providers/flagd/spec digest to a69f748 ([#1229](https://github.com/open-feature/java-sdk-contrib/issues/1229)) ([1a884d5](https://github.com/open-feature/java-sdk-contrib/commit/1a884d50686156a3e93592683bf2bdbcb5db0ade))
+* **deps:** update providers/flagd/spec digest to a69f748 ([#1235](https://github.com/open-feature/java-sdk-contrib/issues/1235)) ([1e72537](https://github.com/open-feature/java-sdk-contrib/commit/1e72537e046f2dbeff50d9967053c9fbe6d3b439))
+* **deps:** update providers/flagd/test-harness digest to f5afee5 ([#1232](https://github.com/open-feature/java-sdk-contrib/issues/1232)) ([dad7648](https://github.com/open-feature/java-sdk-contrib/commit/dad7648a33c79362936ace209c9b061ba370998d))
+* **deps:** update testcontainers-java monorepo to v1.20.5 ([#1237](https://github.com/open-feature/java-sdk-contrib/issues/1237)) ([99366df](https://github.com/open-feature/java-sdk-contrib/commit/99366df2c06117fc43a754758bcba71d1cebafb9))
+
 ## [0.11.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.2...dev.openfeature.contrib.providers.flagd-v0.11.3) (2025-02-18)
 
 
