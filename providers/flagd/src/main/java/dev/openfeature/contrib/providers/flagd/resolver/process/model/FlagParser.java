@@ -14,9 +14,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /** flagd feature flag configuration parser. */
@@ -59,7 +61,11 @@ public class FlagParser {
                 Set<ValidationMessage> validationMessages = SCHEMA_VALIDATOR.validate(parser.readValueAsTree());
 
                 if (!validationMessages.isEmpty()) {
-                    String message = String.format("Invalid flag configuration: %s", validationMessages.toArray());
+                    List<String> distinctMessages = validationMessages.stream()
+                            .map(ValidationMessage::toString)
+                            .distinct()
+                            .collect(Collectors.toList());
+                    String message = String.format("Invalid flag configuration: %s", distinctMessages);
                     log.warn(message);
                     if (throwIfInvalid) {
                         throw new IllegalArgumentException(message);

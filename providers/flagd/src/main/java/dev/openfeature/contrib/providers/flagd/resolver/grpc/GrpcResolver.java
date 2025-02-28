@@ -36,6 +36,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -50,6 +51,7 @@ public final class GrpcResolver implements Resolver {
     private final GrpcConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
+    private final FlagdOptions options;
 
     /**
      * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
@@ -63,6 +65,7 @@ public final class GrpcResolver implements Resolver {
             final FlagdOptions options, final Cache cache, final Consumer<FlagdProviderEvent> onProviderEvent) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
+        this.options = options;
         this.connector = new GrpcConnector<>(
                 options,
                 ServiceGrpc::newStub,
@@ -108,7 +111,7 @@ public final class GrpcResolver implements Resolver {
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
 
-        return resolve(key, ctx, request, connector.getResolver()::resolveBoolean, null);
+        return resolve(key, ctx, request, getResolver()::resolveBoolean, null);
     }
 
     /**
@@ -116,7 +119,7 @@ public final class GrpcResolver implements Resolver {
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
-        return resolve(key, ctx, request, connector.getResolver()::resolveString, null);
+        return resolve(key, ctx, request, getResolver()::resolveString, null);
     }
 
     /**
@@ -125,7 +128,7 @@ public final class GrpcResolver implements Resolver {
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
 
-        return resolve(key, ctx, request, connector.getResolver()::resolveFloat, null);
+        return resolve(key, ctx, request, getResolver()::resolveFloat, null);
     }
 
     /**
@@ -135,8 +138,11 @@ public final class GrpcResolver implements Resolver {
 
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
 
-        return resolve(
-                key, ctx, request, connector.getResolver()::resolveInt, (Object value) -> ((Long) value).intValue());
+        return resolve(key, ctx, request, getResolver()::resolveInt, (Object value) -> ((Long) value).intValue());
+    }
+
+    private ServiceGrpc.ServiceBlockingStub getResolver() {
+        return connector.getResolver().withDeadlineAfter(options.getDeadline(), TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -150,7 +156,7 @@ public final class GrpcResolver implements Resolver {
                 key,
                 ctx,
                 request,
-                connector.getResolver()::resolveObject,
+                getResolver()::resolveObject,
                 (Object value) -> convertObjectResponse((Struct) value));
     }
 

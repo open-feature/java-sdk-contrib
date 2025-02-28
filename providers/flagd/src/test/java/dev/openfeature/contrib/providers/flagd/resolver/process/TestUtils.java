@@ -18,6 +18,7 @@ public class TestUtils {
     public static final String INVALID_FLAG_SET_METADATA = "flagConfigurations/invalid-flag-set-metadata.json";
     public static final String VALID_FLAG_SET_METADATA = "flagConfigurations/valid-flag-set-metadata.json";
     public static final String INVALID_CFG = "flagConfigurations/invalid-configuration.json";
+    public static final String INVALID_FLAG_MULTIPLE_ERRORS = "flagConfigurations/invalid-flag-multiple-errors.json";
     public static final String UPDATABLE_FILE = "flagConfigurations/updatableFlags.json";
 
     public static String getFlagsFromResource(final String file) throws IOException {

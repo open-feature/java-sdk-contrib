@@ -10,26 +10,35 @@ on:
 
 jobs:
   main:
-    runs-on: ubuntu-latest
+    strategy:
+        matrix:
+          os: [ubuntu-latest]
+          build:
+              - java: 17
+                profile: codequality
+              - java: 8
+                profile: java8
 
+    name: with Java ${{ matrix.build.java }}
+    runs-on: ${{ matrix.os}}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Set up JDK 8
+      - name: Set up JDK ${{ matrix.build.java }}
         uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4
         with:
-          java-version: '8'
+          java-version: ${{ matrix.build.java }}
           distribution: 'temurin'
           cache: maven
 
       - name: Cache local Maven repository
-        uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}${{ matrix.build.java }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ runner.os }}${{ matrix.build.java }}-maven-
 
       - name: Maven Verify
-        run: mvn --batch-mode --activate-profiles e2e clean verify
+        run: mvn --batch-mode --activate-profiles e2e,${{ matrix.build.profile }} clean verify

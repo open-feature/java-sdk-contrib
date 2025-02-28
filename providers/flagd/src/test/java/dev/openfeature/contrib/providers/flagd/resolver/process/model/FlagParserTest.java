@@ -3,17 +3,18 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_CFG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_METADATA;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_MULTIPLE_ERRORS;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_SET_METADATA;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_FLAG_SET_METADATA;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE_EXTRA_FIELD;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.Map;
@@ -135,24 +136,36 @@ class FlagParserTest {
     @Test
     void invalidFlagThrowsError() throws IOException {
         String flagString = getFlagsFromResource(INVALID_FLAG);
-        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void invalidFlagMetadataThrowsError() throws IOException {
         String flagString = getFlagsFromResource(INVALID_FLAG_METADATA);
-        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void invalidFlagSetMetadataThrowsError() throws IOException {
         String flagString = getFlagsFromResource(INVALID_FLAG_SET_METADATA);
-        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void invalidConfigurationsThrowsError() throws IOException {
         String flagString = getFlagsFromResource(INVALID_CFG);
-        assertThrows(IllegalArgumentException.class, () -> FlagParser.parseString(flagString, true));
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void invalidWithMulipleErrorsConfigurationsThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG_MULTIPLE_ERRORS);
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be valid to one and only one schema")
+                .hasMessageContaining("$.flags.myBoolFlag: required property 'defaultVariant' not found")
+                .hasMessageContaining("$.flags.myBoolFlag: required property 'state' not found")
+                .hasMessageContaining(
+                        "$.flags.myBoolFlag.metadata.invalid: object found, [string, number, boolean] expected");
     }
 }
