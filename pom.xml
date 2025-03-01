@@ -65,7 +65,8 @@
         </surefireArgLine>
         <skip.tests>false</skip.tests>
         <!-- this will throw an error if we use APIs not available in the specified version -->
-       <maven.compiler.release>8</maven.compiler.release>
+        <maven.compiler.release>8</maven.compiler.release>
+        <maven.compiler.proc>full</maven.compiler.proc>
     </properties>
 
     <dependencies>
