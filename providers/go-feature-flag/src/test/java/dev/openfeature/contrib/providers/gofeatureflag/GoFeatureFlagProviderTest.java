@@ -238,7 +238,7 @@ class GoFeatureFlagProviderTest {
                 .value(false)
                 .reason(Reason.ERROR.name())
                 .errorCode(ErrorCode.GENERAL)
-                .errorMessage("impossible to contact GO Feature Flag relay proxy instance")
+                .errorMessage("unknown error while retrieving flag fail_500")
                 .build();
         assertEquals(want, got);
     }
@@ -259,7 +259,7 @@ class GoFeatureFlagProviderTest {
                 .value(false)
                 .reason(Reason.ERROR.name())
                 .errorCode(ErrorCode.GENERAL)
-                .errorMessage("invalid token used to contact GO Feature Flag relay proxy instance")
+                .errorMessage("authentication/authorization error")
                 .build();
         assertEquals(want, got);
     }
