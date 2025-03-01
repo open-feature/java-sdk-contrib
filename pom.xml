@@ -55,7 +55,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <module-name>${groupId}.${artifactId}</module-name>
         <io.cucumber.version>7.21.1</io.cucumber.version>
-        <org.mockito.version>5.2.0</org.mockito.version>
+        <org.mockito.version>5.15.2</org.mockito.version>
         <javadoc.failOnWarnings>true</javadoc.failOnWarnings>
         <!--  This is required for later correct replacement of surefireArgLine -->
         <!-- see surefire-java8 and surefire-java9+ profiles -->
