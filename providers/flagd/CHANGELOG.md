@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.4...dev.openfeature.contrib.providers.flagd-v0.11.5) (2025-03-01)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update jackson monorepo to v2.18.3 ([#1254](https://github.com/open-feature/java-sdk-contrib/issues/1254)) ([24f11fd](https://github.com/open-feature/java-sdk-contrib/commit/24f11fd5338e2693d1eda0654c4ea4bc29063742))
+
 ## [0.11.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.3...dev.openfeature.contrib.providers.flagd-v0.11.4) (2025-02-27)
 
 
