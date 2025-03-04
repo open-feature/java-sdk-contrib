@@ -108,6 +108,12 @@ public class FlagdOptions {
     private String selector = fallBackToEnvOrDefault(Config.SOURCE_SELECTOR_ENV_VAR_NAME, null);
 
     /**
+     * ProviderId to be used with flag sync gRPC contract.
+     **/
+    @Builder.Default
+    private String providerId = fallBackToEnvOrDefault(Config.SOURCE_PROVIDER_ID_ENV_VAR_NAME, null);
+
+    /**
      * gRPC client KeepAlive in milliseconds. Disabled with 0.
      * Defaults to 0 (disabled).
      **/

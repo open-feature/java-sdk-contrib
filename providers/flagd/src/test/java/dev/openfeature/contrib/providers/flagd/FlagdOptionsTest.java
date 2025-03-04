@@ -10,7 +10,6 @@ import static dev.openfeature.contrib.providers.flagd.Config.KEEP_ALIVE_MS_ENV_V
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_ENV_VAR;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_IN_PROCESS;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_RPC;
-import static dev.openfeature.contrib.providers.flagd.Config.Resolver;
 import static dev.openfeature.contrib.providers.flagd.Config.TARGET_URI_ENV_VAR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.openfeature.contrib.providers.flagd.Config.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import io.opentelemetry.api.OpenTelemetry;
@@ -41,6 +41,7 @@ class FlagdOptionsTest {
         assertEquals(DEFAULT_CACHE, builder.getCacheType());
         assertEquals(DEFAULT_MAX_CACHE_SIZE, builder.getMaxCacheSize());
         assertNull(builder.getSelector());
+        assertNull(builder.getProviderId());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getCustomConnector());
         assertNull(builder.getOfflineFlagSourcePath());
@@ -61,6 +62,7 @@ class FlagdOptionsTest {
                 .cacheType("lru")
                 .maxCacheSize(100)
                 .selector("app=weatherApp")
+                .providerId("test/provider/id_1")
                 .openTelemetry(openTelemetry)
                 .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
@@ -75,6 +77,7 @@ class FlagdOptionsTest {
         assertEquals("lru", flagdOptions.getCacheType());
         assertEquals(100, flagdOptions.getMaxCacheSize());
         assertEquals("app=weatherApp", flagdOptions.getSelector());
+        assertEquals("test/provider/id_1", flagdOptions.getProviderId());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
         assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
