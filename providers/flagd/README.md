@@ -116,7 +116,7 @@ Given below are the supported configurations:
 | streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS       | int                      | 600000    | rpc & in-process        |
 | keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS       | long                     | 0         | rpc & in-process        |
 | selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process              |
-| providerId            | FLAGD_SOURCE_PROVIDER_ID       | String                   | null      | in-process              |
+| providerID            | FLAGD_SOURCE_PROVIDER_ID       | String                   | null      | in-process              |
 | cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                     |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                      | 1000      | rpc                     |
 | maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                      | 5         | rpc                     |
