@@ -180,6 +180,50 @@ FlagdProvider flagdProvider = new FlagdProvider(
 > There's a [vulnerability](https://security.snyk.io/vuln/SNYK-JAVA-IONETTY-1042268) in [netty](https://github.com/netty/netty), a transitive dependency of the underlying gRPC libraries used in the flagd-provider that fails to correctly validate certificates.
 > This will be addressed in netty v5.
 
+### Configuring gRPC credentials and headers
+
+The `clientInterceptors` and `authorityOverride` are meant for connection of the in-process resolver to a Sync API implementation on a host/port, that might require special credentials or headers.
+
+```java
+private static ClientInterceptor createHeaderInterceptor() {
+    return new ClientInterceptor() {
+        @Override
+        public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+            return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(next.newCall(method, callOptions)) {
+                @Override
+                public void start(Listener<RespT> responseListener, Metadata headers) {
+                    headers.put(Metadata.Key.of("custom-header", Metadata.ASCII_STRING_MARSHALLER), "header-value");
+                    super.start(responseListener, headers);
+                }
+            };
+        }
+    };
+}
+
+private static ClientInterceptor createCallCrednetialsInterceptor(CallCredentials callCredentials) throws IOException {
+    return new ClientInterceptor() {
+        @Override
+        public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+            return next.newCall(method, callOptions.withCallCredentials(callCredentials));
+        }
+    };
+}
+
+List<ClientInterceptor> clientInterceptors = new ArrayList<ClientInterceptor>(2);
+clientInterceptors.add(createHeaderInterceptor());
+CallCredentials myCallCredentals = ...;
+clientInterceptors.add(createCallCrednetialsInterceptor(myCallCredentials));
+
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .host("example.com/flagdSyncApi")
+                .port(443)
+                .tls(true)
+                .overrideAuthority("authority-host.sync.example.com")
+                .clientInterceptors(clientInterceptors)
+                .build());
+```
+
 ### Caching (RPC only)
 
 > [!NOTE]  

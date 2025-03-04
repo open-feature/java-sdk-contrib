@@ -63,6 +63,12 @@ public class ChannelBuilder {
             final NettyChannelBuilder builder =
                     NettyChannelBuilder.forTarget(targetUri).keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS);
 
+            if (options.getAuthorityOverride() != null) {
+                builder.overrideAuthority(options.getAuthorityOverride());
+            }
+            if (options.getClientInterceptors() != null) {
+                builder.intercept(options.getClientInterceptors());
+            }
             if (options.isTls()) {
                 SslContextBuilder sslContext = GrpcSslContexts.forClient();
 
