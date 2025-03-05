@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.openfeature.contrib.providers.flagd.Config.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.OpenTelemetry;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ import org.mockito.Mockito;
 class FlagdOptionsTest {
 
     @Test
-    void TestDefaults() {
+    void testDefaults() {
         final FlagdOptions builder = FlagdOptions.builder().build();
 
         assertEquals(DEFAULT_HOST, builder.getHost());
@@ -55,9 +55,9 @@ class FlagdOptionsTest {
     }
 
     @Test
-    void TestBuilderOptions() {
+    void testBuilderOptions() {
         OpenTelemetry openTelemetry = Mockito.mock(OpenTelemetry.class);
-        Connector connector = new MockConnector(null);
+        QueueSource connector = new MockConnector(null);
         List<ClientInterceptor> clientInterceptors = new ArrayList<ClientInterceptor>();
 
         FlagdOptions flagdOptions = FlagdOptions.builder()
@@ -129,7 +129,7 @@ class FlagdOptionsTest {
     }
 
     @Nested
-    class TestInProcessProviderFromEnv_keepAliveEnvSet {
+    class TestInProcessProviderFromEnvkeepAliveEnvSet {
         @Test
         @SetEnvironmentVariable(key = KEEP_ALIVE_MS_ENV_VAR_NAME, value = "1336")
         void usesSet() {

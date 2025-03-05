@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy;
+package dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy;
 
 import com.google.protobuf.Message;
 import java.util.function.Function;

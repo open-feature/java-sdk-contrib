@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 

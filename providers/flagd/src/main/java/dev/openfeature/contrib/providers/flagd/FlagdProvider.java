@@ -2,9 +2,9 @@ package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
@@ -82,7 +82,7 @@ public class FlagdProvider extends EventProvider {
                 this.flagResolver = new InProcessResolver(options, this::onProviderEvent);
                 break;
             case Config.RESOLVER_RPC:
-                this.flagResolver = new GrpcResolver(
+                this.flagResolver = new RpcResolver(
                         options, new Cache(options.getCacheType(), options.getMaxCacheSize()), this::onProviderEvent);
                 break;
             default:

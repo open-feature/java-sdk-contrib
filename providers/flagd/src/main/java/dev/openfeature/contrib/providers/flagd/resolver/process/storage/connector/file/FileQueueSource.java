@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
         value = {"EI_EXPOSE_REP", "PATH_TRAVERSAL_IN"},
         justification = "File connector read feature flag from a file source.")
 @Slf4j
-public class FileConnector implements Connector {
+public class FileQueueSource implements QueueSource {
 
     private static final String OFFER_WARN = "Unable to offer file content to queue: queue is full";
 
@@ -31,13 +31,13 @@ public class FileConnector implements Connector {
     private final BlockingQueue<QueuePayload> queue = new LinkedBlockingQueue<>(1);
     private boolean shutdown = false;
 
-    public FileConnector(final String flagSourcePath, int pollInterval) {
+    public FileQueueSource(final String flagSourcePath, int pollInterval) {
         this.flagSourcePath = flagSourcePath;
         this.pollInterval = pollInterval;
     }
 
     /**
-     * Initialize file connector. Reads file content, poll for changes and offer content through the
+     * Initialize FileQueueSource. Reads file content, poll for changes and offer content through the
      * queue.
      */
     public void init() throws IOException {
@@ -86,7 +86,7 @@ public class FileConnector implements Connector {
     }
 
     /** Expose the queue to fulfil the {@code Connector} contract. */
-    public BlockingQueue<QueuePayload> getStream() {
+    public BlockingQueue<QueuePayload> getStreamQueue() {
         return queue;
     }
 
