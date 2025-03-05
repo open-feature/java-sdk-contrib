@@ -41,7 +41,7 @@ class FlagdOptionsTest {
         assertEquals(DEFAULT_CACHE, builder.getCacheType());
         assertEquals(DEFAULT_MAX_CACHE_SIZE, builder.getMaxCacheSize());
         assertNull(builder.getSelector());
-        assertNull(builder.getProviderID());
+        assertNull(builder.getProviderId());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getCustomConnector());
         assertNull(builder.getOfflineFlagSourcePath());
@@ -62,7 +62,7 @@ class FlagdOptionsTest {
                 .cacheType("lru")
                 .maxCacheSize(100)
                 .selector("app=weatherApp")
-                .providerID("test/provider/id_1")
+                .providerId("test/provider/id_1")
                 .openTelemetry(openTelemetry)
                 .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
@@ -77,7 +77,7 @@ class FlagdOptionsTest {
         assertEquals("lru", flagdOptions.getCacheType());
         assertEquals(100, flagdOptions.getMaxCacheSize());
         assertEquals("app=weatherApp", flagdOptions.getSelector());
-        assertEquals("test/provider/id_1", flagdOptions.getProviderID());
+        assertEquals("test/provider/id_1", flagdOptions.getProviderId());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
         assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
