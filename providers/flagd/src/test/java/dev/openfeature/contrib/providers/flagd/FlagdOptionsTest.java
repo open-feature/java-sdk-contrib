@@ -20,7 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.openfeature.contrib.providers.flagd.Config.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.OpenTelemetry;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,12 +50,15 @@ class FlagdOptionsTest {
         assertNull(builder.getOfflineFlagSourcePath());
         assertEquals(Resolver.RPC, builder.getResolverType());
         assertEquals(0, builder.getKeepAlive());
+        assertNull(builder.getDefaultAuthority());
+        assertNull(builder.getClientInterceptors());
     }
 
     @Test
     void TestBuilderOptions() {
         OpenTelemetry openTelemetry = Mockito.mock(OpenTelemetry.class);
         Connector connector = new MockConnector(null);
+        List<ClientInterceptor> clientInterceptors = new ArrayList<ClientInterceptor>();
 
         FlagdOptions flagdOptions = FlagdOptions.builder()
                 .host("https://hosted-flagd")
@@ -68,6 +74,8 @@ class FlagdOptionsTest {
                 .resolverType(Resolver.IN_PROCESS)
                 .targetUri("dns:///localhost:8016")
                 .keepAlive(1000)
+                .defaultAuthority("test-authority.sync.example.com")
+                .clientInterceptors(clientInterceptors)
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -83,6 +91,8 @@ class FlagdOptionsTest {
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
         assertEquals("dns:///localhost:8016", flagdOptions.getTargetUri());
         assertEquals(1000, flagdOptions.getKeepAlive());
+        assertEquals("test-authority.sync.example.com", flagdOptions.getDefaultAuthority());
+        assertEquals(clientInterceptors, flagdOptions.getClientInterceptors());
     }
 
     @Test

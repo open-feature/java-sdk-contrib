@@ -7,8 +7,10 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.Structure;
+import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
+import java.util.List;
 import java.util.function.Function;
 import lombok.Builder;
 import lombok.Getter;
@@ -169,6 +171,18 @@ public class FlagdOptions {
      * connectivity.
      */
     private OpenTelemetry openTelemetry;
+
+    /**
+     * gRPC client interceptors to be used when creating a gRPC channel.
+     */
+    @Builder.Default
+    private List<ClientInterceptor> clientInterceptors = null;
+
+    /**
+     * Authority header to be used when creating a gRPC channel.
+     */
+    @Builder.Default
+    private String defaultAuthority = fallBackToEnvOrDefault(Config.DEFAULT_AUTHORITY_ENV_VAR_NAME, null);
 
     /**
      * Builder overwrite in order to customize the "build" method.

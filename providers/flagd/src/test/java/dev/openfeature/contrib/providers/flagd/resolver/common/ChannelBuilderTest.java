@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
@@ -11,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
@@ -20,6 +22,8 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLKeyException;
 import org.junit.jupiter.api.Test;
@@ -109,6 +113,83 @@ class ChannelBuilderTest {
             nettyMock.verify(() -> NettyChannelBuilder.forTarget("localhost:8080"));
             verify(mockBuilder).keepAliveTime(5000, TimeUnit.MILLISECONDS);
             verify(mockBuilder).sslContext(any());
+            verify(mockBuilder).build();
+        }
+    }
+
+    @Test
+    void testNettyChannel_withDefaultAuthority() {
+        try (MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
+            // Mocks
+            NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
+            ManagedChannel mockChannel = mock(ManagedChannel.class);
+            nettyMock
+                    .when(() -> NettyChannelBuilder.forTarget("localhost:8080"))
+                    .thenReturn(mockBuilder);
+
+            when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
+            when(mockBuilder.sslContext(any())).thenReturn(mockBuilder);
+            when(mockBuilder.overrideAuthority(anyString())).thenReturn(mockBuilder);
+            when(mockBuilder.build()).thenReturn(mockChannel);
+
+            // Input options
+            FlagdOptions options = FlagdOptions.builder()
+                    .host("localhost")
+                    .port(8080)
+                    .keepAlive(5000)
+                    .tls(true)
+                    .defaultAuthority("test-authority.sync.example.com")
+                    .build();
+
+            // Call method under test
+            ManagedChannel channel = ChannelBuilder.nettyChannel(options);
+
+            // Assertions
+            assertThat(channel).isEqualTo(mockChannel);
+            nettyMock.verify(() -> NettyChannelBuilder.forTarget("localhost:8080"));
+            verify(mockBuilder).keepAliveTime(5000, TimeUnit.MILLISECONDS);
+            verify(mockBuilder).sslContext(any());
+            verify(mockBuilder).overrideAuthority("test-authority.sync.example.com");
+            verify(mockBuilder).build();
+        }
+    }
+
+    @Test
+    void testNettyChannel_withClientInterceptors() {
+        try (MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
+            // Mocks
+            NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
+            ManagedChannel mockChannel = mock(ManagedChannel.class);
+            nettyMock
+                    .when(() -> NettyChannelBuilder.forTarget("localhost:8080"))
+                    .thenReturn(mockBuilder);
+
+            when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
+            when(mockBuilder.sslContext(any())).thenReturn(mockBuilder);
+            when(mockBuilder.intercept(anyList())).thenReturn(mockBuilder);
+            when(mockBuilder.build()).thenReturn(mockChannel);
+
+            List<ClientInterceptor> clientInterceptors = new ArrayList<ClientInterceptor>();
+            clientInterceptors.add(mock(ClientInterceptor.class));
+
+            // Input options
+            FlagdOptions options = FlagdOptions.builder()
+                    .host("localhost")
+                    .port(8080)
+                    .keepAlive(5000)
+                    .tls(true)
+                    .clientInterceptors(clientInterceptors)
+                    .build();
+
+            // Call method under test
+            ManagedChannel channel = ChannelBuilder.nettyChannel(options);
+
+            // Assertions
+            assertThat(channel).isEqualTo(mockChannel);
+            nettyMock.verify(() -> NettyChannelBuilder.forTarget("localhost:8080"));
+            verify(mockBuilder).keepAliveTime(5000, TimeUnit.MILLISECONDS);
+            verify(mockBuilder).sslContext(any());
+            verify(mockBuilder).intercept(clientInterceptors);
             verify(mockBuilder).build();
         }
     }
