@@ -118,7 +118,7 @@ class ChannelBuilderTest {
     }
 
     @Test
-    void testNettyChannel_withAuthorityOverride() {
+    void testNettyChannel_withDefaultAuthority() {
         try (MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
             // Mocks
             NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
@@ -138,7 +138,7 @@ class ChannelBuilderTest {
                     .port(8080)
                     .keepAlive(5000)
                     .tls(true)
-                    .authorityOverride("test-authority.sync.example.com")
+                    .defaultAuthority("test-authority.sync.example.com")
                     .build();
 
             // Call method under test

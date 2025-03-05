@@ -176,7 +176,7 @@ public class FlagdOptions {
      * Authority header to be used when creating a gRPC channel.
      */
     @Builder.Default
-    private String authorityOverride = null;
+    private String defaultAuthority = fallBackToEnvOrDefault(Config.DEFAULT_AUTHORITY_ENV_VAR_NAME, null);
 
     /**
      * Builder overwrite in order to customize the "build" method.

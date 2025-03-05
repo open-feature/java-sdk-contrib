@@ -110,6 +110,7 @@ Given below are the supported configurations:
 | port                  | FLAGD_PORT                     | int                      | 8013      | rpc & in-process        |
 | targetUri             | FLAGD_TARGET_URI               | string                   | null      | rpc & in-process        |
 | tls                   | FLAGD_TLS                      | boolean                  | false     | rpc & in-process        |
+| defaultAuthority      | FLAGD_DEFAULT_AUTHORITY        | String                   | null      | rpc & in-process        |
 | socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process        |
 | certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process        |
 | deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process & file |
@@ -182,7 +183,7 @@ FlagdProvider flagdProvider = new FlagdProvider(
 
 ### Configuring gRPC credentials and headers
 
-The `clientInterceptors` and `authorityOverride` are meant for connection of the in-process resolver to a Sync API implementation on a host/port, that might require special credentials or headers.
+The `clientInterceptors` and `defaultAuthority` are meant for connection of the in-process resolver to a Sync API implementation on a host/port, that might require special credentials or headers.
 
 ```java
 private static ClientInterceptor createHeaderInterceptor() {
@@ -219,7 +220,7 @@ FlagdProvider flagdProvider = new FlagdProvider(
                 .host("example.com/flagdSyncApi")
                 .port(443)
                 .tls(true)
-                .overrideAuthority("authority-host.sync.example.com")
+                .defaultAuthority("authority-host.sync.example.com")
                 .clientInterceptors(clientInterceptors)
                 .build());
 ```

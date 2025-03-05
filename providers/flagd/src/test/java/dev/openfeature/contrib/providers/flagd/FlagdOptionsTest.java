@@ -49,7 +49,7 @@ class FlagdOptionsTest {
         assertNull(builder.getOfflineFlagSourcePath());
         assertEquals(Resolver.RPC, builder.getResolverType());
         assertEquals(0, builder.getKeepAlive());
-        assertNull(builder.getAuthorityOverride());
+        assertNull(builder.getDefaultAuthority());
         assertNull(builder.getClientInterceptors());
     }
 
@@ -72,7 +72,7 @@ class FlagdOptionsTest {
                 .resolverType(Resolver.IN_PROCESS)
                 .targetUri("dns:///localhost:8016")
                 .keepAlive(1000)
-                .authorityOverride("test-authority.sync.example.com")
+                .defaultAuthority("test-authority.sync.example.com")
                 .clientInterceptors(clientInterceptors)
                 .build();
 
@@ -88,7 +88,7 @@ class FlagdOptionsTest {
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
         assertEquals("dns:///localhost:8016", flagdOptions.getTargetUri());
         assertEquals(1000, flagdOptions.getKeepAlive());
-        assertEquals("test-authority.sync.example.com", flagdOptions.getAuthorityOverride());
+        assertEquals("test-authority.sync.example.com", flagdOptions.getDefaultAuthority());
         assertEquals(clientInterceptors, flagdOptions.getClientInterceptors());
     }
 
