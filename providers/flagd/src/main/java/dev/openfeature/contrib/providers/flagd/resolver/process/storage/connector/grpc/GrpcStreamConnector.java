@@ -34,6 +34,7 @@ public class GrpcStreamConnector implements Connector {
     private final BlockingQueue<QueuePayload> blockingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final int deadline;
     private final String selector;
+    private final String providerId;
     private final GrpcConnector<
                     FlagSyncServiceGrpc.FlagSyncServiceStub, FlagSyncServiceGrpc.FlagSyncServiceBlockingStub>
             grpcConnector;
@@ -45,6 +46,7 @@ public class GrpcStreamConnector implements Connector {
     public GrpcStreamConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         deadline = options.getDeadline();
         selector = options.getSelector();
+        providerId = options.getProviderId();
         streamReceiver = new LinkedBlockingQueue<>(QUEUE_SIZE);
         grpcConnector = new GrpcConnector<>(
                 options,
@@ -53,10 +55,14 @@ public class GrpcStreamConnector implements Connector {
                 onConnectionEvent,
                 stub -> {
                     String localSelector = selector;
+                    String localProviderId = providerId;
 
                     final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
                     if (localSelector != null) {
                         syncRequest.setSelector(localSelector);
+                    }
+                    if (localProviderId != null) {
+                        syncRequest.setProviderId(localProviderId);
                     }
 
                     stub.syncFlags(syncRequest.build(), new GrpcStreamHandler(streamReceiver));
