@@ -82,6 +82,29 @@ class SyncStreamQueueSourceTest {
     }
 
     @Test
+    void onNextEnqueuesDataPayloadMetadataDisabled() throws Exception {
+        // disable GetMetadata call
+        SyncStreamQueueSource connector = new SyncStreamQueueSource(
+                FlagdOptions.builder().syncMetadataDisabled(true).build(), mockConnector, stub);
+        connector.init();
+        latch = new CountDownLatch(1);
+        latch.await();
+
+        // fire onNext (data) event
+        observer.onNext(SyncFlagsResponse.newBuilder().build());
+
+        // should enqueue data payload
+        BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
+        QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
+        assertNotNull(payload);
+        assertEquals(QueuePayloadType.DATA, payload.getType());
+        // should NOT have restarted the stream (1 call)
+        verify(stub, times(1)).syncFlags(any(), any());
+        // should NOT have called getMetadata
+        verify(blockingStub, times(0)).getMetadata(any());
+    }
+
+    @Test
     void onErrorEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
                 new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);

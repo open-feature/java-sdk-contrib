@@ -40,6 +40,16 @@ public class FlagdOptions {
      */
     private int port;
 
+    // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
+    /**
+     * Disables call to sync.GetMetadata (see: https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
+     * Disabling will prevent static context from flagd being used in evaluations.
+     * GetMetadata and this option will be removed.
+     */
+    @Deprecated
+    @Builder.Default
+    private boolean syncMetadataDisabled = false;
+
     /**
      * Use TLS connectivity.
      */
