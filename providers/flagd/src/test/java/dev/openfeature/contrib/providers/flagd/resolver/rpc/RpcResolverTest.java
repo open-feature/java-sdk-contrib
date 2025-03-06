@@ -32,12 +32,13 @@ class RpcResolverTest {
     private ServiceBlockingStub blockingStub;
     private ServiceStub stub;
     private QueueingStreamObserver<EventStreamResponse> observer;
-    private Cache cache;
     private Consumer<FlagdProviderEvent> consumer;
     private CountDownLatch latch; // used to wait for observer to be initialized
 
     @BeforeEach
     public void init() throws Exception {
+        latch = new CountDownLatch(1);
+        observer = null;
         consumer = mock(Consumer.class);
         doNothing().when(consumer).accept(any());
 
@@ -53,7 +54,9 @@ class RpcResolverTest {
                     public Void answer(InvocationOnMock invocation) {
                         latch.countDown();
                         Object[] args = invocation.getArguments();
-                        observer = (QueueingStreamObserver<EventStreamResponse>) args[1];
+                        if (args[1] != null) {
+                            observer = (QueueingStreamObserver<EventStreamResponse>) args[1];
+                        }
                         return null;
                     }
                 })
@@ -65,7 +68,6 @@ class RpcResolverTest {
     void onNextWithReadyRunsConsumerWithReady() throws Exception {
         RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
         resolver.init();
-        latch = new CountDownLatch(1);
         latch.await();
 
         // fire onNext (data) event
@@ -84,7 +86,6 @@ class RpcResolverTest {
     void onNextWithChangedRunsConsumerWithChanged() throws Exception {
         RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
         resolver.init();
-        latch = new CountDownLatch(1);
         latch.await();
 
         // fire onNext (data) event
@@ -100,15 +101,17 @@ class RpcResolverTest {
     }
 
     @Test
-    void onCompletedRerunsStream() throws Exception {
+    void onCompletedRerunsStreamWithError() throws Exception {
         RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
         resolver.init();
-        latch = new CountDownLatch(1);
         latch.await();
 
         // fire onNext (data) event
         observer.onCompleted();
 
+        // should run consumer with error
+        await().untilAsserted(() ->
+                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_ERROR)));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }
@@ -117,12 +120,14 @@ class RpcResolverTest {
     void onErrorRunsConsumerWithError() throws Exception {
         RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
         resolver.init();
-        latch = new CountDownLatch(1);
         latch.await();
 
         // fire onNext (data) event
         observer.onError(new Exception("fake error"));
 
+        // should run consumer with error
+        await().untilAsserted(() ->
+                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_ERROR)));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }

@@ -331,6 +331,7 @@ public final class RpcResolver implements Resolver {
                 final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();
                 if (taken.isComplete()) {
                     log.debug("Event stream completed, will reconnect");
+                    this.handleErrorOrComplete();
                     // The stream is complete, we still try to reconnect
                     break;
                 }
@@ -340,7 +341,7 @@ public final class RpcResolver implements Resolver {
                     log.debug(
                             "Exception in event stream connection, streamException {}, will reconnect",
                             streamException);
-
+                    this.handleErrorOrComplete();
                     break;
                 }
 
@@ -379,7 +380,7 @@ public final class RpcResolver implements Resolver {
             changedFlags.addAll(flags.keySet());
         }
 
-        log.debug("Received provider change event");
+        log.debug("Emitting provider change event");
         if (this.cache != null) {
             changedFlags.forEach(this.cache::remove);
         }
@@ -391,7 +392,17 @@ public final class RpcResolver implements Resolver {
      * Handles provider readiness events by clearing the cache (if enabled) and notifying listeners of readiness.
      */
     private void handleProviderReadyEvent() {
-        log.debug("Received provider ready event");
+        log.debug("Emitting provider ready event");
         onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
+    }
+
+    /**
+     * Handles provider error events by clearing the cache (if enabled) and notifying listeners of the error.
+     */
+    private void handleErrorOrComplete() {
+        log.debug("Emitting provider error event");
+
+        // complete is an error, logically...even if the server went down gracefully we need to reconnect.
+        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
     }
 }
