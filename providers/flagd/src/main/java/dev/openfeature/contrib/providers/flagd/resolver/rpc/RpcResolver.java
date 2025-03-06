@@ -305,7 +305,7 @@ public final class RpcResolver implements Resolver {
     private void restartStream() {
         ServiceStub localStub = stub; // don't mutate the stub
         if (options.getStreamDeadlineMs() > 0) {
-            localStub = stub.withDeadlineAfter(options.getStreamDeadlineMs(), TimeUnit.MILLISECONDS);
+            localStub = localStub.withDeadlineAfter(options.getStreamDeadlineMs(), TimeUnit.MILLISECONDS);
         }
 
         localStub.eventStream(EventStreamRequest.getDefaultInstance(), new EventStreamObserver(incomingQueue));
