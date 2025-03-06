@@ -20,6 +20,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceBlockingStub;
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceStub;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
+import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -56,7 +57,8 @@ class SyncStreamQueueSourceTest {
                     }
                 })
                 .when(stub)
-                .syncFlags(any(), any()); // Mock the initialize method
+                .syncFlags(any(SyncFlagsRequest.class), any(QueueingStreamObserver.class)); // Mock the initialize
+                                                                                            // method
     }
 
     @Test
@@ -83,12 +85,13 @@ class SyncStreamQueueSourceTest {
     void onErrorEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
                 new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
-        connector.init();
         latch = new CountDownLatch(1);
+        connector.init();
         latch.await();
 
-        // fire onError event
+        // fire onError event and reset latch
         observer.onError(new Exception("fake exception"));
+        latch = new CountDownLatch(1);
 
         // should enqueue error payload
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
@@ -96,7 +99,6 @@ class SyncStreamQueueSourceTest {
         assertNotNull(payload);
         assertEquals(QueuePayloadType.ERROR, payload.getType());
         // should have restarted the stream (2 calls)
-        latch = new CountDownLatch(1);
         latch.await();
         verify(stub, times(2)).syncFlags(any(), any());
     }
@@ -105,18 +107,18 @@ class SyncStreamQueueSourceTest {
     void onCompletedEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
                 new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
-        connector.init();
         latch = new CountDownLatch(1);
+        connector.init();
         latch.await();
 
-        // fire onCompleted event (graceful stream end)
+        // fire onCompleted event (graceful stream end) and reset latch
         observer.onCompleted();
+        latch = new CountDownLatch(1);
 
         // should enqueue error payload
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
         assertTrue(streamQueue.isEmpty());
         // should have restarted the stream (2 calls)
-        latch = new CountDownLatch(1);
         latch.await();
         verify(stub, times(2)).syncFlags(any(), any());
     }
