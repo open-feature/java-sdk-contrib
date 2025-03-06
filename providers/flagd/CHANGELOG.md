@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.11.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.4...dev.openfeature.contrib.providers.flagd-v0.11.5) (2025-03-06)
+
+
+### 🐛 Bug Fixes
+
+* broken reconnect on some HTTP2 error frames ([#1261](https://github.com/open-feature/java-sdk-contrib/issues/1261)) ([22d2a35](https://github.com/open-feature/java-sdk-contrib/commit/22d2a35cf7d0fd2bf212c442e5715c042041a737))
+* **deps:** update grpc-java monorepo to v1.71.0 ([#1265](https://github.com/open-feature/java-sdk-contrib/issues/1265)) ([59569f3](https://github.com/open-feature/java-sdk-contrib/commit/59569f36fbc0d69844f34fd70e463e64a456b34d))
+* **deps:** update jackson monorepo to v2.18.3 ([#1254](https://github.com/open-feature/java-sdk-contrib/issues/1254)) ([24f11fd](https://github.com/open-feature/java-sdk-contrib/commit/24f11fd5338e2693d1eda0654c4ea4bc29063742))
+
+
+### ✨ New Features
+
+* **flagd:** Add features to customize auth to Sync API server (authorityOverride and clientInterceptors) ([#1260](https://github.com/open-feature/java-sdk-contrib/issues/1260)) ([0c2803a](https://github.com/open-feature/java-sdk-contrib/commit/0c2803a8cf1e7285f84188410c3fe42b275d0624))
+* **flagd:** Support supplying providerId for in-process resolver as an option ([#1259](https://github.com/open-feature/java-sdk-contrib/issues/1259)) ([5dbb073](https://github.com/open-feature/java-sdk-contrib/commit/5dbb073b6e76bfa7d2191c7ae5a15905b7e6d622))
+
+
+### 🧹 Chore
+
+* add disable metadata option ([#1267](https://github.com/open-feature/java-sdk-contrib/issues/1267)) ([28c65d5](https://github.com/open-feature/java-sdk-contrib/commit/28c65d57aec3695bf1e2c75cade78c73842999e5))
+* **deps:** update dependency com.github.spotbugs:spotbugs-maven-plugin to v4.9.2.0 ([#1258](https://github.com/open-feature/java-sdk-contrib/issues/1258)) ([5976801](https://github.com/open-feature/java-sdk-contrib/commit/5976801198c7df5f9ca432364180c3f1eebcc818))
+* **deps:** update dependency org.junit.jupiter:junit-jupiter to v5.12.0 ([#1248](https://github.com/open-feature/java-sdk-contrib/issues/1248)) ([31b1ebc](https://github.com/open-feature/java-sdk-contrib/commit/31b1ebcdf28df90fabe0e4fabe96b6ab5cff8300))
+* **deps:** update providers/flagd/spec digest to 09aef37 ([#1266](https://github.com/open-feature/java-sdk-contrib/issues/1266)) ([d43fa00](https://github.com/open-feature/java-sdk-contrib/commit/d43fa0026983b2099905c742d5a06d6845e36db7))
+* **deps:** update testcontainers-java monorepo to v1.20.6 ([#1263](https://github.com/open-feature/java-sdk-contrib/issues/1263)) ([4b85af4](https://github.com/open-feature/java-sdk-contrib/commit/4b85af43a201fd01938fa7b61469fa2e8bcfd626))
+
 ## [0.11.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.3...dev.openfeature.contrib.providers.flagd-v0.11.4) (2025-02-27)
 
 
