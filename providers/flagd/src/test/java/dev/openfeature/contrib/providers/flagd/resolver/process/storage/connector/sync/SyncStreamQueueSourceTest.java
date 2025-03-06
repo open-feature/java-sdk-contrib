@@ -58,7 +58,7 @@ class SyncStreamQueueSourceTest {
                 })
                 .when(stub)
                 .syncFlags(any(SyncFlagsRequest.class), any(QueueingStreamObserver.class)); // Mock the initialize
-                                                                                            // method
+        // method
     }
 
     @Test

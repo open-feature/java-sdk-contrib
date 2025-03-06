@@ -15,7 +15,6 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
-import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
