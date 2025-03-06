@@ -3,13 +3,13 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Contract of the in-process storage connector. Connectors are responsible to stream flag
- * configurations in {@link QueuePayload} format.
+ * Contract of the in-process storage queue source, responsible enqueueing and dequeuing
+ * change messages.
  */
-public interface Connector {
+public interface QueueSource {
     void init() throws Exception;
 
-    BlockingQueue<QueuePayload> getStream();
+    BlockingQueue<QueuePayload> getStreamQueue();
 
     void shutdown() throws InterruptedException;
 }

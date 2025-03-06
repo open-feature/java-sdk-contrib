@@ -3,7 +3,7 @@ package dev.openfeature.contrib.providers.flagd;
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
 import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.Structure;
@@ -163,7 +163,7 @@ public class FlagdOptions {
     /**
      * Inject a Custom Connector for fetching flags.
      */
-    private Connector customConnector;
+    private QueueSource customConnector;
 
     /**
      * Inject OpenTelemetry for the library runtime. Providing sdk will initiate

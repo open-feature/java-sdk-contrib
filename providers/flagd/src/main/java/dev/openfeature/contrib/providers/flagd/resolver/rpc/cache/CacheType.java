@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc.cache;
+package dev.openfeature.contrib.providers.flagd.resolver.rpc.cache;
 
 import lombok.Getter;
 

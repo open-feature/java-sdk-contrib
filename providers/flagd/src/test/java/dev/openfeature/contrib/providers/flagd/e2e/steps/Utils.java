@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import dev.openfeature.contrib.providers.flagd.Config;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import dev.openfeature.sdk.Value;
 import java.io.IOException;
 import java.util.Objects;

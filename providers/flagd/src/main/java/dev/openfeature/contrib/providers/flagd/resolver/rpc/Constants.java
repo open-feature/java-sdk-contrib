@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.rpc;
 
 /** Constants for evaluation proto. */
 public class Constants {

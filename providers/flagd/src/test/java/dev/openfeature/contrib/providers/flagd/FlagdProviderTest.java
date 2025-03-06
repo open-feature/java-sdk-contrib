@@ -18,15 +18,15 @@ import static org.mockito.Mockito.when;
 
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.GrpcConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.MockStorage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveFloatResponse;
@@ -150,8 +150,8 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
                 .thenReturn(objectResponse);
 
-        GrpcConnector grpc = mock(GrpcConnector.class);
-        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        when(grpc.getBlockingStub()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
@@ -229,8 +229,8 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
                 .thenReturn(objectResponse);
 
-        GrpcConnector grpc = mock(GrpcConnector.class);
-        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        when(grpc.getBlockingStub()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
@@ -295,8 +295,8 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.resolveBoolean(argThat(x -> FLAG_KEY_BOOLEAN.equals(x.getFlagKey()))))
                 .thenReturn(booleanResponse);
 
-        GrpcConnector grpc = mock(GrpcConnector.class);
-        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        when(grpc.getBlockingStub()).thenReturn(serviceBlockingStubMock);
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
         // when
@@ -378,8 +378,8 @@ class FlagdProviderTest {
                 })))
                 .thenReturn(booleanResponse);
 
-        GrpcConnector grpc = mock(GrpcConnector.class);
-        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        when(grpc.getBlockingStub()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
@@ -419,8 +419,8 @@ class FlagdProviderTest {
                         .setValue(expectedVariant)
                         .build());
 
-        GrpcConnector grpc = mock(GrpcConnector.class);
-        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        when(grpc.getBlockingStub()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
@@ -445,8 +445,8 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class)))
                 .thenReturn(badReasonResponse);
 
-        GrpcConnector grpc = mock(GrpcConnector.class);
-        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        when(grpc.getBlockingStub()).thenReturn(serviceBlockingStubMock);
 
         OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc));
 
@@ -506,9 +506,8 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.resolveObject(argThat(x -> FLAG_KEY_OBJECT.equals(x.getFlagKey()))))
                 .thenReturn(objectResponse);
 
-        GrpcConnector grpc = mock(GrpcConnector.class);
-        when(grpc.getResolver()).thenReturn(serviceBlockingStubMock);
-        when(grpc.isConnected()).thenReturn(eventStreamAlive);
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        when(grpc.getBlockingStub()).thenReturn(serviceBlockingStubMock);
         FlagdProvider provider = createProvider(grpc);
 
         // provider.setState(eventStreamAlive); // caching only available when event
@@ -690,19 +689,19 @@ class FlagdProviderTest {
 
     // test helper
     // create provider with given grpc provider and state supplier
-    private FlagdProvider createProvider(GrpcConnector grpc) {
+    private FlagdProvider createProvider(ChannelConnector grpc) {
         final Cache cache = new Cache("lru", 5);
 
         return createProvider(grpc, cache);
     }
 
     // create provider with given grpc provider, cache and state supplier
-    private FlagdProvider createProvider(GrpcConnector grpc, Cache cache) {
+    private FlagdProvider createProvider(ChannelConnector grpc, Cache cache) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final GrpcResolver grpcResolver = new GrpcResolver(flagdOptions, cache, (connectionEvent) -> {});
+        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (connectionEvent) -> {});
 
         try {
-            Field connector = GrpcResolver.class.getDeclaredField("connector");
+            Field connector = RpcResolver.class.getDeclaredField("connector");
             connector.setAccessible(true);
             connector.set(grpcResolver, grpc);
         } catch (NoSuchFieldException | IllegalAccessException e) {

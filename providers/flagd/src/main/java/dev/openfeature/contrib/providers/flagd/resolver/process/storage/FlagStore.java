@@ -5,8 +5,8 @@ import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.co
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
@@ -38,14 +38,14 @@ public class FlagStore implements Storage {
     private final Map<String, FeatureFlag> flags = new HashMap<>();
     private final Map<String, Object> flagSetMetadata = new HashMap<>();
 
-    private final Connector connector;
+    private final QueueSource connector;
     private final boolean throwIfInvalid;
 
-    public FlagStore(final Connector connector) {
+    public FlagStore(final QueueSource connector) {
         this(connector, false);
     }
 
-    public FlagStore(final Connector connector, final boolean throwIfInvalid) {
+    public FlagStore(final QueueSource connector, final boolean throwIfInvalid) {
         this.connector = connector;
         this.throwIfInvalid = throwIfInvalid;
     }
@@ -101,8 +101,8 @@ public class FlagStore implements Storage {
         return stateBlockingQueue;
     }
 
-    private void streamerListener(final Connector connector) throws InterruptedException {
-        final BlockingQueue<QueuePayload> streamPayloads = connector.getStream();
+    private void streamerListener(final QueueSource connector) throws InterruptedException {
+        final BlockingQueue<QueuePayload> streamPayloads = connector.getStreamQueue();
 
         while (!shutdown.get()) {
             final QueuePayload payload = streamPayloads.take();

@@ -1,14 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MockConnector implements Connector {
+public class MockConnector implements QueueSource {
 
     private BlockingQueue<QueuePayload> mockQueue;
 
@@ -20,7 +20,7 @@ public class MockConnector implements Connector {
         // no-op
     }
 
-    public BlockingQueue<QueuePayload> getStream() {
+    public BlockingQueue<QueuePayload> getStreamQueue() {
         return mockQueue;
     }
 
