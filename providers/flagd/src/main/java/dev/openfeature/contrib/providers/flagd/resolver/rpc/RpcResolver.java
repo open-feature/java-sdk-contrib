@@ -11,6 +11,8 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveFactory;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveStrategy;
@@ -61,7 +63,7 @@ public final class RpcResolver implements Resolver {
     private final Cache cache;
     private final ResolveStrategy strategy;
     private final FlagdOptions options;
-    private final LinkedBlockingQueue<EventStreamResponseModel> incomingQueue;
+    private final LinkedBlockingQueue<StreamResponseModel<EventStreamResponse>> incomingQueue;
     private final Consumer<FlagdProviderEvent> onProviderEvent;
     private final ServiceStub stub;
 
@@ -308,7 +310,9 @@ public final class RpcResolver implements Resolver {
             localStub = localStub.withDeadlineAfter(options.getStreamDeadlineMs(), TimeUnit.MILLISECONDS);
         }
 
-        localStub.eventStream(EventStreamRequest.getDefaultInstance(), new EventStreamObserver(incomingQueue));
+        localStub.eventStream(
+                EventStreamRequest.getDefaultInstance(),
+                new QueueingStreamObserver<EventStreamResponse>(incomingQueue));
     }
 
     /** Contains blocking calls, to be used concurrently. */
@@ -324,7 +328,7 @@ public final class RpcResolver implements Resolver {
 
             // inner loop for handling messages
             while (!shutdown.get()) {
-                final EventStreamResponseModel taken = incomingQueue.take();
+                final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();
                 if (taken.isComplete()) {
                     log.debug("Event stream completed, will reconnect");
                     // The stream is complete, we still try to reconnect

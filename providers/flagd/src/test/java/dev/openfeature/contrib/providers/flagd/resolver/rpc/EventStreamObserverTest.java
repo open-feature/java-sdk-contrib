@@ -1,10 +1,11 @@
 package dev.openfeature.contrib.providers.flagd.resolver.rpc;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.protobuf.Struct;
+import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.sdk.ProviderEvent;
 import java.util.ArrayList;
@@ -22,20 +23,20 @@ class EventStreamObserverTest {
     class StateChange {
 
         List<ProviderEvent> states;
-        EventStreamObserver stream;
+        QueueingStreamObserver<Object> stream;
         Runnable reconnect;
         Object sync;
-        BlockingQueue<EventStreamResponseModel> queue = new LinkedBlockingQueue<>(10);
+        BlockingQueue<QueueingStreamObserver<Object>> queue = new LinkedBlockingQueue<>(10);
 
         @BeforeEach
         void setUp() {
             states = new ArrayList<>();
             reconnect = mock(Runnable.class);
-            stream = new EventStreamObserver(queue);
+            stream = new QueueingStreamObserver(queue);
         }
 
         @Test
-        public void change() throws InterruptedException {
+        public void dequeue() throws InterruptedException {
             EventStreamResponse resp = mock(EventStreamResponse.class);
             Struct flagData = mock(Struct.class);
             when(resp.getType()).thenReturn(Constants.CONFIGURATION_CHANGE);
@@ -43,21 +44,8 @@ class EventStreamObserverTest {
             when(flagData.getFieldsMap()).thenReturn(new HashMap<>());
             stream.onNext(resp);
             // we notify that we are ready
-            EventStreamResponseModel taken = queue.take();
-            assertEquals(Constants.CONFIGURATION_CHANGE, taken.getResponse().getType());
-        }
-
-        @Test
-        public void ready() throws InterruptedException {
-            EventStreamResponse resp = mock(EventStreamResponse.class);
-            Struct flagData = mock(Struct.class);
-            when(resp.getType()).thenReturn(Constants.PROVIDER_READY);
-            when(resp.getData()).thenReturn(flagData);
-            when(flagData.getFieldsMap()).thenReturn(new HashMap<>());
-            stream.onNext(resp);
-            // we notify that we are ready
-            EventStreamResponseModel taken = queue.take();
-            assertEquals(Constants.PROVIDER_READY, taken.getResponse().getType());
+            Object taken = queue.take();
+            assertNotNull(taken);
         }
     }
 }

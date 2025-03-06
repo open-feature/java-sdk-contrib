@@ -14,12 +14,12 @@ import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceBlockingStub;
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceStub;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
-import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -33,7 +33,7 @@ class SyncStreamQueueSourceTest {
     private ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> mockConnector;
     private FlagSyncServiceBlockingStub blockingStub;
     private FlagSyncServiceStub stub;
-    private SyncStreamObserver observer;
+    private QueueingStreamObserver<SyncFlagsResponse> observer;
     private CountDownLatch latch; // used to wait for observer to be initialized
 
     @BeforeEach
@@ -51,12 +51,12 @@ class SyncStreamQueueSourceTest {
                     public Void answer(InvocationOnMock invocation) {
                         latch.countDown();
                         Object[] args = invocation.getArguments();
-                        observer = (SyncStreamObserver) args[1];
+                        observer = (QueueingStreamObserver<SyncFlagsResponse>) args[1];
                         return null;
                     }
                 })
                 .when(stub)
-                .syncFlags(any(SyncFlagsRequest.class), any(SyncStreamObserver.class)); // Mock the initialize method
+                .syncFlags(any(), any()); // Mock the initialize method
     }
 
     @Test
@@ -96,6 +96,8 @@ class SyncStreamQueueSourceTest {
         assertNotNull(payload);
         assertEquals(QueuePayloadType.ERROR, payload.getType());
         // should have restarted the stream (2 calls)
+        latch = new CountDownLatch(1);
+        latch.await();
         verify(stub, times(2)).syncFlags(any(), any());
     }
 

@@ -14,8 +14,8 @@ import static org.mockito.Mockito.when;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
@@ -31,7 +31,7 @@ class RpcResolverTest {
     private ChannelConnector<ServiceStub, ServiceBlockingStub> mockConnector;
     private ServiceBlockingStub blockingStub;
     private ServiceStub stub;
-    private EventStreamObserver observer;
+    private QueueingStreamObserver<EventStreamResponse> observer;
     private Cache cache;
     private Consumer<FlagdProviderEvent> consumer;
     private CountDownLatch latch; // used to wait for observer to be initialized
@@ -53,13 +53,12 @@ class RpcResolverTest {
                     public Void answer(InvocationOnMock invocation) {
                         latch.countDown();
                         Object[] args = invocation.getArguments();
-                        observer = (EventStreamObserver) args[1];
+                        observer = (QueueingStreamObserver<EventStreamResponse>) args[1];
                         return null;
                     }
                 })
                 .when(stub)
-                .eventStream(
-                        any(EventStreamRequest.class), any(EventStreamObserver.class)); // Mock the initialize method
+                .eventStream(any(), any()); // Mock the initialize method
     }
 
     @Test
@@ -115,7 +114,7 @@ class RpcResolverTest {
     }
 
     @Test
-    void onErrorRunsConsumerWithChanged() throws Exception {
+    void onErrorRunsConsumerWithError() throws Exception {
         RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
         resolver.init();
         latch = new CountDownLatch(1);

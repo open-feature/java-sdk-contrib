@@ -3,6 +3,8 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
+import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
@@ -38,7 +40,8 @@ public class SyncStreamQueueSource implements QueueSource {
     private final String selector;
     private final String providerId;
     private final ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> channelConnector;
-    private final LinkedBlockingQueue<SyncResponseModel> incomingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+    private final LinkedBlockingQueue<StreamResponseModel<SyncFlagsResponse>> incomingQueue =
+            new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final FlagSyncServiceStub stub;
 
@@ -50,7 +53,6 @@ public class SyncStreamQueueSource implements QueueSource {
         selector = options.getSelector();
         providerId = options.getProviderId();
         channelConnector = new ChannelConnector<>(options, FlagSyncServiceGrpc::newBlockingStub, onConnectionEvent);
-        // TODO: should we do this in init?
         this.stub = FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
     }
 
@@ -110,20 +112,22 @@ public class SyncStreamQueueSource implements QueueSource {
             log.debug("Initializing sync stream request");
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
             GetMetadataResponse metadataResponse = GetMetadataResponse.getDefaultInstance();
-            restart();
 
+            // create a context which exists to track and cancel the stream
             try (CancellableContext context = Context.current().withCancellation()) {
+
+                restart(); // start the stream within the context
 
                 try {
                     metadataResponse = channelConnector.getBlockingStub().getMetadata(metadataRequest.build());
                 } catch (Exception metaEx) {
-                    log.error("Metadata exception: {}", metaEx.getMessage(), metaEx);
+                    log.error("Metadata exception: {}, cancelling stream", metaEx.getMessage(), metaEx);
                     context.cancel(metaEx);
                 }
 
                 // inner loop for handling messages
                 while (!shutdown.get()) {
-                    final SyncResponseModel taken = incomingQueue.take();
+                    final StreamResponseModel<SyncFlagsResponse> taken = incomingQueue.take();
                     if (taken.isComplete()) {
                         log.debug("Sync stream completed, will reconnect");
                         // The stream is complete, we still try to reconnect
@@ -140,7 +144,7 @@ public class SyncStreamQueueSource implements QueueSource {
                         break;
                     }
 
-                    final SyncFlagsResponse flagsResponse = taken.getSyncFlagsResponse();
+                    final SyncFlagsResponse flagsResponse = taken.getResponse();
                     final String data = flagsResponse.getFlagConfiguration();
                     log.debug("Got stream response: {}", data);
 
@@ -169,6 +173,6 @@ public class SyncStreamQueueSource implements QueueSource {
             syncRequest.setProviderId(this.providerId);
         }
 
-        localStub.syncFlags(syncRequest.build(), new SyncStreamObserver(incomingQueue));
+        localStub.syncFlags(syncRequest.build(), new QueueingStreamObserver<SyncFlagsResponse>(incomingQueue));
     }
 }
