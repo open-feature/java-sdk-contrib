@@ -39,6 +39,7 @@ public class SyncStreamQueueSource implements QueueSource {
     private final int streamDeadline;
     private final String selector;
     private final String providerId;
+    private final boolean syncMetadataDisabled;
     private final ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> channelConnector;
     private final LinkedBlockingQueue<StreamResponseModel<SyncFlagsResponse>> incomingQueue =
             new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -52,6 +53,7 @@ public class SyncStreamQueueSource implements QueueSource {
         streamDeadline = options.getStreamDeadlineMs();
         selector = options.getSelector();
         providerId = options.getProviderId();
+        syncMetadataDisabled = options.isSyncMetadataDisabled();
         channelConnector = new ChannelConnector<>(options, FlagSyncServiceGrpc::newBlockingStub, onConnectionEvent);
         this.stub = FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
     }
@@ -66,6 +68,7 @@ public class SyncStreamQueueSource implements QueueSource {
         providerId = options.getProviderId();
         channelConnector = connectorMock;
         stub = stubMock;
+        syncMetadataDisabled = options.isSyncMetadataDisabled();
     }
 
     /** Initialize sync stream connector. */
@@ -118,11 +121,14 @@ public class SyncStreamQueueSource implements QueueSource {
 
                 restart(); // start the stream within the context
 
-                try {
-                    metadataResponse = channelConnector.getBlockingStub().getMetadata(metadataRequest.build());
-                } catch (Exception metaEx) {
-                    log.error("Metadata exception: {}, cancelling stream", metaEx.getMessage(), metaEx);
-                    context.cancel(metaEx);
+                // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
+                if (!syncMetadataDisabled) {
+                    try {
+                        metadataResponse = channelConnector.getBlockingStub().getMetadata(metadataRequest.build());
+                    } catch (Exception metaEx) {
+                        log.error("Metadata exception: {}, cancelling stream", metaEx.getMessage(), metaEx);
+                        context.cancel(metaEx);
+                    }
                 }
 
                 // inner loop for handling messages
