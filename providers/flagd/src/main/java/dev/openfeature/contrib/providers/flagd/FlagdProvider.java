@@ -193,7 +193,7 @@ public class FlagdProvider extends EventProvider {
 
     @SuppressWarnings("checkstyle:fallthrough")
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
-        log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
+        log.debug("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
         synchronized (syncResources) {
             /*
              * We only use Error and Ready as previous states.
@@ -231,7 +231,7 @@ public class FlagdProvider extends EventProvider {
                     break;
 
                 default:
-                    log.info("Unknown event {}", flagdProviderEvent.getEvent());
+                    log.warn("Unknown event {}", flagdProviderEvent.getEvent());
             }
         }
     }
@@ -245,7 +245,7 @@ public class FlagdProvider extends EventProvider {
 
     private void onReady() {
         if (syncResources.initialize()) {
-            log.info("initialized FlagdProvider");
+            log.info("Initialized FlagdProvider");
         }
         if (errorTask != null && !errorTask.isCancelled()) {
             errorTask.cancel(false);
@@ -256,7 +256,7 @@ public class FlagdProvider extends EventProvider {
     }
 
     private void onError() {
-        log.info("Connection lost. Emit STALE event...");
+        log.debug("Stream error. Emitting STALE event and scheduling ERROR event...");
         log.debug("Waiting {}s for connection to become available...", gracePeriod);
         this.emitProviderStale(ProviderEventDetails.builder()
                 .message("there has been an error")
@@ -271,7 +271,7 @@ public class FlagdProvider extends EventProvider {
                     () -> {
                         if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_ERROR) {
                             log.debug(
-                                    "Provider did not reconnect successfully within {}s. Emit ERROR event...",
+                                    "Provider did not reconnect successfully within {}s. Emitting ERROR event...",
                                     gracePeriod);
                             flagResolver.onError();
                             this.emitProviderError(ProviderEventDetails.builder()
