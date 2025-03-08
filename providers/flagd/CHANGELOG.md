@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.5...dev.openfeature.contrib.providers.flagd-v0.11.6) (2025-03-08)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update opentelemetry-java monorepo to v1.48.0 ([#1269](https://github.com/open-feature/java-sdk-contrib/issues/1269)) ([9958432](https://github.com/open-feature/java-sdk-contrib/commit/9958432fdef18a889b69b74a3ea4fcf550fa073d))
+
 ## [0.11.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.4...dev.openfeature.contrib.providers.flagd-v0.11.5) (2025-03-06)
 
 
