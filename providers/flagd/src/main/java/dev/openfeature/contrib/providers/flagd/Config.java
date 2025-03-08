@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,6 +24,7 @@ public final class Config {
     static final String HOST_ENV_VAR_NAME = "FLAGD_HOST";
     static final String PORT_ENV_VAR_NAME = "FLAGD_PORT";
     static final String TLS_ENV_VAR_NAME = "FLAGD_TLS";
+    static final String DEFAULT_AUTHORITY_ENV_VAR_NAME = "FLAGD_DEFAULT_AUTHORITY";
     static final String SOCKET_PATH_ENV_VAR_NAME = "FLAGD_SOCKET_PATH";
     static final String SERVER_CERT_PATH_ENV_VAR_NAME = "FLAGD_SERVER_CERT_PATH";
     static final String CACHE_ENV_VAR_NAME = "FLAGD_CACHE";
@@ -33,6 +34,7 @@ public final class Config {
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
     static final String STREAM_DEADLINE_MS_ENV_VAR_NAME = "FLAGD_STREAM_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
+    static final String SOURCE_PROVIDER_ID_ENV_VAR_NAME = "FLAGD_SOURCE_PROVIDER_ID";
     static final String OFFLINE_SOURCE_PATH = "FLAGD_OFFLINE_FLAG_SOURCE_PATH";
     static final String OFFLINE_POLL_MS = "FLAGD_OFFLINE_POLL_MS";
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME_OLD = "FLAGD_KEEP_ALIVE_TIME";

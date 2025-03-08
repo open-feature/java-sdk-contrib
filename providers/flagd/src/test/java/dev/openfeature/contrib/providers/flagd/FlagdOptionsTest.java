@@ -10,7 +10,6 @@ import static dev.openfeature.contrib.providers.flagd.Config.KEEP_ALIVE_MS_ENV_V
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_ENV_VAR;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_IN_PROCESS;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_RPC;
-import static dev.openfeature.contrib.providers.flagd.Config.Resolver;
 import static dev.openfeature.contrib.providers.flagd.Config.TARGET_URI_ENV_VAR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,9 +17,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.openfeature.contrib.providers.flagd.Config.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.OpenTelemetry;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,7 +33,7 @@ import org.mockito.Mockito;
 class FlagdOptionsTest {
 
     @Test
-    void TestDefaults() {
+    void testDefaults() {
         final FlagdOptions builder = FlagdOptions.builder().build();
 
         assertEquals(DEFAULT_HOST, builder.getHost());
@@ -41,17 +44,21 @@ class FlagdOptionsTest {
         assertEquals(DEFAULT_CACHE, builder.getCacheType());
         assertEquals(DEFAULT_MAX_CACHE_SIZE, builder.getMaxCacheSize());
         assertNull(builder.getSelector());
+        assertNull(builder.getProviderId());
         assertNull(builder.getOpenTelemetry());
         assertNull(builder.getCustomConnector());
         assertNull(builder.getOfflineFlagSourcePath());
         assertEquals(Resolver.RPC, builder.getResolverType());
         assertEquals(0, builder.getKeepAlive());
+        assertNull(builder.getDefaultAuthority());
+        assertNull(builder.getClientInterceptors());
     }
 
     @Test
-    void TestBuilderOptions() {
+    void testBuilderOptions() {
         OpenTelemetry openTelemetry = Mockito.mock(OpenTelemetry.class);
-        Connector connector = new MockConnector(null);
+        QueueSource connector = new MockConnector(null);
+        List<ClientInterceptor> clientInterceptors = new ArrayList<ClientInterceptor>();
 
         FlagdOptions flagdOptions = FlagdOptions.builder()
                 .host("https://hosted-flagd")
@@ -61,11 +68,14 @@ class FlagdOptionsTest {
                 .cacheType("lru")
                 .maxCacheSize(100)
                 .selector("app=weatherApp")
+                .providerId("test/provider/id_1")
                 .openTelemetry(openTelemetry)
                 .customConnector(connector)
                 .resolverType(Resolver.IN_PROCESS)
                 .targetUri("dns:///localhost:8016")
                 .keepAlive(1000)
+                .defaultAuthority("test-authority.sync.example.com")
+                .clientInterceptors(clientInterceptors)
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -75,11 +85,14 @@ class FlagdOptionsTest {
         assertEquals("lru", flagdOptions.getCacheType());
         assertEquals(100, flagdOptions.getMaxCacheSize());
         assertEquals("app=weatherApp", flagdOptions.getSelector());
+        assertEquals("test/provider/id_1", flagdOptions.getProviderId());
         assertEquals(openTelemetry, flagdOptions.getOpenTelemetry());
         assertEquals(connector, flagdOptions.getCustomConnector());
         assertEquals(Resolver.IN_PROCESS, flagdOptions.getResolverType());
         assertEquals("dns:///localhost:8016", flagdOptions.getTargetUri());
         assertEquals(1000, flagdOptions.getKeepAlive());
+        assertEquals("test-authority.sync.example.com", flagdOptions.getDefaultAuthority());
+        assertEquals(clientInterceptors, flagdOptions.getClientInterceptors());
     }
 
     @Test
@@ -116,7 +129,7 @@ class FlagdOptionsTest {
     }
 
     @Nested
-    class TestInProcessProviderFromEnv_keepAliveEnvSet {
+    class TestInProcessProviderFromEnvkeepAliveEnvSet {
         @Test
         @SetEnvironmentVariable(key = KEEP_ALIVE_MS_ENV_VAR_NAME, value = "1336")
         void usesSet() {

@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc;
+package dev.openfeature.contrib.providers.flagd.resolver.rpc;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertContext;
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertObjectResponse;
@@ -6,22 +6,26 @@ import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.ge
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.getFieldDescriptor;
 
 import com.google.protobuf.Message;
-import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.GrpcConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveFactory;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy.ResolveStrategy;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation;
+import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveFactory;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveStrategy;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
+import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveFloatRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveIntRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveObjectRequest;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringRequest;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
+import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
+import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
@@ -35,10 +39,15 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
@@ -46,55 +55,80 @@ import java.util.function.Function;
  */
 @SuppressWarnings("PMD.TooManyStaticImports")
 @SuppressFBWarnings(justification = "cache needs to be read and write by multiple objects")
-public final class GrpcResolver implements Resolver {
-
-    private final GrpcConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> connector;
+@Slf4j
+public final class RpcResolver implements Resolver {
+    private static final int QUEUE_SIZE = 5;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final ChannelConnector<ServiceStub, ServiceBlockingStub> connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
     private final FlagdOptions options;
+    private final LinkedBlockingQueue<StreamResponseModel<EventStreamResponse>> incomingQueue;
+    private final Consumer<FlagdProviderEvent> onProviderEvent;
+    private final ServiceStub stub;
 
     /**
-     * Resolves flag values using https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
+     * Resolves flag values using
+     * https://buf.build/open-feature/flagd/docs/main:flagd.evaluation.v1.
      * Flags are evaluated remotely.
      *
-     * @param options           flagd options
-     * @param cache             cache to use
+     * @param options         flagd options
+     * @param cache           cache to use
      * @param onProviderEvent lambda which handles changes in the connection/stream
      */
-    public GrpcResolver(
+    public RpcResolver(
             final FlagdOptions options, final Cache cache, final Consumer<FlagdProviderEvent> onProviderEvent) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
-        this.connector = new GrpcConnector<>(
-                options,
-                ServiceGrpc::newStub,
-                ServiceGrpc::newBlockingStub,
-                onProviderEvent,
-                stub -> stub.eventStream(
-                        Evaluation.EventStreamRequest.getDefaultInstance(),
-                        new EventStreamObserver(
-                                (flags) -> {
-                                    if (this.cache != null) {
-                                        flags.forEach(this.cache::remove);
-                                    }
-                                    onProviderEvent.accept(new FlagdProviderEvent(
-                                            ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, flags));
-                                },
-                                onProviderEvent)));
+        incomingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        this.connector = new ChannelConnector<>(options, ServiceGrpc::newBlockingStub, onProviderEvent);
+        this.onProviderEvent = onProviderEvent;
+        this.stub = ServiceGrpc.newStub(this.connector.getChannel()).withWaitForReady();
+    }
+
+    // testing only
+    protected RpcResolver(
+            final FlagdOptions options,
+            final Cache cache,
+            final Consumer<FlagdProviderEvent> onProviderEvent,
+            ServiceStub mockStub,
+            ChannelConnector<ServiceStub, ServiceBlockingStub> connector) {
+        this.cache = cache;
+        this.strategy = ResolveFactory.getStrategy(options);
+        this.options = options;
+        incomingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        this.connector = connector;
+        this.onProviderEvent = onProviderEvent;
+        this.stub = mockStub;
     }
 
     /**
-     * Initialize Grpc resolver.
+     * Initialize RpcResolver resolver.
      */
     public void init() throws Exception {
         this.connector.initialize();
+
+        Thread listener = new Thread(() -> {
+            try {
+                observeEventStream();
+            } catch (InterruptedException e) {
+                log.warn("gRPC event stream interrupted, flag configurations are stale", e);
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        listener.setDaemon(true);
+        listener.start();
     }
 
     /**
      * Shutdown Grpc resolver.
      */
     public void shutdown() throws Exception {
+        if (shutdown.getAndSet(true)) {
+            return;
+        }
         this.connector.shutdown();
     }
 
@@ -142,7 +176,7 @@ public final class GrpcResolver implements Resolver {
     }
 
     private ServiceGrpc.ServiceBlockingStub getResolver() {
-        return connector.getResolver().withDeadlineAfter(options.getDeadline(), TimeUnit.MILLISECONDS);
+        return connector.getBlockingStub().withDeadlineAfter(options.getDeadline(), TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -157,7 +191,7 @@ public final class GrpcResolver implements Resolver {
                 ctx,
                 request,
                 getResolver()::resolveObject,
-                (Object value) -> convertObjectResponse((Struct) value));
+                (Object value) -> convertObjectResponse((com.google.protobuf.Struct) value));
     }
 
     /**
@@ -231,11 +265,11 @@ public final class GrpcResolver implements Resolver {
     private static ImmutableMetadata metadataFromResponse(Message response) {
         final Object metadata = response.getField(getFieldDescriptor(response, Config.METADATA_FIELD));
 
-        if (!(metadata instanceof Struct)) {
+        if (!(metadata instanceof com.google.protobuf.Struct)) {
             return ImmutableMetadata.builder().build();
         }
 
-        final Struct struct = (Struct) metadata;
+        final com.google.protobuf.Struct struct = (com.google.protobuf.Struct) metadata;
 
         ImmutableMetadata.ImmutableMetadataBuilder builder = ImmutableMetadata.builder();
 
@@ -268,5 +302,107 @@ public final class GrpcResolver implements Resolver {
             }
         }
         return new GeneralError(e.getMessage());
+    }
+
+    private void restartStream() {
+        ServiceStub localStub = stub; // don't mutate the stub
+        if (options.getStreamDeadlineMs() > 0) {
+            localStub = localStub.withDeadlineAfter(options.getStreamDeadlineMs(), TimeUnit.MILLISECONDS);
+        }
+
+        localStub.eventStream(
+                EventStreamRequest.getDefaultInstance(),
+                new QueueingStreamObserver<EventStreamResponse>(incomingQueue));
+    }
+
+    /** Contains blocking calls, to be used concurrently. */
+    private void observeEventStream() throws InterruptedException {
+
+        log.info("Initializing event stream observer");
+
+        // outer loop for re-issuing the stream request
+        while (!shutdown.get()) {
+
+            log.debug("Initializing event stream request");
+            restartStream();
+
+            // inner loop for handling messages
+            while (!shutdown.get()) {
+                final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();
+                if (taken.isComplete()) {
+                    log.debug("Event stream completed, will reconnect");
+                    this.handleErrorOrComplete();
+                    // The stream is complete, we still try to reconnect
+                    break;
+                }
+
+                Throwable streamException = taken.getError();
+                if (streamException != null) {
+                    log.debug(
+                            "Exception in event stream connection, streamException {}, will reconnect",
+                            streamException);
+                    this.handleErrorOrComplete();
+                    break;
+                }
+
+                final EventStreamResponse response = taken.getResponse();
+                log.debug("Got stream response: {}", response);
+
+                switch (response.getType()) {
+                    case Constants.CONFIGURATION_CHANGE:
+                        this.handleConfigurationChangeEvent(response);
+                        break;
+                    case Constants.PROVIDER_READY:
+                        this.handleProviderReadyEvent();
+                        break;
+                    default:
+                        log.debug("Unhandled event type {}", response.getType());
+                }
+            }
+        }
+
+        log.info("Shutdown invoked, exiting event stream listener");
+    }
+
+    /**
+     * Handles configuration change events by updating the cache and notifying listeners about changed flags.
+     *
+     * @param value the event stream response containing configuration change data
+     */
+    private void handleConfigurationChangeEvent(EventStreamResponse value) {
+        List<String> changedFlags = new ArrayList<>();
+
+        Map<String, com.google.protobuf.Value> data = value.getData().getFieldsMap();
+        com.google.protobuf.Value flagsValue = data.get(Constants.FLAGS_KEY);
+        if (flagsValue != null) {
+            Map<String, com.google.protobuf.Value> flags =
+                    flagsValue.getStructValue().getFieldsMap();
+            changedFlags.addAll(flags.keySet());
+        }
+
+        log.debug("Emitting provider change event");
+        if (this.cache != null) {
+            changedFlags.forEach(this.cache::remove);
+        }
+
+        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, changedFlags));
+    }
+
+    /**
+     * Handles provider readiness events by clearing the cache (if enabled) and notifying listeners of readiness.
+     */
+    private void handleProviderReadyEvent() {
+        log.debug("Emitting provider ready event");
+        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
+    }
+
+    /**
+     * Handles provider error events by clearing the cache (if enabled) and notifying listeners of the error.
+     */
+    private void handleErrorOrComplete() {
+        log.debug("Emitting provider error event");
+
+        // complete is an error, logically...even if the server went down gracefully we need to reconnect.
+        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
     }
 }

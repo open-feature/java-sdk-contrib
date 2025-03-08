@@ -22,12 +22,7 @@ import lombok.extern.slf4j.Slf4j;
  * @param <K> the type of the blocking stub for the GRPC service
  */
 @Slf4j
-public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlockingStub<K>> {
-
-    /**
-     * The asynchronous service stub for making non-blocking GRPC calls.
-     */
-    private final T serviceStub;
+public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlockingStub<K>> {
 
     /**
      * The blocking service stub for making blocking GRPC calls.
@@ -37,6 +32,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     /**
      * The GRPC managed channel for managing the underlying GRPC connection.
      */
+    @Getter
     private final ManagedChannel channel;
 
     /**
@@ -45,72 +41,42 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     private final long deadline;
 
     /**
-     * The deadline in milliseconds for event streaming operations.
-     */
-    private final long streamDeadlineMs;
-
-    /**
      * A consumer that handles connection events such as connection loss or reconnection.
      */
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
 
     /**
-     * A consumer that handles GRPC service stubs for event stream handling.
-     */
-    private final Consumer<T> streamObserver;
-
-    private final FlagdOptions options;
-
-    /**
-     * Indicates whether the connector is currently connected to the GRPC service.
-     */
-    @Getter
-    private boolean connected = false;
-
-    /**
-     * Constructs a new {@code GrpcConnector} instance with the specified options and parameters.
+     * Constructs a new {@code ChannelConnector} instance with the specified options and parameters.
      *
      * @param options             the configuration options for the GRPC connection
-     * @param stub                a function to create the asynchronous service stub from a {@link ManagedChannel}
      * @param blockingStub        a function to create the blocking service stub from a {@link ManagedChannel}
      * @param onConnectionEvent   a consumer to handle connection events
-     * @param eventStreamObserver a consumer to handle the event stream
      * @param channel             the managed channel for the GRPC connection
      */
-    public GrpcConnector(
+    public ChannelConnector(
             final FlagdOptions options,
-            final Function<ManagedChannel, T> stub,
             final Function<ManagedChannel, K> blockingStub,
             final Consumer<FlagdProviderEvent> onConnectionEvent,
-            final Consumer<T> eventStreamObserver,
             ManagedChannel channel) {
 
         this.channel = channel;
-        this.serviceStub = stub.apply(channel).withWaitForReady();
         this.blockingStubFunction = blockingStub;
         this.deadline = options.getDeadline();
-        this.streamDeadlineMs = options.getStreamDeadlineMs();
         this.onConnectionEvent = onConnectionEvent;
-        this.streamObserver = eventStreamObserver;
-        this.options = options;
     }
 
     /**
-     * Constructs a {@code GrpcConnector} instance for testing purposes.
+     * Constructs a {@code ChannelConnector} instance for testing purposes.
      *
      * @param options             the configuration options for the GRPC connection
-     * @param stub                a function to create the asynchronous service stub from a {@link ManagedChannel}
      * @param blockingStub        a function to create the blocking service stub from a {@link ManagedChannel}
      * @param onConnectionEvent   a consumer to handle connection events
-     * @param eventStreamObserver a consumer to handle the event stream
      */
-    public GrpcConnector(
+    public ChannelConnector(
             final FlagdOptions options,
-            final Function<ManagedChannel, T> stub,
             final Function<ManagedChannel, K> blockingStub,
-            final Consumer<FlagdProviderEvent> onConnectionEvent,
-            final Consumer<T> eventStreamObserver) {
-        this(options, stub, blockingStub, onConnectionEvent, eventStreamObserver, ChannelBuilder.nettyChannel(options));
+            final Consumer<FlagdProviderEvent> onConnectionEvent) {
+        this(options, blockingStub, onConnectionEvent, ChannelBuilder.nettyChannel(options));
     }
 
     /**
@@ -120,7 +86,7 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      */
     public void initialize() throws Exception {
         log.info("Initializing GRPC connection...");
-        ChannelMonitor.monitorChannelState(ConnectivityState.READY, channel, this::onReady, this::onConnectionLost);
+        monitorChannelState(ConnectivityState.READY);
     }
 
     /**
@@ -128,8 +94,12 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
      *
      * @return the blocking service stub
      */
-    public K getResolver() {
-        return blockingStubFunction.apply(channel).withWaitForReady();
+    public K getBlockingStub() {
+        K stub = blockingStubFunction.apply(channel).withWaitForReady();
+        if (this.deadline > 0) {
+            stub = stub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS);
+        }
+        return stub;
     }
 
     /**
@@ -147,39 +117,25 @@ public class GrpcConnector<T extends AbstractStub<T>, K extends AbstractBlocking
     }
 
     /**
-     * Handles the event when the GRPC channel becomes ready, marking the connection as established.
-     * Cancels any pending reconnection task and restarts the event stream.
+     * Monitors the state of a gRPC channel and triggers the specified callbacks based on state changes.
+     *
+     * @param expectedState     the initial state to monitor.
      */
-    private synchronized void onReady() {
-        connected = true;
-        restartStream();
+    private void monitorChannelState(ConnectivityState expectedState) {
+        channel.notifyWhenStateChanged(expectedState, this::onStateChange);
     }
 
-    /**
-     * Handles the event when the GRPC channel loses its connection, marking the connection as lost.
-     * Schedules a reconnection task after a grace period and emits a stale connection event.
-     */
-    private synchronized void onConnectionLost() {
-        connected = false;
-
-        this.onConnectionEvent.accept(new FlagdProviderEvent(
-                ProviderEvent.PROVIDER_ERROR, Collections.emptyList(), new ImmutableStructure()));
-    }
-
-    /**
-     * Restarts the event stream using the asynchronous service stub, applying a deadline if configured.
-     * Emits a connection event if the restart is successful.
-     */
-    private synchronized void restartStream() {
-        if (connected) {
-            log.debug("(Re)initializing event stream.");
-            T localServiceStub = this.serviceStub;
-            if (streamDeadlineMs > 0) {
-                localServiceStub = localServiceStub.withDeadlineAfter(this.streamDeadlineMs, TimeUnit.MILLISECONDS);
-            }
-            streamObserver.accept(localServiceStub);
-            return;
+    private void onStateChange() {
+        ConnectivityState currentState = channel.getState(true);
+        log.debug("Channel state changed to: {}", currentState);
+        if (currentState == ConnectivityState.TRANSIENT_FAILURE || currentState == ConnectivityState.SHUTDOWN) {
+            this.onConnectionEvent.accept(new FlagdProviderEvent(
+                    ProviderEvent.PROVIDER_ERROR, Collections.emptyList(), new ImmutableStructure()));
         }
-        log.debug("Stream restart skipped. Not connected.");
+        if (currentState != ConnectivityState.SHUTDOWN) {
+            log.debug("continuing to monitor the grpc channel");
+            // Re-register the state monitor to watch for the next state transition.
+            monitorChannelState(currentState);
+        }
     }
 }

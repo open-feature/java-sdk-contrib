@@ -1,7 +1,7 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc.cache;
+package dev.openfeature.contrib.providers.flagd.resolver.rpc.cache;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.DISABLED;
-import static dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.CacheType.LRU;
+import static dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType.DISABLED;
+import static dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType.LRU;
 
 import dev.openfeature.sdk.ProviderEvaluation;
 import java.util.Collections;

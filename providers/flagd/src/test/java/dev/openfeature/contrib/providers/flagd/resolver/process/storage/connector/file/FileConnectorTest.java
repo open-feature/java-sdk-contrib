@@ -24,13 +24,13 @@ class FileConnectorTest {
     @Test
     void readAndExposeFeatureFlagsFromSource() throws IOException {
         // given
-        final FileConnector connector = new FileConnector(getResourcePath(VALID_LONG), 5000);
+        final FileQueueSource connector = new FileQueueSource(getResourcePath(VALID_LONG), 5000);
 
         // when
         connector.init();
 
         // then
-        final BlockingQueue<QueuePayload> stream = connector.getStream();
+        final BlockingQueue<QueuePayload> stream = connector.getStreamQueue();
         final QueuePayload[] payload = new QueuePayload[1];
 
         assertNotNull(stream);
@@ -45,13 +45,13 @@ class FileConnectorTest {
     @Test
     void emitErrorStateForInvalidPath() throws IOException {
         // given
-        final FileConnector connector = new FileConnector("INVALID_PATH", 5000);
+        final FileQueueSource connector = new FileQueueSource("INVALID_PATH", 5000);
 
         // when
         connector.init();
 
         // then
-        final BlockingQueue<QueuePayload> stream = connector.getStream();
+        final BlockingQueue<QueuePayload> stream = connector.getStreamQueue();
 
         // Must emit an error within considerable time
         final QueuePayload[] payload = new QueuePayload[1];
@@ -75,13 +75,13 @@ class FileConnectorTest {
         final Path updPath = Paths.get(getResourcePath(UPDATABLE_FILE));
         Files.write(updPath, initial.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
-        final FileConnector connector = new FileConnector(updPath.toString(), 5000);
+        final FileQueueSource connector = new FileQueueSource(updPath.toString(), 5000);
 
         // when
         connector.init();
 
         // then
-        final BlockingQueue<QueuePayload> stream = connector.getStream();
+        final BlockingQueue<QueuePayload> stream = connector.getStreamQueue();
         final QueuePayload[] payload = new QueuePayload[1];
 
         // first validate the initial payload

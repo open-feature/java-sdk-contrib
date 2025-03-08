@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.grpc.strategy;
+package dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

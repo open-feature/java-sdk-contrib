@@ -10,9 +10,9 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStor
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileQueueSource;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.SyncStreamQueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
 import dev.openfeature.sdk.ErrorCode;
@@ -145,14 +145,14 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    static Connector getConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+    static QueueSource getConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
         return options.getOfflineFlagSourcePath() != null
                         && !options.getOfflineFlagSourcePath().isEmpty()
-                ? new FileConnector(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
-                : new GrpcStreamConnector(options, onConnectionEvent);
+                ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
+                : new SyncStreamQueueSource(options, onConnectionEvent);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {

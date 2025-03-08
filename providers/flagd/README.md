@@ -8,7 +8,7 @@ This provider is designed to use flagd's [evaluation protocol](https://github.co
 <dependency>
   <groupId>dev.openfeature.contrib.providers</groupId>
   <artifactId>flagd</artifactId>
-  <version>0.11.4</version>
+  <version>0.11.5</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
@@ -110,12 +110,14 @@ Given below are the supported configurations:
 | port                  | FLAGD_PORT                     | int                      | 8013      | rpc & in-process        |
 | targetUri             | FLAGD_TARGET_URI               | string                   | null      | rpc & in-process        |
 | tls                   | FLAGD_TLS                      | boolean                  | false     | rpc & in-process        |
+| defaultAuthority      | FLAGD_DEFAULT_AUTHORITY        | String                   | null      | rpc & in-process        |
 | socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process        |
 | certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process        |
 | deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process & file |
 | streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS       | int                      | 600000    | rpc & in-process        |
 | keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS       | long                     | 0         | rpc & in-process        |
 | selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process              |
+| providerId            | FLAGD_SOURCE_PROVIDER_ID       | String                   | null      | in-process              |
 | cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                     |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                      | 1000      | rpc                     |
 | maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                      | 5         | rpc                     |
@@ -179,6 +181,50 @@ FlagdProvider flagdProvider = new FlagdProvider(
 > [!WARNING]  
 > There's a [vulnerability](https://security.snyk.io/vuln/SNYK-JAVA-IONETTY-1042268) in [netty](https://github.com/netty/netty), a transitive dependency of the underlying gRPC libraries used in the flagd-provider that fails to correctly validate certificates.
 > This will be addressed in netty v5.
+
+### Configuring gRPC credentials and headers
+
+The `clientInterceptors` and `defaultAuthority` are meant for connection of the in-process resolver to a Sync API implementation on a host/port, that might require special credentials or headers.
+
+```java
+private static ClientInterceptor createHeaderInterceptor() {
+    return new ClientInterceptor() {
+        @Override
+        public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+            return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(next.newCall(method, callOptions)) {
+                @Override
+                public void start(Listener<RespT> responseListener, Metadata headers) {
+                    headers.put(Metadata.Key.of("custom-header", Metadata.ASCII_STRING_MARSHALLER), "header-value");
+                    super.start(responseListener, headers);
+                }
+            };
+        }
+    };
+}
+
+private static ClientInterceptor createCallCrednetialsInterceptor(CallCredentials callCredentials) throws IOException {
+    return new ClientInterceptor() {
+        @Override
+        public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+            return next.newCall(method, callOptions.withCallCredentials(callCredentials));
+        }
+    };
+}
+
+List<ClientInterceptor> clientInterceptors = new ArrayList<ClientInterceptor>(2);
+clientInterceptors.add(createHeaderInterceptor());
+CallCredentials myCallCredentals = ...;
+clientInterceptors.add(createCallCrednetialsInterceptor(myCallCredentials));
+
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .host("example.com/flagdSyncApi")
+                .port(443)
+                .tls(true)
+                .defaultAuthority("authority-host.sync.example.com")
+                .clientInterceptors(clientInterceptors)
+                .build());
+```
 
 ### Caching (RPC only)
 

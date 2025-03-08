@@ -25,8 +25,8 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFla
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileQueueSource;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.SyncStreamQueueSource;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
@@ -69,8 +69,8 @@ class InProcessResolverTest {
                 .build();
 
         // then
-        assertInstanceOf(GrpcStreamConnector.class, InProcessResolver.getConnector(forGrpcOptions, e -> {}));
-        assertInstanceOf(FileConnector.class, InProcessResolver.getConnector(forOfflineOptions, e -> {}));
+        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getConnector(forGrpcOptions, e -> {}));
+        assertInstanceOf(FileQueueSource.class, InProcessResolver.getConnector(forOfflineOptions, e -> {}));
         assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions, e -> {}));
     }
 

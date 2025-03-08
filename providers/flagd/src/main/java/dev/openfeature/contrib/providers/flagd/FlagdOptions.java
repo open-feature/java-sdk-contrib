@@ -3,12 +3,14 @@ package dev.openfeature.contrib.providers.flagd;
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
 import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.Structure;
+import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
+import java.util.List;
 import java.util.function.Function;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,6 +39,16 @@ public class FlagdOptions {
      * flagd connection port.
      */
     private int port;
+
+    // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
+    /**
+     * Disables call to sync.GetMetadata (see: https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
+     * Disabling will prevent static context from flagd being used in evaluations.
+     * GetMetadata and this option will be removed.
+     */
+    @Deprecated
+    @Builder.Default
+    private boolean syncMetadataDisabled = false;
 
     /**
      * Use TLS connectivity.
@@ -108,6 +120,12 @@ public class FlagdOptions {
     private String selector = fallBackToEnvOrDefault(Config.SOURCE_SELECTOR_ENV_VAR_NAME, null);
 
     /**
+     * ProviderId to be used with flag sync gRPC contract.
+     **/
+    @Builder.Default
+    private String providerId = fallBackToEnvOrDefault(Config.SOURCE_PROVIDER_ID_ENV_VAR_NAME, null);
+
+    /**
      * gRPC client KeepAlive in milliseconds. Disabled with 0.
      * Defaults to 0 (disabled).
      **/
@@ -155,7 +173,7 @@ public class FlagdOptions {
     /**
      * Inject a Custom Connector for fetching flags.
      */
-    private Connector customConnector;
+    private QueueSource customConnector;
 
     /**
      * Inject OpenTelemetry for the library runtime. Providing sdk will initiate
@@ -163,6 +181,18 @@ public class FlagdOptions {
      * connectivity.
      */
     private OpenTelemetry openTelemetry;
+
+    /**
+     * gRPC client interceptors to be used when creating a gRPC channel.
+     */
+    @Builder.Default
+    private List<ClientInterceptor> clientInterceptors = null;
+
+    /**
+     * Authority header to be used when creating a gRPC channel.
+     */
+    @Builder.Default
+    private String defaultAuthority = fallBackToEnvOrDefault(Config.DEFAULT_AUTHORITY_ENV_VAR_NAME, null);
 
     /**
      * Builder overwrite in order to customize the "build" method.
