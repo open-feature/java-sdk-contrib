@@ -68,18 +68,18 @@ public class InProcessResolver implements Resolver {
                             flagStore.getStateQueue().take();
                     switch (storageStateChange.getStorageState()) {
                         case OK:
-                            log.info("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+                            log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
                             onConnectionEvent.accept(new FlagdProviderEvent(
                                     ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
                                     storageStateChange.getChangedFlagsKeys(),
                                     storageStateChange.getSyncMetadata()));
-                            log.info("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+                            log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
                             break;
                         case ERROR:
                             onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
                             break;
                         default:
-                            log.info(String.format(
+                            log.warn(String.format(
                                     "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
                     }
                 }
