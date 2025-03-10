@@ -27,6 +27,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
+import dev.openfeature.sdk.exceptions.InvalidContextError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
@@ -156,16 +157,22 @@ public class GoFeatureFlagController {
             }
 
             try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                    throw new GeneralError("invalid token used to contact GO Feature Flag relay proxy instance");
-                }
-                if (response.code() >= HttpURLConnection.HTTP_BAD_REQUEST) {
-                    throw new GeneralError("impossible to contact GO Feature Flag relay proxy instance");
+                if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED
+                        || response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
+                    throw new GeneralError("authentication/authorization error");
                 }
 
                 ResponseBody responseBody = response.body();
                 String body = responseBody != null ? responseBody.string() : "";
                 GoFeatureFlagResponse goffResp = responseMapper.readValue(body, GoFeatureFlagResponse.class);
+
+                if (response.code() == HttpURLConnection.HTTP_BAD_REQUEST) {
+                    throw new InvalidContextError("Invalid context " + goffResp.getMessage());
+                }
+
+                if (response.code() == HttpURLConnection.HTTP_INTERNAL_ERROR) {
+                    throw new GeneralError("Unknown error while retrieving flag " + goffResp.getMessage());
+                }
 
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
                     // we don't set a variant since we are using the default value, and we are not able to
