@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
 
+import dev.openfeature.contrib.providers.flagd.resolver.common.Queues;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
@@ -34,7 +35,7 @@ public class FlagStore implements Storage {
     private final WriteLock writeLock = sync.writeLock();
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
-    private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(1);
+    private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(Queues.QUEUE_SIZE);
     private final Map<String, FeatureFlag> flags = new HashMap<>();
     private final Map<String, Object> flagSetMetadata = new HashMap<>();
 
@@ -56,7 +57,7 @@ public class FlagStore implements Storage {
         connector.init();
         Thread streamer = new Thread(() -> {
             try {
-                streamerListener(connector);
+                streamListener(connector);
             } catch (InterruptedException e) {
                 log.warn("connection listener failed", e);
                 Thread.currentThread().interrupt();
@@ -101,11 +102,14 @@ public class FlagStore implements Storage {
         return stateBlockingQueue;
     }
 
-    private void streamerListener(final QueueSource connector) throws InterruptedException {
-        final BlockingQueue<QueuePayload> streamPayloads = connector.getStreamQueue();
+    private void streamListener(final QueueSource queueSource) throws InterruptedException {
+        final BlockingQueue<QueuePayload> streamPayloads = queueSource.getStreamQueue();
 
         while (!shutdown.get()) {
             final QueuePayload payload = streamPayloads.take();
+
+            Queues.discardOldestIfFull(stateBlockingQueue);
+
             switch (payload.getType()) {
                 case DATA:
                     try {
@@ -127,19 +131,19 @@ public class FlagStore implements Storage {
                         }
                         if (!stateBlockingQueue.offer(
                                 new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
-                            log.warn("Failed to convey OK satus, queue is full");
+                            log.warn("Failed to convey OK status, queue is full");
                         }
                     } catch (Throwable e) {
                         // catch all exceptions and avoid stream listener interruptions
                         log.warn("Invalid flag sync payload from connector", e);
                         if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
-                            log.warn("Failed to convey STALE satus, queue is full");
+                            log.warn("Failed to convey STALE status, queue is full");
                         }
                     }
                     break;
                 case ERROR:
                     if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.ERROR))) {
-                        log.warn("Failed to convey ERROR satus, queue is full");
+                        log.warn("Failed to convey ERROR status, queue is full");
                     }
                     break;
                 default:

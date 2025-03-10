@@ -4,6 +4,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.Queues;
 import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
@@ -33,7 +34,6 @@ import lombok.extern.slf4j.Slf4j;
         value = {"PREDICTABLE_RANDOM", "EI_EXPOSE_REP"},
         justification = "Random is used to generate a variation & flag configurations require exposing")
 public class SyncStreamQueueSource implements QueueSource {
-    private static final int QUEUE_SIZE = 5;
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final int streamDeadline;
@@ -42,8 +42,8 @@ public class SyncStreamQueueSource implements QueueSource {
     private final boolean syncMetadataDisabled;
     private final ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> channelConnector;
     private final LinkedBlockingQueue<StreamResponseModel<SyncFlagsResponse>> incomingQueue =
-            new LinkedBlockingQueue<>(QUEUE_SIZE);
-    private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            new LinkedBlockingQueue<>(Queues.QUEUE_SIZE);
+    private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(Queues.QUEUE_SIZE);
     private final FlagSyncServiceStub stub;
 
     /**
@@ -112,6 +112,8 @@ public class SyncStreamQueueSource implements QueueSource {
         // outer loop for re-issuing the stream request
         while (!shutdown.get()) {
 
+            Queues.discardOldestIfFull(outgoingQueue);
+
             log.debug("Initializing sync stream request");
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
             GetMetadataResponse metadataResponse = GetMetadataResponse.getDefaultInstance();
@@ -179,6 +181,7 @@ public class SyncStreamQueueSource implements QueueSource {
             syncRequest.setProviderId(this.providerId);
         }
 
+        incomingQueue.clear();
         localStub.syncFlags(syncRequest.build(), new QueueingStreamObserver<SyncFlagsResponse>(incomingQueue));
     }
 }

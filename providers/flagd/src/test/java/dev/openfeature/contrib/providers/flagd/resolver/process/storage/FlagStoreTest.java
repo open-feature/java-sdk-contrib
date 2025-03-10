@@ -4,9 +4,12 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.openfeature.contrib.providers.flagd.resolver.common.Queues;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
@@ -115,5 +118,34 @@ class FlagStoreTest {
         Assert.assertEquals(
                 expectedChangedFlags.keySet().stream().collect(Collectors.toSet()),
                 new HashSet<>(storageStateDTOS.take().getChangedFlagsKeys()));
+    }
+
+    @Test
+    public void dequeuesOldestMessageIfFull() throws Exception {
+        final int maxDelay = 500;
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<>();
+        FlagStore store = new FlagStore(new MockConnector(payload), true);
+        store.init();
+        final BlockingQueue<StorageStateChange> queue = store.getStateQueue();
+
+        // fill up the queue
+        for (int i = 0; i < Queues.QUEUE_SIZE; i++) {
+            queue.add(new StorageStateChange(StorageState.ERROR));
+        }
+        assertTrue(queue.remainingCapacity() == 0);
+
+        // send a new payload
+        assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
+            payload.offer(new QueuePayload(
+                    QueuePayloadType.DATA,
+                    getFlagsFromResource(VALID_SIMPLE),
+                    GetMetadataResponse.getDefaultInstance()));
+        });
+
+        // make sure we can see the latest payload
+        await().untilAsserted(() -> {
+            assertTrue(queue.remainingCapacity() == 0);
+            assertTrue(queue.removeIf((paylod) -> paylod.getStorageState() == StorageState.OK));
+        });
     }
 }
