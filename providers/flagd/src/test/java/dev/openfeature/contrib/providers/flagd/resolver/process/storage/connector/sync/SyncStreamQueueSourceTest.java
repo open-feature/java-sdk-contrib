@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.when;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.Queues;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceBlockingStub;
@@ -63,9 +65,9 @@ class SyncStreamQueueSourceTest {
 
     @Test
     void onNextEnqueuesDataPayload() throws Exception {
-        SyncStreamQueueSource connector =
+        SyncStreamQueueSource streamQueueSource =
                 new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
-        connector.init();
+        streamQueueSource.init();
         latch = new CountDownLatch(1);
         latch.await();
 
@@ -73,7 +75,7 @@ class SyncStreamQueueSourceTest {
         observer.onNext(SyncFlagsResponse.newBuilder().build());
 
         // should enqueue data payload
-        BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
+        BlockingQueue<QueuePayload> streamQueue = streamQueueSource.getStreamQueue();
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
         assertEquals(QueuePayloadType.DATA, payload.getType());
@@ -84,9 +86,9 @@ class SyncStreamQueueSourceTest {
     @Test
     void onNextEnqueuesDataPayloadMetadataDisabled() throws Exception {
         // disable GetMetadata call
-        SyncStreamQueueSource connector = new SyncStreamQueueSource(
+        SyncStreamQueueSource streamQueueSource = new SyncStreamQueueSource(
                 FlagdOptions.builder().syncMetadataDisabled(true).build(), mockConnector, stub);
-        connector.init();
+        streamQueueSource.init();
         latch = new CountDownLatch(1);
         latch.await();
 
@@ -94,7 +96,7 @@ class SyncStreamQueueSourceTest {
         observer.onNext(SyncFlagsResponse.newBuilder().build());
 
         // should enqueue data payload
-        BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
+        BlockingQueue<QueuePayload> streamQueue = streamQueueSource.getStreamQueue();
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
         assertEquals(QueuePayloadType.DATA, payload.getType());
@@ -106,10 +108,10 @@ class SyncStreamQueueSourceTest {
 
     @Test
     void onErrorEnqueuesDataPayload() throws Exception {
-        SyncStreamQueueSource connector =
+        SyncStreamQueueSource streamQueueSource =
                 new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
         latch = new CountDownLatch(1);
-        connector.init();
+        streamQueueSource.init();
         latch.await();
 
         // fire onError event and reset latch
@@ -117,7 +119,7 @@ class SyncStreamQueueSourceTest {
         latch = new CountDownLatch(1);
 
         // should enqueue error payload
-        BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
+        BlockingQueue<QueuePayload> streamQueue = streamQueueSource.getStreamQueue();
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
         assertEquals(QueuePayloadType.ERROR, payload.getType());
@@ -128,10 +130,10 @@ class SyncStreamQueueSourceTest {
 
     @Test
     void onCompletedEnqueuesDataPayload() throws Exception {
-        SyncStreamQueueSource connector =
+        SyncStreamQueueSource streamQueueSource =
                 new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
         latch = new CountDownLatch(1);
-        connector.init();
+        streamQueueSource.init();
         latch.await();
 
         // fire onCompleted event (graceful stream end) and reset latch
@@ -139,10 +141,38 @@ class SyncStreamQueueSourceTest {
         latch = new CountDownLatch(1);
 
         // should enqueue error payload
-        BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
+        BlockingQueue<QueuePayload> streamQueue = streamQueueSource.getStreamQueue();
         assertTrue(streamQueue.isEmpty());
         // should have restarted the stream (2 calls)
         latch.await();
         verify(stub, times(2)).syncFlags(any(), any());
+    }
+
+    @Test
+    void dequeuesOldestMessageIfQueueFull() throws Exception {
+        SyncStreamQueueSource streamQueueSource =
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
+
+        BlockingQueue<QueuePayload> streamQueue = streamQueueSource.getStreamQueue();
+
+        // fill up the queue
+        for (int i = 0; i < Queues.QUEUE_SIZE; i++) {
+            streamQueue.add(new QueuePayload(QueuePayloadType.ERROR, "{}"));
+        }
+        assertTrue(streamQueue.remainingCapacity() == 0);
+
+        // initialize and wait for stub
+        latch = new CountDownLatch(1);
+        streamQueueSource.init();
+        latch.await();
+
+        // fire onNext which should add a new data payload
+        observer.onNext(SyncFlagsResponse.newBuilder().build());
+
+        // we should see the new data payload because we got rid of the oldest
+        await().untilAsserted(() -> {
+            assertTrue(streamQueue.remainingCapacity() == 0);
+            assertTrue(streamQueue.removeIf((paylod) -> paylod.getType() == QueuePayloadType.DATA));
+        });
     }
 }

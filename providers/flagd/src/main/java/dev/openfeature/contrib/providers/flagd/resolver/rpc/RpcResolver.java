@@ -310,6 +310,7 @@ public final class RpcResolver implements Resolver {
             localStub = localStub.withDeadlineAfter(options.getStreamDeadlineMs(), TimeUnit.MILLISECONDS);
         }
 
+        incomingQueue.clear();
         localStub.eventStream(
                 EventStreamRequest.getDefaultInstance(),
                 new QueueingStreamObserver<EventStreamResponse>(incomingQueue));
