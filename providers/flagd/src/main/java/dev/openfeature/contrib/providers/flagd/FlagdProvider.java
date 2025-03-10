@@ -256,8 +256,9 @@ public class FlagdProvider extends EventProvider {
     }
 
     private void onError() {
-        log.debug("Stream error. Emitting STALE event and scheduling ERROR event...");
-        log.debug("Waiting {}s for connection to become available...", gracePeriod);
+        log.debug(
+                "Stream error. Emitting STALE, scheduling ERROR, and waiting {}s for connection to become available.",
+                gracePeriod);
         this.emitProviderStale(ProviderEventDetails.builder()
                 .message("there has been an error")
                 .build());
