@@ -143,7 +143,7 @@ public class FlagStore implements Storage {
                     }
                     break;
                 default:
-                    log.info(String.format("Payload with unknown type: %s", payload.getType()));
+                    log.warn(String.format("Payload with unknown type: %s", payload.getType()));
             }
         }
 
