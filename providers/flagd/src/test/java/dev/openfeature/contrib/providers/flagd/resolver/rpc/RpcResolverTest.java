@@ -44,7 +44,6 @@ class RpcResolverTest {
         blockingStub = mock(ServiceBlockingStub.class);
 
         mockConnector = mock(ChannelConnector.class);
-        when(mockConnector.getBlockingStub()).thenReturn(blockingStub);
         doNothing().when(mockConnector).initialize(); // Mock the initialize method
 
         stub = mock(ServiceStub.class);
@@ -65,7 +64,8 @@ class RpcResolverTest {
 
     @Test
     void onNextWithReadyRunsConsumerWithReady() throws Exception {
-        RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
+        RpcResolver resolver =
+                new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, blockingStub, mockConnector);
         resolver.init();
         latch.await();
 
@@ -83,7 +83,8 @@ class RpcResolverTest {
 
     @Test
     void onNextWithChangedRunsConsumerWithChanged() throws Exception {
-        RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
+        RpcResolver resolver =
+                new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, blockingStub, mockConnector);
         resolver.init();
         latch.await();
 
@@ -101,7 +102,8 @@ class RpcResolverTest {
 
     @Test
     void onCompletedRerunsStreamWithError() throws Exception {
-        RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
+        RpcResolver resolver =
+                new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, blockingStub, mockConnector);
         resolver.init();
         latch.await();
 
@@ -117,7 +119,8 @@ class RpcResolverTest {
 
     @Test
     void onErrorRunsConsumerWithError() throws Exception {
-        RpcResolver resolver = new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, mockConnector);
+        RpcResolver resolver =
+                new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, blockingStub, mockConnector);
         resolver.init();
         latch.await();
 

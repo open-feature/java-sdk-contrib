@@ -89,8 +89,8 @@ class ChannelConnectorTest {
             sync.countDown();
         };
 
-        ChannelConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> instance = new ChannelConnector<>(
-                FlagdOptions.builder().build(), ServiceGrpc::newBlockingStub, testConsumer, testChannel);
+        ChannelConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> instance =
+                new ChannelConnector<>(FlagdOptions.builder().build(), testConsumer, testChannel);
 
         instance.initialize();
         // when shutting grpc connector
@@ -117,8 +117,8 @@ class ChannelConnectorTest {
 
         Consumer<FlagdProviderEvent> testConsumer = spy(Consumer.class);
 
-        ChannelConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> instance = new ChannelConnector<>(
-                FlagdOptions.builder().build(), ServiceGrpc::newBlockingStub, testConsumer, channel);
+        ChannelConnector<ServiceGrpc.ServiceStub, ServiceGrpc.ServiceBlockingStub> instance =
+                new ChannelConnector<>(FlagdOptions.builder().build(), testConsumer, channel);
 
         instance.initialize();
 

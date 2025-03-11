@@ -43,7 +43,6 @@ class SyncStreamQueueSourceTest {
         when(blockingStub.getMetadata(any())).thenReturn(GetMetadataResponse.getDefaultInstance());
 
         mockConnector = mock(ChannelConnector.class);
-        when(mockConnector.getBlockingStub()).thenReturn(blockingStub);
         doNothing().when(mockConnector).initialize(); // Mock the initialize method
 
         stub = mock(FlagSyncServiceStub.class);
@@ -64,7 +63,7 @@ class SyncStreamQueueSourceTest {
     @Test
     void onNextEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
-                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
         connector.init();
         latch = new CountDownLatch(1);
         latch.await();
@@ -85,7 +84,7 @@ class SyncStreamQueueSourceTest {
     void onNextEnqueuesDataPayloadMetadataDisabled() throws Exception {
         // disable GetMetadata call
         SyncStreamQueueSource connector = new SyncStreamQueueSource(
-                FlagdOptions.builder().syncMetadataDisabled(true).build(), mockConnector, stub);
+                FlagdOptions.builder().syncMetadataDisabled(true).build(), mockConnector, stub, blockingStub);
         connector.init();
         latch = new CountDownLatch(1);
         latch.await();
@@ -107,7 +106,7 @@ class SyncStreamQueueSourceTest {
     @Test
     void onErrorEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
-                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
         latch = new CountDownLatch(1);
         connector.init();
         latch.await();
@@ -129,7 +128,7 @@ class SyncStreamQueueSourceTest {
     @Test
     void onCompletedEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
-                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
         latch = new CountDownLatch(1);
         connector.init();
         latch.await();

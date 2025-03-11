@@ -5,6 +5,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.nameresolvers.Env
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.ManagedChannel;
 import io.grpc.NameResolverRegistry;
+import io.grpc.Status.Code;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.channel.epoll.Epoll;
@@ -15,11 +16,75 @@ import io.netty.handler.ssl.SslContextBuilder;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLException;
 
 /** gRPC channel builder helper. */
 public class ChannelBuilder {
+
+    static final int MAX_RETRY_ATTEMPTS = 3;
+
+    /**
+     * Controls retry (not-reconnection) policy for failed RPCs.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    static final Map<String, ?> SERVICE_CONFIG_WITH_RETRY = new HashMap() {
+        {
+            put("methodConfig", Arrays.asList(new HashMap() {
+                {
+                    put(
+                            "name",
+                            Arrays.asList(
+                                    new HashMap() {
+                                        {
+                                            put("service", "flagd.sync.v1.FlagSyncService");
+                                        }
+                                    },
+                                    new HashMap() {
+                                        {
+                                            put("service", "flagd.evaluation.v1.Service");
+                                        }
+                                    }));
+                    put("retryPolicy", new HashMap() {
+                        {
+                            // 1 + 2 + 4
+                            put("maxAttempts", (double) MAX_RETRY_ATTEMPTS);
+                            put("initialBackoff", "1s");
+                            put("maxBackoff", "5s");
+                            put("backoffMultiplier", 2.0);
+                            // status codes to retry on:
+                            put(
+                                    "retryableStatusCodes",
+                                    Arrays.asList(
+                                            /*
+                                             * All codes are retryable except OK or CANCELLED, since anything
+                                             * not listed here causes a very tight loop of retries.
+                                             * CANCELLED is not retryable because it is a client-side termination.
+                                             */
+                                            Code.UNKNOWN.toString(),
+                                            Code.INVALID_ARGUMENT.toString(),
+                                            Code.DEADLINE_EXCEEDED.toString(),
+                                            Code.NOT_FOUND.toString(),
+                                            Code.ALREADY_EXISTS.toString(),
+                                            Code.PERMISSION_DENIED.toString(),
+                                            Code.RESOURCE_EXHAUSTED.toString(),
+                                            Code.FAILED_PRECONDITION.toString(),
+                                            Code.ABORTED.toString(),
+                                            Code.OUT_OF_RANGE.toString(),
+                                            Code.UNIMPLEMENTED.toString(),
+                                            Code.INTERNAL.toString(),
+                                            Code.UNAVAILABLE.toString(),
+                                            Code.DATA_LOSS.toString(),
+                                            Code.UNAUTHENTICATED.toString()));
+                        }
+                    });
+                }
+            }));
+        }
+    };
 
     private ChannelBuilder() {}
 
@@ -45,6 +110,9 @@ public class ChannelBuilder {
                     .eventLoopGroup(new EpollEventLoopGroup())
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
+                    .defaultServiceConfig(SERVICE_CONFIG_WITH_RETRY)
+                    .maxRetryAttempts(MAX_RETRY_ATTEMPTS)
+                    .enableRetry()
                     .build();
         }
 
@@ -89,7 +157,10 @@ public class ChannelBuilder {
                 builder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
             }
 
-            return builder.build();
+            return builder.defaultServiceConfig(SERVICE_CONFIG_WITH_RETRY)
+                    .maxRetryAttempts(MAX_RETRY_ATTEMPTS)
+                    .enableRetry()
+                    .build();
         } catch (SSLException ssle) {
             SslConfigException sslConfigException = new SslConfigException("Error with SSL configuration.");
             sslConfigException.initCause(ssle);
