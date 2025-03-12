@@ -271,7 +271,7 @@ public class FlagdProvider extends EventProvider {
             errorTask = errorExecutor.schedule(
                     () -> {
                         if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_ERROR) {
-                            log.debug(
+                            log.error(
                                     "Provider did not reconnect successfully within {}s. Emitting ERROR event...",
                                     gracePeriod);
                             flagResolver.onError();

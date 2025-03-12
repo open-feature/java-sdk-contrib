@@ -37,6 +37,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final int streamDeadline;
+    private final int deadline;
     private final String selector;
     private final String providerId;
     private final boolean syncMetadataDisabled;
@@ -45,30 +46,37 @@ public class SyncStreamQueueSource implements QueueSource {
             new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final FlagSyncServiceStub stub;
+    private final FlagSyncServiceBlockingStub blockingStub;
 
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event stream.
      */
     public SyncStreamQueueSource(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         streamDeadline = options.getStreamDeadlineMs();
+        deadline = options.getDeadline();
         selector = options.getSelector();
         providerId = options.getProviderId();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
-        channelConnector = new ChannelConnector<>(options, FlagSyncServiceGrpc::newBlockingStub, onConnectionEvent);
+        channelConnector = new ChannelConnector<>(options, onConnectionEvent);
         this.stub = FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
+        this.blockingStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
+                .withWaitForReady();
     }
 
     // internal use only
     protected SyncStreamQueueSource(
             final FlagdOptions options,
             ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> connectorMock,
-            FlagSyncServiceStub stubMock) {
+            FlagSyncServiceStub stubMock,
+            FlagSyncServiceBlockingStub blockingStubMock) {
         streamDeadline = options.getStreamDeadlineMs();
+        deadline = options.getDeadline();
         selector = options.getSelector();
         providerId = options.getProviderId();
         channelConnector = connectorMock;
         stub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
+        blockingStub = blockingStubMock;
     }
 
     /** Initialize sync stream connector. */
@@ -110,6 +118,7 @@ public class SyncStreamQueueSource implements QueueSource {
         log.info("Initializing sync stream observer");
 
         // outer loop for re-issuing the stream request
+        // "waitForReady" on the channel, plus our retry policy slow this loop down in error conditions
         while (!shutdown.get()) {
 
             log.debug("Initializing sync stream request");
@@ -124,7 +133,13 @@ public class SyncStreamQueueSource implements QueueSource {
                 // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
                 if (!syncMetadataDisabled) {
                     try {
-                        metadataResponse = channelConnector.getBlockingStub().getMetadata(metadataRequest.build());
+                        FlagSyncServiceBlockingStub localStub = blockingStub;
+
+                        if (deadline > 0) {
+                            localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
+                        }
+
+                        metadataResponse = localStub.getMetadata(metadataRequest.build());
                     } catch (Exception metaEx) {
                         log.error("Metadata exception: {}, cancelling stream", metaEx.getMessage(), metaEx);
                         context.cancel(metaEx);
@@ -132,7 +147,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 }
 
                 // inner loop for handling messages
-                while (!shutdown.get()) {
+                while (!shutdown.get() && !Context.current().isCancelled()) {
                     final StreamResponseModel<SyncFlagsResponse> taken = incomingQueue.take();
                     if (taken.isComplete()) {
                         log.debug("Sync stream completed, will reconnect");

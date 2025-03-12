@@ -10,7 +10,6 @@ import io.grpc.stub.AbstractStub;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,11 +22,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlockingStub<K>> {
-
-    /**
-     * The blocking service stub for making blocking GRPC calls.
-     */
-    private final Function<ManagedChannel, K> blockingStubFunction;
 
     /**
      * The GRPC managed channel for managing the underlying GRPC connection.
@@ -49,18 +43,13 @@ public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlock
      * Constructs a new {@code ChannelConnector} instance with the specified options and parameters.
      *
      * @param options             the configuration options for the GRPC connection
-     * @param blockingStub        a function to create the blocking service stub from a {@link ManagedChannel}
      * @param onConnectionEvent   a consumer to handle connection events
      * @param channel             the managed channel for the GRPC connection
      */
     public ChannelConnector(
-            final FlagdOptions options,
-            final Function<ManagedChannel, K> blockingStub,
-            final Consumer<FlagdProviderEvent> onConnectionEvent,
-            ManagedChannel channel) {
+            final FlagdOptions options, final Consumer<FlagdProviderEvent> onConnectionEvent, ManagedChannel channel) {
 
         this.channel = channel;
-        this.blockingStubFunction = blockingStub;
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
     }
@@ -69,14 +58,10 @@ public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlock
      * Constructs a {@code ChannelConnector} instance for testing purposes.
      *
      * @param options             the configuration options for the GRPC connection
-     * @param blockingStub        a function to create the blocking service stub from a {@link ManagedChannel}
      * @param onConnectionEvent   a consumer to handle connection events
      */
-    public ChannelConnector(
-            final FlagdOptions options,
-            final Function<ManagedChannel, K> blockingStub,
-            final Consumer<FlagdProviderEvent> onConnectionEvent) {
-        this(options, blockingStub, onConnectionEvent, ChannelBuilder.nettyChannel(options));
+    public ChannelConnector(final FlagdOptions options, final Consumer<FlagdProviderEvent> onConnectionEvent) {
+        this(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
     }
 
     /**
@@ -87,19 +72,6 @@ public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlock
     public void initialize() throws Exception {
         log.info("Initializing GRPC connection...");
         monitorChannelState(ConnectivityState.READY);
-    }
-
-    /**
-     * Returns the blocking service stub for making blocking GRPC calls.
-     *
-     * @return the blocking service stub
-     */
-    public K getBlockingStub() {
-        K stub = blockingStubFunction.apply(channel).withWaitForReady();
-        if (this.deadline > 0) {
-            stub = stub.withDeadlineAfter(this.deadline, TimeUnit.MILLISECONDS);
-        }
-        return stub;
     }
 
     /**

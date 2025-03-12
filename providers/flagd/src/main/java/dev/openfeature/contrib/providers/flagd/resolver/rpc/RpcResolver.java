@@ -66,6 +66,7 @@ public final class RpcResolver implements Resolver {
     private final LinkedBlockingQueue<StreamResponseModel<EventStreamResponse>> incomingQueue;
     private final Consumer<FlagdProviderEvent> onProviderEvent;
     private final ServiceStub stub;
+    private final ServiceBlockingStub blockingStub;
 
     /**
      * Resolves flag values using
@@ -82,9 +83,11 @@ public final class RpcResolver implements Resolver {
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
         incomingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        this.connector = new ChannelConnector<>(options, ServiceGrpc::newBlockingStub, onProviderEvent);
+        this.connector = new ChannelConnector<>(options, onProviderEvent);
         this.onProviderEvent = onProviderEvent;
         this.stub = ServiceGrpc.newStub(this.connector.getChannel()).withWaitForReady();
+        this.blockingStub =
+                ServiceGrpc.newBlockingStub(this.connector.getChannel()).withWaitForReady();
     }
 
     // testing only
@@ -93,6 +96,7 @@ public final class RpcResolver implements Resolver {
             final Cache cache,
             final Consumer<FlagdProviderEvent> onProviderEvent,
             ServiceStub mockStub,
+            ServiceBlockingStub mockBlockingStub,
             ChannelConnector<ServiceStub, ServiceBlockingStub> connector) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
@@ -101,6 +105,7 @@ public final class RpcResolver implements Resolver {
         this.connector = connector;
         this.onProviderEvent = onProviderEvent;
         this.stub = mockStub;
+        this.blockingStub = mockBlockingStub;
     }
 
     /**
@@ -145,7 +150,7 @@ public final class RpcResolver implements Resolver {
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
 
-        return resolve(key, ctx, request, getResolver()::resolveBoolean, null);
+        return resolve(key, ctx, request, getBlockingStub()::resolveBoolean, null);
     }
 
     /**
@@ -153,7 +158,7 @@ public final class RpcResolver implements Resolver {
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
-        return resolve(key, ctx, request, getResolver()::resolveString, null);
+        return resolve(key, ctx, request, getBlockingStub()::resolveString, null);
     }
 
     /**
@@ -162,7 +167,7 @@ public final class RpcResolver implements Resolver {
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
 
-        return resolve(key, ctx, request, getResolver()::resolveFloat, null);
+        return resolve(key, ctx, request, getBlockingStub()::resolveFloat, null);
     }
 
     /**
@@ -172,11 +177,17 @@ public final class RpcResolver implements Resolver {
 
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
 
-        return resolve(key, ctx, request, getResolver()::resolveInt, (Object value) -> ((Long) value).intValue());
+        return resolve(key, ctx, request, getBlockingStub()::resolveInt, (Object value) -> ((Long) value).intValue());
     }
 
-    private ServiceGrpc.ServiceBlockingStub getResolver() {
-        return connector.getBlockingStub().withDeadlineAfter(options.getDeadline(), TimeUnit.MILLISECONDS);
+    private ServiceGrpc.ServiceBlockingStub getBlockingStub() {
+        ServiceBlockingStub localStub = blockingStub;
+
+        if (options.getDeadline() > 0) {
+            localStub = localStub.withDeadlineAfter(options.getDeadline(), TimeUnit.MILLISECONDS);
+        }
+
+        return localStub;
     }
 
     /**
@@ -190,7 +201,7 @@ public final class RpcResolver implements Resolver {
                 key,
                 ctx,
                 request,
-                getResolver()::resolveObject,
+                getBlockingStub()::resolveObject,
                 (Object value) -> convertObjectResponse((com.google.protobuf.Struct) value));
     }
 
@@ -321,11 +332,11 @@ public final class RpcResolver implements Resolver {
         log.info("Initializing event stream observer");
 
         // outer loop for re-issuing the stream request
+        // "waitForReady" on the channel, plus our retry policy slow this loop down in error conditions
         while (!shutdown.get()) {
 
             log.debug("Initializing event stream request");
             restartStream();
-
             // inner loop for handling messages
             while (!shutdown.get()) {
                 final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();

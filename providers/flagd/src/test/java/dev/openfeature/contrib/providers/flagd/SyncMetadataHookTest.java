@@ -23,7 +23,6 @@ public class SyncMetadataHookTest {
 
         suppliedContext.add(key1, val1);
 
-        // when(contextSupplier.get()).thenReturn(new ImmutableContext("some-key"));
         SyncMetadataHook hook = new SyncMetadataHook(contextSupplier);
         Optional<EvaluationContext> context = hook.before(
                 HookContext.builder()

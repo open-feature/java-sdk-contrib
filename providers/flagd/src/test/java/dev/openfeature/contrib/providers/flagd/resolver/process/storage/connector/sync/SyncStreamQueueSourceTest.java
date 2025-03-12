@@ -43,7 +43,6 @@ class SyncStreamQueueSourceTest {
         when(blockingStub.getMetadata(any())).thenReturn(GetMetadataResponse.getDefaultInstance());
 
         mockConnector = mock(ChannelConnector.class);
-        when(mockConnector.getBlockingStub()).thenReturn(blockingStub);
         doNothing().when(mockConnector).initialize(); // Mock the initialize method
 
         stub = mock(FlagSyncServiceStub.class);
@@ -64,9 +63,9 @@ class SyncStreamQueueSourceTest {
     @Test
     void onNextEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
-                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
-        connector.init();
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
         latch = new CountDownLatch(1);
+        connector.init();
         latch.await();
 
         // fire onNext (data) event
@@ -85,9 +84,9 @@ class SyncStreamQueueSourceTest {
     void onNextEnqueuesDataPayloadMetadataDisabled() throws Exception {
         // disable GetMetadata call
         SyncStreamQueueSource connector = new SyncStreamQueueSource(
-                FlagdOptions.builder().syncMetadataDisabled(true).build(), mockConnector, stub);
-        connector.init();
+                FlagdOptions.builder().syncMetadataDisabled(true).build(), mockConnector, stub, blockingStub);
         latch = new CountDownLatch(1);
+        connector.init();
         latch.await();
 
         // fire onNext (data) event
@@ -107,14 +106,14 @@ class SyncStreamQueueSourceTest {
     @Test
     void onErrorEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
-                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
         latch = new CountDownLatch(1);
         connector.init();
         latch.await();
 
         // fire onError event and reset latch
-        observer.onError(new Exception("fake exception"));
         latch = new CountDownLatch(1);
+        observer.onError(new Exception("fake exception"));
 
         // should enqueue error payload
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
@@ -129,14 +128,14 @@ class SyncStreamQueueSourceTest {
     @Test
     void onCompletedEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
-                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub);
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
         latch = new CountDownLatch(1);
         connector.init();
         latch.await();
 
         // fire onCompleted event (graceful stream end) and reset latch
-        observer.onCompleted();
         latch = new CountDownLatch(1);
+        observer.onCompleted();
 
         // should enqueue error payload
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();

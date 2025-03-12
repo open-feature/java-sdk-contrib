@@ -2,10 +2,15 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -53,6 +58,9 @@ class ChannelBuilderTest {
             when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
             when(mockBuilder.eventLoopGroup(any(EpollEventLoopGroup.class))).thenReturn(mockBuilder);
             when(mockBuilder.channelType(EpollDomainSocketChannel.class)).thenReturn(mockBuilder);
+            when(mockBuilder.defaultServiceConfig(any())).thenReturn(mockBuilder);
+            when(mockBuilder.maxRetryAttempts(anyInt())).thenReturn(mockBuilder);
+            doReturn(mockBuilder).when(mockBuilder).enableRetry();
             when(mockBuilder.usePlaintext()).thenReturn(mockBuilder);
             when(mockBuilder.build()).thenReturn(mockChannel);
 
@@ -77,6 +85,85 @@ class ChannelBuilderTest {
     }
 
     @Test
+    @EnabledOnOs(OS.LINUX)
+    void testNettyChannel_withSocketPath_withRetryPolicy() {
+        try (MockedStatic<Epoll> epollMock = mockStatic(Epoll.class);
+                MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
+
+            // Mocks
+            epollMock.when(Epoll::isAvailable).thenReturn(true);
+            NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
+            ManagedChannel mockChannel = mock(ManagedChannel.class);
+
+            nettyMock
+                    .when(() -> NettyChannelBuilder.forAddress(any(DomainSocketAddress.class)))
+                    .thenReturn(mockBuilder);
+
+            when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
+            when(mockBuilder.eventLoopGroup(any(EpollEventLoopGroup.class))).thenReturn(mockBuilder);
+            when(mockBuilder.channelType(EpollDomainSocketChannel.class)).thenReturn(mockBuilder);
+            when(mockBuilder.defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY))
+                    .thenReturn(mockBuilder);
+            doReturn(mockBuilder).when(mockBuilder).enableRetry();
+            when(mockBuilder.usePlaintext()).thenReturn(mockBuilder);
+            when(mockBuilder.build()).thenReturn(mockChannel);
+
+            // Input options
+            FlagdOptions options = FlagdOptions.builder()
+                    .socketPath("/path/to/socket")
+                    .keepAlive(1000)
+                    .build();
+
+            // Call method under test
+            ManagedChannel channel = ChannelBuilder.nettyChannel(options);
+
+            // Assertions
+            assertThat(channel).isEqualTo(mockChannel);
+            nettyMock.verify(() -> NettyChannelBuilder.forAddress(new DomainSocketAddress("/path/to/socket")));
+            verify(mockBuilder).keepAliveTime(1000, TimeUnit.MILLISECONDS);
+            verify(mockBuilder).eventLoopGroup(any(EpollEventLoopGroup.class));
+            verify(mockBuilder).channelType(EpollDomainSocketChannel.class);
+            verify(mockBuilder).defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY);
+            verify(mockBuilder).usePlaintext();
+            verify(mockBuilder).build();
+        }
+    }
+
+    @Test
+    void testNettyChannel_withRetryPolicy() {
+        try (MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
+            // Mocks
+            NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
+            ManagedChannel mockChannel = mock(ManagedChannel.class);
+            nettyMock
+                    .when(() -> NettyChannelBuilder.forTarget("localhost:8080"))
+                    .thenReturn(mockBuilder);
+
+            when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
+            when(mockBuilder.sslContext(any())).thenReturn(mockBuilder);
+            when(mockBuilder.overrideAuthority(anyString())).thenReturn(mockBuilder);
+            when(mockBuilder.defaultServiceConfig(any())).thenReturn(mockBuilder);
+            when(mockBuilder.maxRetryAttempts(anyInt())).thenReturn(mockBuilder);
+            doReturn(mockBuilder).when(mockBuilder).enableRetry();
+            when(mockBuilder.build()).thenReturn(mockChannel);
+
+            // Input options
+            FlagdOptions options =
+                    FlagdOptions.builder().host("localhost").port(8080).build();
+
+            // Call method under test
+            ManagedChannel channel = ChannelBuilder.nettyChannel(options);
+
+            // Assertions
+            assertThat(channel).isEqualTo(mockChannel);
+            nettyMock.verify(() -> NettyChannelBuilder.forTarget("localhost:8080"));
+            verify(mockBuilder).defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY);
+            verify(mockBuilder).enableRetry();
+            verify(mockBuilder).build();
+        }
+    }
+
+    @Test
     void testNettyChannel_withTlsAndCert() {
         try (MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
             // Mocks
@@ -88,6 +175,9 @@ class ChannelBuilderTest {
 
             when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
             when(mockBuilder.sslContext(any())).thenReturn(mockBuilder);
+            when(mockBuilder.defaultServiceConfig(any())).thenReturn(mockBuilder);
+            when(mockBuilder.maxRetryAttempts(anyInt())).thenReturn(mockBuilder);
+            doReturn(mockBuilder).when(mockBuilder).enableRetry();
             when(mockBuilder.build()).thenReturn(mockChannel);
 
             File mockCert = mock(File.class);
@@ -130,6 +220,9 @@ class ChannelBuilderTest {
             when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
             when(mockBuilder.sslContext(any())).thenReturn(mockBuilder);
             when(mockBuilder.overrideAuthority(anyString())).thenReturn(mockBuilder);
+            when(mockBuilder.defaultServiceConfig(any())).thenReturn(mockBuilder);
+            when(mockBuilder.maxRetryAttempts(anyInt())).thenReturn(mockBuilder);
+            doReturn(mockBuilder).when(mockBuilder).enableRetry();
             when(mockBuilder.build()).thenReturn(mockChannel);
 
             // Input options
@@ -167,6 +260,9 @@ class ChannelBuilderTest {
             when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
             when(mockBuilder.sslContext(any())).thenReturn(mockBuilder);
             when(mockBuilder.intercept(anyList())).thenReturn(mockBuilder);
+            when(mockBuilder.defaultServiceConfig(any())).thenReturn(mockBuilder);
+            when(mockBuilder.maxRetryAttempts(anyInt())).thenReturn(mockBuilder);
+            doReturn(mockBuilder).when(mockBuilder).enableRetry();
             when(mockBuilder.build()).thenReturn(mockChannel);
 
             List<ClientInterceptor> clientInterceptors = new ArrayList<ClientInterceptor>();

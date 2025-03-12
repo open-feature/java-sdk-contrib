@@ -127,19 +127,19 @@ public class FlagStore implements Storage {
                         }
                         if (!stateBlockingQueue.offer(
                                 new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
-                            log.warn("Failed to convey OK satus, queue is full");
+                            log.warn("Failed to convey OK status, queue is full");
                         }
                     } catch (Throwable e) {
                         // catch all exceptions and avoid stream listener interruptions
                         log.warn("Invalid flag sync payload from connector", e);
                         if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
-                            log.warn("Failed to convey STALE satus, queue is full");
+                            log.warn("Failed to convey STALE status, queue is full");
                         }
                     }
                     break;
                 case ERROR:
                     if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.ERROR))) {
-                        log.warn("Failed to convey ERROR satus, queue is full");
+                        log.warn("Failed to convey ERROR status, queue is full");
                     }
                     break;
                 default:
