@@ -25,8 +25,6 @@ import javax.net.ssl.SSLException;
 /** gRPC channel builder helper. */
 public class ChannelBuilder {
 
-    static final int MAX_RETRY_ATTEMPTS = 3;
-
     /**
      * Controls retry (not-reconnection) policy for failed RPCs.
      */
@@ -51,7 +49,7 @@ public class ChannelBuilder {
                     put("retryPolicy", new HashMap() {
                         {
                             // 1 + 2 + 4
-                            put("maxAttempts", (double) MAX_RETRY_ATTEMPTS);
+                            put("maxAttempts", 3.0); // types used here are important, need to be doubles
                             put("initialBackoff", "1s");
                             put("maxBackoff", "5s");
                             put("backoffMultiplier", 2.0);
@@ -112,7 +110,6 @@ public class ChannelBuilder {
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
                     .defaultServiceConfig(SERVICE_CONFIG_WITH_RETRY)
-                    .maxRetryAttempts(MAX_RETRY_ATTEMPTS)
                     .enableRetry()
                     .build();
         }
@@ -159,7 +156,6 @@ public class ChannelBuilder {
             }
 
             return builder.defaultServiceConfig(SERVICE_CONFIG_WITH_RETRY)
-                    .maxRetryAttempts(MAX_RETRY_ATTEMPTS)
                     .enableRetry()
                     .build();
         } catch (SSLException ssle) {

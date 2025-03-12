@@ -104,8 +104,6 @@ class ChannelBuilderTest {
             when(mockBuilder.channelType(EpollDomainSocketChannel.class)).thenReturn(mockBuilder);
             when(mockBuilder.defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY))
                     .thenReturn(mockBuilder);
-            when(mockBuilder.maxRetryAttempts(ChannelBuilder.MAX_RETRY_ATTEMPTS))
-                    .thenReturn(mockBuilder);
             doReturn(mockBuilder).when(mockBuilder).enableRetry();
             when(mockBuilder.usePlaintext()).thenReturn(mockBuilder);
             when(mockBuilder.build()).thenReturn(mockChannel);
@@ -125,6 +123,7 @@ class ChannelBuilderTest {
             verify(mockBuilder).keepAliveTime(1000, TimeUnit.MILLISECONDS);
             verify(mockBuilder).eventLoopGroup(any(EpollEventLoopGroup.class));
             verify(mockBuilder).channelType(EpollDomainSocketChannel.class);
+            verify(mockBuilder).defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY);
             verify(mockBuilder).usePlaintext();
             verify(mockBuilder).build();
         }
@@ -160,7 +159,6 @@ class ChannelBuilderTest {
             nettyMock.verify(() -> NettyChannelBuilder.forTarget("localhost:8080"));
             verify(mockBuilder).defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY);
             verify(mockBuilder).enableRetry();
-            verify(mockBuilder).maxRetryAttempts(ChannelBuilder.MAX_RETRY_ATTEMPTS);
             verify(mockBuilder).build();
         }
     }
