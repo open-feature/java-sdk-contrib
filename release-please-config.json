@@ -132,6 +132,17 @@
         "pom.xml",
         "README.md"
       ]
+    },
+    ".": {
+      "package-name": "dev.openfeature.contrib.parent",
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     }
   },
   "changelog-sections": [
