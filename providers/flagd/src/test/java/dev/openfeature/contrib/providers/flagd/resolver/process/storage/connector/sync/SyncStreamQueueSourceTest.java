@@ -64,8 +64,8 @@ class SyncStreamQueueSourceTest {
     void onNextEnqueuesDataPayload() throws Exception {
         SyncStreamQueueSource connector =
                 new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
-        connector.init();
         latch = new CountDownLatch(1);
+        connector.init();
         latch.await();
 
         // fire onNext (data) event
@@ -85,8 +85,8 @@ class SyncStreamQueueSourceTest {
         // disable GetMetadata call
         SyncStreamQueueSource connector = new SyncStreamQueueSource(
                 FlagdOptions.builder().syncMetadataDisabled(true).build(), mockConnector, stub, blockingStub);
-        connector.init();
         latch = new CountDownLatch(1);
+        connector.init();
         latch.await();
 
         // fire onNext (data) event
