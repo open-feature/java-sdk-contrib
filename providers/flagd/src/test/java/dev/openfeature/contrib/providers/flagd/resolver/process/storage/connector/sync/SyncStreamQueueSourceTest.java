@@ -112,8 +112,8 @@ class SyncStreamQueueSourceTest {
         latch.await();
 
         // fire onError event and reset latch
-        observer.onError(new Exception("fake exception"));
         latch = new CountDownLatch(1);
+        observer.onError(new Exception("fake exception"));
 
         // should enqueue error payload
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
@@ -134,8 +134,8 @@ class SyncStreamQueueSourceTest {
         latch.await();
 
         // fire onCompleted event (graceful stream end) and reset latch
-        observer.onCompleted();
         latch = new CountDownLatch(1);
+        observer.onCompleted();
 
         // should enqueue error payload
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
