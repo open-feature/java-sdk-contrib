@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.6...dev.openfeature.contrib.providers.flagd-v0.11.7) (2025-03-12)
+
+
+### 🐛 Bug Fixes
+
+* transient error log-spam, add retry policy ([#1273](https://github.com/open-feature/java-sdk-contrib/issues/1273)) ([245e9ed](https://github.com/open-feature/java-sdk-contrib/commit/245e9edace570665df16a57a255aea8e6d34d5dd))
+
 ## [0.11.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.5...dev.openfeature.contrib.providers.flagd-v0.11.6) (2025-03-10)
 
 
