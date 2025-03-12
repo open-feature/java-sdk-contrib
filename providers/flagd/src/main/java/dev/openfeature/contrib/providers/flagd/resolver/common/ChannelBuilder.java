@@ -60,13 +60,14 @@ public class ChannelBuilder {
                                     "retryableStatusCodes",
                                     Arrays.asList(
                                             /*
-                                             * All codes are retryable except OK or CANCELLED, since anything
-                                             * not listed here causes a very tight loop of retries.
+                                             * All codes are retryable except OK, CANCELLED and DEADLINE_EXCEEDED since
+                                             * any others not listed here cause a very tight loop of retries.
                                              * CANCELLED is not retryable because it is a client-side termination.
+                                             * DEADLINE_EXCEEDED is typically a result of a client specified deadline,
+                                             * and definitionally should not result in a tight loop (it's a timeout).
                                              */
                                             Code.UNKNOWN.toString(),
                                             Code.INVALID_ARGUMENT.toString(),
-                                            Code.DEADLINE_EXCEEDED.toString(),
                                             Code.NOT_FOUND.toString(),
                                             Code.ALREADY_EXISTS.toString(),
                                             Code.PERMISSION_DENIED.toString(),
