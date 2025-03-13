@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.7...dev.openfeature.contrib.providers.flagd-v0.11.8) (2025-03-13)
+
+
+### 🧹 Chore
+
+* **deps:** update providers/flagd/schemas digest to e840a03 ([#1272](https://github.com/open-feature/java-sdk-contrib/issues/1272)) ([0a2133c](https://github.com/open-feature/java-sdk-contrib/commit/0a2133c4fb43a428c6995fc0c5fa1f3bdbdc4c9c))
+
 ## [0.11.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.6...dev.openfeature.contrib.providers.flagd-v0.11.7) (2025-03-12)
 
 
