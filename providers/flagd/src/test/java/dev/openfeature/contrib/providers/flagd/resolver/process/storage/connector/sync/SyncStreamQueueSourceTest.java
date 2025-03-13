@@ -40,6 +40,7 @@ class SyncStreamQueueSourceTest {
     @BeforeEach
     public void init() throws Exception {
         blockingStub = mock(FlagSyncServiceBlockingStub.class);
+        when(blockingStub.withDeadlineAfter(anyLong(), any())).thenReturn(blockingStub);
         when(blockingStub.getMetadata(any())).thenReturn(GetMetadataResponse.getDefaultInstance());
 
         mockConnector = mock(ChannelConnector.class);
