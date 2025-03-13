@@ -17,6 +17,7 @@ public class QueueingStreamObserver<T> implements StreamObserver<T> {
 
     public QueueingStreamObserver(final BlockingQueue<StreamResponseModel<T>> queue) {
         blockingQueue = queue;
+        queue.clear();
     }
 
     @Override

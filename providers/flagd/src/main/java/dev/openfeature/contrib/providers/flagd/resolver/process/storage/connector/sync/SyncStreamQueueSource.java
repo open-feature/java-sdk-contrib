@@ -128,7 +128,7 @@ public class SyncStreamQueueSource implements QueueSource {
             // create a context which exists to track and cancel the stream
             try (CancellableContext context = Context.current().withCancellation()) {
 
-                restart(); // start the stream within the context
+                restart(); // start the stream with the context
 
                 // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
                 if (!syncMetadataDisabled) {
@@ -150,16 +150,16 @@ public class SyncStreamQueueSource implements QueueSource {
                 while (!shutdown.get() && !Context.current().isCancelled()) {
                     final StreamResponseModel<SyncFlagsResponse> taken = incomingQueue.take();
                     if (taken.isComplete()) {
-                        log.debug("Sync stream completed, will reconnect");
+                        log.debug("Sync stream completed, will restart");
                         // The stream is complete, we still try to reconnect
                         break;
                     }
 
                     Throwable streamException = taken.getError();
                     if (streamException != null) {
-                        log.debug("Exception in GRPC connection, streamException {}, will reconnect", streamException);
-                        if (!outgoingQueue.offer(new QueuePayload(
-                                QueuePayloadType.ERROR, "Error from stream or metadata", metadataResponse))) {
+                        log.error("Exception in stream RPC, streamException {}, will restart", streamException);
+                        if (!outgoingQueue.offer(
+                                new QueuePayload(QueuePayloadType.ERROR, "Error from stream: ", metadataResponse))) {
                             log.error("Failed to convey ERROR status, queue is full");
                         }
                         break;
