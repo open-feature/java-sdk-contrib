@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.2...dev.openfeature.contrib.providers.go-feature-flag-v0.4.3) (2025-03-17)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.18.3 ([#1253](https://github.com/open-feature/java-sdk-contrib/issues/1253)) ([9cc36dc](https://github.com/open-feature/java-sdk-contrib/commit/9cc36dc8d750cf38b55b12ea22f4c7bd56a206b3))
+* **deps:** update jackson monorepo to v2.18.3 ([#1254](https://github.com/open-feature/java-sdk-contrib/issues/1254)) ([24f11fd](https://github.com/open-feature/java-sdk-contrib/commit/24f11fd5338e2693d1eda0654c4ea4bc29063742))
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+
+
+### ✨ New Features
+
+* improve error handling ([#1214](https://github.com/open-feature/java-sdk-contrib/issues/1214)) ([fd32898](https://github.com/open-feature/java-sdk-contrib/commit/fd32898c952926e5e484ea2305220b1f532d23ea))
+
 ## [0.4.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.1...dev.openfeature.contrib.providers.go-feature-flag-v0.4.2) (2025-02-10)
 
 
