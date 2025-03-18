@@ -157,7 +157,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
                     Throwable streamException = taken.getError();
                     if (streamException != null) {
-                        log.error("Exception in stream RPC, streamException {}, will restart", streamException);
+                        log.debug("Exception in stream RPC, streamException {}, will restart", streamException);
                         if (!outgoingQueue.offer(
                                 new QueuePayload(QueuePayloadType.ERROR, "Error from stream: ", metadataResponse))) {
                             log.error("Failed to convey ERROR status, queue is full");
