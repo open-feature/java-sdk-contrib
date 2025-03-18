@@ -61,7 +61,7 @@ class FlagdProviderSyncResources {
             // if wait(0) is called, the thread would wait forever, so we abort when this would happen
             if (now >= end) {
                 throw new GeneralError(String.format(
-                        "Deadline exceeded. Condition did not complete within the %d ms deadline", deadline));
+                        "Initialization timeout exceeded; did not complete within the %d ms deadline.", deadline));
             }
             long remaining = end - now;
             synchronized (this) {

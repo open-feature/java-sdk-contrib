@@ -19,7 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * FlagdOptions is a builder to build flagd provider options.
  */
-@Builder
+@Builder(toBuilder = true)
 @Getter
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class FlagdOptions {

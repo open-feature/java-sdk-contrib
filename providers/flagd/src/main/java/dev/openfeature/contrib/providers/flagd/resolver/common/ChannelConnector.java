@@ -70,7 +70,7 @@ public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlock
      * @throws Exception if the channel does not reach the desired state within the deadline
      */
     public void initialize() throws Exception {
-        log.info("Initializing GRPC connection...");
+        log.info("Initializing GRPC connection.");
         monitorChannelState(ConnectivityState.READY);
     }
 
@@ -80,7 +80,7 @@ public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlock
      * @throws InterruptedException if interrupted while waiting for termination
      */
     public void shutdown() throws InterruptedException {
-        log.info("Shutting down GRPC connection...");
+        log.info("Shutting down GRPC connection.");
 
         if (!channel.isShutdown()) {
             channel.shutdownNow();
