@@ -9,5 +9,8 @@
       "depNameTemplate": "open-feature/test-harness",
       "datasourceTemplate": "github-releases"
     }
+  ],
+  "ignoreDeps": [
+    "com.google.protobuf:protobuf-java"
   ]
 }
