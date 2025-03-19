@@ -120,6 +120,33 @@ class FlagdOptionsTest {
     }
 
     @Test
+    void toBuilder_maintains_props() {
+        String selector = "some-selector";
+        int port = 1337;
+        int gracePeriod = 33;
+        int keepAlive = 9000;
+
+        FlagdOptions options = FlagdOptions.builder()
+                .resolverType(Resolver.IN_PROCESS)
+                .port(port)
+                .selector(selector)
+                .keepAlive(keepAlive)
+                .build();
+
+        FlagdOptions rebuiltOptions =
+                options.toBuilder().retryGracePeriod(gracePeriod).build();
+
+        // old props
+        assertEquals(selector, rebuiltOptions.getSelector());
+        assertEquals(port, rebuiltOptions.getPort());
+        assertEquals(keepAlive, rebuiltOptions.getKeepAlive());
+        assertEquals(Resolver.IN_PROCESS, rebuiltOptions.getResolverType());
+
+        // added props
+        assertEquals(gracePeriod, rebuiltOptions.getRetryGracePeriod());
+    }
+
+    @Test
     @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
     void testInProcessProviderFromEnv_noPortConfigured_defaultsToCorrectPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
