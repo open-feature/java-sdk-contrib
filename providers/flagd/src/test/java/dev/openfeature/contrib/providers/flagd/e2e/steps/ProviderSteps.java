@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 import static io.restassured.RestAssured.when;
 
 import dev.openfeature.contrib.providers.flagd.Config;
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
@@ -104,7 +105,21 @@ public class ProviderSteps extends AbstractSteps {
                         .certPath(absolutePath);
                 flagdConfig = "ssl";
                 break;
+            case "metadata":
+                flagdConfig = "metadata";
 
+                if (State.resolverType == Config.Resolver.FILE) {
+                    FlagdOptions build = state.builder.build();
+                    String selector = build.getSelector();
+                    String replace = selector.replace("rawflags/", "");
+
+                    state.builder
+                            .port(UNAVAILABLE_PORT)
+                            .offlineFlagSourcePath(new File("test-harness/flags/"+ replace).getAbsolutePath());
+                } else {
+                    state.builder.port(container.getPort(State.resolverType));
+                }
+                break;
             default:
                 this.state.providerType = ProviderType.DEFAULT;
                 if (State.resolverType == Config.Resolver.FILE) {
