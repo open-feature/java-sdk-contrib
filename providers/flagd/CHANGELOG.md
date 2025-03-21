@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.8...dev.openfeature.contrib.providers.flagd-v0.11.9) (2025-03-21)
+
+
+### 🧹 Chore
+
+* add tobuilder test ([#1289](https://github.com/open-feature/java-sdk-contrib/issues/1289)) ([2e360bb](https://github.com/open-feature/java-sdk-contrib/commit/2e360bbf6e54c21f331525b59b5b63deb57cbc0f))
+* **deps:** update providers/flagd/schemas digest to 9b0ee43 ([#1292](https://github.com/open-feature/java-sdk-contrib/issues/1292)) ([bcae7f7](https://github.com/open-feature/java-sdk-contrib/commit/bcae7f7d94783a583512e50fd652a88fd4d95471))
+
 ## [0.11.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.7...dev.openfeature.contrib.providers.flagd-v0.11.8) (2025-03-18)
 
 
