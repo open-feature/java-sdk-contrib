@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.1.1...dev.openfeature.contrib.providers.jsonlogic-v1.1.2) (2025-03-21)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.github.jamsesso:json-logic-java to v1.0.9 ([#1282](https://github.com/open-feature/java-sdk-contrib/issues/1282)) ([1ddc63c](https://github.com/open-feature/java-sdk-contrib/commit/1ddc63c3a5e894d42bd6097f9936fb0e9431d296))
+* **deps:** update dependency org.json:json to v20250107 ([#1148](https://github.com/open-feature/java-sdk-contrib/issues/1148)) ([53276c7](https://github.com/open-feature/java-sdk-contrib/commit/53276c74e1e4b5f828cd3d5e2b44e2ad0c566732))
+
 ## [1.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.1.0...dev.openfeature.contrib.providers.jsonlogic-v1.1.1) (2024-09-25)
 
 
