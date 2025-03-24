@@ -27,7 +27,7 @@ public class EventSteps extends AbstractSteps {
     @Given("a {} event handler")
     public void a_stale_event_handler(String eventType) {
         state.client.on(mapEventType(eventType), eventDetails -> {
-            log.info("event tracked for {} at {} ms ", eventType, System.currentTimeMillis() % 100_000);
+            log.info("{} event tracked", eventType);
             state.events.add(new Event(eventType, eventDetails));
         });
     }

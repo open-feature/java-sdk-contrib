@@ -9,12 +9,11 @@ import dev.openfeature.sdk.Value;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import lombok.val;
-import org.junit.jupiter.api.parallel.Isolated;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Isolated()
 public class FlagSteps extends AbstractSteps {
@@ -102,7 +101,6 @@ public class FlagSteps extends AbstractSteps {
         assertThat(metadataMap).isEmpty();
     }
 
-
     @Then("the resolved metadata should contain")
     @SuppressWarnings("unchecked")
     public void the_resolved_metadata_should_contain(io.cucumber.datatable.DataTable dataTable)
@@ -114,25 +112,24 @@ public class FlagSteps extends AbstractSteps {
         for (Map<String, String> row : rows) {
             switch (row.get("metadata_type")) {
                 case "String":
-                    assertThat(flagMetadata.getString(row.get("key"))).isEqualTo(
-                            Utils.convert(row.get("value"), row.get("metadata_type")));
+                    assertThat(flagMetadata.getString(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
                     break;
                 case "Boolean":
-                    assertThat(flagMetadata.getBoolean(row.get("key"))).isEqualTo(
-                            Utils.convert(row.get("value"), row.get("metadata_type")));
+                    assertThat(flagMetadata.getBoolean(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
                     break;
                 case "Float":
-                    assertThat(flagMetadata.getDouble(row.get("key"))).isEqualTo(
-                            Utils.convert(row.get("value"), row.get("metadata_type")));
+                    assertThat(flagMetadata.getDouble(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
                     break;
                 case "Integer":
-                    assertThat(flagMetadata.getInteger(row.get("key"))).isEqualTo(
-                            Utils.convert(row.get("value"), row.get("metadata_type")));
+                    assertThat(flagMetadata.getInteger(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
                     break;
                 default:
                     throw new AssertionError("type not supported");
             }
         }
     }
-
 }

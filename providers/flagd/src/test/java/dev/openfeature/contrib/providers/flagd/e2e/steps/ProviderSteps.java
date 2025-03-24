@@ -115,7 +115,7 @@ public class ProviderSteps extends AbstractSteps {
 
                     state.builder
                             .port(UNAVAILABLE_PORT)
-                            .offlineFlagSourcePath(new File("test-harness/flags/"+ replace).getAbsolutePath());
+                            .offlineFlagSourcePath(new File("test-harness/flags/" + replace).getAbsolutePath());
                 } else {
                     state.builder.port(container.getPort(State.resolverType));
                 }

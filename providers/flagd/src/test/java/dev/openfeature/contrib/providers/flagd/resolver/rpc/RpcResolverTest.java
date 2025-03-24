@@ -50,11 +50,11 @@ class RpcResolverTest {
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
         doAnswer(new Answer<Void>() {
                     public Void answer(InvocationOnMock invocation) {
-                        latch.countDown();
                         Object[] args = invocation.getArguments();
                         if (args[1] != null) {
                             observer = (QueueingStreamObserver<EventStreamResponse>) args[1];
                         }
+                        latch.countDown();
                         return null;
                     }
                 })
