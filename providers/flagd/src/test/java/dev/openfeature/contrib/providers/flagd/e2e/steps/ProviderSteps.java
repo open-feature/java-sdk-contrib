@@ -17,6 +17,8 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -139,12 +141,25 @@ public class ProviderSteps extends AbstractSteps {
                 .then()
                 .statusCode(200);
 
-        // giving flagd a little time to start
-        Thread.sleep(300);
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
         String providerName = "Provider " + Math.random();
-        OpenFeatureAPI api = OpenFeatureAPI.getInstance();
+        OpenFeatureAPI api; // = OpenFeatureAPI.getInstance();
+
+        try {
+            Constructor<OpenFeatureAPI> constructor = OpenFeatureAPI.class.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            api = constructor.newInstance();
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
         if (wait) {
             api.setProviderAndWait(providerName, provider);
         } else {
@@ -166,10 +181,7 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @When("the flag was modified")
-    public void the_flag_was_modded() throws InterruptedException {
+    public void the_flag_was_modded() {
         when().post("http://" + container.getLaunchpadUrl() + "/change").then().statusCode(200);
-
-        // we might be too fast in the execution
-        Thread.sleep(1000);
     }
 }
