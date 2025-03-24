@@ -17,8 +17,6 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -141,24 +139,12 @@ public class ProviderSteps extends AbstractSteps {
                 .then()
                 .statusCode(200);
 
+        Thread.sleep(300);
+
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
         String providerName = "Provider " + Math.random();
-        OpenFeatureAPI api; // = OpenFeatureAPI.getInstance();
-
-        try {
-            Constructor<OpenFeatureAPI> constructor = OpenFeatureAPI.class.getDeclaredConstructor();
-            constructor.setAccessible(true);
-            api = constructor.newInstance();
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 
         if (wait) {
             api.setProviderAndWait(providerName, provider);

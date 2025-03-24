@@ -37,18 +37,30 @@ public class Cache {
     }
 
     public void put(String key, ProviderEvaluation<?> value) {
+        if (Boolean.FALSE.equals(enabled)) {
+            return;
+        }
         this.store.put(key, value);
     }
 
     public ProviderEvaluation<?> get(String key) {
+        if (Boolean.FALSE.equals(enabled)) {
+            return null;
+        }
         return this.store.get(key);
     }
 
     public void remove(String key) {
+        if (Boolean.FALSE.equals(enabled)) {
+            return;
+        }
         this.store.remove(key);
     }
 
     public void clear() {
+        if (Boolean.FALSE.equals(enabled)) {
+            return;
+        }
         this.store.clear();
     }
 }
