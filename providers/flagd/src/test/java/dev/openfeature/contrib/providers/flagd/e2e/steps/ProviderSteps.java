@@ -139,7 +139,7 @@ public class ProviderSteps extends AbstractSteps {
                 .then()
                 .statusCode(200);
 
-        Thread.sleep(20);
+        Thread.sleep(50);
 
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
