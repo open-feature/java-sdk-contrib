@@ -263,14 +263,14 @@ public final class RpcResolver implements Resolver {
         return result;
     }
 
-    private <T> Boolean isEvaluationCacheable(ProviderEvaluation<T> evaluation) {
+    private <T> boolean isEvaluationCacheable(ProviderEvaluation<T> evaluation) {
         String reason = evaluation.getReason();
 
         return reason != null && reason.equals(Config.STATIC_REASON) && this.cacheAvailable();
     }
 
-    private Boolean cacheAvailable() {
-        return this.cache.getEnabled();
+    private boolean cacheAvailable() {
+        return this.cache.isEnabled();
     }
 
     private static ImmutableMetadata metadataFromResponse(Message response) {

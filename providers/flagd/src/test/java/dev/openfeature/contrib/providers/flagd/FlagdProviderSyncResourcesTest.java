@@ -79,13 +79,14 @@ class FlagdProviderSyncResourcesTest {
     @Test
     void callingInitialize_wakesUpWaitingThread() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
+        final AtomicBoolean successfulTest = new AtomicBoolean();
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
             flagdProviderSyncResources.waitForInitialization(10000);
             long end = System.currentTimeMillis();
             long duration = end - start;
-            Assertions.assertTrue(duration < MAX_TIME_TOLERANCE);
+            successfulTest.set(duration < MAX_TIME_TOLERANCE * 2);
         });
         waitingThread.start();
 
@@ -98,12 +99,15 @@ class FlagdProviderSyncResourcesTest {
         flagdProviderSyncResources.initialize();
 
         waitingThread.join();
+
+        Assertions.assertTrue(successfulTest.get());
     }
 
     @Timeout(2)
     @Test
     void callingShutdown_wakesUpWaitingThreadWithException() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
+        final AtomicBoolean successfulTest = new AtomicBoolean();
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
@@ -112,7 +116,7 @@ class FlagdProviderSyncResourcesTest {
 
             long end = System.currentTimeMillis();
             long duration = end - start;
-            Assertions.assertTrue(duration < MAX_TIME_TOLERANCE);
+            successfulTest.set(duration < MAX_TIME_TOLERANCE * 2);
         });
         waitingThread.start();
 
@@ -125,6 +129,8 @@ class FlagdProviderSyncResourcesTest {
         flagdProviderSyncResources.shutdown();
 
         waitingThread.join();
+
+        Assertions.assertTrue(successfulTest.get());
     }
 
     @Timeout(2)

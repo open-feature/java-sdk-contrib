@@ -20,9 +20,9 @@ class CacheTest {
         final Cache undefined = new Cache("invalid", 10);
 
         // then
-        assertTrue(lru.getEnabled());
-        assertFalse(disabled.getEnabled());
-        assertFalse(undefined.getEnabled());
+        assertTrue(lru.isEnabled());
+        assertFalse(disabled.isEnabled());
+        assertFalse(undefined.isEnabled());
     }
 
     @Test

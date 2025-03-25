@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 import static io.restassured.RestAssured.when;
 
 import dev.openfeature.contrib.providers.flagd.Config;
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
@@ -104,7 +105,21 @@ public class ProviderSteps extends AbstractSteps {
                         .certPath(absolutePath);
                 flagdConfig = "ssl";
                 break;
+            case "metadata":
+                flagdConfig = "metadata";
 
+                if (State.resolverType == Config.Resolver.FILE) {
+                    FlagdOptions build = state.builder.build();
+                    String selector = build.getSelector();
+                    String replace = selector.replace("rawflags/", "");
+
+                    state.builder
+                            .port(UNAVAILABLE_PORT)
+                            .offlineFlagSourcePath(new File("test-harness/flags/" + replace).getAbsolutePath());
+                } else {
+                    state.builder.port(container.getPort(State.resolverType));
+                }
+                break;
             default:
                 this.state.providerType = ProviderType.DEFAULT;
                 if (State.resolverType == Config.Resolver.FILE) {
@@ -124,12 +139,13 @@ public class ProviderSteps extends AbstractSteps {
                 .then()
                 .statusCode(200);
 
-        // giving flagd a little time to start
-        Thread.sleep(300);
+        Thread.sleep(50);
+
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
         String providerName = "Provider " + Math.random();
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
+
         if (wait) {
             api.setProviderAndWait(providerName, provider);
         } else {
@@ -151,10 +167,7 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @When("the flag was modified")
-    public void the_flag_was_modded() throws InterruptedException {
+    public void the_flag_was_modded() {
         when().post("http://" + container.getLaunchpadUrl() + "/change").then().statusCode(200);
-
-        // we might be too fast in the execution
-        Thread.sleep(1000);
     }
 }

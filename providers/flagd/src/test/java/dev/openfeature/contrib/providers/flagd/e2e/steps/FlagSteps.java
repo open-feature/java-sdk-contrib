@@ -4,12 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.e2e.State;
 import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Value;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.parallel.Isolated;
 
+@Slf4j
 @Isolated()
 public class FlagSteps extends AbstractSteps {
 
@@ -54,6 +61,9 @@ public class FlagSteps extends AbstractSteps {
 
     @Then("the resolved details value should be \"{}\"")
     public void the_resolved_details_value_should_be(String value) throws Throwable {
+        if (state.evaluation.getErrorCode() != null) {
+            log.warn(state.evaluation.getErrorMessage());
+        }
         assertThat(state.evaluation.getValue()).isEqualTo(Utils.convert(value, state.flag.type));
     }
 
@@ -82,6 +92,49 @@ public class FlagSteps extends AbstractSteps {
             this.name = name;
             this.defaultValue = defaultValue;
             this.type = type;
+        }
+    }
+
+    @Then("the resolved metadata is empty")
+    @SuppressWarnings("unchecked")
+    public void the_resolved_metadata_is_empty() throws NoSuchFieldException, IllegalAccessException {
+        ImmutableMetadata flagMetadata = state.evaluation.getFlagMetadata();
+
+        Field metadataField = flagMetadata.getClass().getDeclaredField("metadata");
+        metadataField.setAccessible(true);
+        Map<String, Object> metadataMap = (Map<String, Object>) metadataField.get(flagMetadata);
+        assertThat(metadataMap).isEmpty();
+    }
+
+    @Then("the resolved metadata should contain")
+    @SuppressWarnings("unchecked")
+    public void the_resolved_metadata_should_contain(io.cucumber.datatable.DataTable dataTable)
+            throws IOException, ClassNotFoundException {
+
+        ImmutableMetadata flagMetadata = state.evaluation.getFlagMetadata();
+
+        List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
+        for (Map<String, String> row : rows) {
+            switch (row.get("metadata_type")) {
+                case "String":
+                    assertThat(flagMetadata.getString(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
+                    break;
+                case "Boolean":
+                    assertThat(flagMetadata.getBoolean(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
+                    break;
+                case "Float":
+                    assertThat(flagMetadata.getDouble(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
+                    break;
+                case "Integer":
+                    assertThat(flagMetadata.getInteger(row.get("key")))
+                            .isEqualTo(Utils.convert(row.get("value"), row.get("metadata_type")));
+                    break;
+                default:
+                    throw new AssertionError("type not supported");
+            }
         }
     }
 }
