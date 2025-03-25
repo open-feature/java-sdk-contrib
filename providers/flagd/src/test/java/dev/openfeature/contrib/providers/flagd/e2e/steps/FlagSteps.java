@@ -13,8 +13,10 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.parallel.Isolated;
 
+@Slf4j
 @Isolated()
 public class FlagSteps extends AbstractSteps {
 
@@ -59,6 +61,9 @@ public class FlagSteps extends AbstractSteps {
 
     @Then("the resolved details value should be \"{}\"")
     public void the_resolved_details_value_should_be(String value) throws Throwable {
+        if (state.evaluation.getErrorCode() != null) {
+            log.warn(state.evaluation.getErrorMessage());
+        }
         assertThat(state.evaluation.getValue()).isEqualTo(Utils.convert(value, state.flag.type));
     }
 
