@@ -21,7 +21,7 @@ public class Cache {
     /**
      * Initialize the cache.
      *
-     * @param forType type of the cache.
+     * @param forType      type of the cache.
      * @param maxCacheSize max amount of element to keep.
      */
     public Cache(final String forType, int maxCacheSize) {
@@ -36,6 +36,12 @@ public class Cache {
         }
     }
 
+    /**
+     * Adds a provider evaluation to the cache.
+     *
+     * @param key   the key of the flag
+     * @param value the provider evaluation
+     */
     public void put(String key, ProviderEvaluation<?> value) {
         if (!enabled) {
             return;
@@ -43,6 +49,11 @@ public class Cache {
         this.store.put(key, value);
     }
 
+    /**
+     * Retrieves a provider evaluation from the cache, or null if the key has not been cached before.
+     *
+     * @param key the key of the flag
+     */
     public ProviderEvaluation<?> get(String key) {
         if (!enabled) {
             return null;
@@ -50,6 +61,11 @@ public class Cache {
         return this.store.get(key);
     }
 
+    /**
+     * Removes a provider evaluation from the cache.
+     *
+     * @param key the key of the flag
+     */
     public void remove(String key) {
         if (!enabled) {
             return;
@@ -57,6 +73,9 @@ public class Cache {
         this.store.remove(key);
     }
 
+    /**
+     * Clears the cache.
+     */
     public void clear() {
         if (!enabled) {
             return;
