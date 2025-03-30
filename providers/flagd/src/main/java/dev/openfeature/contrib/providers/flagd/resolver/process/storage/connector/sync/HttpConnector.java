@@ -30,18 +30,22 @@ import java.util.concurrent.TimeUnit;
 import static java.net.http.HttpClient.Builder.NO_PROXY;
 
 /**
- * HttpConnector is responsible for managing HTTP connections and polling data from a specified URL
- * at regular intervals. It implements the QueueSource interface to enqueue and dequeue change messages.
+ * HttpConnector is responsible for polling data from a specified URL at regular intervals.
+ * Notice rate limits for polling http sources like Github.
+ * It implements the QueueSource interface to enqueue and dequeue change messages.
  * The class supports configurable parameters such as poll interval, request timeout, and proxy settings.
  * It uses a ScheduledExecutorService to schedule polling tasks and an ExecutorService for HTTP client execution.
  * The class also provides methods to initialize, retrieve the stream queue, and shutdown the connector gracefully.
+ * It supports optional fail-safe initialization via cache.
+ *
+ * See readme - Http Connector section.
  */
 @Slf4j
 public class HttpConnector implements QueueSource {
 
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 60;
     private static final int DEFAULT_LINKED_BLOCKING_QUEUE_CAPACITY = 100;
-    private static final int DEFAULT_SCHEDULED_THREAD_POOL_SIZE = 1;
+    private static final int DEFAULT_SCHEDULED_THREAD_POOL_SIZE = 2;
     private static final int DEFAULT_REQUEST_TIMEOUT_SECONDS = 10;
     private static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 10;
 
@@ -52,19 +56,19 @@ public class HttpConnector implements QueueSource {
     private ExecutorService httpClientExecutor;
     private ScheduledExecutorService scheduler;
     private Map<String, String> headers;
+    private PayloadCacheWrapper payloadCacheWrapper;
+    private PayloadCache payloadCache;
+
     @NonNull
     private String url;
-
-    // TODO init failure backup cache redis
-
-    // todo update provider readme
 
     @Builder
     public HttpConnector(Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
              Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds, String url,
-             Map<String, String> headers, ExecutorService httpClientExecutor, String proxyHost, Integer proxyPort) {
+             Map<String, String> headers, ExecutorService httpClientExecutor, String proxyHost, Integer proxyPort,
+            PayloadCacheOptions payloadCacheOptions, PayloadCache payloadCache) {
         validate(url, pollIntervalSeconds, linkedBlockingQueueCapacity, scheduledThreadPoolSize, requestTimeoutSeconds,
-            connectTimeoutSeconds, proxyHost, proxyPort);
+            connectTimeoutSeconds, proxyHost, proxyPort, payloadCacheOptions, payloadCache);
         this.pollIntervalSeconds = pollIntervalSeconds == null ? DEFAULT_POLL_INTERVAL_SECONDS : pollIntervalSeconds;
         int thisLinkedBlockingQueueCapacity = linkedBlockingQueueCapacity == null ? DEFAULT_LINKED_BLOCKING_QUEUE_CAPACITY : linkedBlockingQueueCapacity;
         int thisScheduledThreadPoolSize = scheduledThreadPoolSize == null ? DEFAULT_SCHEDULED_THREAD_POOL_SIZE : scheduledThreadPoolSize;
@@ -89,12 +93,20 @@ public class HttpConnector implements QueueSource {
             .executor(this.httpClientExecutor)
             .build();
         this.queue = new LinkedBlockingQueue<>(thisLinkedBlockingQueueCapacity);
+        this.payloadCache = payloadCache;
+        if (payloadCache != null) {
+            this.payloadCacheWrapper = PayloadCacheWrapper.builder()
+                .payloadCache(payloadCache)
+                .payloadCacheOptions(payloadCacheOptions)
+                .build();
+        }
     }
 
     @SneakyThrows
     private void validate(String url, Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
-             Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds,
-              String proxyHost, Integer proxyPort) {
+            Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds,
+            String proxyHost, Integer proxyPort, PayloadCacheOptions payloadCacheOptions,
+            PayloadCache payloadCache) {
         new URL(url).toURI();
         if (pollIntervalSeconds != null && (pollIntervalSeconds < 1 || pollIntervalSeconds > 600)) {
             throw new IllegalArgumentException("pollIntervalSeconds must be between 1 and 600");
@@ -119,6 +131,12 @@ public class HttpConnector implements QueueSource {
         } else if (proxyHost == null && proxyPort != null) {
             throw new IllegalArgumentException("proxyHost must be set if proxyPort is set");
         }
+        if (payloadCacheOptions != null && payloadCache == null) {
+            throw new IllegalArgumentException("payloadCache must be set if payloadCacheOptions is set");
+        }
+        if (payloadCache != null && payloadCacheOptions == null) {
+            throw new IllegalArgumentException("payloadCacheOptions must be set if payloadCache is set");
+        }
     }
 
     @Override
@@ -128,51 +146,79 @@ public class HttpConnector implements QueueSource {
 
     @Override
     public BlockingQueue<QueuePayload> getStreamQueue() {
+        boolean success = fetchAndUpdate();
+        if (!success) {
+            log.info("failed initial fetch");
+            if (payloadCache != null) {
+                updateFromCache();
+            }
+        }
         Runnable pollTask = buildPollTask();
-
-        // run first poll immediately and wait for it to finish
-        pollTask.run();
-
         scheduler.scheduleAtFixedRate(pollTask, pollIntervalSeconds, pollIntervalSeconds, TimeUnit.SECONDS);
         return queue;
     }
 
-    protected Runnable buildPollTask() {
-        return () -> {
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(requestTimeoutSeconds))
-                .GET();
-            headers.forEach(requestBuilder::header);
-            HttpRequest request = requestBuilder
-                .build();
+    private void updateFromCache() {
+        log.info("taking initial payload from cache to avoid starting with default values");
+        String flagData = payloadCache.get();
+        if (flagData == null) {
+            log.debug("got null from cache");
+            return;
+        }
+        if (!this.queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData))) {
+            log.warn("init: Unable to offer file content to queue: queue is full");
+        }
+    }
 
-            HttpResponse<String> response;
-            try {
-                log.debug("fetching response");
-                response = execute(request);
-            } catch (IOException e) {
-                log.info("could not fetch", e);
-                return;
-            } catch (Exception e) {
-                log.debug("exception", e);
-                return;
-            }
-            log.debug("fetched response");
-            if (response.statusCode() != 200) {
-                log.info("received non-successful status code: {} {}", response.statusCode(), response.body());
-                return;
-            }
-            if (!this.queue.offer(new QueuePayload(QueuePayloadType.DATA, response.body()))) {
-                log.warn("Unable to offer file content to queue: queue is full");
-            }
-        };
+    protected Runnable buildPollTask() {
+        return this::fetchAndUpdate;
+    }
+
+    private boolean fetchAndUpdate() {
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(Duration.ofSeconds(requestTimeoutSeconds))
+            .GET();
+        headers.forEach(requestBuilder::header);
+        HttpRequest request = requestBuilder
+            .build();
+
+        HttpResponse<String> response;
+        try {
+            log.debug("fetching response");
+            response = execute(request);
+        } catch (IOException e) {
+            log.info("could not fetch", e);
+            return false;
+        } catch (Exception e) {
+            log.debug("exception", e);
+            return false;
+        }
+        log.debug("fetched response");
+        String payload = response.body();
+        if (response.statusCode() != 200) {
+            log.info("received non-successful status code: {} {}", response.statusCode(), payload);
+            return false;
+        }
+        if (payload == null) {
+            log.debug("payload is null");
+            return false;
+        }
+        if (!this.queue.offer(new QueuePayload(QueuePayloadType.DATA, payload))) {
+            log.warn("Unable to offer file content to queue: queue is full");
+            return false;
+        }
+        if (payloadCacheWrapper != null) {
+            log.debug("scheduling cache update if needed");
+            scheduler.execute(() ->
+                payloadCacheWrapper.updatePayloadIfNeeded(payload)
+            );
+        }
+        return payload != null;
     }
 
     protected HttpResponse<String> execute(HttpRequest request) throws IOException, InterruptedException {
-        HttpResponse<String> response;
-        response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return response;
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     @Override

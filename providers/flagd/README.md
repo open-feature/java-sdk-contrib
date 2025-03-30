@@ -54,6 +54,39 @@ The value is updated with every (re)connection to the sync implementation.
 This can be used to enrich evaluations with such data.
 If the `in-process` mode is not used, and before the provider is ready, the `getSyncMetadata` returns an empty map.
 
+#### Http Connector
+HttpConnector is responsible for polling data from a specified URL at regular intervals.
+The implementation is using Java HttpClient.
+
+##### What happens if the Http source is down when application is starting ?
+
+It supports optional fail-safe initialization via cache, such that on initial fetch error following by 
+source downtime window, initial payload  is taken from cache to avoid starting with default values until 
+the source is back up. Therefore, the cache ttl expected to be higher than the expected source 
+down-time to recover from during initialization.
+
+##### Sample flow
+Sample flow can use:
+- Github as the flags payload source.
+- Redis cache as a fail-safe initialization cache.
+
+Sample flow of initialization during Github down-time window, showing that application can still use flags 
+values as fetched from cache.
+```mermaid
+sequenceDiagram
+    participant Provider
+    participant Github
+    participant Redis
+    
+    break source downtime
+        Provider->>Github: initialize
+        Github->>Provider: failure
+    end
+    Provider->>Redis: fetch
+    Redis->>Provider: last payload
+
+```
+
 ### Offline mode (File resolver)
 
 In-process resolvers can also work in an offline mode.

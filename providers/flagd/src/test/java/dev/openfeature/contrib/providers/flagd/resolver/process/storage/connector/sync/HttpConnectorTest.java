@@ -274,6 +274,49 @@ class HttpConnectorTest {
 
     @SneakyThrows
     @Test
+    void testInitFailureUsingCache() {
+        String testUrl = "http://example.com";
+        HttpClient mockClient = mock(HttpClient.class);
+        HttpResponse<String> mockResponse = mock(HttpResponse.class);
+        when(mockResponse.statusCode()).thenReturn(200);
+        when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+            .thenThrow(new IOException("Simulated IO Exception"));
+
+        final String cachedData = "cached data";
+        PayloadCache payloadCache = new PayloadCache() {
+            @Override
+            public void put(String payload) {
+                // do nothing
+            }
+
+            @Override
+            public String get() {
+                return cachedData;
+            }
+        };
+
+        HttpConnector connector = HttpConnector.builder()
+            .url(testUrl)
+            .httpClientExecutor(Executors.newSingleThreadExecutor())
+                .payloadCache(payloadCache)
+                .payloadCacheOptions(PayloadCacheOptions.builder().build())
+            .build();
+
+        Field clientField = HttpConnector.class.getDeclaredField("client");
+        clientField.setAccessible(true);
+        clientField.set(connector, mockClient);
+
+        BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
+
+        assertFalse(queue.isEmpty());
+        QueuePayload payload = queue.poll();
+        assertNotNull(payload);
+        assertEquals(QueuePayloadType.DATA, payload.getType());
+        assertEquals(cachedData, payload.getFlagData());
+    }
+
+    @SneakyThrows
+    @Test
     void testQueueBecomesFull() {
         String testUrl = "http://example.com";
         int queueCapacity = 1;
