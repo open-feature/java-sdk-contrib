@@ -74,15 +74,17 @@ This mode is useful for local development, tests and offline applications.
 #### Custom Connector 
 
 You can include a custom connector as a configuration option to customize how the in-process resolver fetches flags. 
-The custom connector must implement the [Connector interface](https://github.com/open-feature/java-sdk-contrib/blob/main/providers/flagd/src/main/java/dev/openfeature/contrib/providers/flagd/resolver/process/storage/connector/Connector.java).
+The custom connector must implement the [QueueSource interface](https://github.com/open-feature/java-sdk-contrib/blob/main/providers/flagd/src/main/java/dev/openfeature/contrib/providers/flagd/resolver/process/storage/connector/QueueSource.java).
 
 ```java
-Connector myCustomConnector = new MyCustomConnector();
+QueueSource connector = HttpConnector.builder()
+    .url(testUrl)
+    .build();
 FlagdOptions options =
-        FlagdOptions.builder()
-                .resolverType(Config.Resolver.IN_PROCESS)
-                .customConnector(myCustomConnector)
-                .build();
+    FlagdOptions.builder()
+        .resolverType(Config.Resolver.IN_PROCESS)
+        .customConnector(myCustomConnector)
+        .build();
 
 FlagdProvider flagdProvider = new FlagdProvider(options);
 ```
