@@ -579,7 +579,7 @@ class HttpConnectorTest {
     }
 
     @SneakyThrows
-    private static void delay(long ms) {
+    protected static void delay(long ms) {
         Thread.sleep(ms);
     }
 

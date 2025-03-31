@@ -55,7 +55,10 @@ This can be used to enrich evaluations with such data.
 If the `in-process` mode is not used, and before the provider is ready, the `getSyncMetadata` returns an empty map.
 
 #### Http Connector
-HttpConnector is responsible for polling data from a specified URL at regular intervals.
+HttpConnector is responsible for polling data from a specified URL at regular intervals.  
+It is implementing Http cache mechanism with 'ETag' header, then when receiving 304 Not Modified response, reducing traffic and 
+changes updates. Can be enabled via useHttpCache option.  
+One of its benefits is to reduce infrastructure/devops work, without additional containers needed.  
 The implementation is using Java HttpClient.
 
 ##### What happens if the Http source is down when application is starting ?

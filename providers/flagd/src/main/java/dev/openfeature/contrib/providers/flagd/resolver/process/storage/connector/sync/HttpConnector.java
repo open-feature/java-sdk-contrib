@@ -58,6 +58,7 @@ public class HttpConnector implements QueueSource {
     private Map<String, String> headers;
     private PayloadCacheWrapper payloadCacheWrapper;
     private PayloadCache payloadCache;
+    private HttpCacheFetcher httpCacheFetcher;
 
     @NonNull
     private String url;
@@ -66,7 +67,7 @@ public class HttpConnector implements QueueSource {
     public HttpConnector(Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
              Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds, String url,
              Map<String, String> headers, ExecutorService httpClientExecutor, String proxyHost, Integer proxyPort,
-            PayloadCacheOptions payloadCacheOptions, PayloadCache payloadCache) {
+            PayloadCacheOptions payloadCacheOptions, PayloadCache payloadCache, Boolean useHttpCache) {
         validate(url, pollIntervalSeconds, linkedBlockingQueueCapacity, scheduledThreadPoolSize, requestTimeoutSeconds,
             connectTimeoutSeconds, proxyHost, proxyPort, payloadCacheOptions, payloadCache);
         this.pollIntervalSeconds = pollIntervalSeconds == null ? DEFAULT_POLL_INTERVAL_SECONDS : pollIntervalSeconds;
@@ -99,6 +100,9 @@ public class HttpConnector implements QueueSource {
                 .payloadCache(payloadCache)
                 .payloadCacheOptions(payloadCacheOptions)
                 .build();
+        }
+        if (Boolean.TRUE.equals(useHttpCache)) {
+            httpCacheFetcher = new HttpCacheFetcher();
         }
     }
 
@@ -180,13 +184,11 @@ public class HttpConnector implements QueueSource {
             .timeout(Duration.ofSeconds(requestTimeoutSeconds))
             .GET();
         headers.forEach(requestBuilder::header);
-        HttpRequest request = requestBuilder
-            .build();
 
         HttpResponse<String> response;
         try {
             log.debug("fetching response");
-            response = execute(request);
+            response = execute(requestBuilder);
         } catch (IOException e) {
             log.info("could not fetch", e);
             return false;
@@ -196,14 +198,18 @@ public class HttpConnector implements QueueSource {
         }
         log.debug("fetched response");
         String payload = response.body();
-        if (response.statusCode() != 200) {
+        if (!isSuccessful(response)) {
             log.info("received non-successful status code: {} {}", response.statusCode(), payload);
+            return false;
+        } else if (response.statusCode() == 304) {
+            log.debug("got 304 Not Modified, skipping update");
             return false;
         }
         if (payload == null) {
             log.debug("payload is null");
             return false;
         }
+        log.debug("adding payload to queue");
         if (!this.queue.offer(new QueuePayload(QueuePayloadType.DATA, payload))) {
             log.warn("Unable to offer file content to queue: queue is full");
             return false;
@@ -217,8 +223,15 @@ public class HttpConnector implements QueueSource {
         return payload != null;
     }
 
-    protected HttpResponse<String> execute(HttpRequest request) throws IOException, InterruptedException {
-        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    private static boolean isSuccessful(HttpResponse<String> response) {
+        return response.statusCode() == 200 || response.statusCode() == 304;
+    }
+
+    protected HttpResponse<String> execute(HttpRequest.Builder requestBuilder) throws IOException, InterruptedException {
+        if (httpCacheFetcher != null) {
+            return httpCacheFetcher.fetchContent(client, requestBuilder);
+        }
+        return client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     @Override
