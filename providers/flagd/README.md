@@ -56,8 +56,8 @@ If the `in-process` mode is not used, and before the provider is ready, the `get
 
 #### Http Connector
 HttpConnector is responsible for polling data from a specified URL at regular intervals.  
-It is leveraging Http cache mechanism with 'ETag' header, then when receiving 304 Not Modified response, reducing traffic and 
-changes updates. Can be enabled via useHttpCache option.  
+It is leveraging Http cache mechanism with 'ETag' header, then when receiving 304 Not Modified response,
+reducing traffic, reducing rate limits effects and changes updates. Can be enabled via useHttpCache option.  
 One of its benefits is to reduce infrastructure/devops work, without additional containers needed.  
 The implementation is using Java HttpClient.
 
