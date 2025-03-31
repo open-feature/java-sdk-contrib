@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
  * to potentially receive a 304 Not Modified response, reducing data transfer.
  * Updates the cached ETag and Last-Modified values upon receiving a 200 OK response.
  * It does not store the cached response, assuming not needed after first successful fetching.
+ * Non thread-safe.
  *
  * @param httpClient the HTTP client used to send the request
  * @param httpRequestBuilder the builder for constructing the HTTP request
@@ -19,8 +20,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class HttpCacheFetcher {
-    private static String cachedETag = null;
-    private static String cachedLastModified = null;
+    private String cachedETag = null;
+    private String cachedLastModified = null;
 
     @SneakyThrows
     public HttpResponse<String> fetchContent(HttpClient httpClient, HttpRequest.Builder httpRequestBuilder) {
@@ -35,8 +36,10 @@ public class HttpCacheFetcher {
         HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (httpResponse.statusCode() == 200) {
-            cachedETag = httpResponse.headers().firstValue("ETag").orElse(null);
-            cachedLastModified = httpResponse.headers().firstValue("Last-Modified").orElse(null);
+            if (httpResponse.headers() != null) {
+                cachedETag = httpResponse.headers().firstValue("ETag").orElse(null);
+                cachedLastModified = httpResponse.headers().firstValue("Last-Modified").orElse(null);
+            }
             log.debug("fetched new content");
         } else if (httpResponse.statusCode() == 304) {
             log.debug("got 304 Not Modified");

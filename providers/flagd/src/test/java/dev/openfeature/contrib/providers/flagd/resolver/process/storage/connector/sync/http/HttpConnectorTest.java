@@ -1,9 +1,8 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -15,14 +14,11 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.MalformedURLException;
-import java.net.ProxySelector;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,76 +34,6 @@ class HttpConnectorTest {
 
     @SneakyThrows
     @Test
-    void testConstructorInitializesDefaultValues() {
-        String testUrl = "http://example.com";
-        HttpConnector connector = HttpConnector.builder()
-            .url(testUrl)
-            .build();
-
-        Field pollIntervalField = HttpConnector.class.getDeclaredField("pollIntervalSeconds");
-        pollIntervalField.setAccessible(true);
-        assertEquals(60, pollIntervalField.get(connector));
-
-        Field requestTimeoutField = HttpConnector.class.getDeclaredField("requestTimeoutSeconds");
-        requestTimeoutField.setAccessible(true);
-        assertEquals(10, requestTimeoutField.get(connector));
-
-        Field queueField = HttpConnector.class.getDeclaredField("queue");
-        queueField.setAccessible(true);
-        BlockingQueue<QueuePayload> queue = (BlockingQueue<QueuePayload>) queueField.get(connector);
-        assertEquals(100, queue.remainingCapacity() + queue.size());
-
-        Field headersField = HttpConnector.class.getDeclaredField("headers");
-        headersField.setAccessible(true);
-        Map<String, String> headers = (Map<String, String>) headersField.get(connector);
-        assertNotNull(headers);
-        assertTrue(headers.isEmpty());
-    }
-
-    @SneakyThrows
-    @Test
-    void testConstructorValidationRejectsInvalidParameters() {
-        String testUrl = "http://example.com";
-
-        HttpConnector.HttpConnectorBuilder builder3 = HttpConnector.builder()
-            .url(testUrl)
-            .pollIntervalSeconds(0);
-        IllegalArgumentException pollIntervalException = assertThrows(
-            IllegalArgumentException.class,
-            builder3::build
-        );
-        assertEquals("pollIntervalSeconds must be between 1 and 600", pollIntervalException.getMessage());
-
-        HttpConnector.HttpConnectorBuilder builder2 = HttpConnector.builder()
-            .url(testUrl)
-            .linkedBlockingQueueCapacity(1001);
-        IllegalArgumentException queueCapacityException = assertThrows(
-            IllegalArgumentException.class,
-                builder2::build
-        );
-        assertEquals("linkedBlockingQueueCapacity must be between 1 and 1000", queueCapacityException.getMessage());
-
-        HttpConnector.HttpConnectorBuilder builder1 = HttpConnector.builder()
-            .url(testUrl)
-            .scheduledThreadPoolSize(11);
-        IllegalArgumentException threadPoolException = assertThrows(
-            IllegalArgumentException.class,
-            builder1::build
-        );
-        assertEquals("scheduledThreadPoolSize must be between 1 and 10", threadPoolException.getMessage());
-
-        HttpConnector.HttpConnectorBuilder builder = HttpConnector.builder()
-                .url(testUrl)
-                .proxyHost("localhost");
-        IllegalArgumentException proxyException = assertThrows(
-            IllegalArgumentException.class,
-                builder::build
-        );
-        assertEquals("proxyPort must be set if proxyHost is set", proxyException.getMessage());
-    }
-
-    @SneakyThrows
-    @Test
     void testGetStreamQueueInitialAndScheduledPolls() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
@@ -117,9 +43,12 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .httpClientExecutor(Executors.newSingleThreadExecutor())
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
@@ -148,10 +77,30 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        HttpConnector connector = HttpConnector.builder()
+        PayloadCache payloadCache = new PayloadCache() {
+            private String payload;
+            @Override
+            public void put(String payload) {
+                this.payload = payload;
+            }
+
+            @Override
+            public String get() {
+                return payload;
+            }
+        };
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(Executors.newFixedThreadPool(1))
+            .proxyHost("proxy-host")
+            .proxyPort(8080)
+            .useHttpCache(true)
+            .payloadCache(payloadCache)
+            .payloadCacheOptions(PayloadCacheOptions.builder().build())
             .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
+            .build();
+        connector.init();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
@@ -178,9 +127,12 @@ class HttpConnectorTest {
         testHeaders.put("Authorization", "Bearer token");
         testHeaders.put("Content-Type", "application/json");
 
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .headers(testHeaders)
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field headersField = HttpConnector.class.getDeclaredField("headers");
@@ -194,57 +146,6 @@ class HttpConnectorTest {
 
     @SneakyThrows
     @Test
-    void testConstructorInitializesWithProvidedValues() {
-        Integer pollIntervalSeconds = 120;
-        Integer linkedBlockingQueueCapacity = 200;
-        Integer scheduledThreadPoolSize = 2;
-        Integer requestTimeoutSeconds = 20;
-        Integer connectTimeoutSeconds = 15;
-        String url = "http://example.com";
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", "Bearer token");
-        ExecutorService httpClientExecutor = Executors.newFixedThreadPool(2);
-        String proxyHost = "proxy.example.com";
-        Integer proxyPort = 8080;
-
-        HttpConnector connector = HttpConnector.builder()
-            .pollIntervalSeconds(pollIntervalSeconds)
-            .linkedBlockingQueueCapacity(linkedBlockingQueueCapacity)
-            .scheduledThreadPoolSize(scheduledThreadPoolSize)
-            .requestTimeoutSeconds(requestTimeoutSeconds)
-            .connectTimeoutSeconds(connectTimeoutSeconds)
-            .url(url)
-            .headers(headers)
-            .httpClientExecutor(httpClientExecutor)
-            .proxyHost(proxyHost)
-            .proxyPort(proxyPort)
-            .build();
-
-        Field pollIntervalField = HttpConnector.class.getDeclaredField("pollIntervalSeconds");
-        pollIntervalField.setAccessible(true);
-        assertEquals(pollIntervalSeconds, pollIntervalField.get(connector));
-
-        Field requestTimeoutField = HttpConnector.class.getDeclaredField("requestTimeoutSeconds");
-        requestTimeoutField.setAccessible(true);
-        assertEquals(requestTimeoutSeconds, requestTimeoutField.get(connector));
-
-        Field queueField = HttpConnector.class.getDeclaredField("queue");
-        queueField.setAccessible(true);
-        BlockingQueue<QueuePayload> queue = (BlockingQueue<QueuePayload>) queueField.get(connector);
-        assertEquals(linkedBlockingQueueCapacity, queue.remainingCapacity() + queue.size());
-
-        Field headersField = HttpConnector.class.getDeclaredField("headers");
-        headersField.setAccessible(true);
-        Map<String, String> actualHeaders = (Map<String, String>) headersField.get(connector);
-        assertEquals(headers, actualHeaders);
-
-        Field urlField = HttpConnector.class.getDeclaredField("url");
-        urlField.setAccessible(true);
-        assertEquals(url, urlField.get(connector));
-    }
-
-    @SneakyThrows
-    @Test
     void testSuccessfulHttpResponseAddsDataToQueue() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
@@ -254,9 +155,11 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(mockResponse);
 
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(Executors.newSingleThreadExecutor())
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
@@ -295,11 +198,13 @@ class HttpConnectorTest {
             }
         };
 
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(Executors.newSingleThreadExecutor())
-                .payloadCache(payloadCache)
-                .payloadCacheOptions(PayloadCacheOptions.builder().build())
+            .payloadCache(payloadCache)
+            .payloadCacheOptions(PayloadCacheOptions.builder().build())
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
@@ -320,10 +225,13 @@ class HttpConnectorTest {
     void testQueueBecomesFull() {
         String testUrl = "http://example.com";
         int queueCapacity = 1;
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
+            .url(testUrl)
+            .linkedBlockingQueueCapacity(queueCapacity)
+            .build();
         HttpConnector connector = HttpConnector.builder()
-                .url(testUrl)
-                .linkedBlockingQueueCapacity(queueCapacity)
-                .build();
+            .httpConnectorOptions(httpConnectorOptions)
+            .build();
 
         BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
 
@@ -341,9 +249,12 @@ class HttpConnectorTest {
         ScheduledExecutorService mockScheduler = mock(ScheduledExecutorService.class);
         String testUrl = "http://example.com";
 
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .httpClientExecutor(mockHttpClientExecutor)
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field schedulerField = HttpConnector.class.getDeclaredField("scheduler");
@@ -366,9 +277,11 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(Executors.newSingleThreadExecutor())
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
@@ -382,43 +295,14 @@ class HttpConnectorTest {
 
     @SneakyThrows
     @Test
-    void test_constructor_handles_proxy_configuration() {
-        String testUrl = "http://example.com";
-        String proxyHost = "proxy.example.com";
-        int proxyPort = 8080;
-
-        HttpConnector connectorWithProxy = HttpConnector.builder()
-            .url(testUrl)
-            .proxyHost(proxyHost)
-            .proxyPort(proxyPort)
-            .build();
-
-        HttpConnector connectorWithoutProxy = HttpConnector.builder()
-            .url(testUrl)
-            .build();
-
-        Field clientFieldWithProxy = HttpConnector.class.getDeclaredField("client");
-        clientFieldWithProxy.setAccessible(true);
-        HttpClient clientWithProxy = (HttpClient) clientFieldWithProxy.get(connectorWithProxy);
-        assertNotNull(clientWithProxy);
-
-        Field clientFieldWithoutProxy = HttpConnector.class.getDeclaredField("client");
-        clientFieldWithoutProxy.setAccessible(true);
-        HttpClient clientWithoutProxy = (HttpClient) clientFieldWithoutProxy.get(connectorWithoutProxy);
-        assertNotNull(clientWithoutProxy);
-
-        Optional<ProxySelector> proxySelectorWithProxy = clientWithProxy.proxy();
-        assertNotNull(proxySelectorWithProxy.get());
-    }
-
-    @SneakyThrows
-    @Test
     void testHttpRequestFailsWithException() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(Executors.newSingleThreadExecutor())
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
@@ -438,9 +322,11 @@ class HttpConnectorTest {
     void testHttpRequestFailsWithIoexception() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(Executors.newSingleThreadExecutor())
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
@@ -460,44 +346,17 @@ class HttpConnectorTest {
 
     @SneakyThrows
     @Test
-    void testMalformedUrlThrowsException() {
-        String malformedUrl = "htp://invalid-url";
-
-        assertThrows(MalformedURLException.class, () -> {
-            HttpConnector.builder()
-                .url(malformedUrl)
-                .build();
-        });
-    }
-
-    @SneakyThrows
-    @Test
-    void testHeadersInitializationWhenNull() {
-        String testUrl = "http://example.com";
-
-        HttpConnector connector = HttpConnector.builder()
-            .url(testUrl)
-            .headers(null)
-            .build();
-
-        Field headersField = HttpConnector.class.getDeclaredField("headers");
-        headersField.setAccessible(true);
-        Map<String, String> headers = (Map<String, String>) headersField.get(connector);
-        assertNotNull(headers);
-        assertTrue(headers.isEmpty());
-    }
-
-    @SneakyThrows
-    @Test
     void testScheduledPollingContinuesAtFixedIntervals() {
         String testUrl = "http://exampOle.com";
         HttpResponse<String> mockResponse = mock(HttpResponse.class);
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn("test data");
 
-        HttpConnector connector = spy(HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(Executors.newSingleThreadExecutor())
+            .build();
+        HttpConnector connector = spy(HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build());
 
         doReturn(mockResponse).when(connector).execute(any());
@@ -516,54 +375,21 @@ class HttpConnectorTest {
 
     @SneakyThrows
     @Test
-    void testDefaultValuesWhenOptionalParametersAreNull() {
-        String testUrl = "http://example.com";
-
-        HttpConnector connector = HttpConnector.builder()
-            .url(testUrl)
-            .build();
-
-        Field pollIntervalField = HttpConnector.class.getDeclaredField("pollIntervalSeconds");
-        pollIntervalField.setAccessible(true);
-        assertEquals(60, pollIntervalField.get(connector));
-
-        Field requestTimeoutField = HttpConnector.class.getDeclaredField("requestTimeoutSeconds");
-        requestTimeoutField.setAccessible(true);
-        assertEquals(10, requestTimeoutField.get(connector));
-
-        Field queueField = HttpConnector.class.getDeclaredField("queue");
-        queueField.setAccessible(true);
-        BlockingQueue<QueuePayload> queue = (BlockingQueue<QueuePayload>) queueField.get(connector);
-        assertEquals(100, queue.remainingCapacity() + queue.size());
-
-        Field headersField = HttpConnector.class.getDeclaredField("headers");
-        headersField.setAccessible(true);
-        Map<String, String> headers = (Map<String, String>) headersField.get(connector);
-        assertNotNull(headers);
-        assertTrue(headers.isEmpty());
-
-        Field httpClientExecutorField = HttpConnector.class.getDeclaredField("httpClientExecutor");
-        httpClientExecutorField.setAccessible(true);
-        ExecutorService httpClientExecutor = (ExecutorService) httpClientExecutorField.get(connector);
-        assertNotNull(httpClientExecutor);
-    }
-
-    @SneakyThrows
-    @Test
     void testQueuePayloadTypeSetToDataOnSuccess() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
         HttpResponse<String> mockResponse = mock(HttpResponse.class);
-        ExecutorService mockExecutor = Executors.newFixedThreadPool(1);
 
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn("response body");
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        HttpConnector connector = HttpConnector.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
-            .httpClientExecutor(mockExecutor)
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
             .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");

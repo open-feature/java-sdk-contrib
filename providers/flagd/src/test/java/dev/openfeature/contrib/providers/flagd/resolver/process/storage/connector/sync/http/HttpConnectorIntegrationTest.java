@@ -1,39 +1,14 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.HttpConnectorTest.delay;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorTest.delay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.MalformedURLException;
-import java.net.ProxySelector;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 /**
  * Integration test for the HttpConnector class, specifically testing the ability to fetch
@@ -54,12 +29,16 @@ class HttpConnectorIntegrationTest {
         HttpConnector connector = null;
         try {
             String testUrl = "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/58fe5da7d4e2f6f4ae2c1caf3411a01e84a1dc1a/providers/flagd/version.txt";
-            connector = HttpConnector.builder()
+
+            HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
                 .url(testUrl)
                 .connectTimeoutSeconds(10)
                 .requestTimeoutSeconds(10)
                 .useHttpCache(true)
                 .pollIntervalSeconds(5)
+                .build();
+            connector = HttpConnector.builder()
+                .httpConnectorOptions(httpConnectorOptions)
                 .build();
             BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
             delay(20000);

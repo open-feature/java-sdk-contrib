@@ -1,7 +1,6 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http;
 
 import lombok.Builder;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -23,15 +22,15 @@ public class PayloadCacheWrapper {
 
     @Builder
     public PayloadCacheWrapper(PayloadCache payloadCache, PayloadCacheOptions payloadCacheOptions) {
-        if (payloadCacheOptions.getUpdateIntervalSeconds() < 500) {
-            throw new IllegalArgumentException("pollIntervalSeconds must be larger than 500");
+        if (payloadCacheOptions.getUpdateIntervalSeconds() < 1) {
+            throw new IllegalArgumentException("pollIntervalSeconds must be larger than 0");
         }
-        this.updateIntervalMs = payloadCacheOptions.getUpdateIntervalSeconds() * 1000;
+        this.updateIntervalMs = payloadCacheOptions.getUpdateIntervalSeconds() * 1000L;
         this.payloadCache = payloadCache;
     }
 
     public void updatePayloadIfNeeded(String payload) {
-        if ((System.currentTimeMillis() - lastUpdateTimeMs) < updateIntervalMs) {
+        if ((getCurrentTimeMillis() - lastUpdateTimeMs) < updateIntervalMs) {
             log.debug("not updating payload, updateIntervalMs not reached");
             return;
         }
@@ -39,10 +38,14 @@ public class PayloadCacheWrapper {
         try {
             log.debug("updating payload");
             payloadCache.put(payload);
-            lastUpdateTimeMs = System.currentTimeMillis();
+            lastUpdateTimeMs = getCurrentTimeMillis();
         } catch (Exception e) {
             log.error("failed updating cache", e);
         }
+    }
+
+    protected long getCurrentTimeMillis() {
+        return System.currentTimeMillis();
     }
 
     public String get() {

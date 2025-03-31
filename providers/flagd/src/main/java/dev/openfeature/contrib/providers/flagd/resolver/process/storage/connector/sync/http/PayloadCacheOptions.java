@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http;
 
 import lombok.Builder;
 import lombok.Getter;

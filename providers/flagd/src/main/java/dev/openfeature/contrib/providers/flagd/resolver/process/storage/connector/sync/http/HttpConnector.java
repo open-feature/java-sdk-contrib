@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
+package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
@@ -6,19 +6,16 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.util.ConcurrentUtils;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -43,12 +40,6 @@ import static java.net.http.HttpClient.Builder.NO_PROXY;
 @Slf4j
 public class HttpConnector implements QueueSource {
 
-    private static final int DEFAULT_POLL_INTERVAL_SECONDS = 60;
-    private static final int DEFAULT_LINKED_BLOCKING_QUEUE_CAPACITY = 100;
-    private static final int DEFAULT_SCHEDULED_THREAD_POOL_SIZE = 2;
-    private static final int DEFAULT_REQUEST_TIMEOUT_SECONDS = 10;
-    private static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 10;
-
     private Integer pollIntervalSeconds;
     private Integer requestTimeoutSeconds;
     private BlockingQueue<QueuePayload> queue;
@@ -64,82 +55,33 @@ public class HttpConnector implements QueueSource {
     private String url;
 
     @Builder
-    public HttpConnector(Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
-             Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds, String url,
-             Map<String, String> headers, ExecutorService httpClientExecutor, String proxyHost, Integer proxyPort,
-            PayloadCacheOptions payloadCacheOptions, PayloadCache payloadCache, Boolean useHttpCache) {
-        validate(url, pollIntervalSeconds, linkedBlockingQueueCapacity, scheduledThreadPoolSize, requestTimeoutSeconds,
-            connectTimeoutSeconds, proxyHost, proxyPort, payloadCacheOptions, payloadCache);
-        this.pollIntervalSeconds = pollIntervalSeconds == null ? DEFAULT_POLL_INTERVAL_SECONDS : pollIntervalSeconds;
-        int thisLinkedBlockingQueueCapacity = linkedBlockingQueueCapacity == null ? DEFAULT_LINKED_BLOCKING_QUEUE_CAPACITY : linkedBlockingQueueCapacity;
-        int thisScheduledThreadPoolSize = scheduledThreadPoolSize == null ? DEFAULT_SCHEDULED_THREAD_POOL_SIZE : scheduledThreadPoolSize;
-        this.requestTimeoutSeconds = requestTimeoutSeconds == null ? DEFAULT_REQUEST_TIMEOUT_SECONDS : requestTimeoutSeconds;
-        int thisConnectTimeoutSeconds = connectTimeoutSeconds == null ? DEFAULT_CONNECT_TIMEOUT_SECONDS : connectTimeoutSeconds;
+    public HttpConnector(HttpConnectorOptions httpConnectorOptions) {
+        this.pollIntervalSeconds = httpConnectorOptions.getPollIntervalSeconds();
+        this.requestTimeoutSeconds = httpConnectorOptions.getRequestTimeoutSeconds();
         ProxySelector proxySelector = NO_PROXY;
-        if (proxyHost != null && proxyPort != null) {
-            proxySelector = ProxySelector.of(new InetSocketAddress(proxyHost, proxyPort));
+        if (httpConnectorOptions.getProxyHost() != null && httpConnectorOptions.getProxyPort() != null) {
+            proxySelector = ProxySelector.of(new InetSocketAddress(httpConnectorOptions.getProxyHost(),
+                httpConnectorOptions.getProxyPort()));
         }
-
-        this.url = url;
-        this.headers = headers;
-        this.httpClientExecutor = httpClientExecutor == null ? Executors.newFixedThreadPool(1) :
-            httpClientExecutor;
-        scheduler = Executors.newScheduledThreadPool(thisScheduledThreadPoolSize);
-        if (headers == null) {
-            this.headers = new HashMap<>();
-        }
+        this.url = httpConnectorOptions.getUrl();
+        this.headers = httpConnectorOptions.getHeaders();
+        this.httpClientExecutor = httpConnectorOptions.getHttpClientExecutor();
+        scheduler = Executors.newScheduledThreadPool(httpConnectorOptions.getScheduledThreadPoolSize());
         this.client = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(thisConnectTimeoutSeconds))
+            .connectTimeout(Duration.ofSeconds(httpConnectorOptions.getConnectTimeoutSeconds()))
             .proxy(proxySelector)
             .executor(this.httpClientExecutor)
             .build();
-        this.queue = new LinkedBlockingQueue<>(thisLinkedBlockingQueueCapacity);
-        this.payloadCache = payloadCache;
+        this.queue = new LinkedBlockingQueue<>(httpConnectorOptions.getLinkedBlockingQueueCapacity());
+        this.payloadCache = httpConnectorOptions.getPayloadCache();
         if (payloadCache != null) {
             this.payloadCacheWrapper = PayloadCacheWrapper.builder()
                 .payloadCache(payloadCache)
-                .payloadCacheOptions(payloadCacheOptions)
+                .payloadCacheOptions(httpConnectorOptions.getPayloadCacheOptions())
                 .build();
         }
-        if (Boolean.TRUE.equals(useHttpCache)) {
+        if (Boolean.TRUE.equals(httpConnectorOptions.getUseHttpCache())) {
             httpCacheFetcher = new HttpCacheFetcher();
-        }
-    }
-
-    @SneakyThrows
-    private void validate(String url, Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
-            Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds,
-            String proxyHost, Integer proxyPort, PayloadCacheOptions payloadCacheOptions,
-            PayloadCache payloadCache) {
-        new URL(url).toURI();
-        if (pollIntervalSeconds != null && (pollIntervalSeconds < 1 || pollIntervalSeconds > 600)) {
-            throw new IllegalArgumentException("pollIntervalSeconds must be between 1 and 600");
-        }
-        if (linkedBlockingQueueCapacity != null && (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
-            throw new IllegalArgumentException("linkedBlockingQueueCapacity must be between 1 and 1000");
-        }
-        if (scheduledThreadPoolSize != null && (scheduledThreadPoolSize < 1 || scheduledThreadPoolSize > 10)) {
-            throw new IllegalArgumentException("scheduledThreadPoolSize must be between 1 and 10");
-        }
-        if (requestTimeoutSeconds != null && (requestTimeoutSeconds < 1 || requestTimeoutSeconds > 60)) {
-            throw new IllegalArgumentException("requestTimeoutSeconds must be between 1 and 60");
-        }
-        if (connectTimeoutSeconds != null && (connectTimeoutSeconds < 1 || connectTimeoutSeconds > 60)) {
-            throw new IllegalArgumentException("connectTimeoutSeconds must be between 1 and 60");
-        }
-        if (proxyPort != null && (proxyPort < 1 || proxyPort > 65535)) {
-            throw new IllegalArgumentException("proxyPort must be between 1 and 65535");
-        }
-        if (proxyHost != null && proxyPort == null ) {
-            throw new IllegalArgumentException("proxyPort must be set if proxyHost is set");
-        } else if (proxyHost == null && proxyPort != null) {
-            throw new IllegalArgumentException("proxyHost must be set if proxyPort is set");
-        }
-        if (payloadCacheOptions != null && payloadCache == null) {
-            throw new IllegalArgumentException("payloadCache must be set if payloadCacheOptions is set");
-        }
-        if (payloadCache != null && payloadCacheOptions == null) {
-            throw new IllegalArgumentException("payloadCacheOptions must be set if payloadCache is set");
         }
     }
 
@@ -158,7 +100,7 @@ public class HttpConnector implements QueueSource {
             }
         }
         Runnable pollTask = buildPollTask();
-        scheduler.scheduleAtFixedRate(pollTask, pollIntervalSeconds, pollIntervalSeconds, TimeUnit.SECONDS);
+        scheduler.scheduleWithFixedDelay(pollTask, pollIntervalSeconds, pollIntervalSeconds, TimeUnit.SECONDS);
         return queue;
     }
 
