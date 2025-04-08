@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.8...dev.openfeature.contrib.providers.flagd-v0.11.9) (2025-04-08)
+
+
+### 🧹 Chore
+
+* add tobuilder test ([#1289](https://github.com/open-feature/java-sdk-contrib/issues/1289)) ([2e360bb](https://github.com/open-feature/java-sdk-contrib/commit/2e360bbf6e54c21f331525b59b5b63deb57cbc0f))
+* **deps:** update providers/flagd/schemas digest to 9b0ee43 ([#1292](https://github.com/open-feature/java-sdk-contrib/issues/1292)) ([bcae7f7](https://github.com/open-feature/java-sdk-contrib/commit/bcae7f7d94783a583512e50fd652a88fd4d95471))
+* **deps:** update providers/flagd/schemas digest to 9b0ee43 ([#1296](https://github.com/open-feature/java-sdk-contrib/issues/1296)) ([58fe5da](https://github.com/open-feature/java-sdk-contrib/commit/58fe5da7d4e2f6f4ae2c1caf3411a01e84a1dc1a))
+* **deps:** update providers/flagd/spec digest to 130df3e ([#1294](https://github.com/open-feature/java-sdk-contrib/issues/1294)) ([c6b9e89](https://github.com/open-feature/java-sdk-contrib/commit/c6b9e8959b1ac514bbf31031418e0a2cca1ab81b))
+* **deps:** update providers/flagd/spec digest to 27e4461 ([#1295](https://github.com/open-feature/java-sdk-contrib/issues/1295)) ([1586f04](https://github.com/open-feature/java-sdk-contrib/commit/1586f0482be643bcb0c1f4c2c7213d67e49f3233))
+* **flagd:** update testharness and add metadata tests ([#1293](https://github.com/open-feature/java-sdk-contrib/issues/1293)) ([3f13260](https://github.com/open-feature/java-sdk-contrib/commit/3f132601f32ef1741b29beee04de4a3de2ab3c86))
+
 ## [0.11.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.7...dev.openfeature.contrib.providers.flagd-v0.11.8) (2025-03-18)
 
 
