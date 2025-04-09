@@ -293,7 +293,7 @@
                     <doclint>all,-missing
                     </doclint>  <!-- ignore missing javadoc, these are enforced with more customizability in the checkstyle plugin -->
 
-                    <source>8</source>
+                    <source>11</source>
                 </configuration>
                 <executions>
                     <execution>
@@ -374,9 +374,9 @@
                         <!-- tests to exclude -->
                         <exclude>${testExclusions}</exclude>
                     </excludes>
-<!--                    <argLine>-->
-<!--                        @{surefireArgLine}-->
-<!--                    </argLine>-->
+                    <argLine>
+                        @{surefireArgLine}
+                    </argLine>
                 </configuration>
             </plugin>
             <!-- End publish to maven central -->
