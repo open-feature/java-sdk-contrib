@@ -374,9 +374,9 @@
                         <!-- tests to exclude -->
                         <exclude>${testExclusions}</exclude>
                     </excludes>
-                    <argLine>
-                        @{surefireArgLine}
-                    </argLine>
+<!--                    <argLine>-->
+<!--                        @{surefireArgLine}-->
+<!--                    </argLine>-->
                 </configuration>
             </plugin>
             <!-- End publish to maven central -->
