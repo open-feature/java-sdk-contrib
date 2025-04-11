@@ -244,4 +244,12 @@ public class FlagsmithProvider implements FeatureProvider {
                 .filter(e -> e.getValue() != null)
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> objectToValue(e.getValue()))));
     }
+
+    @Override
+    public void shutdown() {
+        log.info("Flagsmith Provider shutting down");
+        if (flagsmith != null) {
+            flagsmith.close();
+        }
+    }
 }
