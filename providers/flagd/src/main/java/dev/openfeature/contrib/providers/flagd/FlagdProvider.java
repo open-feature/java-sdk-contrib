@@ -210,7 +210,7 @@ public class FlagdProvider extends EventProvider {
                         onConfigurationChanged(flagdProviderEvent);
                         break;
                     }
-                    // intentional fall through
+                // intentional fall through
                 case PROVIDER_READY:
                     /*
                      * Sync metadata is used to enrich the context, and is immutable in flagd,
