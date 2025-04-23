@@ -1,0 +1,105 @@
+package dev.openfeature.contrib.providers.v2.gofeatureflag.wasm;
+
+import com.dylibso.chicory.runtime.ExportFunction;
+import com.dylibso.chicory.runtime.HostFunction;
+import com.dylibso.chicory.runtime.Instance;
+import com.dylibso.chicory.runtime.Memory;
+import com.dylibso.chicory.runtime.Store;
+import com.dylibso.chicory.wasi.WasiExitException;
+import com.dylibso.chicory.wasi.WasiOptions;
+import com.dylibso.chicory.wasi.WasiPreview1;
+import com.dylibso.chicory.wasm.Parser;
+import com.dylibso.chicory.wasm.types.ValueType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.openfeature.contrib.providers.v2.gofeatureflag.bean.GoFeatureFlagResponse;
+import dev.openfeature.contrib.providers.v2.gofeatureflag.wasm.bean.WasmInput;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.Reason;
+import java.io.File;
+import java.util.Collections;
+import lombok.val;
+
+/**
+ * EvaluationWasm is a class that represents the evaluation of a feature flag
+ * it calls an external WASM module to evaluate the feature flag.
+ */
+public class EvaluationWasm {
+    private final Instance instance;
+    private final ObjectMapper objectMapper;
+    private final ExportFunction evaluate;
+    private final ExportFunction malloc;
+    private final ExportFunction free;
+
+    public EvaluationWasm() {
+        this.objectMapper = new ObjectMapper();
+        val wasi = WasiPreview1.builder().withOptions(WasiOptions.builder().inheritSystem().build()).build();
+        val hostFunctions = wasi.toHostFunctions();
+        val store = new Store().addFunction(hostFunctions);
+        store.addFunction(getProcExitFunc());
+        this.instance = store.instantiate("evaluation", Parser.parse(
+                new File(getClass().getClassLoader().getResource("wasm/gofeatureflag-evaluation.wasi").getFile())
+        ));
+        this.evaluate = this.instance.export("evaluate");
+        this.malloc = this.instance.export("malloc");
+        this.free = this.instance.export("free");
+    }
+
+    /**
+     * Evaluate is a function that evaluates the feature flag using the WASM module
+     *
+     * @param wasmInput - the object used to evaluate the feature flag
+     * @return the result of the evaluation
+     */
+    public GoFeatureFlagResponse evaluate(WasmInput wasmInput) {
+        try {
+            // convert the WasmInput object to JSON string
+            val wasmInputJson = this.objectMapper.writeValueAsString(wasmInput);
+
+            // Store the json string in the memory
+            Memory memory = this.instance.memory();
+            int len = wasmInputJson.getBytes().length;
+            int ptr = (int) malloc.apply(len)[0];
+            memory.writeString(ptr, wasmInputJson);
+
+            // Call the wasm evaluate function
+            val resultPointer = this.evaluate.apply(ptr, len);
+
+            // Read the output
+            int valuePosition = (int) ((resultPointer[0] >>> 32) & 0xFFFFFFFFL);
+            int valueSize = (int) (resultPointer[0] & 0xFFFFFFFFL);
+            val output = memory.readString(valuePosition, valueSize);
+
+            // Free the memory
+            this.free.apply(ptr, len);
+
+            // Convert the output to a WasmOutput object
+            return this.objectMapper.readValue(output, GoFeatureFlagResponse.class);
+
+        } catch (Exception e) {
+            val response = new GoFeatureFlagResponse();
+            response.setErrorCode(ErrorCode.GENERAL.name());
+            response.setReason(Reason.ERROR.name());
+            response.setErrorDetails(e.getMessage());
+            return response;
+        }
+    }
+
+
+    /**
+     * getProcExitFunc is a function that is called when the WASM module calls
+     * proc_exit. It throws a WasiExitException with the exit code.
+     * By default, the exit code is 0, and it raises an Exception.
+     *
+     * @return a HostFunction that is called when the WASM module calls proc_exit
+     */
+    private HostFunction getProcExitFunc() {
+        return new HostFunction("wasi_snapshot_preview1", "proc_exit",
+                Collections.singletonList(ValueType.I32), Collections.emptyList(), (instance, args) -> {
+            if ((int) args[0] != 0) {
+                throw new WasiExitException((int) args[0]);
+            }
+            return null;
+        });
+    }
+
+}
