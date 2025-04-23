@@ -1,0 +1,10 @@
+{
+  "key": "double_flag",
+  "value": 100.11,
+  "reason": "TARGETING_MATCH",
+  "variant": "variantA",
+  "metadata": {
+    "gofeatureflag_cacheable": true,
+    "description": "A flag that is always off"
+  }
+}

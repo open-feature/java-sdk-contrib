@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
         <artifactId>parent</artifactId>
-        <version>0.1.0</version>
+        <version>0.2.2</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
@@ -86,7 +86,7 @@
             <artifactId>runtime</artifactId>
             <version>1.2.1</version>
         </dependency>
-        
+
         <dependency>
             <groupId>com.dylibso.chicory</groupId>
             <artifactId>wasi</artifactId>
