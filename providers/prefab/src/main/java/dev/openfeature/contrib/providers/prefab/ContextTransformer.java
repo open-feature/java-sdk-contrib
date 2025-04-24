@@ -4,7 +4,6 @@ import cloud.prefab.context.PrefabContext;
 import cloud.prefab.context.PrefabContextSet;
 import cloud.prefab.context.PrefabContextSetReadable;
 import dev.openfeature.sdk.EvaluationContext;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -14,9 +13,7 @@ import java.util.Objects;
  */
 public class ContextTransformer {
 
-    private ContextTransformer() {
-
-    }
+    private ContextTransformer() {}
 
     protected static PrefabContextSetReadable transform(EvaluationContext ctx) {
         Map<String, PrefabContext.Builder> contextsMap = new HashMap<>();
@@ -37,5 +34,4 @@ public class ContextTransformer {
 
         return prefabContextSet;
     }
-
 }

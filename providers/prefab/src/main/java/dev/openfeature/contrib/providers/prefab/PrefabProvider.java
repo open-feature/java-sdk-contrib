@@ -10,13 +10,12 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import lombok.Getter;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.Getter;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Provider implementation for Prefab.
@@ -39,6 +38,7 @@ public class PrefabProvider extends EventProvider {
 
     /**
      * Constructor.
+     *
      * @param prefabProviderConfig prefabProvider Config
      */
     public PrefabProvider(PrefabProviderConfig prefabProviderConfig) {
@@ -47,6 +47,7 @@ public class PrefabProvider extends EventProvider {
 
     /**
      * Initialize the provider.
+     *
      * @param evaluationContext evaluation context
      * @throws Exception on error
      */
@@ -62,9 +63,9 @@ public class PrefabProvider extends EventProvider {
 
         prefabProviderConfig.getOptions().addConfigChangeListener(changeEvent -> {
             ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
-                .flagsChanged(Collections.singletonList(changeEvent.getKey()))
-                .message("config changed")
-                .build();
+                    .flagsChanged(Collections.singletonList(changeEvent.getKey()))
+                    .message("config changed")
+                    .build();
             emitProviderConfigurationChanged(providerEventDetails);
         });
     }
@@ -78,9 +79,7 @@ public class PrefabProvider extends EventProvider {
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Boolean evaluatedValue = prefabCloudClient.featureFlagClient().featureIsOn(key, context);
-        return ProviderEvaluation.<Boolean>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<Boolean>builder().value(evaluatedValue).build();
     }
 
     @Override
@@ -88,12 +87,11 @@ public class PrefabProvider extends EventProvider {
         PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         String evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
-        if (opt.isPresent() && Prefab.ConfigValue.TypeCase.STRING.equals(opt.get().getTypeCase())) {
+        if (opt.isPresent()
+                && Prefab.ConfigValue.TypeCase.STRING.equals(opt.get().getTypeCase())) {
             evaluatedValue = opt.get().getString();
         }
-        return ProviderEvaluation.<String>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<String>builder().value(evaluatedValue).build();
     }
 
     @Override
@@ -104,9 +102,7 @@ public class PrefabProvider extends EventProvider {
         if (opt.isPresent() && Prefab.ConfigValue.TypeCase.INT.equals(opt.get().getTypeCase())) {
             evaluatedValue = Math.toIntExact(opt.get().getInt());
         }
-        return ProviderEvaluation.<Integer>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<Integer>builder().value(evaluatedValue).build();
     }
 
     @Override
@@ -114,12 +110,11 @@ public class PrefabProvider extends EventProvider {
         PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Double evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
-        if (opt.isPresent() && Prefab.ConfigValue.TypeCase.DOUBLE.equals(opt.get().getTypeCase())) {
+        if (opt.isPresent()
+                && Prefab.ConfigValue.TypeCase.DOUBLE.equals(opt.get().getTypeCase())) {
             evaluatedValue = opt.get().getDouble();
         }
-        return ProviderEvaluation.<Double>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<Double>builder().value(evaluatedValue).build();
     }
 
     @SneakyThrows
@@ -128,9 +123,7 @@ public class PrefabProvider extends EventProvider {
         String defaultValueString = defaultValue == null ? null : defaultValue.asString();
         ProviderEvaluation<String> stringEvaluation = getStringEvaluation(key, defaultValueString, ctx);
         Value evaluatedValue = new Value(stringEvaluation.getValue());
-        return ProviderEvaluation.<Value>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<Value>builder().value(evaluatedValue).build();
     }
 
     @SneakyThrows
