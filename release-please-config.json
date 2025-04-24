@@ -140,9 +140,9 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "exclude-paths": [
-        ".gitmodules",
-        ".github",
-        ".release-please-manifest.json",
+        "./gitmodules",
+        "./github",
+        "./release-please-manifest.json",
         "hooks",
         "providers",
         "release",
