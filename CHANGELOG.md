@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.1...dev.openfeature.contrib.parent-v0.2.2) (2025-04-24)
+
+
+### 🧹 Chore
+
+* add maven-workspace ([33a43ef](https://github.com/open-feature/java-sdk-contrib/commit/33a43ef33eb237e5027a9396fc40b5a7aefde7b9))
+
 ## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.0...dev.openfeature.contrib.parent-v0.2.1) (2025-04-24)
 
 
