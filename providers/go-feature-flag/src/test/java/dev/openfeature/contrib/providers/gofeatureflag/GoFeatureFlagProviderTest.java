@@ -236,6 +236,7 @@ class GoFeatureFlagProviderTest {
         FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("fail_500", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
+                .flagKey("fail_500")
                 .reason(Reason.ERROR.name())
                 .errorCode(ErrorCode.GENERAL)
                 .errorMessage("unknown error while retrieving flag fail_500")
@@ -257,6 +258,7 @@ class GoFeatureFlagProviderTest {
         FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("fail_401", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
+                .flagKey("fail_401")
                 .reason(Reason.ERROR.name())
                 .errorCode(ErrorCode.GENERAL)
                 .errorMessage("authentication/authorization error")
@@ -277,6 +279,7 @@ class GoFeatureFlagProviderTest {
         FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("flag_not_found", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
+                .flagKey("flag_not_found")
                 .reason(Reason.ERROR.name())
                 .errorCode(ErrorCode.FLAG_NOT_FOUND)
                 .errorMessage("Flag flag_not_found was not found in your configuration")
@@ -297,6 +300,7 @@ class GoFeatureFlagProviderTest {
         FlagEvaluationDetails<Boolean> got = client.getBooleanDetails("string_key", false, this.evaluationContext);
         FlagEvaluationDetails<Boolean> want = FlagEvaluationDetails.<Boolean>builder()
                 .value(false)
+                .flagKey("string_key")
                 .reason(Reason.ERROR.name())
                 .errorCode(ErrorCode.TYPE_MISMATCH)
                 .errorMessage(
@@ -515,6 +519,7 @@ class GoFeatureFlagProviderTest {
                 client.getStringDetails("bool_targeting_match", "defaultValue", this.evaluationContext);
         FlagEvaluationDetails<String> want = FlagEvaluationDetails.<String>builder()
                 .value("defaultValue")
+                .flagKey("bool_targeting_match")
                 .reason(Reason.ERROR.name())
                 .errorMessage(
                         "Flag value bool_targeting_match had unexpected type class java.lang.Boolean, expected class java.lang.String.")
@@ -579,6 +584,7 @@ class GoFeatureFlagProviderTest {
                 client.getIntegerDetails("bool_targeting_match", 200, this.evaluationContext);
         FlagEvaluationDetails<Integer> want = FlagEvaluationDetails.<Integer>builder()
                 .value(200)
+                .flagKey("bool_targeting_match")
                 .reason(Reason.ERROR.name())
                 .errorMessage(
                         "Flag value bool_targeting_match had unexpected type class java.lang.Boolean, expected class java.lang.Integer.")
@@ -641,6 +647,7 @@ class GoFeatureFlagProviderTest {
         FlagEvaluationDetails<Integer> got = client.getIntegerDetails("double_key", 200, this.evaluationContext);
         FlagEvaluationDetails<Integer> want = FlagEvaluationDetails.<Integer>builder()
                 .value(200)
+                .flagKey("double_key")
                 .reason(Reason.ERROR.name())
                 .errorMessage(
                         "Flag value double_key had unexpected type class java.lang.Double, expected class java.lang.Integer.")
@@ -727,8 +734,10 @@ class GoFeatureFlagProviderTest {
                 .value(new Value(new MutableStructure()
                         .add("test", "test1")
                         .add("test2", false)
+                        .add("test5", new Value())
                         .add("test3", 123.3)
                         .add("test4", 1)))
+                .flagKey("object_key")
                 .reason(Reason.TARGETING_MATCH.name())
                 .variant("True")
                 .flagMetadata(defaultMetadata)
@@ -772,6 +781,7 @@ class GoFeatureFlagProviderTest {
                 client.getObjectDetails("string_key", new Value("CC0000"), new MutableContext());
         FlagEvaluationDetails<Value> want = FlagEvaluationDetails.<Value>builder()
                 .value(new Value("CC0000"))
+                .flagKey("string_key")
                 .errorCode(ErrorCode.TARGETING_KEY_MISSING)
                 .reason(Reason.ERROR.name())
                 .build();
