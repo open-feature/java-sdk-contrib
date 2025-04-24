@@ -14,6 +14,10 @@ import java.util.Objects;
  */
 public class ContextTransformer {
 
+    private ContextTransformer() {
+
+    }
+
     protected static PrefabContextSetReadable transform(EvaluationContext ctx) {
         Map<String, PrefabContext.Builder> contextsMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {

@@ -11,8 +11,4 @@ import lombok.Getter;
 @Builder
 public class PrefabProviderConfig {
     private Options options;
-
-    public void postInit() {
-
-    }
 }

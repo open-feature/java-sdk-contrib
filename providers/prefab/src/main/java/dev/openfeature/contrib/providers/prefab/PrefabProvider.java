@@ -63,15 +63,14 @@ public class PrefabProvider extends EventProvider {
         }
         super.initialize(evaluationContext);
         prefabCloudClient = new PrefabCloudClient(prefabProviderConfig.getOptions());
-        prefabProviderConfig.postInit();
         state = ProviderState.READY;
         log.info("finished initializing provider, state: {}", state);
 
         prefabProviderConfig.getOptions().addConfigChangeListener(changeEvent -> {
             ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
-                    .flagsChanged(Collections.singletonList(changeEvent.getKey()))
-                    .message("config changed")
-                    .build();
+                .flagsChanged(Collections.singletonList(changeEvent.getKey()))
+                .message("config changed")
+                .build();
             emitProviderConfigurationChanged(providerEventDetails);
         });
     }
