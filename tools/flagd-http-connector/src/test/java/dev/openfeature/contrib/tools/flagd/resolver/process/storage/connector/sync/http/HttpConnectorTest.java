@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,12 +11,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import dev.openfeature.contrib.providers.flagd.Config;
+import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.http.HttpClient;
@@ -28,6 +28,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.sdk.EvaluationContext;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -47,15 +49,15 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .httpClientExecutor(Executors.newSingleThreadExecutor())
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field clientField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("client");
+        Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
@@ -81,7 +83,7 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache payloadCache = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache() {
+        PayloadCache payloadCache = new PayloadCache() {
             private String payload;
             @Override
             public void put(String payload) {
@@ -93,27 +95,27 @@ class HttpConnectorTest {
                 return payload;
             }
         };
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .proxyHost("proxy-host")
             .proxyPort(8080)
             .useHttpCache(true)
             .payloadCache(payloadCache)
-            .payloadCacheOptions(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder().build())
+            .payloadCacheOptions(PayloadCacheOptions.builder().build())
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
         connector.init();
 
-        Field clientField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("client");
+        Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
         Runnable pollTask = connector.buildPollTask();
         pollTask.run();
 
-        Field queueField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("queue");
+        Field queueField = HttpConnector.class.getDeclaredField("queue");
         queueField.setAccessible(true);
         BlockingQueue<QueuePayload> queue = (BlockingQueue<QueuePayload>) queueField.get(connector);
         assertFalse(queue.isEmpty());
@@ -131,15 +133,15 @@ class HttpConnectorTest {
         testHeaders.put("Authorization", "Bearer token");
         testHeaders.put("Content-Type", "application/json");
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .headers(testHeaders)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field headersField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("headers");
+        Field headersField = HttpConnector.class.getDeclaredField("headers");
         headersField.setAccessible(true);
         Map<String, String> headers = (Map<String, String>) headersField.get(connector);
         assertNotNull(headers);
@@ -159,14 +161,14 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(mockResponse);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field clientField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("client");
+        Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
@@ -190,7 +192,7 @@ class HttpConnectorTest {
             .thenThrow(new IOException("Simulated IO Exception"));
 
         final String cachedData = "cached data";
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache payloadCache = new PayloadCache() {
+        PayloadCache payloadCache = new PayloadCache() {
             @Override
             public void put(String payload) {
                 // do nothing
@@ -202,16 +204,16 @@ class HttpConnectorTest {
             }
         };
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .payloadCache(payloadCache)
             .payloadCacheOptions(PayloadCacheOptions.builder().build())
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field clientField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("client");
+        Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
@@ -229,11 +231,11 @@ class HttpConnectorTest {
     void testQueueBecomesFull() {
         String testUrl = "http://example.com";
         int queueCapacity = 1;
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .linkedBlockingQueueCapacity(queueCapacity)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
@@ -253,15 +255,15 @@ class HttpConnectorTest {
         ScheduledExecutorService mockScheduler = mock(ScheduledExecutorService.class);
         String testUrl = "http://example.com";
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .httpClientExecutor(mockHttpClientExecutor)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field schedulerField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("scheduler");
+        Field schedulerField = HttpConnector.class.getDeclaredField("scheduler");
         schedulerField.setAccessible(true);
         schedulerField.set(connector, mockScheduler);
 
@@ -281,14 +283,14 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field clientField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("client");
+        Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
@@ -302,14 +304,14 @@ class HttpConnectorTest {
     void testHttpRequestFailsWithException() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field clientField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("client");
+        Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
@@ -326,14 +328,14 @@ class HttpConnectorTest {
     void testHttpRequestFailsWithIoexception() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
-        Field clientField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("client");
+        Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
@@ -342,7 +344,7 @@ class HttpConnectorTest {
 
         connector.getStreamQueue();
 
-        Field queueField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.class.getDeclaredField("queue");
+        Field queueField = HttpConnector.class.getDeclaredField("queue");
         queueField.setAccessible(true);
         BlockingQueue<QueuePayload> queue = (BlockingQueue<QueuePayload>) queueField.get(connector);
         assertTrue(queue.isEmpty(), "Queue should be empty due to IOException");
@@ -356,10 +358,10 @@ class HttpConnectorTest {
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn("test data");
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = spy(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = spy(HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build());
 
@@ -389,10 +391,10 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
             .thenReturn(mockResponse);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
             .url(testUrl)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector.builder()
+        HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
             .build();
 
@@ -406,6 +408,26 @@ class HttpConnectorTest {
         assertNotNull(payload);
         assertEquals(QueuePayloadType.DATA, payload.getType());
         assertEquals("response body", payload.getFlagData());
+    }
+
+    @Test
+    public void providerTest() {
+        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
+            .url("http://example.com")
+            .build();
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(httpConnectorOptions)
+            .build();
+
+        FlagdOptions options =
+            FlagdOptions.builder()
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .customConnector(connector)
+                .build();
+
+        FlagdProvider flagdProvider = new FlagdProvider(options);
+
+        assertDoesNotThrow(() -> flagdProvider.getMetadata());
     }
 
     @SneakyThrows

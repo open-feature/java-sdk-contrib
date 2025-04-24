@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.openfeature.contrib</groupId>
+        <artifactId>parent</artifactId>
+        <version>0.1.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>dev.openfeature.contrib.tools</groupId>
+    <artifactId>flagd-http-connector</artifactId>
+    <version>0.0.1</version> <!--x-release-please-version -->
+
+    <name>flagd-http-connector</name>
+    <description>Flagd Http Connector</description>
+    <url>https://openfeature.dev</url>
+
+    <developers>
+        <developer>
+            <id>liran2000</id>
+            <name>Liran Mendelovich</name>
+            <organization>OpenFeature</organization>
+            <url>https://openfeature.dev/</url>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>dev.openfeature.contrib.providers</groupId>
+            <artifactId>flagd</artifactId>
+            <version>0.11.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.17.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+</project>

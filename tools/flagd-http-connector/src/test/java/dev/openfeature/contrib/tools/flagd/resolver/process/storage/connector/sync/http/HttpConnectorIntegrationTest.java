@@ -1,12 +1,10 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorTest.delay;
+import static dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http.HttpConnectorTest.delay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions;
 import java.util.concurrent.BlockingQueue;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -28,11 +26,11 @@ class HttpConnectorIntegrationTest {
     @Test
     void testGithubRawContent() {
         assumeTrue(parseBoolean("integrationTestsEnabled"));
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnector connector = null;
+        HttpConnector connector = null;
         try {
             String testUrl = "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/58fe5da7d4e2f6f4ae2c1caf3411a01e84a1dc1a/providers/flagd/version.txt";
 
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
+            HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
                 .url(testUrl)
                 .connectTimeoutSeconds(10)
                 .requestTimeoutSeconds(10)

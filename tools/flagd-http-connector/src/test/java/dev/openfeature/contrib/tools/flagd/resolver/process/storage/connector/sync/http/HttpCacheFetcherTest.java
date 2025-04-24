@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,7 +14,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.http.HttpClient;
@@ -41,7 +40,7 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
         verify(requestBuilderMock, never()).header(eq("If-None-Match"), anyString());
@@ -63,7 +62,7 @@ public class HttpCacheFetcherTest {
         when(headersMock.firstValue("ETag")).thenReturn(Optional.empty());
         when(headersMock.firstValue("Last-Modified")).thenReturn(Optional.empty());
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         HttpResponse<String> response = fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
         assertEquals(200, response.statusCode());
@@ -89,7 +88,7 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(404);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         HttpResponse<String> result = fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
         assertEquals(responseMock, result);
@@ -107,13 +106,13 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
-        Field cachedETagField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher.class.getDeclaredField("cachedETag");
+        Field cachedETagField = HttpCacheFetcher.class.getDeclaredField("cachedETag");
         cachedETagField.setAccessible(true);
         assertNull(cachedETagField.get(fetcher));
-        Field cachedLastModifiedField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher.class.getDeclaredField("cachedLastModified");
+        Field cachedLastModifiedField = HttpCacheFetcher.class.getDeclaredField("cachedLastModified");
         cachedLastModifiedField.setAccessible(true);
         assertNull(cachedLastModifiedField.get(fetcher));
     }
@@ -132,13 +131,13 @@ public class HttpCacheFetcherTest {
         when(requestBuilderMock.build()).thenReturn(requestMock);
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
-        Field cachedETagField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher.class.getDeclaredField("cachedETag");
+        Field cachedETagField = HttpCacheFetcher.class.getDeclaredField("cachedETag");
         cachedETagField.setAccessible(true);
         assertEquals("etag-value", cachedETagField.get(fetcher));
-        Field cachedLastModifiedField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher.class.getDeclaredField("cachedLastModified");
+        Field cachedLastModifiedField = HttpCacheFetcher.class.getDeclaredField("cachedLastModified");
         cachedLastModifiedField.setAccessible(true);
         assertEquals("Wed, 21 Oct 2015 07:28:00 GMT", cachedLastModifiedField.get(fetcher));
     }
@@ -157,7 +156,7 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
@@ -166,7 +165,7 @@ public class HttpCacheFetcherTest {
 
     @Test
     public void testNullHttpClientOrRequestBuilder() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
 
         assertThrows(NullPointerException.class, () -> {
@@ -190,7 +189,7 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(500);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         HttpResponse<String> response = fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
         assertEquals(500, response.statusCode());
@@ -212,7 +211,7 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
@@ -234,7 +233,7 @@ public class HttpCacheFetcherTest {
         when(responseMock200.statusCode()).thenReturn(200);
         when(responseMock304.statusCode()).thenReturn(304);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
@@ -254,11 +253,11 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
-        Field cachedETagField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher.class.getDeclaredField("cachedETag");
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
+        Field cachedETagField = HttpCacheFetcher.class.getDeclaredField("cachedETag");
         cachedETagField.setAccessible(true);
         cachedETagField.set(fetcher, "test-etag");
-        Field cachedLastModifiedField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher.class.getDeclaredField("cachedLastModified");
+        Field cachedLastModifiedField = HttpCacheFetcher.class.getDeclaredField("cachedLastModified");
         cachedLastModifiedField.setAccessible(true);
         cachedLastModifiedField.set(fetcher, "test-last-modified");
 
@@ -279,7 +278,7 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
             .thenThrow(new IOException("Network error"));
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         assertThrows(IOException.class, () -> {
             fetcher.fetchContent(httpClientMock, requestBuilderMock);
         });
@@ -300,7 +299,7 @@ public class HttpCacheFetcherTest {
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpCacheFetcher fetcher = new HttpCacheFetcher();
+        HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
 
         verify(requestBuilderMock, never()).header(eq("Some-Other-Header"), anyString());

@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorTest.delay;
+import static dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http.HttpConnectorTest.delay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -15,9 +15,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper;
 import java.lang.reflect.Field;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -27,12 +24,12 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void testConstructorInitializesWithValidParameters() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -49,12 +46,12 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void testConstructorThrowsExceptionForInvalidInterval() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(0)
             .build();
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.PayloadCacheWrapperBuilder payloadCacheWrapperBuilder = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper.PayloadCacheWrapperBuilder payloadCacheWrapperBuilder = PayloadCacheWrapper.builder()
                 .payloadCache(mockCache)
                 .payloadCacheOptions(options);
         IllegalArgumentException exception = assertThrows(
@@ -67,11 +64,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void testUpdateSkipsWhenIntervalNotPassed() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -88,11 +85,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void testUpdatePayloadIfNeededHandlesPutException() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -107,11 +104,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void testUpdatePayloadIfNeededUpdatesCacheAfterInterval() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(1) // 1 second interval for quick test
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -129,11 +126,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void testGetReturnsNullWhenCacheGetThrowsException() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -149,11 +146,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void test_get_returns_cached_payload() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -169,11 +166,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void test_first_call_updates_cache() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -187,11 +184,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void test_update_payload_once_within_interval() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(1) // 1 second interval
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -207,11 +204,11 @@ public class PayloadCacheWrapperTest {
     @SneakyThrows
     @Test
     public void test_last_update_time_ms_updated_after_successful_cache_update() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build();
@@ -221,7 +218,7 @@ public class PayloadCacheWrapperTest {
 
         verify(mockCache).put(testPayload);
 
-        Field lastUpdateTimeMsField = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper.class.getDeclaredField("lastUpdateTimeMs");
+        Field lastUpdateTimeMsField = PayloadCacheWrapper.class.getDeclaredField("lastUpdateTimeMs");
         lastUpdateTimeMsField.setAccessible(true);
         long lastUpdateTimeMs = (Long) lastUpdateTimeMsField.get(wrapper);
 
@@ -231,11 +228,11 @@ public class PayloadCacheWrapperTest {
 
     @Test
     public void test_update_payload_if_needed_respects_update_interval() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockCache = mock(PayloadCache.class);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions options = PayloadCacheOptions.builder()
+        PayloadCache mockCache = mock(PayloadCache.class);
+        PayloadCacheOptions options = PayloadCacheOptions.builder()
             .updateIntervalSeconds(600)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheWrapper wrapper = spy(PayloadCacheWrapper.builder()
+        PayloadCacheWrapper wrapper = spy(PayloadCacheWrapper.builder()
             .payloadCache(mockCache)
             .payloadCacheOptions(options)
             .build());

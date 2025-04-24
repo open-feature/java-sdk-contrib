@@ -1,27 +1,23 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions;
+import org.junit.jupiter.api.Test;
 import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HttpConnectorOptionsTest {
 
-
     @Test
     public void testDefaultValuesInitialization() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .url("https://example.com")
             .build();
 
@@ -45,7 +41,7 @@ public class HttpConnectorOptionsTest {
     public void testInvalidUrlFormat() {
         MalformedURLException exception = assertThrows(
             MalformedURLException.class,
-            () -> dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            () -> HttpConnectorOptions.builder()
                 .url("invalid-url")
                 .build()
         );
@@ -55,7 +51,7 @@ public class HttpConnectorOptionsTest {
 
     @Test
     public void testCustomValuesInitialization() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .pollIntervalSeconds(120)
             .connectTimeoutSeconds(20)
             .requestTimeoutSeconds(30)
@@ -78,7 +74,7 @@ public class HttpConnectorOptionsTest {
         customHeaders.put("Authorization", "Bearer token");
         customHeaders.put("Content-Type", "application/json");
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .url("http://example.com")
             .headers(customHeaders)
             .build();
@@ -90,7 +86,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testCustomExecutorService() {
         ExecutorService customExecutor = Executors.newFixedThreadPool(5);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .url("https://example.com")
             .httpClientExecutor(customExecutor)
             .build();
@@ -100,10 +96,10 @@ public class HttpConnectorOptionsTest {
 
     @Test
     public void testSettingPayloadCacheWithValidOptions() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions cacheOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder()
+        PayloadCacheOptions cacheOptions = PayloadCacheOptions.builder()
             .updateIntervalSeconds(1800)
             .build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache payloadCache = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache() {
+        PayloadCache payloadCache = new PayloadCache() {
             private String payload;
 
             @Override
@@ -117,7 +113,7 @@ public class HttpConnectorOptionsTest {
             }
         };
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .url("https://example.com")
             .payloadCacheOptions(cacheOptions)
             .payloadCache(payloadCache)
@@ -130,7 +126,7 @@ public class HttpConnectorOptionsTest {
 
     @Test
     public void testProxyConfigurationWithValidHostAndPort() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .url("https://example.com")
             .proxyHost("proxy.example.com")
             .proxyPort(8080)
@@ -143,7 +139,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testLinkedBlockingQueueCapacityOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .linkedBlockingQueueCapacity(0)
                 .build();
@@ -151,7 +147,7 @@ public class HttpConnectorOptionsTest {
         assertEquals("linkedBlockingQueueCapacity must be between 1 and 1000", exception.getMessage());
 
         exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .linkedBlockingQueueCapacity(1001)
                 .build();
@@ -162,7 +158,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testPollIntervalSecondsOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .pollIntervalSeconds(700)
                 .build();
@@ -175,8 +171,8 @@ public class HttpConnectorOptionsTest {
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", "Bearer token");
         ExecutorService executorService = Executors.newFixedThreadPool(2);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions cacheOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder().build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache cache = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache() {
+        PayloadCacheOptions cacheOptions = PayloadCacheOptions.builder().build();
+        PayloadCache cache = new PayloadCache() {
             @Override
             public void put(String payload) {
                 // do nothing
@@ -185,7 +181,7 @@ public class HttpConnectorOptionsTest {
             public String get() { return null; }
         };
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .url("https://example.com")
             .pollIntervalSeconds(120)
             .connectTimeoutSeconds(20)
@@ -220,7 +216,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testRequestTimeoutSecondsOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .requestTimeoutSeconds(61)
                 .build();
@@ -233,8 +229,8 @@ public class HttpConnectorOptionsTest {
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", "Bearer token");
         ExecutorService executorService = Executors.newFixedThreadPool(2);
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions cacheOptions = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCacheOptions.builder().build();
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache cache = new dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache() {
+        PayloadCacheOptions cacheOptions = PayloadCacheOptions.builder().build();
+        PayloadCache cache = new PayloadCache() {
             @Override
             public void put(String payload) {
                 // do nothing
@@ -243,7 +239,7 @@ public class HttpConnectorOptionsTest {
             public String get() { return null; }
         };
 
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .pollIntervalSeconds(120)
             .connectTimeoutSeconds(20)
             .requestTimeoutSeconds(30)
@@ -277,7 +273,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testScheduledThreadPoolSizeOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .scheduledThreadPoolSize(11)
                 .build();
@@ -288,7 +284,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testProxyPortOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .proxyHost("proxy.example.com")
                 .proxyPort(70000) // Invalid port, out of range
@@ -300,7 +296,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testConnectTimeoutSecondsOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .connectTimeoutSeconds(0)
                 .build();
@@ -308,7 +304,7 @@ public class HttpConnectorOptionsTest {
         assertEquals("connectTimeoutSeconds must be between 1 and 60", exception.getMessage());
 
         exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .connectTimeoutSeconds(61)
                 .build();
@@ -319,7 +315,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testProxyPortWithoutProxyHost() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .proxyPort(8080)
                 .build();
@@ -329,7 +325,7 @@ public class HttpConnectorOptionsTest {
 
     @Test
     public void testDefaultValuesWhenNullParametersProvided() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions options = dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
             .url("https://example.com")
             .pollIntervalSeconds(null)
             .linkedBlockingQueueCapacity(null)
@@ -364,7 +360,7 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testProxyHostWithoutProxyPort() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .proxyHost("proxy.example.com")
                 .build();
@@ -374,7 +370,7 @@ public class HttpConnectorOptionsTest {
 
     @Test
     public void testSettingPayloadCacheWithoutOptions() {
-        dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.PayloadCache mockPayloadCache = new PayloadCache() {
+        PayloadCache mockPayloadCache = new PayloadCache() {
             @Override
             public void put(String payload) {
                 // Mock implementation
@@ -387,7 +383,7 @@ public class HttpConnectorOptionsTest {
         };
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.http.HttpConnectorOptions.builder()
+            HttpConnectorOptions.builder()
                 .url("https://example.com")
                 .payloadCache(mockPayloadCache)
                 .build();
