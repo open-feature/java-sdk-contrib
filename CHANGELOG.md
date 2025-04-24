@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.0...dev.openfeature.contrib.parent-v0.2.1) (2025-04-24)
+
+
+### 🧹 Chore
+
+* update pom version ([22150bc](https://github.com/open-feature/java-sdk-contrib/commit/22150bc5d9354cf86f004152dd900f78ab19a332))
+
 ## [0.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.1.0...dev.openfeature.contrib.parent-v0.2.0) (2025-04-24)
 
 
