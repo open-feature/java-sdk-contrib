@@ -133,12 +133,21 @@
         "README.md"
       ]
     },
-    "pom.xml": {
+    ".": {
       "package-name": "dev.openfeature.contrib.parent",
       "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
+      "exclude-paths": [
+        ".gitmodules",
+        ".github",
+        ".release-please-manifest.json",
+        "hooks",
+        "providers",
+        "release",
+        "tools"
+      ]
       "extra-files": [
         "pom.xml",
         "README.md"
