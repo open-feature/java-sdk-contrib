@@ -147,7 +147,7 @@
         "providers",
         "release",
         "tools"
-      ]
+      ],
       "extra-files": [
         "pom.xml",
         "README.md"
