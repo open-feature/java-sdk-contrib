@@ -1,5 +1,6 @@
 {
   "bootstrap-sha": "5b1c87955b5d66b993f943161b72b30c398c1537",
+  "plugins": ["maven-workspace"],
   "separate-pull-requests": true,
   "packages": {
     "providers/flagd": {
