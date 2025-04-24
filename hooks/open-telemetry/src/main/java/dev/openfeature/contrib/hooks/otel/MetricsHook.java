@@ -1,5 +1,10 @@
 package dev.openfeature.contrib.hooks.otel;
 
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
+import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey;
+
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
@@ -11,18 +16,12 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongUpDownCounter;
 import io.opentelemetry.api.metrics.Meter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.REASON_KEY;
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.flagKeyAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.providerNameAttributeKey;
-import static dev.openfeature.contrib.hooks.otel.OTelCommons.variantAttributeKey;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * OpenTelemetry metric hook records metrics at different {@link Hook} stages.
@@ -58,9 +57,9 @@ public class MetricsHook implements Hook {
     public MetricsHook(final OpenTelemetry openTelemetry, final MetricHookOptions options) {
         final Meter meter = openTelemetry.getMeter(METER_NAME);
 
-        activeFlagEvaluationsCounter =
-                meter.upDownCounterBuilder(EVALUATION_ACTIVE_COUNT).setDescription("active flag evaluations counter")
-                        .build();
+        activeFlagEvaluationsCounter = meter.upDownCounterBuilder(EVALUATION_ACTIVE_COUNT)
+                .setDescription("active flag evaluations counter")
+                .build();
 
         evaluationRequestCounter = meter.counterBuilder(EVALUATION_REQUESTS_TOTAL)
                 .setDescription("feature flag evaluation request counter")
@@ -81,13 +80,17 @@ public class MetricsHook implements Hook {
         extraDimensions = options.getExtraAttributes();
     }
 
-
     @Override
     public Optional<EvaluationContext> before(HookContext ctx, Map hints) {
         activeFlagEvaluationsCounter.add(+1, Attributes.of(flagKeyAttributeKey, ctx.getFlagKey()));
 
-        evaluationRequestCounter.add(+1, Attributes.of(flagKeyAttributeKey, ctx.getFlagKey(), providerNameAttributeKey,
-                ctx.getProviderMetadata().getName()));
+        evaluationRequestCounter.add(
+                +1,
+                Attributes.of(
+                        flagKeyAttributeKey,
+                        ctx.getFlagKey(),
+                        providerNameAttributeKey,
+                        ctx.getProviderMetadata().getName()));
         return Optional.empty();
     }
 
@@ -96,7 +99,8 @@ public class MetricsHook implements Hook {
         final AttributesBuilder attributesBuilder = Attributes.builder();
 
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
-        attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
+        attributesBuilder.put(
+                providerNameAttributeKey, ctx.getProviderMetadata().getName());
         attributesBuilder.putAll(extraDimensions);
 
         if (details.getReason() != null) {
@@ -122,22 +126,23 @@ public class MetricsHook implements Hook {
     public void error(HookContext ctx, Exception error, Map hints) {
         final AttributesBuilder attributesBuilder = Attributes.builder();
         attributesBuilder.put(flagKeyAttributeKey, ctx.getFlagKey());
-        attributesBuilder.put(providerNameAttributeKey, ctx.getProviderMetadata().getName());
+        attributesBuilder.put(
+                providerNameAttributeKey, ctx.getProviderMetadata().getName());
         attributesBuilder.putAll(extraDimensions);
 
         evaluationErrorCounter.add(+1, attributesBuilder.build());
     }
 
     @Override
-    public void finallyAfter(HookContext ctx, Map hints) {
+    public void finallyAfter(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         activeFlagEvaluationsCounter.add(-1, Attributes.of(flagKeyAttributeKey, ctx.getFlagKey()));
     }
 
     /**
      * A helper to derive attributes from {@link DimensionDescription}.
      */
-    private static Attributes attributesFromFlagMetadata(final ImmutableMetadata flagMetadata,
-                                                         final List<DimensionDescription> dimensionDescriptions) {
+    private static Attributes attributesFromFlagMetadata(
+            final ImmutableMetadata flagMetadata, final List<DimensionDescription> dimensionDescriptions) {
         final AttributesBuilder builder = Attributes.builder();
 
         for (DimensionDescription dimension : dimensionDescriptions) {

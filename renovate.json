@@ -1,21 +1,7 @@
 
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base",
-    "helpers:pinGitHubActionDigests"
-  ],
-  "packageRules": [
-    {
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchCurrentVersion": "!/^0/",
-      "automerge": true
-    },
-    {
-      "matchManagers": ["github-actions"],
-      "automerge": true
-    }
-  ],
+  "extends": ["github>open-feature/community-tooling"],
   "regexManagers": [
     {
       "fileMatch": ["^README.md$", "^.github/workflows/pullrequest.yml$"],
@@ -23,5 +9,8 @@
       "depNameTemplate": "open-feature/test-harness",
       "datasourceTemplate": "github-releases"
     }
+  ],
+  "ignoreDeps": [
+    "com.google.protobuf:protobuf-java"
   ]
 }

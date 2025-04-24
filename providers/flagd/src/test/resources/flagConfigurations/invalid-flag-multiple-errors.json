@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../main/resources/flagd/schemas/flags.json",
+  "flags": {
+    "myBoolFlag": {
+      "metadata": {
+        "string": "string",
+        "boolean": true,
+        "float": 1.234,
+        "invalid": {
+          "a": "a"
+        }
+      }
+    }
+  }
+}

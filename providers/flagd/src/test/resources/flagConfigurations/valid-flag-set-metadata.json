@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../main/resources/flagd/schemas/flags.json",
+  "metadata": {
+    "string": "some string",
+    "boolean": true,
+    "float": 1.234
+  },
+  "flags": {
+    "without-metadata": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
+    "with-metadata": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on",
+      "metadata": {
+        "string": "other string",
+        "boolean": true,
+        "float": 2.71828
+      }
+    }
+  }
+}

@@ -2,10 +2,9 @@ package dev.openfeature.contrib.hooks.otel;
 
 import dev.openfeature.sdk.ImmutableMetadata;
 import io.opentelemetry.api.common.Attributes;
+import java.util.function.Function;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.util.function.Function;
 
 /**
  * OpenTelemetry {@link TracesHook} options.

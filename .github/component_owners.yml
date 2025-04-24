@@ -38,6 +38,8 @@ components:
   providers/prefab:
     - liran2000
     - jkebinger
+  providers/multiprovider:
+    - liran2000
 
 ignored-authors:
   - renovate-bot

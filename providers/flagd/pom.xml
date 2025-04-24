@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
@@ -10,16 +11,18 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.8.5</version> <!--x-release-please-version -->
+    <version>0.11.8</version> <!--x-release-please-version -->
 
     <properties>
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
-        <io.grpc.version>1.66.0</io.grpc.version>
+        <io.grpc.version>1.71.0</io.grpc.version>
+        <!-- caution - updating this will break compatibility with older protobuf-java versions -->
+        <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
     </properties>
 
     <name>flagd</name>
-    <description>FlagD provider for Java</description>
+    <description>flagd provider for Java</description>
     <url>https://openfeature.dev</url>
 
     <developers>
@@ -32,14 +35,11 @@
     </developers>
 
     <dependencies>
-
         <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
-        <!-- override parent definition -->
+
         <dependency>
-            <groupId>dev.openfeature</groupId>
-            <artifactId>sdk</artifactId>
-            <version>[1.4,2.0)</version>
-            <scope>provided</scope>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
         </dependency>
 
         <dependency>
@@ -64,7 +64,7 @@
             <!-- we only support unix sockets on linux, via epoll native lib -->
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
-            <version>4.1.112.Final</version>
+            <version>4.1.119.Final</version>
             <!-- TODO: with 5+ (still alpha), arm is support and we should package multiple versions -->
             <classifier>linux-x86_64</classifier>
         </dependency>
@@ -72,26 +72,26 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.17.2</version>
+            <version>2.18.3</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.jamsesso</groupId>
             <artifactId>json-logic-java</artifactId>
-            <version>1.0.7</version>
+            <version>1.0.9</version>
         </dependency>
 
         <!-- Override gson usage of json-logic-java-->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.11.0</version>
+            <version>2.12.1</version>
         </dependency>
 
         <dependency>
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>1.5.1</version>
+            <version>1.5.6</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.commons</groupId>
@@ -115,43 +115,74 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.17.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>1.41.0</version>
+            <version>1.48.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.semver4j</groupId>
             <artifactId>semver4j</artifactId>
-            <version>5.3.0</version>
+            <version>5.6.0</version>
         </dependency>
 
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.17.1</version>
+            <version>1.18.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.10.3</version>
+            <version>5.12.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.20.1</version>
+            <version>1.20.6</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.20.1</version>
+            <version>1.20.6</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>5.5.1</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- uncomment for logoutput during test runs -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.17</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- we need to generate protobuf sources with the minium protobuf version we want to be compatible with -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <!-- caution - updating this will break compatibility with older protobuf-java versions -->
+                <version>${protobuf-java.min.version}</version>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
 
     <build>
         <!-- required for protobuf generation -->
@@ -167,16 +198,16 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.4.1</version>
+                <version>3.5.0</version>
                 <executions>
                     <execution>
                         <id>update-schemas-submodule</id>
-                        <phase>validate</phase>
+                        <phase>initialize</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <!-- run: git submodule update \-\-init \-\-recursive -->
+                            <!-- run: git submodule update \-\-init schemas -->
                             <executable>git</executable>
                             <arguments>
                                 <argument>submodule</argument>
@@ -186,94 +217,29 @@
                             </arguments>
                         </configuration>
                     </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
                     <execution>
-                        <id>copy-schema-definition</id>
-                        <phase>validate</phase>
+                        <id>copy-json-schemas</id>
+                        <phase>generate-resources</phase>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <!-- run: cp schemas/protobuf/schema/v1/schema.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/schema/v1/schema.proto</argument>
-                                <argument>src/main/proto/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-sync-definition</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/protobuf/sync/v1/sync_service.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/sync/v1/sync_service.proto</argument>
-                                <argument>src/main/proto/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-evaluation.proto</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/protobuf/flagd/evaluation/v1/evaluation.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/flagd/evaluation/v1/evaluation.proto</argument>
-                                <argument>src/main/proto/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-sync.proto</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/protobuf/flagd/sync/v1/sync.proto src/main/proto/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/protobuf/flagd/sync/v1/sync.proto</argument>
-                                <argument>src/main/proto/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-flags-json-schema</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/json/flags.json src/main/resources/flagd/schemas/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/json/flags.json</argument>
-                                <argument>src/main/resources/flagd/schemas/</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-flags-targeting-schema</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <!-- run: cp schemas/json/targeting.json src/main/resources/flagd/schemas/ -->
-                            <executable>cp</executable>
-                            <arguments>
-                                <argument>schemas/json/targeting.json</argument>
-                                <argument>src/main/resources/flagd/schemas/</argument>
-                            </arguments>
+                            <outputDirectory>${basedir}/src/main/resources/flagd/schemas/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/schemas/json/</directory>
+                                    <includes>
+                                        <include>flags.json</include>
+                                        <include>targeting.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>
@@ -284,9 +250,10 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:3.21.1:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:3.25.5:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.48.1:exe:${os.detected.classifier}</pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.69.1:exe:${os.detected.classifier}</pluginArtifact>
+                    <protoSourceRoot>${project.basedir}/schemas/protobuf/</protoSourceRoot>
                 </configuration>
                 <executions>
                     <execution>
@@ -302,6 +269,24 @@
 
     <profiles>
         <profile>
+            <id>codequality</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <version>4.9.3.0</version>
+                        <configuration>
+                            <onlyAnalyze>dev.openfeature.contrib.-</onlyAnalyze>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <!-- this profile handles running the flagd e2e tests -->
             <id>e2e</id>
             <properties>
@@ -314,7 +299,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.4.1</version>
+                        <version>3.5.0</version>
                         <executions>
                             <execution>
                                 <id>update-test-harness-submodule</id>
@@ -347,70 +332,6 @@
                                         <argument>update</argument>
                                         <argument>--init</argument>
                                         <argument>spec</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-gherkin-evaluation.feature</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
-                                    <!-- run: cp test-harness/features/evaluation.feature src/test/resources/features/ -->
-                                    <executable>cp</executable>
-                                    <arguments>
-                                        <argument>spec/specification/assets/gherkin/evaluation.feature</argument>
-                                        <argument>src/test/resources/features/</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-gherkin-flagd-json-evaluator.feature</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
-                                    <!-- run: cp test-harness/features/flagd-json-evaluator.feature src/test/resources/features/ -->
-                                    <executable>cp</executable>
-                                    <arguments>
-                                        <argument>test-harness/gherkin/flagd-json-evaluator.feature</argument>
-                                        <argument>src/test/resources/features/</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-gherkin-flagd.feature</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
-                                    <!-- run: cp test-harness/features/flagd.feature src/test/resources/features/ -->
-                                    <executable>cp</executable>
-                                    <arguments>
-                                        <argument>test-harness/gherkin/flagd.feature</argument>
-                                        <argument>src/test/resources/features/</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-gherkin-flagd-reconnect.feature</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <!-- copy the feature spec we want to test into resources so them can be easily loaded -->
-                                    <!-- run: cp test-harness/features/flagd-reconnect.feature src/test/resources/features/ -->
-                                    <executable>cp</executable>
-                                    <arguments>
-                                        <argument>test-harness/gherkin/flagd-reconnect.feature</argument>
-                                        <argument>src/test/resources/features/</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

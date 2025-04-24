@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.0.4...dev.openfeature.contrib.providers.configcat-v0.1.0) (2024-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+
+### ✨ New Features
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964)) ([4a041b0](https://github.com/open-feature/java-sdk-contrib/commit/4a041b0dda9c4e460f4c2199f3bc680df0dda621))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.0 ([#940](https://github.com/open-feature/java-sdk-contrib/issues/940)) ([5465337](https://github.com/open-feature/java-sdk-contrib/commit/546533739b453988720bb051d5e623ac7eb0b588))
+
+## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.0.3...dev.openfeature.contrib.providers.configcat-v0.0.4) (2024-08-13)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.configcat:configcat-java-client to v9.0.1 ([#680](https://github.com/open-feature/java-sdk-contrib/issues/680)) ([94bf8fc](https://github.com/open-feature/java-sdk-contrib/commit/94bf8fc982969c502dbce156addce68346cb2cdd))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.1.0 ([#736](https://github.com/open-feature/java-sdk-contrib/issues/736)) ([008c417](https://github.com/open-feature/java-sdk-contrib/commit/008c417491782b8a408ab5bbfbd44c0a292035b4))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.1.1 ([#764](https://github.com/open-feature/java-sdk-contrib/issues/764)) ([5eb04a3](https://github.com/open-feature/java-sdk-contrib/commit/5eb04a30ebce6e245f212d5183b0560592c41888))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.1.2 ([#781](https://github.com/open-feature/java-sdk-contrib/issues/781)) ([5081696](https://github.com/open-feature/java-sdk-contrib/commit/5081696624caa10bce075a3e98a5c7ef6a7c7d9d))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.2.0 ([#812](https://github.com/open-feature/java-sdk-contrib/issues/812)) ([f426f0b](https://github.com/open-feature/java-sdk-contrib/commit/f426f0b50dc6d6c0520a1875ab7c42af26bca190))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.3.0 ([#863](https://github.com/open-feature/java-sdk-contrib/issues/863)) ([0692cb7](https://github.com/open-feature/java-sdk-contrib/commit/0692cb71489514331cab9b67de49e73d28aa2546))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.4.0 ([#889](https://github.com/open-feature/java-sdk-contrib/issues/889)) ([94a1bd5](https://github.com/open-feature/java-sdk-contrib/commit/94a1bd5ca8ce0a3283ab2bfc9a861e4b3544e6dc))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.4.1 ([#903](https://github.com/open-feature/java-sdk-contrib/issues/903)) ([1cbc60c](https://github.com/open-feature/java-sdk-contrib/commit/1cbc60c5a25642ec2ca028817b8f843832f8dae9))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.12 ([#661](https://github.com/open-feature/java-sdk-contrib/issues/661)) ([f03d933](https://github.com/open-feature/java-sdk-contrib/commit/f03d93305bda8ea932831e81db57c989ce4e14e4))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.13 ([#752](https://github.com/open-feature/java-sdk-contrib/issues/752)) ([b820fcf](https://github.com/open-feature/java-sdk-contrib/commit/b820fcf1b7ea945a8e450dcc90addb82f5fb865d))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.14 ([#904](https://github.com/open-feature/java-sdk-contrib/issues/904)) ([028b332](https://github.com/open-feature/java-sdk-contrib/commit/028b332dc8ac3b134e5453d5449a4c11b4ef250a))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.15 ([#910](https://github.com/open-feature/java-sdk-contrib/issues/910)) ([2f58638](https://github.com/open-feature/java-sdk-contrib/commit/2f58638eb4907c948325d1e61853e1b6eabfa4c1))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.16 ([#912](https://github.com/open-feature/java-sdk-contrib/issues/912)) ([52571d8](https://github.com/open-feature/java-sdk-contrib/commit/52571d806e7c547006db836245b4895fe9bc4660))
+* ready and config change events triggering ([#653](https://github.com/open-feature/java-sdk-contrib/issues/653)) ([677e07a](https://github.com/open-feature/java-sdk-contrib/commit/677e07a539dfe0b722613be4d48e574157eb3863))
+
+
+### ✨ New Features
+
+* add support for getBooleanEvaluation with default value ([#722](https://github.com/open-feature/java-sdk-contrib/issues/722)) ([835f672](https://github.com/open-feature/java-sdk-contrib/commit/835f6727d98883bb7fc351b5dd59039228fbcb2b))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.0 ([#689](https://github.com/open-feature/java-sdk-contrib/issues/689)) ([6589871](https://github.com/open-feature/java-sdk-contrib/commit/65898713166b5d02f246302c54fd7400ee4238d5))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.23.1 ([#709](https://github.com/open-feature/java-sdk-contrib/issues/709)) ([d0bc7a5](https://github.com/open-feature/java-sdk-contrib/commit/d0bc7a5aceb746d6d7c442e189a6a1e011673ba7))
+* update failing tests ([#732](https://github.com/open-feature/java-sdk-contrib/issues/732)) ([e1eaf4e](https://github.com/open-feature/java-sdk-contrib/commit/e1eaf4e3778d11ecf25d4276d3733760fa72eb9f))
+
 ## [0.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.0.2...dev.openfeature.contrib.providers.configcat-v0.0.3) (2024-01-27)
 
 

@@ -1,59 +1,59 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
+
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.common.Util;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.grpc.GrpcStreamConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileQueueSource;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.SyncStreamQueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.Operator;
 import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import java.util.Map;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
-
 /**
- * flagd in-process resolver. Resolves feature flags in-process. Flags are
- * retrieved from {@link Storage}, where the
- * {@link Storage} maintain flag configurations obtained from known source.
+ * Resolves flag values using
+ * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+ * Flags are evaluated locally.
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
-    private final Consumer<ProviderState> stateConsumer;
+    private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final Operator operator;
-    private final long deadline;
-    private final ImmutableMetadata metadata;
-    private final AtomicBoolean connected = new AtomicBoolean(false);
+    private final String scope;
 
     /**
-     * Initialize an in-process resolver.
+     * Resolves flag values using
+     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1.
+     * Flags are evaluated locally.
+     *
+     * @param options           flagd options
+     * @param onConnectionEvent lambda which handles changes in the
+     *                          connection/stream
      */
-    public InProcessResolver(FlagdOptions options, Consumer<ProviderState> stateConsumer) {
-        this.flagStore = new FlagStore(getConnector(options));
-        this.deadline = options.getDeadline();
-        this.stateConsumer = stateConsumer;
+    public InProcessResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+        this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
+        this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
-        this.metadata = options.getSelector() == null ? null :
-                ImmutableMetadata.builder()
-                        .addString("scope", options.getSelector())
-                        .build();
+        this.scope = options.getSelector();
     }
 
     /**
@@ -64,20 +64,23 @@ public class InProcessResolver implements Resolver {
         final Thread stateWatcher = new Thread(() -> {
             try {
                 while (true) {
-                    final StorageState storageState = flagStore.getStateQueue().take();
-                    switch (storageState) {
+                    final StorageStateChange storageStateChange =
+                            flagStore.getStateQueue().take();
+                    switch (storageStateChange.getStorageState()) {
                         case OK:
-                            stateConsumer.accept(ProviderState.READY);
-                            this.connected.set(true);
+                            log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+                            onConnectionEvent.accept(new FlagdProviderEvent(
+                                    ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                                    storageStateChange.getChangedFlagsKeys(),
+                                    storageStateChange.getSyncMetadata()));
+                            log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
                             break;
                         case ERROR:
-                            stateConsumer.accept(ProviderState.ERROR);
-                            this.connected.set(false);
+                            onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
                             break;
-                        case STALE:
-                            // todo set stale state
                         default:
-                            log.info(String.format("Storage emitted unhandled status: %s", storageState));
+                            log.warn(String.format(
+                                    "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
                     }
                 }
             } catch (InterruptedException e) {
@@ -87,9 +90,6 @@ public class InProcessResolver implements Resolver {
         });
         stateWatcher.setDaemon(true);
         stateWatcher.start();
-
-        // block till ready
-        Util.busyWaitAndCheck(this.deadline, this.connected);
     }
 
     /**
@@ -99,39 +99,33 @@ public class InProcessResolver implements Resolver {
      */
     public void shutdown() throws InterruptedException {
         flagStore.shutdown();
-        this.connected.set(false);
-        stateConsumer.accept(ProviderState.NOT_READY);
     }
 
     /**
      * Resolve a boolean flag.
      */
-    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue,
-            EvaluationContext ctx) {
+    public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         return resolve(Boolean.class, key, ctx);
     }
 
     /**
      * Resolve a string flag.
      */
-    public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue,
-            EvaluationContext ctx) {
+    public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         return resolve(String.class, key, ctx);
     }
 
     /**
      * Resolve a double flag.
      */
-    public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue,
-            EvaluationContext ctx) {
+    public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         return resolve(Double.class, key, ctx);
     }
 
     /**
      * Resolve an integer flag.
      */
-    public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue,
-            EvaluationContext ctx) {
+    public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         return resolve(Integer.class, key, ctx);
     }
 
@@ -151,27 +145,36 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    static Connector getConnector(final FlagdOptions options) {
+    static QueueSource getConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
-        return options.getOfflineFlagSourcePath() != null && !options.getOfflineFlagSourcePath().isEmpty()
-                ? new FileConnector(options.getOfflineFlagSourcePath())
-                : new GrpcStreamConnector(options);
+        return options.getOfflineFlagSourcePath() != null
+                        && !options.getOfflineFlagSourcePath().isEmpty()
+                ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
+                : new SyncStreamQueueSource(options, onConnectionEvent);
     }
 
-    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key,
-            EvaluationContext ctx) {
-        final FeatureFlag flag = flagStore.getFlag(key);
+    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {
+        final StorageQueryResult storageQueryResult = flagStore.getFlag(key);
+        final FeatureFlag flag = storageQueryResult.getFeatureFlag();
 
         // missing flag
         if (flag == null) {
-            throw new FlagNotFoundError("flag: " + key + " not found");
+            return ProviderEvaluation.<T>builder()
+                    .errorMessage("flag: " + key + " not found")
+                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .flagMetadata(getFlagMetadata(storageQueryResult))
+                    .build();
         }
 
         // state check
         if ("DISABLED".equals(flag.getState())) {
-            throw new FlagNotFoundError("flag: " + key + " is disabled");
+            return ProviderEvaluation.<T>builder()
+                    .errorMessage("flag: " + key + " is disabled")
+                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .flagMetadata(getFlagMetadata(storageQueryResult))
+                    .build();
         }
 
         final String resolvedVariant;
@@ -217,12 +220,59 @@ public class InProcessResolver implements Resolver {
             throw new TypeMismatchError(message);
         }
 
-        final ProviderEvaluation.ProviderEvaluationBuilder<T> evaluationBuilder = ProviderEvaluation.<T>builder()
+        return ProviderEvaluation.<T>builder()
                 .value((T) value)
                 .variant(resolvedVariant)
-                .reason(reason);
+                .reason(reason)
+                .flagMetadata(getFlagMetadata(storageQueryResult))
+                .build();
+    }
 
-        return this.metadata == null ? evaluationBuilder.build() :
-                evaluationBuilder.flagMetadata(this.metadata).build();
+    private ImmutableMetadata getFlagMetadata(StorageQueryResult storageQueryResult) {
+        ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
+        for (Map.Entry<String, Object> entry :
+                storageQueryResult.getFlagSetMetadata().entrySet()) {
+            addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
+        }
+
+        if (scope != null) {
+            metadataBuilder.addString("scope", scope);
+        }
+
+        FeatureFlag flag = storageQueryResult.getFeatureFlag();
+        if (flag != null) {
+            for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
+                addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
+            }
+        }
+
+        return metadataBuilder.build();
+    }
+
+    private void addEntryToMetadataBuilder(
+            ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder, String key, Object value) {
+        if (value instanceof Number) {
+            if (value instanceof Long) {
+                metadataBuilder.addLong(key, (Long) value);
+                return;
+            } else if (value instanceof Double) {
+                metadataBuilder.addDouble(key, (Double) value);
+                return;
+            } else if (value instanceof Integer) {
+                metadataBuilder.addInteger(key, (Integer) value);
+                return;
+            } else if (value instanceof Float) {
+                metadataBuilder.addFloat(key, (Float) value);
+                return;
+            }
+        } else if (value instanceof Boolean) {
+            metadataBuilder.addBoolean(key, (Boolean) value);
+            return;
+        } else if (value instanceof String) {
+            metadataBuilder.addString(key, (String) value);
+            return;
+        }
+        throw new IllegalArgumentException(
+                "The type of the Metadata entry with key " + key + " and value " + value + " is not supported");
     }
 }

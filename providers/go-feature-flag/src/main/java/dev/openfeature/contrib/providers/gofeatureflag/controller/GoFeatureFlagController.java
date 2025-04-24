@@ -1,11 +1,12 @@
 package dev.openfeature.contrib.providers.gofeatureflag.controller;
 
+import static dev.openfeature.sdk.Value.objectToValue;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.common.net.HttpHeaders;
 import dev.openfeature.contrib.providers.gofeatureflag.EvaluationResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.ConfigurationChange;
@@ -26,8 +27,15 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
+import dev.openfeature.sdk.exceptions.InvalidContextError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.ConnectionPool;
@@ -39,45 +47,43 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static dev.openfeature.sdk.Value.objectToValue;
-
-
 /**
- * GoFeatureFlagController is the layer to contact the APIs and get the data
- * from the GoFeatureFlagProvider.
+ * GoFeatureFlagController is the layer to contact the APIs and get the data from the
+ * GoFeatureFlagProvider.
  */
 @Slf4j
 @SuppressWarnings({"checkstyle:NoFinalizer"})
 public class GoFeatureFlagController {
     public static final String APPLICATION_JSON = "application/json";
     public static final ObjectMapper requestMapper = new ObjectMapper();
-    private static final ObjectMapper responseMapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper responseMapper =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final String BEARER_TOKEN = "Bearer ";
 
-    /**
-     * apiKey contains the token to use while calling GO Feature Flag relay proxy.
-     */
+    private static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String HTTP_HEADER_AUTHORIZATION = "Authorization";
+    private static final String HTTP_HEADER_ETAG = "ETag";
+    private static final String HTTP_HEADER_IF_NONE_MATCH = "If-None-Match";
+
+    /** apiKey contains the token to use while calling GO Feature Flag relay proxy. */
     private final String apiKey;
-    /**
-     * httpClient is the instance of the OkHttpClient used by the provider.
-     */
+    /** httpClient is the instance of the OkHttpClient used by the provider. */
     private final OkHttpClient httpClient;
+
     private final HttpUrl parsedEndpoint;
 
+    /** exporterMetadata contains the metadata to send to the collector API. */
+    private Map<String, Object> exporterMetadata = new HashMap<>();
+
     /**
-     * etag contains the etag of the configuration, if null, it means that the configuration has never been retrieved.
+     * etag contains the etag of the configuration, if null, it means that the configuration has never
+     * been retrieved.
      */
     private String etag;
 
-
     /**
-     * GoFeatureFlagController is the constructor of the controller to contact the GO Feature Flag relay proxy.
+     * GoFeatureFlagController is the constructor of the controller to contact the GO Feature Flag
+     * relay proxy.
      *
      * @param options - options to initialise the controller
      * @throws InvalidOptions - if the options are invalid
@@ -85,6 +91,9 @@ public class GoFeatureFlagController {
     @Builder
     private GoFeatureFlagController(final GoFeatureFlagProviderOptions options) throws InvalidOptions {
         this.apiKey = options.getApiKey();
+        this.exporterMetadata = options.getExporterMetadata() == null ? new HashMap<>() : options.getExporterMetadata();
+        this.exporterMetadata.put("provider", "java");
+        this.exporterMetadata.put("openfeature", true);
 
         this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
         if (this.parsedEndpoint == null) {
@@ -113,22 +122,23 @@ public class GoFeatureFlagController {
     /**
      * evaluateFlag is calling the GO Feature Flag relay proxy to get the evaluation of a flag.
      *
-     * @param key               - name of the flag
-     * @param defaultValue      - default value
+     * @param key - name of the flag
+     * @param defaultValue - default value
      * @param evaluationContext - context of the evaluation
-     * @param expectedType      - expected type of the flag
-     * @param <T>               - type of the flag
+     * @param expectedType - expected type of the flag
+     * @param <T> - type of the flag
      * @return EvaluationResponse with the evaluation of the flag
      * @throws OpenFeatureError - if an error occurred while evaluating the flag
      */
     public <T> EvaluationResponse<T> evaluateFlag(
-            String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType
-    ) throws OpenFeatureError {
+            String key, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType)
+            throws OpenFeatureError {
         try {
             GoFeatureFlagUser user = GoFeatureFlagUser.fromEvaluationContext(evaluationContext);
             GoFeatureFlagRequest<T> goffRequest = new GoFeatureFlagRequest<>(user, defaultValue);
 
-            HttpUrl url = this.parsedEndpoint.newBuilder()
+            HttpUrl url = this.parsedEndpoint
+                    .newBuilder()
                     .addEncodedPathSegment("v1")
                     .addEncodedPathSegment("feature")
                     .addEncodedPathSegment(key)
@@ -137,38 +147,47 @@ public class GoFeatureFlagController {
 
             Request.Builder reqBuilder = new Request.Builder()
                     .url(url)
-                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                    .addHeader(HTTP_HEADER_CONTENT_TYPE, APPLICATION_JSON)
                     .post(RequestBody.create(
                             requestMapper.writeValueAsBytes(goffRequest),
                             MediaType.get("application/json; charset=utf-8")));
 
             if (this.apiKey != null && !this.apiKey.isEmpty()) {
-                reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
+                reqBuilder.addHeader(HTTP_HEADER_AUTHORIZATION, BEARER_TOKEN + this.apiKey);
             }
 
             try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                    throw new GeneralError("invalid token used to contact GO Feature Flag relay proxy instance");
-                }
-                if (response.code() >= HttpURLConnection.HTTP_BAD_REQUEST) {
-                    throw new GeneralError("impossible to contact GO Feature Flag relay proxy instance");
+                if (response.code() == HttpURLConnection.HTTP_UNAUTHORIZED
+                        || response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
+                    throw new GeneralError("authentication/authorization error");
                 }
 
                 ResponseBody responseBody = response.body();
                 String body = responseBody != null ? responseBody.string() : "";
-                GoFeatureFlagResponse goffResp =
-                        responseMapper.readValue(body, GoFeatureFlagResponse.class);
+                GoFeatureFlagResponse goffResp = responseMapper.readValue(body, GoFeatureFlagResponse.class);
+
+                if (response.code() == HttpURLConnection.HTTP_BAD_REQUEST) {
+                    throw new InvalidContextError("Invalid context " + goffResp.getMessage());
+                }
+
+                if (response.code() == HttpURLConnection.HTTP_INTERNAL_ERROR) {
+                    throw new GeneralError("Unknown error while retrieving flag " + goffResp.getMessage());
+                }
 
                 if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
-                    // we don't set a variant since we are using the default value, and we are not able to know
+                    // we don't set a variant since we are using the default value, and we are not able to
+                    // know
                     // which variant it is.
                     ProviderEvaluation<T> providerEvaluation = ProviderEvaluation.<T>builder()
                             .value(defaultValue)
                             .variant(goffResp.getVariationType())
-                            .reason(Reason.DISABLED.name()).build();
+                            .reason(Reason.DISABLED.name())
+                            .build();
 
                     return EvaluationResponse.<T>builder()
-                            .providerEvaluation(providerEvaluation).cacheable(goffResp.getCacheable()).build();
+                            .providerEvaluation(providerEvaluation)
+                            .cacheable(goffResp.getCacheable())
+                            .build();
                 }
 
                 if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {
@@ -179,8 +198,13 @@ public class GoFeatureFlagController {
                 T flagValue = convertValue(goffResp.getValue(), expectedType);
 
                 if (flagValue.getClass() != expectedType) {
-                    throw new TypeMismatchError("Flag value " + key + " had unexpected type "
-                            + flagValue.getClass() + ", expected " + expectedType + ".");
+                    throw new TypeMismatchError("Flag value "
+                            + key
+                            + " had unexpected type "
+                            + flagValue.getClass()
+                            + ", expected "
+                            + expectedType
+                            + ".");
                 }
 
                 ProviderEvaluation<T> providerEvaluation = ProviderEvaluation.<T>builder()
@@ -192,23 +216,26 @@ public class GoFeatureFlagController {
                         .build();
 
                 return EvaluationResponse.<T>builder()
-                        .providerEvaluation(providerEvaluation).cacheable(goffResp.getCacheable()).build();
+                        .providerEvaluation(providerEvaluation)
+                        .cacheable(goffResp.getCacheable())
+                        .build();
             }
         } catch (IOException e) {
             throw new GeneralError("unknown error while retrieving flag " + key, e);
         }
     }
 
-
     /**
-     * sendEventToDataCollector is calling the GO Feature Flag data/collector api to store the flag usage for analytics.
+     * sendEventToDataCollector is calling the GO Feature Flag data/collector api to store the flag
+     * usage for analytics.
      *
      * @param eventsList - list of the event to send to GO Feature Flag
      */
     public void sendEventToDataCollector(List<Event> eventsList) {
         try {
-            Events events = new Events(eventsList);
-            HttpUrl url = this.parsedEndpoint.newBuilder()
+            Events events = new Events(eventsList, this.exporterMetadata);
+            HttpUrl url = this.parsedEndpoint
+                    .newBuilder()
                     .addEncodedPathSegment("v1")
                     .addEncodedPathSegment("data")
                     .addEncodedPathSegment("collector")
@@ -216,13 +243,12 @@ public class GoFeatureFlagController {
 
             Request.Builder reqBuilder = new Request.Builder()
                     .url(url)
-                    .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                    .addHeader(HTTP_HEADER_CONTENT_TYPE, APPLICATION_JSON)
                     .post(RequestBody.create(
-                            requestMapper.writeValueAsBytes(events),
-                            MediaType.get("application/json; charset=utf-8")));
+                            requestMapper.writeValueAsBytes(events), MediaType.get("application/json; charset=utf-8")));
 
             if (this.apiKey != null && !this.apiKey.isEmpty()) {
-                reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
+                reqBuilder.addHeader(HTTP_HEADER_AUTHORIZATION, BEARER_TOKEN + this.apiKey);
             }
 
             try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
@@ -251,7 +277,8 @@ public class GoFeatureFlagController {
      * @throws GoFeatureFlagException if an error occurred while retrieving the ETAG
      */
     public ConfigurationChange configurationHasChanged() throws GoFeatureFlagException {
-        HttpUrl url = this.parsedEndpoint.newBuilder()
+        HttpUrl url = this.parsedEndpoint
+                .newBuilder()
                 .addEncodedPathSegment("v1")
                 .addEncodedPathSegment("flag")
                 .addEncodedPathSegment("change")
@@ -259,14 +286,14 @@ public class GoFeatureFlagController {
 
         Request.Builder reqBuilder = new Request.Builder()
                 .url(url)
-                .addHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .addHeader(HTTP_HEADER_CONTENT_TYPE, APPLICATION_JSON)
                 .get();
 
         if (this.etag != null && !this.etag.isEmpty()) {
-            reqBuilder.addHeader(HttpHeaders.IF_NONE_MATCH, this.etag);
+            reqBuilder.addHeader(HTTP_HEADER_IF_NONE_MATCH, this.etag);
         }
         if (this.apiKey != null && !this.apiKey.isEmpty()) {
-            reqBuilder.addHeader(HttpHeaders.AUTHORIZATION, BEARER_TOKEN + this.apiKey);
+            reqBuilder.addHeader(HTTP_HEADER_AUTHORIZATION, BEARER_TOKEN + this.apiKey);
         }
 
         try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
@@ -283,7 +310,7 @@ public class GoFeatureFlagController {
             }
 
             boolean isInitialConfiguration = this.etag == null;
-            this.etag = response.header(HttpHeaders.ETAG);
+            this.etag = response.header(HTTP_HEADER_ETAG);
             return isInitialConfiguration
                     ? ConfigurationChange.FLAG_CONFIGURATION_INITIALIZED
                     : ConfigurationChange.FLAG_CONFIGURATION_UPDATED;
@@ -293,7 +320,8 @@ public class GoFeatureFlagController {
     }
 
     /**
-     * mapErrorCode is mapping the errorCode in string received by the API to our internal SDK ErrorCode enum.
+     * mapErrorCode is mapping the errorCode in string received by the API to our internal SDK
+     * ErrorCode enum.
      *
      * @param errorCode - string of the errorCode received from the API
      * @return an item from the enum
@@ -302,7 +330,7 @@ public class GoFeatureFlagController {
         if (errorCode == null || errorCode.isEmpty()) {
             return null;
         }
-        
+
         try {
             return ErrorCode.valueOf(errorCode);
         } catch (IllegalArgumentException e) {
@@ -313,9 +341,9 @@ public class GoFeatureFlagController {
     /**
      * convertValue is converting the object return by the proxy response in the right type.
      *
-     * @param value        - The value we have received
+     * @param value - The value we have received
      * @param expectedType - the type we expect for this value
-     * @param <T>          the type we want to convert to.
+     * @param <T> the type we want to convert to.
      * @return A converted object
      */
     private <T> T convertValue(Object value, Class<?> expectedType) {

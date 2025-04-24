@@ -3,12 +3,18 @@
 
     <!-- Ignore generated dev.openfeature.flagd.grpc schemas -->
     <Match>
-        <Package name="~dev.openfeature.flagd.grpc.*" />
+        <Package name="~dev\.openfeature\.flagd\.grpc.*" />
     </Match>
 
     <!-- Ignore generated dev.openfeature.flagd.sync schemas -->
     <Match>
-        <Package name="dev.openfeature.flagd.sync.*" />
+        <Package name="~dev\.openfeature\.flagd\.sync.*" />
+    </Match>
+
+    <!-- Allow predictable random for backoff jitter generation -->
+    <Match>
+        <Class name="dev.openfeature.contrib.providers.flagd.resolver.common.backoff.BackoffService" />
+        <Bug pattern="PREDICTABLE_RANDOM" />
     </Match>
 
     <!-- All bugs in test classes, except for JUnit-specific bugs -->

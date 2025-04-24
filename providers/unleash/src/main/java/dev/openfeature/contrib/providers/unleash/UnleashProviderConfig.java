@@ -4,10 +4,7 @@ import io.getunleash.util.UnleashConfig;
 import lombok.Builder;
 import lombok.Getter;
 
-
-/**
- * Options for initializing Unleash provider.
- */
+/** Options for initializing Unleash provider. */
 @Getter
 @Builder
 public class UnleashProviderConfig {

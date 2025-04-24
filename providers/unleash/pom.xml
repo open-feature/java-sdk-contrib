@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>unleash</artifactId>
-    <version>0.0.4-alpha</version> <!--x-release-please-version -->
+    <version>0.1.0-alpha</version> <!--x-release-please-version -->
 
     <name>unleash</name>
     <description>unleash provider for Java</description>
@@ -20,13 +20,13 @@
         <dependency>
             <groupId>io.getunleash</groupId>
             <artifactId>unleash-client-java</artifactId>
-            <version>9.2.4</version>
+            <version>9.3.2</version>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.16</version>
+            <version>2.0.17</version>
         </dependency>
 
         <dependency>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j2-impl</artifactId>
-            <version>2.23.1</version>
+            <version>2.24.3</version>
             <scope>test</scope>
         </dependency>
 

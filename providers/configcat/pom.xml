@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>configcat</artifactId>
-    <version>0.0.3</version> <!--x-release-please-version -->
+    <version>0.1.0</version> <!--x-release-please-version -->
 
     <name>configcat</name>
     <description>configcat provider for Java</description>
@@ -20,19 +20,19 @@
         <dependency>
             <groupId>com.configcat</groupId>
             <artifactId>configcat-java-client</artifactId>
-            <version>9.4.1</version>
+            <version>9.4.2</version>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.16</version>
+            <version>2.0.17</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j2-impl</artifactId>
-            <version>2.23.1</version>
+            <version>2.24.3</version>
             <scope>test</scope>
         </dependency>
 

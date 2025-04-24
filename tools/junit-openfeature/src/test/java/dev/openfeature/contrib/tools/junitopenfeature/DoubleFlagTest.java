@@ -1,11 +1,13 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DoubleFlagTest {
 
@@ -16,7 +18,6 @@ class DoubleFlagTest {
     private static final Double FLAG_VALUE_ALTERNATIVE = 0.d;
     private static final String FLAG_VALUE_STRING_ALTERNATIVE = "0";
     private static final String SPECIFIC_DOMAIN = "testSpecific";
-
 
     @Nested
     class SimpleConfig {
@@ -40,7 +41,7 @@ class DoubleFlagTest {
         }
 
         @Nested
-        @Flag(name = FLAG, value = FLAG_VALUE_STRING  , valueType = Double.class)
+        @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
         @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING, valueType = Double.class)
         @Flag(name = FLAG + "3", value = FLAG_VALUE_STRING, valueType = Double.class)
         class onClass {
@@ -51,6 +52,14 @@ class DoubleFlagTest {
                 assertThat(client.getDoubleValue(FLAG + "2", FALLBACK)).isEqualTo(FLAG_VALUE);
                 assertThat(client.getDoubleValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
             }
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
         }
     }
 
@@ -88,32 +97,34 @@ class DoubleFlagTest {
                 assertThat(client.getDoubleValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
             }
         }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient(SPECIFIC_DOMAIN);
+            assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
+        }
     }
 
     @Nested
     class ExtendedConfig {
         @Test
-        @OpenFeature({
-                @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
-        })
+        @OpenFeature({@Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)})
         void existingFlagIsRetrieved() {
             Client client = OpenFeatureAPI.getInstance().getClient();
             assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
         }
 
         @Test
-        @OpenFeature(
-                @Flag(name = FLAG, value = "truesadf")
-        )
+        @OpenFeature(@Flag(name = FLAG, value = "truesadf"))
         void strangeFlagValue() {
             Client client = OpenFeatureAPI.getInstance().getClient();
             assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FALLBACK);
         }
 
         @Test
-        @OpenFeature(
-                @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)
-        )
+        @OpenFeature(@Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class))
         void nonExistingFlagIsFallbacked() {
             Client client = OpenFeatureAPI.getInstance().getClient();
             assertThat(client.getDoubleValue("nonSetFlag", FALLBACK)).isEqualTo(FALLBACK);
@@ -121,9 +132,9 @@ class DoubleFlagTest {
 
         @Test
         @OpenFeature({
-                @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class),
-                @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING, valueType = Double.class),
-                @Flag(name = FLAG + "3", value = FLAG_VALUE_STRING, valueType = Double.class),
+            @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class),
+            @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING, valueType = Double.class),
+            @Flag(name = FLAG + "3", value = FLAG_VALUE_STRING, valueType = Double.class),
         })
         void multipleFlags() {
             Client client = OpenFeatureAPI.getInstance().getClient();
@@ -132,16 +143,24 @@ class DoubleFlagTest {
             assertThat(client.getDoubleValue(FLAG + "3", FALLBACK)).isEqualTo(FLAG_VALUE);
         }
 
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @OpenFeature({@Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class)})
+        void existingFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getDoubleValue(FLAG, FALLBACK)).isEqualTo(FLAG_VALUE);
+        }
+
         @Nested
         @OpenFeature({
-                @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class),
-                @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING_ALTERNATIVE, valueType = Double.class),
+            @Flag(name = FLAG, value = FLAG_VALUE_STRING, valueType = Double.class),
+            @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING_ALTERNATIVE, valueType = Double.class),
         })
         class MultipleFlags {
             @Test
             @OpenFeature({
-                    @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING, valueType = Double.class),
-                    @Flag(name = FLAG + "3", value = FLAG_VALUE_STRING, valueType = Double.class),
+                @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING, valueType = Double.class),
+                @Flag(name = FLAG + "3", value = FLAG_VALUE_STRING, valueType = Double.class),
             })
             void multipleFlags() {
                 Client client = OpenFeatureAPI.getInstance().getClient();
@@ -154,8 +173,8 @@ class DoubleFlagTest {
             @OpenFeature(
                     domain = SPECIFIC_DOMAIN,
                     value = {
-                            @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING, valueType = Double.class),
-                            @Flag(name = FLAG + "3", value = FLAG_VALUE_STRING, valueType = Double.class),
+                        @Flag(name = FLAG + "2", value = FLAG_VALUE_STRING, valueType = Double.class),
+                        @Flag(name = FLAG + "3", value = FLAG_VALUE_STRING, valueType = Double.class),
                     })
             void multipleFlagsOnMultipleDomains() {
                 Client client = OpenFeatureAPI.getInstance().getClient();

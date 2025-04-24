@@ -1,37 +1,63 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.GrpcResolver;
-import dev.openfeature.contrib.providers.flagd.resolver.grpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
-import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * OpenFeature provider for flagd.
  */
 @Slf4j
 @SuppressWarnings({"PMD.TooManyStaticImports", "checkstyle:NoFinalizer"})
-public class FlagdProvider extends EventProvider implements FeatureProvider {
-    private static final String FLAGD_PROVIDER = "flagD Provider";
-
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+public class FlagdProvider extends EventProvider {
+    private Function<Structure, EvaluationContext> contextEnricher;
+    private static final String FLAGD_PROVIDER = "flagd";
     private final Resolver flagResolver;
-    private ProviderState state = ProviderState.NOT_READY;
-    private boolean initialized = false;
+    private final List<Hook> hooks = new ArrayList<>();
+    private final FlagdProviderSyncResources syncResources = new FlagdProviderSyncResources();
 
-    private EvaluationContext evaluationContext;
+    /**
+     * An executor service responsible for emitting
+     * {@link ProviderEvent#PROVIDER_ERROR} after the provider went
+     * {@link ProviderEvent#PROVIDER_STALE} for {@link #gracePeriod} seconds.
+     */
+    private final ScheduledExecutorService errorExecutor;
+
+    /**
+     * A scheduled task for emitting {@link ProviderEvent#PROVIDER_ERROR}.
+     */
+    private ScheduledFuture<?> errorTask;
+
+    /**
+     * The grace period in milliseconds to wait after
+     * {@link ProviderEvent#PROVIDER_STALE} before emitting a
+     * {@link ProviderEvent#PROVIDER_ERROR}.
+     */
+    private final long gracePeriod;
+    /**
+     * The deadline in milliseconds for GRPC operations.
+     */
+    private final long deadline;
 
     protected final void finalize() {
         // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
@@ -51,58 +77,80 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
      */
     public FlagdProvider(final FlagdOptions options) {
         switch (options.getResolverType().asString()) {
+            case Config.RESOLVER_FILE:
             case Config.RESOLVER_IN_PROCESS:
-                this.flagResolver = new InProcessResolver(options, this::setState);
+                this.flagResolver = new InProcessResolver(options, this::onProviderEvent);
                 break;
             case Config.RESOLVER_RPC:
-                this.flagResolver =
-                        new GrpcResolver(options,
-                                new Cache(options.getCacheType(), options.getMaxCacheSize()),
-                                this::getState,
-                                this::setState);
+                this.flagResolver = new RpcResolver(
+                        options, new Cache(options.getCacheType(), options.getMaxCacheSize()), this::onProviderEvent);
                 break;
             default:
                 throw new IllegalStateException(
                         String.format("Requested unsupported resolver type of %s", options.getResolverType()));
         }
+        hooks.add(new SyncMetadataHook(this::getEnrichedContext));
+        contextEnricher = options.getContextEnricher();
+        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        gracePeriod = options.getRetryGracePeriod();
+        deadline = options.getDeadline();
     }
 
-    @Override
-    public synchronized void initialize(EvaluationContext evaluationContext) throws Exception {
-        if (this.initialized) {
-            return;
-        }
-
-        this.evaluationContext = evaluationContext;
-        this.flagResolver.init();
-        this.initialized = true;
-    }
-
-    @Override
-    public synchronized void shutdown() {
-        if (!this.initialized) {
-            return;
-        }
-
-        try {
-            this.flagResolver.shutdown();
-            this.initialized = false;
-        } catch (Exception e) {
-            log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
+    /**
+     * Internal constructor for test cases.
+     * DO NOT MAKE PUBLIC
+     */
+    FlagdProvider(Resolver resolver, boolean initialized) {
+        this.flagResolver = resolver;
+        deadline = Config.DEFAULT_DEADLINE;
+        gracePeriod = Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD;
+        hooks.add(new SyncMetadataHook(this::getEnrichedContext));
+        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        if (initialized) {
+            this.syncResources.initialize();
         }
     }
 
     @Override
-    public ProviderState getState() {
-        Lock l = this.lock.readLock();
-        try {
-            l.lock();
-            return this.state;
-        } finally {
-            l.unlock();
+    public List<Hook> getProviderHooks() {
+        return Collections.unmodifiableList(hooks);
+    }
+
+    @Override
+    public void initialize(EvaluationContext evaluationContext) throws Exception {
+        synchronized (syncResources) {
+            if (syncResources.isInitialized()) {
+                return;
+            }
+
+            flagResolver.init();
+            // block till ready - this works with deadline fine for rpc, but with in_process
+            // we also need to take parsing into the equation
+            // TODO: evaluate where we are losing time, so we can remove this magic number -
+            syncResources.waitForInitialization(this.deadline * 2);
         }
     }
 
+    @Override
+    public void shutdown() {
+        synchronized (syncResources) {
+            try {
+                if (!syncResources.isInitialized() || syncResources.isShutDown()) {
+                    return;
+                }
+
+                this.flagResolver.shutdown();
+                if (errorExecutor != null) {
+                    errorExecutor.shutdownNow();
+                    errorExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+                }
+            } catch (Exception e) {
+                log.error("Error during shutdown {}", FLAGD_PROVIDER, e);
+            } finally {
+                syncResources.shutdown();
+            }
+        }
+    }
 
     @Override
     public Metadata getMetadata() {
@@ -111,83 +159,129 @@ public class FlagdProvider extends EventProvider implements FeatureProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.booleanEvaluation(key, defaultValue, mergeContext(ctx));
+        return flagResolver.booleanEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.stringEvaluation(key, defaultValue, mergeContext(ctx));
+        return flagResolver.stringEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.doubleEvaluation(key, defaultValue, mergeContext(ctx));
+        return flagResolver.doubleEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.integerEvaluation(key, defaultValue, mergeContext(ctx));
+        return flagResolver.integerEvaluation(key, defaultValue, ctx);
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return this.flagResolver.objectEvaluation(key, defaultValue, mergeContext(ctx));
+        return flagResolver.objectEvaluation(key, defaultValue, ctx);
     }
 
-    private EvaluationContext mergeContext(final EvaluationContext clientCallCtx) {
-        if (this.evaluationContext != null) {
-            return evaluationContext.merge(clientCallCtx);
-        }
-
-        return clientCallCtx;
+    /**
+     * The updated context mixed into all evaluations based on the sync-metadata.
+     *
+     * @return context
+     */
+    EvaluationContext getEnrichedContext() {
+        return syncResources.getEnrichedContext();
     }
 
-    private void setState(ProviderState newState) {
-        ProviderState oldState;
-        Lock l = this.lock.writeLock();
-        try {
-            l.lock();
-            oldState = this.state;
-            this.state = newState;
-        } finally {
-            l.unlock();
+    @SuppressWarnings("checkstyle:fallthrough")
+    private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
+        log.debug("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
+        synchronized (syncResources) {
+            /*
+             * We only use Error and Ready as previous states.
+             * As error will first be emitted as Stale, and only turns after a while into an
+             * emitted Error.
+             * Ready is needed, as the InProcessResolver does not have a dedicated ready
+             * event, hence we need to
+             * forward a configuration changed to the ready, if we are not in the ready
+             * state.
+             */
+            switch (flagdProviderEvent.getEvent()) {
+                case PROVIDER_CONFIGURATION_CHANGED:
+                    if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_READY) {
+                        onConfigurationChanged(flagdProviderEvent);
+                        break;
+                    }
+                    // intentional fall through
+                case PROVIDER_READY:
+                    /*
+                     * Sync metadata is used to enrich the context, and is immutable in flagd,
+                     * so we only need it to be fetched once at READY.
+                     */
+                    if (flagdProviderEvent.getSyncMetadata() != null) {
+                        syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
+                    }
+                    onReady();
+                    syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
+                    break;
+
+                case PROVIDER_ERROR:
+                    if (syncResources.getPreviousEvent() != ProviderEvent.PROVIDER_ERROR) {
+                        onError();
+                        syncResources.setPreviousEvent(ProviderEvent.PROVIDER_ERROR);
+                    }
+                    break;
+
+                default:
+                    log.warn("Unknown event {}", flagdProviderEvent.getEvent());
+            }
         }
-        this.handleStateTransition(oldState, newState);
     }
 
-    private void handleStateTransition(ProviderState oldState, ProviderState newState) {
-        // we got initialized
-        if (ProviderState.NOT_READY.equals(oldState) && ProviderState.READY.equals(newState)) {
-            // nothing to do, the SDK emits the events
-            log.debug("Init completed");
-            return;
+    private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
+        this.emitProviderConfigurationChanged(ProviderEventDetails.builder()
+                .flagsChanged(flagdProviderEvent.getFlagsChanged())
+                .message("configuration changed")
+                .build());
+    }
+
+    private void onReady() {
+        if (syncResources.initialize()) {
+            log.info("Initialized FlagdProvider");
         }
-        // we got shutdown, not checking oldState as behavior remains the same for shutdown 
-        if (ProviderState.NOT_READY.equals(newState)) {
-            // nothing to do
-            log.debug("shutdown completed");
-            return;
+        if (errorTask != null && !errorTask.isCancelled()) {
+            errorTask.cancel(false);
+            log.debug("Reconnection task cancelled as connection became READY.");
         }
-        // configuration changed
-        if (ProviderState.READY.equals(oldState) && ProviderState.READY.equals(newState)) {
-            log.debug("Configuration changed");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("configuration changed").build();
-            this.emitProviderConfigurationChanged(details);
-            return;
+        this.emitProviderReady(
+                ProviderEventDetails.builder().message("connected to flagd").build());
+    }
+
+    private void onError() {
+        log.debug(
+                "Stream error. Emitting STALE, scheduling ERROR, and waiting {}s for connection to become available.",
+                gracePeriod);
+        this.emitProviderStale(ProviderEventDetails.builder()
+                .message("there has been an error")
+                .build());
+
+        if (errorTask != null && !errorTask.isCancelled()) {
+            errorTask.cancel(false);
         }
-        // there was an error
-        if (ProviderState.READY.equals(oldState) && ProviderState.ERROR.equals(newState)) {
-            log.debug("There has been an error");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("there has been an error").build();
-            this.emitProviderError(details);
-            return;
-        }
-        // we recover from an error
-        if (ProviderState.ERROR.equals(oldState) && ProviderState.READY.equals(newState)) {
-            log.debug("Recovered from error");
-            ProviderEventDetails details = ProviderEventDetails.builder().message("recovered from error").build();
-            this.emitProviderReady(details);
-            this.emitProviderConfigurationChanged(details);
+
+        if (!errorExecutor.isShutdown()) {
+            errorTask = errorExecutor.schedule(
+                    () -> {
+                        if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_ERROR) {
+                            log.error(
+                                    "Provider did not reconnect successfully within {}s. Emitting ERROR event...",
+                                    gracePeriod);
+                            flagResolver.onError();
+                            this.emitProviderError(ProviderEventDetails.builder()
+                                    .message("there has been an error")
+                                    .build());
+                        }
+                    },
+                    gracePeriod,
+                    TimeUnit.SECONDS);
         }
     }
 }

@@ -1,18 +1,25 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.OpenTelemetry;
-import lombok.Builder;
-import lombok.Getter;
-
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
 import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
+
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.Structure;
+import io.grpc.ClientInterceptor;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
+import java.util.List;
+import java.util.function.Function;
+import lombok.Builder;
+import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * FlagdOptions is a builder to build flagd provider options.
  */
-@Builder
+@Builder(toBuilder = true)
 @Getter
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class FlagdOptions {
@@ -32,6 +39,16 @@ public class FlagdOptions {
      * flagd connection port.
      */
     private int port;
+
+    // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
+    /**
+     * Disables call to sync.GetMetadata (see: https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
+     * Disabling will prevent static context from flagd being used in evaluations.
+     * GetMetadata and this option will be removed.
+     */
+    @Deprecated
+    @Builder.Default
+    private boolean syncMetadataDisabled = false;
 
     /**
      * Use TLS connectivity.
@@ -61,22 +78,15 @@ public class FlagdOptions {
      * Max cache size.
      */
     @Builder.Default
-    private int maxCacheSize = fallBackToEnvOrDefault(Config.MAX_CACHE_SIZE_ENV_VAR_NAME,
-            Config.DEFAULT_MAX_CACHE_SIZE);
-
-    /**
-     * Max event stream connection retries.
-     */
-    @Builder.Default
-    private int maxEventStreamRetries = fallBackToEnvOrDefault(Config.MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME,
-            Config.DEFAULT_MAX_EVENT_STREAM_RETRIES);
+    private int maxCacheSize =
+            fallBackToEnvOrDefault(Config.MAX_CACHE_SIZE_ENV_VAR_NAME, Config.DEFAULT_MAX_CACHE_SIZE);
 
     /**
      * Backoff interval in milliseconds.
      */
     @Builder.Default
-    private int retryBackoffMs = fallBackToEnvOrDefault(Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME,
-            Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS);
+    private int retryBackoffMs = fallBackToEnvOrDefault(
+            Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME, Config.BASE_EVENT_STREAM_RETRY_BACKOFF_MS);
 
     /**
      * Connection deadline in milliseconds.
@@ -88,22 +98,82 @@ public class FlagdOptions {
     private int deadline = fallBackToEnvOrDefault(Config.DEADLINE_MS_ENV_VAR_NAME, Config.DEFAULT_DEADLINE);
 
     /**
+     * Streaming connection deadline in milliseconds.
+     * Set to 0 to disable the deadline.
+     * Defaults to 600000 (10 minutes); recommended to prevent infrastructure from killing idle connections.
+     */
+    @Builder.Default
+    private int streamDeadlineMs =
+            fallBackToEnvOrDefault(Config.STREAM_DEADLINE_MS_ENV_VAR_NAME, Config.DEFAULT_STREAM_DEADLINE_MS);
+
+    /**
+     * Grace time period in seconds before provider moves from STALE to ERROR.
+     * Defaults to 5
+     */
+    @Builder.Default
+    private int retryGracePeriod =
+            fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
+    /**
      * Selector to be used with flag sync gRPC contract.
      **/
     @Builder.Default
     private String selector = fallBackToEnvOrDefault(Config.SOURCE_SELECTOR_ENV_VAR_NAME, null);
 
     /**
+     * ProviderId to be used with flag sync gRPC contract.
+     **/
+    @Builder.Default
+    private String providerId = fallBackToEnvOrDefault(Config.SOURCE_PROVIDER_ID_ENV_VAR_NAME, null);
+
+    /**
+     * gRPC client KeepAlive in milliseconds. Disabled with 0.
+     * Defaults to 0 (disabled).
+     **/
+    @Builder.Default
+    private long keepAlive = fallBackToEnvOrDefault(
+            Config.KEEP_ALIVE_MS_ENV_VAR_NAME,
+            fallBackToEnvOrDefault(Config.KEEP_ALIVE_MS_ENV_VAR_NAME_OLD, Config.DEFAULT_KEEP_ALIVE));
+
+    /**
      * File source of flags to be used by offline mode.
      * Setting this enables the offline mode of the in-process provider.
      */
+    private String offlineFlagSourcePath;
+
+    /**
+     * File polling interval.
+     * Defaults to 0 (disabled).
+     **/
     @Builder.Default
-    private String offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+    private int offlinePollIntervalMs = fallBackToEnvOrDefault(Config.OFFLINE_POLL_MS, Config.DEFAULT_OFFLINE_POLL_MS);
+
+    /**
+     * gRPC custom target string.
+     *
+     * <p>Setting this will allow user to use custom gRPC name resolver at present
+     * we are supporting all core resolver along with a custom resolver for envoy proxy
+     * resolution. For more visit (https://grpc.io/docs/guides/custom-name-resolution/)
+     */
+    @Builder.Default
+    private String targetUri = fallBackToEnvOrDefault(Config.TARGET_URI_ENV_VAR_NAME, null);
+
+    /**
+     * Function providing an EvaluationContext to mix into every evaluations.
+     * The sync-metadata response
+     * (https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.GetMetadataResponse),
+     * represented as a {@link dev.openfeature.sdk.Structure}, is passed as an
+     * argument.
+     * This function runs every time the provider (re)connects, and its result is cached and used in every evaluation.
+     * By default, the entire sync response (converted to a Structure) is used.
+     */
+    @Builder.Default
+    private Function<Structure, EvaluationContext> contextEnricher =
+            (syncMetadata) -> new ImmutableContext(syncMetadata.asMap());
 
     /**
      * Inject a Custom Connector for fetching flags.
      */
-    private Connector customConnector;
+    private QueueSource customConnector;
 
     /**
      * Inject OpenTelemetry for the library runtime. Providing sdk will initiate
@@ -111,6 +181,18 @@ public class FlagdOptions {
      * connectivity.
      */
     private OpenTelemetry openTelemetry;
+
+    /**
+     * gRPC client interceptors to be used when creating a gRPC channel.
+     */
+    @Builder.Default
+    private List<ClientInterceptor> clientInterceptors = null;
+
+    /**
+     * Authority header to be used when creating a gRPC channel.
+     */
+    @Builder.Default
+    private String defaultAuthority = fallBackToEnvOrDefault(Config.DEFAULT_AUTHORITY_ENV_VAR_NAME, null);
 
     /**
      * Builder overwrite in order to customize the "build" method.
@@ -148,9 +230,22 @@ public class FlagdOptions {
                 resolverType = fromValueProvider(System::getenv);
             }
 
-            if (port == 0) {
-                port = Integer
-                        .parseInt(fallBackToEnvOrDefault(Config.PORT_ENV_VAR_NAME, determineDefaultPortForResolver()));
+            if (StringUtils.isBlank(offlineFlagSourcePath)) {
+                offlineFlagSourcePath = fallBackToEnvOrDefault(Config.OFFLINE_SOURCE_PATH, null);
+            }
+
+            if (!StringUtils.isEmpty(offlineFlagSourcePath) && resolverType == Config.Resolver.IN_PROCESS) {
+                resolverType = Config.Resolver.FILE;
+            }
+
+            // We need a file path for FILE Provider
+            if (StringUtils.isEmpty(offlineFlagSourcePath) && resolverType == Config.Resolver.FILE) {
+                throw new IllegalArgumentException("Resolver Type 'FILE' requires a offlineFlagSourcePath");
+            }
+
+            if (port == 0 && resolverType != Config.Resolver.FILE) {
+                port = Integer.parseInt(
+                        fallBackToEnvOrDefault(Config.PORT_ENV_VAR_NAME, determineDefaultPortForResolver()));
             }
         }
 

@@ -4,13 +4,13 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 
-/**
- * A generic flag resolving contract for flagd.
- */
+/** Abstraction that resolves flag values in from some source. */
 public interface Resolver {
     void init() throws Exception;
 
     void shutdown() throws Exception;
+
+    default void onError() {}
 
     ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx);
 

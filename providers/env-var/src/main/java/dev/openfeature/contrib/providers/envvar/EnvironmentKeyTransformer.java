@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.envvar;
 
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.CaseUtils;
@@ -67,7 +66,7 @@ public class EnvironmentKeyTransformer {
     private static final UnaryOperator<String> REPLACE_DOT_WITH_UNDERSCORE = s -> StringUtils.replaceChars(s, ".", "_");
     private static final UnaryOperator<String> REPLACE_UNDERSCORE_WITH_DOT = s -> StringUtils.replaceChars(s, "_", ".");
     private static final UnaryOperator<String> REPLACE_HYPHEN_WITH_UNDERSCORE =
-        s -> StringUtils.replaceChars(s, "-", "_");
+            s -> StringUtils.replaceChars(s, "-", "_");
 
     private final Function<String, String> transformation;
 
@@ -100,8 +99,7 @@ public class EnvironmentKeyTransformer {
     }
 
     public static EnvironmentKeyTransformer hyphenCaseToScreamingSnake() {
-        return new EnvironmentKeyTransformer(REPLACE_HYPHEN_WITH_UNDERSCORE)
-            .andThen(toUpperCaseTransformer());
+        return new EnvironmentKeyTransformer(REPLACE_HYPHEN_WITH_UNDERSCORE).andThen(toUpperCaseTransformer());
     }
 
     public static EnvironmentKeyTransformer doNothing() {

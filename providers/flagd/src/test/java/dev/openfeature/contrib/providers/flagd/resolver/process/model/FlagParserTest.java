@@ -1,24 +1,63 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.model;
 
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.util.Map;
-
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_CFG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_METADATA;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_MULTIPLE_ERRORS;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG_SET_METADATA;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_FLAG_SET_METADATA;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE_EXTRA_FIELD;
 import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.io.IOException;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 class FlagParserTest {
     @Test
-    public void validJsonConfigurationParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true);
+    void validJsonConfigurationParsing() throws IOException {
+        Map<String, FeatureFlag> flagMap =
+                FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true).getFlags();
+        FeatureFlag boolFlag = flagMap.get("myBoolFlag");
+
+        assertNotNull(boolFlag);
+        assertEquals("ENABLED", boolFlag.getState());
+        assertEquals("on", boolFlag.getDefaultVariant());
+
+        Map<String, Object> variants = boolFlag.getVariants();
+
+        assertEquals(true, variants.get("on"));
+        assertEquals(false, variants.get("off"));
+
+        Map<String, Object> metadata = boolFlag.getMetadata();
+
+        assertInstanceOf(String.class, metadata.get("string"));
+        assertEquals("string", metadata.get("string"));
+
+        assertInstanceOf(Boolean.class, metadata.get("boolean"));
+        assertEquals(true, metadata.get("boolean"));
+
+        assertInstanceOf(Double.class, metadata.get("float"));
+        assertEquals(1.234, metadata.get("float"));
+
+        assertNotNull(boolFlag.getMetadata());
+        assertEquals(3, boolFlag.getMetadata().size());
+        assertEquals("string", boolFlag.getMetadata().get("string"));
+        assertEquals(true, boolFlag.getMetadata().get("boolean"));
+        assertEquals(1.234, boolFlag.getMetadata().get("float"));
+    }
+
+    @Test
+    void validJsonConfigurationWithExtraFieldsParsing() throws IOException {
+        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD), true)
+                .getFlags();
         FeatureFlag boolFlag = flagMap.get("myBoolFlag");
 
         assertNotNull(boolFlag);
@@ -32,23 +71,9 @@ class FlagParserTest {
     }
 
     @Test
-    public void validJsonConfigurationWithExtraFieldsParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE_EXTRA_FIELD), true);
-        FeatureFlag boolFlag = flagMap.get("myBoolFlag");
-
-        assertNotNull(boolFlag);
-        assertEquals("ENABLED", boolFlag.getState());
-        assertEquals("on", boolFlag.getDefaultVariant());
-
-        Map<String, Object> variants = boolFlag.getVariants();
-
-        assertEquals(true, variants.get("on"));
-        assertEquals(false, variants.get("off"));
-    }
-
-    @Test
-    public void validJsonConfigurationWithTargetingRulesParsing() throws IOException {
-        Map<String, FeatureFlag> flagMap = FlagParser.parseString(getFlagsFromResource(VALID_LONG), true);
+    void validJsonConfigurationWithTargetingRulesParsing() throws IOException {
+        Map<String, FeatureFlag> flagMap =
+                FlagParser.parseString(getFlagsFromResource(VALID_LONG), true).getFlags();
         FeatureFlag stringFlag = flagMap.get("fibAlgo");
 
         assertNotNull(stringFlag);
@@ -62,22 +87,85 @@ class FlagParserTest {
         assertEquals("loop", variants.get("loop"));
         assertEquals("binet", variants.get("binet"));
 
-        assertEquals("{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}",
-                stringFlag.getTargeting());
-    }
-
-
-    @Test
-    public void invalidFlagThrowsError() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(getFlagsFromResource(INVALID_FLAG), true);
-        });
+        assertEquals(
+                "{\"if\":[{\"in\":[\"@faas.com\",{\"var\":[\"email\"]}]},\"binet\",null]}", stringFlag.getTargeting());
     }
 
     @Test
-    public void invalidConfigurationsThrowsError() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            FlagParser.parseString(getFlagsFromResource(INVALID_CFG), true);
-        });
+    void validJsonConfigurationWithFlagSetMetadataParsing() throws IOException {
+        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_FLAG_SET_METADATA), true);
+        Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
+        FeatureFlag flag = flagMap.get("without-metadata");
+
+        assertNotNull(flag);
+
+        Map<String, Object> metadata = flag.getMetadata();
+        Map<String, Object> flagSetMetadata = parsingResult.getFlagSetMetadata();
+
+        assertNotNull(metadata);
+        assertNull(metadata.get("string"));
+        assertNull(metadata.get("boolean"));
+        assertNull(metadata.get("float"));
+        assertNotNull(flagSetMetadata);
+        assertEquals("some string", flagSetMetadata.get("string"));
+        assertEquals(true, flagSetMetadata.get("boolean"));
+        assertEquals(1.234, flagSetMetadata.get("float"));
+    }
+
+    @Test
+    void validJsonConfigurationWithFlagMetadataParsing() throws IOException {
+        ParsingResult parsingResult = FlagParser.parseString(getFlagsFromResource(VALID_FLAG_SET_METADATA), true);
+        Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
+        FeatureFlag flag = flagMap.get("with-metadata");
+
+        assertNotNull(flag);
+
+        Map<String, Object> metadata = flag.getMetadata();
+        Map<String, Object> flagSetMetadata = parsingResult.getFlagSetMetadata();
+
+        assertNotNull(flagSetMetadata);
+        assertEquals("some string", flagSetMetadata.get("string"));
+        assertEquals(true, flagSetMetadata.get("boolean"));
+        assertEquals(1.234, flagSetMetadata.get("float"));
+        assertNotNull(metadata);
+        assertEquals("other string", metadata.get("string"));
+        assertEquals(true, metadata.get("boolean"));
+        assertEquals(2.71828, metadata.get("float"));
+    }
+
+    @Test
+    void invalidFlagThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG);
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void invalidFlagMetadataThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG_METADATA);
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void invalidFlagSetMetadataThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG_SET_METADATA);
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void invalidConfigurationsThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_CFG);
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void invalidWithMulipleErrorsConfigurationsThrowsError() throws IOException {
+        String flagString = getFlagsFromResource(INVALID_FLAG_MULTIPLE_ERRORS);
+        assertThatThrownBy(() -> FlagParser.parseString(flagString, true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be valid to one and only one schema")
+                .hasMessageContaining("$.flags.myBoolFlag: required property 'defaultVariant' not found")
+                .hasMessageContaining("$.flags.myBoolFlag: required property 'state' not found")
+                .hasMessageContaining(
+                        "$.flags.myBoolFlag.metadata.invalid: object found, [string, number, boolean] expected");
     }
 }

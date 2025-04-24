@@ -8,7 +8,7 @@ A JUnit5 extension to reduce boilerplate code for testing code which utilizes Op
 <dependency>
   <groupId>dev.openfeature.contrib.tools</groupId>
   <artifactId>junitopenfeature</artifactId>
-  <version>0.0.0</version>
+  <version>0.1.2</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -16,7 +16,8 @@ A JUnit5 extension to reduce boilerplate code for testing code which utilizes Op
 
 ## Getting Started
 
-We are supporting two different flavors for testing, a [simple](#simple-configuration) and an [extended](#extended-configuration) configuration.
+- We are supporting two different flavors for testing, a [simple](#simple-configuration) and an [extended](#extended-configuration) configuration.
+- Both the [`@Test`](https://junit.org/junit5/docs/5.9.0/api/org.junit.jupiter.api/org/junit/jupiter/api/Test.html) annotation and the [`@ParameterizedTest`](https://junit.org/junit5/docs/5.9.0/api/org.junit.jupiter.params/org/junit/jupiter/params/ParameterizedTest.html) annotation are supported.
       
 Notice: We are most likely not multithread compatible!
 ### Simple Configuration

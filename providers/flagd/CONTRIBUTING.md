@@ -23,7 +23,7 @@ In vscode for instance, the following settings are recommended:
 The continuous integration runs a set of [gherkin e2e tests](https://github.com/open-feature/test-harness/blob/main/features/evaluation.feature) using [`flagd`](https://github.com/open-feature/flagd). These tests do not run with the default maven profile. If you'd like to run them locally, you can start the flagd testbed with
 
 ```
-docker-compose up
+docker compose up
 ```
 and then run 
 ```

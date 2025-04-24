@@ -1,13 +1,18 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
+import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
+
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.Connector;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.StreamPayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
+import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -15,12 +20,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * Feature flag storage.
- */
+/** Feature flag storage. */
 @Slf4j
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP"},
+@SuppressFBWarnings(
+        value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagStore implements Storage {
     private final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
@@ -28,24 +34,24 @@ public class FlagStore implements Storage {
     private final WriteLock writeLock = sync.writeLock();
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
-    private final BlockingQueue<StorageState> stateBlockingQueue = new LinkedBlockingQueue<>(1);
+    private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(1);
     private final Map<String, FeatureFlag> flags = new HashMap<>();
+    private final Map<String, Object> flagSetMetadata = new HashMap<>();
 
-    private final Connector connector;
+    private final QueueSource connector;
     private final boolean throwIfInvalid;
 
-    public FlagStore(final Connector connector) {
+    public FlagStore(final QueueSource connector) {
         this(connector, false);
     }
 
-    public FlagStore(final Connector connector, final boolean throwIfInvalid) {
+    public FlagStore(final QueueSource connector, final boolean throwIfInvalid) {
         this.connector = connector;
         this.throwIfInvalid = throwIfInvalid;
     }
 
-    /**
-     * Initialize storage layer.
-     */
+    /** Initialize storage layer. */
+    @Override
     public void init() throws Exception {
         connector.init();
         Thread streamer = new Thread(() -> {
@@ -65,6 +71,7 @@ public class FlagStore implements Storage {
      *
      * @throws InterruptedException if stream can't be closed within deadline.
      */
+    @Override
     public void shutdown() throws InterruptedException {
         if (shutdown.getAndSet(true)) {
             return;
@@ -73,63 +80,105 @@ public class FlagStore implements Storage {
         connector.shutdown();
     }
 
-    /**
-     * Retrieve flag for the given key.
-     */
-    public FeatureFlag getFlag(final String key) {
+    /** Retrieve flag for the given key and the flag set metadata. */
+    @Override
+    public StorageQueryResult getFlag(final String key) {
         readLock.lock();
+        FeatureFlag flag;
+        Map<String, Object> metadata;
         try {
-            return flags.get(key);
+            flag = flags.get(key);
+            metadata = new HashMap<>(flagSetMetadata);
         } finally {
             readLock.unlock();
         }
+        return new StorageQueryResult(flag, metadata);
     }
 
-    /**
-     * Retrieve blocking queue to check storage status.
-     */
-    public BlockingQueue<StorageState> getStateQueue() {
+    /** Retrieve blocking queue to check storage status. */
+    @Override
+    public BlockingQueue<StorageStateChange> getStateQueue() {
         return stateBlockingQueue;
     }
 
-    private void streamerListener(final Connector connector) throws InterruptedException {
-        final BlockingQueue<StreamPayload> streamPayloads = connector.getStream();
+    private void streamerListener(final QueueSource connector) throws InterruptedException {
+        final BlockingQueue<QueuePayload> streamPayloads = connector.getStreamQueue();
 
         while (!shutdown.get()) {
-            final StreamPayload take = streamPayloads.take();
-            switch (take.getType()) {
+            final QueuePayload payload = streamPayloads.take();
+            switch (payload.getType()) {
                 case DATA:
                     try {
-                        Map<String, FeatureFlag> flagMap = FlagParser.parseString(take.getData(), throwIfInvalid);
+                        List<String> changedFlagsKeys;
+                        ParsingResult parsingResult = FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
+                        Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
+                        Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
+
+                        Structure metadata = parseSyncMetadata(payload.getMetadataResponse());
                         writeLock.lock();
                         try {
+                            changedFlagsKeys = getChangedFlagsKeys(flagMap);
                             flags.clear();
                             flags.putAll(flagMap);
+                            flagSetMetadata.clear();
+                            flagSetMetadata.putAll(flagSetMetadataMap);
                         } finally {
                             writeLock.unlock();
                         }
-                        if (!stateBlockingQueue.offer(StorageState.OK)) {
-                            log.warn("Failed to convey OK satus, queue is full");
+                        if (!stateBlockingQueue.offer(
+                                new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
+                            log.warn("Failed to convey OK status, queue is full");
                         }
                     } catch (Throwable e) {
                         // catch all exceptions and avoid stream listener interruptions
                         log.warn("Invalid flag sync payload from connector", e);
-                        if (!stateBlockingQueue.offer(StorageState.STALE)) {
-                            log.warn("Failed to convey STALE satus, queue is full");
+                        if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
+                            log.warn("Failed to convey STALE status, queue is full");
                         }
                     }
                     break;
                 case ERROR:
-                    if (!stateBlockingQueue.offer(StorageState.ERROR)) {
-                        log.warn("Failed to convey ERROR satus, queue is full");
+                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.ERROR))) {
+                        log.warn("Failed to convey ERROR status, queue is full");
                     }
                     break;
                 default:
-                    log.info(String.format("Payload with unknown type: %s", take.getType()));
+                    log.warn(String.format("Payload with unknown type: %s", payload.getType()));
             }
         }
 
         log.info("Shutting down store stream listener");
     }
 
+    private Structure parseSyncMetadata(GetMetadataResponse metadataResponse) {
+        try {
+            return convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap());
+        } catch (Exception exception) {
+            log.error("Failed to parse metadataResponse, provider metadata may not be up-to-date");
+        }
+        return new ImmutableStructure();
+    }
+
+    private List<String> getChangedFlagsKeys(Map<String, FeatureFlag> newFlags) {
+        Map<String, FeatureFlag> changedFlags = new HashMap<>();
+        Map<String, FeatureFlag> addedFeatureFlags = new HashMap<>();
+        Map<String, FeatureFlag> removedFeatureFlags = new HashMap<>();
+        Map<String, FeatureFlag> updatedFeatureFlags = new HashMap<>();
+        newFlags.forEach((key, value) -> {
+            if (!flags.containsKey(key)) {
+                addedFeatureFlags.put(key, value);
+            } else if (flags.containsKey(key) && !value.equals(flags.get(key))) {
+                updatedFeatureFlags.put(key, value);
+            }
+        });
+        flags.forEach((key, value) -> {
+            if (!newFlags.containsKey(key)) {
+                removedFeatureFlags.put(key, value);
+            }
+        });
+        changedFlags.putAll(addedFeatureFlags);
+        changedFlags.putAll(removedFeatureFlags);
+        changedFlags.putAll(updatedFeatureFlags);
+        return changedFlags.keySet().stream().collect(Collectors.toList());
+    }
 }

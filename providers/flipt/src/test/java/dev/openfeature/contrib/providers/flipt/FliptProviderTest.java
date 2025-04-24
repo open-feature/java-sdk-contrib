@@ -1,42 +1,34 @@
 package dev.openfeature.contrib.providers.flipt;
 
-import io.flipt.api.FliptClient;
-import io.flipt.api.FliptClient.FliptClientBuilder;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.FlagEvaluationDetails;
-import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
+import dev.openfeature.sdk.Value;
+import io.flipt.api.FliptClient;
+import io.flipt.api.FliptClient.FliptClientBuilder;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-/**
- * FliptProvider test, based on APIs mocking.
- */
+/** FliptProvider test, based on APIs mocking. */
 @WireMockTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FliptProviderTest {
@@ -50,9 +42,10 @@ class FliptProviderTest {
     public static final Double DOUBLE_FLAG_VALUE = 1.23;
     public static final String USERS_FLAG_NAME = "users-flag";
     public static final String TARGETING_KEY = "targeting_key";
+    public static final String OBJECT_FLAG_NAME = "object-flag";
+
     private static FliptProvider fliptProvider;
     private static Client client;
-
     private String apiUrl;
 
     @BeforeAll
@@ -69,15 +62,13 @@ class FliptProviderTest {
     }
 
     private void mockFliptAPI(String url, String resourceName, String flagKey) {
-        stubFor(
-                post(urlEqualTo(url))
-                        .withHeader("Content-Type", equalTo("application/json; charset=UTF-8"))
-                        .withRequestBody(WireMock.containing(flagKey))
-                        .willReturn(
-                                aResponse()
-                                        .withStatus(200)
-                                        .withHeader("Content-Type", "application/json; charset=UTF-8")
-                                        .withBody(readResourceFileContent(resourceName))));
+        stubFor(post(urlEqualTo(url))
+                .withHeader("Content-Type", equalTo("application/json; charset=UTF-8"))
+                .withRequestBody(WireMock.containing(flagKey))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json; charset=UTF-8")
+                        .withBody(readResourceFileContent(resourceName))));
     }
 
     @SneakyThrows
@@ -101,7 +92,6 @@ class FliptProviderTest {
         mockFliptAPI("/evaluate/v1/boolean", "boolean.json", FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
-        assertEquals(true, fliptProvider.getBooleanEvaluation(FLAG_NAME, false, evaluationContext).getValue());
         assertEquals(true, client.getBooleanValue(FLAG_NAME, false, evaluationContext));
         assertEquals(false, client.getBooleanValue("non-existing", false, evaluationContext));
     }
@@ -111,8 +101,11 @@ class FliptProviderTest {
         mockFliptAPI("/evaluate/v1/variant", "variant.json", VARIANT_FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
-        assertEquals(VARIANT_FLAG_VALUE, fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
-                evaluationContext).getValue());
+        assertEquals(
+                VARIANT_FLAG_VALUE,
+                fliptProvider
+                        .getStringEvaluation(VARIANT_FLAG_NAME, "", evaluationContext)
+                        .getValue());
         assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(VARIANT_FLAG_NAME, "", evaluationContext));
         assertEquals("fallback_str", client.getStringValue("non-existing", "fallback_str", evaluationContext));
     }
@@ -123,8 +116,11 @@ class FliptProviderTest {
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
         evaluationContext.add("userId", "int");
-        assertEquals(INT_FLAG_VALUE, fliptProvider.getIntegerEvaluation(INT_FLAG_NAME, 1,
-                evaluationContext).getValue());
+        assertEquals(
+                INT_FLAG_VALUE,
+                fliptProvider
+                        .getIntegerEvaluation(INT_FLAG_NAME, 1, evaluationContext)
+                        .getValue());
         assertEquals(INT_FLAG_VALUE, client.getIntegerValue(INT_FLAG_NAME, 1, evaluationContext));
         assertEquals(1, client.getIntegerValue("non-existing", 1, evaluationContext));
 
@@ -138,8 +134,11 @@ class FliptProviderTest {
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
         evaluationContext.add("userId", "double");
-        assertEquals(DOUBLE_FLAG_VALUE, fliptProvider.getDoubleEvaluation(DOUBLE_FLAG_NAME, 1.1,
-                evaluationContext).getValue());
+        assertEquals(
+                DOUBLE_FLAG_VALUE,
+                fliptProvider
+                        .getDoubleEvaluation(DOUBLE_FLAG_NAME, 1.1, evaluationContext)
+                        .getValue());
         assertEquals(DOUBLE_FLAG_VALUE, client.getDoubleValue(DOUBLE_FLAG_NAME, 1.1, evaluationContext));
         assertEquals(1.1, client.getDoubleValue("non-existing", 1.1, evaluationContext));
 
@@ -153,8 +152,11 @@ class FliptProviderTest {
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
         evaluationContext.add("userId", "111");
-        assertEquals(VARIANT_FLAG_VALUE,
-                fliptProvider.getStringEvaluation(USERS_FLAG_NAME, "", evaluationContext).getValue());
+        assertEquals(
+                VARIANT_FLAG_VALUE,
+                fliptProvider
+                        .getStringEvaluation(USERS_FLAG_NAME, "", evaluationContext)
+                        .getValue());
         assertEquals(VARIANT_FLAG_VALUE, client.getStringValue(USERS_FLAG_NAME, "", evaluationContext));
         evaluationContext.add("userId", "2");
         assertEquals("", client.getStringValue(USERS_FLAG_NAME, "", evaluationContext));
@@ -165,48 +167,30 @@ class FliptProviderTest {
         mockFliptAPI("/evaluate/v1/variant", "variant.json", VARIANT_FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
-        ProviderEvaluation<String> stringEvaluation = fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "",
-                evaluationContext);
+        ProviderEvaluation<String> stringEvaluation =
+                fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "", evaluationContext);
         ImmutableMetadata flagMetadata = stringEvaluation.getFlagMetadata();
         assertEquals("attachment-1", flagMetadata.getString("variant-attachment"));
-        FlagEvaluationDetails<String> nonExistingFlagEvaluation = client.getStringDetails("non-existing", "",
-                evaluationContext);
-        assertEquals(null, nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
+        FlagEvaluationDetails<String> nonExistingFlagEvaluation =
+                client.getStringDetails("non-existing", "", evaluationContext);
+        assertNull(nonExistingFlagEvaluation.getFlagMetadata().getBoolean("variant-attachment"));
     }
 
     @SneakyThrows
     @Test
-    void shouldThrowIfNotInitialized() {
-        FliptProvider asyncInitfliptProvider = buildFliptProvider();
-        assertEquals(ProviderState.NOT_READY, asyncInitfliptProvider.getState());
+    void getObjectEvaluationTest() {
+        mockFliptAPI("/evaluate/v1/variant", "variant-object.json", OBJECT_FLAG_NAME);
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
+        evaluationContext.add("userId", "object");
 
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
-        assertThrows(ProviderNotReadyError.class, () -> asyncInitfliptProvider
-                .getBooleanEvaluation("fail_not_initialized", false, new ImmutableContext()));
-        assertThrows(ProviderNotReadyError.class,
-                () -> asyncInitfliptProvider.getStringEvaluation("fail_not_initialized", "", new ImmutableContext()));
+        Value expectedValue = new Value("{\"key1\":\"value1\",\"key2\":42,\"key3\":true}");
+        Value emptyValue = new Value();
 
-        asyncInitfliptProvider.initialize(null);
-        assertThrows(GeneralError.class, () -> asyncInitfliptProvider.initialize(null));
+        assertEquals(expectedValue, client.getObjectValue(OBJECT_FLAG_NAME, emptyValue, evaluationContext));
+        assertEquals(emptyValue, client.getObjectValue("non-existing", emptyValue, evaluationContext));
 
-        asyncInitfliptProvider.shutdown();
+        // non-object flag value
+        assertEquals(emptyValue, client.getObjectValue(VARIANT_FLAG_NAME, emptyValue, evaluationContext));
     }
-
-    @SneakyThrows
-    @Test
-    void shouldThrowIfErrorEvent() {
-        FliptProvider asyncInitfliptProvider = buildFliptProvider();
-        asyncInitfliptProvider.initialize(new ImmutableContext());
-
-        asyncInitfliptProvider.emitProviderError(ProviderEventDetails.builder().build());
-
-        // ErrorCode.PROVIDER_NOT_READY should be returned when evaluated via the client
-        assertThrows(GeneralError.class,
-                () -> asyncInitfliptProvider.getBooleanEvaluation("fail", false, new ImmutableContext()));
-        assertThrows(GeneralError.class,
-                () -> asyncInitfliptProvider.getStringEvaluation("fail", "", new ImmutableContext()));
-
-        asyncInitfliptProvider.shutdown();
-    }
-
 }

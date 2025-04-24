@@ -11,45 +11,31 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Future;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-/**
- * Provider implementation for Statsig.
- */
+/** Provider implementation for Statsig. */
 @Slf4j
 public class StatsigProvider extends EventProvider {
 
     @Getter
     private static final String NAME = "Statsig";
 
-    private static final String PROVIDER_NOT_YET_INITIALIZED = "provider not yet initialized";
-    private static final String UNKNOWN_ERROR = "unknown error";
     private static final String FEATURE_CONFIG_KEY = "feature_config";
-
     private final StatsigProviderConfig statsigProviderConfig;
-
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
-
-    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
      * Constructor.
+     *
      * @param statsigProviderConfig StatsigProvider Config
      */
     public StatsigProvider(StatsigProviderConfig statsigProviderConfig) {
@@ -58,24 +44,18 @@ public class StatsigProvider extends EventProvider {
 
     /**
      * Initialize the provider.
+     *
      * @param evaluationContext evaluation context
      * @throws Exception on error
      */
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        boolean initialized = isInitialized.getAndSet(true);
-        if (initialized && ProviderState.READY.equals(state)) {
-            log.debug("already initialized");
-            return;
-        }
-
-        Future<Void> initFuture = Statsig.initializeAsync(statsigProviderConfig.getSdkKey(),
-            statsigProviderConfig.getOptions());
+        Future<Void> initFuture =
+                Statsig.initializeAsync(statsigProviderConfig.getSdkKey(), statsigProviderConfig.getOptions());
         initFuture.get();
 
         statsigProviderConfig.postInit();
-        state = ProviderState.READY;
-        log.info("finished initializing provider, state: {}", state);
+        log.info("finished initializing provider");
     }
 
     @Override
@@ -85,9 +65,10 @@ public class StatsigProvider extends EventProvider {
 
     @SneakyThrows
     @Override
-    @SuppressFBWarnings(value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "reason can be null")
+    @SuppressFBWarnings(
+            value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"},
+            justification = "reason can be null")
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         Boolean evaluatedValue = defaultValue;
         Value featureConfigValue = ctx.getValue(FEATURE_CONFIG_KEY);
@@ -117,26 +98,25 @@ public class StatsigProvider extends EventProvider {
         }
 
         return ProviderEvaluation.<Boolean>builder()
-            .value(evaluatedValue)
-            .reason(reason)
-            .build();
+                .value(evaluatedValue)
+                .reason(reason)
+                .build();
     }
 
     /*
     https://github.com/statsig-io/java-server-sdk/issues/22#issuecomment-2002346349
     failure is assumed by reason, since success status is not returned.
-     */
+    */
     private boolean assumeFailure(APIFeatureGate featureGate) {
         EvaluationReason reason = featureGate.getReason();
         return EvaluationReason.DEFAULT.equals(reason)
-            || EvaluationReason.UNINITIALIZED.equals(reason)
-            || EvaluationReason.UNRECOGNIZED.equals(reason)
-            || EvaluationReason.UNSUPPORTED.equals(reason);
+                || EvaluationReason.UNINITIALIZED.equals(reason)
+                || EvaluationReason.UNRECOGNIZED.equals(reason)
+                || EvaluationReason.UNSUPPORTED.equals(reason);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         String evaluatedValue = defaultValue;
@@ -152,14 +132,11 @@ public class StatsigProvider extends EventProvider {
             default:
                 break;
         }
-        return ProviderEvaluation.<String>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<String>builder().value(evaluatedValue).build();
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         Integer evaluatedValue = defaultValue;
@@ -175,14 +152,11 @@ public class StatsigProvider extends EventProvider {
             default:
                 break;
         }
-        return ProviderEvaluation.<Integer>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<Integer>builder().value(evaluatedValue).build();
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         Double evaluatedValue = defaultValue;
@@ -198,15 +172,12 @@ public class StatsigProvider extends EventProvider {
             default:
                 break;
         }
-        return ProviderEvaluation.<Double>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<Double>builder().value(evaluatedValue).build();
     }
 
     @SneakyThrows
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         StatsigUser user = ContextTransformer.transform(ctx);
         FeatureConfig featureConfig = parseFeatureConfig(ctx);
         Value evaluatedValue = defaultValue;
@@ -222,9 +193,7 @@ public class StatsigProvider extends EventProvider {
             default:
                 break;
         }
-        return ProviderEvaluation.<Value>builder()
-            .value(evaluatedValue)
-            .build();
+        return ProviderEvaluation.<Value>builder().value(evaluatedValue).build();
     }
 
     @SneakyThrows
@@ -246,9 +215,8 @@ public class StatsigProvider extends EventProvider {
         List<Value> secondaryExposures = new ArrayList<>();
         dynamicConfig.getSecondaryExposures().forEach(secondaryExposure -> {
             Value value = Value.objectToValue(secondaryExposure);
-                secondaryExposures.add(value);
-            }
-        );
+            secondaryExposures.add(value);
+        });
         mutableContext.add("secondaryExposures", secondaryExposures);
         return new Value(mutableContext);
     }
@@ -261,17 +229,15 @@ public class StatsigProvider extends EventProvider {
         mutableContext.add("groupName", layer.getGroupName());
         List<Value> secondaryExposures = new ArrayList<>();
         layer.getSecondaryExposures().forEach(secondaryExposure -> {
-                Value value = Value.objectToValue(secondaryExposure);
-                secondaryExposures.add(value);
-            }
-        );
+            Value value = Value.objectToValue(secondaryExposure);
+            secondaryExposures.add(value);
+        });
         mutableContext.add("secondaryExposures", secondaryExposures);
         mutableContext.add("allocatedExperiment", layer.getAllocatedExperiment());
         return new Value(mutableContext);
     }
 
-    @NotNull
-    private static FeatureConfig parseFeatureConfig(EvaluationContext ctx) {
+    @NotNull private static FeatureConfig parseFeatureConfig(EvaluationContext ctx) {
         Value featureConfigValue = ctx.getValue(FEATURE_CONFIG_KEY);
         if (featureConfigValue == null) {
             throw new IllegalArgumentException("feature config not found at evaluation context.");
@@ -293,43 +259,22 @@ public class StatsigProvider extends EventProvider {
         return new FeatureConfig(type, name);
     }
 
-    private void verifyEvaluation() throws ProviderNotReadyError, GeneralError {
-        if (!ProviderState.READY.equals(state)) {
-
-            /*
-            According to spec Requirement 2.4.5:
-            "The provider SHOULD indicate an error if flag resolution is attempted before the provider is ready."
-            https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-245
-             */
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
-    }
-
     @SneakyThrows
     @Override
     public void shutdown() {
         log.info("shutdown");
         Statsig.shutdown();
-        state = ProviderState.NOT_READY;
     }
 
-    /**
-     * Feature config, as required for evaluation.
-     */
+    /** Feature config, as required for evaluation. */
     @AllArgsConstructor
     @Getter
     public static class FeatureConfig {
 
-        /**
-         * Type.
-         *  CONFIG: Dynamic Config
-         *  LAYER: Layer
-         */
+        /** Type. CONFIG: Dynamic Config LAYER: Layer */
         public enum Type {
-            CONFIG, LAYER
+            CONFIG,
+            LAYER
         }
 
         private Type type;

@@ -1,0 +1,6 @@
+{
+  "flagKey": "object-flag",
+  "match": true,
+  "variantKey": "object-variant",
+  "variantAttachment": "{\"key1\":\"value1\",\"key2\":42,\"key3\":true}"
+}

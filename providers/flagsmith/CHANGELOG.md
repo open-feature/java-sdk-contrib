@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.0.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.8...dev.openfeature.contrib.providers.flagsmith-v0.0.9) (2024-09-13)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v7.1.1 ([#575](https://github.com/open-feature/java-sdk-contrib/issues/575)) ([7fea4ec](https://github.com/open-feature/java-sdk-contrib/commit/7fea4ec2818a34c3e3ad9da277e73d95391129d9))
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v7.2.0 ([#648](https://github.com/open-feature/java-sdk-contrib/issues/648)) ([5ab214b](https://github.com/open-feature/java-sdk-contrib/commit/5ab214b692571dcd0e480e48f9a0700595b58edb))
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v7.3.0 ([#734](https://github.com/open-feature/java-sdk-contrib/issues/734)) ([d0f5e60](https://github.com/open-feature/java-sdk-contrib/commit/d0f5e60e9a3a52b55c7124f936e6abba2e33f50a))
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v7.4.1 ([#922](https://github.com/open-feature/java-sdk-contrib/issues/922)) ([a878923](https://github.com/open-feature/java-sdk-contrib/commit/a878923a4fd36f73bb0c1cb33afe87906ab08c5c))
+* **deps:** update dependency com.flagsmith:flagsmith-java-client to v7.4.2 ([#951](https://github.com/open-feature/java-sdk-contrib/issues/951)) ([a1991bd](https://github.com/open-feature/java-sdk-contrib/commit/a1991bd203044cbb28af5fedd353b5354831bd47))
+* **deps:** update dependency com.squareup.okhttp3:okhttp to v4.12.0 ([#503](https://github.com/open-feature/java-sdk-contrib/issues/503)) ([a82668c](https://github.com/open-feature/java-sdk-contrib/commit/a82668cd6ad4a4026626c67d69ea84c89f617e3b))
+
+
+### ✨ New Features
+
+* Add support for http protocols option with flagsmith client ([#950](https://github.com/open-feature/java-sdk-contrib/issues/950)) ([a7e1f7b](https://github.com/open-feature/java-sdk-contrib/commit/a7e1f7bbafc3fc24d36691dc7bf94c7c97251b75))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.squareup.okhttp3:mockwebserver to v4.12.0 ([#502](https://github.com/open-feature/java-sdk-contrib/issues/502)) ([4e0b6ff](https://github.com/open-feature/java-sdk-contrib/commit/4e0b6fffdfdae425be5015440ba0434879db2554))
+
+
+### 📚 Documentation
+
+* **flagsmith:** Improve README ([#872](https://github.com/open-feature/java-sdk-contrib/issues/872)) ([1ce5ea5](https://github.com/open-feature/java-sdk-contrib/commit/1ce5ea5112078cc1686565034b7de4da77cb9f19))
+
 ## [0.0.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.7...dev.openfeature.contrib.providers.flagsmith-v0.0.8) (2023-08-15)
 
 

@@ -8,28 +8,24 @@ import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
 import dev.openfeature.sdk.Reason;
-import lombok.extern.slf4j.Slf4j;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * DataCollectorHook is an OpenFeature Hook in charge of sending the usage of the flag to GO Feature Flag.
+ * DataCollectorHook is an OpenFeature Hook in charge of sending the usage of the flag to GO Feature
+ * Flag.
  */
 @Slf4j
 @SuppressWarnings({"checkstyle:NoFinalizer"})
 public class DataCollectorHook implements Hook<HookContext<String>> {
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
     public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
-    /**
-     * options contains all the options of this hook.
-     */
+    /** options contains all the options of this hook. */
     private final DataCollectorHookOptions options;
-    /**
-     * eventsPublisher is the system collecting all the information to send to GO Feature Flag.
-     */
+    /** eventsPublisher is the system collecting all the information to send to GO Feature Flag. */
     private final EventsPublisher<Event> eventsPublisher;
 
     /**
@@ -42,10 +38,10 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
         if (options == null) {
             throw new InvalidOptions("No options provided");
         }
-        long flushIntervalMs = options.getFlushIntervalMs() == null
-                ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
-        int maxPendingEvents = options.getMaxPendingEvents() == null
-                ? DEFAULT_MAX_PENDING_EVENTS : options.getMaxPendingEvents();
+        long flushIntervalMs =
+                options.getFlushIntervalMs() == null ? DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
+        int maxPendingEvents =
+                options.getMaxPendingEvents() == null ? DEFAULT_MAX_PENDING_EVENTS : options.getMaxPendingEvents();
         Consumer<List<Event>> publisher = this::publishEvents;
         eventsPublisher = new EventsPublisher<>(publisher, flushIntervalMs, maxPendingEvents);
         this.options = options;
@@ -66,7 +62,7 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
                 .variation(details.getVariant())
                 .value(details.getValue())
                 .userKey(ctx.getCtx().getTargetingKey())
-                .creationDate(System.currentTimeMillis())
+                .creationDate(System.currentTimeMillis() / 1000L)
                 .build();
         eventsPublisher.add(event);
     }
@@ -77,7 +73,7 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
                 .key(ctx.getFlagKey())
                 .kind("feature")
                 .contextKind(GoFeatureFlagUser.isAnonymousUser(ctx.getCtx()) ? "anonymousUser" : "user")
-                .creationDate(System.currentTimeMillis())
+                .creationDate(System.currentTimeMillis() / 1000L)
                 .defaultValue(true)
                 .variation("SdkDefault")
                 .value(ctx.getDefaultValue())
@@ -87,7 +83,8 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
     }
 
     /**
-     * publishEvents is calling the GO Feature Flag data/collector api to store the flag usage for analytics.
+     * publishEvents is calling the GO Feature Flag data/collector api to store the flag usage for
+     * analytics.
      *
      * @param eventsList - list of the event to send to GO Feature Flag
      */
@@ -95,9 +92,7 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
         this.options.getGofeatureflagController().sendEventToDataCollector(eventsList);
     }
 
-    /**
-     * shutdown should be called when we stop the hook, it will publish the remaining event.
-     */
+    /** shutdown should be called when we stop the hook, it will publish the remaining event. */
     public void shutdown() {
         try {
             if (eventsPublisher != null) {

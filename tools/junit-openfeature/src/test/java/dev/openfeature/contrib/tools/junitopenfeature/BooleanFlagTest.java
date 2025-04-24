@@ -1,11 +1,13 @@
 package dev.openfeature.contrib.tools.junitopenfeature;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class BooleanFlagTest {
 
@@ -45,6 +47,14 @@ class BooleanFlagTest {
             assertThat(client.getBooleanValue(FLAG + "2", false)).isTrue();
             assertThat(client.getBooleanValue(FLAG + "3", false)).isTrue();
         }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = "true")
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getBooleanValue(FLAG, false)).isTrue();
+        }
     }
 
     @Nested
@@ -81,32 +91,34 @@ class BooleanFlagTest {
             assertThat(client.getBooleanValue(FLAG + "2", false)).isTrue();
             assertThat(client.getBooleanValue(FLAG + "3", false)).isTrue();
         }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @Flag(name = FLAG, value = "true")
+        void existingSimpleFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient("testSpecific");
+            assertThat(client.getBooleanValue(FLAG, false)).isTrue();
+        }
     }
 
     @Nested
     class ExtendedConfig {
         @Test
-        @OpenFeature({
-                @Flag(name = FLAG, value = "true")
-        })
+        @OpenFeature({@Flag(name = FLAG, value = "true")})
         void existingFlagIsRetrieved() {
             Client client = OpenFeatureAPI.getInstance().getClient();
             assertThat(client.getBooleanValue(FLAG, false)).isTrue();
         }
 
         @Test
-        @OpenFeature(
-                @Flag(name = FLAG, value = "truesadf")
-        )
+        @OpenFeature(@Flag(name = FLAG, value = "truesadf"))
         void strangeFlagValue() {
             Client client = OpenFeatureAPI.getInstance().getClient();
             assertThat(client.getBooleanValue(FLAG, false)).isFalse();
         }
 
         @Test
-        @OpenFeature(
-                @Flag(name = FLAG, value = "true")
-        )
+        @OpenFeature(@Flag(name = FLAG, value = "true"))
         void nonExistingFlagIsFallbacked() {
             Client client = OpenFeatureAPI.getInstance().getClient();
             assertThat(client.getBooleanValue("nonSetFlag", false)).isFalse();
@@ -114,9 +126,9 @@ class BooleanFlagTest {
 
         @Test
         @OpenFeature({
-                @Flag(name = FLAG, value = "true"),
-                @Flag(name = FLAG + "2", value = "true"),
-                @Flag(name = FLAG + "3", value = "true"),
+            @Flag(name = FLAG, value = "true"),
+            @Flag(name = FLAG + "2", value = "true"),
+            @Flag(name = FLAG + "3", value = "true"),
         })
         void multipleFlags() {
             Client client = OpenFeatureAPI.getInstance().getClient();
@@ -125,16 +137,24 @@ class BooleanFlagTest {
             assertThat(client.getBooleanValue(FLAG + "3", false)).isTrue();
         }
 
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2})
+        @OpenFeature({@Flag(name = FLAG, value = "true")})
+        void existingFlagIsRetrievedOnParameterizedTest() {
+            Client client = OpenFeatureAPI.getInstance().getClient();
+            assertThat(client.getBooleanValue(FLAG, false)).isTrue();
+        }
+
         @Nested
         @OpenFeature({
-                @Flag(name = FLAG, value = "true"),
-                @Flag(name = FLAG + "2", value = "false"),
+            @Flag(name = FLAG, value = "true"),
+            @Flag(name = FLAG + "2", value = "false"),
         })
         class MultipleFlags {
             @Test
             @OpenFeature({
-                    @Flag(name = FLAG + "2", value = "true"),
-                    @Flag(name = FLAG + "3", value = "true"),
+                @Flag(name = FLAG + "2", value = "true"),
+                @Flag(name = FLAG + "3", value = "true"),
             })
             void multipleFlags() {
                 Client client = OpenFeatureAPI.getInstance().getClient();
@@ -147,8 +167,8 @@ class BooleanFlagTest {
             @OpenFeature(
                     domain = "testSpecific",
                     value = {
-                            @Flag(name = FLAG + "2", value = "true"),
-                            @Flag(name = FLAG + "3", value = "true"),
+                        @Flag(name = FLAG + "2", value = "true"),
+                        @Flag(name = FLAG + "3", value = "true"),
                     })
             void multipleFlagsOnMultipleDomains() {
                 Client client = OpenFeatureAPI.getInstance().getClient();

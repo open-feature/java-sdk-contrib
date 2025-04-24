@@ -10,7 +10,7 @@
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flipt</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 
@@ -19,7 +19,8 @@
 ## Concepts
 
 * Boolean evaluation gets feature boolean evaluation / enabled status.
-* Non-boolean evaluation gets feature variant key.
+* Object evaluation gets variant attachment.
+* Other evaluations gets feature variant key.
 
 ## Usage
 

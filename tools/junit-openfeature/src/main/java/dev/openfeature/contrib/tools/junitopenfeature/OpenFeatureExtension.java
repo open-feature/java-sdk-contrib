@@ -2,6 +2,10 @@ package dev.openfeature.contrib.tools.junitopenfeature;
 
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.providers.memory.Flag;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.lang3.BooleanUtils;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -9,11 +13,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junitpioneer.internal.PioneerAnnotationUtils;
-
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * JUnit5 Extension for OpenFeature.
@@ -23,11 +22,8 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
     OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 
     private static Map<String, Map<String, Flag<?>>> handleExtendedConfiguration(
-            ExtensionContext extensionContext,
-            Map<String, Map<String, Flag<?>>> configuration
-    ) {
-        PioneerAnnotationUtils
-                .findAllEnclosingRepeatableAnnotations(extensionContext, OpenFeature.class)
+            ExtensionContext extensionContext, Map<String, Map<String, Flag<?>>> configuration) {
+        PioneerAnnotationUtils.findAllEnclosingRepeatableAnnotations(extensionContext, OpenFeature.class)
                 .forEachOrdered(annotation -> {
                     Map<String, Flag<?>> domainFlags = configuration.getOrDefault(annotation.domain(), new HashMap<>());
 
@@ -44,13 +40,12 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
 
     private static Map<String, Map<String, Flag<?>>> handleSimpleConfiguration(ExtensionContext extensionContext) {
         Map<String, Map<String, Flag<?>>> configuration = new HashMap<>();
-        String defaultDomain = PioneerAnnotationUtils
-                .findClosestEnclosingAnnotation(extensionContext, OpenFeatureDefaultDomain.class)
-                .map(OpenFeatureDefaultDomain::value).orElse("");
-        PioneerAnnotationUtils
-                .findAllEnclosingRepeatableAnnotations(
-                        extensionContext,
-                        dev.openfeature.contrib.tools.junitopenfeature.Flag.class)
+        String defaultDomain = PioneerAnnotationUtils.findClosestEnclosingAnnotation(
+                        extensionContext, OpenFeatureDefaultDomain.class)
+                .map(OpenFeatureDefaultDomain::value)
+                .orElse("");
+        PioneerAnnotationUtils.findAllEnclosingRepeatableAnnotations(
+                        extensionContext, dev.openfeature.contrib.tools.junitopenfeature.Flag.class)
                 .forEachOrdered(flag -> {
                     Map<String, Flag<?>> domainFlags = configuration.getOrDefault(defaultDomain, new HashMap<>());
                     if (!domainFlags.containsKey(flag.name())) {
@@ -63,9 +58,7 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
         return configuration;
     }
 
-    private static Flag.FlagBuilder<?> generateFlagBuilder(
-            dev.openfeature.contrib.tools.junitopenfeature.Flag flag
-    ) {
+    private static Flag.FlagBuilder<?> generateFlagBuilder(dev.openfeature.contrib.tools.junitopenfeature.Flag flag) {
         Flag.FlagBuilder<?> builder;
         switch (flag.valueType().getSimpleName()) {
             case "Boolean":
@@ -95,16 +88,22 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
     public void interceptTestMethod(
             Invocation<Void> invocation,
             ReflectiveInvocationContext<Method> invocationContext,
-            ExtensionContext extensionContext
-    ) throws Throwable {
-        TestProvider.setCurrentNamespace(getNamespace(extensionContext));
-        invocation.proceed();
-        TestProvider.clearCurrentNamespace();
+            ExtensionContext extensionContext)
+            throws Throwable {
+        executeWithNamespace(invocation, extensionContext);
     }
 
     @Override
-    public void afterEach(ExtensionContext extensionContext) throws Exception {
+    public void interceptTestTemplateMethod(
+            Invocation<Void> invocation,
+            ReflectiveInvocationContext<Method> invocationContext,
+            ExtensionContext extensionContext)
+            throws Throwable {
+        executeWithNamespace(invocation, extensionContext);
     }
+
+    @Override
+    public void afterEach(ExtensionContext extensionContext) throws Exception {}
 
     @Override
     public void beforeEach(ExtensionContext extensionContext) throws Exception {
@@ -119,35 +118,36 @@ public class OpenFeatureExtension implements BeforeEachCallback, AfterEachCallba
                     ((TestProvider) api.getProvider(domain))
                             .addConfigurationForTest(getNamespace(extensionContext), stringMapEntry.getValue());
                 } else {
-                    api.setProvider(domain, new TestProvider(
-                            getNamespace(extensionContext),
-                            stringMapEntry.getValue()));
+                    api.setProviderAndWait(
+                            domain, new TestProvider(getNamespace(extensionContext), stringMapEntry.getValue()));
                 }
             } else {
                 if (api.getProvider() instanceof TestProvider) {
                     ((TestProvider) api.getProvider())
                             .addConfigurationForTest(getNamespace(extensionContext), stringMapEntry.getValue());
                 } else {
-                    api.setProvider(new TestProvider(
-                            getNamespace(extensionContext),
-                            stringMapEntry.getValue()));
+                    api.setProviderAndWait(new TestProvider(getNamespace(extensionContext), stringMapEntry.getValue()));
                 }
             }
-
         }
 
         getStore(extensionContext).put("config", configuration);
-
     }
 
     private ExtensionContext.Namespace getNamespace(ExtensionContext extensionContext) {
-        return ExtensionContext.Namespace.create(
-                getClass(),
-                extensionContext.getRequiredTestMethod()
-        );
+        return ExtensionContext.Namespace.create(getClass(), extensionContext.getRequiredTestMethod());
     }
 
     private ExtensionContext.Store getStore(ExtensionContext context) {
         return context.getStore(ExtensionContext.Namespace.create(getClass()));
+    }
+
+    private void executeWithNamespace(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
+        TestProvider.setCurrentNamespace(getNamespace(extensionContext));
+        try {
+            invocation.proceed();
+        } finally {
+            TestProvider.clearCurrentNamespace();
+        }
     }
 }
