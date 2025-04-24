@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.2...dev.openfeature.contrib.parent-v0.2.3) (2025-04-24)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.22.1 ([#1328](https://github.com/open-feature/java-sdk-contrib/issues/1328)) ([9b894fe](https://github.com/open-feature/java-sdk-contrib/commit/9b894fe8005d84bbee66dc333019afa4fa2aa7a8))
+* **deps:** update dependency org.mockito:mockito-bom to v5.17.0 ([#1340](https://github.com/open-feature/java-sdk-contrib/issues/1340)) ([1804b9f](https://github.com/open-feature/java-sdk-contrib/commit/1804b9fb6e793eb20518b39c3de9ece2c7ad3b6f))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency org.honton.chas:exists-maven-plugin to v0.14.0 ([#934](https://github.com/open-feature/java-sdk-contrib/issues/934)) ([84c3743](https://github.com/open-feature/java-sdk-contrib/commit/84c374307c10dc89449d97e2362b16549a21abff))
+* use PAT for release please ([8ad6164](https://github.com/open-feature/java-sdk-contrib/commit/8ad61646361c16ef0b746bd9ef368aee86f553e1))
+
 ## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.1...dev.openfeature.contrib.parent-v0.2.2) (2025-04-24)
 
 
