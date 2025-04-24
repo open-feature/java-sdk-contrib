@@ -133,7 +133,7 @@
         "README.md"
       ]
     },
-    ".": {
+    "pom.xml": {
       "package-name": "dev.openfeature.contrib.parent",
       "release-type": "simple",
       "bump-minor-pre-major": true,
