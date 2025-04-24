@@ -11,5 +11,5 @@
   "providers/statsig": "0.1.0",
   "providers/multiprovider": "0.0.1",
   "tools/junit-openfeature": "0.1.2",
-  ".": "0.1.0"
+  "pom.xml": "0.1.0"
 }
