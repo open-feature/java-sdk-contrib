@@ -8,10 +8,8 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
-import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -37,9 +35,6 @@ public class PrefabProvider extends EventProvider {
     @Getter
     private PrefabCloudClient prefabCloudClient;
 
-    @Getter
-    private ProviderState state = ProviderState.NOT_READY;
-
     private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
@@ -63,8 +58,7 @@ public class PrefabProvider extends EventProvider {
         }
         super.initialize(evaluationContext);
         prefabCloudClient = new PrefabCloudClient(prefabProviderConfig.getOptions());
-        state = ProviderState.READY;
-        log.info("finished initializing provider, state: {}", state);
+        log.info("finished initializing provider");
 
         prefabProviderConfig.getOptions().addConfigChangeListener(changeEvent -> {
             ProviderEventDetails providerEventDetails = ProviderEventDetails.builder()
@@ -82,7 +76,6 @@ public class PrefabProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Boolean evaluatedValue = prefabCloudClient.featureFlagClient().featureIsOn(key, context);
         return ProviderEvaluation.<Boolean>builder()
@@ -92,7 +85,6 @@ public class PrefabProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         String evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
@@ -106,7 +98,6 @@ public class PrefabProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Integer evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
@@ -120,7 +111,6 @@ public class PrefabProvider extends EventProvider {
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        verifyEvaluation();
         PrefabContextSetReadable context = ctx == null ? null : ContextTransformer.transform(ctx);
         Double evaluatedValue = defaultValue;
         Optional<Prefab.ConfigValue> opt = prefabCloudClient.featureFlagClient().get(key, context);
@@ -143,21 +133,6 @@ public class PrefabProvider extends EventProvider {
             .build();
     }
 
-    private void verifyEvaluation() throws ProviderNotReadyError, GeneralError {
-        if (!ProviderState.READY.equals(state)) {
-
-            /*
-            According to spec Requirement 2.4.5:
-            "The provider SHOULD indicate an error if flag resolution is attempted before the provider is ready."
-            https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-245
-             */
-            if (ProviderState.NOT_READY.equals(state)) {
-                throw new ProviderNotReadyError(PROVIDER_NOT_YET_INITIALIZED);
-            }
-            throw new GeneralError(UNKNOWN_ERROR);
-        }
-    }
-
     @SneakyThrows
     @Override
     public void shutdown() {
@@ -166,6 +141,5 @@ public class PrefabProvider extends EventProvider {
         if (prefabCloudClient != null) {
             prefabCloudClient.close();
         }
-        state = ProviderState.NOT_READY;
     }
 }

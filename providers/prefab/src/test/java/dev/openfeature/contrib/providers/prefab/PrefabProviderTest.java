@@ -1,5 +1,9 @@
 package dev.openfeature.contrib.providers.prefab;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import cloud.prefab.client.Options;
 import cloud.prefab.context.PrefabContext;
 import cloud.prefab.context.PrefabContextSet;
@@ -11,18 +15,12 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
+import java.io.File;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.io.File;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * PrefabProvider test, based local default config file.
@@ -136,20 +134,11 @@ class PrefabProviderTest {
             .options(options).build();
         PrefabProvider tempPrefabProvider = new PrefabProvider(prefabProviderConfig);
 
-        ImmutableContext context = new ImmutableContext();
-        assertThrows(ProviderNotReadyError.class, ()-> tempPrefabProvider.getBooleanEvaluation("fail_not_initialized", false, context));
-
         OpenFeatureAPI.getInstance().setProviderAndWait("tempPrefabProvider", tempPrefabProvider);
 
         assertThrows(GeneralError.class, ()-> tempPrefabProvider.initialize(null));
 
         tempPrefabProvider.shutdown();
-
-        assertThrows(ProviderNotReadyError.class, ()-> tempPrefabProvider.getBooleanEvaluation("fail_not_initialized", false, context));
-        assertThrows(ProviderNotReadyError.class, ()-> tempPrefabProvider.getDoubleEvaluation("fail_not_initialized", 0.1, context));
-        assertThrows(ProviderNotReadyError.class, ()-> tempPrefabProvider.getIntegerEvaluation("fail_not_initialized", 3, context));
-        assertThrows(ProviderNotReadyError.class, ()-> tempPrefabProvider.getObjectEvaluation("fail_not_initialized", null, context));
-        assertThrows(ProviderNotReadyError.class, ()-> tempPrefabProvider.getStringEvaluation("fail_not_initialized", "", context));
     }
 
     @Test
@@ -157,7 +146,6 @@ class PrefabProviderTest {
         prefabProvider.emitProviderReady(ProviderEventDetails.builder().build());
         prefabProvider.emitProviderError(ProviderEventDetails.builder().build());
         prefabProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder().build());
-        assertDoesNotThrow(() -> log.debug("provider state: {}", prefabProvider.getState()));
     }
 
     @SneakyThrows
