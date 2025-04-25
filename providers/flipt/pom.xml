@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flipt</artifactId>
-    <version>0.1.1</version> <!--x-release-please-version -->
+    <version>0.1.2</version> <!--x-release-please-version -->
 
     <name>flipt</name>
     <description>Flipt provider for Java</description>
