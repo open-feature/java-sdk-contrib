@@ -14,7 +14,6 @@ jobs:
         id: release
         with:
           token: ${{secrets.RELEASE_PLEASE_ACTION_TOKEN}}
-          signoff: "OpenFeature Bot <109696520+openfeaturebot@users.noreply.github.com>"
 
       # The logic below handles the maven publication:
       - name: Checkout Repository
