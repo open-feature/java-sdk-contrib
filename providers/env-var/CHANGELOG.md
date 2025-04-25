@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.7...dev.openfeature.contrib.providers.env-var-v0.0.8) (2025-04-25)
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+
 ## [0.0.7](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.6...dev.openfeature.contrib.providers.env-var-v0.0.7) (2024-09-25)
 
 
