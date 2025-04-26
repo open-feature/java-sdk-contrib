@@ -4,8 +4,7 @@
 Http Connector is a tool for [flagd](https://github.com/open-feature/flagd) in-process resolver.
 
 This mode performs flag evaluations locally (in-process). 
-Flag configurations for evaluation are obtained via gRPC protocol using 
-[sync protobuf schema](https://buf.build/open-feature/flagd/file/main:sync/v1/sync_service.proto) service definition.
+Flag configurations for evaluation are obtained via Http.
 
 ## Http Connector functionality
 
