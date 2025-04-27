@@ -13,10 +13,6 @@ import lombok.extern.slf4j.Slf4j;
  * Updates the cached ETag and Last-Modified values upon receiving a 200 OK response.
  * It does not store the cached response, assuming not needed after first successful fetching.
  * Non thread-safe.
- *
- * @param httpClient the HTTP client used to send the request
- * @param httpRequestBuilder the builder for constructing the HTTP request
- * @return the HTTP response received from the server
  */
 @Slf4j
 public class HttpCacheFetcher {

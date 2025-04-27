@@ -161,7 +161,7 @@ public class HttpConnector implements QueueSource {
                 payloadCacheWrapper.updatePayloadIfNeeded(payload)
             );
         }
-        return payload != null;
+        return true;
     }
 
     private static boolean isSuccessful(HttpResponse<String> response) {
