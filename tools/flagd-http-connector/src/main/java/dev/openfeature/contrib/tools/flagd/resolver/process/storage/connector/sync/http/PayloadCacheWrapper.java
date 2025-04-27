@@ -36,7 +36,7 @@ public class PayloadCacheWrapper {
     }
 
     /**
-     * Updates the payload in the cache if the specified update interval has passed
+     * Updates the payload in the cache if the specified update interval has passed.
      *
      * @param payload the payload to be cached
      */
