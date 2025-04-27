@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
  * It uses a ScheduledExecutorService to schedule polling tasks and an ExecutorService for HTTP client execution.
  * The class also provides methods to initialize, retrieve the stream queue, and shutdown the connector gracefully.
  * It supports optional fail-safe initialization via cache.
- * <p></p>
  * See readme - Http Connector section.
  */
 @Slf4j
