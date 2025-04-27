@@ -5,6 +5,7 @@ import static java.net.http.HttpClient.Builder.NO_PROXY;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http.util.ConcurrentUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
@@ -20,7 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http.util.ConcurrentUtils;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  * It uses a ScheduledExecutorService to schedule polling tasks and an ExecutorService for HTTP client execution.
  * The class also provides methods to initialize, retrieve the stream queue, and shutdown the connector gracefully.
  * It supports optional fail-safe initialization via cache.
- *
+ * <p></p>
  * See readme - Http Connector section.
  */
 @Slf4j
@@ -53,6 +53,10 @@ public class HttpConnector implements QueueSource {
     @NonNull
     private String url;
 
+    /**
+     * HttpConnector constructor.
+     * @param httpConnectorOptions options for configuring the HttpConnector.
+     */
     @Builder
     public HttpConnector(HttpConnectorOptions httpConnectorOptions) {
         this.pollIntervalSeconds = httpConnectorOptions.getPollIntervalSeconds();
@@ -168,7 +172,8 @@ public class HttpConnector implements QueueSource {
         return response.statusCode() == 200 || response.statusCode() == 304;
     }
 
-    protected HttpResponse<String> execute(HttpRequest.Builder requestBuilder) throws IOException, InterruptedException {
+    protected HttpResponse<String> execute(HttpRequest.Builder requestBuilder)
+            throws IOException, InterruptedException {
         if (httpCacheFetcher != null) {
             return httpCacheFetcher.fetchContent(client, requestBuilder);
         }

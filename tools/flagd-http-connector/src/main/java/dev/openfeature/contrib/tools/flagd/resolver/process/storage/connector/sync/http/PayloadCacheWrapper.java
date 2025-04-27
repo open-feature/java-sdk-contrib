@@ -20,6 +20,11 @@ public class PayloadCacheWrapper {
     private long updateIntervalMs;
     private PayloadCache payloadCache;
 
+    /**
+     * Constructor for PayloadCacheWrapper.
+     * @param payloadCache the payload cache to be used
+     * @param payloadCacheOptions the options for configuring the cache
+     */
     @Builder
     public PayloadCacheWrapper(PayloadCache payloadCache, PayloadCacheOptions payloadCacheOptions) {
         if (payloadCacheOptions.getUpdateIntervalSeconds() < 1) {
@@ -29,6 +34,10 @@ public class PayloadCacheWrapper {
         this.payloadCache = payloadCache;
     }
 
+    /**
+     * Updates the payload in the cache if the specified update interval has passed
+     * @param payload the payload to be cached
+     */
     public void updatePayloadIfNeeded(String payload) {
         if ((getCurrentTimeMillis() - lastUpdateTimeMs) < updateIntervalMs) {
             log.debug("not updating payload, updateIntervalMs not reached");
@@ -48,6 +57,10 @@ public class PayloadCacheWrapper {
         return System.currentTimeMillis();
     }
 
+    /**
+     * Retrieves the cached payload.
+     * @return the cached payload
+     */
     public String get() {
         try {
             return payloadCache.get();

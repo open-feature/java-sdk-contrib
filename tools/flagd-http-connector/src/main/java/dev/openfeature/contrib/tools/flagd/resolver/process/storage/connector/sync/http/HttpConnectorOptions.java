@@ -10,6 +10,9 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
+/**
+ * Represents configuration options for the HTTP connector.
+ */
 @Getter
 public class HttpConnectorOptions {
 
@@ -40,6 +43,9 @@ public class HttpConnectorOptions {
     @NonNull
     private String url;
 
+    /**
+     * HttpConnectorOptions constructor.
+     */
     @Builder
     public HttpConnectorOptions(Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
             Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds, String url,
@@ -92,7 +98,8 @@ public class HttpConnectorOptions {
             String proxyHost, Integer proxyPort, PayloadCacheOptions payloadCacheOptions,
             PayloadCache payloadCache) {
         new URL(url).toURI();
-        if (linkedBlockingQueueCapacity != null && (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
+        if (linkedBlockingQueueCapacity != null &&
+                (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
             throw new IllegalArgumentException("linkedBlockingQueueCapacity must be between 1 and 1000");
         }
         if (scheduledThreadPoolSize != null && (scheduledThreadPoolSize < 1 || scheduledThreadPoolSize > 10)) {
@@ -110,7 +117,7 @@ public class HttpConnectorOptions {
         if (proxyPort != null && (proxyPort < 1 || proxyPort > 65535)) {
             throw new IllegalArgumentException("proxyPort must be between 1 and 65535");
         }
-        if (proxyHost != null && proxyPort == null ) {
+        if (proxyHost != null && proxyPort == null) {
             throw new IllegalArgumentException("proxyPort must be set if proxyHost is set");
         } else if (proxyHost == null && proxyPort != null) {
             throw new IllegalArgumentException("proxyHost must be set if proxyPort is set");
