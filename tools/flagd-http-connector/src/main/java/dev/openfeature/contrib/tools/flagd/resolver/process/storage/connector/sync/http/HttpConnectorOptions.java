@@ -98,8 +98,8 @@ public class HttpConnectorOptions {
             String proxyHost, Integer proxyPort, PayloadCacheOptions payloadCacheOptions,
             PayloadCache payloadCache) {
         new URL(url).toURI();
-        if (linkedBlockingQueueCapacity != null &&
-                (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
+        if (linkedBlockingQueueCapacity != null
+                && (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
             throw new IllegalArgumentException("linkedBlockingQueueCapacity must be between 1 and 1000");
         }
         if (scheduledThreadPoolSize != null && (scheduledThreadPoolSize < 1 || scheduledThreadPoolSize > 10)) {

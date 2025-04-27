@@ -54,6 +54,7 @@ public class HttpConnector implements QueueSource {
 
     /**
      * HttpConnector constructor.
+     *
      * @param httpConnectorOptions options for configuring the HttpConnector.
      */
     @Builder

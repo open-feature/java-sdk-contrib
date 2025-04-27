@@ -21,6 +21,7 @@ public class HttpCacheFetcher {
 
     /**
      * Fetches content from the given HTTP endpoint using the provided HttpClient and HttpRequest.Builder.
+     *
      * @param httpClient the HttpClient to use for the request
      * @param httpRequestBuilder the HttpRequest.Builder to build the request
      * @return the HttpResponse containing the response body as a String

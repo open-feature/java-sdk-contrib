@@ -6,5 +6,6 @@ package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.s
 public interface PayloadCache {
 
     void put(String payload);
+
     String get();
 }

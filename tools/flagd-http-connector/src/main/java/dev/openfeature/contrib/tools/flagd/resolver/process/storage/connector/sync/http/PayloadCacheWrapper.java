@@ -22,6 +22,7 @@ public class PayloadCacheWrapper {
 
     /**
      * Constructor for PayloadCacheWrapper.
+     *
      * @param payloadCache the payload cache to be used
      * @param payloadCacheOptions the options for configuring the cache
      */
@@ -36,6 +37,7 @@ public class PayloadCacheWrapper {
 
     /**
      * Updates the payload in the cache if the specified update interval has passed
+     *
      * @param payload the payload to be cached
      */
     public void updatePayloadIfNeeded(String payload) {
@@ -59,6 +61,7 @@ public class PayloadCacheWrapper {
 
     /**
      * Retrieves the cached payload.
+     *
      * @return the cached payload
      */
     public String get() {
