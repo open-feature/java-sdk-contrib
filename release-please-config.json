@@ -1,5 +1,6 @@
 {
   "bootstrap-sha": "5b1c87955b5d66b993f943161b72b30c398c1537",
+  "signoff": "OpenFeature Bot <109696520+openfeaturebot@users.noreply.github.com>",
   "separate-pull-requests": true,
   "packages": {
     "providers/flagd": {
@@ -128,6 +129,26 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
+    },
+    ".": {
+      "package-name": "dev.openfeature.contrib.parent",
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "exclude-paths": [
+        "./gitmodules",
+        "./github",
+        "./release-please-manifest.json",
+        "hooks",
+        "providers",
+        "release",
+        "tools"
+      ],
       "extra-files": [
         "pom.xml",
         "README.md"
