@@ -40,7 +40,7 @@ of the provider.
     OpenFeatureAPI.getInstance().setProvider(provider);
 ```
 
-### Key Transformation
+### Key transformation
 
 This provider supports transformation of keys to support different patterns used for naming feature flags and for
 naming environment variables, e.g. SCREAMING_SNAKE_CASE env variables vs. hyphen-case keys for feature flags.
