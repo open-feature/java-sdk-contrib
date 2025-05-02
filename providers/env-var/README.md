@@ -25,7 +25,7 @@ To use the `EnvVarProvider` create an instance and use it as a provider:
     OpenFeatureAPI.getInstance().setProvider(provider);
 ```
 
-### Configuring different methods of fetching environment variables
+### Configuring different methods for fetching environment variables
 
 This provider defines an `EnvironmentGateway` interface, which is used to access the actual environment variables. 
 The class [OS][os-class] is implementing this interface and creates the actual connection between provider 
