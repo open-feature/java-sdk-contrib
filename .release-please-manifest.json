@@ -3,7 +3,7 @@
   "hooks/open-telemetry": "3.2.1",
   "providers/go-feature-flag": "0.4.3",
   "providers/flagsmith": "0.0.10",
-  "providers/env-var": "0.0.7",
+  "providers/env-var": "0.0.8",
   "providers/jsonlogic-eval-provider": "1.1.1",
   "providers/unleash": "0.1.0-alpha",
   "providers/flipt": "0.1.1",
