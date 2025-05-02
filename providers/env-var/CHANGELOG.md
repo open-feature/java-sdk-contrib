@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.9...dev.openfeature.contrib.providers.env-var-v0.0.10) (2025-05-02)
+
+
+### 🧹 Chore
+
+* update README ([86b578f](https://github.com/open-feature/java-sdk-contrib/commit/86b578fcd6b27c88fb11fe4b30207f2db2448f41))
+
 ## [0.0.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.8...dev.openfeature.contrib.providers.env-var-v0.0.9) (2025-05-02)
 
 
