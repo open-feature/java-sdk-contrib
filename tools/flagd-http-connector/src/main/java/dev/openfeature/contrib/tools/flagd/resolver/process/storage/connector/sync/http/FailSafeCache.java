@@ -15,19 +15,21 @@ import lombok.extern.slf4j.Slf4j;
  * conditionally update the cache and {@link #get()} to retrieve the cached payload.</p>
  */
 @Slf4j
-public class PayloadCacheWrapper {
+public class FailSafeCache {
+    public static final String FAILSAFE_PAYLOAD_CACHE_KEY = FailSafeCache.class.getSimpleName()
+        + ".failsafe-payload";
     private long lastUpdateTimeMs;
     private long updateIntervalMs;
     private PayloadCache payloadCache;
 
     /**
-     * Constructor for PayloadCacheWrapper.
+     * Constructor for FailSafeCache.
      *
      * @param payloadCache the payload cache to be used
      * @param payloadCacheOptions the options for configuring the cache
      */
     @Builder
-    public PayloadCacheWrapper(PayloadCache payloadCache, PayloadCacheOptions payloadCacheOptions) {
+    public FailSafeCache(PayloadCache payloadCache, PayloadCacheOptions payloadCacheOptions) {
         if (payloadCacheOptions.getUpdateIntervalSeconds() < 1) {
             throw new IllegalArgumentException("pollIntervalSeconds must be larger than 0");
         }
@@ -48,7 +50,7 @@ public class PayloadCacheWrapper {
 
         try {
             log.debug("updating payload");
-            payloadCache.put(payload);
+            payloadCache.put(FAILSAFE_PAYLOAD_CACHE_KEY, payload);
             lastUpdateTimeMs = getCurrentTimeMillis();
         } catch (Exception e) {
             log.error("failed updating cache", e);
@@ -66,7 +68,7 @@ public class PayloadCacheWrapper {
      */
     public String get() {
         try {
-            return payloadCache.get();
+            return payloadCache.get(FAILSAFE_PAYLOAD_CACHE_KEY);
         } catch (Exception e) {
             log.error("failed getting from cache", e);
             return null;

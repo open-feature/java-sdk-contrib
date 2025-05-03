@@ -40,6 +40,10 @@ public class HttpConnectorOptions {
     private PayloadCache payloadCache;
     @Builder.Default
     private Boolean useHttpCache;
+    @Builder.Default
+    private Boolean useFailsafeCache;
+    @Builder.Default
+    private Boolean usePollingCache;
     @NonNull
     private String url;
 
@@ -50,9 +54,11 @@ public class HttpConnectorOptions {
     public HttpConnectorOptions(Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
             Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds, String url,
             Map<String, String> headers, ExecutorService httpClientExecutor, String proxyHost, Integer proxyPort,
-            PayloadCacheOptions payloadCacheOptions, PayloadCache payloadCache, Boolean useHttpCache) {
+            PayloadCacheOptions payloadCacheOptions, PayloadCache payloadCache, Boolean useHttpCache,
+            Boolean useFailsafeCache, Boolean usePollingCache) {
         validate(url, pollIntervalSeconds, linkedBlockingQueueCapacity, scheduledThreadPoolSize, requestTimeoutSeconds,
-                connectTimeoutSeconds, proxyHost, proxyPort, payloadCacheOptions, payloadCache);
+            connectTimeoutSeconds, proxyHost, proxyPort, payloadCacheOptions, payloadCache, useFailsafeCache,
+            usePollingCache);
         if (pollIntervalSeconds != null) {
             this.pollIntervalSeconds = pollIntervalSeconds;
         }
@@ -90,13 +96,19 @@ public class HttpConnectorOptions {
         if (useHttpCache != null) {
             this.useHttpCache = useHttpCache;
         }
+        if (useFailsafeCache != null) {
+            this.useFailsafeCache = useFailsafeCache;
+        }
+        if (usePollingCache != null) {
+            this.usePollingCache = usePollingCache;
+        }
     }
 
     @SneakyThrows
     private void validate(String url, Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
             Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds,
             String proxyHost, Integer proxyPort, PayloadCacheOptions payloadCacheOptions,
-            PayloadCache payloadCache) {
+            PayloadCache payloadCache, Boolean useFailsafeCache, Boolean usePollingCache) {
         new URL(url).toURI();
         if (linkedBlockingQueueCapacity != null
                 && (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
@@ -127,6 +139,27 @@ public class HttpConnectorOptions {
         }
         if (payloadCache != null && payloadCacheOptions == null) {
             throw new IllegalArgumentException("payloadCacheOptions must be set if payloadCache is set");
+        }
+        if ((Boolean.TRUE.equals(useFailsafeCache) || Boolean.TRUE.equals(usePollingCache)) && payloadCache == null) {
+            throw new IllegalArgumentException(
+                "payloadCache must be set if useFailsafeCache or usePollingCache is set");
+        }
+
+        if (payloadCache != null && Boolean.TRUE.equals(usePollingCache)) {
+
+            // verify payloadCache overrides put(String key, String payload, int ttlSeconds)
+            boolean overridesTtlPutMethod = false;
+            try {
+                var method = payloadCache.getClass().getMethod("put", String.class, String.class, int.class);
+                // Check if the method is declared in the class and not inherited
+                overridesTtlPutMethod = method.getDeclaringClass() != PayloadCache.class;
+            } catch (NoSuchMethodException e) {
+                // Method does not exist
+            }
+            if (!overridesTtlPutMethod) {
+                throw new IllegalArgumentException("when usePollingCache is used, payloadCache must override "
+                    + "put(String key, String payload, int ttlSeconds)");
+            }
         }
     }
 }

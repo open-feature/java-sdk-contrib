@@ -15,6 +15,9 @@ The implementation is using Java HttpClient.
 
 ## Use cases and benefits
 * Reduce infrastructure/devops work, without additional containers needed.
+* Reduce latency, since the data is fetched in-process.
+* Reduce external network traffic from the Http source even without a flagd separate container / proxy when 
+  polling cache is used.
 * Use as an additional provider for fallback / internal backup service via multi-provider.
 
 ### What happens if the Http source is down when application is starting ?
@@ -24,25 +27,43 @@ source downtime window, initial payload  is taken from cache to avoid starting w
 the source is back up. Therefore, the cache ttl expected to be higher than the expected source
 down-time to recover from during initialization.
 
+### Polling cache
+The polling cache is used to store the payload fetched from the URL.  
+Used when usePollingCache is configured as true.
+A key advantage of this cache is that it enables a single microservice within a cluster to handle the polling of a 
+URL, effectively acting as a flagd/proxy while all other services leverage the shared cache. 
+This approach optimizes resource usage by preventing redundant polling across services.
+
 ### Sample flow
 Sample flow can use:
 - Github as the flags payload source.
-- Redis cache as a fail-safe initialization cache.
+- Redis cache as a fail-safe initialization cache and as a polling cache.
 
 Sample flow of initialization during Github down-time window, showing that application can still use flags
 values as fetched from cache.
 ```mermaid
 sequenceDiagram
-    participant Provider
-    participant Github
+    box Cluster
+    participant micro-service-1
+    participant micro-service-2
+    participant micro-service-3
     participant Redis
+    end
+    participant Github
     
     break source downtime
-        Provider->>Github: initialize
-        Github->>Provider: failure
+    micro-service-1->>Github: initialize
+    Github->>micro-service-1: failure
     end
-    Provider->>Redis: fetch
-    Redis->>Provider: last payload
+    micro-service-1->>Redis: fetch
+    Redis->>micro-service-1: failsafe payload
+    Note right of micro-service-1: polling interval passed
+    micro-service-1->>Github: fetch
+    Github->>micro-service-1: payload
+    micro-service-2->>Redis: fetch
+    Redis->>micro-service-2: payload
+    micro-service-3->>Redis: fetch
+    Redis->>micro-service-3: payload
 
 ```
 
@@ -97,7 +118,6 @@ The Http Connector can be configured using the following properties in the `Http
 | payloadCacheOptions                       | PayloadCacheOptions | Options for configuring the payload cache. Default is null.                                                                                                                                                                                                                                                                                                                         |
 | payloadCache                              | PayloadCache        | The payload cache to use for caching responses. Default is null.                                                                                                                                                                                                                                                                                                                    |
 | useHttpCache                              | Boolean             | Whether to use HTTP caching for the requests. Default is false.                                                                                                                                                                                                                                                                                                                     |
+| useFailsafeCache                          | Boolean             | Whether to use a failsafe cache for initialization. Default is false.                                                                                                                                                                                                                                                                                                               |
+| usePollingCache                           | Boolean             | Whether to use a polling cache for initialization. Default is false.                                                                                                                                                                                                                                                                                                                |
 | PayloadCacheOptions.updateIntervalSeconds | Integer             | The interval, in seconds, at which the cache is updated. By default, this is set to 30 minutes. The goal is to avoid overloading fallback cache writes, since the cache serves only as a fallback mechanism. Typically, this value can be tuned to be shorter than the cache's TTL, balancing the need to minimize unnecessary updates while still handling edge cases effectively. |
-
-
-

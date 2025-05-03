@@ -9,6 +9,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.Config;
@@ -28,8 +30,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
-import dev.openfeature.sdk.EvaluationContext;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -86,12 +86,12 @@ class HttpConnectorTest {
         PayloadCache payloadCache = new PayloadCache() {
             private String payload;
             @Override
-            public void put(String payload) {
+            public void put(String key, String payload) {
                 this.payload = payload;
             }
 
             @Override
-            public String get() {
+            public String get(String key) {
                 return payload;
             }
         };
@@ -102,6 +102,7 @@ class HttpConnectorTest {
             .useHttpCache(true)
             .payloadCache(payloadCache)
             .payloadCacheOptions(PayloadCacheOptions.builder().build())
+            .useFailsafeCache(true)
             .build();
         HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
@@ -194,12 +195,12 @@ class HttpConnectorTest {
         final String cachedData = "cached data";
         PayloadCache payloadCache = new PayloadCache() {
             @Override
-            public void put(String payload) {
+            public void put(String key, String payload) {
                 // do nothing
             }
 
             @Override
-            public String get() {
+            public String get(String key) {
                 return cachedData;
             }
         };
@@ -208,6 +209,7 @@ class HttpConnectorTest {
             .url(testUrl)
             .payloadCache(payloadCache)
             .payloadCacheOptions(PayloadCacheOptions.builder().build())
+            .useFailsafeCache(true)
             .build();
         HttpConnector connector = HttpConnector.builder()
             .httpConnectorOptions(httpConnectorOptions)
@@ -408,6 +410,64 @@ class HttpConnectorTest {
         assertNotNull(payload);
         assertEquals(QueuePayloadType.DATA, payload.getType());
         assertEquals("response body", payload.getFlagData());
+    }
+
+    @Test
+    public void testSecondFetchFromCache() throws Exception {
+        // Mock PayloadCache
+        PayloadCache payloadCache = new PayloadCache() {
+            private String payload;
+            @Override
+            public void put(String key, String payload) {
+                this.payload = payload;
+            }
+
+            @Override
+            public void put(String key, String payload, int ttlSeconds) {
+                put(key, payload);
+            }
+
+            @Override
+            public String get(String key) {
+                return payload;
+            }
+        };
+        PayloadCache mockPayloadCache = spy(payloadCache);
+        when(mockPayloadCache.get(HttpConnector.POLLING_PAYLOAD_CACHE_KEY))
+            .thenReturn(null) // First fetch: cache miss
+            .thenReturn("cached payload"); // Second fetch: cache hit
+
+        // Configure HttpConnectorOptions with usePollingCache = true
+        HttpConnectorOptions options = HttpConnectorOptions.builder()
+            .url("http://example.com")
+            .pollIntervalSeconds(10)
+            .usePollingCache(true)
+            .payloadCache(mockPayloadCache)
+            .payloadCacheOptions(PayloadCacheOptions.builder().build())
+            .build();
+
+        // Create HttpConnector instance
+        HttpConnector connector = HttpConnector.builder()
+            .httpConnectorOptions(options)
+            .build();
+
+        // Initialize the connector
+        BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
+
+        // First fetch: verify cache was checked but not used
+        verify(mockPayloadCache, times(1)).get(HttpConnector.POLLING_PAYLOAD_CACHE_KEY);
+
+        // Simulate second fetch
+        connector.buildPollTask().run();
+
+        // Second fetch: verify cache was used
+        verify(mockPayloadCache, times(2)).get(HttpConnector.POLLING_PAYLOAD_CACHE_KEY);
+        assertEquals(1, queue.size(), "Queue should contain one element after second fetch from cache");
+
+        assertFalse(queue.isEmpty(), "Queue should contain payload after second fetch from cache");
+        QueuePayload payload = queue.poll();
+        assertNotNull(payload);
+        assertEquals(QueuePayloadType.DATA, payload.getType());
     }
 
     @Test

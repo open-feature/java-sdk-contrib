@@ -103,12 +103,12 @@ public class HttpConnectorOptionsTest {
             private String payload;
 
             @Override
-            public void put(String payload) {
+            public void put(String key, String payload) {
                 this.payload = payload;
             }
 
             @Override
-            public String get() {
+            public String get(String key) {
                 return this.payload;
             }
         };
@@ -174,11 +174,11 @@ public class HttpConnectorOptionsTest {
         PayloadCacheOptions cacheOptions = PayloadCacheOptions.builder().build();
         PayloadCache cache = new PayloadCache() {
             @Override
-            public void put(String payload) {
+            public void put(String key, String payload) {
                 // do nothing
             }
             @Override
-            public String get() { return null; }
+            public String get(String key) { return null; }
         };
 
         HttpConnectorOptions options = HttpConnectorOptions.builder()
@@ -232,11 +232,11 @@ public class HttpConnectorOptionsTest {
         PayloadCacheOptions cacheOptions = PayloadCacheOptions.builder().build();
         PayloadCache cache = new PayloadCache() {
             @Override
-            public void put(String payload) {
+            public void put(String key, String payload) {
                 // do nothing
             }
             @Override
-            public String get() { return null; }
+            public String get(String key) { return null; }
         };
 
         HttpConnectorOptions options = HttpConnectorOptions.builder()
@@ -372,12 +372,12 @@ public class HttpConnectorOptionsTest {
     public void testSettingPayloadCacheWithoutOptions() {
         PayloadCache mockPayloadCache = new PayloadCache() {
             @Override
-            public void put(String payload) {
+            public void put(String key, String payload) {
                 // Mock implementation
             }
 
             @Override
-            public String get() {
+            public String get(String key) {
                 return "mockPayload";
             }
         };

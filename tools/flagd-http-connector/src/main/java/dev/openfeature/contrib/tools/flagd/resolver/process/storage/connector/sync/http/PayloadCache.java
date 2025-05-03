@@ -5,7 +5,18 @@ package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.s
  */
 public interface PayloadCache {
 
-    void put(String payload);
+    void put(String key, String payload);
 
-    String get();
+    String get(String key);
+
+    /**
+     * Put a payload into the cache with a time-to-live (TTL) value.
+     * Must implement if HttpConnectorOptions.usePollingCache is true.
+     * @param key
+     * @param payload
+     * @param ttlSeconds
+     */
+    default void put(String key, String payload, int ttlSeconds) {
+        throw new UnsupportedOperationException("put with ttl not supported");
+    }
 }
