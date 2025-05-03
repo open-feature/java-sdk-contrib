@@ -34,13 +34,14 @@ A key advantage of this cache is that it enables a single microservice within a 
 URL, effectively acting as a flagd/proxy while all other services leverage the shared cache. 
 This approach optimizes resource usage by preventing redundant polling across services.
 
-### Sample flow
+### Sample flow demonstrating the architecture
 Sample flow can use:
 - Github as the flags payload source.
 - Redis cache as a fail-safe initialization cache and as a polling cache.
 
 Sample flow of initialization during Github down-time window, showing that application can still use flags
-values as fetched from cache.
+values as fetched from cache.  
+Multiple micro-services are using the same cache, and therefore only one of them is responsible for polling the URL.
 ```mermaid
 sequenceDiagram
     box Cluster
