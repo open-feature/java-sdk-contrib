@@ -21,7 +21,9 @@ import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.SneakyThrows;
@@ -53,14 +55,13 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = mock(HttpResponse.class);
-        HttpHeaders headersMock = mock(HttpHeaders.class);
-
+        HttpHeaders headers = HttpHeaders.of(
+            Collections.emptyMap(),
+            (a, b) -> true);
         when(requestBuilderMock.build()).thenReturn(requestMock);
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
-        when(responseMock.headers()).thenReturn(headersMock);
-        when(headersMock.firstValue("ETag")).thenReturn(Optional.empty());
-        when(headersMock.firstValue("Last-Modified")).thenReturn(Optional.empty());
+        when(responseMock.headers()).thenReturn(headers);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
         HttpResponse<String> response = fetcher.fetchContent(httpClientMock, requestBuilderMock);
