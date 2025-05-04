@@ -103,21 +103,32 @@ public class HttpConnector implements QueueSource {
         boolean success = fetchAndUpdate();
         if (!success) {
             log.info("failed initial fetch");
-            if (failSafeCache != null) {
-                updateFromFailsafeCache();
-            }
+            updateFromCache();
         }
         Runnable pollTask = buildPollTask();
         scheduler.scheduleWithFixedDelay(pollTask, pollIntervalSeconds, pollIntervalSeconds, TimeUnit.SECONDS);
         return queue;
     }
 
-    private void updateFromFailsafeCache() {
+    private void updateFromCache() {
         log.info("taking initial payload from cache to avoid starting with default values");
-        String flagData = failSafeCache.get();
+        String flagData = null;
+        if (payloadCache != null) {
+            flagData = payloadCache.get(POLLING_PAYLOAD_CACHE_KEY);
+            if (flagData != null) {
+                log.debug("got payload from polling cache key");
+            }
+        }
         if (flagData == null) {
-            log.debug("got null from cache");
-            return;
+            if (failSafeCache == null) {
+                log.debug("no failsafe cache, skipping");
+                return;
+            }
+            flagData = failSafeCache.get();
+            if (flagData == null) {
+                log.debug("could not get from failsafe cache");
+                return;
+            }
         }
         if (!this.queue.offer(new QueuePayload(QueuePayloadType.DATA, flagData))) {
             log.warn("init: Unable to offer file content to queue: queue is full");
@@ -134,7 +145,7 @@ public class HttpConnector implements QueueSource {
             String payload = payloadCache.get(POLLING_PAYLOAD_CACHE_KEY);
             if (payload != null) {
                 log.debug("got payload from polling cache key, skipping update");
-                return false;
+                return true;
             }
         }
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -161,7 +172,7 @@ public class HttpConnector implements QueueSource {
             return false;
         } else if (response.statusCode() == 304) {
             log.debug("got 304 Not Modified, skipping update");
-            return false;
+            return true;
         }
         if (payload == null) {
             log.debug("payload is null");

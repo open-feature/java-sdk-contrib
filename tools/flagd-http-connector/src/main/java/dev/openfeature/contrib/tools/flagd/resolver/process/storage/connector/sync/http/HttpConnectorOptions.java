@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -150,7 +151,7 @@ public class HttpConnectorOptions {
             // verify payloadCache overrides put(String key, String payload, int ttlSeconds)
             boolean overridesTtlPutMethod = false;
             try {
-                var method = payloadCache.getClass().getMethod("put", String.class, String.class, int.class);
+                Method method = payloadCache.getClass().getMethod("put", String.class, String.class, int.class);
                 // Check if the method is declared in the class and not inherited
                 overridesTtlPutMethod = method.getDeclaringClass() != PayloadCache.class;
             } catch (NoSuchMethodException e) {
