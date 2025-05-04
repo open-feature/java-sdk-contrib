@@ -12,9 +12,9 @@ public interface PayloadCache {
     /**
      * Put a payload into the cache with a time-to-live (TTL) value.
      * Must implement if HttpConnectorOptions.usePollingCache is true.
-     * @param key
-     * @param payload
-     * @param ttlSeconds
+     * @param key cache key
+     * @param payload payload to cache
+     * @param ttlSeconds time-to-live in seconds
      */
     default void put(String key, String payload, int ttlSeconds) {
         throw new UnsupportedOperationException("put with ttl not supported");
