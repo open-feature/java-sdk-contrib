@@ -3,7 +3,7 @@
 ## Introduction
 Http Connector is a tool for [flagd](https://github.com/open-feature/flagd) in-process resolver.
 
-This mode performs flag evaluations locally (in-process). 
+This mode performs flag evaluations locally (in-process).  
 Flag configurations for evaluation are obtained via Http.
 
 ## Http Connector functionality
@@ -14,18 +14,20 @@ reducing traffic, reducing rate limits effects and changes updates. Can be enabl
 The implementation is using Java HttpClient.
 
 ## Use cases and benefits
-* Reduce infrastructure/devops work, without additional containers needed.
-* Reduce latency, since the data is fetched in-process.
-* Reduce external network traffic from the Http source even without a flagd separate container / proxy when 
-  polling cache is used.
-* Use as an additional provider for fallback / internal backup service via multi-provider.
+* flagd installation is not required, working independently.  
+  Minimizing infrastructure and DevOps overhead - no extra containers required.
+* Low latency by fetching data directly in-process.
+* Decreased external network traffic from the HTTP source, even without a standalone flagd container or proxy, 
+  when using polling cache.
+* Can serve as an additional provider for fallback or internal backup scenarios using a multi-provider setup.
 
-### What happens if the Http source is down when application is starting ?
+### What happens if the Http source is down during application startup?
 
-It supports optional fail-safe initialization via cache, such that on initial fetch error following by
-source downtime window, initial payload  is taken from cache to avoid starting with default values until
-the source is back up. Therefore, the cache ttl expected to be higher than the expected source
-down-time to recover from during initialization.
+Http Connector supports optional fail-safe initialization using a cache.
+If the initial fetch fails due to source unavailability, it can load the initial payload from the cache instead of
+falling back to default values.
+This ensures smoother startup behavior until the source becomes available again. To be effective, the fallback cache’s
+TTL should be longer than the expected duration of the source downtime during initialization.
 
 ### Polling cache
 The polling cache is used to store the payload fetched from the URL.  
@@ -35,13 +37,13 @@ URL, effectively acting as a flagd/proxy while all other services leverage the s
 This approach optimizes resource usage by preventing redundant polling across services.
 
 ### Sample flow demonstrating the architecture
-Sample flow can use:
-- Github as the flags payload source.
-- Redis cache as a fail-safe initialization cache and as a polling cache.
+This example demonstrates an architectural flow using:
+- GitHub as the source for flag payload.
+- Redis serving as both the fail-safe initialization cache and the polling cache.
 
-Sample flow of initialization during Github down-time window, showing that application can still use flags
-values as fetched from cache.  
-Multiple micro-services are using the same cache, and therefore only one of them is responsible for polling the URL.
+Example initialization flow during GitHub downtime,
+demonstrates how the application continues to access flag values from the cache even when GitHub is unavailable.
+In this setup, multiple microservices share the same cache, with only one service responsible for polling the source URL.
 ```mermaid
 sequenceDiagram
     box Cluster
