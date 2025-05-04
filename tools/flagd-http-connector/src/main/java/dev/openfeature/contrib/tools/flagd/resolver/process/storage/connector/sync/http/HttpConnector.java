@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -98,6 +99,10 @@ public class HttpConnector implements QueueSource {
         log.info("init Http Connector");
     }
 
+    @SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification = "parent defines the interface"
+    )
     @Override
     public BlockingQueue<QueuePayload> getStreamQueue() {
         boolean success = fetchAndUpdate();

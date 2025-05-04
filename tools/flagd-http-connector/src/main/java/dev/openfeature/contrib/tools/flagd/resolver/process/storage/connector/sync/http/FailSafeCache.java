@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,6 +15,10 @@ import lombok.extern.slf4j.Slf4j;
  * the update interval, and then using {@link #updatePayloadIfNeeded(String)} to
  * conditionally update the cache and {@link #get()} to retrieve the cached payload.</p>
  */
+@SuppressFBWarnings(
+    value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
+    justification = "builder validations"
+)
 @Slf4j
 public class FailSafeCache {
     public static final String FAILSAFE_PAYLOAD_CACHE_KEY = FailSafeCache.class.getSimpleName()
@@ -30,11 +35,15 @@ public class FailSafeCache {
      */
     @Builder
     public FailSafeCache(PayloadCache payloadCache, PayloadCacheOptions payloadCacheOptions) {
+        validate(payloadCacheOptions);
+        this.updateIntervalMs = payloadCacheOptions.getUpdateIntervalSeconds() * 1000L;
+        this.payloadCache = payloadCache;
+    }
+
+    private static void validate(PayloadCacheOptions payloadCacheOptions) {
         if (payloadCacheOptions.getUpdateIntervalSeconds() < 1) {
             throw new IllegalArgumentException("pollIntervalSeconds must be larger than 0");
         }
-        this.updateIntervalMs = payloadCacheOptions.getUpdateIntervalSeconds() * 1000L;
-        this.payloadCache = payloadCache;
     }
 
     /**

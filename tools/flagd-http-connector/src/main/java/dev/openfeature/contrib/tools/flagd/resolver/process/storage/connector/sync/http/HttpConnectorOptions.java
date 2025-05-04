@@ -6,14 +6,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Represents configuration options for the HTTP connector.
  */
+@SuppressFBWarnings(
+        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
+        justification = "builder validations"
+)
+@Slf4j
 @Getter
 public class HttpConnectorOptions {
 
@@ -155,7 +162,7 @@ public class HttpConnectorOptions {
                 // Check if the method is declared in the class and not inherited
                 overridesTtlPutMethod = method.getDeclaringClass() != PayloadCache.class;
             } catch (NoSuchMethodException e) {
-                // Method does not exist
+                log.debug("payloadCache does not override put(String key, String payload, int ttlSeconds)");
             }
             if (!overridesTtlPutMethod) {
                 throw new IllegalArgumentException("when usePollingCache is used, payloadCache must override "

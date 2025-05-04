@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,6 +16,10 @@ import lombok.Getter;
  * corner cases.
  * </p>
  */
+@SuppressFBWarnings(
+    value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+    justification = "builder validations"
+)
 @Builder
 @Getter
 public class PayloadCacheOptions {
