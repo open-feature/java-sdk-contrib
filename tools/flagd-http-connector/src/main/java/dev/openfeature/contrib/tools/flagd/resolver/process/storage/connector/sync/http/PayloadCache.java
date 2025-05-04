@@ -5,13 +5,14 @@ package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.s
  */
 public interface PayloadCache {
 
-    void put(String key, String payload);
-
     String get(String key);
+
+    void put(String key, String payload);
 
     /**
      * Put a payload into the cache with a time-to-live (TTL) value.
      * Must implement if HttpConnectorOptions.usePollingCache is true.
+     *
      * @param key cache key
      * @param payload payload to cache
      * @param ttlSeconds time-to-live in seconds

@@ -6,6 +6,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http.util.ConcurrentUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
@@ -21,7 +22,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
