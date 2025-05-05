@@ -14,7 +14,7 @@ reducing traffic, reducing rate limits effects and changes updates. Can be enabl
 The implementation is using Java HttpClient.
 
 ## Use cases and benefits
-* flagd installation is not required, working independently.  
+* flagd installation is not required, the Http Connector works independently.  
   Minimizing infrastructure and DevOps overhead - no extra containers required.
 * Low latency by fetching data directly in-process.
 * Decreased external network traffic from the HTTP source, even without a standalone flagd container or proxy, 
