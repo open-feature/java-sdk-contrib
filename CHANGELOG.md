@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.2...dev.openfeature.contrib.parent-v0.2.3) (2025-05-05)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.22.1 ([#1328](https://github.com/open-feature/java-sdk-contrib/issues/1328)) ([9b894fe](https://github.com/open-feature/java-sdk-contrib/commit/9b894fe8005d84bbee66dc333019afa4fa2aa7a8))
+* **deps:** update dependency org.mockito:mockito-bom to v5.17.0 ([#1340](https://github.com/open-feature/java-sdk-contrib/issues/1340)) ([1804b9f](https://github.com/open-feature/java-sdk-contrib/commit/1804b9fb6e793eb20518b39c3de9ece2c7ad3b6f))
+
+
+### 🧹 Chore
+
+* add DCO to release-please ([cc6716e](https://github.com/open-feature/java-sdk-contrib/commit/cc6716e49a0046514fce5ba38beb8934317064d4))
+* **deps:** update dependency com.puppycrawl.tools:checkstyle to v10.23.1 ([#1365](https://github.com/open-feature/java-sdk-contrib/issues/1365)) ([f22e9e4](https://github.com/open-feature/java-sdk-contrib/commit/f22e9e42f7739d9b59aa97ac37a080d901094e0d))
+* **deps:** update dependency org.honton.chas:exists-maven-plugin to v0.14.0 ([#934](https://github.com/open-feature/java-sdk-contrib/issues/934)) ([84c3743](https://github.com/open-feature/java-sdk-contrib/commit/84c374307c10dc89449d97e2362b16549a21abff))
+* fix rp workflow ([210bfc6](https://github.com/open-feature/java-sdk-contrib/commit/210bfc6da0cce4cb04fa6d47a535110368f33875))
+* fix RP workflow  ([68eb1df](https://github.com/open-feature/java-sdk-contrib/commit/68eb1dfe66ca7946595487d9189d008fae5af715))
+* **main:** release dev.openfeature.contrib.providers.env-var 0.0.10 ([#1364](https://github.com/open-feature/java-sdk-contrib/issues/1364)) ([f96ee03](https://github.com/open-feature/java-sdk-contrib/commit/f96ee0344e84f32633681f9518e8f912bdcd53d1))
+* **main:** release dev.openfeature.contrib.providers.env-var 0.0.8 ([#1359](https://github.com/open-feature/java-sdk-contrib/issues/1359)) ([a390c68](https://github.com/open-feature/java-sdk-contrib/commit/a390c6822c9fbf9fc38116e0f0de160a0b81da4d))
+* **main:** release dev.openfeature.contrib.providers.env-var 0.0.9 ([#1363](https://github.com/open-feature/java-sdk-contrib/issues/1363)) ([efb1151](https://github.com/open-feature/java-sdk-contrib/commit/efb1151672e4113a6bde95696253bee3af553cba))
+* remove redundant signoff ([e570d5c](https://github.com/open-feature/java-sdk-contrib/commit/e570d5ce0433b158df0c2e44d6b5edb3e1d2881a))
+* update release plz ([#1362](https://github.com/open-feature/java-sdk-contrib/issues/1362)) ([21cce76](https://github.com/open-feature/java-sdk-contrib/commit/21cce76716a8297b41871d8b1cbb78dc70add12c))
+* use PAT for release please ([8ad6164](https://github.com/open-feature/java-sdk-contrib/commit/8ad61646361c16ef0b746bd9ef368aee86f553e1))
+
 ## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.1...dev.openfeature.contrib.parent-v0.2.2) (2025-04-24)
 
 
