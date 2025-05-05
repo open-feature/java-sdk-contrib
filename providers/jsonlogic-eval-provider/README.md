@@ -11,7 +11,7 @@ achieve low latency flag evaluation.
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>jsonlogic-eval-provider</artifactId>
-    <version>1.1.1</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
