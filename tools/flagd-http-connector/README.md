@@ -26,8 +26,7 @@ The implementation is using Java HttpClient.
 Http Connector supports optional fail-safe initialization using a cache.
 If the initial fetch fails due to source unavailability, it can load the initial payload from the cache instead of
 falling back to default values.
-This ensures smoother startup behavior until the source becomes available again. To be effective, the fallback cache’s
-TTL should be longer than the expected duration of the source downtime during initialization.
+This ensures smoother startup behavior until the source becomes available again. To be effective, the TTL of the fallback cache should be longer than the expected duration of the source downtime during initialization.
 
 ### Polling cache
 The polling cache is used to store the payload fetched from the URL.  
