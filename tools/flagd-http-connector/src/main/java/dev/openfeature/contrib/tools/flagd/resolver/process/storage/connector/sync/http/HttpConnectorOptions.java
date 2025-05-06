@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -117,7 +119,7 @@ public class HttpConnectorOptions {
             Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds,
             String proxyHost, Integer proxyPort, PayloadCacheOptions payloadCacheOptions,
             PayloadCache payloadCache, Boolean useFailsafeCache, Boolean usePollingCache) {
-        new URL(url).toURI();
+        validateUrl(url);
         if (linkedBlockingQueueCapacity != null
                 && (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
             throw new IllegalArgumentException("linkedBlockingQueueCapacity must be between 1 and 1000");
@@ -169,5 +171,9 @@ public class HttpConnectorOptions {
                     + "put(String key, String payload, int ttlSeconds)");
             }
         }
+    }
+
+    private static void validateUrl(String url) throws URISyntaxException, MalformedURLException {
+        new URL(url).toURI();
     }
 }

@@ -55,6 +55,7 @@ public class HttpConnector implements QueueSource {
 
     @NonNull
     private String url;
+    private URI uri;
 
     /**
      * HttpConnector constructor.
@@ -71,6 +72,7 @@ public class HttpConnector implements QueueSource {
                 httpConnectorOptions.getProxyPort()));
         }
         this.url = httpConnectorOptions.getUrl();
+        uri = URI.create(url);
         this.headers = httpConnectorOptions.getHeaders();
         this.httpClientExecutor = httpConnectorOptions.getHttpClientExecutor();
         scheduler = Executors.newScheduledThreadPool(httpConnectorOptions.getScheduledThreadPoolSize());
@@ -154,7 +156,7 @@ public class HttpConnector implements QueueSource {
             }
         }
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-            .uri(URI.create(url))
+            .uri(uri)
             .timeout(Duration.ofSeconds(requestTimeoutSeconds))
             .GET();
         headers.forEach(requestBuilder::header);
@@ -188,6 +190,11 @@ public class HttpConnector implements QueueSource {
             log.warn("Unable to offer file content to queue: queue is full");
             return false;
         }
+        updateCache(payload);
+        return true;
+    }
+
+    private void updateCache(String payload) {
         if (payloadCache != null) {
             log.debug("scheduling cache update if needed");
             scheduler.execute(() -> {
@@ -202,7 +209,6 @@ public class HttpConnector implements QueueSource {
                 }
             );
         }
-        return true;
     }
 
     private static boolean isSuccessful(HttpResponse<String> response) {
