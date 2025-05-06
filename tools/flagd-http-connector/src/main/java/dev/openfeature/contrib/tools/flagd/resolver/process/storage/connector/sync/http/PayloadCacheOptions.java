@@ -17,9 +17,8 @@ import lombok.Getter;
  * </p>
  */
 @SuppressFBWarnings(
-    value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-    justification = "builder validations"
-)
+        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        justification = "builder validations")
 @Builder
 @Getter
 public class PayloadCacheOptions {

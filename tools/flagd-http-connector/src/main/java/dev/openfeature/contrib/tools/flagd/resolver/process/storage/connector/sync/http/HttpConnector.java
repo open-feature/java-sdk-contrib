@@ -53,8 +53,8 @@ public class HttpConnector implements QueueSource {
     private int payloadCachePollTtlSeconds;
     private boolean usePollingCache;
 
-    @NonNull
-    private String url;
+    @NonNull private String url;
+
     private URI uri;
 
     /**
@@ -68,8 +68,8 @@ public class HttpConnector implements QueueSource {
         this.requestTimeoutSeconds = httpConnectorOptions.getRequestTimeoutSeconds();
         ProxySelector proxySelector = NO_PROXY;
         if (httpConnectorOptions.getProxyHost() != null && httpConnectorOptions.getProxyPort() != null) {
-            proxySelector = ProxySelector.of(new InetSocketAddress(httpConnectorOptions.getProxyHost(),
-                httpConnectorOptions.getProxyPort()));
+            proxySelector = ProxySelector.of(
+                    new InetSocketAddress(httpConnectorOptions.getProxyHost(), httpConnectorOptions.getProxyPort()));
         }
         this.url = httpConnectorOptions.getUrl();
         uri = URI.create(url);
@@ -77,17 +77,17 @@ public class HttpConnector implements QueueSource {
         this.httpClientExecutor = httpConnectorOptions.getHttpClientExecutor();
         scheduler = Executors.newScheduledThreadPool(httpConnectorOptions.getScheduledThreadPoolSize());
         this.client = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(httpConnectorOptions.getConnectTimeoutSeconds()))
-            .proxy(proxySelector)
-            .executor(this.httpClientExecutor)
-            .build();
+                .connectTimeout(Duration.ofSeconds(httpConnectorOptions.getConnectTimeoutSeconds()))
+                .proxy(proxySelector)
+                .executor(this.httpClientExecutor)
+                .build();
         this.queue = new LinkedBlockingQueue<>(httpConnectorOptions.getLinkedBlockingQueueCapacity());
         this.payloadCache = httpConnectorOptions.getPayloadCache();
         if (payloadCache != null && Boolean.TRUE.equals(httpConnectorOptions.getUseFailsafeCache())) {
             this.failSafeCache = FailSafeCache.builder()
-                .payloadCache(payloadCache)
-                .payloadCacheOptions(httpConnectorOptions.getPayloadCacheOptions())
-                .build();
+                    .payloadCache(payloadCache)
+                    .payloadCacheOptions(httpConnectorOptions.getPayloadCacheOptions())
+                    .build();
         }
         if (Boolean.TRUE.equals(httpConnectorOptions.getUseHttpCache())) {
             httpCacheFetcher = new HttpCacheFetcher();
@@ -101,10 +101,7 @@ public class HttpConnector implements QueueSource {
         log.info("init Http Connector");
     }
 
-    @SuppressFBWarnings(
-        value = "EI_EXPOSE_REP",
-        justification = "parent defines the interface"
-    )
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "parent defines the interface")
     @Override
     public BlockingQueue<QueuePayload> getStreamQueue() {
         boolean success = fetchAndUpdate();
@@ -156,9 +153,9 @@ public class HttpConnector implements QueueSource {
             }
         }
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-            .uri(uri)
-            .timeout(Duration.ofSeconds(requestTimeoutSeconds))
-            .GET();
+                .uri(uri)
+                .timeout(Duration.ofSeconds(requestTimeoutSeconds))
+                .GET();
         headers.forEach(requestBuilder::header);
 
         HttpResponse<String> response;
@@ -198,16 +195,15 @@ public class HttpConnector implements QueueSource {
         if (payloadCache != null) {
             log.debug("scheduling cache update if needed");
             scheduler.execute(() -> {
-                    if (failSafeCache != null) {
-                        log.debug("updating payload in failsafe cache if needed");
-                        failSafeCache.updatePayloadIfNeeded(payload);
-                    }
-                    if (payloadCache != null) {
-                        log.debug("updating polling payload in cache");
-                        payloadCache.put(POLLING_PAYLOAD_CACHE_KEY, payload, payloadCachePollTtlSeconds);
-                    }
+                if (failSafeCache != null) {
+                    log.debug("updating payload in failsafe cache if needed");
+                    failSafeCache.updatePayloadIfNeeded(payload);
                 }
-            );
+                if (payloadCache != null) {
+                    log.debug("updating polling payload in cache");
+                    payloadCache.put(POLLING_PAYLOAD_CACHE_KEY, payload, payloadCachePollTtlSeconds);
+                }
+            });
         }
     }
 

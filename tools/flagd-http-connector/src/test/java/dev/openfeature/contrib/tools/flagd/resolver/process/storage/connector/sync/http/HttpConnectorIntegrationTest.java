@@ -28,18 +28,19 @@ class HttpConnectorIntegrationTest {
         assumeTrue(parseBoolean("integrationTestsEnabled"));
         HttpConnector connector = null;
         try {
-            String testUrl = "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/58fe5da7d4e2f6f4ae2c1caf3411a01e84a1dc1a/providers/flagd/version.txt";
+            String testUrl =
+                    "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/58fe5da7d4e2f6f4ae2c1caf3411a01e84a1dc1a/providers/flagd/version.txt";
 
             HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-                .url(testUrl)
-                .connectTimeoutSeconds(10)
-                .requestTimeoutSeconds(10)
-                .useHttpCache(true)
-                .pollIntervalSeconds(5)
-                .build();
+                    .url(testUrl)
+                    .connectTimeoutSeconds(10)
+                    .requestTimeoutSeconds(10)
+                    .useHttpCache(true)
+                    .pollIntervalSeconds(5)
+                    .build();
             connector = HttpConnector.builder()
-                .httpConnectorOptions(httpConnectorOptions)
-                .build();
+                    .httpConnectorOptions(httpConnectorOptions)
+                    .build();
             BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
             delay(20000);
             assertEquals(1, queue.size());
@@ -53,5 +54,4 @@ class HttpConnectorIntegrationTest {
     public static boolean parseBoolean(String key) {
         return Boolean.parseBoolean(System.getProperty(key, System.getenv(key)));
     }
-
 }

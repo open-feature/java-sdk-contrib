@@ -16,13 +16,11 @@ import lombok.extern.slf4j.Slf4j;
  * conditionally update the cache and {@link #get()} to retrieve the cached payload.</p>
  */
 @SuppressFBWarnings(
-    value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-    justification = "builder validations"
-)
+        value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
+        justification = "builder validations")
 @Slf4j
 public class FailSafeCache {
-    public static final String FAILSAFE_PAYLOAD_CACHE_KEY = FailSafeCache.class.getSimpleName()
-        + ".failsafe-payload";
+    public static final String FAILSAFE_PAYLOAD_CACHE_KEY = FailSafeCache.class.getSimpleName() + ".failsafe-payload";
     private long lastUpdateTimeMs;
     private long updateIntervalMs;
     private PayloadCache payloadCache;

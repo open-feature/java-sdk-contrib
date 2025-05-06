@@ -1,25 +1,24 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
-import org.junit.jupiter.api.Test;
-import java.net.MalformedURLException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.MalformedURLException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.jupiter.api.Test;
+
 public class HttpConnectorOptionsTest {
 
     @Test
     public void testDefaultValuesInitialization() {
-        HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("https://example.com")
-            .build();
+        HttpConnectorOptions options =
+                HttpConnectorOptions.builder().url("https://example.com").build();
 
         assertEquals(60, options.getPollIntervalSeconds().intValue());
         assertEquals(10, options.getConnectTimeoutSeconds().intValue());
@@ -40,11 +39,8 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testInvalidUrlFormat() {
         MalformedURLException exception = assertThrows(
-            MalformedURLException.class,
-            () -> HttpConnectorOptions.builder()
-                .url("invalid-url")
-                .build()
-        );
+                MalformedURLException.class,
+                () -> HttpConnectorOptions.builder().url("invalid-url").build());
 
         assertNotNull(exception);
     }
@@ -52,13 +48,13 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testCustomValuesInitialization() {
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .pollIntervalSeconds(120)
-            .connectTimeoutSeconds(20)
-            .requestTimeoutSeconds(30)
-            .linkedBlockingQueueCapacity(200)
-            .scheduledThreadPoolSize(5)
-            .url("http://example.com")
-            .build();
+                .pollIntervalSeconds(120)
+                .connectTimeoutSeconds(20)
+                .requestTimeoutSeconds(30)
+                .linkedBlockingQueueCapacity(200)
+                .scheduledThreadPoolSize(5)
+                .url("http://example.com")
+                .build();
 
         assertEquals(120, options.getPollIntervalSeconds().intValue());
         assertEquals(20, options.getConnectTimeoutSeconds().intValue());
@@ -75,9 +71,9 @@ public class HttpConnectorOptionsTest {
         customHeaders.put("Content-Type", "application/json");
 
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("http://example.com")
-            .headers(customHeaders)
-            .build();
+                .url("http://example.com")
+                .headers(customHeaders)
+                .build();
 
         assertEquals("Bearer token", options.getHeaders().get("Authorization"));
         assertEquals("application/json", options.getHeaders().get("Content-Type"));
@@ -87,18 +83,17 @@ public class HttpConnectorOptionsTest {
     public void testCustomExecutorService() {
         ExecutorService customExecutor = Executors.newFixedThreadPool(5);
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("https://example.com")
-            .httpClientExecutor(customExecutor)
-            .build();
+                .url("https://example.com")
+                .httpClientExecutor(customExecutor)
+                .build();
 
         assertEquals(customExecutor, options.getHttpClientExecutor());
     }
 
     @Test
     public void testSettingPayloadCacheWithValidOptions() {
-        PayloadCacheOptions cacheOptions = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(1800)
-            .build();
+        PayloadCacheOptions cacheOptions =
+                PayloadCacheOptions.builder().updateIntervalSeconds(1800).build();
         PayloadCache payloadCache = new PayloadCache() {
             private String payload;
 
@@ -114,10 +109,10 @@ public class HttpConnectorOptionsTest {
         };
 
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("https://example.com")
-            .payloadCacheOptions(cacheOptions)
-            .payloadCache(payloadCache)
-            .build();
+                .url("https://example.com")
+                .payloadCacheOptions(cacheOptions)
+                .payloadCache(payloadCache)
+                .build();
 
         assertNotNull(options.getPayloadCacheOptions());
         assertNotNull(options.getPayloadCache());
@@ -127,10 +122,10 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testProxyConfigurationWithValidHostAndPort() {
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("https://example.com")
-            .proxyHost("proxy.example.com")
-            .proxyPort(8080)
-            .build();
+                .url("https://example.com")
+                .proxyHost("proxy.example.com")
+                .proxyPort(8080)
+                .build();
 
         assertEquals("proxy.example.com", options.getProxyHost());
         assertEquals(8080, options.getProxyPort().intValue());
@@ -140,17 +135,17 @@ public class HttpConnectorOptionsTest {
     public void testLinkedBlockingQueueCapacityOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .linkedBlockingQueueCapacity(0)
-                .build();
+                    .url("https://example.com")
+                    .linkedBlockingQueueCapacity(0)
+                    .build();
         });
         assertEquals("linkedBlockingQueueCapacity must be between 1 and 1000", exception.getMessage());
 
         exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .linkedBlockingQueueCapacity(1001)
-                .build();
+                    .url("https://example.com")
+                    .linkedBlockingQueueCapacity(1001)
+                    .build();
         });
         assertEquals("linkedBlockingQueueCapacity must be between 1 and 1000", exception.getMessage());
     }
@@ -159,9 +154,9 @@ public class HttpConnectorOptionsTest {
     public void testPollIntervalSecondsOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .pollIntervalSeconds(700)
-                .build();
+                    .url("https://example.com")
+                    .pollIntervalSeconds(700)
+                    .build();
         });
         assertEquals("pollIntervalSeconds must be between 1 and 600", exception.getMessage());
     }
@@ -177,25 +172,28 @@ public class HttpConnectorOptionsTest {
             public void put(String key, String payload) {
                 // do nothing
             }
+
             @Override
-            public String get(String key) { return null; }
+            public String get(String key) {
+                return null;
+            }
         };
 
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("https://example.com")
-            .pollIntervalSeconds(120)
-            .connectTimeoutSeconds(20)
-            .requestTimeoutSeconds(30)
-            .linkedBlockingQueueCapacity(200)
-            .scheduledThreadPoolSize(4)
-            .headers(headers)
-            .httpClientExecutor(executorService)
-            .proxyHost("proxy.example.com")
-            .proxyPort(8080)
-            .payloadCacheOptions(cacheOptions)
-            .payloadCache(cache)
-            .useHttpCache(true)
-            .build();
+                .url("https://example.com")
+                .pollIntervalSeconds(120)
+                .connectTimeoutSeconds(20)
+                .requestTimeoutSeconds(30)
+                .linkedBlockingQueueCapacity(200)
+                .scheduledThreadPoolSize(4)
+                .headers(headers)
+                .httpClientExecutor(executorService)
+                .proxyHost("proxy.example.com")
+                .proxyPort(8080)
+                .payloadCacheOptions(cacheOptions)
+                .payloadCache(cache)
+                .useHttpCache(true)
+                .build();
 
         assertEquals(120, options.getPollIntervalSeconds().intValue());
         assertEquals(20, options.getConnectTimeoutSeconds().intValue());
@@ -217,9 +215,9 @@ public class HttpConnectorOptionsTest {
     public void testRequestTimeoutSecondsOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .requestTimeoutSeconds(61)
-                .build();
+                    .url("https://example.com")
+                    .requestTimeoutSeconds(61)
+                    .build();
         });
         assertEquals("requestTimeoutSeconds must be between 1 and 60", exception.getMessage());
     }
@@ -235,25 +233,28 @@ public class HttpConnectorOptionsTest {
             public void put(String key, String payload) {
                 // do nothing
             }
+
             @Override
-            public String get(String key) { return null; }
+            public String get(String key) {
+                return null;
+            }
         };
 
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .pollIntervalSeconds(120)
-            .connectTimeoutSeconds(20)
-            .requestTimeoutSeconds(30)
-            .linkedBlockingQueueCapacity(200)
-            .scheduledThreadPoolSize(4)
-            .headers(headers)
-            .httpClientExecutor(executorService)
-            .proxyHost("proxy.example.com")
-            .proxyPort(8080)
-            .payloadCacheOptions(cacheOptions)
-            .payloadCache(cache)
-            .useHttpCache(true)
-            .url("https://example.com")
-            .build();
+                .pollIntervalSeconds(120)
+                .connectTimeoutSeconds(20)
+                .requestTimeoutSeconds(30)
+                .linkedBlockingQueueCapacity(200)
+                .scheduledThreadPoolSize(4)
+                .headers(headers)
+                .httpClientExecutor(executorService)
+                .proxyHost("proxy.example.com")
+                .proxyPort(8080)
+                .payloadCacheOptions(cacheOptions)
+                .payloadCache(cache)
+                .useHttpCache(true)
+                .url("https://example.com")
+                .build();
 
         assertEquals(120, options.getPollIntervalSeconds().intValue());
         assertEquals(20, options.getConnectTimeoutSeconds().intValue());
@@ -274,9 +275,9 @@ public class HttpConnectorOptionsTest {
     public void testScheduledThreadPoolSizeOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .scheduledThreadPoolSize(11)
-                .build();
+                    .url("https://example.com")
+                    .scheduledThreadPoolSize(11)
+                    .build();
         });
         assertEquals("scheduledThreadPoolSize must be between 1 and 10", exception.getMessage());
     }
@@ -285,10 +286,10 @@ public class HttpConnectorOptionsTest {
     public void testProxyPortOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .proxyHost("proxy.example.com")
-                .proxyPort(70000) // Invalid port, out of range
-                .build();
+                    .url("https://example.com")
+                    .proxyHost("proxy.example.com")
+                    .proxyPort(70000) // Invalid port, out of range
+                    .build();
         });
         assertEquals("proxyPort must be between 1 and 65535", exception.getMessage());
     }
@@ -297,17 +298,17 @@ public class HttpConnectorOptionsTest {
     public void testConnectTimeoutSecondsOutOfRange() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .connectTimeoutSeconds(0)
-                .build();
+                    .url("https://example.com")
+                    .connectTimeoutSeconds(0)
+                    .build();
         });
         assertEquals("connectTimeoutSeconds must be between 1 and 60", exception.getMessage());
 
         exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .connectTimeoutSeconds(61)
-                .build();
+                    .url("https://example.com")
+                    .connectTimeoutSeconds(61)
+                    .build();
         });
         assertEquals("connectTimeoutSeconds must be between 1 and 60", exception.getMessage());
     }
@@ -316,9 +317,9 @@ public class HttpConnectorOptionsTest {
     public void testProxyPortWithoutProxyHost() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .proxyPort(8080)
-                .build();
+                    .url("https://example.com")
+                    .proxyPort(8080)
+                    .build();
         });
         assertEquals("proxyHost must be set if proxyPort is set", exception.getMessage());
     }
@@ -326,20 +327,20 @@ public class HttpConnectorOptionsTest {
     @Test
     public void testDefaultValuesWhenNullParametersProvided() {
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("https://example.com")
-            .pollIntervalSeconds(null)
-            .linkedBlockingQueueCapacity(null)
-            .scheduledThreadPoolSize(null)
-            .requestTimeoutSeconds(null)
-            .connectTimeoutSeconds(null)
-            .headers(null)
-            .httpClientExecutor(null)
-            .proxyHost(null)
-            .proxyPort(null)
-            .payloadCacheOptions(null)
-            .payloadCache(null)
-            .useHttpCache(null)
-            .build();
+                .url("https://example.com")
+                .pollIntervalSeconds(null)
+                .linkedBlockingQueueCapacity(null)
+                .scheduledThreadPoolSize(null)
+                .requestTimeoutSeconds(null)
+                .connectTimeoutSeconds(null)
+                .headers(null)
+                .httpClientExecutor(null)
+                .proxyHost(null)
+                .proxyPort(null)
+                .payloadCacheOptions(null)
+                .payloadCache(null)
+                .useHttpCache(null)
+                .build();
 
         assertEquals(60, options.getPollIntervalSeconds().intValue());
         assertEquals(10, options.getConnectTimeoutSeconds().intValue());
@@ -361,9 +362,9 @@ public class HttpConnectorOptionsTest {
     public void testProxyHostWithoutProxyPort() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .proxyHost("proxy.example.com")
-                .build();
+                    .url("https://example.com")
+                    .proxyHost("proxy.example.com")
+                    .build();
         });
         assertEquals("proxyPort must be set if proxyHost is set", exception.getMessage());
     }
@@ -384,9 +385,9 @@ public class HttpConnectorOptionsTest {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .payloadCache(mockPayloadCache)
-                .build();
+                    .url("https://example.com")
+                    .payloadCache(mockPayloadCache)
+                    .build();
         });
 
         assertEquals("payloadCacheOptions must be set if payloadCache is set", exception.getMessage());
@@ -396,9 +397,9 @@ public class HttpConnectorOptionsTest {
     public void testPayloadCacheOptionsWithoutPayloadCache() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             HttpConnectorOptions.builder()
-                .url("https://example.com")
-                .payloadCacheOptions(PayloadCacheOptions.builder().build())
-                .build();
+                    .url("https://example.com")
+                    .payloadCacheOptions(PayloadCacheOptions.builder().build())
+                    .build();
         });
         assertEquals("payloadCache must be set if payloadCacheOptions is set", exception.getMessage());
     }

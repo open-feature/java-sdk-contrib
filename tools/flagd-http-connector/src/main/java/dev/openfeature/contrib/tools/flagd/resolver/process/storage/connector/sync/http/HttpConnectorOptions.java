@@ -20,55 +20,88 @@ import lombok.extern.slf4j.Slf4j;
  */
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "builder validations"
-)
+        justification = "builder validations")
 @Slf4j
 @Getter
 public class HttpConnectorOptions {
 
     @Builder.Default
     private Integer pollIntervalSeconds = 60;
+
     @Builder.Default
     private Integer connectTimeoutSeconds = 10;
+
     @Builder.Default
     private Integer requestTimeoutSeconds = 10;
+
     @Builder.Default
     private Integer linkedBlockingQueueCapacity = 100;
+
     @Builder.Default
     private Integer scheduledThreadPoolSize = 2;
+
     @Builder.Default
     private Map<String, String> headers = new HashMap<>();
+
     @Builder.Default
     private ExecutorService httpClientExecutor = Executors.newFixedThreadPool(1);
+
     @Builder.Default
     private String proxyHost;
+
     @Builder.Default
     private Integer proxyPort;
+
     @Builder.Default
     private PayloadCacheOptions payloadCacheOptions;
+
     @Builder.Default
     private PayloadCache payloadCache;
+
     @Builder.Default
     private Boolean useHttpCache;
+
     @Builder.Default
     private Boolean useFailsafeCache;
+
     @Builder.Default
     private Boolean usePollingCache;
-    @NonNull
-    private String url;
+
+    @NonNull private String url;
 
     /**
      * HttpConnectorOptions constructor.
      */
     @Builder
-    public HttpConnectorOptions(Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
-            Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds, String url,
-            Map<String, String> headers, ExecutorService httpClientExecutor, String proxyHost, Integer proxyPort,
-            PayloadCacheOptions payloadCacheOptions, PayloadCache payloadCache, Boolean useHttpCache,
-            Boolean useFailsafeCache, Boolean usePollingCache) {
-        validate(url, pollIntervalSeconds, linkedBlockingQueueCapacity, scheduledThreadPoolSize, requestTimeoutSeconds,
-            connectTimeoutSeconds, proxyHost, proxyPort, payloadCacheOptions, payloadCache, useFailsafeCache,
-            usePollingCache);
+    public HttpConnectorOptions(
+            Integer pollIntervalSeconds,
+            Integer linkedBlockingQueueCapacity,
+            Integer scheduledThreadPoolSize,
+            Integer requestTimeoutSeconds,
+            Integer connectTimeoutSeconds,
+            String url,
+            Map<String, String> headers,
+            ExecutorService httpClientExecutor,
+            String proxyHost,
+            Integer proxyPort,
+            PayloadCacheOptions payloadCacheOptions,
+            PayloadCache payloadCache,
+            Boolean useHttpCache,
+            Boolean useFailsafeCache,
+            Boolean usePollingCache) {
+        validate(
+                url,
+                pollIntervalSeconds,
+                linkedBlockingQueueCapacity,
+                scheduledThreadPoolSize,
+                requestTimeoutSeconds,
+                connectTimeoutSeconds,
+                proxyHost,
+                proxyPort,
+                payloadCacheOptions,
+                payloadCache,
+                useFailsafeCache,
+                usePollingCache);
         if (pollIntervalSeconds != null) {
             this.pollIntervalSeconds = pollIntervalSeconds;
         }
@@ -115,10 +148,19 @@ public class HttpConnectorOptions {
     }
 
     @SneakyThrows
-    private void validate(String url, Integer pollIntervalSeconds, Integer linkedBlockingQueueCapacity,
-            Integer scheduledThreadPoolSize, Integer requestTimeoutSeconds, Integer connectTimeoutSeconds,
-            String proxyHost, Integer proxyPort, PayloadCacheOptions payloadCacheOptions,
-            PayloadCache payloadCache, Boolean useFailsafeCache, Boolean usePollingCache) {
+    private void validate(
+            String url,
+            Integer pollIntervalSeconds,
+            Integer linkedBlockingQueueCapacity,
+            Integer scheduledThreadPoolSize,
+            Integer requestTimeoutSeconds,
+            Integer connectTimeoutSeconds,
+            String proxyHost,
+            Integer proxyPort,
+            PayloadCacheOptions payloadCacheOptions,
+            PayloadCache payloadCache,
+            Boolean useFailsafeCache,
+            Boolean usePollingCache) {
         validateUrl(url);
         if (linkedBlockingQueueCapacity != null
                 && (linkedBlockingQueueCapacity < 1 || linkedBlockingQueueCapacity > 1000)) {
@@ -152,7 +194,7 @@ public class HttpConnectorOptions {
         }
         if ((Boolean.TRUE.equals(useFailsafeCache) || Boolean.TRUE.equals(usePollingCache)) && payloadCache == null) {
             throw new IllegalArgumentException(
-                "payloadCache must be set if useFailsafeCache or usePollingCache is set");
+                    "payloadCache must be set if useFailsafeCache or usePollingCache is set");
         }
 
         if (payloadCache != null && Boolean.TRUE.equals(usePollingCache)) {
@@ -168,7 +210,7 @@ public class HttpConnectorOptions {
             }
             if (!overridesTtlPutMethod) {
                 throw new IllegalArgumentException("when usePollingCache is used, payloadCache must override "
-                    + "put(String key, String payload, int ttlSeconds)");
+                        + "put(String key, String payload, int ttlSeconds)");
             }
         }
     }

@@ -41,7 +41,8 @@ public class HttpCacheFetcher {
         if (httpResponse.statusCode() == 200) {
             if (httpResponse.headers() != null) {
                 cachedETag = httpResponse.headers().firstValue("ETag").orElse(null);
-                cachedLastModified = httpResponse.headers().firstValue("Last-Modified").orElse(null);
+                cachedLastModified =
+                        httpResponse.headers().firstValue("Last-Modified").orElse(null);
             }
             log.debug("fetched new content");
         } else if (httpResponse.statusCode() == 304) {

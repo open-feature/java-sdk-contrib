@@ -1,7 +1,7 @@
 package dev.openfeature.contrib.tools.flagd.resolver.process.storage.connector.sync.http;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,11 +23,10 @@ import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
+
 public class HttpCacheFetcherTest {
 
     @Test
@@ -36,10 +35,13 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
-        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true)).when(responseMock).headers();
+        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -55,11 +57,10 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = mock(HttpResponse.class);
-        HttpHeaders headers = HttpHeaders.of(
-            Collections.emptyMap(),
-            (a, b) -> true);
+        HttpHeaders headers = HttpHeaders.of(Collections.emptyMap(), (a, b) -> true);
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
         when(responseMock.headers()).thenReturn(headers);
 
@@ -83,10 +84,13 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
-        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true)).when(responseMock).headers();
+        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(404);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -101,10 +105,13 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
-        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true)).when(responseMock).headers();
+        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -125,12 +132,18 @@ public class HttpCacheFetcherTest {
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
         doReturn(HttpHeaders.of(
-                Map.of("Last-Modified", Arrays.asList("Wed, 21 Oct 2015 07:28:00 GMT"),
-                        "ETag", Arrays.asList("etag-value")),
-                (a, b) -> true)).when(responseMock).headers();
+                        Map.of(
+                                "Last-Modified",
+                                Arrays.asList("Wed, 21 Oct 2015 07:28:00 GMT"),
+                                "ETag",
+                                Arrays.asList("etag-value")),
+                        (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
         fetcher.fetchContent(httpClientMock, requestBuilderMock);
@@ -149,12 +162,13 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
-        doReturn(HttpHeaders.of(
-            Map.of("ETag", Arrays.asList("12345")),
-            (a, b) -> true)).when(responseMock).headers();
+        doReturn(HttpHeaders.of(Map.of("ETag", Arrays.asList("12345")), (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -184,10 +198,13 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
-        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true)).when(responseMock).headers();
+        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(500);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -205,11 +222,13 @@ public class HttpCacheFetcherTest {
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
         doReturn(HttpHeaders.of(
-            Map.of("Last-Modified", Arrays.asList("Wed, 21 Oct 2015 07:28:00 GMT")),
-                (a, b) -> true)).when(responseMock).headers();
+                        Map.of("Last-Modified", Arrays.asList("Wed, 21 Oct 2015 07:28:00 GMT")), (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -229,8 +248,8 @@ public class HttpCacheFetcherTest {
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
-            .thenReturn(responseMock200)
-            .thenReturn(responseMock304);
+                .thenReturn(responseMock200)
+                .thenReturn(responseMock304);
         when(responseMock200.statusCode()).thenReturn(200);
         when(responseMock304.statusCode()).thenReturn(304);
 
@@ -248,10 +267,13 @@ public class HttpCacheFetcherTest {
         HttpRequest.Builder requestBuilderMock = mock(HttpRequest.Builder.class);
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
-        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true)).when(responseMock).headers();
+        doReturn(HttpHeaders.of(new HashMap<>(), (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -277,7 +299,7 @@ public class HttpCacheFetcherTest {
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
         when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
-            .thenThrow(new IOException("Network error"));
+                .thenThrow(new IOException("Network error"));
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
         assertThrows(IOException.class, () -> {
@@ -292,12 +314,18 @@ public class HttpCacheFetcherTest {
         HttpRequest requestMock = mock(HttpRequest.class);
         HttpResponse<String> responseMock = spy(HttpResponse.class);
         doReturn(HttpHeaders.of(
-                Map.of("Last-Modified", Arrays.asList("last-modified-value"),
-                        "ETag", Arrays.asList("etag-value")),
-                (a, b) -> true)).when(responseMock).headers();
+                        Map.of(
+                                "Last-Modified",
+                                Arrays.asList("last-modified-value"),
+                                "ETag",
+                                Arrays.asList("etag-value")),
+                        (a, b) -> true))
+                .when(responseMock)
+                .headers();
 
         when(requestBuilderMock.build()).thenReturn(requestMock);
-        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class))).thenReturn(responseMock);
+        when(httpClientMock.send(eq(requestMock), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(responseMock);
         when(responseMock.statusCode()).thenReturn(200);
 
         HttpCacheFetcher fetcher = new HttpCacheFetcher();
@@ -305,5 +333,4 @@ public class HttpCacheFetcherTest {
 
         verify(requestBuilderMock, never()).header(eq("Some-Other-Header"), anyString());
     }
-
 }

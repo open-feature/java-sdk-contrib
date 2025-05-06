@@ -21,20 +21,18 @@ import java.lang.reflect.Field;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
-
 public class FailSafeCacheTest {
 
     @Test
     public void testConstructorInitializesWithValidParameters() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
 
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
 
         assertNotNull(wrapper);
 
@@ -49,17 +47,13 @@ public class FailSafeCacheTest {
     @Test
     public void testConstructorThrowsExceptionForInvalidInterval() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(0)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(0).build();
 
-        FailSafeCache.FailSafeCacheBuilder payloadCacheWrapperBuilder = FailSafeCache.builder()
-                .payloadCache(mockCache)
-                .payloadCacheOptions(options);
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            payloadCacheWrapperBuilder::build
-        );
+        FailSafeCache.FailSafeCacheBuilder payloadCacheWrapperBuilder =
+                FailSafeCache.builder().payloadCache(mockCache).payloadCacheOptions(options);
+        IllegalArgumentException exception =
+                assertThrows(IllegalArgumentException.class, payloadCacheWrapperBuilder::build);
 
         assertEquals("pollIntervalSeconds must be larger than 0", exception.getMessage());
     }
@@ -67,13 +61,12 @@ public class FailSafeCacheTest {
     @Test
     public void testUpdateSkipsWhenIntervalNotPassed() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
 
         String initialPayload = "initial-payload";
         wrapper.updatePayloadIfNeeded(initialPayload);
@@ -88,13 +81,12 @@ public class FailSafeCacheTest {
     @Test
     public void testUpdatePayloadIfNeededHandlesPutException() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
         String testPayload = "test-payload";
 
         doThrow(new RuntimeException("put exception")).when(mockCache).put(any(), eq(testPayload));
@@ -108,12 +100,12 @@ public class FailSafeCacheTest {
     public void testUpdatePayloadIfNeededUpdatesCacheAfterInterval() {
         PayloadCache mockCache = mock(PayloadCache.class);
         PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(1) // 1 second interval for quick test
-            .build();
+                .updateIntervalSeconds(1) // 1 second interval for quick test
+                .build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
 
         String initialPayload = "initial-payload";
         String newPayload = "new-payload";
@@ -129,13 +121,12 @@ public class FailSafeCacheTest {
     @Test
     public void testGetReturnsNullWhenCacheGetThrowsException() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
 
         when(mockCache.get(any())).thenThrow(new RuntimeException("Cache get failed"));
 
@@ -149,13 +140,12 @@ public class FailSafeCacheTest {
     @Test
     public void test_get_returns_cached_payload() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
         String expectedPayload = "cached-payload";
         when(mockCache.get(any())).thenReturn(expectedPayload);
 
@@ -169,13 +159,12 @@ public class FailSafeCacheTest {
     @Test
     public void test_first_call_updates_cache() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
 
         String testPayload = "initial-payload";
 
@@ -188,12 +177,12 @@ public class FailSafeCacheTest {
     public void test_update_payload_once_within_interval() {
         PayloadCache mockCache = mock(PayloadCache.class);
         PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(1) // 1 second interval
-            .build();
+                .updateIntervalSeconds(1) // 1 second interval
+                .build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
 
         String testPayload = "test-payload";
 
@@ -207,13 +196,12 @@ public class FailSafeCacheTest {
     @Test
     public void test_last_update_time_ms_updated_after_successful_cache_update() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
         FailSafeCache wrapper = FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build();
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build();
         String testPayload = "test-payload";
 
         wrapper.updatePayloadIfNeeded(testPayload);
@@ -224,20 +212,20 @@ public class FailSafeCacheTest {
         lastUpdateTimeMsField.setAccessible(true);
         long lastUpdateTimeMs = (Long) lastUpdateTimeMsField.get(wrapper);
 
-        assertTrue(System.currentTimeMillis() - lastUpdateTimeMs < 1000,
-       "lastUpdateTimeMs should be updated to current time");
+        assertTrue(
+                System.currentTimeMillis() - lastUpdateTimeMs < 1000,
+                "lastUpdateTimeMs should be updated to current time");
     }
 
     @Test
     public void test_update_payload_if_needed_respects_update_interval() {
         PayloadCache mockCache = mock(PayloadCache.class);
-        PayloadCacheOptions options = PayloadCacheOptions.builder()
-            .updateIntervalSeconds(600)
-            .build();
+        PayloadCacheOptions options =
+                PayloadCacheOptions.builder().updateIntervalSeconds(600).build();
         FailSafeCache wrapper = spy(FailSafeCache.builder()
-            .payloadCache(mockCache)
-            .payloadCacheOptions(options)
-            .build());
+                .payloadCache(mockCache)
+                .payloadCacheOptions(options)
+                .build());
 
         String testPayload = "test-payload";
         long initialTime = System.currentTimeMillis();
@@ -265,5 +253,4 @@ public class FailSafeCacheTest {
         // Verify the payload was updated again
         verify(mockCache, times(2)).put(any(), eq(testPayload));
     }
-
 }

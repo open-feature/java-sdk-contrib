@@ -47,15 +47,15 @@ class HttpConnectorTest {
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn("test data");
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-            .thenReturn(mockResponse);
+                .thenReturn(mockResponse);
 
         HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .httpClientExecutor(Executors.newSingleThreadExecutor())
-            .build();
+                .url(testUrl)
+                .httpClientExecutor(Executors.newSingleThreadExecutor())
+                .build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
@@ -81,10 +81,11 @@ class HttpConnectorTest {
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn("test data");
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-            .thenReturn(mockResponse);
+                .thenReturn(mockResponse);
 
         PayloadCache payloadCache = new PayloadCache() {
             private String payload;
+
             @Override
             public void put(String key, String payload) {
                 this.payload = payload;
@@ -96,17 +97,17 @@ class HttpConnectorTest {
             }
         };
         HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .proxyHost("proxy-host")
-            .proxyPort(8080)
-            .useHttpCache(true)
-            .payloadCache(payloadCache)
-            .payloadCacheOptions(PayloadCacheOptions.builder().build())
-            .useFailsafeCache(true)
-            .build();
+                .url(testUrl)
+                .proxyHost("proxy-host")
+                .proxyPort(8080)
+                .useHttpCache(true)
+                .payloadCache(payloadCache)
+                .payloadCacheOptions(PayloadCacheOptions.builder().build())
+                .useFailsafeCache(true)
+                .build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
         connector.init();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
@@ -134,13 +135,11 @@ class HttpConnectorTest {
         testHeaders.put("Authorization", "Bearer token");
         testHeaders.put("Content-Type", "application/json");
 
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .headers(testHeaders)
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url(testUrl).headers(testHeaders).build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field headersField = HttpConnector.class.getDeclaredField("headers");
         headersField.setAccessible(true);
@@ -162,12 +161,11 @@ class HttpConnectorTest {
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(mockResponse);
 
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url(testUrl).build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
@@ -190,7 +188,7 @@ class HttpConnectorTest {
         HttpResponse<String> mockResponse = mock(HttpResponse.class);
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-            .thenThrow(new IOException("Simulated IO Exception"));
+                .thenThrow(new IOException("Simulated IO Exception"));
 
         final String cachedData = "cached data";
         PayloadCache payloadCache = new PayloadCache() {
@@ -206,14 +204,14 @@ class HttpConnectorTest {
         };
 
         HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .payloadCache(payloadCache)
-            .payloadCacheOptions(PayloadCacheOptions.builder().build())
-            .useFailsafeCache(true)
-            .build();
+                .url(testUrl)
+                .payloadCache(payloadCache)
+                .payloadCacheOptions(PayloadCacheOptions.builder().build())
+                .useFailsafeCache(true)
+                .build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
@@ -234,12 +232,12 @@ class HttpConnectorTest {
         String testUrl = "http://example.com";
         int queueCapacity = 1;
         HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .linkedBlockingQueueCapacity(queueCapacity)
-            .build();
+                .url(testUrl)
+                .linkedBlockingQueueCapacity(queueCapacity)
+                .build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
 
@@ -258,12 +256,12 @@ class HttpConnectorTest {
         String testUrl = "http://example.com";
 
         HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .httpClientExecutor(mockHttpClientExecutor)
-            .build();
+                .url(testUrl)
+                .httpClientExecutor(mockHttpClientExecutor)
+                .build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field schedulerField = HttpConnector.class.getDeclaredField("scheduler");
         schedulerField.setAccessible(true);
@@ -283,14 +281,13 @@ class HttpConnectorTest {
         HttpResponse<String> mockResponse = mock(HttpResponse.class);
         when(mockResponse.statusCode()).thenReturn(404);
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-            .thenReturn(mockResponse);
+                .thenReturn(mockResponse);
 
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url(testUrl).build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
@@ -306,19 +303,18 @@ class HttpConnectorTest {
     void testHttpRequestFailsWithException() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url(testUrl).build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-            .thenThrow(new RuntimeException("Test exception"));
+                .thenThrow(new RuntimeException("Test exception"));
 
         BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
 
@@ -330,19 +326,18 @@ class HttpConnectorTest {
     void testHttpRequestFailsWithIoexception() {
         String testUrl = "http://example.com";
         HttpClient mockClient = mock(HttpClient.class);
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url(testUrl).build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
         clientField.set(connector, mockClient);
 
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-            .thenThrow(new IOException("Simulated IO Exception"));
+                .thenThrow(new IOException("Simulated IO Exception"));
 
         connector.getStreamQueue();
 
@@ -360,12 +355,11 @@ class HttpConnectorTest {
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn("test data");
 
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url(testUrl).build();
         HttpConnector connector = spy(HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build());
+                .httpConnectorOptions(httpConnectorOptions)
+                .build());
 
         doReturn(mockResponse).when(connector).execute(any());
 
@@ -391,14 +385,13 @@ class HttpConnectorTest {
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn("response body");
         when(mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-            .thenReturn(mockResponse);
+                .thenReturn(mockResponse);
 
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url(testUrl)
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url(testUrl).build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
         Field clientField = HttpConnector.class.getDeclaredField("client");
         clientField.setAccessible(true);
@@ -417,6 +410,7 @@ class HttpConnectorTest {
         // Mock PayloadCache
         PayloadCache payloadCache = new PayloadCache() {
             private String payload;
+
             @Override
             public void put(String key, String payload) {
                 this.payload = payload;
@@ -434,22 +428,21 @@ class HttpConnectorTest {
         };
         PayloadCache mockPayloadCache = spy(payloadCache);
         when(mockPayloadCache.get(HttpConnector.POLLING_PAYLOAD_CACHE_KEY))
-            .thenReturn(null) // First fetch: cache miss
-            .thenReturn("cached payload"); // Second fetch: cache hit
+                .thenReturn(null) // First fetch: cache miss
+                .thenReturn("cached payload"); // Second fetch: cache hit
 
         // Configure HttpConnectorOptions with usePollingCache = true
         HttpConnectorOptions options = HttpConnectorOptions.builder()
-            .url("http://example.com")
-            .pollIntervalSeconds(10)
-            .usePollingCache(true)
-            .payloadCache(mockPayloadCache)
-            .payloadCacheOptions(PayloadCacheOptions.builder().build())
-            .build();
+                .url("http://example.com")
+                .pollIntervalSeconds(10)
+                .usePollingCache(true)
+                .payloadCache(mockPayloadCache)
+                .payloadCacheOptions(PayloadCacheOptions.builder().build())
+                .build();
 
         // Create HttpConnector instance
-        HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(options)
-            .build();
+        HttpConnector connector =
+                HttpConnector.builder().httpConnectorOptions(options).build();
 
         // Initialize the connector
         BlockingQueue<QueuePayload> queue = connector.getStreamQueue();
@@ -472,15 +465,13 @@ class HttpConnectorTest {
 
     @Test
     public void providerTest() {
-        HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
-            .url("http://example.com")
-            .build();
+        HttpConnectorOptions httpConnectorOptions =
+                HttpConnectorOptions.builder().url("http://example.com").build();
         HttpConnector connector = HttpConnector.builder()
-            .httpConnectorOptions(httpConnectorOptions)
-            .build();
+                .httpConnectorOptions(httpConnectorOptions)
+                .build();
 
-        FlagdOptions options =
-            FlagdOptions.builder()
+        FlagdOptions options = FlagdOptions.builder()
                 .resolverType(Config.Resolver.IN_PROCESS)
                 .customConnector(connector)
                 .build();
@@ -494,5 +485,4 @@ class HttpConnectorTest {
     protected static void delay(long ms) {
         Thread.sleep(ms);
     }
-
 }
