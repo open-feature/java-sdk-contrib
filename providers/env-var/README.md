@@ -10,7 +10,7 @@ Environment Variables provider allows you to read feature flags from the [proces
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>env-var</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.10</version>
 </dependency>
 ```
 
@@ -25,7 +25,7 @@ To use the `EnvVarProvider` create an instance and use it as a provider:
     OpenFeatureAPI.getInstance().setProvider(provider);
 ```
 
-### Configuring different methods of fetching environment variables
+### Configuring different methods for fetching environment variables
 
 This provider defines an `EnvironmentGateway` interface, which is used to access the actual environment variables. 
 The class [OS][os-class] is implementing this interface and creates the actual connection between provider 
@@ -40,7 +40,7 @@ of the provider.
     OpenFeatureAPI.getInstance().setProvider(provider);
 ```
 
-### Key Transformation
+### Key transformation
 
 This provider supports transformation of keys to support different patterns used for naming feature flags and for
 naming environment variables, e.g. SCREAMING_SNAKE_CASE env variables vs. hyphen-case keys for feature flags.
