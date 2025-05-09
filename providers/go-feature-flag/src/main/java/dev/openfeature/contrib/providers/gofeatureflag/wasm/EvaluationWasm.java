@@ -11,12 +11,18 @@ import com.dylibso.chicory.wasi.WasiPreview1;
 import com.dylibso.chicory.wasm.Parser;
 import com.dylibso.chicory.wasm.types.ValueType;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.WasmFileNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.io.File;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
+import lombok.SneakyThrows;
 import lombok.val;
 
 /**
@@ -29,18 +35,46 @@ public class EvaluationWasm {
     private final ExportFunction malloc;
     private final ExportFunction free;
 
+    @SneakyThrows
     public EvaluationWasm() {
         // We will create two output streams to capture stdout and stderr
         val wasi = WasiPreview1.builder().withOptions(WasiOptions.builder().inheritSystem().build()).build();
         val hostFunctions = wasi.toHostFunctions();
         val store = new Store().addFunction(hostFunctions);
         store.addFunction(getProcExitFunc());
-        this.instance = store.instantiate("evaluation", Parser.parse(
-                new File(getClass().getClassLoader().getResource("wasm/gofeatureflag-evaluation.wasi").getFile())
-        ));
+        this.instance = store.instantiate("evaluation", Parser.parse(getWasmFile()));
         this.evaluate = this.instance.export("evaluate");
         this.malloc = this.instance.export("malloc");
         this.free = this.instance.export("free");
+    }
+
+    /**
+     * getWasmFile is a function that returns the path to the WASM file
+     * It looks for the file in the classpath under the directory "wasm"
+     *
+     * @return the path to the WASM file
+     * @throws WasmFileNotFound - if the file is not found
+     */
+    private File getWasmFile() throws WasmFileNotFound {
+        try {
+            ClassLoader classLoader = EvaluationWasm.class.getClassLoader();
+            URL directoryURL = classLoader.getResource("wasm");
+            if (directoryURL == null) {
+                throw new RuntimeException("Directory not found");
+            }
+            Path dirPath = Paths.get(directoryURL.toURI());
+            try (val files = Files.list(dirPath)) {
+                return files
+                        .filter(path -> path.getFileName().toString().startsWith("gofeatureflag-evaluation")
+                                && (path.toString().endsWith(".wasi") || path.toString().endsWith(".wasm")))
+                        .findFirst()
+                        .map(Path::toFile)
+                        .orElseThrow(
+                                () -> new RuntimeException("No file starting with 'gofeatureflag-evaluation' found"));
+            }
+        } catch (Exception e) {
+            throw new WasmFileNotFound(e);
+        }
     }
 
     /**

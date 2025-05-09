@@ -583,8 +583,8 @@ class GoFeatureFlagProviderTest {
         void shouldSendTheEvaluationInformationToTheDataCollector() {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(100L)
-                            .maxPendingEvents(1000)
+                            .flushIntervalMs(50L)
+                            .maxPendingEvents(100)
                             .endpoint(baseUrl.toString())
                             .evaluationType(EvaluationType.IN_PROCESS)
                             .build()
