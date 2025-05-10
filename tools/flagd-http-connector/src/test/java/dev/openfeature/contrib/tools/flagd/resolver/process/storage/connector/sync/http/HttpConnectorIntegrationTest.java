@@ -29,7 +29,7 @@ class HttpConnectorIntegrationTest {
         HttpConnector connector = null;
         try {
             String testUrl =
-                    "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/58fe5da7d4e2f6f4ae2c1caf3411a01e84a1dc1a/providers/flagd/version.txt";
+                    "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/testing-flags.json";
 
             HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
                     .url(testUrl)
