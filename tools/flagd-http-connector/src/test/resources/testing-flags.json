@@ -1,0 +1,156 @@
+{
+  "flags": {
+    "boolean-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
+    "string-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "greeting": "hi",
+        "parting": "bye"
+      },
+      "defaultVariant": "greeting"
+    },
+    "integer-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "one": 1,
+        "ten": 10
+      },
+      "defaultVariant": "ten"
+    },
+    "float-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "tenth": 0.1,
+        "half": 0.5
+      },
+      "defaultVariant": "half"
+    },
+    "object-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "empty": {},
+        "template": {
+          "showImages": true,
+          "title": "Check out these pics!",
+          "imagesPerPage": 100
+        }
+      },
+      "defaultVariant": "template"
+    },
+    "context-aware": {
+      "state": "ENABLED",
+      "variants": {
+        "internal": "INTERNAL",
+        "external": "EXTERNAL"
+      },
+      "defaultVariant": "external",
+      "targeting": {
+        "if": [
+          {
+            "and": [
+              {
+                "==": [
+                  {
+                    "var": [
+                      "fn"
+                    ]
+                  },
+                  "Sulisław"
+                ]
+              },
+              {
+                "==": [
+                  {
+                    "var": [
+                      "ln"
+                    ]
+                  },
+                  "Świętopełk"
+                ]
+              },
+              {
+                "==": [
+                  {
+                    "var": [
+                      "age"
+                    ]
+                  },
+                  29
+                ]
+              },
+              {
+                "==": [
+                  {
+                    "var": [
+                      "customer"
+                    ]
+                  },
+                  false
+                ]
+              }
+            ]
+          },
+          "internal",
+          "external"
+        ]
+      }
+    },
+    "timestamp-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "past": -1,
+        "future": 1,
+        "none": 0
+      },
+      "defaultVariant": "none",
+      "targeting": {
+        "if": [
+          {
+            ">": [ { "var": "$flagd.timestamp" }, { "var": "time" }  ]
+          },
+          "past",
+          {
+            "if": [
+              {
+              "<": [ { "var": "$flagd.timestamp" }, { "var": "time" }  ]
+              },
+              "future", "none"
+            ]
+          }
+        ]
+      }
+    },
+    "wrong-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "one": "uno",
+        "two": "dos"
+      },
+      "defaultVariant": "one"
+    },
+    "targeting-key-flag": {
+      "state": "ENABLED",
+      "variants": {
+        "miss": "miss",
+        "hit": "hit"
+      },
+      "defaultVariant": "miss",
+      "targeting": {
+        "if": [
+          {
+            "==": [ { "var": "targetingKey" }, "5c3d8535-f81a-4478-a6d3-afaa4d51199e" ]
+          },
+          "hit",
+          null
+        ]
+      }
+    }
+  }
+}
