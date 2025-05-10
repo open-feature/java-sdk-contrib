@@ -583,7 +583,7 @@ class GoFeatureFlagProviderTest {
         void shouldSendTheEvaluationInformationToTheDataCollector() {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(50L)
+                            .flushIntervalMs(150L)
                             .maxPendingEvents(100)
                             .endpoint(baseUrl.toString())
                             .evaluationType(EvaluationType.IN_PROCESS)
@@ -593,7 +593,7 @@ class GoFeatureFlagProviderTest {
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
             client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
-            Thread.sleep(200L);
+            Thread.sleep(400L);
             assertEquals(1, goffAPIMock.getCollectorRequestsHistory().size());
         }
 
