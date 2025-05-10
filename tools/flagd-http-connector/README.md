@@ -35,7 +35,7 @@ A key advantage of this cache is that it enables a single microservice within a 
 URL, effectively acting as a flagd/proxy while all other services leverage the shared cache. 
 This approach optimizes resource usage by preventing redundant polling across services.
 
-### Sample flow demonstrating the architecture
+### Sample flows demonstrating the architecture
 
 #### Basic Simple Configuration
 
