@@ -36,7 +36,27 @@ URL, effectively acting as a flagd/proxy while all other services leverage the s
 This approach optimizes resource usage by preventing redundant polling across services.
 
 ### Sample flow demonstrating the architecture
-This example demonstrates an architectural flow using:
+
+#### Basic Simple Configuration
+
+This example demonstrates a simple flow using:
+- GitHub as the source for flag payload.
+
+```mermaid
+sequenceDiagram
+    participant service
+    participant Github
+
+    service->>Github: fetch
+    Github->>service: payload
+    Note right of service: polling interval passed
+    service->>Github: fetch
+    Github->>service: payload
+```
+
+#### Configuration with fail-safe cache and polling cache
+
+This example demonstrates a micro-services architectural flow using:
 - GitHub as the source for flag payload.
 - Redis serving as both the fail-safe initialization cache and the polling cache.
 
@@ -85,7 +105,6 @@ sequenceDiagram
 ### Usage example
 
 ```java
-
 HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
     .url("http://example.com/flags")
     .build();
@@ -100,6 +119,42 @@ FlagdOptions options =
         .build();
 
 FlagdProvider flagdProvider = new FlagdProvider(options);
+```
+
+#### HttpConnector using fail-safe cache and polling cache
+
+```java
+PayloadCache payloadCache = new PayloadCache() {
+
+    @Override
+    public void put(String key, String payload) {
+        // implement put in cache
+    }
+
+    @Override
+    public void put(String key, String payload, int ttlSeconds) {
+        // implement put in cache with TTL
+    }
+
+    @Override
+    public String get(String key) {
+        // implement get from cache and return
+        }
+};
+
+HttpConnectorOptions httpConnectorOptions = HttpConnectorOptions.builder()
+    .url(testUrl)
+    .useHttpCache(true)
+    .payloadCache(payloadCache)
+    .payloadCacheOptions(PayloadCacheOptions.builder().build())
+    .useFailsafeCache(true)
+    .pollIntervalSeconds(10)
+    .usePollingCache(true)
+    .build();
+
+HttpConnector connector = HttpConnector.builder()
+    .httpConnectorOptions(httpConnectorOptions)
+    .build();
 ```
 
 ### Configuration
