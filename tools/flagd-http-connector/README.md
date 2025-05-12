@@ -23,10 +23,11 @@ The implementation is using Java HttpClient.
 
 ### What happens if the Http source is down during application startup?
 
-Http Connector supports optional fail-safe initialization using a cache.
+Http Connector supports optional resilient fail-safe initialization using a cache.
 If the initial fetch fails due to source unavailability, it can load the initial payload from the cache instead of
 falling back to default values.
-This ensures smoother startup behavior until the source becomes available again. To be effective, the TTL of the fallback cache should be longer than the expected duration of the source downtime during initialization.
+This ensures smoother startup behavior until the source becomes available again. To be effective, the TTL of the
+fallback cache should be longer than the expected duration of the source downtime during initialization.
 
 ### Polling cache
 The polling cache is used to store the payload fetched from the URL.  
@@ -54,7 +55,10 @@ sequenceDiagram
     Github->>service: payload
 ```
 
-#### Configuration with fail-safe cache and polling cache
+#### A More Scalable Configuration Utilizing Fail-Safe and Polling Caching Mechanisms
+
+This configuration aim to reduce network requests to the source URL, to improve performance and to improve the
+application's resilience to source downtime.
 
 This example demonstrates a micro-services architectural flow using:
 - GitHub as the source for flag payload.
@@ -62,7 +66,9 @@ This example demonstrates a micro-services architectural flow using:
 
 Example initialization flow during GitHub downtime,
 demonstrates how the application continues to access flag values from the cache even when GitHub is unavailable.
-In this setup, multiple microservices share the same cache, with only one service responsible for polling the source URL.
+In this setup, multiple microservices share the same cache, with only one service responsible for polling the source
+URL.
+
 ```mermaid
 sequenceDiagram
     box Cluster
