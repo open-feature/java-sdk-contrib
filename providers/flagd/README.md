@@ -94,6 +94,9 @@ FlagdProvider flagdProvider = new FlagdProvider(options);
 >   2. Offline file
 >   3. gRPC
 
+A custom connector implementation example is available at 
+[HTTP Connector](https://github.com/open-feature/java-sdk-contrib/tree/main/tools/flagd-http-connector#http-connector).
+
 ### Configuration options
 
 Most options can be defined in the constructor or as environment variables, with constructor options having the highest

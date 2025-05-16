@@ -134,6 +134,17 @@
         "README.md"
       ]
     },
+    "tools/flagd-http-connector": {
+      "package-name": "dev.openfeature.contrib.tools.flagdhttpconnector",
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
+    },
     ".": {
       "package-name": "dev.openfeature.contrib.parent",
       "release-type": "simple",
