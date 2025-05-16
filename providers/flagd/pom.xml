@@ -123,13 +123,13 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>1.49.0</version>
+            <version>1.50.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.semver4j</groupId>
             <artifactId>semver4j</artifactId>
-            <version>5.6.0</version>
+            <version>5.7.0</version>
         </dependency>
 
         <dependency>
