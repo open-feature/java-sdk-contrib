@@ -20,7 +20,7 @@
         <dependency>
             <groupId>com.configcat</groupId>
             <artifactId>configcat-java-client</artifactId>
-            <version>9.4.2</version>
+            <version>9.4.3</version>
         </dependency>
 
         <dependency>
