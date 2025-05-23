@@ -2,11 +2,11 @@
 
 ## System Requirements
 
-Java 8+ is required for the tooling, plugins, etc. Maven 3.8+ is recommended.
+Java 11+ is required for the tooling, plugins, etc. Maven 3.8+ is recommended.
 
 ## Compilation target(s)
 
-As in the Java-SDK, we target Java 8. The parent POM configures this automatically.
+As in the Java-SDK, we target Java 11. The parent POM configures this automatically.
 
 ## Adding a module
 
