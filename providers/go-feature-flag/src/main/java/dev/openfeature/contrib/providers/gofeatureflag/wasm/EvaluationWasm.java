@@ -68,10 +68,10 @@ public class EvaluationWasm {
             }
             Path dirPath = Paths.get(directoryUrl.toURI());
             try (val files = Files.list(dirPath)) {
-                System.out.println("Files in directory: " + files);
                 return files
                         .filter(path -> path.getFileName().toString().startsWith("gofeatureflag-evaluation")
-                                && (path.toString().endsWith(".wasi") || path.toString().endsWith(".wasm")))
+                                && (path.getFileName().toString().endsWith(".wasi") || path.getFileName().toString()
+                                .endsWith(".wasm")))
                         .findFirst()
                         .map(Path::toFile)
                         .orElseThrow(
