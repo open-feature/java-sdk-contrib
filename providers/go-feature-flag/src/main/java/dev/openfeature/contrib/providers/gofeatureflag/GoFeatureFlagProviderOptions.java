@@ -74,7 +74,7 @@ public class GoFeatureFlagProviderOptions {
      * in the relay proxy. If you want to limit the number of flags loaded in memory, you can use this parameter.
      * By setting this parameter, you will only load the flags available in the list.
      *
-     * If null or empty, all the flags available in the relay proxy will be loaded.
+     * <p>If null or empty, all the flags available in the relay proxy will be loaded.</p>
      */
     private List<String> evaluationFlagList;
 
@@ -84,5 +84,4 @@ public class GoFeatureFlagProviderOptions {
      * configuration has changed. default: 120000
      */
     private Long flagChangePollingIntervalMs;
-
 }

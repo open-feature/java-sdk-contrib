@@ -5,6 +5,10 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagRespons
 import dev.openfeature.sdk.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * EdgeEvaluator is an implementation of the IEvaluator interface.
+ * It is used to evaluate the feature flags using the GO Feature Flag API.
+ */
 @Slf4j
 public class EdgeEvaluator implements IEvaluator {
     /** API to contact GO Feature Flag. */

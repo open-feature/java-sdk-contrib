@@ -44,7 +44,7 @@ public class EventsPublisher<T> {
      */
     public EventsPublisher(Consumer<List<T>> publisher, long flushIntervalMs, int maxPendingEvents)
             throws InvalidOptions {
-        Validator.PublisherOptions(flushIntervalMs, maxPendingEvents);
+        Validator.publisherOptions(flushIntervalMs, maxPendingEvents);
         eventsList = new CopyOnWriteArrayList<>();
         this.publisher = publisher;
         this.maxPendingEvents = maxPendingEvents;

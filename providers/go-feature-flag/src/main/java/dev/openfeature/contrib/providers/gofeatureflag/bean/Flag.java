@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import lombok.Data;
 
+/**
+ * Flag is a class that represents a feature flag for GO Feature Flag.
+ */
 @Data
 public class Flag {
     private Map<String, Object> variations;

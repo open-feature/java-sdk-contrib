@@ -4,6 +4,10 @@ import java.util.Map;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * TrackingEvent is a class that represents a tracking event for a feature flag.
+ * A tracking event is generated when we call the track method on the client.
+ */
 @Data
 @Builder
 public class TrackingEvent implements IEvent {
@@ -39,12 +43,12 @@ public class TrackingEvent implements IEvent {
     private String key;
 
     /**
-     * EvaluationContext contains the evaluation context used for the tracking
+     * EvaluationContext contains the evaluation context used for the tracking.
      */
     private Map<String, Object> evaluationContext;
 
     /**
-     * TrackingDetails contains the details of the tracking event
+     * TrackingDetails contains the details of the tracking event.
      */
     private Map<String, Object> trackingEventDetails;
 }

@@ -63,7 +63,7 @@ public class GoFeatureFlagApi {
      */
     @Builder
     private GoFeatureFlagApi(final GoFeatureFlagProviderOptions options) throws InvalidOptions {
-        Validator.ProviderOptions(options);
+        Validator.providerOptions(options);
         this.apiKey = options.getApiKey();
         this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
         if (this.parsedEndpoint == null) {

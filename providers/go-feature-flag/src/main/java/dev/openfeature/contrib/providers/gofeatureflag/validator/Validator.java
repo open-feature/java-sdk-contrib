@@ -9,8 +9,17 @@ import java.util.List;
 import java.util.Map;
 import lombok.val;
 
+/**
+ * Validator class is providing utils method to validate the options provided.
+ */
 public class Validator {
-    public static void ProviderOptions(GoFeatureFlagProviderOptions options) throws InvalidOptions {
+    /**
+     * Validate the options provided to the provider.
+     *
+     * @param options - options to validate
+     * @throws InvalidOptions - if options are invalid
+     */
+    public static void providerOptions(GoFeatureFlagProviderOptions options) throws InvalidOptions {
         if (options == null) {
             throw new InvalidOptions("No options provided");
         }
@@ -30,7 +39,14 @@ public class Validator {
         }
     }
 
-    public static void PublisherOptions(final Long flushIntervalMs, final Integer maxPendingEvents)
+    /**
+     * Validate the options provided to the publisher.
+     *
+     * @param flushIntervalMs  - flush interval in milliseconds
+     * @param maxPendingEvents - max pending events
+     * @throws InvalidOptions - if options are invalid
+     */
+    public static void publisherOptions(final Long flushIntervalMs, final Integer maxPendingEvents)
             throws InvalidOptions {
         if (flushIntervalMs != null && flushIntervalMs <= 0) {
             throw new InvalidOptions("flushIntervalMs must be larger than 0");
@@ -40,7 +56,13 @@ public class Validator {
         }
     }
 
-    public static void DataCollectorHookOptions(final DataCollectorHookOptions options) throws InvalidOptions {
+    /**
+     * Validate the options provided to the data collector hook.
+     *
+     * @param options - options to validate
+     * @throws InvalidOptions - if options are invalid
+     */
+    public static void dataCollectorHookOptions(final DataCollectorHookOptions options) throws InvalidOptions {
         if (options == null) {
             throw new InvalidOptions("No options provided");
         }

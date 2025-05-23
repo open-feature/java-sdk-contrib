@@ -6,6 +6,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 
+/**
+ * Const is a utility class that contains constants used in the GoFeatureFlag provider.
+ */
 public class Const {
     // HTTP
     public static final String BEARER_TOKEN = "Bearer ";

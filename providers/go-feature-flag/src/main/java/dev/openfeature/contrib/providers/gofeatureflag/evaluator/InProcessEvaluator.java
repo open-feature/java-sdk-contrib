@@ -28,6 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * InProcessEvaluator is a class that represents the evaluation of a feature flag
+ * it calls an external WASM module to evaluate the feature flag.
+ */
 @Slf4j
 public class InProcessEvaluator implements IEvaluator {
     /** API to contact GO Feature Flag. */
@@ -36,7 +40,7 @@ public class InProcessEvaluator implements IEvaluator {
     private final EvaluationWasm evaluationEngine;
     /** Options to configure the provider. */
     private final GoFeatureFlagProviderOptions options;
-    /** Method to call when we have a configuration change */
+    /** Method to call when we have a configuration change. */
     private final Consumer<ProviderEventDetails> emitProviderConfigurationChanged;
     /** Local copy of the flags' configuration. */
     private Map<String, Flag> flags;
@@ -49,6 +53,13 @@ public class InProcessEvaluator implements IEvaluator {
     /** disposable which manage the polling of the flag configurations. */
     private Disposable configurationDisposable;
 
+    /**
+     * Constructor of the InProcessEvaluator.
+     *
+     * @param api                              - API to contact GO Feature Flag
+     * @param options                          - options to configure the provider
+     * @param emitProviderConfigurationChanged - method to call when we have a configuration change
+     */
     public InProcessEvaluator(GoFeatureFlagApi api, GoFeatureFlagProviderOptions options,
             Consumer<ProviderEventDetails> emitProviderConfigurationChanged) {
         this.api = api;
@@ -111,8 +122,7 @@ public class InProcessEvaluator implements IEvaluator {
     }
 
     /**
-     * startCheckFlagConfigurationChangesDaemon is a daemon that will check if the flag configuration
-     * has changed.
+     * startCheckFlagConfigurationChangesDaemon is a daemon that will check if the flag configuration has changed.
      *
      * @return Disposable - the subscription to the observable
      */
@@ -149,13 +159,11 @@ public class InProcessEvaluator implements IEvaluator {
                     }
 
                     log.info("flag configuration has changed");
-
-                    val flagChanges = findFlagConfigurationChanges(this.flags, response.getFlags());
                     this.etag = response.getEtag();
                     this.lastUpdate = response.getLastUpdated();
+                    val flagChanges = findFlagConfigurationChanges(this.flags, response.getFlags());
                     this.flags = response.getFlags();
                     this.evaluationContextEnrichment = response.getEvaluationContextEnrichment();
-
                     val changeDetails = ProviderEventDetails.builder()
                             .flagsChanged(flagChanges)
                             .message("flag configuration has changed")
@@ -167,7 +175,7 @@ public class InProcessEvaluator implements IEvaluator {
     }
 
     /**
-     * findFlagConfigurationChanges is a function that will find the flags that have changed
+     * findFlagConfigurationChanges is a function that will find the flags that have changed.
      *
      * @param originalFlags - list of original flags
      * @param newFlags      - list of new flags

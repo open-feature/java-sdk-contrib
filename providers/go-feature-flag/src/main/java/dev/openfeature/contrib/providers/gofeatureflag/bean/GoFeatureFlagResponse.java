@@ -4,6 +4,9 @@ import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * GoFeatureFlagResponse is a class that represents the response from the Go Feature Flag service.
+ */
 @Data
 @NoArgsConstructor
 public class GoFeatureFlagResponse {

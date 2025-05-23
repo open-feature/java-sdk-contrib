@@ -34,6 +34,9 @@ import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+/**
+ * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
+ */
 @Slf4j
 public class GoFeatureFlagProvider extends EventProvider implements Tracking {
     /** Options to configure the provider. */
@@ -48,7 +51,7 @@ public class GoFeatureFlagProvider extends EventProvider implements Tracking {
     private final EventsPublisher<IEvent> eventsPublisher;
     /** exporter metadata contains the metadata that we want to send to the exporter. */
     private final Map<String, Object> exporterMetadata;
-    /** DataCollectorHook is the hook to send usage of the flags */
+    /** DataCollectorHook is the hook to send usage of the flags. */
     private DataCollectorHook dataCollectorHook;
 
     /**
@@ -58,7 +61,7 @@ public class GoFeatureFlagProvider extends EventProvider implements Tracking {
      * @throws InvalidOptions - if options are invalid
      */
     public GoFeatureFlagProvider(GoFeatureFlagProviderOptions options) throws InvalidOptions {
-        Validator.ProviderOptions(options);
+        Validator.providerOptions(options);
         this.options = options;
         this.api = GoFeatureFlagApi.builder().options(options).build();
         this.evalService = new EvaluationService(getEvaluator(this.api));

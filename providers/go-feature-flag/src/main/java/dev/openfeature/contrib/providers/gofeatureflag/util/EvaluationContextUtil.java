@@ -3,8 +3,15 @@ package dev.openfeature.contrib.providers.gofeatureflag.util;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.Value;
 
+/**
+ * EvaluationContextUtil is a utility class that provides methods to work with the evaluation context.
+ * It is used to check if the user is anonymous or not.
+ */
 public class EvaluationContextUtil {
-    /** anonymousFieldName is the name of the field in the evaluation context that indicates if the user is anonymous. */
+    /**
+     * anonymousFieldName is the name of the field in the evaluation context that indicates
+     * if the user is anonymous.
+     */
     private static final String anonymousFieldName = "anonymous";
 
     /**

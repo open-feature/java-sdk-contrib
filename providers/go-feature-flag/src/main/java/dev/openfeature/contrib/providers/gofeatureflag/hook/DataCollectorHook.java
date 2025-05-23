@@ -34,7 +34,7 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
      * @throws InvalidOptions - Thrown when there is a missing configuration.
      */
     public DataCollectorHook(final DataCollectorHookOptions options) throws InvalidOptions {
-        Validator.DataCollectorHookOptions(options);
+        Validator.dataCollectorHookOptions(options);
         eventsPublisher = options.getEventsPublisher();
         evalService = options.getEvalService();
         this.options = options;

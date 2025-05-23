@@ -58,9 +58,12 @@ class GoFeatureFlagProviderTest {
         this.testName = testInfo.getDisplayName();
     }
 
+    @SneakyThrows
     @AfterEach
     void afterEach() throws IOException {
         OpenFeatureAPI.getInstance().shutdown();
+
+        Thread.sleep(50L);
         this.server.close();
         this.server = null;
         baseUrl = null;
