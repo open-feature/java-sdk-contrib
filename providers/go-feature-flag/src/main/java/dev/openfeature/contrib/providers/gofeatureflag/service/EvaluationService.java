@@ -14,6 +14,10 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.AllArgsConstructor;
 import lombok.val;
 
+/**
+ * EvaluationService is responsible for evaluating feature flags using the provided evaluator.
+ * It can use different evaluators based on the configuration and context.
+ */
 @AllArgsConstructor
 public class EvaluationService {
     /** The evaluator used to evaluate the flags. */
@@ -29,12 +33,12 @@ public class EvaluationService {
         return this.evaluator.isFlagTrackable(flagKey);
     }
 
-    /** Init the evaluator */
+    /** Init the evaluator. */
     public void init() {
         this.evaluator.init();
     }
 
-    /** Destroy the evaluator */
+    /** Destroy the evaluator. */
     public void destroy() {
         this.evaluator.destroy();
     }

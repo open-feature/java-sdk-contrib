@@ -43,9 +43,9 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
 
     @Override
     public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
-        if (!this.evalService.isFlagTrackable(ctx.getFlagKey()) ||
-                (!Boolean.TRUE.equals(this.options.getCollectUnCachedEvaluation()) &&
-                        !Reason.CACHED.name().equals(details.getReason()))) {
+        if (!this.evalService.isFlagTrackable(ctx.getFlagKey())
+                || (!Boolean.TRUE.equals(this.options.getCollectUnCachedEvaluation())
+                && !Reason.CACHED.name().equals(details.getReason()))) {
             return;
         }
 

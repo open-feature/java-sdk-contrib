@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * This class represents a feature event, this is used to send events evaluation events to the GO Feature Flag server.
+ */
 @Builder
 @Data
 public class FeatureEvent implements IEvent {

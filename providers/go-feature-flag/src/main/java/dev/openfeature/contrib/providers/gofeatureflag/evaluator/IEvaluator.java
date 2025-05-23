@@ -5,7 +5,7 @@ import dev.openfeature.sdk.EvaluationContext;
 
 /**
  * IEvaluator is an interface that represents the evaluation of a feature flag.
- * It can have multiple implementations: EDGE or IN-PROCESS.
+ * It can have multiple implementations: REMOTE or IN-PROCESS.
  */
 public interface IEvaluator {
     /**

@@ -5,6 +5,9 @@ import java.util.Map;
 import lombok.Data;
 import lombok.val;
 
+/**
+ * This class represents the response from an OFREP response.
+ */
 @Data
 public class OfrepResponse {
     private Object value;
@@ -17,6 +20,11 @@ public class OfrepResponse {
     private String errorCode;
     private String errorDetails;
 
+    /**
+     * Converts the OFREP response to a GO Feature Flag response.
+     *
+     * @return the converted GO Feature Flag response
+     */
     public GoFeatureFlagResponse toGoFeatureFlagResponse() {
         val goff = new GoFeatureFlagResponse();
         goff.setValue(value);

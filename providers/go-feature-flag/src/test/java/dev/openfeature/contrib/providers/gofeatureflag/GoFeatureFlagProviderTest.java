@@ -137,7 +137,7 @@ class GoFeatureFlagProviderTest {
                                             // object is not a valid metadata
                                             "invalid-metadata", goffAPIMock
                                     ))
-                                    .evaluationType(EvaluationType.EDGE)
+                                    .evaluationType(EvaluationType.REMOTE)
                                     .build()
                     )
             );
@@ -179,7 +179,7 @@ class GoFeatureFlagProviderTest {
     }
 
     @Nested
-    class InProcess {
+    class InProcessEvaluation {
         @DisplayName("Should use in process evaluation by default")
         @SneakyThrows
         @Test
@@ -640,7 +640,7 @@ class GoFeatureFlagProviderTest {
             assertEquals(0, goffAPIMock.getCollectorRequestsHistory().size());
         }
 
-        @DisplayName("Should not send events for edge evaluation")
+        @DisplayName("Should not send events for remote evaluation")
         @SneakyThrows
         @Test
         void shouldResolveAValidStringFlag() {
@@ -649,7 +649,7 @@ class GoFeatureFlagProviderTest {
                             .flushIntervalMs(100L)
                             .maxPendingEvents(1)
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -675,7 +675,7 @@ class GoFeatureFlagProviderTest {
                                     "test-double", 3.14,
                                     "test-boolean", true
                             ))
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -718,7 +718,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -749,7 +749,7 @@ class GoFeatureFlagProviderTest {
     }
 
     @Nested
-    class Edge {
+    class RemoteEvaluation {
         @DisplayName("should error if the endpoint is not available")
         @SneakyThrows
         @Test
@@ -759,7 +759,7 @@ class GoFeatureFlagProviderTest {
                 s.setDispatcher(goffAPIMock.dispatcher);
                 GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
                         .endpoint(s.url("").toString())
-                        .evaluationType(EvaluationType.EDGE)
+                        .evaluationType(EvaluationType.REMOTE)
                         .timeout(1000)
                         .build());
                 OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -785,7 +785,7 @@ class GoFeatureFlagProviderTest {
                 s.setDispatcher(goffAPIMock.dispatcher);
                 GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
                         .endpoint(s.url("").toString())
-                        .evaluationType(EvaluationType.EDGE)
+                        .evaluationType(EvaluationType.REMOTE)
                         .timeout(1000)
                         .build());
                 OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -811,7 +811,7 @@ class GoFeatureFlagProviderTest {
                 s.setDispatcher(goffAPIMock.dispatcher);
                 GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
                         .endpoint(s.url("").toString())
-                        .evaluationType(EvaluationType.EDGE)
+                        .evaluationType(EvaluationType.REMOTE)
                         .apiKey("invalid")
                         .timeout(1000)
                         .build());
@@ -836,7 +836,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -859,7 +859,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -883,7 +883,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -908,7 +908,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -933,7 +933,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -958,7 +958,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
@@ -983,7 +983,7 @@ class GoFeatureFlagProviderTest {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
                     GoFeatureFlagProviderOptions.builder()
                             .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.EDGE)
+                            .evaluationType(EvaluationType.REMOTE)
                             .build()
             );
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);

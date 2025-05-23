@@ -3,6 +3,9 @@ package dev.openfeature.contrib.providers.gofeatureflag.bean;
 import java.util.Map;
 import lombok.Data;
 
+/**
+ * This class represents a rule in the GO Feature Flag system.
+ */
 @Data
 public class Rule {
     private String name;

@@ -22,7 +22,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import lombok.SneakyThrows;
 import lombok.val;
 
 /**
@@ -35,8 +34,13 @@ public class EvaluationWasm {
     private final ExportFunction malloc;
     private final ExportFunction free;
 
-    @SneakyThrows
-    public EvaluationWasm() {
+    /**
+     * Constructor of the EvaluationWasm.
+     * It initializes the WASM module and the host functions.
+     *
+     * @throws WasmFileNotFound - if the WASM file is not found
+     */
+    public EvaluationWasm() throws WasmFileNotFound {
         // We will create two output streams to capture stdout and stderr
         val wasi = WasiPreview1.builder().withOptions(WasiOptions.builder().inheritSystem().build()).build();
         val hostFunctions = wasi.toHostFunctions();
@@ -49,8 +53,8 @@ public class EvaluationWasm {
     }
 
     /**
-     * getWasmFile is a function that returns the path to the WASM file
-     * It looks for the file in the classpath under the directory "wasm"
+     * getWasmFile is a function that returns the path to the WASM file.
+     * It looks for the file in the classpath under the directory "wasm".
      *
      * @return the path to the WASM file
      * @throws WasmFileNotFound - if the file is not found
@@ -58,11 +62,11 @@ public class EvaluationWasm {
     private File getWasmFile() throws WasmFileNotFound {
         try {
             ClassLoader classLoader = EvaluationWasm.class.getClassLoader();
-            URL directoryURL = classLoader.getResource("wasm");
-            if (directoryURL == null) {
+            URL directoryUrl = classLoader.getResource("wasm");
+            if (directoryUrl == null) {
                 throw new RuntimeException("Directory not found");
             }
-            Path dirPath = Paths.get(directoryURL.toURI());
+            Path dirPath = Paths.get(directoryUrl.toURI());
             try (val files = Files.list(dirPath)) {
                 return files
                         .filter(path -> path.getFileName().toString().startsWith("gofeatureflag-evaluation")
@@ -111,7 +115,7 @@ public class EvaluationWasm {
 
 
     /**
-     * Evaluate is a function that evaluates the feature flag using the WASM module
+     * Evaluate is a function that evaluates the feature flag using the WASM module.
      *
      * @param wasmInput - the object used to evaluate the feature flag
      * @return the result of the evaluation

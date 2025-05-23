@@ -6,11 +6,11 @@ import dev.openfeature.sdk.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * EdgeEvaluator is an implementation of the IEvaluator interface.
+ * RemoteEvaluator is an implementation of the IEvaluator interface.
  * It is used to evaluate the feature flags using the GO Feature Flag API.
  */
 @Slf4j
-public class EdgeEvaluator implements IEvaluator {
+public class RemoteEvaluator implements IEvaluator {
     /** API to contact GO Feature Flag. */
     public final GoFeatureFlagApi api;
 
@@ -19,7 +19,7 @@ public class EdgeEvaluator implements IEvaluator {
      *
      * @param api - api service to evaluate the flags
      */
-    public EdgeEvaluator(GoFeatureFlagApi api) {
+    public RemoteEvaluator(GoFeatureFlagApi api) {
         this.api = api;
     }
 

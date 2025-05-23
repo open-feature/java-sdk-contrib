@@ -5,6 +5,9 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.Flag;
 import java.util.Map;
 import lombok.Data;
 
+/**
+ * Represents the response body for the flag configuration API.
+ */
 @Data
 public class FlagConfigApiResponse {
     @JsonProperty("flags")

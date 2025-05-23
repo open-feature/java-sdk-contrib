@@ -7,6 +7,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * This class represents the input to the WASM module.
+ * It contains the flag key, the flag, the evaluation context, and the flag context.
+ */
 @Data
 @Builder
 @AllArgsConstructor

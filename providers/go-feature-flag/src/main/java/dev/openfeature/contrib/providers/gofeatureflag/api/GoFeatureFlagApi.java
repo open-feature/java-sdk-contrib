@@ -42,6 +42,9 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+/**
+ * GoFeatureFlagApi is the class to contact the GO Feature Flag relay proxy.
+ */
 @Slf4j
 public class GoFeatureFlagApi {
     /** apiKey contains the token to use while calling GO Feature Flag relay proxy. */
@@ -159,7 +162,7 @@ public class GoFeatureFlagApi {
                 reqBuilder.addHeader(Const.HTTP_HEADER_IF_NONE_MATCH, etag);
             }
 
-            try (final Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
+            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
                 val responseBody = response.body();
                 String body = responseBody != null ? responseBody.string() : "";
                 switch (response.code()) {
@@ -204,7 +207,7 @@ public class GoFeatureFlagApi {
                     .addEncodedPathSegment("collector")
                     .build();
             val reqBuilder = prepareHttpRequest(url, requestBody);
-            try (final Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
+            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
                 val responseBody = response.body();
                 String body = responseBody != null ? responseBody.string() : "";
                 switch (response.code()) {

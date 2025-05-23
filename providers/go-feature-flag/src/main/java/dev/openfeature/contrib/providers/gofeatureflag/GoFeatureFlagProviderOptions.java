@@ -15,7 +15,7 @@ public class GoFeatureFlagProviderOptions {
     /**
      * evaluationType is the type of evaluation you want to use.
      * - If you want to have a local evaluation, you should use IN_PROCESS.
-     * - If you want to have an evaluation on the edge, you should use EDGE.
+     * - If you want to have an evaluation on the relay-proxy directly, you should use REMOTE.
      * Default: IN_PROCESS
      */
     private EvaluationType evaluationType;

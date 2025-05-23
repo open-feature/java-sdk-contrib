@@ -4,9 +4,9 @@ import dev.openfeature.contrib.providers.gofeatureflag.api.GoFeatureFlagApi;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.TrackingEvent;
-import dev.openfeature.contrib.providers.gofeatureflag.evaluator.EdgeEvaluator;
 import dev.openfeature.contrib.providers.gofeatureflag.evaluator.IEvaluator;
 import dev.openfeature.contrib.providers.gofeatureflag.evaluator.InProcessEvaluator;
+import dev.openfeature.contrib.providers.gofeatureflag.evaluator.RemoteEvaluator;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOptions;
@@ -130,10 +130,10 @@ public class GoFeatureFlagProvider extends EventProvider implements Tracking {
         super.initialize(evaluationContext);
         this.evalService.init();
         this.hooks.add(new EnrichEvaluationContextHook(this.options.getExporterMetadata()));
-        // In case of Edge evaluation, we don't need to send the data to the collector
+        // In case of remote evaluation, we don't need to send the data to the collector
         // because the relay-proxy will collect events directly server side.
         if (!this.options.isDisableDataCollection()
-                && this.options.getEvaluationType() != EvaluationType.EDGE) {
+                && this.options.getEvaluationType() != EvaluationType.REMOTE) {
             this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
                     .eventsPublisher(this.eventsPublisher)
                     .collectUnCachedEvaluation(true)
@@ -195,7 +195,7 @@ public class GoFeatureFlagProvider extends EventProvider implements Tracking {
             Consumer<ProviderEventDetails> emitProviderConfigurationChanged = this::emitProviderConfigurationChanged;
             return new InProcessEvaluator(api, this.options, emitProviderConfigurationChanged);
         }
-        return new EdgeEvaluator(api);
+        return new RemoteEvaluator(api);
     }
 
     /**
