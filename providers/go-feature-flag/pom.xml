@@ -95,7 +95,7 @@
                 <executions>
                     <execution>
                         <id>download-latest-github-asset</id>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
