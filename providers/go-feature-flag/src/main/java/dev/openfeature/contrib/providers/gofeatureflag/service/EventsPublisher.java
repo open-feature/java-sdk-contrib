@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 /**
  * Events publisher.
@@ -24,7 +23,7 @@ import lombok.val;
  * @author Liran Mendelovich
  */
 @Slf4j
-public class EventsPublisher<T> {
+public final class EventsPublisher<T> {
     public final AtomicBoolean isShutdown = new AtomicBoolean(false);
     private final int maxPendingEvents;
     private final Consumer<List<T>> publisher;
@@ -34,7 +33,7 @@ public class EventsPublisher<T> {
     private final Lock writeLock = readWriteLock.writeLock();
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-    private List<T> eventsList;
+    private final List<T> eventsList;
 
     /**
      * Constructor.
@@ -64,17 +63,28 @@ public class EventsPublisher<T> {
             log.error("This object was shut down. Omitting event.");
             return;
         }
-        readLock.lock();
-        val shouldPublish = (eventsList != null) && (eventsList.size() >= maxPendingEvents);
-        readLock.unlock();
+
+        var shouldPublish = false;
+        try {
+            readLock.lock();
+            shouldPublish = (eventsList != null) && (eventsList.size() >= maxPendingEvents);
+        } finally {
+            readLock.unlock();
+        }
 
         if (shouldPublish) {
             log.warn("events collection is full. Publishing before adding new events.");
             publish();
         }
-        writeLock.lock();
-        eventsList.add(event);
-        writeLock.unlock();
+
+        try {
+            writeLock.lock();
+            if (eventsList != null) {
+                eventsList.add(event);
+            }
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     /**

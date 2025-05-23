@@ -31,7 +31,8 @@ public class Validator {
         if (options.getExporterMetadata() != null) {
             val acceptableExporterMetadataTypes = List.of("String", "Boolean", "Integer", "Double");
             for (Map.Entry<String, Object> entry : options.getExporterMetadata().entrySet()) {
-                if (!acceptableExporterMetadataTypes.contains(entry.getValue().getClass().getSimpleName())) {
+                if (!acceptableExporterMetadataTypes.contains(
+                        entry.getValue().getClass().getSimpleName())) {
                     throw new InvalidExporterMetadata(
                             "exporterMetadata can only contain String, Boolean, Integer or Double");
                 }

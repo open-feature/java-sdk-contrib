@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  * Flag.
  */
 @Slf4j
-public class DataCollectorHook implements Hook<HookContext<String>> {
+public final class DataCollectorHook implements Hook<HookContext<String>> {
     /** options contains all the options of this hook. */
     private final DataCollectorHookOptions options;
     /** eventsPublisher is the system collecting all the information to send to GO Feature Flag. */
@@ -40,12 +40,11 @@ public class DataCollectorHook implements Hook<HookContext<String>> {
         this.options = options;
     }
 
-
     @Override
     public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         if (!this.evalService.isFlagTrackable(ctx.getFlagKey())
                 || (!Boolean.TRUE.equals(this.options.getCollectUnCachedEvaluation())
-                && !Reason.CACHED.name().equals(details.getReason()))) {
+                        && !Reason.CACHED.name().equals(details.getReason()))) {
             return;
         }
 

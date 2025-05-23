@@ -19,5 +19,4 @@ public class FlagConfigApiResponse {
     FlagConfigApiResponse() {
         // Default constructor
     }
-
 }

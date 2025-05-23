@@ -38,7 +38,7 @@ import lombok.val;
  * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
  */
 @Slf4j
-public class GoFeatureFlagProvider extends EventProvider implements Tracking {
+public final class GoFeatureFlagProvider extends EventProvider implements Tracking {
     /** Options to configure the provider. */
     private final GoFeatureFlagProviderOptions options;
     /** Service to evaluate the flags. */
@@ -60,15 +60,14 @@ public class GoFeatureFlagProvider extends EventProvider implements Tracking {
      * @param options - options to configure the provider
      * @throws InvalidOptions - if options are invalid
      */
-    public GoFeatureFlagProvider(GoFeatureFlagProviderOptions options) throws InvalidOptions {
+    public GoFeatureFlagProvider(final GoFeatureFlagProviderOptions options) throws InvalidOptions {
         Validator.providerOptions(options);
         this.options = options;
         this.api = GoFeatureFlagApi.builder().options(options).build();
         this.evalService = new EvaluationService(getEvaluator(this.api));
 
-        long flushIntervalMs = (options.getFlushIntervalMs() == null)
-                ? Const.DEFAULT_FLUSH_INTERVAL_MS
-                : options.getFlushIntervalMs();
+        long flushIntervalMs =
+                (options.getFlushIntervalMs() == null) ? Const.DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
         int maxPendingEvents = (options.getMaxPendingEvents() == null)
                 ? Const.DEFAULT_MAX_PENDING_EVENTS
                 : options.getMaxPendingEvents();
@@ -92,7 +91,7 @@ public class GoFeatureFlagProvider extends EventProvider implements Tracking {
 
     @Override
     public List<Hook> getProviderHooks() {
-        return this.hooks;
+        return new ArrayList<>(this.hooks);
     }
 
     @Override
@@ -132,8 +131,7 @@ public class GoFeatureFlagProvider extends EventProvider implements Tracking {
         this.hooks.add(new EnrichEvaluationContextHook(this.options.getExporterMetadata()));
         // In case of remote evaluation, we don't need to send the data to the collector
         // because the relay-proxy will collect events directly server side.
-        if (!this.options.isDisableDataCollection()
-                && this.options.getEvaluationType() != EvaluationType.REMOTE) {
+        if (!this.options.isDisableDataCollection() && this.options.getEvaluationType() != EvaluationType.REMOTE) {
             this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
                     .eventsPublisher(this.eventsPublisher)
                     .collectUnCachedEvaluation(true)

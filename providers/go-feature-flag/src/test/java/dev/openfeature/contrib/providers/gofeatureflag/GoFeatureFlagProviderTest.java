@@ -78,9 +78,9 @@ class GoFeatureFlagProviderTest {
             assertEquals(
                     "GO Feature Flag Provider",
                     new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
-                            .endpoint("https://gofeatureflag.org")
-                            .timeout(1000)
-                            .build())
+                                    .endpoint("https://gofeatureflag.org")
+                                    .timeout(1000)
+                                    .build())
                             .getMetadata()
                             .getName());
         }
@@ -112,8 +112,9 @@ class GoFeatureFlagProviderTest {
         void constructor_options_only_timeout() {
             assertThrows(
                     InvalidEndpoint.class,
-                    () -> new GoFeatureFlagProvider(
-                            GoFeatureFlagProviderOptions.builder().timeout(10000).build()));
+                    () -> new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                            .timeout(10000)
+                            .build()));
         }
 
         @SneakyThrows
@@ -130,17 +131,13 @@ class GoFeatureFlagProviderTest {
         void shouldErrorIfTheMetadataIsNotAValidType() {
             assertThrows(
                     InvalidExporterMetadata.class,
-                    () -> new GoFeatureFlagProvider(
-                            GoFeatureFlagProviderOptions.builder()
-                                    .endpoint(baseUrl.toString())
-                                    .exporterMetadata(Map.of(
-                                            // object is not a valid metadata
-                                            "invalid-metadata", goffAPIMock
-                                    ))
-                                    .evaluationType(EvaluationType.REMOTE)
-                                    .build()
-                    )
-            );
+                    () -> new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                            .endpoint(baseUrl.toString())
+                            .exporterMetadata(Map.of(
+                                    // object is not a valid metadata
+                                    "invalid-metadata", goffAPIMock))
+                            .evaluationType(EvaluationType.REMOTE)
+                            .build()));
         }
 
         @DisplayName("Should error if invalid flush interval is set")
@@ -149,15 +146,12 @@ class GoFeatureFlagProviderTest {
         void shouldErrorIfInvalidFlushIntervalIsSet() {
             assertThrows(
                     InvalidOptions.class,
-                    () -> new GoFeatureFlagProvider(
-                            GoFeatureFlagProviderOptions.builder()
-                                    .flushIntervalMs(-1L)
-                                    .maxPendingEvents(1000)
-                                    .endpoint(baseUrl.toString())
-                                    .evaluationType(EvaluationType.IN_PROCESS)
-                                    .build()
-                    )
-            );
+                    () -> new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                            .flushIntervalMs(-1L)
+                            .maxPendingEvents(1000)
+                            .endpoint(baseUrl.toString())
+                            .evaluationType(EvaluationType.IN_PROCESS)
+                            .build()));
         }
 
         @DisplayName("Should error if invalid max pending events is set")
@@ -166,15 +160,12 @@ class GoFeatureFlagProviderTest {
         void shouldErrorIfInvalidMaxPendingEventsIsSet() {
             assertThrows(
                     InvalidOptions.class,
-                    () -> new GoFeatureFlagProvider(
-                            GoFeatureFlagProviderOptions.builder()
-                                    .flushIntervalMs(100L)
-                                    .maxPendingEvents(-1000)
-                                    .endpoint(baseUrl.toString())
-                                    .evaluationType(EvaluationType.IN_PROCESS)
-                                    .build()
-                    )
-            );
+                    () -> new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                            .flushIntervalMs(100L)
+                            .maxPendingEvents(-1000)
+                            .endpoint(baseUrl.toString())
+                            .evaluationType(EvaluationType.IN_PROCESS)
+                            .build()));
         }
     }
 
@@ -184,27 +175,24 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldUseInProcessByDefault() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder().endpoint(baseUrl.toString()).build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getBooleanDetails("bool_targeting_match", false, new MutableContext());
             val want = "/v1/flag/configuration";
             assertEquals(want, server.takeRequest().getPath());
-
         }
 
         @DisplayName("Should use in process evaluation if option is set")
         @SneakyThrows
         @Test
         void shouldUseInProcessIfOptionIsSet() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getBooleanDetails("bool_targeting_match", false, new MutableContext());
@@ -223,8 +211,8 @@ class GoFeatureFlagProviderTest {
                         .endpoint(s.url("").toString())
                         .timeout(1000)
                         .build());
-                assertThrows(GeneralError.class, () ->
-                        OpenFeatureAPI.getInstance().setProviderAndWait(testName, g));
+                assertThrows(
+                        GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, g));
             }
         }
 
@@ -239,8 +227,8 @@ class GoFeatureFlagProviderTest {
                         .endpoint(s.url("").toString())
                         .timeout(1000)
                         .build());
-                assertThrows(GeneralError.class, () ->
-                        OpenFeatureAPI.getInstance().setProviderAndWait(testName, g));
+                assertThrows(
+                        GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, g));
             }
         }
 
@@ -248,12 +236,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldReturnFlagNotFoundIfFlagDoesNotExists() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getBooleanDetails("DOES_NOT_EXISTS", false, TestUtils.defaultEvaluationContext);
@@ -272,12 +258,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldThrowAnErrorIfWeExpectABooleanAndGotAnotherType() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getBooleanDetails("string_key", false, TestUtils.defaultEvaluationContext);
@@ -296,12 +280,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidBooleanFlagWithTargetingMatchReason() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getBooleanDetails("bool_targeting_match", false, TestUtils.defaultEvaluationContext);
@@ -322,12 +304,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidStringFlagWithTargetingMatchReason() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getStringDetails("string_key", "", TestUtils.defaultEvaluationContext);
@@ -348,12 +328,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidDoubleFlagWithTargetingMatchReason() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getDoubleDetails("double_key", 100.10, TestUtils.defaultEvaluationContext);
@@ -374,12 +352,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidIntegerFlagWithTargetingMatchReason() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
@@ -400,18 +376,17 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidObjectFlagWithTargetingMatchReason() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
-            val got = client.getObjectDetails("object_key",
+            val got = client.getObjectDetails(
+                    "object_key",
                     Value.objectToValue(new MutableStructure().add("default", "true")),
                     TestUtils.defaultEvaluationContext);
-            val want = FlagEvaluationDetails.<Object>builder()
+            val want = FlagEvaluationDetails.builder()
                     .value(Value.objectToValue(new MutableStructure().add("test", "false")))
                     .variant("varB")
                     .flagKey("object_key")
@@ -424,12 +399,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldUseBooleanDefaultValueIfTheFlagIsDisabled() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getBooleanDetails("disabled_bool", false, TestUtils.defaultEvaluationContext);
@@ -449,12 +422,11 @@ class GoFeatureFlagProviderTest {
             val s = new MockWebServer();
             val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.CHANGE_CONFIG_AFTER_1ST_EVAL);
             s.setDispatcher(goffAPIMock.dispatcher);
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flagChangePollingIntervalMs(100L)
-                            .endpoint(s.url("").toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build());
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flagChangePollingIntervalMs(100L)
+                    .endpoint(s.url("").toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
 
@@ -480,13 +452,11 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldNotEmitConfigurationChangeEventIfConfigHasNotChanged() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flagChangePollingIntervalMs(100L)
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flagChangePollingIntervalMs(100L)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
 
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
@@ -506,13 +476,11 @@ class GoFeatureFlagProviderTest {
             val s = new MockWebServer();
             val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.CHANGE_CONFIG_AFTER_1ST_EVAL);
             s.setDispatcher(goffAPIMock.dispatcher);
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flagChangePollingIntervalMs(100L)
-                            .endpoint(s.url("").toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flagChangePollingIntervalMs(100L)
+                    .endpoint(s.url("").toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             AtomicBoolean configurationChangedCalled = new AtomicBoolean(false);
@@ -538,17 +506,12 @@ class GoFeatureFlagProviderTest {
             val s = new MockWebServer();
             val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.ENDPOINT_ERROR_404);
             s.setDispatcher(goffAPIMock.dispatcher);
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flagChangePollingIntervalMs(100L)
-                            .endpoint(s.url("").toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
-            assertThrows(
-                    GeneralError.class,
-                    () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider)
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flagChangePollingIntervalMs(100L)
+                    .endpoint(s.url("").toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider));
         }
 
         @DisplayName("Should ignore configuration if etag is different by last-modified is older")
@@ -558,13 +521,11 @@ class GoFeatureFlagProviderTest {
             val s = new MockWebServer();
             val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.SERVE_OLD_CONFIGURATION);
             s.setDispatcher(goffAPIMock.dispatcher);
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flagChangePollingIntervalMs(100L)
-                            .endpoint(s.url("").toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flagChangePollingIntervalMs(100L)
+                    .endpoint(s.url("").toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             AtomicBoolean configurationChangedCalled = new AtomicBoolean(false);
@@ -584,14 +545,12 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldSendTheEvaluationInformationToTheDataCollector() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(150L)
-                            .maxPendingEvents(100)
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(150L)
+                    .maxPendingEvents(100)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
@@ -604,14 +563,12 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldCallMultipleTimeTheDataCollectorIfMaxPendingEventsIsReached() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(100L)
-                            .maxPendingEvents(1)
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
@@ -624,14 +581,12 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldNotSendEvaluationEventIfFlagHasTrackingDisabled() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(100L)
-                            .maxPendingEvents(1)
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getStringDetails("string_key", "default", TestUtils.defaultEvaluationContext);
@@ -644,14 +599,12 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidStringFlag() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(100L)
-                            .maxPendingEvents(1)
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getStringDetails("string_flag", "false", TestUtils.defaultEvaluationContext);
@@ -666,43 +619,46 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldAddToTheContextTheExporterMetadataToTheEvaluationContext() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .exporterMetadata(Map.of(
-                                    "test-string", "testing-provider",
-                                    "test-int", 1,
-                                    "test-double", 3.14,
-                                    "test-boolean", true
-                            ))
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .exporterMetadata(Map.of(
+                            "test-string",
+                            "testing-provider",
+                            "test-int",
+                            1,
+                            "test-double",
+                            3.14,
+                            "test-boolean",
+                            true))
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getBooleanDetails("bool_flag", false, TestUtils.defaultEvaluationContext);
-            val got = Const.DESERIALIZE_OBJECT_MAPPER.readValue(goffAPIMock.getLastRequestBody(),
-                    HashMap.class);
+            val got = Const.DESERIALIZE_OBJECT_MAPPER.readValue(goffAPIMock.getLastRequestBody(), HashMap.class);
 
             val context = new HashMap<String, Object>();
             context.put("targetingKey", "d45e303a-38c2-11ed-a261-0242ac120002");
             context.put("rate", 3.14);
-            context.put("company_info", Map.of(
-                    "size", 120,
-                    "name", "my_company"
-            ));
+            context.put("company_info", Map.of("size", 120, "name", "my_company"));
             context.put("anonymous", false);
             context.put("email", "john.doe@gofeatureflag.org");
             context.put("lastname", "doe");
             context.put("firstname", "john");
             context.put("age", 30);
-            context.put("gofeatureflag", Map.of(
-                    "exporterMetadata", Map.of(
-                            "test-double", 3.14,
-                            "test-int", 1,
-                            "test-boolean", true,
-                            "test-string", "testing-provider"
-                    )));
+            context.put(
+                    "gofeatureflag",
+                    Map.of(
+                            "exporterMetadata",
+                            Map.of(
+                                    "test-double",
+                                    3.14,
+                                    "test-int",
+                                    1,
+                                    "test-boolean",
+                                    true,
+                                    "test-string",
+                                    "testing-provider")));
             context.put("professional", true);
             context.put("labels", List.of("pro", "beta"));
 
@@ -715,25 +671,19 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldNotAddGoffeatureflagKeyInExporterMetadataIfTheExporterMetadataIsEmpty() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getBooleanDetails("bool_flag", false, TestUtils.defaultEvaluationContext);
-            val got = Const.DESERIALIZE_OBJECT_MAPPER.readValue(goffAPIMock.getLastRequestBody(),
-                    HashMap.class);
+            val got = Const.DESERIALIZE_OBJECT_MAPPER.readValue(goffAPIMock.getLastRequestBody(), HashMap.class);
 
             val context = new HashMap<String, Object>();
             context.put("targetingKey", "d45e303a-38c2-11ed-a261-0242ac120002");
             context.put("rate", 3.14);
-            context.put("company_info", Map.of(
-                    "size", 120,
-                    "name", "my_company"
-            ));
+            context.put("company_info", Map.of("size", 120, "name", "my_company"));
             context.put("anonymous", false);
             context.put("email", "john.doe@gofeatureflag.org");
             context.put("lastname", "doe");
@@ -833,12 +783,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldErrorIfFlagNotFound() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getBooleanDetails("does-not-exists", false, TestUtils.defaultEvaluationContext);
@@ -856,12 +804,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldErrorIfEvaluatingTheWrongType() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getStringDetails("bool_flag", "default", TestUtils.defaultEvaluationContext);
@@ -880,12 +826,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidBooleanFlag() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getBooleanDetails("bool_flag", false, TestUtils.defaultEvaluationContext);
@@ -905,12 +849,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidStringFlag() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getStringDetails("string_flag", "false", TestUtils.defaultEvaluationContext);
@@ -930,12 +872,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidIntFlag() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getIntegerDetails("int_flag", 0, TestUtils.defaultEvaluationContext);
@@ -955,12 +895,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidDoubleFlag() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getDoubleDetails("double_flag", 0.0, TestUtils.defaultEvaluationContext);
@@ -980,12 +918,10 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldResolveAValidObjectFlag() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.REMOTE)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.REMOTE)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             val got = client.getObjectDetails("object_flag", new Value("default"), TestUtils.defaultEvaluationContext);
@@ -1009,14 +945,12 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldSendTrackingEventToTheDataCollector() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(100L)
-                            .maxPendingEvents(1000)
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1000)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.track(
@@ -1031,14 +965,12 @@ class GoFeatureFlagProviderTest {
         @SneakyThrows
         @Test
         void shouldCallMultipleTimeTheDataCollectorIfMaxPendingEventsIsReached() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(
-                    GoFeatureFlagProviderOptions.builder()
-                            .flushIntervalMs(100L)
-                            .maxPendingEvents(1)
-                            .endpoint(baseUrl.toString())
-                            .evaluationType(EvaluationType.IN_PROCESS)
-                            .build()
-            );
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
             OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.track(

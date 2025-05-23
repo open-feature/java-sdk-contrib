@@ -10,9 +10,7 @@ public class DataCollectorHookTest {
     @SneakyThrows
     @Test
     void shouldErrorIfNoOptionsProvided() {
-        assertThrows(
-                InvalidOptions.class,
-                () -> new DataCollectorHook(null));
+        assertThrows(InvalidOptions.class, () -> new DataCollectorHook(null));
     }
 
     @SneakyThrows

@@ -70,29 +70,31 @@ public class GoFeatureFlagApiTest {
         @DisplayName("should throw invalid options if endpoint missing")
         @Test
         public void shouldThrowInvalidOptionsIfEndpointMissing() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .build();
-            assertThrows(InvalidEndpoint.class, () -> GoFeatureFlagApi.builder().options(options).build());
+            val options = GoFeatureFlagProviderOptions.builder().build();
+            assertThrows(
+                    InvalidEndpoint.class,
+                    () -> GoFeatureFlagApi.builder().options(options).build());
         }
 
         @SneakyThrows
         @DisplayName("should throw invalid options if endpoint empty")
         @Test
         public void shouldThrowInvalidOptionsIfEndpointEmpty() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint("")
-                    .build();
-            assertThrows(InvalidEndpoint.class, () -> GoFeatureFlagApi.builder().options(options).build());
+            val options = GoFeatureFlagProviderOptions.builder().endpoint("").build();
+            assertThrows(
+                    InvalidEndpoint.class,
+                    () -> GoFeatureFlagApi.builder().options(options).build());
         }
 
         @SneakyThrows
         @DisplayName("should throw invalid options if endpoint invalid")
         @Test
         public void shouldThrowInvalidOptionsIfEndpointInvalid() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint("ccccc")
-                    .build();
-            assertThrows(InvalidEndpoint.class, () -> GoFeatureFlagApi.builder().options(options).build());
+            val options =
+                    GoFeatureFlagProviderOptions.builder().endpoint("ccccc").build();
+            assertThrows(
+                    InvalidEndpoint.class,
+                    () -> GoFeatureFlagApi.builder().options(options).build());
         }
     }
 
@@ -229,8 +231,8 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(GeneralError.class,
-                    () -> api.evaluateFlag("invalid-json", TestUtils.defaultEvaluationContext));
+            assertThrows(
+                    GeneralError.class, () -> api.evaluateFlag("invalid-json", TestUtils.defaultEvaluationContext));
         }
 
         @SneakyThrows
@@ -407,8 +409,7 @@ public class GoFeatureFlagApiTest {
 
             Map<String, Object> exporterMetadata = new HashMap<>();
             exporterMetadata.put("error", 401);
-            assertThrows(GeneralError.class,
-                    () -> api.sendEventToDataCollector(events, exporterMetadata));
+            assertThrows(GeneralError.class, () -> api.sendEventToDataCollector(events, exporterMetadata));
         }
 
         @SneakyThrows
@@ -423,8 +424,7 @@ public class GoFeatureFlagApiTest {
 
             Map<String, Object> exporterMetadata = new HashMap<>();
             exporterMetadata.put("error", 403);
-            assertThrows(GeneralError.class,
-                    () -> api.sendEventToDataCollector(events, exporterMetadata));
+            assertThrows(GeneralError.class, () -> api.sendEventToDataCollector(events, exporterMetadata));
         }
 
         @SneakyThrows
@@ -439,8 +439,7 @@ public class GoFeatureFlagApiTest {
 
             Map<String, Object> exporterMetadata = new HashMap<>();
             exporterMetadata.put("error", 400);
-            assertThrows(GeneralError.class,
-                    () -> api.sendEventToDataCollector(events, exporterMetadata));
+            assertThrows(GeneralError.class, () -> api.sendEventToDataCollector(events, exporterMetadata));
         }
 
         @SneakyThrows
@@ -461,7 +460,8 @@ public class GoFeatureFlagApiTest {
             CircularRef circularRef = new CircularRef();
             circularRef.ref = circularRef;
             exporterMetadata.put("circularRef", circularRef);
-            assertThrows(ImpossibleToSendEventsException.class,
+            assertThrows(
+                    ImpossibleToSendEventsException.class,
                     () -> api.sendEventToDataCollector(events, exporterMetadata));
         }
     }
@@ -555,7 +555,6 @@ public class GoFeatureFlagApiTest {
             assertEquals(want, got, "The JSON strings are not equal");
         }
 
-
         @SneakyThrows
         @DisplayName("request should return a an error if 401 received")
         @Test
@@ -564,7 +563,8 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(ImpossibleToRetrieveConfiguration.class,
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
                     () -> api.retrieveFlagConfiguration("401", Collections.emptyList()));
         }
 
@@ -576,7 +576,8 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(ImpossibleToRetrieveConfiguration.class,
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
                     () -> api.retrieveFlagConfiguration("403", Collections.emptyList()));
         }
 
@@ -588,7 +589,8 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(ImpossibleToRetrieveConfiguration.class,
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
                     () -> api.retrieveFlagConfiguration("400", Collections.emptyList()));
         }
 
@@ -600,7 +602,8 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(ImpossibleToRetrieveConfiguration.class,
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
                     () -> api.retrieveFlagConfiguration("500", Collections.emptyList()));
         }
 
@@ -612,7 +615,8 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(FlagConfigurationEndpointNotFound.class,
+            assertThrows(
+                    FlagConfigurationEndpointNotFound.class,
                     () -> api.retrieveFlagConfiguration("404", Collections.emptyList()));
         }
 
@@ -654,8 +658,8 @@ public class GoFeatureFlagApiTest {
             val want = FlagConfigResponse.builder()
                     .flags(flags)
                     .etag("valid-flag-config.json")
-                    .lastUpdated(new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz").parse(
-                            "Wed, 21 Oct 2015 07:28:00 GMT"))
+                    .lastUpdated(new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz")
+                            .parse("Wed, 21 Oct 2015 07:28:00 GMT"))
                     .evaluationContextEnrichment(evaluationContextEnrichment)
                     .build();
             assertEquals(want, got);

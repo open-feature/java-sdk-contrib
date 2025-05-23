@@ -60,7 +60,9 @@ public class InProcessEvaluator implements IEvaluator {
      * @param options                          - options to configure the provider
      * @param emitProviderConfigurationChanged - method to call when we have a configuration change
      */
-    public InProcessEvaluator(GoFeatureFlagApi api, GoFeatureFlagProviderOptions options,
+    public InProcessEvaluator(
+            GoFeatureFlagApi api,
+            GoFeatureFlagProviderOptions options,
             Consumer<ProviderEventDetails> emitProviderConfigurationChanged) {
         this.api = api;
         this.flags = Collections.emptyMap();
@@ -101,8 +103,7 @@ public class InProcessEvaluator implements IEvaluator {
 
     @Override
     public void init() {
-        val configFlags = api.retrieveFlagConfiguration(
-                this.etag, options.getEvaluationFlagList());
+        val configFlags = api.retrieveFlagConfiguration(this.etag, options.getEvaluationFlagList());
         this.flags = configFlags.getFlags();
         this.etag = configFlags.getEtag();
         this.lastUpdate = configFlags.getLastUpdated();
@@ -126,12 +127,10 @@ public class InProcessEvaluator implements IEvaluator {
      *
      * @return Disposable - the subscription to the observable
      */
-    @NotNull
-    private Disposable startCheckFlagConfigurationChangesDaemon() {
-        long pollingIntervalMs =
-                options.getFlagChangePollingIntervalMs() != null
-                        ? options.getFlagChangePollingIntervalMs()
-                        : Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
+    @NotNull private Disposable startCheckFlagConfigurationChangesDaemon() {
+        long pollingIntervalMs = options.getFlagChangePollingIntervalMs() != null
+                ? options.getFlagChangePollingIntervalMs()
+                : Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
 
         PublishSubject<Object> stopSignal = PublishSubject.create();
         Observable<Long> intervalObservable = Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS);
@@ -170,8 +169,8 @@ public class InProcessEvaluator implements IEvaluator {
                             .build();
                     this.emitProviderConfigurationChanged.accept(changeDetails);
                 },
-                throwable -> log.error("error while calling flag configuration API, error: {}",
-                        throwable.getMessage()));
+                throwable ->
+                        log.error("error while calling flag configuration API, error: {}", throwable.getMessage()));
     }
 
     /**
@@ -181,8 +180,8 @@ public class InProcessEvaluator implements IEvaluator {
      * @param newFlags      - list of new flags
      * @return - list of flags that have changed
      */
-    private List<String> findFlagConfigurationChanges(final Map<String, Flag> originalFlags,
-            final Map<String, Flag> newFlags) {
+    private List<String> findFlagConfigurationChanges(
+            final Map<String, Flag> originalFlags, final Map<String, Flag> newFlags) {
         // this function should return a list of flags that have changed between the two maps
         // it should contain all updated, added and removed flags
         List<String> changedFlags = new ArrayList<>();
@@ -207,5 +206,4 @@ public class InProcessEvaluator implements IEvaluator {
 
         return changedFlags;
     }
-
 }

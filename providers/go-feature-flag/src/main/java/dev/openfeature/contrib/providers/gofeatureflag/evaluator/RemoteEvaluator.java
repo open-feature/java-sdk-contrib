@@ -23,7 +23,6 @@ public class RemoteEvaluator implements IEvaluator {
         this.api = api;
     }
 
-
     @Override
     public GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
         return this.api.evaluateFlag(key, evaluationContext);

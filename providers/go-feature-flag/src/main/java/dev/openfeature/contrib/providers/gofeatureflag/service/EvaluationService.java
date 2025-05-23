@@ -80,9 +80,8 @@ public class EvaluationService {
         T flagValue = convertValue(goffResp.getValue(), expectedType);
 
         if (flagValue.getClass() != expectedType) {
-            throw new TypeMismatchError(
-                    String.format("Flag value %s had unexpected type %s, expected %s.", flagKey, flagValue.getClass(),
-                            expectedType));
+            throw new TypeMismatchError(String.format(
+                    "Flag value %s had unexpected type %s, expected %s.", flagKey, flagValue.getClass(), expectedType));
         }
 
         return ProviderEvaluation.<T>builder()

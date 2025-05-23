@@ -18,6 +18,7 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.io.File;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,7 +29,7 @@ import lombok.val;
  * EvaluationWasm is a class that represents the evaluation of a feature flag
  * it calls an external WASM module to evaluate the feature flag.
  */
-public class EvaluationWasm {
+public final class EvaluationWasm {
     private final Instance instance;
     private final ExportFunction evaluate;
     private final ExportFunction malloc;
@@ -42,7 +43,9 @@ public class EvaluationWasm {
      */
     public EvaluationWasm() throws WasmFileNotFound {
         // We will create two output streams to capture stdout and stderr
-        val wasi = WasiPreview1.builder().withOptions(WasiOptions.builder().inheritSystem().build()).build();
+        val wasi = WasiPreview1.builder()
+                .withOptions(WasiOptions.builder().inheritSystem().build())
+                .build();
         val hostFunctions = wasi.toHostFunctions();
         val store = new Store().addFunction(hostFunctions);
         store.addFunction(getProcExitFunc());
@@ -68,10 +71,9 @@ public class EvaluationWasm {
             }
             Path dirPath = Paths.get(directoryUrl.toURI());
             try (val files = Files.list(dirPath)) {
-                return files
-                        .filter(path -> path.getFileName().toString().startsWith("gofeatureflag-evaluation")
-                                && (path.getFileName().toString().endsWith(".wasi") || path.getFileName().toString()
-                                .endsWith(".wasm")))
+                return files.filter(path -> path.getFileName().toString().startsWith("gofeatureflag-evaluation")
+                                && (path.getFileName().toString().endsWith(".wasi")
+                                        || path.getFileName().toString().endsWith(".wasm")))
                         .findFirst()
                         .map(Path::toFile)
                         .orElseThrow(
@@ -90,15 +92,18 @@ public class EvaluationWasm {
      * @return a HostFunction that is called when the WASM module calls proc_exit
      */
     private HostFunction getProcExitFunc() {
-        return new HostFunction("wasi_snapshot_preview1", "proc_exit",
-                Collections.singletonList(ValueType.I32), Collections.emptyList(), (instance, args) -> {
-            if ((int) args[0] != 0) {
-                throw new WasiExitException((int) args[0]);
-            }
-            return null;
-        });
+        return new HostFunction(
+                "wasi_snapshot_preview1",
+                "proc_exit",
+                Collections.singletonList(ValueType.I32),
+                Collections.emptyList(),
+                (instance, args) -> {
+                    if ((int) args[0] != 0) {
+                        throw new WasiExitException((int) args[0]);
+                    }
+                    return null;
+                });
     }
-
 
     /**
      * preWarmWasm is a function that is called to pre-warm the WASM module
@@ -106,14 +111,13 @@ public class EvaluationWasm {
      * and then calls the free function to free the memory.
      */
     public void preWarmWasm() {
-        val message = "".getBytes();
+        val message = "".getBytes(StandardCharsets.UTF_8);
         Memory memory = this.instance.memory();
         int len = message.length;
         int ptr = (int) malloc.apply(len)[0];
         memory.write(ptr, message);
         this.free.apply(ptr, len);
     }
-
 
     /**
      * Evaluate is a function that evaluates the feature flag using the WASM module.

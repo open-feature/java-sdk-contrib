@@ -26,6 +26,7 @@ import dev.openfeature.sdk.exceptions.InvalidContextError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -46,7 +47,7 @@ import okhttp3.Response;
  * GoFeatureFlagApi is the class to contact the GO Feature Flag relay proxy.
  */
 @Slf4j
-public class GoFeatureFlagApi {
+public final class GoFeatureFlagApi {
     /** apiKey contains the token to use while calling GO Feature Flag relay proxy. */
     private final String apiKey;
 
@@ -55,7 +56,6 @@ public class GoFeatureFlagApi {
 
     /** parsedEndpoint is the endpoint of the GO Feature Flag relay proxy. */
     private final HttpUrl parsedEndpoint;
-
 
     /**
      * GoFeatureFlagController is the constructor of the controller to contact the GO Feature Flag
@@ -92,7 +92,6 @@ public class GoFeatureFlagApi {
                 .build();
     }
 
-
     /**
      * evaluateFlag is calling the GO Feature Flag relay proxy to evaluate the feature flag.
      *
@@ -113,7 +112,9 @@ public class GoFeatureFlagApi {
                     .addEncodedPathSegment(key)
                     .build();
 
-            val requestBody = OfrepRequest.builder().context(evaluationContext.asObjectMap()).build();
+            val requestBody = OfrepRequest.builder()
+                    .context(evaluationContext.asObjectMap())
+                    .build();
             val reqBuilder = prepareHttpRequest(url, requestBody);
             try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
                 val responseBody = response.body();
@@ -138,7 +139,6 @@ public class GoFeatureFlagApi {
             throw new GeneralError("unknown error while retrieving flag " + key, e);
         }
     }
-
 
     /**
      * retrieveFlagConfiguration is calling the GO Feature Flag relay proxy to retrieve the flags'
@@ -182,12 +182,10 @@ public class GoFeatureFlagApi {
                                 "retrieve flag configuration error: unexpected http code " + body);
                 }
             } catch (final IOException e) {
-                throw new ImpossibleToRetrieveConfiguration(
-                        "retrieve flag configuration error", e);
+                throw new ImpossibleToRetrieveConfiguration("retrieve flag configuration error", e);
             }
         } catch (final JsonProcessingException e) {
-            throw new ImpossibleToRetrieveConfiguration(
-                    "retrieve flag configuration error", e);
+            throw new ImpossibleToRetrieveConfiguration("retrieve flag configuration error", e);
         }
     }
 
@@ -225,8 +223,7 @@ public class GoFeatureFlagApi {
                 }
             }
         } catch (final IOException e) {
-            throw new ImpossibleToSendEventsException(
-                    "Error while sending data for relay-proxy exporter", e);
+            throw new ImpossibleToSendEventsException("Error while sending data for relay-proxy exporter", e);
         }
     }
 
@@ -246,7 +243,8 @@ public class GoFeatureFlagApi {
         Date lastUpdated;
         try {
             val headerValue = response.header(Const.HTTP_HEADER_LAST_MODIFIED);
-            lastUpdated = headerValue != null ? Const.LAST_MODIFIED_HEADER_FORMATTER.parse(headerValue) : null;
+            val lastModifiedHeaderFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+            lastUpdated = headerValue != null ? lastModifiedHeaderFormatter.parse(headerValue) : null;
         } catch (Exception e) {
             log.debug("Error parsing Last-Modified header: {}", e.getMessage());
             lastUpdated = null;
@@ -282,5 +280,4 @@ public class GoFeatureFlagApi {
 
         return reqBuilder;
     }
-
 }
