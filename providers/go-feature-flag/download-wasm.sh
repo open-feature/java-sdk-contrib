@@ -79,4 +79,6 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+ls "$target_dir"
+
 echo "Done."
