@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.tools</groupId>
     <artifactId>junitopenfeature</artifactId>
-    <version>0.1.2</version> <!--x-release-please-version -->
+    <version>0.1.3</version> <!--x-release-please-version -->
 
     <name>junit-openfeature-extension</name>
     <description>JUnit5 Extension for OpenFeature</description>
