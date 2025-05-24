@@ -1,0 +1,10 @@
+{
+  "key": "bool_flag",
+  "value": true,
+  "reason": "TARGETING_MATCH",
+  "variant": "enabled",
+  "metadata": {
+    "gofeatureflag_cacheable": true,
+    "description": "A flag that is always off"
+  }
+}
