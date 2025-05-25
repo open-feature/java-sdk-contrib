@@ -126,7 +126,8 @@ public final class EvaluationWasm {
      * @return the result of the evaluation
      */
     public GoFeatureFlagResponse evaluate(WasmInput wasmInput) {
-        int len = 0, ptr = 0;
+        int len = 0;
+        int ptr = 0;
         try {
             // convert the WasmInput object to JSON string
             val message = Const.SERIALIZE_WASM_MAPPER.writeValueAsBytes(wasmInput);
