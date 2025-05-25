@@ -18,7 +18,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToSen
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
-import dev.openfeature.contrib.providers.gofeatureflag.validator.Validator;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
@@ -26,22 +25,20 @@ import dev.openfeature.sdk.exceptions.InvalidContextError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import okhttp3.ConnectionPool;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 /**
  * GoFeatureFlagApi is the class to contact the GO Feature Flag relay proxy.
@@ -51,11 +48,14 @@ public final class GoFeatureFlagApi {
     /** apiKey contains the token to use while calling GO Feature Flag relay proxy. */
     private final String apiKey;
 
-    /** httpClient is the instance of the OkHttpClient used by the provider. */
-    private final OkHttpClient httpClient;
+    /** httpClient is the instance of the HttpClient used by the provider. */
+    private final HttpClient httpClient;
 
-    /** parsedEndpoint is the endpoint of the GO Feature Flag relay proxy. */
-    private final HttpUrl parsedEndpoint;
+    /** endpoint is the endpoint of the GO Feature Flag relay proxy. */
+    private final URI endpoint;
+
+    /** timeout is the timeout in milliseconds for the HTTP requests. */
+    private int timeout;
 
     /**
      * GoFeatureFlagController is the constructor of the controller to contact the GO Feature Flag
@@ -66,11 +66,16 @@ public final class GoFeatureFlagApi {
      */
     @Builder
     private GoFeatureFlagApi(final GoFeatureFlagProviderOptions options) throws InvalidOptions {
-        Validator.providerOptions(options);
+        if (options == null) {
+            throw new InvalidOptions("No options provided");
+        }
+        options.validate();
         this.apiKey = options.getApiKey();
-        this.parsedEndpoint = HttpUrl.parse(options.getEndpoint());
-        if (this.parsedEndpoint == null) {
-            throw new InvalidEndpoint();
+
+        try {
+            this.endpoint = new URI(options.getEndpoint());
+        } catch (URISyntaxException e) {
+            throw new InvalidEndpoint(e);
         }
 
         // Register JavaTimeModule to be able to deserialized java.time.Instant Object
@@ -78,17 +83,9 @@ public final class GoFeatureFlagApi {
         Const.SERIALIZE_OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
         Const.SERIALIZE_OBJECT_MAPPER.registerModule(new JavaTimeModule());
 
-        int timeout = options.getTimeout() == 0 ? 10000 : options.getTimeout();
-        long keepAliveDuration = options.getKeepAliveDuration() == null ? 7200000 : options.getKeepAliveDuration();
-        int maxIdleConnections = options.getMaxIdleConnections() == 0 ? 1000 : options.getMaxIdleConnections();
-
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(timeout, TimeUnit.MILLISECONDS)
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .callTimeout(timeout, TimeUnit.MILLISECONDS)
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeout, TimeUnit.MILLISECONDS)
-                .connectionPool(new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.MILLISECONDS))
+        timeout = options.getTimeout() == 0 ? 10000 : options.getTimeout();
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(timeout))
                 .build();
     }
 
@@ -102,40 +99,58 @@ public final class GoFeatureFlagApi {
      */
     public GoFeatureFlagResponse evaluateFlag(final String key, final EvaluationContext evaluationContext)
             throws OpenFeatureError {
+        return this.evaluateFlag(key, evaluationContext, 0);
+    }
+
+    /**
+     * evaluateFlag is calling the GO Feature Flag relay proxy to evaluate the feature flag.\
+     * It will retry once if the relay proxy is unavailable.
+     *
+     * @param key               - name of the flag
+     * @param evaluationContext - context of the evaluation
+     * @param retryCount        - number of retries already done
+     * @return EvaluationResponse with the evaluation of the flag
+     * @throws OpenFeatureError - if an error occurred while evaluating the flag
+     */
+    private GoFeatureFlagResponse evaluateFlag(
+            final String key, final EvaluationContext evaluationContext, final int retryCount) throws OpenFeatureError {
         try {
-            HttpUrl url = this.parsedEndpoint
-                    .newBuilder()
-                    .addEncodedPathSegment("ofrep")
-                    .addEncodedPathSegment("v1")
-                    .addEncodedPathSegment("evaluate")
-                    .addEncodedPathSegment("flags")
-                    .addEncodedPathSegment(key)
-                    .build();
+            URI url = this.endpoint.resolve("/ofrep/v1/evaluate/flags/" + key);
 
             val requestBody = OfrepRequest.builder()
                     .context(evaluationContext.asObjectMap())
                     .build();
-            val reqBuilder = prepareHttpRequest(url, requestBody);
-            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                val responseBody = response.body();
-                String body = responseBody != null ? responseBody.string() : "";
 
-                switch (response.code()) {
-                    case HttpURLConnection.HTTP_OK:
-                        val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, OfrepResponse.class);
-                        return goffResp.toGoFeatureFlagResponse();
-                    case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    case HttpURLConnection.HTTP_FORBIDDEN:
-                        throw new GeneralError("authentication/authorization error");
-                    case HttpURLConnection.HTTP_BAD_REQUEST:
-                        throw new InvalidContextError("Invalid context: " + body);
-                    case HttpURLConnection.HTTP_NOT_FOUND:
-                        throw new FlagNotFoundError("Flag " + key + " not found");
-                    default:
-                        throw new GeneralError("Unknown error while retrieving flag " + body);
-                }
+            HttpRequest request = prepareHttpRequest(url, requestBody);
+
+            HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            String body = response.body();
+
+            switch (response.statusCode()) {
+                case HttpURLConnection.HTTP_OK:
+                    val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, OfrepResponse.class);
+                    return goffResp.toGoFeatureFlagResponse();
+                case HttpURLConnection.HTTP_UNAUTHORIZED:
+                case HttpURLConnection.HTTP_FORBIDDEN:
+                    throw new GeneralError("authentication/authorization error");
+                case HttpURLConnection.HTTP_BAD_REQUEST:
+                    throw new InvalidContextError("Invalid context: " + body);
+                case HttpURLConnection.HTTP_UNAVAILABLE:
+                    // If the relay proxy is unavailable, we can retry once.
+                    if (retryCount < 1) {
+                        log.warn("GO Feature Flag relay proxy is unavailable, retrying evaluation for flag: {}", key);
+                        return this.evaluateFlag(key, evaluationContext, retryCount + 1);
+                    }
+                    throw new GeneralError("Service Unavailable: " + body);
+                case HttpURLConnection.HTTP_NOT_FOUND:
+                    throw new FlagNotFoundError("Flag " + key + " not found");
+                default:
+                    throw new GeneralError("Unknown error while retrieving flag " + body);
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new GeneralError("unknown error while retrieving flag " + key, e);
         }
     }
@@ -150,41 +165,48 @@ public final class GoFeatureFlagApi {
     public FlagConfigResponse retrieveFlagConfiguration(final String etag, final List<String> flags) {
         try {
             val request = new FlagConfigApiRequest(flags == null ? Collections.emptyList() : flags);
-            final HttpUrl url = this.parsedEndpoint
-                    .newBuilder()
-                    .addEncodedPathSegment("v1")
-                    .addEncodedPathSegment("flag")
-                    .addEncodedPathSegment("configuration")
-                    .build();
+            final URI url = this.endpoint.resolve("/v1/flag/configuration");
 
-            val reqBuilder = prepareHttpRequest(url, request);
-            if (etag != null && !etag.isEmpty()) {
-                reqBuilder.addHeader(Const.HTTP_HEADER_IF_NONE_MATCH, etag);
+            HttpRequest.Builder reqBuilder =
+                    HttpRequest.newBuilder().uri(url).header(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON);
+
+            if (this.apiKey != null && !this.apiKey.isEmpty()) {
+                reqBuilder.header(Const.HTTP_HEADER_AUTHORIZATION, Const.BEARER_TOKEN + this.apiKey);
             }
 
-            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                val responseBody = response.body();
-                String body = responseBody != null ? responseBody.string() : "";
-                switch (response.code()) {
-                    case HttpURLConnection.HTTP_OK:
-                        return handleFlagConfigurationSuccess(response, body);
-                    case HttpURLConnection.HTTP_NOT_FOUND:
-                        throw new FlagConfigurationEndpointNotFound();
-                    case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    case HttpURLConnection.HTTP_FORBIDDEN:
-                        throw new ImpossibleToRetrieveConfiguration(
-                                "retrieve flag configuration error: authentication/authorization error");
-                    case HttpURLConnection.HTTP_BAD_REQUEST:
-                        throw new ImpossibleToRetrieveConfiguration(
-                                "retrieve flag configuration error: Bad request: " + body);
-                    default:
-                        throw new ImpossibleToRetrieveConfiguration(
-                                "retrieve flag configuration error: unexpected http code " + body);
-                }
-            } catch (final IOException e) {
-                throw new ImpossibleToRetrieveConfiguration("retrieve flag configuration error", e);
+            if (etag != null && !etag.isEmpty()) {
+                reqBuilder.header(Const.HTTP_HEADER_IF_NONE_MATCH, etag);
+            }
+
+            reqBuilder.POST(
+                    HttpRequest.BodyPublishers.ofByteArray(Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(request)));
+
+            HttpResponse<String> response =
+                    this.httpClient.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            String body = response.body();
+
+            switch (response.statusCode()) {
+                case HttpURLConnection.HTTP_OK:
+                    return handleFlagConfigurationSuccess(response, body);
+                case HttpURLConnection.HTTP_NOT_FOUND:
+                    throw new FlagConfigurationEndpointNotFound();
+                case HttpURLConnection.HTTP_UNAUTHORIZED:
+                case HttpURLConnection.HTTP_FORBIDDEN:
+                    throw new ImpossibleToRetrieveConfiguration(
+                            "retrieve flag configuration error: authentication/authorization error");
+                case HttpURLConnection.HTTP_BAD_REQUEST:
+                    throw new ImpossibleToRetrieveConfiguration(
+                            "retrieve flag configuration error: Bad request: " + body);
+                default:
+                    throw new ImpossibleToRetrieveConfiguration(
+                            "retrieve flag configuration error: unexpected http code " + body);
             }
         } catch (final JsonProcessingException e) {
+            throw new ImpossibleToRetrieveConfiguration("retrieve flag configuration error", e);
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new ImpossibleToRetrieveConfiguration("retrieve flag configuration error", e);
         }
     }
@@ -198,31 +220,30 @@ public final class GoFeatureFlagApi {
     public void sendEventToDataCollector(final List<IEvent> eventsList, final Map<String, Object> exporterMetadata) {
         try {
             ExporterRequest requestBody = new ExporterRequest(eventsList, exporterMetadata);
-            HttpUrl url = this.parsedEndpoint
-                    .newBuilder()
-                    .addEncodedPathSegment("v1")
-                    .addEncodedPathSegment("data")
-                    .addEncodedPathSegment("collector")
-                    .build();
-            val reqBuilder = prepareHttpRequest(url, requestBody);
-            try (Response response = this.httpClient.newCall(reqBuilder.build()).execute()) {
-                val responseBody = response.body();
-                String body = responseBody != null ? responseBody.string() : "";
-                switch (response.code()) {
-                    case HttpURLConnection.HTTP_OK:
-                        log.info("Published {} events successfully: {}", eventsList.size(), body);
-                        break;
-                    case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    case HttpURLConnection.HTTP_FORBIDDEN:
-                        throw new GeneralError("authentication/authorization error");
-                    case HttpURLConnection.HTTP_BAD_REQUEST:
-                        throw new GeneralError("Bad request: " + body);
-                    default:
-                        throw new ImpossibleToSendEventsException(
-                                String.format("Error while sending data to the relay-proxy exporter %s", body));
-                }
+            URI url = this.endpoint.resolve("/v1/data/collector");
+
+            HttpRequest request = prepareHttpRequest(url, requestBody);
+
+            HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            String body = response.body();
+
+            switch (response.statusCode()) {
+                case HttpURLConnection.HTTP_OK:
+                    log.info("Published {} events successfully: {}", eventsList.size(), body);
+                    break;
+                case HttpURLConnection.HTTP_UNAUTHORIZED:
+                case HttpURLConnection.HTTP_FORBIDDEN:
+                    throw new GeneralError("authentication/authorization error");
+                case HttpURLConnection.HTTP_BAD_REQUEST:
+                    throw new GeneralError("Bad request: " + body);
+                default:
+                    throw new ImpossibleToSendEventsException(
+                            String.format("Error while sending data to the relay-proxy exporter %s", body));
             }
-        } catch (final IOException e) {
+        } catch (final IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new ImpossibleToSendEventsException("Error while sending data for relay-proxy exporter", e);
         }
     }
@@ -236,13 +257,15 @@ public final class GoFeatureFlagApi {
      * @return FlagConfigResponse with the flag configuration
      * @throws JsonProcessingException - if an error occurred while processing the json
      */
-    private FlagConfigResponse handleFlagConfigurationSuccess(final Response response, final String body)
+    private FlagConfigResponse handleFlagConfigurationSuccess(final HttpResponse<String> response, final String body)
             throws JsonProcessingException {
         val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
-        val etagHeader = response.header(Const.HTTP_HEADER_ETAG);
+        val etagHeader = response.headers().firstValue(Const.HTTP_HEADER_ETAG).orElse(null);
         Date lastUpdated;
         try {
-            val headerValue = response.header(Const.HTTP_HEADER_LAST_MODIFIED);
+            val headerValue = response.headers()
+                    .firstValue(Const.HTTP_HEADER_LAST_MODIFIED)
+                    .orElse(null);
             val lastModifiedHeaderFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
             lastUpdated = headerValue != null ? lastModifiedHeaderFormatter.parse(headerValue) : null;
         } catch (Exception e) {
@@ -262,22 +285,21 @@ public final class GoFeatureFlagApi {
      *
      * @param url         - url of the request
      * @param requestBody - body of the request
-     * @return Request.Builder with the request prepared
+     * @return HttpRequest ready to be sent
      * @throws JsonProcessingException - if an error occurred while processing the json
      */
-    private <T> Request.Builder prepareHttpRequest(final HttpUrl url, final T requestBody)
-            throws JsonProcessingException {
-        final Request.Builder reqBuilder = new Request.Builder()
-                .url(url)
-                .addHeader(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON)
-                .post(RequestBody.create(
-                        Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(requestBody),
-                        MediaType.get("application/json; charset=utf-8")));
+    private <T> HttpRequest prepareHttpRequest(final URI url, final T requestBody) throws JsonProcessingException {
+        HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
+                .uri(url)
+                .timeout(Duration.ofMillis(timeout))
+                .header(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(
+                        Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(requestBody)));
 
         if (this.apiKey != null && !this.apiKey.isEmpty()) {
-            reqBuilder.addHeader(Const.HTTP_HEADER_AUTHORIZATION, Const.BEARER_TOKEN + this.apiKey);
+            reqBuilder.header(Const.HTTP_HEADER_AUTHORIZATION, Const.BEARER_TOKEN + this.apiKey);
         }
 
-        return reqBuilder;
+        return reqBuilder.build();
     }
 }

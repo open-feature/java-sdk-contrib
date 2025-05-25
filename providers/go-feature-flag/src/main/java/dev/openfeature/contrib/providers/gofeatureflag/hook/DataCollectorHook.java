@@ -6,7 +6,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUtil;
-import dev.openfeature.contrib.providers.gofeatureflag.validator.Validator;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
@@ -34,7 +33,10 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
      * @throws InvalidOptions - Thrown when there is a missing configuration.
      */
     public DataCollectorHook(final DataCollectorHookOptions options) throws InvalidOptions {
-        Validator.dataCollectorHookOptions(options);
+        if (options == null) {
+            throw new InvalidOptions("DataCollectorHookOptions cannot be null");
+        }
+        options.validate();
         eventsPublisher = options.getEventsPublisher();
         evalService = options.getEvalService();
         this.options = options;

@@ -200,7 +200,7 @@ class GoFeatureFlagProviderTest {
             assertEquals(want, server.takeRequest().getPath());
         }
 
-        @DisplayName("should throw an error if the endpoint is not available")
+        @DisplayName("Should throw an error if the endpoint is not available")
         @SneakyThrows
         @Test
         void shouldThrowAnErrorIfEndpointNotAvailable() {
@@ -216,7 +216,7 @@ class GoFeatureFlagProviderTest {
             }
         }
 
-        @DisplayName("should throw an error if api key is missing")
+        @DisplayName("Should throw an error if api key is missing")
         @SneakyThrows
         @Test
         void shouldThrowAnErrorIfApiKeyIsMissing() {
@@ -232,7 +232,7 @@ class GoFeatureFlagProviderTest {
             }
         }
 
-        @DisplayName("should return FLAG_NOT_FOUND if the flag does not exists")
+        @DisplayName("Should return FLAG_NOT_FOUND if the flag does not exists")
         @SneakyThrows
         @Test
         void shouldReturnFlagNotFoundIfFlagDoesNotExists() {
@@ -700,7 +700,7 @@ class GoFeatureFlagProviderTest {
 
     @Nested
     class RemoteEvaluation {
-        @DisplayName("should error if the endpoint is not available")
+        @DisplayName("Should error if the endpoint is not available")
         @SneakyThrows
         @Test
         void shouldErrorIfEndpointNotAvailable() {
@@ -726,7 +726,7 @@ class GoFeatureFlagProviderTest {
             }
         }
 
-        @DisplayName("should error if no API Key provided")
+        @DisplayName("Should error if no API Key provided")
         @SneakyThrows
         @Test
         void shouldErrorIfApiKeyIsMissing() {
@@ -752,7 +752,7 @@ class GoFeatureFlagProviderTest {
             }
         }
 
-        @DisplayName("should error if API Key is invalid")
+        @DisplayName("Should error if API Key is invalid")
         @SneakyThrows
         @Test
         void shouldErrorIfApiKeyIsInvalid() {
@@ -779,7 +779,7 @@ class GoFeatureFlagProviderTest {
             }
         }
 
-        @DisplayName("should error if the flag is not found")
+        @DisplayName("Should error if the flag is not found")
         @SneakyThrows
         @Test
         void shouldErrorIfFlagNotFound() {

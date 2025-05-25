@@ -15,7 +15,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUtil;
-import dev.openfeature.contrib.providers.gofeatureflag.validator.Validator;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
@@ -61,7 +60,10 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
      * @throws InvalidOptions - if options are invalid
      */
     public GoFeatureFlagProvider(final GoFeatureFlagProviderOptions options) throws InvalidOptions {
-        Validator.providerOptions(options);
+        if (options == null) {
+            throw new InvalidOptions("No options provided");
+        }
+        options.validate();
         this.options = options;
         this.api = GoFeatureFlagApi.builder().options(options).build();
         this.evalService = new EvaluationService(getEvaluator(this.api));

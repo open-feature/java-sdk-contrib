@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
 import lombok.Builder;
@@ -27,4 +28,15 @@ public class DataCollectorHookOptions {
      * evalService is the service to evaluate the flags.
      */
     private EvaluationService evalService;
+
+    /**
+     * Validate the options provided to the data collector hook.
+     *
+     * @throws InvalidOptions - if options are invalid
+     */
+    public void validate() throws InvalidOptions {
+        if (getEventsPublisher() == null) {
+            throw new InvalidOptions("No events publisher provided");
+        }
+    }
 }

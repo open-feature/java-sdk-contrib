@@ -1,10 +1,16 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidExporterMetadata;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.val;
 
 /**
  * GoFeatureFlagProviderOptions contains the options to initialise the provider.
@@ -84,4 +90,32 @@ public class GoFeatureFlagProviderOptions {
      * configuration has changed. default: 120000
      */
     private Long flagChangePollingIntervalMs;
+
+    /**
+     * Validate the options provided to the provider.
+     *
+     * @throws InvalidOptions - if options are invalid
+     */
+    public void validate() throws InvalidOptions {
+        if (getEndpoint() == null || getEndpoint().isEmpty()) {
+            throw new InvalidEndpoint("endpoint is a mandatory field when initializing the provider");
+        }
+
+        try {
+            new URL(getEndpoint());
+        } catch (MalformedURLException e) {
+            throw new InvalidEndpoint("malformed endpoint: " + getEndpoint());
+        }
+
+        if (getExporterMetadata() != null) {
+            val acceptableExporterMetadataTypes = List.of("String", "Boolean", "Integer", "Double");
+            for (Map.Entry<String, Object> entry : getExporterMetadata().entrySet()) {
+                if (!acceptableExporterMetadataTypes.contains(
+                        entry.getValue().getClass().getSimpleName())) {
+                    throw new InvalidExporterMetadata(
+                            "exporterMetadata can only contain String, Boolean, Integer or Double");
+                }
+            }
+        }
+    }
 }

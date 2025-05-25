@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * InProcessEvaluator is a class that represents the evaluation of a feature flag
@@ -127,7 +126,7 @@ public class InProcessEvaluator implements IEvaluator {
      *
      * @return Disposable - the subscription to the observable
      */
-    @NotNull private Disposable startCheckFlagConfigurationChangesDaemon() {
+    private Disposable startCheckFlagConfigurationChangesDaemon() {
         long pollingIntervalMs = options.getFlagChangePollingIntervalMs() != null
                 ? options.getFlagChangePollingIntervalMs()
                 : Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;

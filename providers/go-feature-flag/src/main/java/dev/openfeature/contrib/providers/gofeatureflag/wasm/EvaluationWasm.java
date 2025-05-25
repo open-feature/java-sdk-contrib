@@ -126,13 +126,14 @@ public final class EvaluationWasm {
      * @return the result of the evaluation
      */
     public GoFeatureFlagResponse evaluate(WasmInput wasmInput) {
+        int len = 0, ptr = 0;
         try {
             // convert the WasmInput object to JSON string
             val message = Const.SERIALIZE_WASM_MAPPER.writeValueAsBytes(wasmInput);
             // Store the json string in the memory
             Memory memory = this.instance.memory();
-            int len = message.length;
-            int ptr = (int) malloc.apply(len)[0];
+            len = message.length;
+            ptr = (int) malloc.apply(len)[0];
             memory.write(ptr, message);
 
             // Call the wasm evaluate function
@@ -143,19 +144,19 @@ public final class EvaluationWasm {
             int valueSize = (int) (resultPointer[0] & 0xFFFFFFFFL);
             val output = memory.readString(valuePosition, valueSize);
 
-            // Free the memory
-            this.free.apply(ptr, len);
-
             // Convert the output to a WasmOutput object
             return Const.DESERIALIZE_OBJECT_MAPPER.readValue(output, GoFeatureFlagResponse.class);
 
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             val response = new GoFeatureFlagResponse();
             response.setErrorCode(ErrorCode.GENERAL.name());
             response.setReason(Reason.ERROR.name());
             response.setErrorDetails(e.getMessage());
             return response;
+        } finally {
+            if (len > 0) {
+                this.free.apply(ptr, len);
+            }
         }
     }
 }
