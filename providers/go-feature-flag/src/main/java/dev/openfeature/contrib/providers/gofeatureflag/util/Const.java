@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.gofeatureflag.util;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
 import java.time.Duration;
 
 /**
@@ -24,6 +25,7 @@ public class Const {
     public static final ObjectMapper DESERIALIZE_OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     public static final ObjectMapper SERIALIZE_OBJECT_MAPPER = new ObjectMapper();
-    public static final ObjectMapper SERIALIZE_WASM_MAPPER =
-            new ObjectMapper().setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
+    public static final ObjectMapper SERIALIZE_WASM_MAPPER = new ObjectMapper()
+            .setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            .setDateFormat(new StdDateFormat().withColonInTimeZone(true));
 }

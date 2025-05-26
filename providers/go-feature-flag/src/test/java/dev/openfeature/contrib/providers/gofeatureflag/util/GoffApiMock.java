@@ -24,7 +24,9 @@ public class GoffApiMock {
     private int collectorCallCount = 0;
 
     private int configurationCallCount = 0;
-    /** lastRequestBody contains the body of the last request. */
+    /**
+     * lastRequestBody contains the body of the last request.
+     */
     @Getter
     private String lastRequestBody = null;
 
@@ -120,6 +122,9 @@ public class GoffApiMock {
     public MockResponse handleFlagConfiguration(RecordedRequest request) {
         var configLocation = "valid-all-types.json";
         switch (mode) {
+            case SCHEDULED_ROLLOUT_FLAG_CONFIG:
+                configLocation = "valid-scheduled-rollout.json";
+                break;
             case ENDPOINT_ERROR_404:
                 return new MockResponse().setResponseCode(404);
             case SERVE_OLD_CONFIGURATION:
@@ -187,5 +192,6 @@ public class GoffApiMock {
         SIMPLE_CONFIG,
         DEFAULT,
         SERVE_OLD_CONFIGURATION,
+        SCHEDULED_ROLLOUT_FLAG_CONFIG,
     }
 }

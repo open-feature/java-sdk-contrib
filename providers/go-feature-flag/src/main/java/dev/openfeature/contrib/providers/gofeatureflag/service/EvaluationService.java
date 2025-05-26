@@ -20,7 +20,9 @@ import lombok.val;
  */
 @AllArgsConstructor
 public class EvaluationService {
-    /** The evaluator used to evaluate the flags. */
+    /**
+     * The evaluator used to evaluate the flags.
+     */
     private IEvaluator evaluator;
 
     /**
@@ -33,12 +35,16 @@ public class EvaluationService {
         return this.evaluator.isFlagTrackable(flagKey);
     }
 
-    /** Init the evaluator. */
+    /**
+     * Init the evaluator.
+     */
     public void init() {
         this.evaluator.init();
     }
 
-    /** Destroy the evaluator. */
+    /**
+     * Destroy the evaluator.
+     */
     public void destroy() {
         this.evaluator.destroy();
     }
@@ -61,6 +67,16 @@ public class EvaluationService {
         }
 
         val goffResp = evaluator.evaluate(flagKey, defaultValue, evaluationContext);
+
+        // If we have an error code, we return the error directly.
+        if (goffResp.getErrorCode() != null && !goffResp.getErrorCode().isEmpty()) {
+            return ProviderEvaluation.<T>builder()
+                    .errorCode(mapErrorCode(goffResp.getErrorCode()))
+                    .errorMessage(goffResp.getErrorDetails())
+                    .reason(Reason.ERROR.name())
+                    .value(defaultValue)
+                    .build();
+        }
 
         if (Reason.DISABLED.name().equalsIgnoreCase(goffResp.getReason())) {
             // we don't set a variant since we are using the default value,

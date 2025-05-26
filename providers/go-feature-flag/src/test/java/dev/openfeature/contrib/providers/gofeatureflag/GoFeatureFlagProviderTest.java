@@ -537,6 +537,65 @@ class GoFeatureFlagProviderTest {
             Thread.sleep(300L);
             assertFalse(configurationChangedCalled.get());
         }
+
+        @DisplayName("Should apply a scheduled rollout step")
+        @SneakyThrows
+        @Test
+        void shouldApplyAScheduledRolloutStep() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.SCHEDULED_ROLLOUT_FLAG_CONFIG);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .timeout(1000)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+                val got = client.getBooleanDetails("my-flag", false, TestUtils.defaultEvaluationContext);
+                val want = FlagEvaluationDetails.<Boolean>builder()
+                        .value(true)
+                        .variant("enabled")
+                        .flagKey("my-flag")
+                        .reason(Reason.TARGETING_MATCH.name())
+                        .flagMetadata(ImmutableMetadata.builder()
+                                .addString("description", "this is a test flag")
+                                .addBoolean("defaultValue", false)
+                                .build())
+                        .build();
+                assertEquals(want, got);
+            }
+        }
+
+        @DisplayName("Should not apply a scheduled rollout step if the date is in the future")
+        @SneakyThrows
+        @Test
+        void shouldNotApplyAScheduledRolloutStepIfTheDateIsInTheFuture() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.SCHEDULED_ROLLOUT_FLAG_CONFIG);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .timeout(1000)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+                val got = client.getBooleanDetails(
+                        "my-flag-scheduled-in-future", true, TestUtils.defaultEvaluationContext);
+                val want = FlagEvaluationDetails.<Boolean>builder()
+                        .value(false)
+                        .variant("disabled")
+                        .flagKey("my-flag-scheduled-in-future")
+                        .reason(Reason.STATIC.name())
+                        .flagMetadata(ImmutableMetadata.builder()
+                                .addString("description", "this is a test flag")
+                                .addBoolean("defaultValue", false)
+                                .build())
+                        .build();
+                assertEquals(want, got);
+            }
+        }
     }
 
     @Nested
@@ -555,7 +614,7 @@ class GoFeatureFlagProviderTest {
             val client = OpenFeatureAPI.getInstance().getClient(testName);
             client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
             client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
-            Thread.sleep(400L);
+            Thread.sleep(250L);
             assertEquals(1, goffAPIMock.getCollectorRequestsHistory().size());
         }
 
