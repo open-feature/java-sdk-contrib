@@ -40,6 +40,8 @@ components:
     - jkebinger
   providers/multiprovider:
     - liran2000
+  tools/flagd-http-connector:
+    - liran2000
 
 ignored-authors:
   - renovate-bot
