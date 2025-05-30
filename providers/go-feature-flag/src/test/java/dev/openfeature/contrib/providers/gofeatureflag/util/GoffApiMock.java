@@ -11,7 +11,6 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
-import org.jetbrains.annotations.NotNull;
 
 public class GoffApiMock {
     private static final String ofrepResponseDir = "ofrep_evaluate_responses/";
@@ -31,7 +30,7 @@ public class GoffApiMock {
     private String lastRequestBody = null;
 
     public final Dispatcher dispatcher = new Dispatcher() {
-        @NotNull @SneakyThrows
+        @SneakyThrows
         @Override
         public MockResponse dispatch(RecordedRequest request) {
             switch (mode) {
