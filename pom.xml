@@ -71,14 +71,14 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.12.2</version>
+                <version>5.13.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>io.cucumber</groupId>
                 <artifactId>cucumber-bom</artifactId>
-                <version>7.22.2</version>
+                <version>7.23.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -474,7 +474,7 @@
                     <plugin>
                         <groupId>com.diffplug.spotless</groupId>
                         <artifactId>spotless-maven-plugin</artifactId>
-                        <version>2.44.4</version>
+                        <version>2.44.5</version>
                         <configuration>
                             <!-- optional: limit format enforcement to just the files changed by this feature branch -->
                             <!--                <ratchetFrom>origin/main</ratchetFrom>-->
