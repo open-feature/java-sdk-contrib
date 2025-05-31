@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.3...dev.openfeature.contrib.providers.go-feature-flag-v0.4.4) (2025-05-31)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.19.0 ([#1366](https://github.com/open-feature/java-sdk-contrib/issues/1366)) ([8896f50](https://github.com/open-feature/java-sdk-contrib/commit/8896f505b7e682c5954de465383b5e871cb1a8d0))
+* **deps:** update jackson monorepo to v2.19.0 ([#1346](https://github.com/open-feature/java-sdk-contrib/issues/1346)) ([d4af23b](https://github.com/open-feature/java-sdk-contrib/commit/d4af23b9f2700233ea22f9132df00637820da10c))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+* update component owners and flagd readme ([#1372](https://github.com/open-feature/java-sdk-contrib/issues/1372)) ([2dea3b2](https://github.com/open-feature/java-sdk-contrib/commit/2dea3b296d7eb63c14f612949e6c533629b8eb42))
+
 ## [0.4.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.2...dev.openfeature.contrib.providers.go-feature-flag-v0.4.3) (2025-03-17)
 
 
