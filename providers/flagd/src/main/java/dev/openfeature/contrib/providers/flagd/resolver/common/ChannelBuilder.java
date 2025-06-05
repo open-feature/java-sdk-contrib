@@ -8,9 +8,10 @@ import io.grpc.NameResolverRegistry;
 import io.grpc.Status.Code;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollDomainSocketChannel;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContextBuilder;
 import java.io.File;
@@ -103,10 +104,9 @@ public class ChannelBuilder {
             if (!Epoll.isAvailable()) {
                 throw new IllegalStateException("unix socket cannot be used", Epoll.unavailabilityCause());
             }
-
             return NettyChannelBuilder.forAddress(new DomainSocketAddress(options.getSocketPath()))
                     .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS)
-                    .eventLoopGroup(new EpollEventLoopGroup())
+                    .eventLoopGroup(new MultiThreadIoEventLoopGroup(EpollIoHandler.newFactory()))
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
                     .defaultServiceConfig(SERVICE_CONFIG_WITH_RETRY)
