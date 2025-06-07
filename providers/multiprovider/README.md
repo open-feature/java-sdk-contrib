@@ -56,7 +56,7 @@ Rather than making assumptions about when to use a provider’s result and when 
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>multi-provider</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
