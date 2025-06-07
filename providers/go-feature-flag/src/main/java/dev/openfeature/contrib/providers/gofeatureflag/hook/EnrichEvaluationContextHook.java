@@ -25,6 +25,9 @@ public class EnrichEvaluationContextHook implements Hook<String> {
         if (ctx == null) {
             return Optional.empty();
         }
+        if (this.exporterMetadata == null || this.exporterMetadata.isEmpty()) {
+            return Optional.of(ctx.getCtx());
+        }
 
         MutableContext mutableContext =
                 new MutableContext(ctx.getCtx().getTargetingKey(), ctx.getCtx().asMap());
@@ -49,6 +52,7 @@ public class EnrichEvaluationContextHook implements Hook<String> {
                             "Unsupported type: " + entry.getValue().getClass().getSimpleName());
             }
         }
+
         Map<String, Value> expMetadata = new HashMap<>();
         expMetadata.put("exporterMetadata", new Value(metadata));
         mutableContext.add("gofeatureflag", new MutableStructure(expMetadata));
