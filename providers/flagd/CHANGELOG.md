@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.11.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.8...dev.openfeature.contrib.providers.flagd-v0.11.9) (2025-06-04)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.google.code.gson:gson to v2.13.1 ([#1318](https://github.com/open-feature/java-sdk-contrib/issues/1318)) ([4f47ff1](https://github.com/open-feature/java-sdk-contrib/commit/4f47ff16e2c11dd4ad2a5b2ac9927dd19b827c27))
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.7 ([#1386](https://github.com/open-feature/java-sdk-contrib/issues/1386)) ([5bdb220](https://github.com/open-feature/java-sdk-contrib/commit/5bdb220e18ebbb1f764c816baca096fc8862bb69))
+* **deps:** update dependency org.apache.commons:commons-collections4 to v4.5.0 ([#1322](https://github.com/open-feature/java-sdk-contrib/issues/1322)) ([325d876](https://github.com/open-feature/java-sdk-contrib/commit/325d876aec19bb674920afd22185d22b4274c549))
+* **deps:** update dependency org.semver4j:semver4j to v5.7.0 ([#1374](https://github.com/open-feature/java-sdk-contrib/issues/1374)) ([eefe738](https://github.com/open-feature/java-sdk-contrib/commit/eefe738b27d80986a1dfda56ddf89765793aad62))
+* **deps:** update grpc-java monorepo to v1.72.0 ([#1343](https://github.com/open-feature/java-sdk-contrib/issues/1343)) ([fc26ff2](https://github.com/open-feature/java-sdk-contrib/commit/fc26ff2a14e2891224088b59ad5f310f554dc81f))
+* **deps:** update grpc-java monorepo to v1.73.0 ([#1390](https://github.com/open-feature/java-sdk-contrib/issues/1390)) ([ab5cf26](https://github.com/open-feature/java-sdk-contrib/commit/ab5cf2697fffc4b10aa2b840a3b6c260433f5de7))
+* **deps:** update jackson monorepo to v2.19.0 ([#1346](https://github.com/open-feature/java-sdk-contrib/issues/1346)) ([d4af23b](https://github.com/open-feature/java-sdk-contrib/commit/d4af23b9f2700233ea22f9132df00637820da10c))
+* **deps:** update junit5 monorepo to v5.12.2 ([#1313](https://github.com/open-feature/java-sdk-contrib/issues/1313)) ([ab14cc1](https://github.com/open-feature/java-sdk-contrib/commit/ab14cc189a3c5a4b46d02cf87fcf683c5b7ff2c3))
+* **deps:** update junit5 monorepo to v5.13.0 ([#1394](https://github.com/open-feature/java-sdk-contrib/issues/1394)) ([943064e](https://github.com/open-feature/java-sdk-contrib/commit/943064e894134ba95ce8e7f7ddb805c1de7063de))
+* **deps:** update opentelemetry-java monorepo to v1.49.0 ([#1344](https://github.com/open-feature/java-sdk-contrib/issues/1344)) ([045a12c](https://github.com/open-feature/java-sdk-contrib/commit/045a12c6a66869a359c86cde6bc9f5217a89bc87))
+* **deps:** update opentelemetry-java monorepo to v1.50.0 ([#1375](https://github.com/open-feature/java-sdk-contrib/issues/1375)) ([748c139](https://github.com/open-feature/java-sdk-contrib/commit/748c139a9497f9a49e29e68318b674b56b61e24d))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* add tobuilder test ([#1289](https://github.com/open-feature/java-sdk-contrib/issues/1289)) ([2e360bb](https://github.com/open-feature/java-sdk-contrib/commit/2e360bbf6e54c21f331525b59b5b63deb57cbc0f))
+* **deps:** update dependency com.diffplug.spotless:spotless-maven-plugin to v2.44.4 ([#1302](https://github.com/open-feature/java-sdk-contrib/issues/1302)) ([e80fb3e](https://github.com/open-feature/java-sdk-contrib/commit/e80fb3e2b2f0ff80432f127067d44ef0ef0de0b8))
+* **deps:** update dependency io.rest-assured:rest-assured to v5.5.2 ([#1370](https://github.com/open-feature/java-sdk-contrib/issues/1370)) ([40cd38c](https://github.com/open-feature/java-sdk-contrib/commit/40cd38c1be2925694b41051318ddf445c10c01ab))
+* **deps:** update dependency io.rest-assured:rest-assured to v5.5.5 ([#1383](https://github.com/open-feature/java-sdk-contrib/issues/1383)) ([74774b9](https://github.com/open-feature/java-sdk-contrib/commit/74774b984a00a84d5db615c2bddfcc3b4ab3926a))
+* **deps:** update dependency org.codehaus.mojo:exec-maven-plugin to v3.5.1 ([#1389](https://github.com/open-feature/java-sdk-contrib/issues/1389)) ([c39c79e](https://github.com/open-feature/java-sdk-contrib/commit/c39c79ed50fdf62d5f31b64349f57067c9873694))
+* **deps:** update dependency providers/flagd/test-harness to v2.8.0 ([#1316](https://github.com/open-feature/java-sdk-contrib/issues/1316)) ([0332ec2](https://github.com/open-feature/java-sdk-contrib/commit/0332ec2eac5c9b2fa864e2a58ffe4dc3b1c458d6))
+* **deps:** update providers/flagd/schemas digest to 2852d77 ([#1391](https://github.com/open-feature/java-sdk-contrib/issues/1391)) ([7ae091c](https://github.com/open-feature/java-sdk-contrib/commit/7ae091c26d26c018a96e4b6470088c6b8deecbc6))
+* **deps:** update providers/flagd/schemas digest to 9b0ee43 ([#1292](https://github.com/open-feature/java-sdk-contrib/issues/1292)) ([bcae7f7](https://github.com/open-feature/java-sdk-contrib/commit/bcae7f7d94783a583512e50fd652a88fd4d95471))
+* **deps:** update providers/flagd/schemas digest to 9b0ee43 ([#1296](https://github.com/open-feature/java-sdk-contrib/issues/1296)) ([58fe5da](https://github.com/open-feature/java-sdk-contrib/commit/58fe5da7d4e2f6f4ae2c1caf3411a01e84a1dc1a))
+* **deps:** update providers/flagd/schemas digest to c707f56 ([#1311](https://github.com/open-feature/java-sdk-contrib/issues/1311)) ([855b0e6](https://github.com/open-feature/java-sdk-contrib/commit/855b0e657c1d08275ed0251da4802232d88c80af))
+* **deps:** update providers/flagd/spec digest to 130df3e ([#1294](https://github.com/open-feature/java-sdk-contrib/issues/1294)) ([c6b9e89](https://github.com/open-feature/java-sdk-contrib/commit/c6b9e8959b1ac514bbf31031418e0a2cca1ab81b))
+* **deps:** update providers/flagd/spec digest to 18cde17 ([#1312](https://github.com/open-feature/java-sdk-contrib/issues/1312)) ([dca9656](https://github.com/open-feature/java-sdk-contrib/commit/dca965668793f31dcd3be10405af336ac8ce3aab))
+* **deps:** update providers/flagd/spec digest to 27e4461 ([#1295](https://github.com/open-feature/java-sdk-contrib/issues/1295)) ([1586f04](https://github.com/open-feature/java-sdk-contrib/commit/1586f0482be643bcb0c1f4c2c7213d67e49f3233))
+* **deps:** update providers/flagd/spec digest to 2ba05d8 ([#1327](https://github.com/open-feature/java-sdk-contrib/issues/1327)) ([5b511a4](https://github.com/open-feature/java-sdk-contrib/commit/5b511a45641bb30031d90290bc5ad976937c647d))
+* **deps:** update providers/flagd/spec digest to 36944c6 ([#1317](https://github.com/open-feature/java-sdk-contrib/issues/1317)) ([a38d14b](https://github.com/open-feature/java-sdk-contrib/commit/a38d14bf6b88a631d3825bcf8474e01d109b7601))
+* **deps:** update providers/flagd/spec digest to d27e000 ([#1345](https://github.com/open-feature/java-sdk-contrib/issues/1345)) ([6f4c1ae](https://github.com/open-feature/java-sdk-contrib/commit/6f4c1aedb010c58936dfedf58c0bd4c060799e06))
+* **deps:** update providers/flagd/spec digest to edf0deb ([#1368](https://github.com/open-feature/java-sdk-contrib/issues/1368)) ([f5c9bc0](https://github.com/open-feature/java-sdk-contrib/commit/f5c9bc058810f0c87529c2837d4c2212d944621d))
+* **deps:** update providers/flagd/spec digest to f014806 ([#1385](https://github.com/open-feature/java-sdk-contrib/issues/1385)) ([034ab85](https://github.com/open-feature/java-sdk-contrib/commit/034ab857bf989fa144e660e5f595e259aeab0c88))
+* **deps:** update testcontainers-java monorepo to v1.21.0 ([#1320](https://github.com/open-feature/java-sdk-contrib/issues/1320)) ([b4b0d4f](https://github.com/open-feature/java-sdk-contrib/commit/b4b0d4fe565c1e9f81c2e899a5d97301be43bfe9))
+* **deps:** update testcontainers-java monorepo to v1.21.1 ([#1392](https://github.com/open-feature/java-sdk-contrib/issues/1392)) ([1b01d0e](https://github.com/open-feature/java-sdk-contrib/commit/1b01d0e322e1c17461a47e6de11c174f767889b5))
+* **flagd:** update testharness and add metadata tests ([#1293](https://github.com/open-feature/java-sdk-contrib/issues/1293)) ([3f13260](https://github.com/open-feature/java-sdk-contrib/commit/3f132601f32ef1741b29beee04de4a3de2ab3c86))
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+* update component owners and flagd readme ([#1372](https://github.com/open-feature/java-sdk-contrib/issues/1372)) ([2dea3b2](https://github.com/open-feature/java-sdk-contrib/commit/2dea3b296d7eb63c14f612949e6c533629b8eb42))
+* use parent 0.2.1 ([17926bf](https://github.com/open-feature/java-sdk-contrib/commit/17926bf37790d31cb34b2f5d521e0ed46e4af93f))
+
 ## [0.11.8](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.7...dev.openfeature.contrib.providers.flagd-v0.11.8) (2025-03-18)
 
 
