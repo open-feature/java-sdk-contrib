@@ -1,0 +1,5 @@
+{
+  "key": "400",
+  "errorCode": "PROVIDER_NOT_READY",
+  "errorDetails": "The provider is not ready to serve requests"
+}
