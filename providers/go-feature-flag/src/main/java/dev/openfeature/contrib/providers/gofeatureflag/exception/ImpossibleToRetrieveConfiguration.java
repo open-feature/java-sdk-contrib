@@ -2,6 +2,6 @@ package dev.openfeature.contrib.providers.gofeatureflag.exception;
 
 import lombok.experimental.StandardException;
 
-/** This exception is thrown when the SDK is unable to send events to the GO Feature Flag server. */
+/** Thrown when it is impossible to retrieve the flag configuration. */
 @StandardException
 public class ImpossibleToRetrieveConfiguration extends GoFeatureFlagRuntimeException {}

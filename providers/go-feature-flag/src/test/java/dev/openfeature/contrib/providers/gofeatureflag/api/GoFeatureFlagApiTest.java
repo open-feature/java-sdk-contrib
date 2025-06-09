@@ -485,9 +485,9 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
-        @DisplayName("request should call the collector endpoint")
+        @DisplayName("request should call the configuration endpoint")
         @Test
-        public void requestShouldCallTheCollectorEndpoint() {
+        public void requestShouldCallTheConfigurationEndpoint() {
             val options = GoFeatureFlagProviderOptions.builder()
                     .endpoint(baseUrl.toString())
                     .build();
