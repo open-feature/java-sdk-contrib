@@ -184,9 +184,9 @@ public final class GoFeatureFlagApi {
             HttpResponse<String> response =
                     this.httpClient.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
             String body = response.body();
-
             switch (response.statusCode()) {
                 case HttpURLConnection.HTTP_OK:
+                case HttpURLConnection.HTTP_NOT_MODIFIED:
                     return handleFlagConfigurationSuccess(response, body);
                 case HttpURLConnection.HTTP_NOT_FOUND:
                     throw new FlagConfigurationEndpointNotFound();
@@ -259,25 +259,37 @@ public final class GoFeatureFlagApi {
      */
     private FlagConfigResponse handleFlagConfigurationSuccess(final HttpResponse<String> response, final String body)
             throws JsonProcessingException {
-        val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
-        val etagHeader = response.headers().firstValue(Const.HTTP_HEADER_ETAG).orElse(null);
-        Date lastUpdated;
+        var result = FlagConfigResponse.builder()
+                .etag(response.headers().firstValue(Const.HTTP_HEADER_ETAG).orElse(null))
+                .lastUpdated(extractLastUpdatedFromHeaders(response))
+                .build();
+
+        if (response.statusCode() == HttpURLConnection.HTTP_OK) {
+            val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
+            result.setFlags(goffResp.getFlags());
+            result.setEvaluationContextEnrichment(goffResp.getEvaluationContextEnrichment());
+        }
+
+        return result;
+    }
+
+    /**
+     * extractLastUpdatedFromHeaders is extracting the Last-Modified header from the response.
+     *
+     * @param response - the HTTP response
+     * @return Date - the parsed Last-Modified date, or null if not present or parsing fails
+     */
+    private Date extractLastUpdatedFromHeaders(final HttpResponse<String> response) {
         try {
-            val headerValue = response.headers()
+            String headerValue = response.headers()
                     .firstValue(Const.HTTP_HEADER_LAST_MODIFIED)
                     .orElse(null);
-            val lastModifiedHeaderFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
-            lastUpdated = headerValue != null ? lastModifiedHeaderFormatter.parse(headerValue) : null;
+            SimpleDateFormat lastModifiedHeaderFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+            return headerValue != null ? lastModifiedHeaderFormatter.parse(headerValue) : null;
         } catch (Exception e) {
             log.debug("Error parsing Last-Modified header: {}", e.getMessage());
-            lastUpdated = null;
+            return null;
         }
-        return FlagConfigResponse.builder()
-                .flags(goffResp.getFlags())
-                .etag(etagHeader)
-                .evaluationContextEnrichment(goffResp.getEvaluationContextEnrichment())
-                .lastUpdated(lastUpdated)
-                .build();
     }
 
     /**
