@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.1.1...dev.openfeature.contrib.providers.jsonlogic-v1.2.0) (2025-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.github.spotbugs:spotbugs-annotations to v4.9.3 ([#1281](https://github.com/open-feature/java-sdk-contrib/issues/1281)) ([c2ab1f0](https://github.com/open-feature/java-sdk-contrib/commit/c2ab1f024ccf07e85d522ecf401e0cdcef1ac2a0))
+* **deps:** update dependency io.github.jamsesso:json-logic-java to v1.0.9 ([#1282](https://github.com/open-feature/java-sdk-contrib/issues/1282)) ([1ddc63c](https://github.com/open-feature/java-sdk-contrib/commit/1ddc63c3a5e894d42bd6097f9936fb0e9431d296))
+* **deps:** update dependency org.json:json to v20250107 ([#1148](https://github.com/open-feature/java-sdk-contrib/issues/1148)) ([53276c7](https://github.com/open-feature/java-sdk-contrib/commit/53276c74e1e4b5f828cd3d5e2b44e2ad0c566732))
+* **deps:** update dependency org.json:json to v20250517 ([#1379](https://github.com/open-feature/java-sdk-contrib/issues/1379)) ([102e052](https://github.com/open-feature/java-sdk-contrib/commit/102e052178df95fd228c5e4a7a77454609665075))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+
 ## [1.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.1.0...dev.openfeature.contrib.providers.jsonlogic-v1.1.1) (2024-09-25)
 
 
