@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.2...dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.3) (2025-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency dev.openfeature.contrib.providers:flagd to v0.11.9 ([#1399](https://github.com/open-feature/java-sdk-contrib/issues/1399)) ([1b62aea](https://github.com/open-feature/java-sdk-contrib/commit/1b62aea7eab20efbe706abac299092c19c2bd76a))
+
 ## [0.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.1...dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.2) (2025-05-16)
 
 
