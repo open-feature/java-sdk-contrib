@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1.1-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.0-alpha...dev.openfeature.contrib.providers.unleash-v0.1.1-alpha) (2025-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.2.5 ([#1078](https://github.com/open-feature/java-sdk-contrib/issues/1078)) ([ed10f3f](https://github.com/open-feature/java-sdk-contrib/commit/ed10f3f2e9b992d5429e7eb89268640d52a5003f))
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.2.6 ([#1085](https://github.com/open-feature/java-sdk-contrib/issues/1085)) ([f174e94](https://github.com/open-feature/java-sdk-contrib/commit/f174e94627595a8d71c593c6e9563c52ff4b602f))
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.3.1 ([#1170](https://github.com/open-feature/java-sdk-contrib/issues/1170)) ([7c34fed](https://github.com/open-feature/java-sdk-contrib/commit/7c34fedd1ba948356b48773f5f39a74ecc42683c))
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.3.2 ([#1182](https://github.com/open-feature/java-sdk-contrib/issues/1182)) ([fd7440a](https://github.com/open-feature/java-sdk-contrib/commit/fd7440affacab117755f8b109da18cc8c562f6c3))
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* **deps:** replace dependency com.github.tomakehurst:wiremock-jre8 with org.wiremock:wiremock ([#1187](https://github.com/open-feature/java-sdk-contrib/issues/1187)) ([52ba349](https://github.com/open-feature/java-sdk-contrib/commit/52ba349661ac1e48ad35146f20145503d6458c7e))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.1 ([#986](https://github.com/open-feature/java-sdk-contrib/issues/986)) ([1e53431](https://github.com/open-feature/java-sdk-contrib/commit/1e53431353c1de0856db6bdb815d2218d9ac94a2))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.2 ([#1079](https://github.com/open-feature/java-sdk-contrib/issues/1079)) ([804cd45](https://github.com/open-feature/java-sdk-contrib/commit/804cd455d6e9e79e1fa72b003245027ed7450487))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.3 ([#1103](https://github.com/open-feature/java-sdk-contrib/issues/1103)) ([e2b8160](https://github.com/open-feature/java-sdk-contrib/commit/e2b8160dda2b82b43f665753187ab85a4e1abe13))
+* **deps:** update dependency org.wiremock:wiremock to v3.0.3 [security] ([#1397](https://github.com/open-feature/java-sdk-contrib/issues/1397)) ([36f09bd](https://github.com/open-feature/java-sdk-contrib/commit/36f09bd5c8ba0bc0f218fc10d724f51c3800736f))
+* **deps:** update dependency org.wiremock:wiremock to v3.13.0 ([#1398](https://github.com/open-feature/java-sdk-contrib/issues/1398)) ([7e68926](https://github.com/open-feature/java-sdk-contrib/commit/7e6892663bb0569d9d7b069a2abd32d359c7da7e))
+* **deps:** update dependency org.wiremock:wiremock to v3.13.1 ([#1411](https://github.com/open-feature/java-sdk-contrib/issues/1411)) ([aba2c1e](https://github.com/open-feature/java-sdk-contrib/commit/aba2c1e68d1301d9a7e5a75e892b3c6eab72d8c4))
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+
 ## [0.1.0-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.4-alpha...dev.openfeature.contrib.providers.unleash-v0.1.0-alpha) (2024-09-25)
 
 
