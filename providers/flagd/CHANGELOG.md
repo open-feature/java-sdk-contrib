@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.9...dev.openfeature.contrib.providers.flagd-v0.11.10) (2025-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.netty:netty-transport-native-epoll to v4.2.2.final ([#1321](https://github.com/open-feature/java-sdk-contrib/issues/1321)) ([82abc12](https://github.com/open-feature/java-sdk-contrib/commit/82abc12e137f1a4bc8ac2fc78fc58b5d5c1586ca))
+* **deps:** update dependency org.semver4j:semver4j to v5.7.1 ([#1404](https://github.com/open-feature/java-sdk-contrib/issues/1404)) ([dc02601](https://github.com/open-feature/java-sdk-contrib/commit/dc0260146c6b0ea0b0f3dbaa2dac5d30077153c1))
+* **deps:** update jackson monorepo to v2.19.1 ([#1416](https://github.com/open-feature/java-sdk-contrib/issues/1416)) ([43630e5](https://github.com/open-feature/java-sdk-contrib/commit/43630e5da8fd1f7f8b8ccfcb2aa77cab51949be7))
+* **deps:** update junit5 monorepo to v5.13.1 ([#1406](https://github.com/open-feature/java-sdk-contrib/issues/1406)) ([749d241](https://github.com/open-feature/java-sdk-contrib/commit/749d2418837a188e4ae58f852146fafa52693363))
+* **deps:** update opentelemetry-java monorepo to v1.51.0 ([#1405](https://github.com/open-feature/java-sdk-contrib/issues/1405)) ([0eea5da](https://github.com/open-feature/java-sdk-contrib/commit/0eea5daa0115aecd66d5c2b946f48504e282afc5))
+
+
+### 🧹 Chore
+
+* **deps:** update providers/flagd/spec digest to 42340bb ([#1407](https://github.com/open-feature/java-sdk-contrib/issues/1407)) ([eb0484c](https://github.com/open-feature/java-sdk-contrib/commit/eb0484c92ef954741b0c81d5ab22255242833fc3))
+* **deps:** update providers/flagd/spec digest to bb2dc2c ([#1401](https://github.com/open-feature/java-sdk-contrib/issues/1401)) ([96848a0](https://github.com/open-feature/java-sdk-contrib/commit/96848a0f0363ef8cba618bc8916ad8128923f0d8))
+
 ## [0.11.9](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.8...dev.openfeature.contrib.providers.flagd-v0.11.9) (2025-06-04)
 
 
