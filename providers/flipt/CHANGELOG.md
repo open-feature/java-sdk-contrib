@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.1...dev.openfeature.contrib.providers.flipt-v0.1.2) (2025-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.0 ([#996](https://github.com/open-feature/java-sdk-contrib/issues/996)) ([a701161](https://github.com/open-feature/java-sdk-contrib/commit/a7011611765f121145773d06717a19f143f75d63))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.1 ([#1047](https://github.com/open-feature/java-sdk-contrib/issues/1047)) ([a2ee3e6](https://github.com/open-feature/java-sdk-contrib/commit/a2ee3e6ed0c15c3ebaf55adc10198760f51a4a30))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.2 ([#1089](https://github.com/open-feature/java-sdk-contrib/issues/1089)) ([9b40e22](https://github.com/open-feature/java-sdk-contrib/commit/9b40e22e57739c7da417f834dd4f6822e6657ca8))
+* **deps:** update dependency io.flipt:flipt-java to v1.1.2 ([#1027](https://github.com/open-feature/java-sdk-contrib/issues/1027)) ([eb9f891](https://github.com/open-feature/java-sdk-contrib/commit/eb9f89152ec8c775f242c97087c4fabd41b41e36))
+* **deps:** update jackson monorepo to v2.18.3 ([#1254](https://github.com/open-feature/java-sdk-contrib/issues/1254)) ([24f11fd](https://github.com/open-feature/java-sdk-contrib/commit/24f11fd5338e2693d1eda0654c4ea4bc29063742))
+* **deps:** update jackson monorepo to v2.19.0 ([#1346](https://github.com/open-feature/java-sdk-contrib/issues/1346)) ([d4af23b](https://github.com/open-feature/java-sdk-contrib/commit/d4af23b9f2700233ea22f9132df00637820da10c))
+* **deps:** update jackson monorepo to v2.19.1 ([#1416](https://github.com/open-feature/java-sdk-contrib/issues/1416)) ([43630e5](https://github.com/open-feature/java-sdk-contrib/commit/43630e5da8fd1f7f8b8ccfcb2aa77cab51949be7))
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* **deps:** replace dependency com.github.tomakehurst:wiremock-jre8 with org.wiremock:wiremock ([#1187](https://github.com/open-feature/java-sdk-contrib/issues/1187)) ([52ba349](https://github.com/open-feature/java-sdk-contrib/commit/52ba349661ac1e48ad35146f20145503d6458c7e))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-annotations to v2.18.1 ([#1045](https://github.com/open-feature/java-sdk-contrib/issues/1045)) ([d9f2d89](https://github.com/open-feature/java-sdk-contrib/commit/d9f2d89d6e045bb2a393b9e5a446a2956927bb2a))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-annotations to v2.18.2 ([#1086](https://github.com/open-feature/java-sdk-contrib/issues/1086)) ([7f10440](https://github.com/open-feature/java-sdk-contrib/commit/7f1044027c193259969718854a2fc86651c59a24))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-core to v2.18.1 ([#1046](https://github.com/open-feature/java-sdk-contrib/issues/1046)) ([862ceb2](https://github.com/open-feature/java-sdk-contrib/commit/862ceb232ce27a8633d5a887822fc82b009ec6be))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-core to v2.18.2 ([#1087](https://github.com/open-feature/java-sdk-contrib/issues/1087)) ([51c0252](https://github.com/open-feature/java-sdk-contrib/commit/51c0252ecd55901c7a3d1346e9ee700980b77d0a))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.2 ([#1079](https://github.com/open-feature/java-sdk-contrib/issues/1079)) ([804cd45](https://github.com/open-feature/java-sdk-contrib/commit/804cd455d6e9e79e1fa72b003245027ed7450487))
+* **deps:** update dependency org.apache.logging.log4j:log4j-slf4j2-impl to v2.24.3 ([#1103](https://github.com/open-feature/java-sdk-contrib/issues/1103)) ([e2b8160](https://github.com/open-feature/java-sdk-contrib/commit/e2b8160dda2b82b43f665753187ab85a4e1abe13))
+* **deps:** update dependency org.wiremock:wiremock to v3.0.3 [security] ([#1397](https://github.com/open-feature/java-sdk-contrib/issues/1397)) ([36f09bd](https://github.com/open-feature/java-sdk-contrib/commit/36f09bd5c8ba0bc0f218fc10d724f51c3800736f))
+* **deps:** update dependency org.wiremock:wiremock to v3.13.0 ([#1398](https://github.com/open-feature/java-sdk-contrib/issues/1398)) ([7e68926](https://github.com/open-feature/java-sdk-contrib/commit/7e6892663bb0569d9d7b069a2abd32d359c7da7e))
+* **deps:** update dependency org.wiremock:wiremock to v3.13.1 ([#1411](https://github.com/open-feature/java-sdk-contrib/issues/1411)) ([aba2c1e](https://github.com/open-feature/java-sdk-contrib/commit/aba2c1e68d1301d9a7e5a75e892b3c6eab72d8c4))
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+
 ## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.0...dev.openfeature.contrib.providers.flipt-v0.1.1) (2024-10-02)
 
 
