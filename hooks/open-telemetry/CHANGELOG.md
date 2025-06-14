@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.2.1...dev.openfeature.contrib.hooks.otel-v3.3.0) (2025-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update opentelemetry-java monorepo to v1.47.0 ([#1206](https://github.com/open-feature/java-sdk-contrib/issues/1206)) ([34cd441](https://github.com/open-feature/java-sdk-contrib/commit/34cd4411ba768a602e399f7f23a7b1b8fbdfd77b))
+* **deps:** update opentelemetry-java monorepo to v1.48.0 ([#1269](https://github.com/open-feature/java-sdk-contrib/issues/1269)) ([9958432](https://github.com/open-feature/java-sdk-contrib/commit/9958432fdef18a889b69b74a3ea4fcf550fa073d))
+* **deps:** update opentelemetry-java monorepo to v1.49.0 ([#1344](https://github.com/open-feature/java-sdk-contrib/issues/1344)) ([045a12c](https://github.com/open-feature/java-sdk-contrib/commit/045a12c6a66869a359c86cde6bc9f5217a89bc87))
+* **deps:** update opentelemetry-java monorepo to v1.50.0 ([#1375](https://github.com/open-feature/java-sdk-contrib/issues/1375)) ([748c139](https://github.com/open-feature/java-sdk-contrib/commit/748c139a9497f9a49e29e68318b674b56b61e24d))
+* **deps:** update opentelemetry-java monorepo to v1.51.0 ([#1405](https://github.com/open-feature/java-sdk-contrib/issues/1405)) ([0eea5da](https://github.com/open-feature/java-sdk-contrib/commit/0eea5daa0115aecd66d5c2b946f48504e282afc5))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+
 ## [3.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.hooks.otel-v3.2.0...dev.openfeature.contrib.hooks.otel-v3.2.1) (2025-01-13)
 
 
