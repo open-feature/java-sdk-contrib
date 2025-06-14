@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.1.2...dev.openfeature.contrib.tools.junitopenfeature-v0.1.3) (2025-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.junit-pioneer:junit-pioneer to v2 ([#1100](https://github.com/open-feature/java-sdk-contrib/issues/1100)) ([3bf822b](https://github.com/open-feature/java-sdk-contrib/commit/3bf822b46acc796fdc08a7567723a3e1861019cb))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+
 ## [0.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.1.1...dev.openfeature.contrib.tools.junitopenfeature-v0.1.2) (2024-12-03)
 
 
