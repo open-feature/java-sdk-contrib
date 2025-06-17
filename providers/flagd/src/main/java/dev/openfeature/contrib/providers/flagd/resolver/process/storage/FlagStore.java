@@ -34,7 +34,7 @@ public class FlagStore implements Storage {
     private final WriteLock writeLock = sync.writeLock();
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
-    private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(1);
+    private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(4);
     private final Map<String, FeatureFlag> flags = new HashMap<>();
     private final Map<String, Object> flagSetMetadata = new HashMap<>();
 
