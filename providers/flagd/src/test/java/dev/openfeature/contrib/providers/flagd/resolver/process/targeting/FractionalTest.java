@@ -41,7 +41,7 @@ class FractionalTest {
         data.put(FLAGD_PROPS_KEY, flagdProperties);
 
         // when
-        Object evaluate = fractional.evaluate(testData.rule, data);
+        Object evaluate = fractional.evaluate(testData.rule, data, "path");
 
         // then
         assertEquals(testData.result, evaluate);

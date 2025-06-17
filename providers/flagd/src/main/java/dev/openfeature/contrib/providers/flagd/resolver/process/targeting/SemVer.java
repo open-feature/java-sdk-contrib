@@ -37,7 +37,7 @@ class SemVer implements PreEvaluatedArgumentsExpression {
         return "sem_ver";
     }
 
-    public Object evaluate(List arguments, Object data) throws JsonLogicEvaluationException {
+    public Object evaluate(List arguments, Object data, String jsonPath) throws JsonLogicEvaluationException {
 
         if (arguments.size() != 3) {
             log.debug("Incorrect number of arguments for sem_ver operator");
@@ -75,10 +75,10 @@ class SemVer implements PreEvaluatedArgumentsExpression {
             return null;
         }
 
-        return compare(arg2Parsed, arg1Parsed, arg3Parsed);
+        return compare(arg2Parsed, arg1Parsed, arg3Parsed, jsonPath);
     }
 
-    private static boolean compare(final String operator, final Semver arg1, final Semver arg2)
+    private static boolean compare(final String operator, final Semver arg1, final Semver arg2, final String jsonPath)
             throws JsonLogicEvaluationException {
 
         int comp = arg1.compareTo(arg2);
@@ -102,7 +102,7 @@ class SemVer implements PreEvaluatedArgumentsExpression {
                 return arg1.getMinor() == arg2.getMinor() && arg1.getMajor() == arg2.getMajor();
             default:
                 throw new JsonLogicEvaluationException(
-                        String.format("Unsupported operator received. Operator: %s", operator));
+                        String.format("Unsupported operator received. Operator: %s", operator), jsonPath);
         }
     }
 }

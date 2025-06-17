@@ -18,7 +18,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         return "fractional";
     }
 
-    public Object evaluate(List arguments, Object data) throws JsonLogicEvaluationException {
+    public Object evaluate(List arguments, Object data, String jsonPath) throws JsonLogicEvaluationException {
         if (arguments.size() < 2) {
             return null;
         }
@@ -53,7 +53,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
         try {
             for (Object dist : distibutions) {
-                FractionProperty fractionProperty = new FractionProperty(dist);
+                FractionProperty fractionProperty = new FractionProperty(dist, jsonPath);
                 propertyList.add(fractionProperty);
                 totalWeight += fractionProperty.getWeight();
             }
@@ -63,11 +63,11 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         }
 
         // find distribution
-        return distributeValue(bucketBy, propertyList, totalWeight);
+        return distributeValue(bucketBy, propertyList, totalWeight, jsonPath);
     }
 
     private static String distributeValue(
-            final String hashKey, final List<FractionProperty> propertyList, int totalWeight)
+            final String hashKey, final List<FractionProperty> propertyList, int totalWeight, String jsonPath)
             throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
@@ -83,7 +83,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         }
 
         // this shall not be reached
-        throw new JsonLogicEvaluationException("Unable to find a correct bucket");
+        throw new JsonLogicEvaluationException("Unable to find a correct bucket", jsonPath);
     }
 
     @Getter
@@ -96,27 +96,28 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             // DO NOT REMOVE, spotbugs: CT_CONSTRUCTOR_THROW
         }
 
-        FractionProperty(final Object from) throws JsonLogicException {
+        FractionProperty(final Object from, String jsonPath) throws JsonLogicException {
             if (!(from instanceof List<?>)) {
-                throw new JsonLogicException("Property is not an array");
+                throw new JsonLogicException("Property is not an array", jsonPath);
             }
 
             final List<?> array = (List) from;
 
             if (array.isEmpty()) {
-                throw new JsonLogicException("Fraction property needs at least one element");
+                throw new JsonLogicException("Fraction property needs at least one element", jsonPath);
             }
 
             // first must be a string
             if (!(array.get(0) instanceof String)) {
-                throw new JsonLogicException("First element of the fraction property is not a string variant");
+                throw new JsonLogicException("First element of the fraction property is not a string variant",
+                        jsonPath);
             }
 
             variant = (String) array.get(0);
             if (array.size() >= 2) {
                 // second element must be a number
                 if (!(array.get(1) instanceof Number)) {
-                    throw new JsonLogicException("Second element of the fraction property is not a number");
+                    throw new JsonLogicException("Second element of the fraction property is not a number", jsonPath);
                 }
                 weight = ((Number) array.get(1)).intValue();
             } else {
