@@ -27,7 +27,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 class SyncStreamQueueSourceTest {
@@ -48,13 +47,11 @@ class SyncStreamQueueSourceTest {
 
         stub = mock(FlagSyncServiceStub.class);
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
-        doAnswer(new Answer<Void>() {
-                    public Void answer(InvocationOnMock invocation) {
-                        latch.countDown();
-                        Object[] args = invocation.getArguments();
-                        observer = (QueueingStreamObserver<SyncFlagsResponse>) args[1];
-                        return null;
-                    }
+        doAnswer((Answer<Void>) invocation -> {
+                    Object[] args = invocation.getArguments();
+                    observer = (QueueingStreamObserver<SyncFlagsResponse>) args[1];
+                    latch.countDown();
+                    return null;
                 })
                 .when(stub)
                 .syncFlags(any(SyncFlagsRequest.class), any(QueueingStreamObserver.class)); // Mock the initialize

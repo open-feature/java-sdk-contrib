@@ -31,7 +31,7 @@ Statsig OpenFeature Provider is based on [Statsig Java SDK documentation](https:
 
 ### Usage Example
 
-```
+```java
 StatsigOptions statsigOptions = new StatsigOptions();
 StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder().sdkKey(sdkKey)
     .options(statsigOptions).build();

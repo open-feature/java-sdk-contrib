@@ -1,0 +1,8 @@
+{
+  "key": "flag-key",
+  "value": false,
+  "reason": "STATIC",
+  "variant": "off",
+  "metadata": {
+    "gofeatureflag_cacheable": true
+  }
