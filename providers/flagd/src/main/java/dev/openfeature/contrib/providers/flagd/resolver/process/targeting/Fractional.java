@@ -117,7 +117,8 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             if (array.size() >= 2) {
                 // second element must be a number
                 if (!(array.get(1) instanceof Number)) {
-                    throw new JsonLogicException("Second element of the fraction property is not a number", jsonPath);
+                    throw new JsonLogicException("Second element of the fraction property is not a number",
+                            jsonPath);
                 }
                 weight = ((Number) array.get(1)).intValue();
             } else {
