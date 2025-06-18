@@ -40,6 +40,7 @@
         <module>providers/configcat</module>
         <module>providers/statsig</module>
         <module>providers/multiprovider</module>
+        <module>providers/ofrep</module>
         <module>tools/flagd-http-connector</module>
     </modules>
 
