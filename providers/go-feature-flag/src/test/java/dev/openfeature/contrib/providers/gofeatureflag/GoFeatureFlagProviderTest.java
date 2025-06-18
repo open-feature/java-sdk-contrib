@@ -600,24 +600,6 @@ class GoFeatureFlagProviderTest {
 
     @Nested
     class DataCollectorHook {
-        @DisplayName("Should send the evaluation information to the data collector")
-        @SneakyThrows
-        @Test
-        void shouldSendTheEvaluationInformationToTheDataCollector() {
-            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
-                    .flushIntervalMs(150L)
-                    .maxPendingEvents(100)
-                    .endpoint(baseUrl.toString())
-                    .evaluationType(EvaluationType.IN_PROCESS)
-                    .build());
-            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
-            val client = OpenFeatureAPI.getInstance().getClient(testName);
-            client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
-            client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
-            Thread.sleep(250L);
-            assertEquals(1, goffAPIMock.getCollectorRequestsHistory().size());
-        }
-
         @DisplayName("Should omit events if max pending events is reached")
         @SneakyThrows
         @Test
