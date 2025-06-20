@@ -657,7 +657,7 @@ public class GoFeatureFlagApiTest {
             flags.put("TEST2", flag2);
             val want = FlagConfigResponse.builder()
                     .flags(flags)
-                    .etag("valid-flag-config.json")
+                    .etag("\"valid-flag-config.json\"")
                     .lastUpdated(new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz")
                             .parse("Wed, 21 Oct 2015 07:28:00 GMT"))
                     .evaluationContextEnrichment(evaluationContextEnrichment)
@@ -702,7 +702,7 @@ public class GoFeatureFlagApiTest {
             flags.put("TEST2", flag2);
             val want = FlagConfigResponse.builder()
                     .flags(flags)
-                    .etag("valid-flag-config.json")
+                    .etag("\"valid-flag-config.json\"")
                     .lastUpdated(null)
                     .evaluationContextEnrichment(evaluationContextEnrichment)
                     .build();
