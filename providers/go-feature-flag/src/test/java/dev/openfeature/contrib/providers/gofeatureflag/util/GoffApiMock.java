@@ -132,7 +132,7 @@ public class GoffApiMock {
                     return new MockResponse()
                             .setResponseCode(200)
                             .setBody(TestUtils.readMockResponse("flag_config_responses/", configLocation))
-                            .addHeader(Const.HTTP_HEADER_ETAG, "different-etag")
+                            .addHeader(Const.HTTP_HEADER_ETAG, "\"different-etag\"")
                             .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 05:28:00 GMT");
                 }
                 break;
@@ -153,7 +153,7 @@ public class GoffApiMock {
             return new MockResponse()
                     .setResponseCode(200)
                     .setBody(TestUtils.readMockResponse("flag_config_responses/", configLocation))
-                    .addHeader(Const.HTTP_HEADER_ETAG, configLocation)
+                    .addHeader(Const.HTTP_HEADER_ETAG, "\"" + configLocation + "\"")
                     .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
         }
         switch (etag) {
@@ -171,13 +171,13 @@ public class GoffApiMock {
                 return new MockResponse()
                         .setResponseCode(200)
                         .setBody(TestUtils.readMockResponse("flag_config_responses/", configLocation))
-                        .addHeader(Const.HTTP_HEADER_ETAG, configLocation)
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"" + configLocation + "\"")
                         .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:2 GMT");
             default:
                 return new MockResponse()
                         .setResponseCode(200)
                         .setBody(TestUtils.readMockResponse("flag_config_responses/", configLocation))
-                        .addHeader(Const.HTTP_HEADER_ETAG, configLocation)
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"" + configLocation + "\"")
                         .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
         }
     }
