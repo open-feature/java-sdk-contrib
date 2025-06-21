@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.10...dev.openfeature.contrib.providers.flagd-v0.11.11) (2025-06-21)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.github.jamsesso:json-logic-java to v1.1.0 ([#1373](https://github.com/open-feature/java-sdk-contrib/issues/1373)) ([f4c9e0c](https://github.com/open-feature/java-sdk-contrib/commit/f4c9e0c87ad40244bea635856b1fe675e95a7b79))
+
+
+### 🧹 Chore
+
+* **deps:** update testcontainers-java monorepo to v1.21.2 ([#1430](https://github.com/open-feature/java-sdk-contrib/issues/1430)) ([46eed68](https://github.com/open-feature/java-sdk-contrib/commit/46eed68301c480a2b5dda969747115051a3fe0e9))
+
 ## [0.11.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.9...dev.openfeature.contrib.providers.flagd-v0.11.10) (2025-06-18)
 
 
