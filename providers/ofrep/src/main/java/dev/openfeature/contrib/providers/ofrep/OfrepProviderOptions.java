@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import java.net.ProxySelector;
 import java.time.Duration;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,6 +16,8 @@ import lombok.Getter;
 @Builder(builderClassName = "Builder", buildMethodName = "build")
 public class OfrepProviderOptions {
 
+    private static final int DEFAULT_THREAD_POOL_SIZE = 5;
+
     @Builder.Default
     private final String baseUrl = "http://localhost:8016";
 
@@ -22,7 +25,7 @@ public class OfrepProviderOptions {
     private final ProxySelector proxySelector = ProxySelector.getDefault();
 
     @Builder.Default
-    private final Executor executor = Runnable::run;
+    private final Executor executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
 
     @Builder.Default
     private final Duration timeout = Duration.ofSeconds(10);
