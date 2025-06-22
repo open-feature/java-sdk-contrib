@@ -6,15 +6,23 @@ import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.UrlValidator;
 
 /**
  * OpenFeature provider for OFREP.
  */
+@Slf4j
 public final class OfrepProvider implements FeatureProvider {
 
     private static final String OFREP_PROVIDER = "ofrep";
+    private static final long DEFAULT_EXECUTOR_SHUTDOWN_TIMEOUT = 1000;
+
     private final Resolver ofrepResolver;
+    private Executor executor;
 
     public static OfrepProvider constructProvider() {
         return new OfrepProvider();
@@ -58,6 +66,7 @@ public final class OfrepProvider implements FeatureProvider {
     }
 
     private OfrepProvider(OfrepProviderOptions options) {
+        this.executor = options.getExecutor();
         this.ofrepResolver = new Resolver(
                 options.getBaseUrl(),
                 options.getHeaders(),
@@ -69,6 +78,19 @@ public final class OfrepProvider implements FeatureProvider {
     @Override
     public Metadata getMetadata() {
         return () -> OFREP_PROVIDER;
+    }
+
+    @Override
+    public void shutdown() {
+        if (executor instanceof ExecutorService) {
+            try {
+                ExecutorService executorService = (ExecutorService) executor;
+                executorService.shutdownNow();
+                executorService.awaitTermination(DEFAULT_EXECUTOR_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.error("Error during shutdown {}", OFREP_PROVIDER, e);
+            }
+        }
     }
 
     @Override
