@@ -90,12 +90,19 @@ public final class OfrepProvider implements FeatureProvider {
     @Override
     public void shutdown() {
         if (executor instanceof ExecutorService) {
+            ExecutorService executorService = (ExecutorService) executor;
             try {
-                ExecutorService executorService = (ExecutorService) executor;
-                executorService.shutdownNow();
-                executorService.awaitTermination(DEFAULT_EXECUTOR_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
+                executorService.shutdown();
+
+                if (!executorService.awaitTermination(DEFAULT_EXECUTOR_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS)) {
+                    executorService.shutdownNow();
+                    if (!executorService.awaitTermination(DEFAULT_EXECUTOR_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS)) {
+                        log.error("Provider couldn't shutdown gracefully.");
+                    }
+                }
             } catch (InterruptedException e) {
-                log.error("Error during shutdown {}", OFREP_PROVIDER, e);
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
             }
         }
     }
