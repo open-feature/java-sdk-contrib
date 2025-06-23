@@ -27,21 +27,24 @@ public class OfrepApi {
     private final ObjectMapper serializer;
     private final ObjectMapper deserializer;
     private final HttpClient httpClient;
+    private final Duration requestTimeout;
     private Instant nextAllowedRequestTime = Instant.now();
 
     /**
      * Constructs an OfrepApi instance with a HTTP client and JSON serializers.
      *
-     * @param timeout        - The timeout duration for establishing HTTP connection.
+     * @param requestTimeout - The request timeout duration for the request.
+     * @param connectTimeout - The connect timeout duration for establishing HTTP connection.
      * @param proxySelector  - The ProxySelector to use for HTTP requests.
      * @param executor       - The Executor to use for operations.
      */
-    public OfrepApi(Duration timeout, ProxySelector proxySelector, Executor executor) {
+    public OfrepApi(Duration requestTimeout, Duration connectTimeout, ProxySelector proxySelector, Executor executor) {
         httpClient = HttpClient.newBuilder()
-                .connectTimeout(timeout)
+                .connectTimeout(connectTimeout)
                 .proxy(proxySelector)
                 .executor(executor)
                 .build();
+        this.requestTimeout = requestTimeout;
         serializer = new ObjectMapper();
         deserializer = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
@@ -62,6 +65,7 @@ public class OfrepApi {
 
         HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                 .uri(url)
+                .timeout(this.requestTimeout)
                 .header("Content-Type", "application/json; charset=utf-8")
                 .POST(HttpRequest.BodyPublishers.ofByteArray(serializer.writeValueAsBytes(requestBody)));
 

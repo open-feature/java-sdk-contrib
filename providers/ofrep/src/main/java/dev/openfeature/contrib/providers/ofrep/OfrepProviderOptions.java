@@ -28,7 +28,10 @@ public class OfrepProviderOptions {
     private final Executor executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
 
     @Builder.Default
-    private final Duration timeout = Duration.ofSeconds(10);
+    private final Duration requestTimeout = Duration.ofSeconds(10);
+
+    @Builder.Default
+    private final Duration connectTimeout = Duration.ofSeconds(10);
 
     @Builder.Default
     private final ImmutableMap<String, ImmutableList<String>> headers = ImmutableMap.of();

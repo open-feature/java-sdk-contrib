@@ -44,10 +44,16 @@ public final class OfrepProvider implements FeatureProvider {
             throw new IllegalArgumentException("Headers cannot be null");
         }
 
-        if (options.getTimeout() == null
-                || options.getTimeout().isNegative()
-                || options.getTimeout().isZero()) {
-            throw new IllegalArgumentException("Timeout must be a positive duration");
+        if (options.getRequestTimeout() == null
+                || options.getRequestTimeout().isNegative()
+                || options.getRequestTimeout().isZero()) {
+            throw new IllegalArgumentException("Request timeout must be a positive duration");
+        }
+
+        if (options.getConnectTimeout() == null
+                || options.getConnectTimeout().isNegative()
+                || options.getConnectTimeout().isZero()) {
+            throw new IllegalArgumentException("Connect timeout must be a positive duration");
         }
 
         if (options.getProxySelector() == null) {
@@ -70,7 +76,8 @@ public final class OfrepProvider implements FeatureProvider {
         this.ofrepResolver = new Resolver(
                 options.getBaseUrl(),
                 options.getHeaders(),
-                options.getTimeout(),
+                options.getRequestTimeout(),
+                options.getConnectTimeout(),
                 options.getProxySelector(),
                 options.getExecutor());
     }

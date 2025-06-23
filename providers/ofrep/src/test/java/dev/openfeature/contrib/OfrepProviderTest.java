@@ -97,10 +97,16 @@ public class OfrepProviderTest {
     private static final ObjectMapper deserializer =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+    private static final OfrepProvider ofrepProviderWithRequestTimeout =
+            OfrepProvider.constructProvider(OfrepProviderOptions.builder()
+                    .baseUrl("http://10.255.255.1")
+                    .requestTimeout(Duration.ofSeconds(2))
+                    .build());
+
     private static final OfrepProvider ofrepProviderWithConnectTimeout =
             OfrepProvider.constructProvider(OfrepProviderOptions.builder()
                     .baseUrl("http://10.255.255.1")
-                    .timeout(Duration.ofSeconds(2))
+                    .connectTimeout(Duration.ofSeconds(2))
                     .build());
 
     private static MockWebServer mockWebServer;
@@ -452,7 +458,32 @@ public class OfrepProviderTest {
     }
 
     @Test
-    void testTimeoutConnection() throws JsonProcessingException {
+    void testRequestTimeoutConnection() throws JsonProcessingException {
+        OfrepResponse successfulStringResponse = new OfrepResponse();
+        successfulStringResponse.setKey(FLAG_KEY);
+        successfulStringResponse.setValue(SUCCESSFUL_STRING_VALUE);
+        successfulStringResponse.setReason(SUCCESSFUL_REASON);
+        successfulStringResponse.setVariant(SUCCESSFUL_VARIANT);
+        successfulStringResponse.setMetadata(FLAG_METADATA);
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(serializer.writeValueAsString(successfulStringResponse))
+                .setBodyDelay(4, TimeUnit.SECONDS)
+                .setResponseCode(200));
+
+        ProviderEvaluation<String> evaluation = ofrepProviderWithRequestTimeout.getStringEvaluation(
+                FLAG_KEY, DEFAULT_STRING_VALUE, new ImmutableContext());
+
+        assertTrue(DEFAULT_STRING_VALUE.equals(evaluation.getValue()));
+        assertNull(evaluation.getVariant());
+        assertNull(evaluation.getReason());
+        assertTrue(ImmutableMetadata.builder().build().equals(evaluation.getFlagMetadata()));
+        assertTrue(ERROR_CODE_GENERAL.equals(evaluation.getErrorCode().toString()));
+        assertTrue(ERROR_DETAIL_GENERAL_HTTP_TIMEOUT.equals(evaluation.getErrorMessage()));
+    }
+
+    @Test
+    void testConnectTimeoutConnection() throws JsonProcessingException {
         OfrepResponse successfulStringResponse = new OfrepResponse();
         successfulStringResponse.setKey(FLAG_KEY);
         successfulStringResponse.setValue(SUCCESSFUL_STRING_VALUE);
@@ -542,23 +573,43 @@ public class OfrepProviderTest {
             OfrepProvider.constructProvider(options);
         });
 
-        Exception exceptionNegativeTimeout = assertThrows(IllegalArgumentException.class, () -> {
+        Exception exceptionNegativeConnectTimeout = assertThrows(IllegalArgumentException.class, () -> {
             OfrepProviderOptions options = OfrepProviderOptions.builder()
-                    .timeout(Duration.ofSeconds(-10))
+                    .connectTimeout(Duration.ofSeconds(-10))
                     .build();
             OfrepProvider.constructProvider(options);
         });
 
-        Exception exceptionZeroedTimeout = assertThrows(IllegalArgumentException.class, () -> {
+        Exception exceptionZeroedConnectTimeout = assertThrows(IllegalArgumentException.class, () -> {
             OfrepProviderOptions options = OfrepProviderOptions.builder()
-                    .timeout(Duration.ofSeconds(0))
+                    .connectTimeout(Duration.ofSeconds(0))
                     .build();
             OfrepProvider.constructProvider(options);
         });
 
-        Exception exceptionNullTimeout = assertThrows(IllegalArgumentException.class, () -> {
+        Exception exceptionNullConnectTimeout = assertThrows(IllegalArgumentException.class, () -> {
             OfrepProviderOptions options =
-                    OfrepProviderOptions.builder().timeout(null).build();
+                    OfrepProviderOptions.builder().connectTimeout(null).build();
+            OfrepProvider.constructProvider(options);
+        });
+
+        Exception exceptionNegativeRequestTimeout = assertThrows(IllegalArgumentException.class, () -> {
+            OfrepProviderOptions options = OfrepProviderOptions.builder()
+                    .requestTimeout(Duration.ofSeconds(-10))
+                    .build();
+            OfrepProvider.constructProvider(options);
+        });
+
+        Exception exceptionZeroedRequestTimeout = assertThrows(IllegalArgumentException.class, () -> {
+            OfrepProviderOptions options = OfrepProviderOptions.builder()
+                    .requestTimeout(Duration.ofSeconds(0))
+                    .build();
+            OfrepProvider.constructProvider(options);
+        });
+
+        Exception exceptionNullRequestTimeout = assertThrows(IllegalArgumentException.class, () -> {
+            OfrepProviderOptions options =
+                    OfrepProviderOptions.builder().requestTimeout(null).build();
             OfrepProvider.constructProvider(options);
         });
 
@@ -577,9 +628,14 @@ public class OfrepProviderTest {
         assertTrue(exceptionInvalidBaseUrl.getMessage().contains("Invalid base URL"));
         assertTrue(exceptionNullBaseUrl.getMessage().contains("Invalid base URL"));
         assertTrue(exceptionNullHeaders.getMessage().contains("Headers cannot be null"));
-        assertTrue(exceptionNegativeTimeout.getMessage().contains("Timeout must be a positive duration"));
-        assertTrue(exceptionZeroedTimeout.getMessage().contains("Timeout must be a positive duration"));
-        assertTrue(exceptionNullTimeout.getMessage().contains("Timeout must be a positive duration"));
+        assertTrue(
+                exceptionNegativeRequestTimeout.getMessage().contains("Request timeout must be a positive duration"));
+        assertTrue(exceptionZeroedRequestTimeout.getMessage().contains("Request timeout must be a positive duration"));
+        assertTrue(exceptionNullRequestTimeout.getMessage().contains("Request timeout must be a positive duration"));
+        assertTrue(
+                exceptionNegativeConnectTimeout.getMessage().contains("Connect timeout must be a positive duration"));
+        assertTrue(exceptionZeroedConnectTimeout.getMessage().contains("Connect timeout must be a positive duration"));
+        assertTrue(exceptionNullConnectTimeout.getMessage().contains("Connect timeout must be a positive duration"));
         assertTrue(exceptionNullProxySelector.getMessage().contains("ProxySelector cannot be null"));
         assertTrue(exceptionNullExecutor.getMessage().contains("Executor cannot be null"));
     }

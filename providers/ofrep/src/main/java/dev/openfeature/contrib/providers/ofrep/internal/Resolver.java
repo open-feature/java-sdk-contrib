@@ -34,19 +34,21 @@ public class Resolver {
      *
      * @param baseUrl           - The base URL of the OFREP server.
      * @param headers           - The headers to include in the requests.
-     * @param timeout           - The timeout for requests in seconds.
+     * @param requestTimeout    - The request timeout duration for the request.
+     * @param connectTimeout    - The connect timeout duration for establishing the HTTP connection.
      * @param proxySelector     - The ProxySelector to use for HTTP requests.
      * @param executor          - The Executor to use for operations.
      */
     public Resolver(
             String baseUrl,
             ImmutableMap<String, ImmutableList<String>> headers,
-            Duration timeout,
+            Duration requestTimeout,
+            Duration connectTimeout,
             ProxySelector proxySelector,
             Executor executor) {
         this.baseUrl = baseUrl;
         this.headers = headers;
-        this.ofrepApi = new OfrepApi(timeout, proxySelector, executor);
+        this.ofrepApi = new OfrepApi(requestTimeout, connectTimeout, proxySelector, executor);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, T defaultValue, EvaluationContext ctx) {
