@@ -141,7 +141,9 @@ public class SyncStreamQueueSource implements QueueSource {
 
                         metadataResponse = localStub.getMetadata(metadataRequest.build());
                     } catch (Exception metaEx) {
-                        log.error("Metadata exception: {}, cancelling stream", metaEx.getMessage(), metaEx);
+                        // cancel the stream if the getMetadata fails
+                        // we can keep this log quiet since the stream is cancelled/restarted with this exception
+                        log.debug("Metadata exception: {}, cancelling stream", metaEx.getMessage(), metaEx);
                         context.cancel(metaEx);
                     }
                 }
