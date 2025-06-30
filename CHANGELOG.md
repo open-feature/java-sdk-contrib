@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.2...dev.openfeature.contrib.parent-v0.3.0) (2025-06-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.22.1 ([#1328](https://github.com/open-feature/java-sdk-contrib/issues/1328)) ([9b894fe](https://github.com/open-feature/java-sdk-contrib/commit/9b894fe8005d84bbee66dc333019afa4fa2aa7a8))
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.22.2 ([#1371](https://github.com/open-feature/java-sdk-contrib/issues/1371)) ([99fcc0a](https://github.com/open-feature/java-sdk-contrib/commit/99fcc0ad657ea6b8cbece467effd08c2c0314cca))
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.23.0 ([#1393](https://github.com/open-feature/java-sdk-contrib/issues/1393)) ([cfa9e90](https://github.com/open-feature/java-sdk-contrib/commit/cfa9e90c454ba68d4e2fd91abdeb68c67e1323dd))
+* **deps:** update dependency org.junit:junit-bom to v5.13.2 ([#1437](https://github.com/open-feature/java-sdk-contrib/issues/1437)) ([7df0745](https://github.com/open-feature/java-sdk-contrib/commit/7df0745bbe6c457f0017ef036efbcc21e8f11bf8))
+* **deps:** update dependency org.mockito:mockito-bom to v5.17.0 ([#1340](https://github.com/open-feature/java-sdk-contrib/issues/1340)) ([1804b9f](https://github.com/open-feature/java-sdk-contrib/commit/1804b9fb6e793eb20518b39c3de9ece2c7ad3b6f))
+* **deps:** update dependency org.mockito:mockito-bom to v5.18.0 ([#1381](https://github.com/open-feature/java-sdk-contrib/issues/1381)) ([96f912a](https://github.com/open-feature/java-sdk-contrib/commit/96f912aeaddf820494fee4aaaf11bd6f789767b3))
+* **deps:** update junit5 monorepo to v5.13.0 ([#1394](https://github.com/open-feature/java-sdk-contrib/issues/1394)) ([943064e](https://github.com/open-feature/java-sdk-contrib/commit/943064e894134ba95ce8e7f7ddb805c1de7063de))
+* **deps:** update junit5 monorepo to v5.13.1 ([#1406](https://github.com/open-feature/java-sdk-contrib/issues/1406)) ([749d241](https://github.com/open-feature/java-sdk-contrib/commit/749d2418837a188e4ae58f852146fafa52693363))
+
+
+### ✨ New Features
+
+* **flagd:** add http connector for In-process resolver ([#1299](https://github.com/open-feature/java-sdk-contrib/issues/1299)) ([7688523](https://github.com/open-feature/java-sdk-contrib/commit/7688523669dd6f63cccf85a80bd1330a0c5d501f))
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384)) ([2ea5e68](https://github.com/open-feature/java-sdk-contrib/commit/2ea5e68e79c6c703c55cc815d223bbe66a60ea6d))
+
+
+### 🧹 Chore
+
+* add DCO to release-please ([cc6716e](https://github.com/open-feature/java-sdk-contrib/commit/cc6716e49a0046514fce5ba38beb8934317064d4))
+* **deps:** pin googleapis/release-please-action action to a02a34c ([#1361](https://github.com/open-feature/java-sdk-contrib/issues/1361)) ([6c00021](https://github.com/open-feature/java-sdk-contrib/commit/6c000210e185cc88ded55b687e55b06a60992462))
+* **deps:** update dependency com.diffplug.spotless:spotless-maven-plugin to v2.44.5 ([#1388](https://github.com/open-feature/java-sdk-contrib/issues/1388)) ([a99e4b6](https://github.com/open-feature/java-sdk-contrib/commit/a99e4b642cf999e058a7ffdd2c7581debe09809c))
+* **deps:** update dependency com.github.spotbugs:spotbugs-maven-plugin to v4.9.3.1 ([#1440](https://github.com/open-feature/java-sdk-contrib/issues/1440)) ([f183544](https://github.com/open-feature/java-sdk-contrib/commit/f1835441fdcb2f1a767ce7d51d008962f5feae9e))
+* **deps:** update dependency com.github.spotbugs:spotbugs-maven-plugin to v4.9.3.2 ([#1446](https://github.com/open-feature/java-sdk-contrib/issues/1446)) ([e43b96e](https://github.com/open-feature/java-sdk-contrib/commit/e43b96e40d8c06b229043990fa7a8d238c7d406a))
+* **deps:** update dependency com.puppycrawl.tools:checkstyle to v10.23.1 ([#1365](https://github.com/open-feature/java-sdk-contrib/issues/1365)) ([f22e9e4](https://github.com/open-feature/java-sdk-contrib/commit/f22e9e42f7739d9b59aa97ac37a080d901094e0d))
+* **deps:** update dependency com.puppycrawl.tools:checkstyle to v10.24.0 ([#1382](https://github.com/open-feature/java-sdk-contrib/issues/1382)) ([3ca841c](https://github.com/open-feature/java-sdk-contrib/commit/3ca841cec733061828e7b77a52d1c1a5ac350530))
+* **deps:** update dependency com.puppycrawl.tools:checkstyle to v10.25.0 ([#1395](https://github.com/open-feature/java-sdk-contrib/issues/1395)) ([c76ee6c](https://github.com/open-feature/java-sdk-contrib/commit/c76ee6c755c5c24fe15ddfdcdfee0f3566d3703c))
+* **deps:** update dependency com.puppycrawl.tools:checkstyle to v10.25.1 ([#1433](https://github.com/open-feature/java-sdk-contrib/issues/1433)) ([1822da7](https://github.com/open-feature/java-sdk-contrib/commit/1822da7767ab1f78f87f02b48d4028ed9d47e2ea))
+* **deps:** update dependency com.puppycrawl.tools:checkstyle to v10.26.0 ([#1439](https://github.com/open-feature/java-sdk-contrib/issues/1439)) ([874443c](https://github.com/open-feature/java-sdk-contrib/commit/874443c0ffde7f650a418a08111cbd2ac708ee39))
+* **deps:** update dependency com.puppycrawl.tools:checkstyle to v10.26.1 ([#1452](https://github.com/open-feature/java-sdk-contrib/issues/1452)) ([0e8e49b](https://github.com/open-feature/java-sdk-contrib/commit/0e8e49b17192a4b5365cc9f71303edbe43f6e360))
+* **deps:** update dependency maven to v3.9.10 ([#1403](https://github.com/open-feature/java-sdk-contrib/issues/1403)) ([8bc4804](https://github.com/open-feature/java-sdk-contrib/commit/8bc48047dff5423a579534b9c0dcddbd02f3771b))
+* **deps:** update dependency org.apache.maven.plugins:maven-pmd-plugin to v3.27.0 ([#1442](https://github.com/open-feature/java-sdk-contrib/issues/1442)) ([361a972](https://github.com/open-feature/java-sdk-contrib/commit/361a9726a0c78bb12daab918c231b34f2fa3d0f0))
+* **deps:** update dependency org.honton.chas:exists-maven-plugin to v0.14.0 ([#934](https://github.com/open-feature/java-sdk-contrib/issues/934)) ([84c3743](https://github.com/open-feature/java-sdk-contrib/commit/84c374307c10dc89449d97e2362b16549a21abff))
+* **deps:** update dependency org.honton.chas:exists-maven-plugin to v0.15.0 ([#1387](https://github.com/open-feature/java-sdk-contrib/issues/1387)) ([1b22c88](https://github.com/open-feature/java-sdk-contrib/commit/1b22c888e47c3ba252d07008785309dfa1e58d4a))
+* fix rp workflow ([210bfc6](https://github.com/open-feature/java-sdk-contrib/commit/210bfc6da0cce4cb04fa6d47a535110368f33875))
+* fix RP workflow  ([68eb1df](https://github.com/open-feature/java-sdk-contrib/commit/68eb1dfe66ca7946595487d9189d008fae5af715))
+* **goff:** Next release should be a major release ([#1426](https://github.com/open-feature/java-sdk-contrib/issues/1426)) ([d53cac7](https://github.com/open-feature/java-sdk-contrib/commit/d53cac79f6b0cae3bc82e022a70810fdbb2752d6))
+* **main:** release dev.openfeature.contrib.providers.env-var 0.0.10 ([#1364](https://github.com/open-feature/java-sdk-contrib/issues/1364)) ([f96ee03](https://github.com/open-feature/java-sdk-contrib/commit/f96ee0344e84f32633681f9518e8f912bdcd53d1))
+* **main:** release dev.openfeature.contrib.providers.env-var 0.0.8 ([#1359](https://github.com/open-feature/java-sdk-contrib/issues/1359)) ([a390c68](https://github.com/open-feature/java-sdk-contrib/commit/a390c6822c9fbf9fc38116e0f0de160a0b81da4d))
+* **main:** release dev.openfeature.contrib.providers.env-var 0.0.9 ([#1363](https://github.com/open-feature/java-sdk-contrib/issues/1363)) ([efb1151](https://github.com/open-feature/java-sdk-contrib/commit/efb1151672e4113a6bde95696253bee3af553cba))
+* **main:** release dev.openfeature.contrib.providers.flagd 0.11.10 ([#1400](https://github.com/open-feature/java-sdk-contrib/issues/1400)) ([716dc67](https://github.com/open-feature/java-sdk-contrib/commit/716dc67a41e5470c6cb9a80e1a1ade4b42072651))
+* **main:** release dev.openfeature.contrib.providers.flagd 0.11.11 ([#1431](https://github.com/open-feature/java-sdk-contrib/issues/1431)) ([881318a](https://github.com/open-feature/java-sdk-contrib/commit/881318a42c715248de87559403026382ef41a584))
+* **main:** release dev.openfeature.contrib.providers.flagd 0.11.9 ([#1358](https://github.com/open-feature/java-sdk-contrib/issues/1358)) ([19a4b03](https://github.com/open-feature/java-sdk-contrib/commit/19a4b03e6d3e24f5231a0bb877c0f8c011a7d247))
+* **main:** release dev.openfeature.contrib.tools.flagdhttpconnector 0.0.2 ([#1376](https://github.com/open-feature/java-sdk-contrib/issues/1376)) ([c21ad89](https://github.com/open-feature/java-sdk-contrib/commit/c21ad89ff41d4b703729964a8c26add1e613b78c))
+* remove redundant signoff ([e570d5c](https://github.com/open-feature/java-sdk-contrib/commit/e570d5ce0433b158df0c2e44d6b5edb3e1d2881a))
+* update component owners and flagd readme ([#1372](https://github.com/open-feature/java-sdk-contrib/issues/1372)) ([2dea3b2](https://github.com/open-feature/java-sdk-contrib/commit/2dea3b296d7eb63c14f612949e6c533629b8eb42))
+* update release plz ([#1362](https://github.com/open-feature/java-sdk-contrib/issues/1362)) ([21cce76](https://github.com/open-feature/java-sdk-contrib/commit/21cce76716a8297b41871d8b1cbb78dc70add12c))
+* use PAT for release please ([8ad6164](https://github.com/open-feature/java-sdk-contrib/commit/8ad61646361c16ef0b746bd9ef368aee86f553e1))
+
 ## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.1...dev.openfeature.contrib.parent-v0.2.2) (2025-04-24)
 
 
