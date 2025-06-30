@@ -8,7 +8,7 @@ A JUnit5 extension to reduce boilerplate code for testing code which utilizes Op
 <dependency>
   <groupId>dev.openfeature.contrib.tools</groupId>
   <artifactId>junitopenfeature</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.3</version>
   <scope>test</scope>
 </dependency>
 ```
