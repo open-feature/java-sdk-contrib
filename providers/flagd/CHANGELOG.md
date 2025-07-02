@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.11.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.11...dev.openfeature.contrib.providers.flagd-v0.11.12) (2025-07-02)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.8 ([#1447](https://github.com/open-feature/java-sdk-contrib/issues/1447)) ([1fd425b](https://github.com/open-feature/java-sdk-contrib/commit/1fd425bba5eef44c4bde2e8546a2c0c094960dd3))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.github.spotbugs:spotbugs-maven-plugin to v4.9.3.2 ([#1446](https://github.com/open-feature/java-sdk-contrib/issues/1446)) ([e43b96e](https://github.com/open-feature/java-sdk-contrib/commit/e43b96e40d8c06b229043990fa7a8d238c7d406a))
+* **deps:** update providers/flagd/spec digest to 705d086 ([#1448](https://github.com/open-feature/java-sdk-contrib/issues/1448)) ([44abcde](https://github.com/open-feature/java-sdk-contrib/commit/44abcde5ecfe0b1c9f61444a007c63520d66b33a))
+* **deps:** update providers/flagd/spec digest to a367871 ([#1453](https://github.com/open-feature/java-sdk-contrib/issues/1453)) ([176e05e](https://github.com/open-feature/java-sdk-contrib/commit/176e05ed3f9f625df22da32ce5cd83f993c7d32e))
+* **deps:** update providers/flagd/spec digest to c37ac17 ([#1444](https://github.com/open-feature/java-sdk-contrib/issues/1444)) ([b43324e](https://github.com/open-feature/java-sdk-contrib/commit/b43324e46de010d908710ce653b53fb49ae676ab))
+* **deps:** update testcontainers-java monorepo to v1.21.3 ([#1451](https://github.com/open-feature/java-sdk-contrib/issues/1451)) ([778b4b5](https://github.com/open-feature/java-sdk-contrib/commit/778b4b5f1a6ad29b5275ced12e05c3b645f2ca63))
+
 ## [0.11.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.10...dev.openfeature.contrib.providers.flagd-v0.11.11) (2025-06-25)
 
 
