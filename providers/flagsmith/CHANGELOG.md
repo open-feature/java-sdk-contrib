@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.10...dev.openfeature.contrib.providers.flagsmith-v0.0.11) (2025-07-02)
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
+
+### 🧹 Chore
+
+* added upper bound to parent pom range ([#1421](https://github.com/open-feature/java-sdk-contrib/issues/1421)) ([5701dc5](https://github.com/open-feature/java-sdk-contrib/commit/5701dc5b1b89ee0f245df9ea6284b5d327f40992))
+* loosen parent version req ([#1341](https://github.com/open-feature/java-sdk-contrib/issues/1341)) ([4c7b584](https://github.com/open-feature/java-sdk-contrib/commit/4c7b58413b47db5c8c52b906ec2cbbc846779199))
+
 ## [0.0.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.9...dev.openfeature.contrib.providers.flagsmith-v0.0.10) (2025-04-14)
 
 
