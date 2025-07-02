@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.10...dev.openfeature.contrib.providers.env-var-v0.0.11) (2025-07-02)
+
+
+### 🧹 Chore
+
+* added upper bound to parent pom range ([#1421](https://github.com/open-feature/java-sdk-contrib/issues/1421)) ([5701dc5](https://github.com/open-feature/java-sdk-contrib/commit/5701dc5b1b89ee0f245df9ea6284b5d327f40992))
+
 ## [0.0.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.9...dev.openfeature.contrib.providers.env-var-v0.0.10) (2025-05-02)
 
 
