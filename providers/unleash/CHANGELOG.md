@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.1-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.0-alpha...dev.openfeature.contrib.providers.unleash-v0.1.1-alpha) (2025-07-04)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.2.5 ([#1078](https://github.com/open-feature/java-sdk-contrib/issues/1078)) ([ed10f3f](https://github.com/open-feature/java-sdk-contrib/commit/ed10f3f2e9b992d5429e7eb89268640d52a5003f))
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.2.6 ([#1085](https://github.com/open-feature/java-sdk-contrib/issues/1085)) ([f174e94](https://github.com/open-feature/java-sdk-contrib/commit/f174e94627595a8d71c593c6e9563c52ff4b602f))
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.3.1 ([#1170](https://github.com/open-feature/java-sdk-contrib/issues/1170)) ([7c34fed](https://github.com/open-feature/java-sdk-contrib/commit/7c34fedd1ba948356b48773f5f39a74ecc42683c))
+* **deps:** update dependency io.getunleash:unleash-client-java to v9.3.2 ([#1182](https://github.com/open-feature/java-sdk-contrib/issues/1182)) ([fd7440a](https://github.com/open-feature/java-sdk-contrib/commit/fd7440affacab117755f8b109da18cc8c562f6c3))
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
 ## [0.1.0-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.0.4-alpha...dev.openfeature.contrib.providers.unleash-v0.1.0-alpha) (2024-09-25)
 
 
