@@ -1,11 +1,18 @@
-
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>open-feature/community-tooling"],
-  "regexManagers": [
+  "extends": [
+    "github>open-feature/community-tooling"
+  ],
+  "customManagers": [
     {
-      "fileMatch": ["^README.md$", "^.github/workflows/pullrequest.yml$"],
-      "matchStrings": ["ghcr\\.io\\/open-feature\\/flagd-testbed:(?<currentValue>.*?)\\n"],
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^README.md$/",
+        "/^.github/workflows/pullrequest.yml$/"
+      ],
+      "matchStrings": [
+        "ghcr\\.io\\/open-feature\\/flagd-testbed:(?<currentValue>.*?)\\n"
+      ],
       "depNameTemplate": "open-feature/test-harness",
       "datasourceTemplate": "github-releases"
     }
