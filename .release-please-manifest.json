@@ -5,7 +5,7 @@
   "providers/flagsmith": "0.0.10",
   "providers/env-var": "0.0.10",
   "providers/jsonlogic-eval-provider": "1.1.1",
-  "providers/unleash": "0.1.0-alpha",
+  "providers/unleash": "0.1.1-alpha",
   "providers/flipt": "0.1.1",
   "providers/configcat": "0.1.0",
   "providers/statsig": "0.1.0",
