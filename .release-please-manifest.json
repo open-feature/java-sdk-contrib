@@ -12,5 +12,5 @@
   "providers/multiprovider": "0.0.1",
   "tools/junit-openfeature": "0.1.2",
   "tools/flagd-http-connector": "0.0.2",
-  ".": "0.2.2"
+  ".": "0.3.0"
 }
