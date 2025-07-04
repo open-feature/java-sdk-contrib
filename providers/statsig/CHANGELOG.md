@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.1.0...dev.openfeature.contrib.providers.statsig-v0.1.1) (2025-07-04)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
 ## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.statsig-v0.0.4...dev.openfeature.contrib.providers.statsig-v0.1.0) (2024-09-25)
 
 
