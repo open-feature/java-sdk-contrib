@@ -113,7 +113,7 @@ api.addHooks(new MetricsHook(openTelemetry));
 
 #### Custom dimensions (attributes)
 
-You can extract dimension from `ImmutableMetadata` of the `FlagEvaluationDetails` and add them to `feature_flag. evaluation_success_total` metric.
+You can extract dimension from `ImmutableMetadata` of the `FlagEvaluationDetails` and add them to `feature_flag.evaluation_success_total` metric.
 To use this feature, construct the `MetricsHook` with a list of `DimensionDescription`. 
 You can add dimensions of type `String`, `Integer`, `Long`, `Float`, `Double` & `Boolean`.
 
@@ -129,7 +129,7 @@ OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 api.addHooks(new MetricsHook(openTelemetry, customDimensions));
 ```
 
-You can also wrtie your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `attributeSetter`.
+You can also write your own extraction logic against [flag evaluation metadata](https://github.com/open-feature/spec/blob/main/specification/types.md#flag-metadata) by providing a callback to `attributeSetter`.
 
 ```java
 final OpenTelemetry openTelemetry = ... // OpenTelemetry API instance
