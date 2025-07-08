@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.1.1...dev.openfeature.contrib.providers.configcat-v0.2.0) (2025-07-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.configcat:configcat-java-client to v9.4.1 ([#903](https://github.com/open-feature/java-sdk-contrib/issues/903)) ([1cbc60c](https://github.com/open-feature/java-sdk-contrib/commit/1cbc60c5a25642ec2ca028817b8f843832f8dae9))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.4.2 ([#1109](https://github.com/open-feature/java-sdk-contrib/issues/1109)) ([1d85362](https://github.com/open-feature/java-sdk-contrib/commit/1d8536230316242652f9d71c180ef01c525d4c8a))
+* **deps:** update dependency com.configcat:configcat-java-client to v9.4.3 ([#1380](https://github.com/open-feature/java-sdk-contrib/issues/1380)) ([2e2dcf2](https://github.com/open-feature/java-sdk-contrib/commit/2e2dcf2992c4cf508aa9db0390fb6367b9c7f6c1))
+* **deps:** update dependency com.dylibso.chicory:wasi to v1.5.0 ([#1473](https://github.com/open-feature/java-sdk-contrib/issues/1473)) ([0030528](https://github.com/open-feature/java-sdk-contrib/commit/00305287986248262036dcb7cd4f4c384fe50052))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.14 ([#904](https://github.com/open-feature/java-sdk-contrib/issues/904)) ([028b332](https://github.com/open-feature/java-sdk-contrib/commit/028b332dc8ac3b134e5453d5449a4c11b4ef250a))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.15 ([#910](https://github.com/open-feature/java-sdk-contrib/issues/910)) ([2f58638](https://github.com/open-feature/java-sdk-contrib/commit/2f58638eb4907c948325d1e61853e1b6eabfa4c1))
+* **deps:** update dependency org.slf4j:slf4j-api to v2.0.16 ([#912](https://github.com/open-feature/java-sdk-contrib/issues/912)) ([52571d8](https://github.com/open-feature/java-sdk-contrib/commit/52571d806e7c547006db836245b4895fe9bc4660))
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964)) ([4a041b0](https://github.com/open-feature/java-sdk-contrib/commit/4a041b0dda9c4e460f4c2199f3bc680df0dda621))
+
 ## [0.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.configcat-v0.1.0...dev.openfeature.contrib.providers.configcat-v0.1.1) (2025-07-04)
 
 
