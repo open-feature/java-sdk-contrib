@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.1.3...dev.openfeature.contrib.tools.junitopenfeature-v0.2.0) (2025-07-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964))
+
+### 🐛 Bug Fixes
+
+* added missing dependency and installation instruction ([#895](https://github.com/open-feature/java-sdk-contrib/issues/895)) ([6748d02](https://github.com/open-feature/java-sdk-contrib/commit/6748d02403f0ceecb6cb9ecdfb2fecf98423a7db))
+* **deps:** update dependency com.dylibso.chicory:wasi to v1.5.0 ([#1473](https://github.com/open-feature/java-sdk-contrib/issues/1473)) ([0030528](https://github.com/open-feature/java-sdk-contrib/commit/00305287986248262036dcb7cd4f4c384fe50052))
+* **deps:** update dependency org.apache.commons:commons-lang3 to v3.16.0 ([#908](https://github.com/open-feature/java-sdk-contrib/issues/908)) ([d21cfe3](https://github.com/open-feature/java-sdk-contrib/commit/d21cfe3ac7da1ff6e1a4dc2ee4b0db5c24ed4847))
+* **deps:** update dependency org.apache.commons:commons-lang3 to v3.17.0 ([#932](https://github.com/open-feature/java-sdk-contrib/issues/932)) ([c598d9f](https://github.com/open-feature/java-sdk-contrib/commit/c598d9f0a61f2324fb85d72fdfea34811283c575))
+* **deps:** update dependency org.junit-pioneer:junit-pioneer to v2 ([#1100](https://github.com/open-feature/java-sdk-contrib/issues/1100)) ([3bf822b](https://github.com/open-feature/java-sdk-contrib/commit/3bf822b46acc796fdc08a7567723a3e1861019cb))
+* race condition causing default when multiple flags are used ([#983](https://github.com/open-feature/java-sdk-contrib/issues/983)) ([356a973](https://github.com/open-feature/java-sdk-contrib/commit/356a973cf2b6ddf82b8311ea200fa30df4f1d048))
+
+
+### ✨ New Features
+
+* added interception of parameterized tests to Junit OpenFeature Extension ([#1093](https://github.com/open-feature/java-sdk-contrib/issues/1093)) ([a78c906](https://github.com/open-feature/java-sdk-contrib/commit/a78c906b24b53f7d25eb01aad85ed614eb30ca05))
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+* use sdk-maintained state, require 1.12 ([#964](https://github.com/open-feature/java-sdk-contrib/issues/964)) ([4a041b0](https://github.com/open-feature/java-sdk-contrib/commit/4a041b0dda9c4e460f4c2199f3bc680df0dda621))
+
 ## [0.1.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.junitopenfeature-v0.1.2...dev.openfeature.contrib.tools.junitopenfeature-v0.1.3) (2025-07-04)
 
 
