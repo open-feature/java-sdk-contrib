@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.10...dev.openfeature.contrib.providers.flagsmith-v0.0.11) (2025-07-08)
+
+
+### ✨ New Features
+
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
 ## [0.0.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.9...dev.openfeature.contrib.providers.flagsmith-v0.0.10) (2025-04-14)
 
 
