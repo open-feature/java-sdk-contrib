@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.11...dev.openfeature.contrib.providers.flagd-v0.11.12) (2025-07-08)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.8 ([#1447](https://github.com/open-feature/java-sdk-contrib/issues/1447)) ([1fd425b](https://github.com/open-feature/java-sdk-contrib/commit/1fd425bba5eef44c4bde2e8546a2c0c094960dd3))
+* **deps:** update junit-framework monorepo to v5.13.3 ([#1461](https://github.com/open-feature/java-sdk-contrib/issues/1461)) ([1aae615](https://github.com/open-feature/java-sdk-contrib/commit/1aae615131dc41106e75a915e3f2e8e2d31a96c4))
+
 ## [0.11.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.10...dev.openfeature.contrib.providers.flagd-v0.11.11) (2025-06-25)
 
 
