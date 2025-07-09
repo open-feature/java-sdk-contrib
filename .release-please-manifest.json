@@ -4,13 +4,13 @@
   "providers/go-feature-flag": "0.4.3",
   "providers/flagsmith": "0.0.11",
   "providers/env-var": "0.0.10",
-  "providers/jsonlogic-eval-provider": "1.2.1",
+  "providers/jsonlogic-eval-provider": "1.2.0",
   "providers/unleash": "0.1.1-alpha",
   "providers/flipt": "0.1.2",
   "providers/configcat": "0.2.0",
   "providers/statsig": "0.2.1",
   "providers/multiprovider": "0.0.2",
   "tools/junit-openfeature": "0.2.1",
-  "tools/flagd-http-connector": "0.0.3",
+  "tools/flagd-http-connector": "0.0.4",
   ".": "1.0.0"
 }
