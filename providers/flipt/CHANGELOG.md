@@ -7,6 +7,13 @@
 
 * require latest SDK ([#1488](https://github.com/open-feature/java-sdk-contrib/issues/1488)) ([71afb81](https://github.com/open-feature/java-sdk-contrib/commit/71afb81703bc2a5350ab967e478c527469fdb5d2))
 
+## [0.1.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.2...dev.openfeature.contrib.providers.flipt-v0.1.3) (2025-07-09)
+
+
+### 🐛 Bug Fixes
+
+* require latest SDK ([#1488](https://github.com/open-feature/java-sdk-contrib/issues/1488)) ([71afb81](https://github.com/open-feature/java-sdk-contrib/commit/71afb81703bc2a5350ab967e478c527469fdb5d2))
+
 ## [0.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.1...dev.openfeature.contrib.providers.flipt-v0.1.2) (2025-07-08)
 
 
