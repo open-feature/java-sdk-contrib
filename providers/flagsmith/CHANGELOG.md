@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.11...dev.openfeature.contrib.providers.flagsmith-v0.0.12) (2025-07-09)
+
+
+### 🐛 Bug Fixes
+
+* require latest SDK ([#1488](https://github.com/open-feature/java-sdk-contrib/issues/1488)) ([71afb81](https://github.com/open-feature/java-sdk-contrib/commit/71afb81703bc2a5350ab967e478c527469fdb5d2))
+
 ## [0.0.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.10...dev.openfeature.contrib.providers.flagsmith-v0.0.11) (2025-07-08)
 
 
