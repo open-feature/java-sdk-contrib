@@ -149,6 +149,7 @@
     },
     ".": {
       "package-name": "dev.openfeature.contrib.parent",
+      "release-as": "1.0.0",
       "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
