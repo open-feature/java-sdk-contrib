@@ -99,7 +99,7 @@
             <groupId>dev.openfeature</groupId>
             <artifactId>sdk</artifactId>
             <!-- 1.16.0 <= v < 2.0 (excluding 2.0 pre-releases)-->
-            <version>[1.16.0,2.99999)</version>
+            <version>[1.16.0,1.99999)</version>
             <!-- use the version provided at runtime -->
             <scope>provided</scope>
         </dependency>
