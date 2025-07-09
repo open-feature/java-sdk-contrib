@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - main
+      - parentv0
 name: Run Release Please
 jobs:
   release-please:
