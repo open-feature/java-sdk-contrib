@@ -6,7 +6,7 @@
   "providers/env-var": "0.0.10",
   "providers/jsonlogic-eval-provider": "1.2.0",
   "providers/unleash": "0.1.1-alpha",
-  "providers/flipt": "0.1.2",
+  "providers/flipt": "0.1.3",
   "providers/configcat": "0.2.0",
   "providers/statsig": "0.2.0",
   "providers/multiprovider": "0.0.2",
