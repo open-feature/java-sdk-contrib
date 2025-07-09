@@ -11,6 +11,6 @@
   "providers/statsig": "0.2.1",
   "providers/multiprovider": "0.0.3",
   "tools/junit-openfeature": "0.2.1",
-  "tools/flagd-http-connector": "0.0.3",
+  "tools/flagd-http-connector": "0.0.4",
   ".": "1.0.0"
 }
