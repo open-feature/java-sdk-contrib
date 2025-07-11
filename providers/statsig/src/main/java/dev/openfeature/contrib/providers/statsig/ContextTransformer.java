@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.statsig;
+package dev.openfeature.contrib.providers.optimizely;
 
 import com.statsig.sdk.StatsigUser;
 import dev.openfeature.sdk.EvaluationContext;

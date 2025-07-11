@@ -1,0 +1,105 @@
+{
+  "version": "4",
+  "rollouts": [
+    {
+      "experiments": [
+        {
+          "status": "Running",
+          "key": "boolean-feature-rollout",
+          "layerId": "boolean_feature_layer",
+          "trafficAllocation": [
+            {
+              "entityId": "boolean_feature_variation",
+              "endOfRange": 10000
+            }
+          ],
+          "audienceIds": [],
+          "variations": [
+            {
+              "variables": [],
+              "id": "boolean_feature_variation",
+              "key": "boolean_feature_variation",
+              "featureEnabled": true
+            }
+          ],
+          "forcedVariations": {},
+          "id": "boolean_feature_rollout_experiment"
+        }
+      ],
+      "id": "boolean_feature_rollout"
+    },
+    {
+      "experiments": [
+        {
+          "status": "Running",
+          "key": "string-feature-rollout",
+          "layerId": "string_feature_layer",
+          "trafficAllocation": [
+            {
+              "entityId": "string_feature_variation",
+              "endOfRange": 10000
+            }
+          ],
+          "audienceIds": [],
+          "variations": [
+            {
+              "variables": [
+                {
+                  "id": "string_variable_1",
+                  "value": "str1"
+                }
+              ],
+              "id": "string_feature_variation",
+              "key": "string_feature_variation",
+              "featureEnabled": true
+            }
+          ],
+          "forcedVariations": {},
+          "id": "string_feature_rollout_experiment"
+        }
+      ],
+      "id": "string_feature_rollout"
+    }
+  ],
+  "typedAudiences": [],
+  "anonymizeIP": false,
+  "projectId": "12345678901",
+  "variables": [
+    {
+      "defaultValue": "str1",
+      "type": "string",
+      "id": "string_variable_1",
+      "key": "string_variable_1"
+    }
+  ],
+  "featureFlags": [
+    {
+      "experimentIds": [],
+      "rolloutId": "boolean_feature_rollout",
+      "variables": [],
+      "id": "boolean_feature_flag",
+      "key": "boolean-feature"
+    },
+    {
+      "experimentIds": [],
+      "rolloutId": "string_feature_rollout",
+      "variables": [
+        {
+          "defaultValue": "str1",
+          "type": "string",
+          "id": "string_variable_1",
+          "key": "string_variable_1"
+        }
+      ],
+      "id": "string_feature_flag",
+      "key": "string-feature"
+    }
+  ],
+  "experiments": [],
+  "audiences": [],
+  "groups": [],
+  "attributes": [],
+  "accountId": "12345678901",
+  "events": [],
+  "revision": "1"
+}
