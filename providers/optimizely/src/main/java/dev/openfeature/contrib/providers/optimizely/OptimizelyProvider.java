@@ -90,7 +90,7 @@ public class OptimizelyProvider extends EventProvider {
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         throw new UnsupportedOperationException("String evaluation is not directly supported by Optimizely provider,"
-        + "use getObjectEvaluation instead.");
+            + "use getObjectEvaluation instead.");
     }
 
     @Override
@@ -133,8 +133,8 @@ public class OptimizelyProvider extends EventProvider {
 
 
     @SneakyThrows
-    private Value toValue(OptimizelyJSON optimizelyJSON) {
-        Map<String, Object> map = optimizelyJSON.toMap();
+    private Value toValue(OptimizelyJSON optimizelyJson) {
+        Map<String, Object> map = optimizelyJson.toMap();
         Structure structure = Structure.mapToStructure(map);
         return new Value(structure);
     }
