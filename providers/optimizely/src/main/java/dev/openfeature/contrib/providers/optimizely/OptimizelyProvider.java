@@ -48,17 +48,15 @@ public class OptimizelyProvider extends EventProvider {
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
         optimizely = Optimizely.builder()
-            .withConfigManager(optimizelyProviderConfig.getProjectConfigManager())
-            .withEventProcessor(optimizelyProviderConfig.getEventProcessor())
-            .withDatafile(optimizelyProviderConfig.getDatafile())
-            .withDefaultDecideOptions(optimizelyProviderConfig.getDefaultDecideOptions())
-            .withErrorHandler(optimizelyProviderConfig.getErrorHandler())
-            .withODPManager(optimizelyProviderConfig.getOdpManager())
-            .withUserProfileService(optimizelyProviderConfig.getUserProfileService())
-            .build();
-        contextTransformer = ContextTransformer.builder()
-            .optimizely(optimizely)
-            .build();
+                .withConfigManager(optimizelyProviderConfig.getProjectConfigManager())
+                .withEventProcessor(optimizelyProviderConfig.getEventProcessor())
+                .withDatafile(optimizelyProviderConfig.getDatafile())
+                .withDefaultDecideOptions(optimizelyProviderConfig.getDefaultDecideOptions())
+                .withErrorHandler(optimizelyProviderConfig.getErrorHandler())
+                .withODPManager(optimizelyProviderConfig.getOdpManager())
+                .withUserProfileService(optimizelyProviderConfig.getUserProfileService())
+                .build();
+        contextTransformer = ContextTransformer.builder().optimizely(optimizely).build();
         log.info("finished initializing provider");
     }
 
@@ -90,7 +88,7 @@ public class OptimizelyProvider extends EventProvider {
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         throw new UnsupportedOperationException("String evaluation is not directly supported by Optimizely provider,"
-            + "use getObjectEvaluation instead.");
+                + "use getObjectEvaluation instead.");
     }
 
     @Override
@@ -125,12 +123,11 @@ public class OptimizelyProvider extends EventProvider {
         }
 
         return ProviderEvaluation.<Value>builder()
-            .value(evaluatedValue)
-            .reason(reasonsString)
-            .variant(variationKey)
-            .build();
+                .value(evaluatedValue)
+                .reason(reasonsString)
+                .variant(variationKey)
+                .build();
     }
-
 
     @SneakyThrows
     private Value toValue(OptimizelyJSON optimizelyJson) {
@@ -147,5 +144,4 @@ public class OptimizelyProvider extends EventProvider {
             optimizely.close();
         }
     }
-
 }

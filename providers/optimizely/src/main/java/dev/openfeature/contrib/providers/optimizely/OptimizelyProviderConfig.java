@@ -26,5 +26,4 @@ public class OptimizelyProviderConfig {
     private UserProfileService userProfileService;
     private List<OptimizelyDecideOption> defaultDecideOptions;
     private ODPManager odpManager;
-
 }

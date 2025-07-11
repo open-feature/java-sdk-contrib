@@ -25,14 +25,16 @@ public class OptimizelyProviderTest {
     @SneakyThrows
     @BeforeAll
     static void setUp() {
-        File dataFile = new File(
-            OptimizelyProviderTest.class.getClassLoader().getResource("data.json").getFile());
+        File dataFile = new File(OptimizelyProviderTest.class
+                .getClassLoader()
+                .getResource("data.json")
+                .getFile());
         String dataFileContent = new String(java.nio.file.Files.readAllBytes(dataFile.toPath()));
 
         OptimizelyProviderConfig config = OptimizelyProviderConfig.builder()
-            .eventProcessor(mock(EventProcessor.class))
-            .datafile(dataFileContent)
-            .build();
+                .eventProcessor(mock(EventProcessor.class))
+                .datafile(dataFileContent)
+                .build();
 
         provider = new OptimizelyProvider(config);
         provider.initialize(new MutableContext("test-targeting-key"));
@@ -41,10 +43,10 @@ public class OptimizelyProviderTest {
     @Test
     public void test_constructor_initializes_provider_with_valid_config() {
         OptimizelyProviderConfig config = OptimizelyProviderConfig.builder()
-            .projectConfigManager(mock(ProjectConfigManager.class))
-            .eventProcessor(mock(EventProcessor.class))
-            .datafile("test-datafile")
-            .build();
+                .projectConfigManager(mock(ProjectConfigManager.class))
+                .eventProcessor(mock(EventProcessor.class))
+                .datafile("test-datafile")
+                .build();
 
         OptimizelyProvider localProvider = new OptimizelyProvider(config);
 
@@ -55,10 +57,10 @@ public class OptimizelyProviderTest {
     @Test
     public void test_initialize_handles_null_configuration_parameters() {
         OptimizelyProviderConfig config = OptimizelyProviderConfig.builder()
-            .projectConfigManager(null)
-            .eventProcessor(null)
-            .datafile(null)
-            .build();
+                .projectConfigManager(null)
+                .eventProcessor(null)
+                .datafile(null)
+                .build();
 
         OptimizelyProvider localProvider = new OptimizelyProvider(config);
         EvaluationContext evaluationContext = mock(EvaluationContext.class);
@@ -76,7 +78,9 @@ public class OptimizelyProviderTest {
 
         assertNotNull(result.getValue());
         assertEquals("string_feature_variation", result.getVariant());
-        assertEquals("str1", result.getValue().asStructure().getValue("string_variable_1").asString());
+        assertEquals(
+                "str1",
+                result.getValue().asStructure().getValue("string_variable_1").asString());
     }
 
     @Test
