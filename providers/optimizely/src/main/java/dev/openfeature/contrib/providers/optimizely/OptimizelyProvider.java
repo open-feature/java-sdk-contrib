@@ -7,11 +7,11 @@ import com.optimizely.ab.optimizelyjson.OptimizelyJSON;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
-import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +25,7 @@ public class OptimizelyProvider extends EventProvider {
 
     private OptimizelyProviderConfig optimizelyProviderConfig;
 
+    @Getter
     private Optimizely optimizely;
 
     private ContextTransformer contextTransformer;
@@ -75,48 +76,33 @@ public class OptimizelyProvider extends EventProvider {
         String reasonsString = null;
         if (variationKey == null) {
             List<String> reasons = decision.getReasons();
-            reasonsString = reasons == null ? null : String.join(", ", reasons);
+            reasonsString = String.join(", ", reasons);
         }
 
         boolean enabled = decision.getEnabled();
-
         return ProviderEvaluation.<Boolean>builder()
                 .value(enabled)
                 .reason(reasonsString)
                 .build();
     }
 
+    @SneakyThrows
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        OptimizelyUserContext userContext = contextTransformer.transform(ctx);
-        OptimizelyDecision decision = userContext.decide(key);
-        String variationKey = decision.getVariationKey();
-        String reasonsString = null;
-        if (variationKey == null) {
-            List<String> reasons = decision.getReasons();
-            reasonsString = reasons == null ? null : String.join(", ", reasons);
-        }
-
-        String evaluatedValue = defaultValue;
-        boolean enabled = decision.getEnabled();
-        if (enabled) {
-            evaluatedValue = variationKey;
-        }
-
-        return ProviderEvaluation.<String>builder()
-            .value(evaluatedValue)
-            .reason(reasonsString)
-            .build();
+        throw new UnsupportedOperationException("String evaluation is not directly supported by Optimizely provider,"
+        + "use getObjectEvaluation instead.");
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        throw new UnsupportedOperationException("Integer evaluation is not supported by Optimizely provider.");
+        throw new UnsupportedOperationException("Integer evaluation is not directly supported by Optimizely provider,"
+                + "use getObjectEvaluation instead.");
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        throw new UnsupportedOperationException("Double evaluation is not supported by Optimizely provider.");
+        throw new UnsupportedOperationException("Double evaluation is not directly supported by Optimizely provider,"
+                + "use getObjectEvaluation instead.");
     }
 
     @SneakyThrows
@@ -128,7 +114,7 @@ public class OptimizelyProvider extends EventProvider {
         String reasonsString = null;
         if (variationKey == null) {
             List<String> reasons = decision.getReasons();
-            reasonsString = reasons == null ? null : String.join(", ", reasons);
+            reasonsString = String.join(", ", reasons);
         }
 
         Value evaluatedValue = defaultValue;
@@ -141,16 +127,16 @@ public class OptimizelyProvider extends EventProvider {
         return ProviderEvaluation.<Value>builder()
             .value(evaluatedValue)
             .reason(reasonsString)
+            .variant(variationKey)
             .build();
     }
 
 
+    @SneakyThrows
     private Value toValue(OptimizelyJSON optimizelyJSON) {
-        MutableContext mutableContext = new MutableContext();
-        if (optimizelyJSON != null) {
-            mutableContext.add("variables", Structure.mapToStructure(optimizelyJSON.toMap()));
-        }
-        return new Value(mutableContext);
+        Map<String, Object> map = optimizelyJSON.toMap();
+        Structure structure = Structure.mapToStructure(map);
+        return new Value(structure);
     }
 
     @SneakyThrows
