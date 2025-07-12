@@ -39,6 +39,7 @@
         <module>providers/flipt</module>
         <module>providers/configcat</module>
         <module>providers/statsig</module>
+        <module>providers/optimizely</module>
         <module>providers/multiprovider</module>
         <module>tools/flagd-http-connector</module>
     </modules>

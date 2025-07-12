@@ -35,6 +35,8 @@ components:
     - novalisdenahi
   providers/statsig:
     - liran2000
+  providers/optimizely:
+      - liran2000
   providers/multiprovider:
     - liran2000
   tools/flagd-http-connector:
