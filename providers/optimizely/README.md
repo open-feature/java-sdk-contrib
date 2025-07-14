@@ -30,8 +30,6 @@ Optimizely OpenFeature Provider is based on [Optimizely Java SDK documentation](
 
 ```java
 OptimizelyProviderConfig config = OptimizelyProviderConfig.builder()
-    .eventProcessor(mock(EventProcessor.class))
-    .datafile(dataFileContent)
     .build();
 
 provider = new OptimizelyProvider(config);
