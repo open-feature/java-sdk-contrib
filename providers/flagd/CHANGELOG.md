@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.14](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.13...dev.openfeature.contrib.providers.flagd-v0.11.14) (2025-07-14)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency org.apache.commons:commons-lang3 to v3.18.0 [security] ([#1512](https://github.com/open-feature/java-sdk-contrib/issues/1512)) ([d178006](https://github.com/open-feature/java-sdk-contrib/commit/d178006411b91ff05376ac8f604c5282f2f19383))
+
 ## [0.11.13](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.12...dev.openfeature.contrib.providers.flagd-v0.11.13) (2025-07-09)
 
 
