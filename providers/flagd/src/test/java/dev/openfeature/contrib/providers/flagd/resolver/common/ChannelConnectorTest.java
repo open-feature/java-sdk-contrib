@@ -21,6 +21,7 @@ import io.grpc.Server;
 import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -57,12 +58,16 @@ class ChannelConnectorTest {
     }
 
     private void setupTestGrpcServer() throws IOException {
+        var testSocket = new ServerSocket(0);
+        var port = testSocket.getLocalPort();
+        testSocket.close();
+
         testServer =
-                NettyServerBuilder.forPort(8080).addService(testServiceImpl).build();
+                NettyServerBuilder.forPort(port).addService(testServiceImpl).build();
         testServer.start();
 
         if (testChannel == null) {
-            testChannel = ManagedChannelBuilder.forAddress("localhost", 8080)
+            testChannel = ManagedChannelBuilder.forAddress("localhost", port)
                     .usePlaintext()
                     .build();
         }
