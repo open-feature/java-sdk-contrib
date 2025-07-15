@@ -22,6 +22,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.util.Map;
@@ -203,6 +204,12 @@ public class InProcessResolver implements Resolver {
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
+            if (resolvedVariant.isEmpty()) {
+                String message = String.format("no default variant found in flag with key %s", key);
+                log.debug(message);
+                throw new FlagNotFoundError(message);
+            }
+
             String message = String.format("variant %s not found in flag with key %s", resolvedVariant, key);
             log.debug(message);
             throw new TypeMismatchError(message);
