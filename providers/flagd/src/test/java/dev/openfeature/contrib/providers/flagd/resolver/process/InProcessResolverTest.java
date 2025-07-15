@@ -35,6 +35,7 @@ import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.lang.reflect.Field;
@@ -279,7 +280,7 @@ class InProcessResolverTest {
                 getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
 
         // when/then
-        assertThrows(TypeMismatchError.class, () -> {
+        assertThrows(GeneralError.class, () -> {
             inProcessResolver.booleanEvaluation("mismatchFlag", false, new ImmutableContext());
         });
     }
@@ -288,14 +289,14 @@ class InProcessResolverTest {
     public void typeMismatchEvaluation() throws Exception {
         // given
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
-        flagMap.put("stringFlag", BOOLEAN_FLAG);
+        flagMap.put("booleanFlag", BOOLEAN_FLAG);
 
         InProcessResolver inProcessResolver =
                 getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
 
         // when/then
         assertThrows(TypeMismatchError.class, () -> {
-            inProcessResolver.stringEvaluation("stringFlag", "false", new ImmutableContext());
+            inProcessResolver.stringEvaluation("booleanFlag", "false", new ImmutableContext());
         });
     }
 
