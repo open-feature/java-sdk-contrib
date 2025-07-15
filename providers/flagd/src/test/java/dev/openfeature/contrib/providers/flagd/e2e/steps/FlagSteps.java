@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.e2e.State;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Value;
@@ -75,6 +76,15 @@ public class FlagSteps extends AbstractSteps {
     @Then("the variant should be {string}")
     public void the_variant_should_be(String variant) {
         assertThat(state.evaluation.getVariant()).isEqualTo(variant);
+    }
+
+    @Then("the error-code should be {string}")
+    public void the_error_code_should_be(String errorCode) {
+        if (errorCode.isEmpty()) {
+            assertThat(state.evaluation.getErrorCode()).isNull();
+        } else {
+            assertThat(state.evaluation.getErrorCode()).isEqualTo(ErrorCode.valueOf(errorCode));
+        }
     }
 
     @Then("the flag should be part of the event payload")
