@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.2...dev.openfeature.contrib.parent-v0.3.0) (2025-07-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.dylibso.chicory:wasi to v1.5.0 ([#1473](https://github.com/open-feature/java-sdk-contrib/issues/1473)) ([0030528](https://github.com/open-feature/java-sdk-contrib/commit/00305287986248262036dcb7cd4f4c384fe50052))
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.22.1 ([#1328](https://github.com/open-feature/java-sdk-contrib/issues/1328)) ([9b894fe](https://github.com/open-feature/java-sdk-contrib/commit/9b894fe8005d84bbee66dc333019afa4fa2aa7a8))
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.22.2 ([#1371](https://github.com/open-feature/java-sdk-contrib/issues/1371)) ([99fcc0a](https://github.com/open-feature/java-sdk-contrib/commit/99fcc0ad657ea6b8cbece467effd08c2c0314cca))
+* **deps:** update dependency io.cucumber:cucumber-bom to v7.23.0 ([#1393](https://github.com/open-feature/java-sdk-contrib/issues/1393)) ([cfa9e90](https://github.com/open-feature/java-sdk-contrib/commit/cfa9e90c454ba68d4e2fd91abdeb68c67e1323dd))
+* **deps:** update dependency org.junit:junit-bom to v5.13.2 ([#1437](https://github.com/open-feature/java-sdk-contrib/issues/1437)) ([7df0745](https://github.com/open-feature/java-sdk-contrib/commit/7df0745bbe6c457f0017ef036efbcc21e8f11bf8))
+* **deps:** update dependency org.mockito:mockito-bom to v5.17.0 ([#1340](https://github.com/open-feature/java-sdk-contrib/issues/1340)) ([1804b9f](https://github.com/open-feature/java-sdk-contrib/commit/1804b9fb6e793eb20518b39c3de9ece2c7ad3b6f))
+* **deps:** update dependency org.mockito:mockito-bom to v5.18.0 ([#1381](https://github.com/open-feature/java-sdk-contrib/issues/1381)) ([96f912a](https://github.com/open-feature/java-sdk-contrib/commit/96f912aeaddf820494fee4aaaf11bd6f789767b3))
+* **deps:** update junit-framework monorepo to v5.13.3 ([#1461](https://github.com/open-feature/java-sdk-contrib/issues/1461)) ([1aae615](https://github.com/open-feature/java-sdk-contrib/commit/1aae615131dc41106e75a915e3f2e8e2d31a96c4))
+* **deps:** update junit5 monorepo to v5.13.0 ([#1394](https://github.com/open-feature/java-sdk-contrib/issues/1394)) ([943064e](https://github.com/open-feature/java-sdk-contrib/commit/943064e894134ba95ce8e7f7ddb805c1de7063de))
+* **deps:** update junit5 monorepo to v5.13.1 ([#1406](https://github.com/open-feature/java-sdk-contrib/issues/1406)) ([749d241](https://github.com/open-feature/java-sdk-contrib/commit/749d2418837a188e4ae58f852146fafa52693363))
+* exclude incompatible sdk version ([#1508](https://github.com/open-feature/java-sdk-contrib/issues/1508)) ([54bd48d](https://github.com/open-feature/java-sdk-contrib/commit/54bd48dbdcd6a2ff1f9667806887260953f03812))
+
+
+### ✨ New Features
+
+* **flagd:** add http connector for In-process resolver ([#1299](https://github.com/open-feature/java-sdk-contrib/issues/1299)) ([7688523](https://github.com/open-feature/java-sdk-contrib/commit/7688523669dd6f63cccf85a80bd1330a0c5d501f))
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384)) ([2ea5e68](https://github.com/open-feature/java-sdk-contrib/commit/2ea5e68e79c6c703c55cc815d223bbe66a60ea6d))
+
 ## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.1...dev.openfeature.contrib.parent-v0.2.2) (2025-04-24)
 
 
