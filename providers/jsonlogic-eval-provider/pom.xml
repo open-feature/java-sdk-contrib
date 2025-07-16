@@ -4,13 +4,13 @@
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
         <artifactId>parent</artifactId>
-        <version>[0.2,1.0)</version>
+        <version>[1.0,2.0)</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <!-- The group id MUST start with dev.openfeature, or publishing will fail. OpenFeature has verified ownership of this (reversed) domain. -->
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>jsonlogic-eval-provider</artifactId>
-    <version>1.1.1</version> <!--x-release-please-version -->
+    <version>1.2.1</version> <!--x-release-please-version -->
 
     <name>inline-evaluating-provider</name>
     <description>Allows for evaluating rules on the client without synchronous calls to a backend</description>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>io.github.jamsesso</groupId>
             <artifactId>json-logic-java</artifactId>
-            <version>1.0.9</version>
+            <version>1.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.json</groupId>

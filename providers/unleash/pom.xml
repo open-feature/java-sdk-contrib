@@ -5,12 +5,12 @@
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
         <artifactId>parent</artifactId>
-        <version>[0.2,1.0)</version>
+        <version>[1.0,2.0)</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>unleash</artifactId>
-    <version>0.1.0-alpha</version> <!--x-release-please-version -->
+    <version>0.1.1-alpha</version> <!--x-release-please-version -->
 
     <name>unleash</name>
     <description>unleash provider for Java</description>

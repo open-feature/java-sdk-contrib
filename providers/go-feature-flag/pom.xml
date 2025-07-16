@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
         <artifactId>parent</artifactId>
-        <version>[0.2,1.0)</version>
+        <version>[1.0,2.0)</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
@@ -77,13 +77,13 @@
         <dependency>
             <groupId>com.dylibso.chicory</groupId>
             <artifactId>runtime</artifactId>
-            <version>1.4.1</version>
+            <version>1.5.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.dylibso.chicory</groupId>
             <artifactId>wasi</artifactId>
-            <version>1.4.1</version>
+            <version>1.5.0</version>
         </dependency>
 
         <dependency>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>com.squareup.okio</groupId>
             <artifactId>okio-jvm</artifactId>
-            <version>3.13.0</version>
+            <version>3.15.0</version>
             <scope>test</scope>
         </dependency>
 

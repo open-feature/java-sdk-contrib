@@ -39,9 +39,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-          server-id: ossrh
-          server-username: OSSRH_USERNAME
-          server-password: OSSRH_PASSWORD
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
 
       - name: Cache local Maven repository
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
@@ -58,17 +58,17 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
       # Release Please has already incremented versions and published tags, so we just need to publish (skip tests).
-      - name: Maven Verify Deploy -DskipTests
+      - name: Maven Verify Deploy -DskipTests -Dcheckstyle.skip
         # The nexus-staging-maven-plugin doesn't follow maven conventions. It stages all the projects with the last submodule: https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment
         # This means there's no way to skip publishing of a particular module in a multi-module build, so we iterate over each module and publish them individually,
         # letting exists-maven-plugin skip the nexus-staging-maven-plugin's entire deploy goal if the artifact exists.
         run: |
-          mvn --non-recursive --batch-mode --settings release/m2-settings.xml -DskipTests clean deploy
+          mvn --non-recursive --batch-mode --settings release/m2-settings.xml -DskipTests -Dcheckstyle.skip clean deploy
           modules=($(cat pom.xml | grep "<module>" | sed 's/\s*<.*>\(.*\)<.*>/\1/'))
           for module in "${modules[@]}"
           do
-              mvn --batch-mode --projects $module --settings release/m2-settings.xml -DskipTests clean deploy
+              mvn --batch-mode --projects $module --settings release/m2-settings.xml -DskipTests -Dcheckstyle.skip clean deploy
           done
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}

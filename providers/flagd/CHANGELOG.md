@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.11.14](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.13...dev.openfeature.contrib.providers.flagd-v0.11.14) (2025-07-14)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency org.apache.commons:commons-lang3 to v3.18.0 [security] ([#1512](https://github.com/open-feature/java-sdk-contrib/issues/1512)) ([d178006](https://github.com/open-feature/java-sdk-contrib/commit/d178006411b91ff05376ac8f604c5282f2f19383))
+
+## [0.11.13](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.12...dev.openfeature.contrib.providers.flagd-v0.11.13) (2025-07-09)
+
+
+### 🐛 Bug Fixes
+
+* require latest SDK ([#1488](https://github.com/open-feature/java-sdk-contrib/issues/1488)) ([71afb81](https://github.com/open-feature/java-sdk-contrib/commit/71afb81703bc2a5350ab967e478c527469fdb5d2))
+
+## [0.11.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.11...dev.openfeature.contrib.providers.flagd-v0.11.12) (2025-07-08)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.networknt:json-schema-validator to v1.5.8 ([#1447](https://github.com/open-feature/java-sdk-contrib/issues/1447)) ([1fd425b](https://github.com/open-feature/java-sdk-contrib/commit/1fd425bba5eef44c4bde2e8546a2c0c094960dd3))
+* **deps:** update junit-framework monorepo to v5.13.3 ([#1461](https://github.com/open-feature/java-sdk-contrib/issues/1461)) ([1aae615](https://github.com/open-feature/java-sdk-contrib/commit/1aae615131dc41106e75a915e3f2e8e2d31a96c4))
+
+## [0.11.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.10...dev.openfeature.contrib.providers.flagd-v0.11.11) (2025-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency io.github.jamsesso:json-logic-java to v1.1.0 ([#1373](https://github.com/open-feature/java-sdk-contrib/issues/1373)) ([f4c9e0c](https://github.com/open-feature/java-sdk-contrib/commit/f4c9e0c87ad40244bea635856b1fe675e95a7b79))
+* **deps:** update dependency org.semver4j:semver4j to v5.8.0 ([#1435](https://github.com/open-feature/java-sdk-contrib/issues/1435)) ([525c72a](https://github.com/open-feature/java-sdk-contrib/commit/525c72a80b07d41e383d3bd7b3b55ec5fb7f9c4e))
+* remove redundant metadata error logs within grace period ([#1441](https://github.com/open-feature/java-sdk-contrib/issues/1441)) ([7e87be3](https://github.com/open-feature/java-sdk-contrib/commit/7e87be34c6a322a01828e9f2cf3615de545be18b))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency com.github.spotbugs:spotbugs-maven-plugin to v4.9.3.1 ([#1440](https://github.com/open-feature/java-sdk-contrib/issues/1440)) ([f183544](https://github.com/open-feature/java-sdk-contrib/commit/f1835441fdcb2f1a767ce7d51d008962f5feae9e))
+* **deps:** update dependency org.junit.jupiter:junit-jupiter to v5.13.2 ([#1436](https://github.com/open-feature/java-sdk-contrib/issues/1436)) ([03b68fc](https://github.com/open-feature/java-sdk-contrib/commit/03b68fcb2245cdf946ed3cc8ac300e60660ac27b))
+* **deps:** update providers/flagd/spec digest to 1965aae ([#1434](https://github.com/open-feature/java-sdk-contrib/issues/1434)) ([dd127c2](https://github.com/open-feature/java-sdk-contrib/commit/dd127c2288b0cf6a403e000e41025ed405b2d295))
+* **deps:** update testcontainers-java monorepo to v1.21.2 ([#1430](https://github.com/open-feature/java-sdk-contrib/issues/1430)) ([46eed68](https://github.com/open-feature/java-sdk-contrib/commit/46eed68301c480a2b5dda969747115051a3fe0e9))
+
 ## [0.11.10](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.9...dev.openfeature.contrib.providers.flagd-v0.11.10) (2025-06-18)
 
 

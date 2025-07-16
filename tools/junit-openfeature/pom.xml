@@ -5,12 +5,12 @@
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
         <artifactId>parent</artifactId>
-        <version>[0.2,1.0)</version>
+        <version>[1.0,2.0)</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>dev.openfeature.contrib.tools</groupId>
     <artifactId>junitopenfeature</artifactId>
-    <version>0.1.2</version> <!--x-release-please-version -->
+    <version>0.2.1</version> <!--x-release-please-version -->
 
     <name>junit-openfeature-extension</name>
     <description>JUnit5 Extension for OpenFeature</description>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.17.0</version>
+            <version>3.18.0</version>
         </dependency>
 
         <dependency>

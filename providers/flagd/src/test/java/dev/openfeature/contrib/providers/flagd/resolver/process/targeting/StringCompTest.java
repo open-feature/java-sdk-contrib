@@ -15,7 +15,7 @@ class StringCompTest {
         final StringComp startsWith = new StringComp(StringComp.Type.STARTS_WITH);
 
         // when
-        Object result = startsWith.evaluate(Arrays.asList("abc@123.com", "abc"), new Object());
+        Object result = startsWith.evaluate(Arrays.asList("abc@123.com", "abc"), new Object(), "jsonPath");
 
         // then
         if (!(result instanceof Boolean)) {
@@ -31,7 +31,7 @@ class StringCompTest {
         final StringComp endsWith = new StringComp(StringComp.Type.ENDS_WITH);
 
         // when
-        Object result = endsWith.evaluate(Arrays.asList("abc@123.com", "123.com"), new Object());
+        Object result = endsWith.evaluate(Arrays.asList("abc@123.com", "123.com"), new Object(), "jsonPath");
 
         // then
         if (!(result instanceof Boolean)) {
@@ -47,7 +47,7 @@ class StringCompTest {
         final StringComp operator = new StringComp(StringComp.Type.STARTS_WITH);
 
         // when
-        Object result = operator.evaluate(Arrays.asList(1230, "12"), new Object());
+        Object result = operator.evaluate(Arrays.asList(1230, "12"), new Object(), "jsonPath");
 
         // then
         assertThat(result).isNull();
@@ -59,7 +59,7 @@ class StringCompTest {
         final StringComp operator = new StringComp(StringComp.Type.STARTS_WITH);
 
         // when
-        Object result = operator.evaluate(Arrays.asList("abc@123.com", 123), new Object());
+        Object result = operator.evaluate(Arrays.asList("abc@123.com", 123), new Object(), "jsonPath");
 
         // then
         assertThat(result).isNull();
@@ -71,7 +71,7 @@ class StringCompTest {
         final StringComp operator = new StringComp(StringComp.Type.STARTS_WITH);
 
         // when
-        Object result = operator.evaluate(Arrays.asList("123", "12", "1"), new Object());
+        Object result = operator.evaluate(Arrays.asList("123", "12", "1"), new Object(), "jsonPath");
 
         // then
         assertThat(result).isNull();

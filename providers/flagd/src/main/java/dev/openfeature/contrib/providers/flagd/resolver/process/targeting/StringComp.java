@@ -17,7 +17,7 @@ class StringComp implements PreEvaluatedArgumentsExpression {
         return type.key;
     }
 
-    public Object evaluate(List arguments, Object data) throws JsonLogicEvaluationException {
+    public Object evaluate(List arguments, Object data, String jsonPath) throws JsonLogicEvaluationException {
         if (arguments.size() != 2) {
             log.debug("Incorrect number of arguments for String comparison operator");
             return null;

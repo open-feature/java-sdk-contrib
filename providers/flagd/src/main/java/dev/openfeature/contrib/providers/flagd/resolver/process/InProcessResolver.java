@@ -22,6 +22,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.util.Map;
@@ -205,7 +206,7 @@ public class InProcessResolver implements Resolver {
         if (value == null) {
             String message = String.format("variant %s not found in flag with key %s", resolvedVariant, key);
             log.debug(message);
-            throw new TypeMismatchError(message);
+            throw new GeneralError(message);
         }
         if (value instanceof Integer && type == Double.class) {
             // if this is an integer and we are trying to resolve a double, convert

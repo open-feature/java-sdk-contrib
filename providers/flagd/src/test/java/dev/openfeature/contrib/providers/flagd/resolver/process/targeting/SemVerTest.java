@@ -33,7 +33,7 @@ class SemVerTest {
         final SemVer semVer = new SemVer();
 
         // when
-        Object result = semVer.evaluate(args, new Object());
+        Object result = semVer.evaluate(args, new Object(), "jsonPath");
 
         // then
         if (!(result instanceof Boolean)) {
@@ -58,6 +58,6 @@ class SemVerTest {
         final SemVer semVer = new SemVer();
 
         // then
-        assertNull(semVer.evaluate(args, new Object()));
+        assertNull(semVer.evaluate(args, new Object(), "jsonPath"));
     }
 }

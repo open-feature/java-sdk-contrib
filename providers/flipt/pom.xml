@@ -5,12 +5,12 @@
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
         <artifactId>parent</artifactId>
-        <version>[0.2,1.0)</version>
+        <version>[1.0,2.0)</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flipt</artifactId>
-    <version>0.1.1</version> <!--x-release-please-version -->
+    <version>0.1.3</version> <!--x-release-please-version -->
 
     <name>flipt</name>
     <description>Flipt provider for Java</description>
