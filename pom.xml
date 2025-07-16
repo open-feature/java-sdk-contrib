@@ -5,7 +5,7 @@
 
     <groupId>dev.openfeature.contrib</groupId>
     <artifactId>parent</artifactId>
-    <version>0.2.2</version> <!--x-release-please-version -->
+    <version>0.3.0</version> <!--x-release-please-version -->
     <packaging>pom</packaging>
 
     <name>java-sdk-contrib</name>
