@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.3]([0.2.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.2...dev.openfeature.contrib.parent-v0.2.3)) (2025-07-16)
+
+* exclude incompatible sdk version ([#1508](https://github.com/open-feature/java-sdk-contrib/issues/1508)) ([54bd48d](https://github.com/open-feature/java-sdk-contrib/commit/54bd48dbdcd6a2ff1f9667806887260953f03812))
+
 ## [0.2.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.1...dev.openfeature.contrib.parent-v0.2.2) (2025-04-24)
 
 
