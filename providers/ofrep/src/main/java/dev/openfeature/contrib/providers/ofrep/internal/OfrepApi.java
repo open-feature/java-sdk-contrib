@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import dev.openfeature.sdk.exceptions.GeneralError;
+import dev.openfeature.sdk.exceptions.ParseError;
 import java.io.IOException;
 import java.net.ProxySelector;
 import java.net.URI;
@@ -109,7 +110,7 @@ public class OfrepApi {
 
             return new Resolution(response.statusCode(), response.headers(), responseBody);
         } catch (JsonProcessingException e) {
-            throw new GeneralError("Error processing JSON: " + e.getMessage());
+            throw new ParseError("Error processing JSON: " + e.getMessage());
         } catch (IOException e) {
             throw new GeneralError("IO error: " + e.getMessage());
         } catch (InterruptedException e) {
