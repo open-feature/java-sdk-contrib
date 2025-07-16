@@ -39,6 +39,7 @@ components:
     - liran2000
   providers/ofrep-provider:
     - Rahul-Baradol
+    - toddbaert
   tools/flagd-http-connector:
     - liran2000
 
