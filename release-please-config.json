@@ -1,5 +1,5 @@
 {
-  "bootstrap-sha": "5b1c87955b5d66b993f943161b72b30c398c1537",
+  "bootstrap-sha": "537c660d1f19617c6adb1d49ff6ce18de92d42ae",
   "signoff": "OpenFeature Bot <109696520+openfeaturebot@users.noreply.github.com>",
   "separate-pull-requests": true,
   "packages": {
