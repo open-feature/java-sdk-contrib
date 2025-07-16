@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.3...dev.openfeature.contrib.providers.go-feature-flag-v1.0.0) (2025-07-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.dylibso.chicory:runtime to v1.4.1 ([#1408](https://github.com/open-feature/java-sdk-contrib/issues/1408)) ([352ddd8](https://github.com/open-feature/java-sdk-contrib/commit/352ddd861694459c155b21a60e2938d6a2bc97bc))
+* **deps:** update dependency com.dylibso.chicory:runtime to v1.5.0 ([#1462](https://github.com/open-feature/java-sdk-contrib/issues/1462)) ([93115a7](https://github.com/open-feature/java-sdk-contrib/commit/93115a7a818568109b32205535dc58211d36c151))
+* **deps:** update dependency com.dylibso.chicory:wasi to v1.4.1 ([#1409](https://github.com/open-feature/java-sdk-contrib/issues/1409)) ([2bc16a8](https://github.com/open-feature/java-sdk-contrib/commit/2bc16a86b54dd8a43c1af1d4e8884d9716282f8f))
+* **deps:** update dependency com.dylibso.chicory:wasi to v1.5.0 ([#1473](https://github.com/open-feature/java-sdk-contrib/issues/1473)) ([0030528](https://github.com/open-feature/java-sdk-contrib/commit/00305287986248262036dcb7cd4f4c384fe50052))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.19.0 ([#1366](https://github.com/open-feature/java-sdk-contrib/issues/1366)) ([8896f50](https://github.com/open-feature/java-sdk-contrib/commit/8896f505b7e682c5954de465383b5e871cb1a8d0))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.19.1 ([#1415](https://github.com/open-feature/java-sdk-contrib/issues/1415)) ([c038b8e](https://github.com/open-feature/java-sdk-contrib/commit/c038b8e8f897cb3524aa9053c9167368175c6680))
+* **deps:** update jackson monorepo to v2.19.0 ([#1346](https://github.com/open-feature/java-sdk-contrib/issues/1346)) ([d4af23b](https://github.com/open-feature/java-sdk-contrib/commit/d4af23b9f2700233ea22f9132df00637820da10c))
+* **deps:** update jackson monorepo to v2.19.1 ([#1416](https://github.com/open-feature/java-sdk-contrib/issues/1416)) ([43630e5](https://github.com/open-feature/java-sdk-contrib/commit/43630e5da8fd1f7f8b8ccfcb2aa77cab51949be7))
+* **gofeatureflag:** fix etag in tests to be around quotes ([#1432](https://github.com/open-feature/java-sdk-contrib/issues/1432)) ([80084df](https://github.com/open-feature/java-sdk-contrib/commit/80084dfa6089799e828a85774be50e5b34a4987b))
+* **goff:** Bump version of chicory to fix flaky tests ([#1423](https://github.com/open-feature/java-sdk-contrib/issues/1423)) ([f6996dc](https://github.com/open-feature/java-sdk-contrib/commit/f6996dcf18acb367f935569f28fc59adcb650b6f))
+* **goff:** remove flacky test ([#1427](https://github.com/open-feature/java-sdk-contrib/issues/1427)) ([e455cc3](https://github.com/open-feature/java-sdk-contrib/commit/e455cc3f022223a0a09d4b9afece65bf55bdfa5f))
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384)) ([2ea5e68](https://github.com/open-feature/java-sdk-contrib/commit/2ea5e68e79c6c703c55cc815d223bbe66a60ea6d))
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
 ## [0.4.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.2...dev.openfeature.contrib.providers.go-feature-flag-v0.4.3) (2025-03-17)
 
 
