@@ -11,7 +11,7 @@
 
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>ofrep</artifactId>
-    <version>0.0.1</version> <!--x-release-please-version -->
+    <version>0.0.2</version> <!--x-release-please-version -->
 
     <name>ofrep</name>
     <description>OFREP Provider</description>
