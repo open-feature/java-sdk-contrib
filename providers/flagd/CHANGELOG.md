@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.15](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.14...dev.openfeature.contrib.providers.flagd-v0.11.15) (2025-07-17)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** implement error code step and general error ([#1519](https://github.com/open-feature/java-sdk-contrib/issues/1519)) ([0985315](https://github.com/open-feature/java-sdk-contrib/commit/0985315388b6b553ec23a3f31b56b3b338ddedf9))
+
 ## [0.11.14](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.13...dev.openfeature.contrib.providers.flagd-v0.11.14) (2025-07-14)
 
 
