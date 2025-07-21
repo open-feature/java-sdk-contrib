@@ -8,3 +8,6 @@
 [submodule "providers/flagd/spec"]
 	path = providers/flagd/spec
 	url = https://github.com/open-feature/spec.git
+[submodule "providers/go-feature-flag/wasm-releases"]
+	path = providers/go-feature-flag/wasm-releases
+	url = https://github.com/go-feature-flag/wasm-releases.git
