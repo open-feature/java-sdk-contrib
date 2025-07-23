@@ -40,6 +40,7 @@
         <module>providers/configcat</module>
         <module>providers/statsig</module>
         <module>providers/multiprovider</module>
+        <module>providers/ofrep</module>
         <module>tools/flagd-http-connector</module>
     </modules>
 
@@ -71,14 +72,14 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.13.3</version>
+                <version>5.13.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>io.cucumber</groupId>
                 <artifactId>cucumber-bom</artifactId>
-                <version>7.23.0</version>
+                <version>7.26.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -270,7 +271,7 @@
                     <plugin>
                         <groupId>org.honton.chas</groupId>
                         <artifactId>exists-maven-plugin</artifactId>
-                        <version>0.15.0</version>
+                        <version>0.15.2</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -486,7 +487,7 @@
                     <plugin>
                         <groupId>com.diffplug.spotless</groupId>
                         <artifactId>spotless-maven-plugin</artifactId>
-                        <version>2.44.5</version>
+                        <version>2.46.1</version>
                         <configuration>
                             <!-- optional: limit format enforcement to just the files changed by this feature branch -->
                             <!--                <ratchetFrom>origin/main</ratchetFrom>-->

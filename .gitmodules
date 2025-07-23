@@ -4,7 +4,10 @@
 [submodule "providers/flagd/test-harness"]
 	path = providers/flagd/test-harness
 	url = https://github.com/open-feature/test-harness.git
-	branch = v2.9.0
+	branch = v2.10.2
 [submodule "providers/flagd/spec"]
 	path = providers/flagd/spec
 	url = https://github.com/open-feature/spec.git
+[submodule "providers/go-feature-flag/wasm-releases"]
+	path = providers/go-feature-flag/wasm-releases
+	url = https://github.com/go-feature-flag/wasm-releases.git
