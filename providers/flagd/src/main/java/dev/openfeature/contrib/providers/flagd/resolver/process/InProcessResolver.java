@@ -22,7 +22,6 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
@@ -205,10 +204,13 @@ public class InProcessResolver implements Resolver {
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
-            if (resolvedVariant.isEmpty()) {
-                String message = String.format("no default variant found in flag with key %s", key);
-                log.debug(message);
-                throw new FlagNotFoundError(message);
+            if (resolvedVariant.isEmpty() && flag.getDefaultVariant().isEmpty()) {
+                return ProviderEvaluation.<T>builder()
+                        .reason(Reason.ERROR.toString())
+                        .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                        .errorMessage("Flag '" + key + "' has no default variant defined, will use code default")
+                        .flagMetadata(getFlagMetadata(storageQueryResult))
+                        .build();
             }
 
             String message = String.format("variant %s not found in flag with key %s", resolvedVariant, key);
