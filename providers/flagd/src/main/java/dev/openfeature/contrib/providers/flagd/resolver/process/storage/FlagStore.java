@@ -2,12 +2,12 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
 
+import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
-import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -114,7 +114,7 @@ public class FlagStore implements Storage {
                         Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
                         Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
 
-                        Structure metadata = parseSyncMetadata(payload.getMetadataResponse());
+                        Structure metadata = parseSyncContextOrMetadata(payload.getSyncContext());
                         writeLock.lock();
                         try {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);
@@ -150,9 +150,9 @@ public class FlagStore implements Storage {
         log.info("Shutting down store stream listener");
     }
 
-    private Structure parseSyncMetadata(GetMetadataResponse metadataResponse) {
+    private Structure parseSyncContextOrMetadata(Struct syncContext) {
         try {
-            return convertProtobufMapToStructure(metadataResponse.getMetadata().getFieldsMap());
+            return convertProtobufMapToStructure(syncContext.getFieldsMap());
         } catch (Exception exception) {
             log.error("Failed to parse metadataResponse, provider metadata may not be up-to-date");
         }

@@ -120,7 +120,11 @@ public class ProviderSteps extends AbstractSteps {
                     state.builder.port(container.getPort(State.resolverType));
                 }
                 break;
-            default:
+            case "syncpayload":
+                flagdConfig = "sync-payload";
+                state.builder.port(container.getPort(State.resolverType));
+                break;
+            case "stable":
                 this.state.providerType = ProviderType.DEFAULT;
                 if (State.resolverType == Config.Resolver.FILE) {
 
@@ -134,6 +138,8 @@ public class ProviderSteps extends AbstractSteps {
                     state.builder.port(container.getPort(State.resolverType));
                 }
                 break;
+            default:
+                throw new IllegalStateException();
         }
         when().post("http://" + container.getLaunchpadUrl() + "/start?config={config}", flagdConfig)
                 .then()

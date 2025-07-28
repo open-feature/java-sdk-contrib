@@ -11,7 +11,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFla
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
-import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,10 +34,7 @@ class FlagStoreTest {
 
         // OK for simple flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(
-                    QueuePayloadType.DATA,
-                    getFlagsFromResource(VALID_SIMPLE),
-                    GetMetadataResponse.getDefaultInstance()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE)));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
@@ -47,10 +43,7 @@ class FlagStoreTest {
 
         // STALE for invalid flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(
-                    QueuePayloadType.DATA,
-                    getFlagsFromResource(INVALID_FLAG),
-                    GetMetadataResponse.getDefaultInstance()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(INVALID_FLAG)));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
@@ -59,8 +52,7 @@ class FlagStoreTest {
 
         // OK again for next payload
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(
-                    QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), GetMetadataResponse.getDefaultInstance()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG)));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
@@ -69,7 +61,7 @@ class FlagStoreTest {
 
         // ERROR is propagated correctly
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(QueuePayloadType.ERROR, null, GetMetadataResponse.getDefaultInstance()));
+            payload.offer(new QueuePayload(QueuePayloadType.ERROR, null));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
@@ -93,10 +85,7 @@ class FlagStoreTest {
         final BlockingQueue<StorageStateChange> storageStateDTOS = store.getStateQueue();
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(
-                    QueuePayloadType.DATA,
-                    getFlagsFromResource(VALID_SIMPLE),
-                    GetMetadataResponse.getDefaultInstance()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE)));
         });
         // flags changed for first time
         assertEquals(
@@ -105,8 +94,7 @@ class FlagStoreTest {
                 storageStateDTOS.take().getChangedFlagsKeys());
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(
-                    QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG), GetMetadataResponse.getDefaultInstance()));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG)));
         });
         Map<String, FeatureFlag> expectedChangedFlags =
                 FlagParser.parseString(getFlagsFromResource(VALID_LONG), true).getFlags();
