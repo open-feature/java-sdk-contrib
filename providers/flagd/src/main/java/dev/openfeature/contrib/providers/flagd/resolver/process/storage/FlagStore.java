@@ -8,7 +8,6 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
-import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
