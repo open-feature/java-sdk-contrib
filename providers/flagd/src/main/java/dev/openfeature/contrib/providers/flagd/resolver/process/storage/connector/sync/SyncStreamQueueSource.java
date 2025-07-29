@@ -173,10 +173,10 @@ public class SyncStreamQueueSource implements QueueSource {
                     final String data = flagsResponse.getFlagConfiguration();
                     log.debug("Got stream response: {}", data);
 
-                    Struct syncContext;
+                    Struct syncContext = null;
                     if (flagsResponse.hasSyncContext()) {
                         syncContext = flagsResponse.getSyncContext();
-                    } else {
+                    } else if (metadataResponse != null) {
                         syncContext = metadataResponse.getMetadata();
                     }
 
