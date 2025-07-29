@@ -8,6 +8,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -114,7 +115,7 @@ public class FlagStore implements Storage {
                         Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
                         Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
 
-                        Structure metadata = parseSyncContextOrMetadata(payload.getSyncContext());
+                        Structure syncContext = parseSyncContext(payload.getSyncContext());
                         writeLock.lock();
                         try {
                             changedFlagsKeys = getChangedFlagsKeys(flagMap);
@@ -126,7 +127,7 @@ public class FlagStore implements Storage {
                             writeLock.unlock();
                         }
                         if (!stateBlockingQueue.offer(
-                                new StorageStateChange(StorageState.OK, changedFlagsKeys, metadata))) {
+                                new StorageStateChange(StorageState.OK, changedFlagsKeys, syncContext))) {
                             log.warn("Failed to convey OK status, queue is full");
                         }
                     } catch (Throwable e) {
@@ -150,11 +151,13 @@ public class FlagStore implements Storage {
         log.info("Shutting down store stream listener");
     }
 
-    private Structure parseSyncContextOrMetadata(Struct syncContext) {
-        try {
-            return convertProtobufMapToStructure(syncContext.getFieldsMap());
-        } catch (Exception exception) {
-            log.error("Failed to parse metadataResponse, provider metadata may not be up-to-date");
+    private Structure parseSyncContext(Struct syncContext) {
+        if (syncContext != null) {
+            try {
+                return convertProtobufMapToStructure(syncContext.getFieldsMap());
+            } catch (Exception exception) {
+                log.error("Failed to parse metadataResponse, provider metadata may not be up-to-date");
+            }
         }
         return new ImmutableStructure();
     }
