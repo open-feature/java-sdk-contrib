@@ -108,15 +108,16 @@ class SyncStreamQueueSourceTest {
     @Test
     void onNextEnqueuesDataPayloadWithSyncContext() throws Exception {
         // disable GetMetadata call
-        SyncStreamQueueSource connector = new SyncStreamQueueSource(
-                FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
+        SyncStreamQueueSource connector =
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
         latch = new CountDownLatch(1);
         connector.init();
         latch.await();
 
         // fire onNext (data) event
         Struct syncContext = Struct.newBuilder().build();
-        observer.onNext(SyncFlagsResponse.newBuilder().setSyncContext(syncContext).build());
+        observer.onNext(
+                SyncFlagsResponse.newBuilder().setSyncContext(syncContext).build());
 
         // should enqueue data payload
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
