@@ -5,6 +5,8 @@ import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEventDetails;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.getunleash.UnleashException;
+import io.getunleash.event.ClientFeaturesResponse;
+import io.getunleash.event.FeatureSet;
 import io.getunleash.event.ImpressionEvent;
 import io.getunleash.event.ToggleEvaluated;
 import io.getunleash.event.UnleashEvent;
@@ -12,9 +14,6 @@ import io.getunleash.event.UnleashReady;
 import io.getunleash.event.UnleashSubscriber;
 import io.getunleash.metric.ClientMetrics;
 import io.getunleash.metric.ClientRegistration;
-import io.getunleash.repository.FeatureCollection;
-import io.getunleash.repository.FeatureToggleResponse;
-import io.getunleash.repository.ToggleCollection;
 import javax.annotation.Nullable;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 @Generated
 public class UnleashSubscriberWrapper implements UnleashSubscriber {
 
-    private UnleashSubscriber unleashSubscriber;
-    private EventProvider eventProvider;
+    private final UnleashSubscriber unleashSubscriber;
+    private final EventProvider eventProvider;
 
     /**
      * Constructor.
@@ -67,9 +66,9 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
     }
 
     @Override
-    public void togglesFetched(FeatureToggleResponse toggleResponse) {
+    public void togglesFetched(ClientFeaturesResponse toggleResponse) {
         unleashSubscriber.togglesFetched(toggleResponse);
-        if (FeatureToggleResponse.Status.CHANGED.equals(toggleResponse.getStatus())) {
+        if (ClientFeaturesResponse.Status.CHANGED.equals(toggleResponse.getStatus())) {
             eventProvider.emitProviderConfigurationChanged(ProviderEventDetails.builder()
                     .eventMetadata(ImmutableMetadata.builder().build())
                     .build());
@@ -87,33 +86,18 @@ public class UnleashSubscriberWrapper implements UnleashSubscriber {
     }
 
     @Override
-    public void togglesBackedUp(ToggleCollection toggleCollection) {
-        unleashSubscriber.togglesBackedUp(toggleCollection);
+    public void featuresBackedUp(FeatureSet toggleCollection) {
+        unleashSubscriber.featuresBackedUp(toggleCollection);
     }
 
     @Override
-    public void toggleBackupRestored(ToggleCollection toggleCollection) {
-        unleashSubscriber.toggleBackupRestored(toggleCollection);
+    public void featuresBackupRestored(FeatureSet toggleCollection) {
+        unleashSubscriber.featuresBackupRestored(toggleCollection);
     }
 
     @Override
-    public void togglesBootstrapped(ToggleCollection toggleCollection) {
-        unleashSubscriber.togglesBootstrapped(toggleCollection);
-    }
-
-    @Override
-    public void featuresBootstrapped(FeatureCollection featureCollection) {
-        unleashSubscriber.featuresBootstrapped(featureCollection);
-    }
-
-    @Override
-    public void featuresBackedUp(FeatureCollection featureCollection) {
-        unleashSubscriber.featuresBackedUp(featureCollection);
-    }
-
-    @Override
-    public void featuresBackupRestored(FeatureCollection featureCollection) {
-        unleashSubscriber.featuresBackupRestored(featureCollection);
+    public void featuresBootstrapped(FeatureSet toggleCollection) {
+        unleashSubscriber.featuresBootstrapped(toggleCollection);
     }
 
     @Override
