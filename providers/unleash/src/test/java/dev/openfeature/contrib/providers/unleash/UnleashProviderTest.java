@@ -21,10 +21,10 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
 import io.getunleash.UnleashContext;
 import io.getunleash.UnleashException;
+import io.getunleash.event.ClientFeaturesResponse;
 import io.getunleash.event.ToggleEvaluated;
 import io.getunleash.event.UnleashEvent;
 import io.getunleash.event.UnleashSubscriber;
-import io.getunleash.repository.FeatureToggleResponse;
 import io.getunleash.util.UnleashConfig;
 import java.net.URI;
 import java.net.URL;
@@ -230,7 +230,6 @@ class UnleashProviderTest {
         ProviderEvaluation<String> stringEvaluation =
                 unleashProvider.getStringEvaluation(VARIANT_FLAG_NAME, "", new ImmutableContext());
         ImmutableMetadata flagMetadata = stringEvaluation.getFlagMetadata();
-        assertEquals("default", flagMetadata.getString("variant-stickiness"));
         assertEquals("string", flagMetadata.getString("payload-type"));
         assertEquals(true, flagMetadata.getBoolean("enabled"));
         ProviderEvaluation<String> nonExistingFlagEvaluation =
@@ -286,16 +285,12 @@ class UnleashProviderTest {
         unleashSubscriberWrapper.featuresBootstrapped(null);
         unleashSubscriberWrapper.impression(null);
         unleashSubscriberWrapper.toggleEvaluated(new ToggleEvaluated("dummy", false));
-        unleashSubscriberWrapper.togglesFetched(
-                new FeatureToggleResponse(FeatureToggleResponse.Status.NOT_CHANGED, 200));
-        unleashSubscriberWrapper.toggleBackupRestored(null);
-        unleashSubscriberWrapper.togglesBackedUp(null);
-        unleashSubscriberWrapper.togglesBootstrapped(null);
+        unleashSubscriberWrapper.togglesFetched(ClientFeaturesResponse.notChanged());
     }
 
     private class TestSubscriber implements UnleashSubscriber {
 
-        private FeatureToggleResponse.Status status;
+        private ClientFeaturesResponse.Status status;
 
         private String toggleName;
         private boolean toggleEnabled;
@@ -320,7 +315,7 @@ class UnleashProviderTest {
         }
 
         @Override
-        public void togglesFetched(FeatureToggleResponse toggleResponse) {
+        public void togglesFetched(ClientFeaturesResponse toggleResponse) {
             this.status = toggleResponse.getStatus();
         }
     }
