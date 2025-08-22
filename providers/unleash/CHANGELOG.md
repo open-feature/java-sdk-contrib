@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.1-alpha...dev.openfeature.contrib.providers.unleash-v0.1.2-alpha) (2025-08-22)
+
+
+### 🐛 Bug Fixes
+
+* require latest SDK ([#1488](https://github.com/open-feature/java-sdk-contrib/issues/1488)) ([71afb81](https://github.com/open-feature/java-sdk-contrib/commit/71afb81703bc2a5350ab967e478c527469fdb5d2))
+
 ## [0.1.1-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.0-alpha...dev.openfeature.contrib.providers.unleash-v0.1.1-alpha) (2025-07-08)
 
 
