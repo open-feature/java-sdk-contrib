@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.2-alpha...dev.openfeature.contrib.providers.unleash-v0.1.3-alpha) (2025-08-25)
+
+
+### ✨ New Features
+
+* Update Unleash client to v11 ([987d3c9](https://github.com/open-feature/java-sdk-contrib/commit/987d3c9a0c6889e5143b999c02a0e4dbb0964e21))
+
 ## [0.1.2-alpha](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.unleash-v0.1.1-alpha...dev.openfeature.contrib.providers.unleash-v0.1.2-alpha) (2025-08-22)
 
 
