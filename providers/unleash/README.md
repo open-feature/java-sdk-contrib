@@ -1,4 +1,4 @@
-# Unofficial Unleash OpenFeature Provider for Java
+# Community Supported Unleash OpenFeature Provider for Java
 
 [Unleash](https://getunleash.io) OpenFeature Provider can provide usage for Unleash via OpenFeature Java SDK.
 
@@ -18,10 +18,12 @@
 <!-- x-release-please-end-version -->
 
 ## Concepts
+
 * Boolean evaluation gets feature enabled status.
 * String evaluation gets feature variant value.
 
 ## Usage
+
 Unleash OpenFeature Provider is using Unleash Java SDK.
 
 ### Usage Example
