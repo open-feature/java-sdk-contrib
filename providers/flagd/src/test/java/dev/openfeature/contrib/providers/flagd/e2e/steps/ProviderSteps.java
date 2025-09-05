@@ -5,13 +5,12 @@ import static io.restassured.RestAssured.when;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
-import dev.openfeature.contrib.providers.flagd.e2e.FlagdContainer;
+import dev.openfeature.contrib.providers.flagd.e2e.ContainerUtil;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterAll;
-import io.cucumber.java.Before;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
@@ -20,10 +19,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.parallel.Isolated;
-import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.ComposeContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
 @Isolated()
@@ -31,7 +33,7 @@ import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 public class ProviderSteps extends AbstractSteps {
 
     public static final int UNAVAILABLE_PORT = 9999;
-    static FlagdContainer container;
+    static ComposeContainer container;
 
     static Path sharedTempDir;
 
@@ -43,8 +45,13 @@ public class ProviderSteps extends AbstractSteps {
     public static void beforeAll() throws IOException {
         sharedTempDir = Files.createDirectories(
                 Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
-        container = new FlagdContainer()
-                .withFileSystemBind(sharedTempDir.toAbsolutePath().toString(), "/flags", BindMode.READ_WRITE);
+        container = new ComposeContainer(new File("test-harness/docker-compose.yaml"))
+                .withExposedService("flagd", 8013, Wait.forListeningPort())
+                .withExposedService("flagd", 8015, Wait.forListeningPort())
+                .withExposedService("flagd", 8080, Wait.forListeningPort())
+                .withExposedService("envoy", 9211, Wait.forListeningPort())
+                .withStartupTimeout(Duration.ofSeconds(45));
+        container.start();
     }
 
     @AfterAll
@@ -53,17 +60,10 @@ public class ProviderSteps extends AbstractSteps {
         FileUtils.deleteDirectory(sharedTempDir.toFile());
     }
 
-    @Before
-    public void before() {
-        if (!container.isRunning()) {
-            container.start();
-        }
-    }
-
     @After
     public void tearDown() {
         if (state.client != null) {
-            when().post("http://" + container.getLaunchpadUrl() + "/stop")
+            when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/stop")
                     .then()
                     .statusCode(200);
         }
@@ -100,7 +100,7 @@ public class ProviderSteps extends AbstractSteps {
                 String absolutePath = file.getAbsolutePath();
                 this.state.providerType = ProviderType.SSL;
                 state.builder
-                        .port(container.getPort(State.resolverType))
+                        .port(ContainerUtil.getPort(container, State.resolverType))
                         .tls(true)
                         .certPath(absolutePath);
                 flagdConfig = "ssl";
@@ -117,7 +117,7 @@ public class ProviderSteps extends AbstractSteps {
                             .port(UNAVAILABLE_PORT)
                             .offlineFlagSourcePath(new File("test-harness/flags/" + replace).getAbsolutePath());
                 } else {
-                    state.builder.port(container.getPort(State.resolverType));
+                    state.builder.port(ContainerUtil.getPort(container, State.resolverType));
                 }
                 break;
             case "syncpayload":
@@ -135,13 +135,22 @@ public class ProviderSteps extends AbstractSteps {
                                     .toAbsolutePath()
                                     .toString());
                 } else {
-                    state.builder.port(container.getPort(State.resolverType));
+                    state.builder.port(ContainerUtil.getPort(container, State.resolverType));
                 }
                 break;
             default:
                 throw new IllegalStateException();
         }
-        when().post("http://" + container.getLaunchpadUrl() + "/start?config={config}", flagdConfig)
+
+        // Setting TargetUri if this setting is set
+        FlagdOptions tempBuild = state.builder.build();
+        if (!StringUtils.isEmpty(tempBuild.getTargetUri())) {
+            String replace = tempBuild.getTargetUri().replace("<port>", "" + container.getServicePort("envoy", 9211));
+            state.builder.targetUri(replace);
+            state.builder.port(UNAVAILABLE_PORT);
+        }
+
+        when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/start?config={config}", flagdConfig)
                 .then()
                 .statusCode(200);
 
@@ -162,18 +171,22 @@ public class ProviderSteps extends AbstractSteps {
 
     @When("the connection is lost")
     public void the_connection_is_lost() {
-        when().post("http://" + container.getLaunchpadUrl() + "/stop").then().statusCode(200);
+        when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/stop")
+                .then()
+                .statusCode(200);
     }
 
     @When("the connection is lost for {int}s")
     public void the_connection_is_lost_for(int seconds) {
-        when().post("http://" + container.getLaunchpadUrl() + "/restart?seconds={seconds}", seconds)
+        when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/restart?seconds={seconds}", seconds)
                 .then()
                 .statusCode(200);
     }
 
     @When("the flag was modified")
     public void the_flag_was_modded() {
-        when().post("http://" + container.getLaunchpadUrl() + "/change").then().statusCode(200);
+        when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/change")
+                .then()
+                .statusCode(200);
     }
 }
