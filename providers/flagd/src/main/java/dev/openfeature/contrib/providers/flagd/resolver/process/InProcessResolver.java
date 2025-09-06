@@ -28,6 +28,7 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Resolves flag values using
@@ -204,7 +205,7 @@ public class InProcessResolver implements Resolver {
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
-            if (resolvedVariant.isEmpty() && flag.getDefaultVariant().isEmpty()) {
+            if (StringUtils.isEmpty(resolvedVariant) && StringUtils.isEmpty(flag.getDefaultVariant())) {
                 return ProviderEvaluation.<T>builder()
                         .reason(Reason.ERROR.toString())
                         .errorCode(ErrorCode.FLAG_NOT_FOUND)

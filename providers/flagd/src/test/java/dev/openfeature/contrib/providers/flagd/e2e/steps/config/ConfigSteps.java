@@ -71,6 +71,7 @@ public class ConfigSteps extends AbstractSteps {
                 .filter(method1 -> method1.getName().equals(mapOptionNames(option)))
                 .findFirst()
                 .orElseThrow(RuntimeException::new);
+
         method.invoke(state.builder, converted);
     }
 
