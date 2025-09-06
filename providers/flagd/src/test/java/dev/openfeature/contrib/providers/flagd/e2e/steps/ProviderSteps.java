@@ -122,7 +122,7 @@ public class ProviderSteps extends AbstractSteps {
                 break;
             case "syncpayload":
                 flagdConfig = "sync-payload";
-                state.builder.port(container.getPort(State.resolverType));
+                state.builder.port(ContainerUtil.getPort(container, State.resolverType));
                 break;
             case "stable":
                 this.state.providerType = ProviderType.DEFAULT;
