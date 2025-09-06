@@ -46,6 +46,7 @@ public class ProviderSteps extends AbstractSteps {
         sharedTempDir = Files.createDirectories(
                 Paths.get("tmp/" + RandomStringUtils.randomAlphanumeric(8).toLowerCase() + "/"));
         container = new ComposeContainer(new File("test-harness/docker-compose.yaml"))
+                .withEnv("FLAGS_DIR", sharedTempDir.toAbsolutePath().toString())
                 .withExposedService("flagd", 8013, Wait.forListeningPort())
                 .withExposedService("flagd", 8015, Wait.forListeningPort())
                 .withExposedService("flagd", 8080, Wait.forListeningPort())
