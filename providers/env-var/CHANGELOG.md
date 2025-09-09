@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.11...dev.openfeature.contrib.providers.env-var-v0.0.12) (2025-09-08)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency org.apache.commons:commons-lang3 to v3.18.0 [security] ([#1512](https://github.com/open-feature/java-sdk-contrib/issues/1512)) ([d178006](https://github.com/open-feature/java-sdk-contrib/commit/d178006411b91ff05376ac8f604c5282f2f19383))
+
 ## [0.0.11](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.env-var-v0.0.10...dev.openfeature.contrib.providers.env-var-v0.0.11) (2025-07-09)
 
 
