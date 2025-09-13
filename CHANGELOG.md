@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v1.0.0...dev.openfeature.contrib.parent-v1.1.0) (2025-09-13)
+
+
+### ✨ New Features
+
+* ofrep provider ([#1429](https://github.com/open-feature/java-sdk-contrib/issues/1429)) ([a33ef58](https://github.com/open-feature/java-sdk-contrib/commit/a33ef5838ac0876bdbd158e08be775a8bacdda6f))
+
 ## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.2...dev.openfeature.contrib.parent-v1.0.0) (2025-07-09)
 
 
