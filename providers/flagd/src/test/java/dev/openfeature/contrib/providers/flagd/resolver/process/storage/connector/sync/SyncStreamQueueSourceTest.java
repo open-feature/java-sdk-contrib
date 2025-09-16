@@ -27,6 +27,7 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
@@ -35,7 +36,7 @@ class SyncStreamQueueSourceTest {
     private ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> mockConnector;
     private FlagSyncServiceBlockingStub blockingStub;
     private FlagSyncServiceStub stub;
-    private QueueingStreamObserver<SyncFlagsResponse> observer;
+    private StreamObserver<SyncFlagsResponse> observer;
     private CountDownLatch latch; // used to wait for observer to be initialized
 
     @BeforeEach
@@ -51,12 +52,12 @@ class SyncStreamQueueSourceTest {
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
         doAnswer((Answer<Void>) invocation -> {
                     Object[] args = invocation.getArguments();
-                    observer = (QueueingStreamObserver<SyncFlagsResponse>) args[1];
+                    observer = (StreamObserver<SyncFlagsResponse>) args[1];
                     latch.countDown();
                     return null;
                 })
                 .when(stub)
-                .syncFlags(any(SyncFlagsRequest.class), any(QueueingStreamObserver.class)); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
         // method
     }
 
