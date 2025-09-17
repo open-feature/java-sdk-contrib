@@ -212,9 +212,10 @@ public class SyncStreamQueueSource implements QueueSource {
         @Override
         public void onError(Throwable throwable) {
             try {
-                log.error("Stream error: {}, cancelling stream", throwable.getMessage(), throwable);
-                if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.ERROR, null, null))) {
-                    log.error("Stream writing failed");
+                String message = throwable != null ? throwable.getMessage() : "unknown";
+                log.debug("Stream error: {}, will restart", message, throwable);
+                if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.ERROR, String.format("Error from stream: %s", message), null))) {
+                    log.error("Failed to convey ERROR status, queue is full");
                 }
             } finally {
                 context.cancel(throwable);
