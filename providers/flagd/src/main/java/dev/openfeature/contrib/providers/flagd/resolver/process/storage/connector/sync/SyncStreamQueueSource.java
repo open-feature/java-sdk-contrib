@@ -192,6 +192,7 @@ public class SyncStreamQueueSource implements QueueSource {
             } catch (InterruptedException e) {
                 log.warn("Sync stream interrupted, will restart", e);
                 streamObserver.context.cancel(e);
+                Thread.currentThread().interrupt();
             }
         }
     }
