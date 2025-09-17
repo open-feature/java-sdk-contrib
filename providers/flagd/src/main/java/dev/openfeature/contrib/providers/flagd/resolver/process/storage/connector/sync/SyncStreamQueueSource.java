@@ -15,13 +15,13 @@ import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.Context;
+import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import io.grpc.Context;
-import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -214,7 +214,8 @@ public class SyncStreamQueueSource implements QueueSource {
             try {
                 String message = throwable != null ? throwable.getMessage() : "unknown";
                 log.debug("Stream error: {}, will restart", message, throwable);
-                if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.ERROR, String.format("Error from stream: %s", message), null))) {
+                if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.ERROR,
+                        String.format("Error from stream: %s", message), null))) {
                     log.error("Failed to convey ERROR status, queue is full");
                 }
             } finally {
