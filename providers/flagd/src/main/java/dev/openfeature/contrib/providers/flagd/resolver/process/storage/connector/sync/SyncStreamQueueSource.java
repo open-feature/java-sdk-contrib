@@ -161,6 +161,11 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     private void syncFlags(SyncStreamObserver streamObserver) {
+        // No need to fire a sync request if the context is already cancelled
+        if (streamObserver.context.isCancelled()) {
+            return;
+        }
+
         FlagSyncServiceStub localStub = stub; // don't mutate the stub
         if (streamDeadline > 0) {
             localStub = localStub.withDeadlineAfter(streamDeadline, TimeUnit.MILLISECONDS);
@@ -177,7 +182,11 @@ public class SyncStreamQueueSource implements QueueSource {
 
         localStub.syncFlags(syncRequest.build(), streamObserver);
 
-        while (!shutdown.get() && !streamObserver.context.isCancelled()) {
+        while (!streamObserver.context.isCancelled()) {
+            if (shutdown.get()) {
+                streamObserver.context.cancel(null);
+            }
+
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
