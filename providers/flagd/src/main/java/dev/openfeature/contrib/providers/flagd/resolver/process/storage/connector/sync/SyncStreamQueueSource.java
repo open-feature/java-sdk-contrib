@@ -137,7 +137,6 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
-    private static final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
     private Struct getMetadata(Context.CancellableContext context) {
         try {
             FlagSyncServiceBlockingStub localStub = blockingStub;
@@ -146,7 +145,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
             }
 
-            GetMetadataResponse metadataResponse = localStub.getMetadata(metadataRequest.build());
+            GetMetadataResponse metadataResponse = localStub.getMetadata(GetMetadataRequest.getDefaultInstance());
 
             if (metadataResponse != null) {
                 return metadataResponse.getMetadata();
