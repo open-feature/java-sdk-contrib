@@ -224,8 +224,8 @@ public class SyncStreamQueueSource implements QueueSource {
             try {
                 String message = throwable != null ? throwable.getMessage() : "unknown";
                 log.debug("Stream error: {}, will restart", message, throwable);
-                if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.ERROR,
-                        String.format("Error from stream: %s", message), null))) {
+                if (!outgoingQueue.offer(new QueuePayload(
+                        QueuePayloadType.ERROR, String.format("Error from stream: %s", message), null))) {
                     log.error("Failed to convey ERROR status, queue is full");
                 }
             } finally {
