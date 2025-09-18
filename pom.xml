@@ -307,11 +307,8 @@
                         <version>3.11.3</version>
                         <configuration>
                             <failOnWarnings>${javadoc.failOnWarnings}</failOnWarnings>
-                            <sourceFileExcludes>
-                                <sourceFileExclude>**/GoFeatureFlagProviderOptions.java</sourceFileExclude>
-                            </sourceFileExcludes>
                             <excludePackageNames>
-                                dev.openfeature.flagd.grpc,dev.openfeature.contrib.providers.gofeatureflag.exception,dev.openfeature.contrib.providers.gofeatureflag.bean
+                                dev.openfeature.flagd.grpc
                             </excludePackageNames>
                             <doclint>all,-missing
                             </doclint>  <!-- ignore missing javadoc, these are enforced with more customizability in the checkstyle plugin -->
