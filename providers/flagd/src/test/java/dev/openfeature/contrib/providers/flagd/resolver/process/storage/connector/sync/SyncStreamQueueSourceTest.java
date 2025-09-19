@@ -16,7 +16,6 @@ import static org.mockito.Mockito.when;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceBlockingStub;
@@ -24,6 +23,7 @@ import dev.openfeature.flagd.grpc.sync.FlagSyncServiceGrpc.FlagSyncServiceStub;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
+import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +35,7 @@ class SyncStreamQueueSourceTest {
     private ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> mockConnector;
     private FlagSyncServiceBlockingStub blockingStub;
     private FlagSyncServiceStub stub;
-    private QueueingStreamObserver<SyncFlagsResponse> observer;
+    private StreamObserver<SyncFlagsResponse> observer;
     private CountDownLatch latch; // used to wait for observer to be initialized
 
     @BeforeEach
@@ -51,12 +51,12 @@ class SyncStreamQueueSourceTest {
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
         doAnswer((Answer<Void>) invocation -> {
                     Object[] args = invocation.getArguments();
-                    observer = (QueueingStreamObserver<SyncFlagsResponse>) args[1];
+                    observer = (StreamObserver<SyncFlagsResponse>) args[1];
                     latch.countDown();
                     return null;
                 })
                 .when(stub)
-                .syncFlags(any(SyncFlagsRequest.class), any(QueueingStreamObserver.class)); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
         // method
     }
 
