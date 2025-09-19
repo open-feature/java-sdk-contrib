@@ -68,31 +68,13 @@ public class EvaluationWasm {
      */
     private InputStream getWasmFile() throws WasmFileNotFound {
         try {
-            ClassLoader classLoader = EvaluationWasm.class.getClassLoader();
-            URL directoryUrl = classLoader.getResource("wasm");
-            if (directoryUrl == null) {
-                throw new RuntimeException("Directory not found");
+            final String wasmResourcePath = "wasm/gofeatureflag-evaluation.wasi";
+            InputStream inputStream = EvaluationWasm.class.getClassLoader().getResourceAsStream(wasmResourcePath);
+            if (inputStream == null) {
+                throw new WasmFileNotFound("WASM resource not found in classpath: " + wasmResourcePath);
             }
-
-            val wasmResources = classLoader.getResources("wasm");
-            while (wasmResources.hasMoreElements()) {
-                URL resourceUrl = wasmResources.nextElement();
-                if ("jar".equals(resourceUrl.getProtocol()) && resourceUrl.getPath().contains("!")) {
-                    val jarPath = resourceUrl.getPath();
-                    val path = jarPath.substring(jarPath.indexOf("!") + 1);
-                    val resourceName = path + "/gofeatureflag-evaluation.wasi";
-                    val inputStream = classLoader.getResourceAsStream(resourceName);
-                    if (inputStream != null) {
-                        return inputStream;
-                    }
-                }
-                val inputStream = classLoader.getResourceAsStream("wasm/gofeatureflag-evaluation.wasi");
-                if (inputStream != null) {
-                    return inputStream;
-                }
-            }
-            throw new WasmFileNotFound("impossible to find the wasm file");
-        } catch(WasmFileNotFound e) {
+            return inputStream;
+        } catch (WasmFileNotFound e) {
             throw e;
         } catch (Exception e) {
             throw new WasmFileNotFound(e);
