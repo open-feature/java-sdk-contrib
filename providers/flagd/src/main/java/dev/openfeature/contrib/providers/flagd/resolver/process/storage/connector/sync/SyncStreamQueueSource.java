@@ -79,15 +79,7 @@ public class SyncStreamQueueSource implements QueueSource {
     /** Initialize sync stream connector. */
     public void init() throws Exception {
         channelConnector.initialize();
-        Thread listener = new Thread(() -> {
-            try {
-                observeSyncStream();
-            } catch (InterruptedException e) {
-                log.warn("gRPC event stream interrupted, flag configurations are stale", e);
-                Thread.currentThread().interrupt();
-            }
-        });
-
+        Thread listener = new Thread(this::observeSyncStream);
         listener.setDaemon(true);
         listener.start();
     }
@@ -110,7 +102,7 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     /** Contains blocking calls, to be used concurrently. */
-    private void observeSyncStream() throws InterruptedException {
+    private void observeSyncStream() {
         log.info("Initializing sync stream observer");
 
         // outer loop for re-issuing the stream request
@@ -123,14 +115,17 @@ public class SyncStreamQueueSource implements QueueSource {
                 observer.metadata = getMetadata();
             } catch (Exception metaEx) {
                 // retry if getMetadata fails
-                log.warn("Metadata request exception, retrying.", metaEx);
+                String message = metaEx.getMessage();
+                log.debug("Metadata request error: {}, will restart", message, metaEx);
+                enqueueError(String.format("Error in getMetadata request: %s", message));
                 continue;
             }
 
             try {
                 syncFlags(observer);
             } catch (Exception ex) {
-                log.warn("Sync stream exception, retrying.", ex);
+                log.error("Unexpected sync stream exception, will restart.", ex);
+                enqueueError(String.format("Error in getMetadata request: %s", ex.getMessage()));
             }
         }
 
@@ -178,6 +173,17 @@ public class SyncStreamQueueSource implements QueueSource {
         streamObserver.done.await();
     }
 
+    private void enqueueError(String message) {
+        enqueueError(outgoingQueue, message);
+    }
+
+    private static void enqueueError(BlockingQueue<QueuePayload> queue, String message) {
+        if (!queue.offer(new QueuePayload(
+                QueuePayloadType.ERROR, message, null))) {
+            log.error("Failed to convey ERROR status, queue is full");
+        }
+    }
+
     private static class SyncStreamObserver implements StreamObserver<SyncFlagsResponse> {
         private final BlockingQueue<QueuePayload> outgoingQueue;
         private final Awaitable done = new Awaitable();
@@ -205,10 +211,7 @@ public class SyncStreamQueueSource implements QueueSource {
             try {
                 String message = throwable != null ? throwable.getMessage() : "unknown";
                 log.debug("Stream error: {}, will restart", message, throwable);
-                if (!outgoingQueue.offer(new QueuePayload(
-                        QueuePayloadType.ERROR, String.format("Error from stream: %s", message), null))) {
-                    log.error("Failed to convey ERROR status, queue is full");
-                }
+                enqueueError(outgoingQueue, String.format("Error from stream: %s", message));
             } finally {
                 done.wakeup();
             }
