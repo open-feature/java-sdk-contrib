@@ -16,12 +16,8 @@ import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
-import java.io.File;
-import java.net.URL;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import lombok.val;
 
@@ -58,27 +54,21 @@ public final class EvaluationWasm {
     /**
      * getWasmFile is a function that returns the path to the WASM file.
      * It looks for the file in the classpath under the directory "wasm".
+     * This method handles both file system resources and JAR-packaged resources.
      *
      * @return the path to the WASM file
      * @throws WasmFileNotFound - if the file is not found
      */
-    private File getWasmFile() throws WasmFileNotFound {
+    private InputStream getWasmFile() throws WasmFileNotFound {
         try {
-            ClassLoader classLoader = EvaluationWasm.class.getClassLoader();
-            URL directoryUrl = classLoader.getResource("wasm");
-            if (directoryUrl == null) {
-                throw new RuntimeException("Directory not found");
+            final String wasmResourcePath = "wasm/gofeatureflag-evaluation.wasi";
+            InputStream inputStream = EvaluationWasm.class.getClassLoader().getResourceAsStream(wasmResourcePath);
+            if (inputStream == null) {
+                throw new WasmFileNotFound("WASM resource not found in classpath: " + wasmResourcePath);
             }
-            Path dirPath = Paths.get(directoryUrl.toURI());
-            try (val files = Files.list(dirPath)) {
-                return files.filter(path -> path.getFileName().toString().startsWith("gofeatureflag-evaluation")
-                                && (path.getFileName().toString().endsWith(".wasi")
-                                        || path.getFileName().toString().endsWith(".wasm")))
-                        .findFirst()
-                        .map(Path::toFile)
-                        .orElseThrow(
-                                () -> new RuntimeException("No file starting with 'gofeatureflag-evaluation' found"));
-            }
+            return inputStream;
+        } catch (WasmFileNotFound e) {
+            throw e;
         } catch (Exception e) {
             throw new WasmFileNotFound(e);
         }
