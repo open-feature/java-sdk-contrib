@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.0...dev.openfeature.contrib.providers.go-feature-flag-v1.0.0) (2025-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384))
+* changing cache provider to caffeine over guava ([#1065](https://github.com/open-feature/java-sdk-contrib/issues/1065))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency com.dylibso.chicory:runtime to v1.4.1 ([#1408](https://github.com/open-feature/java-sdk-contrib/issues/1408)) ([352ddd8](https://github.com/open-feature/java-sdk-contrib/commit/352ddd861694459c155b21a60e2938d6a2bc97bc))
+* **deps:** update dependency com.dylibso.chicory:runtime to v1.5.0 ([#1462](https://github.com/open-feature/java-sdk-contrib/issues/1462)) ([93115a7](https://github.com/open-feature/java-sdk-contrib/commit/93115a7a818568109b32205535dc58211d36c151))
+* **deps:** update dependency com.dylibso.chicory:wasi to v1.4.1 ([#1409](https://github.com/open-feature/java-sdk-contrib/issues/1409)) ([2bc16a8](https://github.com/open-feature/java-sdk-contrib/commit/2bc16a86b54dd8a43c1af1d4e8884d9716282f8f))
+* **deps:** update dependency com.dylibso.chicory:wasi to v1.5.0 ([#1473](https://github.com/open-feature/java-sdk-contrib/issues/1473)) ([0030528](https://github.com/open-feature/java-sdk-contrib/commit/00305287986248262036dcb7cd4f4c384fe50052))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.1 ([#1047](https://github.com/open-feature/java-sdk-contrib/issues/1047)) ([a2ee3e6](https://github.com/open-feature/java-sdk-contrib/commit/a2ee3e6ed0c15c3ebaf55adc10198760f51a4a30))
+* **deps:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.18.2 ([#1089](https://github.com/open-feature/java-sdk-contrib/issues/1089)) ([9b40e22](https://github.com/open-feature/java-sdk-contrib/commit/9b40e22e57739c7da417f834dd4f6822e6657ca8))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.18.1 ([#1048](https://github.com/open-feature/java-sdk-contrib/issues/1048)) ([ac1a952](https://github.com/open-feature/java-sdk-contrib/commit/ac1a95239229def83a253515b4c88ee8b9186cf1))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.18.2 ([#1088](https://github.com/open-feature/java-sdk-contrib/issues/1088)) ([34ec5a8](https://github.com/open-feature/java-sdk-contrib/commit/34ec5a83685100ac014def681286c59f0f939188))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.18.3 ([#1253](https://github.com/open-feature/java-sdk-contrib/issues/1253)) ([9cc36dc](https://github.com/open-feature/java-sdk-contrib/commit/9cc36dc8d750cf38b55b12ea22f4c7bd56a206b3))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.19.0 ([#1366](https://github.com/open-feature/java-sdk-contrib/issues/1366)) ([8896f50](https://github.com/open-feature/java-sdk-contrib/commit/8896f505b7e682c5954de465383b5e871cb1a8d0))
+* **deps:** update dependency com.fasterxml.jackson.datatype:jackson-datatype-jsr310 to v2.19.1 ([#1415](https://github.com/open-feature/java-sdk-contrib/issues/1415)) ([c038b8e](https://github.com/open-feature/java-sdk-contrib/commit/c038b8e8f897cb3524aa9053c9167368175c6680))
+* **deps:** update dependency io.reactivex.rxjava3:rxjava to v3.1.10 ([#1083](https://github.com/open-feature/java-sdk-contrib/issues/1083)) ([67d6308](https://github.com/open-feature/java-sdk-contrib/commit/67d63081c8b5f56ce7ac32a30f2bc1e67b6afe5d))
+* **deps:** update jackson monorepo to v2.18.3 ([#1254](https://github.com/open-feature/java-sdk-contrib/issues/1254)) ([24f11fd](https://github.com/open-feature/java-sdk-contrib/commit/24f11fd5338e2693d1eda0654c4ea4bc29063742))
+* **deps:** update jackson monorepo to v2.19.0 ([#1346](https://github.com/open-feature/java-sdk-contrib/issues/1346)) ([d4af23b](https://github.com/open-feature/java-sdk-contrib/commit/d4af23b9f2700233ea22f9132df00637820da10c))
+* **deps:** update jackson monorepo to v2.19.1 ([#1416](https://github.com/open-feature/java-sdk-contrib/issues/1416)) ([43630e5](https://github.com/open-feature/java-sdk-contrib/commit/43630e5da8fd1f7f8b8ccfcb2aa77cab51949be7))
+* **deps:** update slf4j monorepo to v2.0.17 ([#1243](https://github.com/open-feature/java-sdk-contrib/issues/1243)) ([66c6a7f](https://github.com/open-feature/java-sdk-contrib/commit/66c6a7fc1bdc3e907793d2fc1eb0d412693a4aee))
+* **gofeatureflag:** fix etag in tests to be around quotes ([#1432](https://github.com/open-feature/java-sdk-contrib/issues/1432)) ([80084df](https://github.com/open-feature/java-sdk-contrib/commit/80084dfa6089799e828a85774be50e5b34a4987b))
+* **goff:** Bump version of chicory to fix flaky tests ([#1423](https://github.com/open-feature/java-sdk-contrib/issues/1423)) ([f6996dc](https://github.com/open-feature/java-sdk-contrib/commit/f6996dcf18acb367f935569f28fc59adcb650b6f))
+* **goff:** remove flacky test ([#1427](https://github.com/open-feature/java-sdk-contrib/issues/1427)) ([e455cc3](https://github.com/open-feature/java-sdk-contrib/commit/e455cc3f022223a0a09d4b9afece65bf55bdfa5f))
+* require latest SDK ([#1488](https://github.com/open-feature/java-sdk-contrib/issues/1488)) ([71afb81](https://github.com/open-feature/java-sdk-contrib/commit/71afb81703bc2a5350ab967e478c527469fdb5d2))
+* Use seconds instead of milliseconds ([#1174](https://github.com/open-feature/java-sdk-contrib/issues/1174)) ([921231a](https://github.com/open-feature/java-sdk-contrib/commit/921231a2031098fb97bf96e506912e2dee2b225c))
+
+
+### ✨ New Features
+
+* changing cache provider to caffeine over guava ([#1065](https://github.com/open-feature/java-sdk-contrib/issues/1065)) ([7083586](https://github.com/open-feature/java-sdk-contrib/commit/70835860090175209b6cec1cab6443d0bc4784fa))
+* **go-feature-flag:** Add exporterMetadata in the evaluation call ([#1193](https://github.com/open-feature/java-sdk-contrib/issues/1193)) ([16a8287](https://github.com/open-feature/java-sdk-contrib/commit/16a8287d8ac4e952f4bb934bd731e4301ce3c261))
+* **go-feature-flag:** Introduce in-process evaluation + tracking ([#1384](https://github.com/open-feature/java-sdk-contrib/issues/1384)) ([2ea5e68](https://github.com/open-feature/java-sdk-contrib/commit/2ea5e68e79c6c703c55cc815d223bbe66a60ea6d))
+* **go-feature-flag:** Support Exporter Metadata ([#1167](https://github.com/open-feature/java-sdk-contrib/issues/1167)) ([b55a52e](https://github.com/open-feature/java-sdk-contrib/commit/b55a52ecd90b53d25ea259e16fa0ef43fac9dc12))
+* improve error handling ([#1214](https://github.com/open-feature/java-sdk-contrib/issues/1214)) ([fd32898](https://github.com/open-feature/java-sdk-contrib/commit/fd32898c952926e5e484ea2305220b1f532d23ea))
+* migrate to Java 11 ([#1336](https://github.com/open-feature/java-sdk-contrib/issues/1336)) ([a4be1ff](https://github.com/open-feature/java-sdk-contrib/commit/a4be1ff66870a72189873171e83c5b65dbb9991c))
+
 ## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v0.4.3...dev.openfeature.contrib.providers.go-feature-flag-v1.0.0) (2025-09-13)
 
 
