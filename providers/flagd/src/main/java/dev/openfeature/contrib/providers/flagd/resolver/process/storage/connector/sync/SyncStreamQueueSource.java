@@ -14,8 +14,8 @@ import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
+import dev.openfeature.sdk.Awaitable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -117,19 +117,20 @@ public class SyncStreamQueueSource implements QueueSource {
         // "waitForReady" on the channel, plus our retry policy slow this loop down in error conditions
         while (!shutdown.get()) {
             log.debug("Initializing sync stream request");
+            SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue);
 
-            try (Context.CancellableContext context = Context.current().withCancellation()) {
-                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue, context);
-                Context previous = context.attach();
-                try {
-                    if (!syncMetadataDisabled) {
-                        observer.metadata = getMetadata(context);
-                    }
+            try {
+                observer.metadata = getMetadata();
+            } catch (Exception metaEx) {
+                // retry if getMetadata fails
+                log.warn("Metadata request exception, retrying.", metaEx);
+                continue;
+            }
 
-                    syncFlags(observer);
-                } finally {
-                    context.detach(previous);
-                }
+            try {
+                syncFlags(observer);
+            } catch (Exception ex) {
+                log.warn("Sync stream exception, retrying.", ex);
             }
         }
 
@@ -137,35 +138,27 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
-    private Struct getMetadata(Context.CancellableContext context) {
-        try {
-            FlagSyncServiceBlockingStub localStub = blockingStub;
+    private Struct getMetadata() {
+        if (syncMetadataDisabled) {
+            return null;
+        }
 
-            if (deadline > 0) {
-                localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
-            }
+        FlagSyncServiceBlockingStub localStub = blockingStub;
 
-            GetMetadataResponse metadataResponse = localStub.getMetadata(GetMetadataRequest.getDefaultInstance());
+        if (deadline > 0) {
+            localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
+        }
 
-            if (metadataResponse != null) {
-                return metadataResponse.getMetadata();
-            }
-        } catch (Exception metaEx) {
-            // retry getMetadata fails
-            // we can keep this log quiet since the stream is cancelled/restarted with this exception
-            log.debug("Metadata exception: {}, retrying", metaEx.getMessage(), metaEx);
-            context.cancel(metaEx);
+        GetMetadataResponse metadataResponse = localStub.getMetadata(GetMetadataRequest.getDefaultInstance());
+
+        if (metadataResponse != null) {
+            return metadataResponse.getMetadata();
         }
 
         return null;
     }
 
     private void syncFlags(SyncStreamObserver streamObserver) {
-        // No need to fire a sync request if the context is already cancelled
-        if (streamObserver.context.isCancelled()) {
-            return;
-        }
-
         FlagSyncServiceStub localStub = stub; // don't mutate the stub
         if (streamDeadline > 0) {
             localStub = localStub.withDeadlineAfter(streamDeadline, TimeUnit.MILLISECONDS);
@@ -182,29 +175,17 @@ public class SyncStreamQueueSource implements QueueSource {
 
         localStub.syncFlags(syncRequest.build(), streamObserver);
 
-        while (!streamObserver.context.isCancelled()) {
-            if (shutdown.get()) {
-                streamObserver.context.cancel(null);
-            }
-
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                log.warn("Sync stream interrupted, will restart", e);
-                streamObserver.context.cancel(e);
-                Thread.currentThread().interrupt();
-            }
-        }
+        streamObserver.done.await();
     }
 
     private static class SyncStreamObserver implements StreamObserver<SyncFlagsResponse> {
         private final BlockingQueue<QueuePayload> outgoingQueue;
-        private final Context.CancellableContext context;
+        private final Awaitable done = new Awaitable();
+
         private Struct metadata;
 
-        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue, Context.CancellableContext context) {
+        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue) {
             this.outgoingQueue = outgoingQueue;
-            this.context = context;
         }
 
         @Override
@@ -229,14 +210,14 @@ public class SyncStreamQueueSource implements QueueSource {
                     log.error("Failed to convey ERROR status, queue is full");
                 }
             } finally {
-                context.cancel(throwable);
+                done.wakeup();
             }
         }
 
         @Override
         public void onCompleted() {
             log.debug("Sync stream completed, will restart");
-            context.cancel(null);
+            done.wakeup();
         }
     }
 }
