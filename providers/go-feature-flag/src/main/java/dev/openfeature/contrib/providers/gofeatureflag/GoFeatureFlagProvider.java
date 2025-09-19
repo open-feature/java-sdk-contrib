@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
- * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag solution GO Feature Flag.
+ * GoFeatureFlagProvider is the JAVA provider implementation for the feature flag management system GO Feature Flag.
  */
 @Slf4j
 public final class GoFeatureFlagProvider extends EventProvider implements Tracking {

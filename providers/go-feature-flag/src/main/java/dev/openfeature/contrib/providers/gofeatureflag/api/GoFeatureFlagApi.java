@@ -55,7 +55,7 @@ public final class GoFeatureFlagApi {
     private final URI endpoint;
 
     /** timeout is the timeout in milliseconds for the HTTP requests. */
-    private int timeout;
+    private final int timeout;
 
     /**
      * GoFeatureFlagController is the constructor of the controller to contact the GO Feature Flag
