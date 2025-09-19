@@ -17,6 +17,9 @@ import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,7 +32,7 @@ import lombok.val;
  * EvaluationWasm is a class that represents the evaluation of a feature flag
  * it calls an external WASM module to evaluate the feature flag.
  */
-public final class EvaluationWasm {
+public class EvaluationWasm {
     private final Instance instance;
     private final ExportFunction evaluate;
     private final ExportFunction malloc;
@@ -58,27 +61,39 @@ public final class EvaluationWasm {
     /**
      * getWasmFile is a function that returns the path to the WASM file.
      * It looks for the file in the classpath under the directory "wasm".
+     * This method handles both file system resources and JAR-packaged resources.
      *
      * @return the path to the WASM file
      * @throws WasmFileNotFound - if the file is not found
      */
-    private File getWasmFile() throws WasmFileNotFound {
+    private InputStream getWasmFile() throws WasmFileNotFound {
         try {
             ClassLoader classLoader = EvaluationWasm.class.getClassLoader();
             URL directoryUrl = classLoader.getResource("wasm");
             if (directoryUrl == null) {
                 throw new RuntimeException("Directory not found");
             }
-            Path dirPath = Paths.get(directoryUrl.toURI());
-            try (val files = Files.list(dirPath)) {
-                return files.filter(path -> path.getFileName().toString().startsWith("gofeatureflag-evaluation")
-                                && (path.getFileName().toString().endsWith(".wasi")
-                                        || path.getFileName().toString().endsWith(".wasm")))
-                        .findFirst()
-                        .map(Path::toFile)
-                        .orElseThrow(
-                                () -> new RuntimeException("No file starting with 'gofeatureflag-evaluation' found"));
+
+            val wasmResources = classLoader.getResources("wasm");
+            while (wasmResources.hasMoreElements()) {
+                URL resourceUrl = wasmResources.nextElement();
+                if ("jar".equals(resourceUrl.getProtocol()) && resourceUrl.getPath().contains("!")) {
+                    val jarPath = resourceUrl.getPath();
+                    val path = jarPath.substring(jarPath.indexOf("!") + 1);
+                    val resourceName = path + "/gofeatureflag-evaluation.wasi";
+                    val inputStream = classLoader.getResourceAsStream(resourceName);
+                    if (inputStream != null) {
+                        return inputStream;
+                    }
+                }
+                val inputStream = classLoader.getResourceAsStream("wasm/gofeatureflag-evaluation.wasi");
+                if (inputStream != null) {
+                    return inputStream;
+                }
             }
+            throw new WasmFileNotFound("impossible to find the wasm file");
+        } catch(WasmFileNotFound e) {
+            throw e;
         } catch (Exception e) {
             throw new WasmFileNotFound(e);
         }
