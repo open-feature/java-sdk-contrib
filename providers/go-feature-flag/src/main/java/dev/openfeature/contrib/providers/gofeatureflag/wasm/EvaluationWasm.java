@@ -25,7 +25,7 @@ import lombok.val;
  * EvaluationWasm is a class that represents the evaluation of a feature flag
  * it calls an external WASM module to evaluate the feature flag.
  */
-public class EvaluationWasm {
+public final class EvaluationWasm {
     private final Instance instance;
     private final ExportFunction evaluate;
     private final ExportFunction malloc;
