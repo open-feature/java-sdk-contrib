@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.0...dev.openfeature.contrib.providers.go-feature-flag-v1.0.1) (2025-09-19)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** fix loading wasm files in a jar mode. ([#1595](https://github.com/open-feature/java-sdk-contrib/issues/1595)) ([40f77f3](https://github.com/open-feature/java-sdk-contrib/commit/40f77f359460743a0979b7120106d936a62af279))
+
 ## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.0...dev.openfeature.contrib.providers.go-feature-flag-v1.0.0) (2025-09-19)
 
 
