@@ -178,8 +178,7 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     private static void enqueueError(BlockingQueue<QueuePayload> queue, String message) {
-        if (!queue.offer(new QueuePayload(
-                QueuePayloadType.ERROR, message, null))) {
+        if (!queue.offer(new QueuePayload(QueuePayloadType.ERROR, message, null))) {
             log.error("Failed to convey ERROR status, queue is full");
         }
     }
