@@ -125,7 +125,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 syncFlags(observer);
             } catch (Exception ex) {
                 log.error("Unexpected sync stream exception, will restart.", ex);
-                enqueueError(String.format("Error in getMetadata request: %s", ex.getMessage()));
+                enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
             }
         }
 
