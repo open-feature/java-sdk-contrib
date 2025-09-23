@@ -16,6 +16,9 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import dev.openfeature.sdk.Awaitable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -144,13 +147,23 @@ public class SyncStreamQueueSource implements QueueSource {
             localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
         }
 
-        GetMetadataResponse metadataResponse = localStub.getMetadata(GetMetadataRequest.getDefaultInstance());
+        try {
+            GetMetadataResponse metadataResponse = localStub.getMetadata(GetMetadataRequest.getDefaultInstance());
 
-        if (metadataResponse != null) {
-            return metadataResponse.getMetadata();
+            if (metadataResponse != null) {
+                return metadataResponse.getMetadata();
+            }
+
+            return null;
+        } catch (StatusRuntimeException e) {
+            // In newer versions of flagd, metadata is part of the sync stream. If the method is unimplemented, we
+            // can ignore the error
+            if (Status.UNIMPLEMENTED.equals(e.getStatus())) {
+                return null;
+            }
+
+            throw e;
         }
-
-        return null;
     }
 
     private void syncFlags(SyncStreamObserver streamObserver) {
