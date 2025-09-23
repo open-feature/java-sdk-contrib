@@ -33,6 +33,14 @@ public final class Config {
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
     static final String STREAM_DEADLINE_MS_ENV_VAR_NAME = "FLAGD_STREAM_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
+    /**
+     * Environment variable to fetch Provider id.
+     *
+     * @deprecated please use {@link #PROVIDER_ID_ENV_VAR_NAME}
+     */
+    @Deprecated(forRemoval = true)
+    static final String SOURCE_PROVIDER_ID_ENV_VAR_NAME = "FLAGD_SOURCE_PROVIDER_ID";
+
     static final String PROVIDER_ID_ENV_VAR_NAME = "FLAGD_PROVIDER_ID";
     static final String OFFLINE_SOURCE_PATH = "FLAGD_OFFLINE_FLAG_SOURCE_PATH";
     static final String OFFLINE_POLL_MS = "FLAGD_OFFLINE_POLL_MS";
