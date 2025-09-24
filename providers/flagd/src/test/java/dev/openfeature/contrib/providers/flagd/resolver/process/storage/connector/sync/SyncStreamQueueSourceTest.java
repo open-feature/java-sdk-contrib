@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 class SyncStreamQueueSourceTest {
-    private ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> mockConnector;
+    private ChannelConnector mockConnector;
     private FlagSyncServiceBlockingStub blockingStub;
     private FlagSyncServiceStub stub;
     private StreamObserver<SyncFlagsResponse> observer;

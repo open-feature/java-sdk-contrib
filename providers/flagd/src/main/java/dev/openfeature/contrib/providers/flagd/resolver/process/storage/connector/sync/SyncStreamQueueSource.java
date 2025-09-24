@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
@@ -17,7 +18,6 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import dev.openfeature.sdk.Awaitable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status;
-import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
@@ -43,10 +43,10 @@ public class SyncStreamQueueSource implements QueueSource {
     private final String selector;
     private final String providerId;
     private final boolean syncMetadataDisabled;
-    private final ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> channelConnector;
+    private final ChannelConnector channelConnector;
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-    private final FlagSyncServiceStub stub;
-    private final FlagSyncServiceBlockingStub blockingStub;
+    private final FlagSyncServiceStub flagSyncStub;
+    private final FlagSyncServiceBlockingStub metadataStub;
 
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event stream.
@@ -57,16 +57,15 @@ public class SyncStreamQueueSource implements QueueSource {
         selector = options.getSelector();
         providerId = options.getProviderId();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
-        channelConnector = new ChannelConnector<>(options, onConnectionEvent);
-        this.stub = FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
-        this.blockingStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
-                .withWaitForReady();
+        channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
+        flagSyncStub = FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
+        metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel()).withWaitForReady();
     }
 
     // internal use only
     protected SyncStreamQueueSource(
             final FlagdOptions options,
-            ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> connectorMock,
+            ChannelConnector connectorMock,
             FlagSyncServiceStub stubMock,
             FlagSyncServiceBlockingStub blockingStubMock) {
         streamDeadline = options.getStreamDeadlineMs();
@@ -74,9 +73,9 @@ public class SyncStreamQueueSource implements QueueSource {
         selector = options.getSelector();
         providerId = options.getProviderId();
         channelConnector = connectorMock;
-        stub = stubMock;
+        flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
-        blockingStub = blockingStubMock;
+        metadataStub = blockingStubMock;
     }
 
     /** Initialize sync stream connector. */
@@ -141,7 +140,7 @@ public class SyncStreamQueueSource implements QueueSource {
             return null;
         }
 
-        FlagSyncServiceBlockingStub localStub = blockingStub;
+        FlagSyncServiceBlockingStub localStub = metadataStub;
 
         if (deadline > 0) {
             localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
@@ -167,7 +166,7 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     private void syncFlags(SyncStreamObserver streamObserver) {
-        FlagSyncServiceStub localStub = stub; // don't mutate the stub
+        FlagSyncServiceStub localStub = flagSyncStub; // don't mutate the stub
         if (streamDeadline > 0) {
             localStub = localStub.withDeadlineAfter(streamDeadline, TimeUnit.MILLISECONDS);
         }
