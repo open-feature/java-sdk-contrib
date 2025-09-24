@@ -16,12 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * A generic GRPC connector that manages connection states, reconnection logic, and event streaming for
  * GRPC services.
- *
- * @param <T> the type of the asynchronous stub for the GRPC service
- * @param <K> the type of the blocking stub for the GRPC service
  */
 @Slf4j
-public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlockingStub<K>> {
+public class ChannelConnector {
 
     /**
      * The GRPC managed channel for managing the underlying GRPC connection.
@@ -48,20 +45,9 @@ public class ChannelConnector<T extends AbstractStub<T>, K extends AbstractBlock
      */
     public ChannelConnector(
             final FlagdOptions options, final Consumer<FlagdProviderEvent> onConnectionEvent, ManagedChannel channel) {
-
         this.channel = channel;
         this.deadline = options.getDeadline();
         this.onConnectionEvent = onConnectionEvent;
-    }
-
-    /**
-     * Constructs a {@code ChannelConnector} instance for testing purposes.
-     *
-     * @param options             the configuration options for the GRPC connection
-     * @param onConnectionEvent   a consumer to handle connection events
-     */
-    public ChannelConnector(final FlagdOptions options, final Consumer<FlagdProviderEvent> onConnectionEvent) {
-        this(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
     }
 
     /**
