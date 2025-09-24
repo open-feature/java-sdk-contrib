@@ -59,26 +59,12 @@ public class ChannelBuilder {
                                     "retryableStatusCodes",
                                     Arrays.asList(
                                             /*
-                                             * All codes are retryable except OK and DEADLINE_EXCEEDED since
-                                             * any others not listed here cause a very tight loop of retries.
-                                             * DEADLINE_EXCEEDED is typically a result of a client specified deadline,
-                                             * and definitionally should not result in a tight loop (it's a timeout).
+                                             * Only states UNAVAILABLE and UNKNOWN should be retried. All
+                                             * other failure states will probably not be resolved with a simple retry.
                                              */
-                                            Code.CANCELLED.toString(),
-                                            Code.UNKNOWN.toString(),
-                                            Code.INVALID_ARGUMENT.toString(),
-                                            Code.NOT_FOUND.toString(),
-                                            Code.ALREADY_EXISTS.toString(),
-                                            Code.PERMISSION_DENIED.toString(),
-                                            Code.RESOURCE_EXHAUSTED.toString(),
-                                            Code.FAILED_PRECONDITION.toString(),
-                                            Code.ABORTED.toString(),
-                                            Code.OUT_OF_RANGE.toString(),
-                                            Code.UNIMPLEMENTED.toString(),
-                                            Code.INTERNAL.toString(),
                                             Code.UNAVAILABLE.toString(),
-                                            Code.DATA_LOSS.toString(),
-                                            Code.UNAUTHENTICATED.toString()));
+                                            Code.UNKNOWN.toString())
+                            );
                         }
                     });
                 }
