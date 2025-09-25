@@ -27,12 +27,8 @@ public class EnrichEvaluationContextHookTest {
     @Test
     void shouldReturnSameContextIfNoMetadataProvided() {
         EnrichEvaluationContextHook hook = new EnrichEvaluationContextHook(null);
-        val hookContext = HookContext.<String>builder()
-                .ctx(TestUtils.defaultEvaluationContext)
-                .flagKey("testFlagKey")
-                .type(FlagValueType.BOOLEAN)
-                .defaultValue("default")
-                .build();
+        val hookContext = HookContext.<String>from(
+                "testFlagKey", FlagValueType.BOOLEAN, null, null, TestUtils.defaultEvaluationContext, "default");
         val res = hook.before(hookContext, null);
         assertEquals(Optional.of(hookContext.getCtx()), res);
     }
@@ -42,12 +38,8 @@ public class EnrichEvaluationContextHookTest {
     @Test
     void shouldReturnSameContextIfMetadataEmpty() {
         EnrichEvaluationContextHook hook = new EnrichEvaluationContextHook(Collections.emptyMap());
-        val hookContext = HookContext.<String>builder()
-                .ctx(TestUtils.defaultEvaluationContext)
-                .flagKey("testFlagKey")
-                .type(FlagValueType.BOOLEAN)
-                .defaultValue("default")
-                .build();
+        val hookContext = HookContext.<String>from(
+                "testFlagKey", FlagValueType.BOOLEAN, null, null, TestUtils.defaultEvaluationContext, "default");
         val res = hook.before(hookContext, null);
         assertEquals(Optional.of(hookContext.getCtx()), res);
     }

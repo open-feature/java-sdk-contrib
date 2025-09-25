@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.unleash;
 
-import static io.getunleash.Variant.DISABLED_VARIANT;
+import static io.getunleash.variant.Variant.DISABLED_VARIANT;
 
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
@@ -12,8 +12,8 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
-import io.getunleash.Variant;
 import io.getunleash.util.UnleashConfig;
+import io.getunleash.variant.Variant;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -34,13 +34,13 @@ public class UnleashProvider extends EventProvider {
     public static final String UNKNOWN_ERROR = "unknown error";
 
     @Getter(AccessLevel.PROTECTED)
-    private UnleashProviderConfig unleashProviderConfig;
+    private final UnleashProviderConfig unleashProviderConfig;
 
     @Setter(AccessLevel.PROTECTED)
     @Getter
     private Unleash unleash;
 
-    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -160,8 +160,7 @@ public class UnleashProvider extends EventProvider {
                     .orElse(null);
         }
         ImmutableMetadata.ImmutableMetadataBuilder flagMetadataBuilder =
-                ImmutableMetadata.builder().addString("variant-stickiness", evaluatedVariant.getStickiness());
-        flagMetadataBuilder.addBoolean("enabled", evaluatedVariant.isEnabled());
+                ImmutableMetadata.builder().addBoolean("enabled", evaluatedVariant.isEnabled());
         if (evaluatedVariant.getPayload().isPresent()) {
             flagMetadataBuilder.addString(
                     "payload-type", evaluatedVariant.getPayload().get().getType());

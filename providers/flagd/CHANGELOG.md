@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.11.15](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.14...dev.openfeature.contrib.providers.flagd-v0.11.15) (2025-09-05)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** implement error code step and general error ([#1519](https://github.com/open-feature/java-sdk-contrib/issues/1519)) ([0985315](https://github.com/open-feature/java-sdk-contrib/commit/0985315388b6b553ec23a3f31b56b3b338ddedf9))
+
+
+### ✨ New Features
+
+* allowing null/missing default values ([#1511](https://github.com/open-feature/java-sdk-contrib/issues/1511)) ([229ddcb](https://github.com/open-feature/java-sdk-contrib/commit/229ddcb5a22fb14293c0649ce80d9ffd81c4e617))
+* **flagd:** Adjust to disable-sync-metadata toggle in flagd ([#1549](https://github.com/open-feature/java-sdk-contrib/issues/1549)) ([f1adc5d](https://github.com/open-feature/java-sdk-contrib/commit/f1adc5dfe70eaa94a130b5ccaa18c1fc69daee7a))
+
+## [0.11.14](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.13...dev.openfeature.contrib.providers.flagd-v0.11.14) (2025-07-14)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency org.apache.commons:commons-lang3 to v3.18.0 [security] ([#1512](https://github.com/open-feature/java-sdk-contrib/issues/1512)) ([d178006](https://github.com/open-feature/java-sdk-contrib/commit/d178006411b91ff05376ac8f604c5282f2f19383))
+
 ## [0.11.13](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.12...dev.openfeature.contrib.providers.flagd-v0.11.13) (2025-07-09)
 
 

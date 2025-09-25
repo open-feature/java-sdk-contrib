@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>env-var</artifactId>
-    <version>0.0.11</version> <!--x-release-please-version -->
+    <version>0.0.12</version> <!--x-release-please-version -->
 
     <properties>
         <!-- override module name defined in parent ("-" is not allowed) -->
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.17.0</version>
+            <version>3.18.0</version>
         </dependency>
     </dependencies>
 </project>

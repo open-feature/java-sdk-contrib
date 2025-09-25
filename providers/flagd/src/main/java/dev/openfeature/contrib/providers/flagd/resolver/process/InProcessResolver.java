@@ -22,11 +22,13 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Resolves flag values using
@@ -203,9 +205,18 @@ public class InProcessResolver implements Resolver {
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
+            if (StringUtils.isEmpty(resolvedVariant) && StringUtils.isEmpty(flag.getDefaultVariant())) {
+                return ProviderEvaluation.<T>builder()
+                        .reason(Reason.ERROR.toString())
+                        .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                        .errorMessage("Flag '" + key + "' has no default variant defined, will use code default")
+                        .flagMetadata(getFlagMetadata(storageQueryResult))
+                        .build();
+            }
+
             String message = String.format("variant %s not found in flag with key %s", resolvedVariant, key);
             log.debug(message);
-            throw new TypeMismatchError(message);
+            throw new GeneralError(message);
         }
         if (value instanceof Integer && type == Double.class) {
             // if this is an integer and we are trying to resolve a double, convert

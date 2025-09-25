@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
@@ -73,6 +75,7 @@ class SyncStreamQueueSourceTest {
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
+        assertNotNull(payload.getSyncContext());
         assertEquals(QueuePayloadType.DATA, payload.getType());
         // should NOT have restarted the stream (1 call)
         verify(stub, times(1)).syncFlags(any(), any());
@@ -94,11 +97,36 @@ class SyncStreamQueueSourceTest {
         BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
+        assertNull(payload.getSyncContext());
         assertEquals(QueuePayloadType.DATA, payload.getType());
         // should NOT have restarted the stream (1 call)
         verify(stub, times(1)).syncFlags(any(), any());
         // should NOT have called getMetadata
         verify(blockingStub, times(0)).getMetadata(any());
+    }
+
+    @Test
+    void onNextEnqueuesDataPayloadWithSyncContext() throws Exception {
+        // disable GetMetadata call
+        SyncStreamQueueSource connector =
+                new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
+        latch = new CountDownLatch(1);
+        connector.init();
+        latch.await();
+
+        // fire onNext (data) event
+        Struct syncContext = Struct.newBuilder().build();
+        observer.onNext(
+                SyncFlagsResponse.newBuilder().setSyncContext(syncContext).build());
+
+        // should enqueue data payload
+        BlockingQueue<QueuePayload> streamQueue = connector.getStreamQueue();
+        QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
+        assertNotNull(payload);
+        assertEquals(syncContext, payload.getSyncContext());
+        assertEquals(QueuePayloadType.DATA, payload.getType());
+        // should NOT have restarted the stream (1 call)
+        verify(stub, times(1)).syncFlags(any(), any());
     }
 
     @Test

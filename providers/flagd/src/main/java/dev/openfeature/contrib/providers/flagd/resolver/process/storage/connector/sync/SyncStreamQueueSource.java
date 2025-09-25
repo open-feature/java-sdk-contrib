@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync;
 
+import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
@@ -123,7 +124,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
             log.debug("Initializing sync stream request");
             final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
-            GetMetadataResponse metadataResponse = GetMetadataResponse.getDefaultInstance();
+            GetMetadataResponse metadataResponse = null;
 
             // create a context which exists to track and cancel the stream
             try (CancellableContext context = Context.current().withCancellation()) {
@@ -162,8 +163,7 @@ public class SyncStreamQueueSource implements QueueSource {
                         log.debug("Exception in stream RPC, streamException {}, will restart", streamException);
                         if (!outgoingQueue.offer(new QueuePayload(
                                 QueuePayloadType.ERROR,
-                                String.format("Error from stream: %s", streamException.getMessage()),
-                                metadataResponse))) {
+                                String.format("Error from stream: %s", streamException.getMessage())))) {
                             log.error("Failed to convey ERROR status, queue is full");
                         }
                         break;
@@ -173,7 +173,14 @@ public class SyncStreamQueueSource implements QueueSource {
                     final String data = flagsResponse.getFlagConfiguration();
                     log.debug("Got stream response: {}", data);
 
-                    if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.DATA, data, metadataResponse))) {
+                    Struct syncContext = null;
+                    if (flagsResponse.hasSyncContext()) {
+                        syncContext = flagsResponse.getSyncContext();
+                    } else if (metadataResponse != null) {
+                        syncContext = metadataResponse.getMetadata();
+                    }
+
+                    if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.DATA, data, syncContext))) {
                         log.error("Stream writing failed");
                     }
                 }
