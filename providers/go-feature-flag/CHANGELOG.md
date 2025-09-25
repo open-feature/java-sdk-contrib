@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.1...dev.openfeature.contrib.providers.go-feature-flag-v1.0.2) (2025-09-25)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** fix wrong environment variable and test execution ([#1589](https://github.com/open-feature/java-sdk-contrib/issues/1589)) ([e1d8e54](https://github.com/open-feature/java-sdk-contrib/commit/e1d8e54cb15f7e9f27626c60cebded3690a84698))
+
 ## [1.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.0...dev.openfeature.contrib.providers.go-feature-flag-v1.0.1) (2025-09-19)
 
 
