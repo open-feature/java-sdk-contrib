@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.openfeature.contrib</groupId>
+        <artifactId>parent</artifactId>
+        <version>[1.0,2.0)</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>dev.openfeature.contrib.providers</groupId>
+    <artifactId>optimizely</artifactId>
+    <version>0.0.1</version> <!--x-release-please-version -->
+
+    <name>optimizely</name>
+    <description>optimizely provider for Java</description>
+    <url>https://optimizely.com/</url>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.optimizely.ab</groupId>
+            <artifactId>core-api</artifactId>
+            <version>4.2.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.optimizely.ab</groupId>
+            <artifactId>core-httpclient-impl</artifactId>
+            <version>4.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.17</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>2.25.0</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+</project>
