@@ -223,7 +223,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.0</version>
+                <version>3.14.1</version>
             </plugin>
 
             <!-- automatically derive a module name from the groupId and artifactId -->
@@ -569,7 +569,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.14.0</version>
+                        <version>3.14.1</version>
                         <executions>
                             <execution>
                                 <id>default-testCompile</id>
