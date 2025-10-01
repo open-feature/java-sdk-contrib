@@ -5,8 +5,6 @@ import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.ProviderEvent;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
-import io.grpc.stub.AbstractBlockingStub;
-import io.grpc.stub.AbstractStub;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
