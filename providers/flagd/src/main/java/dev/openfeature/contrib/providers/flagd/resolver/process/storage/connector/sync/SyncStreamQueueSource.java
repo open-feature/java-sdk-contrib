@@ -157,7 +157,7 @@ public class SyncStreamQueueSource implements QueueSource {
         } catch (StatusRuntimeException e) {
             // In newer versions of flagd, metadata is part of the sync stream. If the method is unimplemented, we
             // can ignore the error
-            if (Status.UNIMPLEMENTED.equals(e.getStatus())) {
+            if (e.getStatus() != null && Status.Code.UNIMPLEMENTED.equals(e.getStatus().getCode())) {
                 return null;
             }
 
