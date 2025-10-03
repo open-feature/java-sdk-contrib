@@ -58,8 +58,10 @@ public class SyncStreamQueueSource implements QueueSource {
         providerId = options.getProviderId();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
-        flagSyncStub = FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
-        metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel()).withWaitForReady();
+        flagSyncStub =
+                FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
+        metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
+                .withWaitForReady();
     }
 
     // internal use only
@@ -157,7 +159,8 @@ public class SyncStreamQueueSource implements QueueSource {
         } catch (StatusRuntimeException e) {
             // In newer versions of flagd, metadata is part of the sync stream. If the method is unimplemented, we
             // can ignore the error
-            if (e.getStatus() != null && Status.Code.UNIMPLEMENTED.equals(e.getStatus().getCode())) {
+            if (e.getStatus() != null
+                    && Status.Code.UNIMPLEMENTED.equals(e.getStatus().getCode())) {
                 return null;
             }
 
