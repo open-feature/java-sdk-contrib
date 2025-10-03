@@ -9,6 +9,7 @@ import com.google.protobuf.Message;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
@@ -59,7 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 public final class RpcResolver implements Resolver {
     private static final int QUEUE_SIZE = 5;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
-    private final ChannelConnector<ServiceStub, ServiceBlockingStub> connector;
+    private final ChannelConnector connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
     private final FlagdOptions options;
@@ -83,7 +84,7 @@ public final class RpcResolver implements Resolver {
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
         incomingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        this.connector = new ChannelConnector<>(options, onProviderEvent);
+        this.connector = new ChannelConnector(options, onProviderEvent, ChannelBuilder.nettyChannel(options));
         this.onProviderEvent = onProviderEvent;
         this.stub = ServiceGrpc.newStub(this.connector.getChannel()).withWaitForReady();
         this.blockingStub =
@@ -97,7 +98,7 @@ public final class RpcResolver implements Resolver {
             final Consumer<FlagdProviderEvent> onProviderEvent,
             ServiceStub mockStub,
             ServiceBlockingStub mockBlockingStub,
-            ChannelConnector<ServiceStub, ServiceBlockingStub> connector) {
+            ChannelConnector connector) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
