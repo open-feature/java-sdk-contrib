@@ -40,6 +40,7 @@ public class SyncStreamQueueSource implements QueueSource {
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final int streamDeadline;
     private final int deadline;
+    private final int maxBackoffMs;
     private final String selector;
     private final String providerId;
     private final boolean syncMetadataDisabled;
@@ -56,6 +57,7 @@ public class SyncStreamQueueSource implements QueueSource {
         deadline = options.getDeadline();
         selector = options.getSelector();
         providerId = options.getProviderId();
+        maxBackoffMs = options.getRetryBackoffMaxMs();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
         flagSyncStub =
@@ -75,6 +77,7 @@ public class SyncStreamQueueSource implements QueueSource {
         selector = options.getSelector();
         providerId = options.getProviderId();
         channelConnector = connectorMock;
+        maxBackoffMs = options.getRetryBackoffMaxMs();
         flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         metadataStub = blockingStubMock;
@@ -110,26 +113,32 @@ public class SyncStreamQueueSource implements QueueSource {
         log.info("Initializing sync stream observer");
 
         // outer loop for re-issuing the stream request
-        // "waitForReady" on the channel, plus our retry policy slow this loop down in error conditions
+        // "waitForReady" on the channel, plus our retry policy slow this loop down in
+        // error conditions
         while (!shutdown.get()) {
-            log.debug("Initializing sync stream request");
-            SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue);
-
             try {
-                observer.metadata = getMetadata();
-            } catch (Exception metaEx) {
-                // retry if getMetadata fails
-                String message = metaEx.getMessage();
-                log.debug("Metadata request error: {}, will restart", message, metaEx);
-                enqueueError(String.format("Error in getMetadata request: %s", message));
-                continue;
-            }
+                log.debug("Initializing sync stream request");
+                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue);
+                try {
+                    observer.metadata = getMetadata();
+                } catch (Exception metaEx) {
+                    // retry if getMetadata fails
+                    String message = metaEx.getMessage();
+                    log.debug("Metadata request error: {}, will restart", message, metaEx);
+                    enqueueError(String.format("Error in getMetadata request: %s", message));
+                    Thread.sleep(this.maxBackoffMs);
+                    continue;
+                }
 
-            try {
-                syncFlags(observer);
-            } catch (Exception ex) {
-                log.error("Unexpected sync stream exception, will restart.", ex);
-                enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
+                try {
+                    syncFlags(observer);
+                } catch (Exception ex) {
+                    log.error("Unexpected sync stream exception, will restart.", ex);
+                    enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
+                    Thread.sleep(this.maxBackoffMs);
+                }
+            } catch (InterruptedException ie) {
+                log.debug("Stream loop interrupted, most likely shutdown was invoked", ie);
             }
         }
 

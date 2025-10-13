@@ -24,95 +24,57 @@ import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLException;
 
 /** gRPC channel builder helper. */
+@SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we don't care to serialize this")
 public class ChannelBuilder {
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private static final Map<String, ?> DEFAULT_RETRY_POLICY = new HashMap() {
-        {
-            // 1s + 2s + 4s
-            put("maxAttempts", 3.0); // types used here are important, need to be doubles
-            put("initialBackoff", "1s");
-            put("maxBackoff", "5s");
-            put("backoffMultiplier", 2.0);
-            // status codes to retry on:
-            put(
-                    "retryableStatusCodes",
-                    Arrays.asList(
-                            /*
-                             * Only states UNAVAILABLE and UNKNOWN should be retried. All
-                             * other failure states will probably not be resolved with a simple retry.
-                             */
-                            Code.UNAVAILABLE.toString(), Code.UNKNOWN.toString()));
-        }
-    };
-
     /**
      * Controls retry (not-reconnection) policy for failed RPCs.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    static final Map<String, ?> SERVICE_CONFIG_WITH_RETRY = new HashMap() {
-        {
-            put("methodConfig", Arrays.asList(new HashMap() {
-                {
-                    put(
-                            "name",
-                            Arrays.asList(
-                                    new HashMap() {
-                                        {
-                                            put("service", "flagd.sync.v1.FlagSyncService");
-                                        }
-                                    },
-                                    new HashMap() {
-                                        {
-                                            put("service", "flagd.evaluation.v1.Service");
-                                        }
-                                    }));
-                    put("retryPolicy", DEFAULT_RETRY_POLICY);
-                }
-
-                {
-                    put("name", Arrays.asList(new HashMap() {
-                        {
-                            put("service", "flagd.sync.v1.FlagSyncService");
-                            put("method", "SyncFlags");
-                        }
-                    }));
-                    put("retryPolicy", new HashMap(DEFAULT_RETRY_POLICY) {
-                        {
-                            // 1s + 2s + 4s + 5s + 5s + 5s + 5s + 5s + 5s + 5s
-                            put("maxAttempts", 12.0);
-                            // for streaming Retry on more status codes
-                            put(
-                                    "retryableStatusCodes",
-                                    Arrays.asList(
-                                            /*
-                                             * All codes are retryable except OK and DEADLINE_EXCEEDED since
-                                             * any others not listed here cause a very tight loop of retries.
-                                             * DEADLINE_EXCEEDED is typically a result of a client specified
-                                             * deadline,and definitionally should not result in a tight loop
-                                             * (it's a timeout).
-                                             */
-                                            Code.CANCELLED.toString(),
-                                            Code.UNKNOWN.toString(),
-                                            Code.INVALID_ARGUMENT.toString(),
-                                            Code.NOT_FOUND.toString(),
-                                            Code.ALREADY_EXISTS.toString(),
-                                            Code.PERMISSION_DENIED.toString(),
-                                            Code.RESOURCE_EXHAUSTED.toString(),
-                                            Code.FAILED_PRECONDITION.toString(),
-                                            Code.ABORTED.toString(),
-                                            Code.OUT_OF_RANGE.toString(),
-                                            Code.UNIMPLEMENTED.toString(),
-                                            Code.INTERNAL.toString(),
-                                            Code.UNAVAILABLE.toString(),
-                                            Code.DATA_LOSS.toString(),
-                                            Code.UNAUTHENTICATED.toString()));
-                        }
-                    });
-                }
-            }));
-        }
-    };
+    static Map<String, ?> buildRetryPolicy(final FlagdOptions options) {
+        return new HashMap() {
+            {
+                put("methodConfig", Arrays.asList(new HashMap() {
+                    {
+                        put(
+                                "name",
+                                Arrays.asList(
+                                        new HashMap() {
+                                            {
+                                                put("service", "flagd.sync.v1.FlagSyncService");
+                                            }
+                                        },
+                                        new HashMap() {
+                                            {
+                                                put("service", "flagd.evaluation.v1.Service");
+                                            }
+                                        }));
+                        put("retryPolicy", new HashMap() {
+                            {
+                                // 1 + 2 + 4
+                                put("maxAttempts", 3.0); // types used here are important, need to be doubles
+                                put("initialBackoff", "1s");
+                                put(
+                                        "maxBackoff",
+                                        options.getRetryBackoffMaxMs() >= 1000
+                                                ? String.format("%ds", options.getRetryBackoffMaxMs() / 1000)
+                                                : "1s");
+                                put("backoffMultiplier", 2.0);
+                                // status codes to retry on:
+                                put(
+                                        "retryableStatusCodes",
+                                        Arrays.asList(
+                                                /*
+                                                 * As per gRPC spec, the following status codes are safe to retry:
+                                                 * UNAVAILABLE, UNKNOWN,
+                                                 */
+                                                Code.UNKNOWN.toString(), Code.UNAVAILABLE.toString()));
+                            }
+                        });
+                    }
+                }));
+            }
+        };
+    }
 
     private ChannelBuilder() {}
 
@@ -137,7 +99,7 @@ public class ChannelBuilder {
                     .eventLoopGroup(new MultiThreadIoEventLoopGroup(EpollIoHandler.newFactory()))
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
-                    .defaultServiceConfig(SERVICE_CONFIG_WITH_RETRY)
+                    .defaultServiceConfig(buildRetryPolicy(options))
                     .enableRetry()
                     .build();
         }
@@ -183,7 +145,7 @@ public class ChannelBuilder {
                 builder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
             }
 
-            return builder.defaultServiceConfig(SERVICE_CONFIG_WITH_RETRY)
+            return builder.defaultServiceConfig(buildRetryPolicy(options))
                     .enableRetry()
                     .build();
         } catch (SSLException ssle) {

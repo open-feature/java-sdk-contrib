@@ -102,6 +102,12 @@ class ChannelBuilderTest {
             NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
             ManagedChannel mockChannel = mock(ManagedChannel.class);
 
+            // Input options
+            FlagdOptions options = FlagdOptions.builder()
+                    .socketPath("/path/to/socket")
+                    .keepAlive(1000)
+                    .build();
+
             nettyMock
                     .when(() -> NettyChannelBuilder.forAddress(any(DomainSocketAddress.class)))
                     .thenReturn(mockBuilder);
@@ -110,17 +116,11 @@ class ChannelBuilderTest {
             when(mockBuilder.eventLoopGroup(any(MultiThreadIoEventLoopGroup.class)))
                     .thenReturn(mockBuilder);
             when(mockBuilder.channelType(EpollDomainSocketChannel.class)).thenReturn(mockBuilder);
-            when(mockBuilder.defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY))
+            when(mockBuilder.defaultServiceConfig(ChannelBuilder.buildRetryPolicy(options)))
                     .thenReturn(mockBuilder);
             doReturn(mockBuilder).when(mockBuilder).enableRetry();
             when(mockBuilder.usePlaintext()).thenReturn(mockBuilder);
             when(mockBuilder.build()).thenReturn(mockChannel);
-
-            // Input options
-            FlagdOptions options = FlagdOptions.builder()
-                    .socketPath("/path/to/socket")
-                    .keepAlive(1000)
-                    .build();
 
             // Call method under test
             ManagedChannel channel = ChannelBuilder.nettyChannel(options);
@@ -131,7 +131,7 @@ class ChannelBuilderTest {
             verify(mockBuilder).keepAliveTime(1000, TimeUnit.MILLISECONDS);
             verify(mockBuilder).eventLoopGroup(any(MultiThreadIoEventLoopGroup.class));
             verify(mockBuilder).channelType(EpollDomainSocketChannel.class);
-            verify(mockBuilder).defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY);
+            verify(mockBuilder).defaultServiceConfig(ChannelBuilder.buildRetryPolicy(options));
             verify(mockBuilder).usePlaintext();
             verify(mockBuilder).build();
         }
@@ -165,7 +165,7 @@ class ChannelBuilderTest {
             // Assertions
             assertThat(channel).isEqualTo(mockChannel);
             nettyMock.verify(() -> NettyChannelBuilder.forTarget("localhost:8080"));
-            verify(mockBuilder).defaultServiceConfig(ChannelBuilder.SERVICE_CONFIG_WITH_RETRY);
+            verify(mockBuilder).defaultServiceConfig(ChannelBuilder.buildRetryPolicy(options));
             verify(mockBuilder).enableRetry();
             verify(mockBuilder).build();
         }
