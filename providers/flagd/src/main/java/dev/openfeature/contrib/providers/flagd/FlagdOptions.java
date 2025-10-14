@@ -103,7 +103,7 @@ public class FlagdOptions {
      */
     @Builder.Default
     private int retryBackoffMaxMs =
-            fallBackToEnvOrDefault(Config.FLAGD_RETRY_BACKOFF_MAX_MS_VAR_NAME, Config.DEFAULT_MAX_RETRY_BACKOFF);
+            fallBackToEnvOrDefault(Config.FLAGD_RETRY_BACKOFF_MAX_MS_VAR_NAME, Config.DEFAULT_MAX_RETRY_BACKOFF_MS);
 
     /**
      * Streaming connection deadline in milliseconds.
