@@ -2,10 +2,9 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
-import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
@@ -16,9 +15,11 @@ import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
+import dev.openfeature.sdk.Awaitable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.grpc.Context;
-import io.grpc.Context.CancellableContext;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -39,15 +40,14 @@ public class SyncStreamQueueSource implements QueueSource {
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final int streamDeadline;
     private final int deadline;
+    private final int maxBackoffMs;
     private final String selector;
     private final String providerId;
     private final boolean syncMetadataDisabled;
-    private final ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> channelConnector;
-    private final LinkedBlockingQueue<StreamResponseModel<SyncFlagsResponse>> incomingQueue =
-            new LinkedBlockingQueue<>(QUEUE_SIZE);
+    private final ChannelConnector channelConnector;
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-    private final FlagSyncServiceStub stub;
-    private final FlagSyncServiceBlockingStub blockingStub;
+    private final FlagSyncServiceStub flagSyncStub;
+    private final FlagSyncServiceBlockingStub metadataStub;
 
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event stream.
@@ -57,17 +57,19 @@ public class SyncStreamQueueSource implements QueueSource {
         deadline = options.getDeadline();
         selector = options.getSelector();
         providerId = options.getProviderId();
+        maxBackoffMs = options.getRetryBackoffMaxMs();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
-        channelConnector = new ChannelConnector<>(options, onConnectionEvent);
-        this.stub = FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
-        this.blockingStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
+        channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
+        flagSyncStub =
+                FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
+        metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
                 .withWaitForReady();
     }
 
     // internal use only
     protected SyncStreamQueueSource(
             final FlagdOptions options,
-            ChannelConnector<FlagSyncServiceStub, FlagSyncServiceBlockingStub> connectorMock,
+            ChannelConnector connectorMock,
             FlagSyncServiceStub stubMock,
             FlagSyncServiceBlockingStub blockingStubMock) {
         streamDeadline = options.getStreamDeadlineMs();
@@ -75,23 +77,16 @@ public class SyncStreamQueueSource implements QueueSource {
         selector = options.getSelector();
         providerId = options.getProviderId();
         channelConnector = connectorMock;
-        stub = stubMock;
+        maxBackoffMs = options.getRetryBackoffMaxMs();
+        flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
-        blockingStub = blockingStubMock;
+        metadataStub = blockingStubMock;
     }
 
     /** Initialize sync stream connector. */
     public void init() throws Exception {
         channelConnector.initialize();
-        Thread listener = new Thread(() -> {
-            try {
-                observeSyncStream();
-            } catch (InterruptedException e) {
-                log.warn("gRPC event stream interrupted, flag configurations are stale", e);
-                Thread.currentThread().interrupt();
-            }
-        });
-
+        Thread listener = new Thread(this::observeSyncStream);
         listener.setDaemon(true);
         listener.start();
     }
@@ -114,84 +109,76 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     /** Contains blocking calls, to be used concurrently. */
-    private void observeSyncStream() throws InterruptedException {
-
+    private void observeSyncStream() {
         log.info("Initializing sync stream observer");
 
         // outer loop for re-issuing the stream request
-        // "waitForReady" on the channel, plus our retry policy slow this loop down in error conditions
+        // "waitForReady" on the channel, plus our retry policy slow this loop down in
+        // error conditions
         while (!shutdown.get()) {
-
-            log.debug("Initializing sync stream request");
-            final GetMetadataRequest.Builder metadataRequest = GetMetadataRequest.newBuilder();
-            GetMetadataResponse metadataResponse = null;
-
-            // create a context which exists to track and cancel the stream
-            try (CancellableContext context = Context.current().withCancellation()) {
-
-                restart(); // start the stream with the context
-
-                // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
-                if (!syncMetadataDisabled) {
-                    try {
-                        FlagSyncServiceBlockingStub localStub = blockingStub;
-
-                        if (deadline > 0) {
-                            localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
-                        }
-
-                        metadataResponse = localStub.getMetadata(metadataRequest.build());
-                    } catch (Exception metaEx) {
-                        // cancel the stream if the getMetadata fails
-                        // we can keep this log quiet since the stream is cancelled/restarted with this exception
-                        log.debug("Metadata exception: {}, cancelling stream", metaEx.getMessage(), metaEx);
-                        context.cancel(metaEx);
-                    }
+            try {
+                log.debug("Initializing sync stream request");
+                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue);
+                try {
+                    observer.metadata = getMetadata();
+                } catch (Exception metaEx) {
+                    // retry if getMetadata fails
+                    String message = metaEx.getMessage();
+                    log.debug("Metadata request error: {}, will restart", message, metaEx);
+                    enqueueError(String.format("Error in getMetadata request: %s", message));
+                    Thread.sleep(this.maxBackoffMs);
+                    continue;
                 }
 
-                // inner loop for handling messages
-                while (!shutdown.get() && !Context.current().isCancelled()) {
-                    final StreamResponseModel<SyncFlagsResponse> taken = incomingQueue.take();
-                    if (taken.isComplete()) {
-                        log.debug("Sync stream completed, will restart");
-                        // The stream is complete, we still try to reconnect
-                        break;
-                    }
-
-                    Throwable streamException = taken.getError();
-                    if (streamException != null) {
-                        log.debug("Exception in stream RPC, streamException {}, will restart", streamException);
-                        if (!outgoingQueue.offer(new QueuePayload(
-                                QueuePayloadType.ERROR,
-                                String.format("Error from stream: %s", streamException.getMessage())))) {
-                            log.error("Failed to convey ERROR status, queue is full");
-                        }
-                        break;
-                    }
-
-                    final SyncFlagsResponse flagsResponse = taken.getResponse();
-                    final String data = flagsResponse.getFlagConfiguration();
-                    log.debug("Got stream response: {}", data);
-
-                    Struct syncContext = null;
-                    if (flagsResponse.hasSyncContext()) {
-                        syncContext = flagsResponse.getSyncContext();
-                    } else if (metadataResponse != null) {
-                        syncContext = metadataResponse.getMetadata();
-                    }
-
-                    if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.DATA, data, syncContext))) {
-                        log.error("Stream writing failed");
-                    }
+                try {
+                    syncFlags(observer);
+                } catch (Exception ex) {
+                    log.error("Unexpected sync stream exception, will restart.", ex);
+                    enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
+                    Thread.sleep(this.maxBackoffMs);
                 }
+            } catch (InterruptedException ie) {
+                log.debug("Stream loop interrupted, most likely shutdown was invoked", ie);
             }
         }
 
         log.info("Shutdown invoked, exiting event stream listener");
     }
 
-    private void restart() {
-        FlagSyncServiceStub localStub = stub; // don't mutate the stub
+    // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
+    private Struct getMetadata() {
+        if (syncMetadataDisabled) {
+            return null;
+        }
+
+        FlagSyncServiceBlockingStub localStub = metadataStub;
+
+        if (deadline > 0) {
+            localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
+        }
+
+        try {
+            GetMetadataResponse metadataResponse = localStub.getMetadata(GetMetadataRequest.getDefaultInstance());
+
+            if (metadataResponse != null) {
+                return metadataResponse.getMetadata();
+            }
+
+            return null;
+        } catch (StatusRuntimeException e) {
+            // In newer versions of flagd, metadata is part of the sync stream. If the method is unimplemented, we
+            // can ignore the error
+            if (e.getStatus() != null
+                    && Status.Code.UNIMPLEMENTED.equals(e.getStatus().getCode())) {
+                return null;
+            }
+
+            throw e;
+        }
+    }
+
+    private void syncFlags(SyncStreamObserver streamObserver) {
+        FlagSyncServiceStub localStub = flagSyncStub; // don't mutate the stub
         if (streamDeadline > 0) {
             localStub = localStub.withDeadlineAfter(streamDeadline, TimeUnit.MILLISECONDS);
         }
@@ -205,6 +192,58 @@ public class SyncStreamQueueSource implements QueueSource {
             syncRequest.setProviderId(this.providerId);
         }
 
-        localStub.syncFlags(syncRequest.build(), new QueueingStreamObserver<SyncFlagsResponse>(incomingQueue));
+        localStub.syncFlags(syncRequest.build(), streamObserver);
+
+        streamObserver.done.await();
+    }
+
+    private void enqueueError(String message) {
+        enqueueError(outgoingQueue, message);
+    }
+
+    private static void enqueueError(BlockingQueue<QueuePayload> queue, String message) {
+        if (!queue.offer(new QueuePayload(QueuePayloadType.ERROR, message, null))) {
+            log.error("Failed to convey ERROR status, queue is full");
+        }
+    }
+
+    private static class SyncStreamObserver implements StreamObserver<SyncFlagsResponse> {
+        private final BlockingQueue<QueuePayload> outgoingQueue;
+        private final Awaitable done = new Awaitable();
+
+        private Struct metadata;
+
+        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue) {
+            this.outgoingQueue = outgoingQueue;
+        }
+
+        @Override
+        public void onNext(SyncFlagsResponse syncFlagsResponse) {
+            final String data = syncFlagsResponse.getFlagConfiguration();
+            log.debug("Got stream response: {}", data);
+
+            Struct syncContext = syncFlagsResponse.hasSyncContext() ? syncFlagsResponse.getSyncContext() : metadata;
+
+            if (!outgoingQueue.offer(new QueuePayload(QueuePayloadType.DATA, data, syncContext))) {
+                log.error("Stream writing failed");
+            }
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+            try {
+                String message = throwable != null ? throwable.getMessage() : "unknown";
+                log.debug("Stream error: {}, will restart", message, throwable);
+                enqueueError(outgoingQueue, String.format("Error from stream: %s", message));
+            } finally {
+                done.wakeup();
+            }
+        }
+
+        @Override
+        public void onCompleted() {
+            log.debug("Sync stream completed, will restart");
+            done.wakeup();
+        }
     }
 }

@@ -99,9 +99,17 @@ public class FlagdOptions {
     private int deadline = fallBackToEnvOrDefault(Config.DEADLINE_MS_ENV_VAR_NAME, Config.DEFAULT_DEADLINE);
 
     /**
+     * Max stream retry backoff in milliseconds.
+     */
+    @Builder.Default
+    private int retryBackoffMaxMs =
+            fallBackToEnvOrDefault(Config.FLAGD_RETRY_BACKOFF_MAX_MS_VAR_NAME, Config.DEFAULT_MAX_RETRY_BACKOFF_MS);
+
+    /**
      * Streaming connection deadline in milliseconds.
      * Set to 0 to disable the deadline.
-     * Defaults to 600000 (10 minutes); recommended to prevent infrastructure from killing idle connections.
+     * Defaults to 600000 (10 minutes); recommended to prevent infrastructure from
+     * killing idle connections.
      */
     @Builder.Default
     private int streamDeadlineMs =

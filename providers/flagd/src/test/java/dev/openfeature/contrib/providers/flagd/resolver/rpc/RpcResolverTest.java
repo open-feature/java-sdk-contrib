@@ -27,7 +27,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 class RpcResolverTest {
-    private ChannelConnector<ServiceStub, ServiceBlockingStub> mockConnector;
+    private ChannelConnector mockConnector;
     private ServiceBlockingStub blockingStub;
     private ServiceStub stub;
     private QueueingStreamObserver<EventStreamResponse> observer;
