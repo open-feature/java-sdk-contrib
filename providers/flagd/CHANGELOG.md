@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.16](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.15...dev.openfeature.contrib.providers.flagd-v0.11.16) (2025-10-14)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** fix wrong environment variable and test execution ([#1589](https://github.com/open-feature/java-sdk-contrib/issues/1589)) ([e1d8e54](https://github.com/open-feature/java-sdk-contrib/commit/e1d8e54cb15f7e9f27626c60cebded3690a84698))
+* **flagd:** improve stream observer, refine retry policy; don't use retry to avoid busy loop ([#1590](https://github.com/open-feature/java-sdk-contrib/issues/1590)) ([791f38c](https://github.com/open-feature/java-sdk-contrib/commit/791f38cdcdb12f7d7c8ec457ecea968f1ec5d048))
+
 ## [0.11.15](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.14...dev.openfeature.contrib.providers.flagd-v0.11.15) (2025-09-05)
 
 
