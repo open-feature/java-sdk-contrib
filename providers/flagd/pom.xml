@@ -180,6 +180,13 @@
                 <!-- caution - updating this will break compatibility with older protobuf-java versions -->
                 <version>${protobuf-java.min.version}</version>
             </dependency>
+
+            <!-- temporary override for https://www.cve.org/CVERecord?id=CVE-2025-58057 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http2</artifactId>
+                <version>4.1.125.Final</version>
+            </dependency>
         </dependencies>
 
     </dependencyManagement>
