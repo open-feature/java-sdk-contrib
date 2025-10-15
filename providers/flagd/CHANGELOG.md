@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.17](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.16...dev.openfeature.contrib.providers.flagd-v0.11.17) (2025-10-15)
+
+
+### 🐛 Bug Fixes
+
+* **security:** force netty-codec-http2 4.1.125 ([#1615](https://github.com/open-feature/java-sdk-contrib/issues/1615)) ([0b0070c](https://github.com/open-feature/java-sdk-contrib/commit/0b0070cacf79dfd475fb3ce0c0dbdffd7e02fe8a))
+
 ## [0.11.16](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.15...dev.openfeature.contrib.providers.flagd-v0.11.16) (2025-10-14)
 
 
