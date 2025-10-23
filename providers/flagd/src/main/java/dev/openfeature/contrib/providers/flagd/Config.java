@@ -14,6 +14,7 @@ public final class Config {
     static final String DEFAULT_HOST = "localhost";
 
     static final int DEFAULT_DEADLINE = 500;
+    static final int DEFAULT_MAX_RETRY_BACKOFF_MS = 12000;
     static final int DEFAULT_STREAM_DEADLINE_MS = 10 * 60 * 1000;
     static final int DEFAULT_STREAM_RETRY_GRACE_PERIOD = 5;
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
@@ -29,12 +30,20 @@ public final class Config {
     static final String SERVER_CERT_PATH_ENV_VAR_NAME = "FLAGD_SERVER_CERT_PATH";
     static final String CACHE_ENV_VAR_NAME = "FLAGD_CACHE";
     static final String MAX_CACHE_SIZE_ENV_VAR_NAME = "FLAGD_MAX_CACHE_SIZE";
-    static final String MAX_EVENT_STREAM_RETRIES_ENV_VAR_NAME = "FLAGD_MAX_EVENT_STREAM_RETRIES";
     static final String BASE_EVENT_STREAM_RETRY_BACKOFF_MS_ENV_VAR_NAME = "FLAGD_RETRY_BACKOFF_MS";
     static final String DEADLINE_MS_ENV_VAR_NAME = "FLAGD_DEADLINE_MS";
+    static final String FLAGD_RETRY_BACKOFF_MAX_MS_VAR_NAME = "FLAGD_RETRY_BACKOFF_MAX_MS";
     static final String STREAM_DEADLINE_MS_ENV_VAR_NAME = "FLAGD_STREAM_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
+    /**
+     * Environment variable to fetch Provider id.
+     *
+     * @deprecated please use {@link #PROVIDER_ID_ENV_VAR_NAME}
+     */
+    @Deprecated(forRemoval = true)
     static final String SOURCE_PROVIDER_ID_ENV_VAR_NAME = "FLAGD_SOURCE_PROVIDER_ID";
+
+    static final String PROVIDER_ID_ENV_VAR_NAME = "FLAGD_PROVIDER_ID";
     static final String OFFLINE_SOURCE_PATH = "FLAGD_OFFLINE_FLAG_SOURCE_PATH";
     static final String OFFLINE_POLL_MS = "FLAGD_OFFLINE_POLL_MS";
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME_OLD = "FLAGD_KEEP_ALIVE_TIME";

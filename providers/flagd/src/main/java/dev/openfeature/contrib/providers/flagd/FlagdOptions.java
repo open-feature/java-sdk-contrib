@@ -42,7 +42,8 @@ public class FlagdOptions {
 
     // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
     /**
-     * Disables call to sync.GetMetadata (see: https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
+     * Disables call to sync.GetMetadata (see:
+     * https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
      * Disabling will prevent static context from flagd being used in evaluations.
      * GetMetadata and this option will be removed.
      */
@@ -98,9 +99,17 @@ public class FlagdOptions {
     private int deadline = fallBackToEnvOrDefault(Config.DEADLINE_MS_ENV_VAR_NAME, Config.DEFAULT_DEADLINE);
 
     /**
+     * Max stream retry backoff in milliseconds.
+     */
+    @Builder.Default
+    private int retryBackoffMaxMs =
+            fallBackToEnvOrDefault(Config.FLAGD_RETRY_BACKOFF_MAX_MS_VAR_NAME, Config.DEFAULT_MAX_RETRY_BACKOFF_MS);
+
+    /**
      * Streaming connection deadline in milliseconds.
      * Set to 0 to disable the deadline.
-     * Defaults to 600000 (10 minutes); recommended to prevent infrastructure from killing idle connections.
+     * Defaults to 600000 (10 minutes); recommended to prevent infrastructure from
+     * killing idle connections.
      */
     @Builder.Default
     private int streamDeadlineMs =
@@ -123,7 +132,8 @@ public class FlagdOptions {
      * ProviderId to be used with flag sync gRPC contract.
      **/
     @Builder.Default
-    private String providerId = fallBackToEnvOrDefault(Config.SOURCE_PROVIDER_ID_ENV_VAR_NAME, null);
+    private String providerId = fallBackToEnvOrDefault(
+            Config.PROVIDER_ID_ENV_VAR_NAME, fallBackToEnvOrDefault(Config.SOURCE_PROVIDER_ID_ENV_VAR_NAME, null));
 
     /**
      * gRPC client KeepAlive in milliseconds. Disabled with 0.
