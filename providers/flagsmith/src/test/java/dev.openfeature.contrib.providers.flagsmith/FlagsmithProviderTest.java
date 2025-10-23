@@ -159,6 +159,24 @@ public class FlagsmithProviderTest {
         mockFlagsmithErrorServer.shutdown();
     }
 
+    @ParameterizedTest
+    @MethodSource("convertValueArguments")
+    void testConvertValue(Object input, Class<?> expectedType, Object expected) throws Exception {
+        var method = flagsmithProvider.getClass().getDeclaredMethod("convertValue", Object.class, Class.class);
+        method.setAccessible(true);
+        Object result = method.invoke(flagsmithProvider, input, expectedType);
+        assertEquals(expected, result);
+    }
+
+    private static Stream<Arguments> convertValueArguments() {
+        return Stream.of(
+                Arguments.of(true, Boolean.class, true),
+                Arguments.of("test", String.class, "test"),
+                Arguments.of(123, Integer.class, 123),
+                Arguments.of(3.14, Double.class, 3.14),
+                Arguments.of("3.14", Double.class, 3.14));
+    }
+
     @Test
     void shouldInitializeProviderWhenAllOptionsSet() {
         HashMap<String, String> headers = new HashMap<String, String>() {
