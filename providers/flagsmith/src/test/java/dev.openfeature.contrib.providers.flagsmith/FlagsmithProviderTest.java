@@ -173,8 +173,10 @@ public class FlagsmithProviderTest {
                 Arguments.of(true, Boolean.class, true),
                 Arguments.of("test", String.class, "test"),
                 Arguments.of(123, Integer.class, 123),
+                Arguments.of("123", Integer.class, 123),
                 Arguments.of(3.14, Double.class, 3.14),
-                Arguments.of("3.14", Double.class, 3.14));
+                Arguments.of("3.14", Double.class, 3.14)
+                );
     }
 
     @Test

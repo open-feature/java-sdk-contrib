@@ -190,6 +190,8 @@ public class FlagsmithProvider implements FeatureProvider {
                 || expectedType == Double.class;
 
         Object flagValue;
+        String message = "Flag value had an unexpected type ("
+                + (value != null ? value.getClass() : "null") + "), expected (" + expectedType + ").";
         if (isPrimitive) {
             if (expectedType == Double.class) {
                 if (value instanceof Double) {
@@ -201,8 +203,19 @@ public class FlagsmithProvider implements FeatureProvider {
                         throw new TypeMismatchError("Flag value string could not be parsed as Double: " + value);
                     }
                 } else {
-                    throw new TypeMismatchError("Flag value had an unexpected type "
-                            + (value != null ? value.getClass() : "null") + ", expected " + expectedType + ".");
+                    throw new TypeMismatchError(message);
+                }
+            } else if (expectedType == Integer.class) {
+                if (value instanceof Integer) {
+                    flagValue = value;
+                } else if (value instanceof String) {
+                    try {
+                        flagValue = Integer.parseInt((String) value);
+                    } catch (NumberFormatException e) {
+                        throw new TypeMismatchError("Flag value string could not be parsed as Integer: " + value);
+                    }
+                } else {
+                    throw new TypeMismatchError(message);
                 }
             } else {
                 flagValue = value;
@@ -212,8 +225,7 @@ public class FlagsmithProvider implements FeatureProvider {
         }
 
         if (!expectedType.isInstance(flagValue)) {
-            throw new TypeMismatchError("Flag value had an unexpected type "
-                    + (flagValue != null ? flagValue.getClass() : "null" + ", expected " + expectedType + "."));
+            throw new TypeMismatchError(message);
         }
         return (T) flagValue;
     }
