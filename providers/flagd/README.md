@@ -47,6 +47,88 @@ FlagdProvider flagdProvider = new FlagdProvider(
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flags.json).
 
+#### Selector filtering (In-process mode only)
+
+The `selector` option allows filtering flag configurations from flagd based on source identifiers when using the in-process resolver. This is useful when flagd is configured with multiple flag sources and you want to sync only a specific subset.
+
+##### Current implementation (Request body)
+
+The current implementation passes the selector in the gRPC request body via the `SyncFlagsRequest`:
+
+```java
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .selector("source=my-app")
+                .build());
+```
+
+Or via environment variable:
+```bash
+export FLAGD_SOURCE_SELECTOR="source=my-app"
+```
+
+##### Migration to header-based selector
+
+> [!IMPORTANT]
+> **Selector normalization and deprecation notice**
+> 
+> As part of [flagd issue #1814](https://github.com/open-feature/flagd/issues/1814), the flagd project is normalizing selector handling across all services. The preferred approach is to use the `flagd-selector` gRPC metadata header instead of the request body field.
+>
+> **Current status:**
+> - The Java SDK currently uses the **request body** approach (via `SyncFlagsRequest.setSelector()`)
+> - flagd services support both request body and header for backward compatibility
+> - In a future major version, the request body selector field may be removed from flagd
+>
+> **Recommended migration path:**
+> 
+> To prepare for future changes and align with the preferred approach, you can pass the selector via gRPC headers using a custom `ClientInterceptor`:
+
+```java
+import io.grpc.*;
+
+private static ClientInterceptor createSelectorHeaderInterceptor(String selector) {
+    return new ClientInterceptor() {
+        @Override
+        public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+                MethodDescriptor<ReqT, RespT> method, 
+                CallOptions callOptions, 
+                Channel next) {
+            return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+                    next.newCall(method, callOptions)) {
+                @Override
+                public void start(Listener<RespT> responseListener, Metadata headers) {
+                    headers.put(
+                        Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER), 
+                        selector
+                    );
+                    super.start(responseListener, headers);
+                }
+            };
+        }
+    };
+}
+
+// Use the interceptor when creating the provider
+List<ClientInterceptor> interceptors = new ArrayList<>();
+interceptors.add(createSelectorHeaderInterceptor("source=my-app"));
+
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .clientInterceptors(interceptors)
+                // Note: You can still use .selector() for backward compatibility
+                // but the header approach is preferred for future-proofing
+                .build());
+```
+
+**Backward compatibility:**
+- The current request body approach will continue to work with flagd services that support it
+- Both approaches can be used simultaneously during the migration period
+- The Java SDK will be updated in a future major version to use headers by default
+
+For more details on selector normalization, see the [flagd selector normalization issue](https://github.com/open-feature/flagd/issues/1814).
+
 #### Sync-metadata
 
 To support the injection of contextual data configured in flagd for in-process evaluation, the provider exposes a `getSyncMetadata` accessor which provides the most recent value returned by the [GetMetadata RPC](https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
@@ -119,7 +201,7 @@ Given below are the supported configurations:
 | deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process & file |
 | streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS       | int                      | 600000    | rpc & in-process        |
 | keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS       | long                     | 0         | rpc & in-process        |
-| selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process              |
+| selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process (see [migration guidance](#selector-filtering-in-process-mode-only)) |
 | providerId            | FLAGD_SOURCE_PROVIDER_ID       | String                   | null      | in-process              |
 | cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                     |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                      | 1000      | rpc                     |
@@ -130,6 +212,9 @@ Given below are the supported configurations:
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.
+
+> [!WARNING]
+> The `selector` option currently uses the gRPC request body approach, which may be deprecated in future flagd versions. See [Selector filtering](#selector-filtering-in-process-mode-only) for migration guidance to the header-based approach.
 >
 
 ### Unix socket support
@@ -188,6 +273,9 @@ FlagdProvider flagdProvider = new FlagdProvider(
 ### Configuring gRPC credentials and headers
 
 The `clientInterceptors` and `defaultAuthority` are meant for connection of the in-process resolver to a Sync API implementation on a host/port, that might require special credentials or headers.
+
+> [!TIP]
+> `ClientInterceptor` can also be used to pass the `flagd-selector` header for selector-based filtering. See [Selector filtering](#selector-filtering-in-process-mode-only) for details on the preferred header-based approach.
 
 ```java
 private static ClientInterceptor createHeaderInterceptor() {
