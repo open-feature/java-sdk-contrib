@@ -125,14 +125,13 @@ public class FlagdOptions {
     /**
      * Selector to be used with flag sync gRPC contract.
      * <p>
-     * <b>Note:</b> This currently uses the gRPC request body approach. The preferred approach is to use
-     * the {@code flagd-selector} header via a {@link ClientInterceptor}.
-     * See the <a href="https://github.com/open-feature/java-sdk-contrib/tree/main/providers/flagd#selector-filtering-in-process-mode-only">selector migration guidance</a>
-     * for details on the header-based approach.
+     * The SDK automatically passes the selector via the {@code flagd-selector} gRPC metadata header
+     * (the preferred approach per <a href="https://github.com/open-feature/flagd/issues/1814">flagd issue #1814</a>).
+     * For backward compatibility with older flagd versions, the selector is also sent in the request body.
      * <p>
      * Only applicable for in-process resolver mode.
      * 
-     * @see <a href="https://github.com/open-feature/flagd/issues/1814">flagd selector normalization issue</a>
+     * @see <a href="https://github.com/open-feature/java-sdk-contrib/tree/main/providers/flagd#selector-filtering-in-process-mode-only">Selector filtering documentation</a>
      **/
     @Builder.Default
     private String selector = fallBackToEnvOrDefault(Config.SOURCE_SELECTOR_ENV_VAR_NAME, null);
