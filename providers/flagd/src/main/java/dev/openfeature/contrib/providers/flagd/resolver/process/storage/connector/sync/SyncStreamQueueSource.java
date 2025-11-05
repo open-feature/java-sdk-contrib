@@ -17,6 +17,13 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import dev.openfeature.sdk.Awaitable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
+import io.grpc.ForwardingClientCall;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -60,8 +67,14 @@ public class SyncStreamQueueSource implements QueueSource {
         maxBackoffMs = options.getRetryBackoffMaxMs();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
-        flagSyncStub =
-                FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
+        
+        // Apply selector header interceptor if selector is configured
+        Channel channel = channelConnector.getChannel();
+        if (selector != null) {
+            channel = io.grpc.ClientInterceptors.intercept(channel, createSelectorInterceptor(selector));
+        }
+        
+        flagSyncStub = FlagSyncServiceGrpc.newStub(channel).withWaitForReady();
         metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
                 .withWaitForReady();
     }
@@ -184,6 +197,8 @@ public class SyncStreamQueueSource implements QueueSource {
         }
 
         final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
+        // Selector is now passed via header using ClientInterceptor (see constructor)
+        // Keeping this for backward compatibility with older flagd versions
         if (this.selector != null) {
             syncRequest.setSelector(this.selector);
         }
@@ -195,6 +210,34 @@ public class SyncStreamQueueSource implements QueueSource {
         localStub.syncFlags(syncRequest.build(), streamObserver);
 
         streamObserver.done.await();
+    }
+    
+    /**
+     * Creates a ClientInterceptor that adds the flagd-selector header to gRPC requests.
+     * This is the preferred approach for passing selectors as per flagd issue #1814.
+     *
+     * @param selector the selector value to pass in the header
+     * @return a ClientInterceptor that adds the flagd-selector header
+     */
+    private static ClientInterceptor createSelectorInterceptor(String selector) {
+        return new ClientInterceptor() {
+            @Override
+            public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+                    MethodDescriptor<ReqT, RespT> method,
+                    CallOptions callOptions,
+                    Channel next) {
+                return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+                        next.newCall(method, callOptions)) {
+                    @Override
+                    public void start(Listener<RespT> responseListener, Metadata headers) {
+                        headers.put(
+                                Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER),
+                                selector);
+                        super.start(responseListener, headers);
+                    }
+                };
+            }
+        };
     }
 
     private void enqueueError(String message) {
