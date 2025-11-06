@@ -43,6 +43,8 @@ import lombok.extern.slf4j.Slf4j;
         justification = "Random is used to generate a variation & flag configurations require exposing")
 public class SyncStreamQueueSource implements QueueSource {
     private static final int QUEUE_SIZE = 5;
+    private static final Metadata.Key<String> FLAGD_SELECTOR_KEY =
+            Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER);
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final int streamDeadline;
@@ -67,16 +69,15 @@ public class SyncStreamQueueSource implements QueueSource {
         maxBackoffMs = options.getRetryBackoffMaxMs();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
-        
+
         // Apply selector header interceptor if selector is configured
         Channel channel = channelConnector.getChannel();
         if (selector != null) {
             channel = io.grpc.ClientInterceptors.intercept(channel, createSelectorInterceptor(selector));
         }
-        
+
         flagSyncStub = FlagSyncServiceGrpc.newStub(channel).withWaitForReady();
-        metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
-                .withWaitForReady();
+        metadataStub = FlagSyncServiceGrpc.newBlockingStub(channel).withWaitForReady();
     }
 
     // internal use only
@@ -211,7 +212,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
         streamObserver.done.await();
     }
-    
+
     /**
      * Creates a ClientInterceptor that adds the flagd-selector header to gRPC requests.
      * This is the preferred approach for passing selectors as per flagd issue #1814.
@@ -223,16 +224,12 @@ public class SyncStreamQueueSource implements QueueSource {
         return new ClientInterceptor() {
             @Override
             public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-                    MethodDescriptor<ReqT, RespT> method,
-                    CallOptions callOptions,
-                    Channel next) {
+                    MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
                 return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(
-                                Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER),
-                                selector);
+                        headers.put(FLAGD_SELECTOR_KEY, selector);
                         super.start(responseListener, headers);
                     }
                 };

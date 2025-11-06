@@ -85,11 +85,6 @@ export FLAGD_SOURCE_SELECTOR="source=my-app"
 > 
 > Users do not need to make any code changes. The SDK handles selector normalization automatically.
 
-**Backward compatibility:**
-- Both header and request body approaches work with current flagd versions
-- Older flagd versions that only support request body selectors are still supported
-- Future flagd versions may remove request body selector support, but the SDK will continue to work using headers
-
 For more details on selector normalization, see the [flagd selector normalization issue](https://github.com/open-feature/flagd/issues/1814).
 
 #### Sync-metadata
