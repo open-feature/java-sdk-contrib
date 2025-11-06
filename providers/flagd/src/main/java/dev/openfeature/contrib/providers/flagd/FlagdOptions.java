@@ -124,13 +124,13 @@ public class FlagdOptions {
             fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
     /**
      * Selector to be used with flag sync gRPC contract.
-     * <p>
-     * The SDK automatically passes the selector via the {@code flagd-selector} gRPC metadata header
+     *
+     * <p>The SDK automatically passes the selector via the {@code flagd-selector} gRPC metadata header
      * (the preferred approach per <a href="https://github.com/open-feature/flagd/issues/1814">flagd issue #1814</a>).
      * For backward compatibility with older flagd versions, the selector is also sent in the request body.
-     * <p>
-     * Only applicable for in-process resolver mode.
-     * 
+     *
+     * <p>Only applicable for in-process resolver mode.
+     *
      * @see <a href="https://github.com/open-feature/java-sdk-contrib/tree/main/providers/flagd#selector-filtering-in-process-mode-only">Selector filtering documentation</a>
      **/
     @Builder.Default
