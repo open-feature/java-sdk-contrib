@@ -33,6 +33,10 @@ import javax.net.ssl.SSLException;
 /** gRPC channel builder helper. */
 @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we don't care to serialize this")
 public class ChannelBuilder {
+
+    private static final Metadata.Key<String> FLAGD_SELECTOR_KEY =
+            Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER);
+
     /**
      * Controls retry (not-reconnection) policy for failed RPCs.
      */
@@ -128,14 +132,14 @@ public class ChannelBuilder {
             final String defaultTarget = String.format("%s:%s", options.getHost(), options.getPort());
             final String targetUri = isValidTargetUri(options.getTargetUri()) ? options.getTargetUri() : defaultTarget;
 
-            final NettyChannelBuilder builder =
+            final NettyChannelBuilder channelBuilder =
                     NettyChannelBuilder.forTarget(targetUri).keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS);
 
             if (options.getDefaultAuthority() != null) {
-                builder.overrideAuthority(options.getDefaultAuthority());
+                channelBuilder.overrideAuthority(options.getDefaultAuthority());
             }
             if (options.getClientInterceptors() != null) {
-                builder.intercept(options.getClientInterceptors());
+                channelBuilder.intercept(options.getClientInterceptors());
             }
             if (options.isTls()) {
                 SslContextBuilder sslContext = GrpcSslContexts.forClient();
@@ -147,17 +151,21 @@ public class ChannelBuilder {
                     }
                 }
 
-                builder.sslContext(sslContext.build());
+                channelBuilder.sslContext(sslContext.build());
             } else {
-                builder.usePlaintext();
+                channelBuilder.usePlaintext();
             }
 
             // telemetry interceptor if option is provided
             if (options.getOpenTelemetry() != null) {
-                builder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
+                channelBuilder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
+            }
+            // add header-based selector interceptor if selector is provided
+            if (options.getSelector() != null) {
+                channelBuilder.intercept(createSelectorInterceptor(options.getSelector()));
             }
 
-            return builder.defaultServiceConfig(buildRetryPolicy(options))
+            return channelBuilder.defaultServiceConfig(buildRetryPolicy(options))
                     .enableRetry()
                     .build();
         } catch (SSLException ssle) {
@@ -188,7 +196,7 @@ public class ChannelBuilder {
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER), selector);
+                        headers.put(FLAGD_SELECTOR_KEY, selector);
                         super.start(responseListener, headers);
                     }
                 };

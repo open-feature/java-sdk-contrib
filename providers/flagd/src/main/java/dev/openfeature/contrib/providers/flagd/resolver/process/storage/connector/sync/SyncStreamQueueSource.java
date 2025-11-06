@@ -16,13 +16,6 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import dev.openfeature.sdk.Awaitable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.grpc.CallOptions;
-import io.grpc.Channel;
-import io.grpc.ClientCall;
-import io.grpc.ClientInterceptor;
-import io.grpc.ForwardingClientCall;
-import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -42,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
         justification = "We need to expose the BlockingQueue to allow consumers to read from it")
 public class SyncStreamQueueSource implements QueueSource {
     private static final int QUEUE_SIZE = 5;
-
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicBoolean shouldThrottle = new AtomicBoolean(false);
     private final int streamDeadline;
@@ -273,30 +265,6 @@ public class SyncStreamQueueSource implements QueueSource {
         localStub.syncFlags(syncRequest.build(), streamObserver);
 
         streamObserver.done.await();
-    }
-
-    /**
-     * Creates a ClientInterceptor that adds the flagd-selector header to gRPC requests.
-     * This is the preferred approach for passing selectors as per flagd issue #1814.
-     *
-     * @param selector the selector value to pass in the header
-     * @return a ClientInterceptor that adds the flagd-selector header
-     */
-    private static ClientInterceptor createSelectorInterceptor(String selector) {
-        return new ClientInterceptor() {
-            @Override
-            public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-                    MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
-                return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
-                        next.newCall(method, callOptions)) {
-                    @Override
-                    public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER), selector);
-                        super.start(responseListener, headers);
-                    }
-                };
-            }
-        };
     }
 
     private void enqueueError(String message) {
