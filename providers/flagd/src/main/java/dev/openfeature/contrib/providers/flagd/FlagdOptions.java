@@ -10,6 +10,7 @@ import dev.openfeature.sdk.Structure;
 import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import lombok.Builder;
@@ -122,6 +123,14 @@ public class FlagdOptions {
     @Builder.Default
     private int retryGracePeriod =
             fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
+
+    /**
+     * List of grpc response status codes for which failed connections are not retried.
+     * Defaults to empty list
+     */
+    @Builder.Default
+    private List<String> nonRetryableStatusCodes = new ArrayList<>();
+
     /**
      * Selector to be used with flag sync gRPC contract.
      **/

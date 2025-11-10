@@ -16,10 +16,12 @@ import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import dev.openfeature.sdk.Awaitable;
+import dev.openfeature.sdk.exceptions.FatalError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +51,7 @@ public class SyncStreamQueueSource implements QueueSource {
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final FlagSyncServiceStub flagSyncStub;
     private final FlagSyncServiceBlockingStub metadataStub;
+    private final List<String> nonRetryableStatusCodes;
 
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event stream.
@@ -65,6 +68,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
         metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
                 .withWaitForReady();
+        nonRetryableStatusCodes = options.getNonRetryableStatusCodes();
     }
 
     // internal use only
@@ -82,6 +86,7 @@ public class SyncStreamQueueSource implements QueueSource {
         flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         metadataStub = blockingStubMock;
+        nonRetryableStatusCodes = options.getNonRetryableStatusCodes();
     }
 
     /** Initialize sync stream connector. */
@@ -135,8 +140,11 @@ public class SyncStreamQueueSource implements QueueSource {
                 SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue, shouldThrottle);
                 try {
                     observer.metadata = getMetadata();
-                } catch (Exception metaEx) {
-                    // retry if getMetadata fails
+                } catch (StatusRuntimeException metaEx) {
+                    if (nonRetryableStatusCodes.contains(metaEx.getStatus().getCode().name())) {
+                        throw new FatalError("Failed to connect for metadata request, not retrying for error " + metaEx.getStatus());
+                    }
+                    // retry for other status codes
                     String message = metaEx.getMessage();
                     log.debug("Metadata request error: {}, will restart", message, metaEx);
                     enqueueError(String.format("Error in getMetadata request: %s", message));
@@ -146,7 +154,11 @@ public class SyncStreamQueueSource implements QueueSource {
 
                 try {
                     syncFlags(observer);
-                } catch (Exception ex) {
+                } catch (StatusRuntimeException ex) {
+                    if (nonRetryableStatusCodes.contains(ex.getStatus().toString())) {
+                        throw new FatalError("Failed to connect to sync stream, not retrying for error " + ex.getStatus());
+                    }
+                    // retry for other status codes
                     log.error("Unexpected sync stream exception, will restart.", ex);
                     enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
                     shouldThrottle.set(true);
