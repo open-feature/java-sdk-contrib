@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Thread factory for the Flagd provider to allow named daemon threads to be created.
  */
-public final class FlagdThreadFactory implements ThreadFactory {
+class FlagdThreadFactory implements ThreadFactory {
 
     private final AtomicInteger counter = new AtomicInteger();
     private final String namePrefix;
