@@ -284,7 +284,7 @@ public final class GoFeatureFlagApi {
             String headerValue = response.headers()
                     .firstValue(Const.HTTP_HEADER_LAST_MODIFIED)
                     .orElse(null);
-            SimpleDateFormat lastModifiedHeaderFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+            SimpleDateFormat lastModifiedHeaderFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH);
             return headerValue != null ? lastModifiedHeaderFormatter.parse(headerValue) : null;
         } catch (Exception e) {
             log.debug("Error parsing Last-Modified header: {}", e.getMessage());
