@@ -202,6 +202,27 @@ class FlagdOptionsTest {
     }
 
     @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = "FLAGD_SYNC_PORT", value = "1005")
+    void testInProcessProvider_usesSyncPortEnvVarWhenSet() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(1005);
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = "FLAGD_PORT", value = "5000")
+    void testInProcessProvider_fallsBackToFlagdPortWhenSyncPortNotSet(){
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(5000);
+    }
+
+
+    @Test
     @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_RPC)
     void testRpcProviderFromEnv_noPortConfigured_defaultsToCorrectPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
