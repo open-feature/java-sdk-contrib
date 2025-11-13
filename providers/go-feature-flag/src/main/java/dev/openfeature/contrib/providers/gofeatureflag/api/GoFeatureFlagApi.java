@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -296,7 +297,7 @@ public final class GoFeatureFlagApi {
                     .toInstant()
             );
         } catch (DateTimeParseException e) {
-            log.debug("Failed to parse Last-Modified header: '{}'. Cause: {}", headerValue, e.getMessage()); 
+            log.debug("Failed to parse Last-Modified header: '{}'. Cause: {}", headerValue, e.getMessage());
             return null;
         }
     }
