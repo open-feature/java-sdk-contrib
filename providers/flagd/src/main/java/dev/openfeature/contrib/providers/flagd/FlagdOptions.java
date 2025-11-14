@@ -129,7 +129,7 @@ public class FlagdOptions {
      * Defaults to empty list
      */
     @Builder.Default
-    private List<String> nonRetryableStatusCodes = new ArrayList<>();
+    private List<String> fatalStatusCodes = new ArrayList<>();
 
     /**
      * Selector to be used with flag sync gRPC contract.

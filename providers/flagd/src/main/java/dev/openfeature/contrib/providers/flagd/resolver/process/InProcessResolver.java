@@ -77,6 +77,9 @@ public class InProcessResolver implements Resolver {
                                     storageStateChange.getSyncMetadata()));
                             log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
                             break;
+                        case STALE:
+                            onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_STALE));
+                            break;
                         case ERROR:
                             onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
                             break;

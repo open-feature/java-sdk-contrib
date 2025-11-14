@@ -121,7 +121,6 @@ public class ConfigSteps extends AbstractSteps {
         propertyMapper.put("keepAliveTime", "keepAlive");
         propertyMapper.put("retryBackoffMaxMs", "keepAlive");
         propertyMapper.put("cache", "cacheType");
-        propertyMapper.put("fatalStatusCodes", "nonRetryableStatusCodes");
 
         if (propertyMapper.get(option) != null) {
             option = propertyMapper.get(option);

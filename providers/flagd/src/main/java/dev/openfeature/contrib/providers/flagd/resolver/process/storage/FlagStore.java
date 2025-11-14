@@ -138,6 +138,11 @@ public class FlagStore implements Storage {
                     }
                     break;
                 case ERROR:
+                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
+                        log.warn("Failed to convey STALE status, queue is full");
+                    }
+                    break;
+                case FATAL:
                     if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.ERROR))) {
                         log.warn("Failed to convey ERROR status, queue is full");
                     }
