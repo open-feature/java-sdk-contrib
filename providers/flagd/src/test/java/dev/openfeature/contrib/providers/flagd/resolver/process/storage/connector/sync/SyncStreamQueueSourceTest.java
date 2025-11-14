@@ -36,7 +36,8 @@ class SyncStreamQueueSourceTest {
     private ChannelConnector mockConnector;
     private FlagSyncServiceBlockingStub blockingStub;
     private FlagSyncServiceStub stub;
-    private FlagSyncServiceStub errorStub;
+    private FlagSyncServiceStub syncErrorStub;
+    private FlagSyncServiceStub asyncErrorStub;
     private StreamObserver<SyncFlagsResponse> observer;
     private CountDownLatch latch; // used to wait for observer to be initialized
 
@@ -60,25 +61,51 @@ class SyncStreamQueueSourceTest {
                 .when(stub)
                 .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
 
-        errorStub = mock(FlagSyncServiceStub.class);
-        when(errorStub.withDeadlineAfter(anyLong(), any())).thenReturn(errorStub);
+        syncErrorStub = mock(FlagSyncServiceStub.class);
+        when(syncErrorStub.withDeadlineAfter(anyLong(), any())).thenReturn(syncErrorStub);
         doAnswer((Answer<Void>) invocation -> {
                     Object[] args = invocation.getArguments();
                     observer = (StreamObserver<SyncFlagsResponse>) args[1];
                     latch.countDown();
                     throw new StatusRuntimeException(io.grpc.Status.NOT_FOUND);
                 })
-                .when(errorStub)
+                .when(syncErrorStub)
+                .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
+
+        asyncErrorStub = mock(FlagSyncServiceStub.class);
+        when(asyncErrorStub.withDeadlineAfter(anyLong(), any())).thenReturn(asyncErrorStub);
+        doAnswer((Answer<Void>) invocation -> {
+                    Object[] args = invocation.getArguments();
+                    observer = (StreamObserver<SyncFlagsResponse>) args[1];
+                    latch.countDown();
+
+                    // Start a thread to call onError after a short delay
+                    new Thread(() -> {
+                                try {
+                                    Thread.sleep(10); // Wait 100ms before calling onError
+                                    observer.onError(new StatusRuntimeException(io.grpc.Status.INTERNAL));
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            })
+                            .start();
+
+                    return null;
+                })
+                .when(asyncErrorStub)
                 .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
     }
 
     @Test
-    void initError_DoesNotBusyWait() throws Exception {
-        // make sure we do not spin in a busy loop on errors
+    void syncInitError_DoesNotBusyWait() throws Exception {
+        // make sure we do not spin in a busy loop on immediately errors
 
         int maxBackoffMs = 1000;
         SyncStreamQueueSource queueSource = new SyncStreamQueueSource(
-                FlagdOptions.builder().retryBackoffMaxMs(maxBackoffMs).build(), mockConnector, errorStub, blockingStub);
+                FlagdOptions.builder().retryBackoffMaxMs(maxBackoffMs).build(),
+                mockConnector,
+                syncErrorStub,
+                blockingStub);
         latch = new CountDownLatch(1);
         queueSource.init();
         latch.await();
@@ -91,7 +118,32 @@ class SyncStreamQueueSourceTest {
 
         // should have retried the stream (2 calls); initial + 1 retry
         // it's very important that the retry count is low, to confirm no busy-loop
-        verify(errorStub, times(2)).syncFlags(any(), any());
+        verify(syncErrorStub, times(2)).syncFlags(any(), any());
+    }
+
+    @Test
+    void asyncInitError_DoesNotBusyWait() throws Exception {
+        // make sure we do not spin in a busy loop on async errors
+
+        int maxBackoffMs = 1000;
+        SyncStreamQueueSource queueSource = new SyncStreamQueueSource(
+                FlagdOptions.builder().retryBackoffMaxMs(maxBackoffMs).build(),
+                mockConnector,
+                asyncErrorStub,
+                blockingStub);
+        latch = new CountDownLatch(1);
+        queueSource.init();
+        latch.await();
+
+        BlockingQueue<QueuePayload> streamQueue = queueSource.getStreamQueue();
+        QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
+        assertNotNull(payload);
+        assertEquals(QueuePayloadType.ERROR, payload.getType());
+        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for reties
+
+        // should have retried the stream (2 calls); initial + 1 retry
+        // it's very important that the retry count is low, to confirm no busy-loop
+        verify(asyncErrorStub, times(2)).syncFlags(any(), any());
     }
 
     @Test
