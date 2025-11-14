@@ -16,7 +16,6 @@ import dev.openfeature.flagd.grpc.sync.Sync.GetMetadataResponse;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import dev.openfeature.sdk.Awaitable;
-import dev.openfeature.sdk.exceptions.FatalError;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -50,7 +49,7 @@ public class SyncStreamQueueSource implements QueueSource {
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final FlagSyncServiceStub flagSyncStub;
     private final FlagSyncServiceBlockingStub metadataStub;
-    private final List<String> nonRetryableStatusCodes;
+    private final List<String> fatalStatusCodes;
 
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event stream.
@@ -67,7 +66,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
         metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
                 .withWaitForReady();
-        nonRetryableStatusCodes = options.getNonRetryableStatusCodes();
+        fatalStatusCodes = options.getFatalStatusCodes();
     }
 
     // internal use only
@@ -85,7 +84,7 @@ public class SyncStreamQueueSource implements QueueSource {
         flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         metadataStub = blockingStubMock;
-        nonRetryableStatusCodes = options.getNonRetryableStatusCodes();
+        fatalStatusCodes = options.getFatalStatusCodes();
     }
 
     /** Initialize sync stream connector. */
@@ -123,12 +122,14 @@ public class SyncStreamQueueSource implements QueueSource {
         while (!shutdown.get()) {
             try {
                 log.debug("Initializing sync stream request");
-                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue);
+                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue, fatalStatusCodes, maxBackoffMs);
                 try {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
-                    if (nonRetryableStatusCodes.contains(metaEx.getStatus().getCode().name())) {
-                        throw new FatalError("Failed to connect for metadata request, not retrying for error " + metaEx.getStatus());
+                    if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name())) {
+                        //throw new FatalError("Failed to connect for metadata request, not retrying for error " + metaEx.getStatus());
+                        enqueueFatal("Fatal: Failed to connect for metadata request, not retrying for error " + metaEx.getStatus().getCode());
+                        return;
                     }
                     // retry for other status codes
                     String message = metaEx.getMessage();
@@ -141,8 +142,10 @@ public class SyncStreamQueueSource implements QueueSource {
                 try {
                     syncFlags(observer);
                 } catch (StatusRuntimeException ex) {
-                    if (nonRetryableStatusCodes.contains(ex.getStatus().toString())) {
-                        throw new FatalError("Failed to connect to sync stream, not retrying for error " + ex.getStatus());
+                    if (fatalStatusCodes.contains(ex.getStatus().getCode().toString())) {
+                        //throw new FatalError("Failed to connect for metadata request, not retrying for error " + ex.getStatus().getCode());
+                        enqueueFatal("Fatal: Failed to connect for metadata request, not retrying for error " + ex.getStatus().getCode());
+                        return;
                     }
                     // retry for other status codes
                     log.error("Unexpected sync stream exception, will restart.", ex);
@@ -213,20 +216,35 @@ public class SyncStreamQueueSource implements QueueSource {
         enqueueError(outgoingQueue, message);
     }
 
+    private void enqueueFatal(String message) {
+        enqueueFatal(outgoingQueue, message);
+    }
+
     private static void enqueueError(BlockingQueue<QueuePayload> queue, String message) {
         if (!queue.offer(new QueuePayload(QueuePayloadType.ERROR, message, null))) {
             log.error("Failed to convey ERROR status, queue is full");
         }
     }
 
+    private static void enqueueFatal(BlockingQueue<QueuePayload> queue, String message) {
+        if (!queue.offer(new QueuePayload(QueuePayloadType.FATAL, message, null))) {
+            log.error("Failed to convey FATAL status, queue is full");
+        }
+    }
+
     private static class SyncStreamObserver implements StreamObserver<SyncFlagsResponse> {
         private final BlockingQueue<QueuePayload> outgoingQueue;
         private final Awaitable done = new Awaitable();
+        private final List<String> fatalStatusCodes;
+        private final int maxBackoffMs;
 
         private Struct metadata;
 
-        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue) {
+        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue, List<String> fatalStatusCodes,
+                int maxBackoffMs) {
             this.outgoingQueue = outgoingQueue;
+            this.fatalStatusCodes = fatalStatusCodes;
+            this.maxBackoffMs = maxBackoffMs;
         }
 
         @Override
@@ -244,10 +262,20 @@ public class SyncStreamQueueSource implements QueueSource {
         @Override
         public void onError(Throwable throwable) {
             try {
+                Status status = Status.fromThrowable(throwable);
                 String message = throwable != null ? throwable.getMessage() : "unknown";
                 log.debug("Stream error: {}, will restart", message, throwable);
-                enqueueError(outgoingQueue, String.format("Error from stream: %s", message));
+                if (fatalStatusCodes.contains(status.getCode())) {
+                    enqueueFatal(outgoingQueue, String.format("Error from stream: %s", message));
+                } else {
+                    enqueueError(outgoingQueue, String.format("Error from stream: %s", message));
+                }
             } finally {
+                try {
+                    Thread.sleep(this.maxBackoffMs);
+                } catch (InterruptedException e) {
+                    // ignore
+                }
                 done.wakeup();
             }
         }

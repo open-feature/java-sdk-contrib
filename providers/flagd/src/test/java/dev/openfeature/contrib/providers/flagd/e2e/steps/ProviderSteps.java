@@ -202,6 +202,6 @@ public class ProviderSteps extends AbstractSteps {
 
     @Then("the client is in {} state")
     public void the_client_is_in_fatal_state(String clientState) {
-        assertThat(state.client.getProviderState()).isEqualTo(ProviderState.FATAL);
+        assertThat(state.client.getProviderState()).isEqualTo(ProviderState.valueOf(clientState.toUpperCase()));
     }
 }
