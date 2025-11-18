@@ -32,14 +32,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -284,20 +281,14 @@ public final class GoFeatureFlagApi {
      * @return Date - the parsed Last-Modified date, or null if not present or parsing fails
      */
     private Date extractLastUpdatedFromHeaders(final HttpResponse<String> response) {
-        Optional<String> headerOpt = response.headers()
-            .firstValue(Const.HTTP_HEADER_LAST_MODIFIED);
-        if (!headerOpt.isPresent()) {
-            log.debug("Last-Modified header is not present in the response");
-            return null;
-        }
-        String headerValue = headerOpt.get();
         try {
-            return Date.from(
-                ZonedDateTime.parse(headerValue, DateTimeFormatter.RFC_1123_DATE_TIME)
-                    .toInstant()
-            );
-        } catch (DateTimeParseException e) {
-            log.debug("Failed to parse Last-Modified header: '{}'. Cause: {}", headerValue, e.getMessage());
+            String headerValue = response.headers()
+                    .firstValue(Const.HTTP_HEADER_LAST_MODIFIED)
+                    .orElse(null);
+            SimpleDateFormat lastModifiedHeaderFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH);
+            return headerValue != null ? lastModifiedHeaderFormatter.parse(headerValue) : null;
+        } catch (Exception e) {
+            log.debug("Error parsing Last-Modified header: {}", e.getMessage());
             return null;
         }
     }
