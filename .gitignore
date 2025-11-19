@@ -7,6 +7,7 @@ build
 specification.json
 target
 .DS_Store
+.cursor/
 
 # vscode stuff
 .vscode/
