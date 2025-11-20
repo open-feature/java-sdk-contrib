@@ -216,7 +216,7 @@ class FlagdOptionsTest {
     @Test
     @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
     @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "8888")
-    void testInProcessProvider_fallsBackToFlagdPortWhenSyncPortNotSet(){
+    void testInProcessProvider_fallsBackToFlagdPortWhenSyncPortNotSet() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
 
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
@@ -227,7 +227,7 @@ class FlagdOptionsTest {
     @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
     @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "8888")
     @SetEnvironmentVariable(key = SYNC_PORT_ENV_VAR_NAME, value = "9999")
-    void testInProcessProvider_syncPortTakesPrecedenceOverFlagdPort(){
+    void testInProcessProvider_syncPortTakesPrecedenceOverFlagdPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
 
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
