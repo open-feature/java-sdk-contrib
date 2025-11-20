@@ -102,7 +102,7 @@ class FlagdProviderSyncResourcesTest {
 
         Assertions.assertTrue(
                 waitTime.get() < MAX_TIME_TOLERANCE * 2,
-                "Wakeup should be almost instant, but took " + waitTime.get()
+                () -> "Wakeup should be almost instant, but took " + waitTime.get()
                         + " ms, which is more than the max of"
                         + (MAX_TIME_TOLERANCE * 2) + " ms");
     }
