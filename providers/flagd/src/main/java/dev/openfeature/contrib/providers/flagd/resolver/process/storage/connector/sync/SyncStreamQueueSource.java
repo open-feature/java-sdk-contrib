@@ -47,6 +47,7 @@ public class SyncStreamQueueSource implements QueueSource {
             Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER);
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean shouldThrottle = new AtomicBoolean(false);
     private final int streamDeadline;
     private final int deadline;
     private final int maxBackoffMs;
@@ -116,7 +117,10 @@ public class SyncStreamQueueSource implements QueueSource {
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
-        if (shutdown.getAndSet(true)) {
+        // Use atomic compareAndSet to ensure shutdown is only executed once
+        // This prevents race conditions when shutdown is called from multiple threads
+        if (!shutdown.compareAndSet(false, true)) {
+            log.debug("Shutdown already in progress or completed");
             return;
         }
         this.channelConnector.shutdown();
@@ -131,8 +135,18 @@ public class SyncStreamQueueSource implements QueueSource {
         // error conditions
         while (!shutdown.get()) {
             try {
+                if (shouldThrottle.getAndSet(false)) {
+                    log.debug("Previous stream ended with error, waiting {} ms before retry", this.maxBackoffMs);
+                    Thread.sleep(this.maxBackoffMs);
+
+                    // Check shutdown again after sleep to avoid unnecessary work
+                    if (shutdown.get()) {
+                        break;
+                    }
+                }
+
                 log.debug("Initializing sync stream request");
-                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue);
+                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue, shouldThrottle);
                 try {
                     observer.metadata = getMetadata();
                 } catch (Exception metaEx) {
@@ -140,7 +154,7 @@ public class SyncStreamQueueSource implements QueueSource {
                     String message = metaEx.getMessage();
                     log.debug("Metadata request error: {}, will restart", message, metaEx);
                     enqueueError(String.format("Error in getMetadata request: %s", message));
-                    Thread.sleep(this.maxBackoffMs);
+                    shouldThrottle.set(true);
                     continue;
                 }
 
@@ -149,7 +163,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 } catch (Exception ex) {
                     log.error("Unexpected sync stream exception, will restart.", ex);
                     enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
-                    Thread.sleep(this.maxBackoffMs);
+                    shouldThrottle.set(true);
                 }
             } catch (InterruptedException ie) {
                 log.debug("Stream loop interrupted, most likely shutdown was invoked", ie);
@@ -249,12 +263,14 @@ public class SyncStreamQueueSource implements QueueSource {
 
     private static class SyncStreamObserver implements StreamObserver<SyncFlagsResponse> {
         private final BlockingQueue<QueuePayload> outgoingQueue;
+        private final AtomicBoolean shouldThrottle;
         private final Awaitable done = new Awaitable();
 
         private Struct metadata;
 
-        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue) {
+        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue, AtomicBoolean shouldThrottle) {
             this.outgoingQueue = outgoingQueue;
+            this.shouldThrottle = shouldThrottle;
         }
 
         @Override
@@ -275,6 +291,9 @@ public class SyncStreamQueueSource implements QueueSource {
                 String message = throwable != null ? throwable.getMessage() : "unknown";
                 log.debug("Stream error: {}, will restart", message, throwable);
                 enqueueError(outgoingQueue, String.format("Error from stream: %s", message));
+
+                // Set throttling flag to ensure backoff before retry
+                this.shouldThrottle.set(true);
             } finally {
                 done.wakeup();
             }
