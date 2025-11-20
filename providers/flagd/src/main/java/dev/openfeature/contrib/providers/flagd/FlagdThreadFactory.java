@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,7 +18,7 @@ class FlagdThreadFactory implements ThreadFactory {
      * @param namePrefix    Prefix used for setting the new thread's name.
      */
     FlagdThreadFactory(String namePrefix) {
-        this.namePrefix = namePrefix;
+        this.namePrefix = Objects.requireNonNull(namePrefix, "namePrefix must not be null");
     }
 
     @Override
