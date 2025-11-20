@@ -205,7 +205,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <id>update-schemas-submodule</id>
@@ -306,7 +306,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.6.0</version>
+                        <version>3.6.2</version>
                         <executions>
                             <execution>
                                 <id>update-test-harness-submodule</id>
