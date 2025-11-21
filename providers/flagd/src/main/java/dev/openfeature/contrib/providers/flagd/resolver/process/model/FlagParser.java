@@ -9,7 +9,6 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
@@ -23,9 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /** flagd feature flag configuration parser. */
 @Slf4j
-@SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP"},
-        justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagParser {
     private static final String FLAG_KEY = "flags";
     private static final String METADATA_KEY = "metadata";
