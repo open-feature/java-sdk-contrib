@@ -47,6 +47,46 @@ FlagdProvider flagdProvider = new FlagdProvider(
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flags.json).
 
+#### Selector filtering (In-process mode only)
+
+The `selector` option allows filtering flag configurations from flagd based on source identifiers when using the in-process resolver. This is useful when flagd is configured with multiple flag sources and you want to sync only a specific subset.
+
+##### Usage
+
+To use selector filtering, simply configure the `selector` option when creating the provider:
+
+```java
+FlagdProvider flagdProvider = new FlagdProvider(
+        FlagdOptions.builder()
+                .resolverType(Config.Resolver.IN_PROCESS)
+                .selector("source=my-app")
+                .build());
+```
+
+Or via environment variable:
+```bash
+export FLAGD_SOURCE_SELECTOR="source=my-app"
+```
+
+##### Implementation details
+
+> [!IMPORTANT]
+> **Selector normalization (flagd issue #1814)**
+> 
+> As part of [flagd issue #1814](https://github.com/open-feature/flagd/issues/1814), the flagd project is normalizing selector handling across all services to use the `flagd-selector` gRPC metadata header.
+>
+> **Current implementation:**
+> - The Java SDK **automatically passes the selector via the `flagd-selector` header** (preferred approach)
+> - For backward compatibility with older flagd versions, the selector is **also sent in the request body**
+> - Both methods work with current flagd versions
+> - In a future major version of flagd, the request body selector field may be removed
+>
+> **No migration needed:**
+> 
+> Users do not need to make any code changes. The SDK handles selector normalization automatically.
+
+For more details on selector normalization, see the [flagd selector normalization issue](https://github.com/open-feature/flagd/issues/1814).
+
 #### Sync-metadata
 
 To support the injection of contextual data configured in flagd for in-process evaluation, the provider exposes a `getSyncMetadata` accessor which provides the most recent value returned by the [GetMetadata RPC](https://buf.build/open-feature/flagd/docs/main:flagd.sync.v1#flagd.sync.v1.FlagSyncService.GetMetadata).
@@ -119,7 +159,7 @@ Given below are the supported configurations:
 | deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process & file |
 | streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS       | int                      | 600000    | rpc & in-process        |
 | keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS       | long                     | 0         | rpc & in-process        |
-| selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process              |
+| selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process (see [details](#selector-filtering-in-process-mode-only)) |
 | providerId            | FLAGD_SOURCE_PROVIDER_ID       | String                   | null      | in-process              |
 | cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                     |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                      | 1000      | rpc                     |
@@ -130,6 +170,9 @@ Given below are the supported configurations:
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.
+
+> [!NOTE]
+> The `selector` option automatically uses the `flagd-selector` header (the preferred approach per [flagd issue #1814](https://github.com/open-feature/flagd/issues/1814)) while maintaining backward compatibility with older flagd versions. See [Selector filtering](#selector-filtering-in-process-mode-only) for details.
 >
 
 ### Unix socket support
@@ -188,6 +231,9 @@ FlagdProvider flagdProvider = new FlagdProvider(
 ### Configuring gRPC credentials and headers
 
 The `clientInterceptors` and `defaultAuthority` are meant for connection of the in-process resolver to a Sync API implementation on a host/port, that might require special credentials or headers.
+
+> [!NOTE]
+> The SDK automatically handles the `flagd-selector` header when the `selector` option is configured. Custom interceptors are not needed for selector filtering. See [Selector filtering](#selector-filtering-in-process-mode-only) for details.
 
 ```java
 private static ClientInterceptor createHeaderInterceptor() {
