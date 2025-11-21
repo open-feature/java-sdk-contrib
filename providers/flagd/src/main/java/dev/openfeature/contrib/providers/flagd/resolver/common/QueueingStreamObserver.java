@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification = "Internal class")
 public class QueueingStreamObserver<T> implements StreamObserver<T> {
     private final BlockingQueue<StreamResponseModel<T>> blockingQueue;
