@@ -8,7 +8,7 @@ import dev.openfeature.sdk.ProviderEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,7 +19,7 @@ public class EventSteps extends AbstractSteps {
 
     public EventSteps(State state) {
         super(state);
-        state.events = new LinkedList<>();
+        state.events = new ConcurrentLinkedQueue<>();
     }
 
     @Given("a {} event handler")

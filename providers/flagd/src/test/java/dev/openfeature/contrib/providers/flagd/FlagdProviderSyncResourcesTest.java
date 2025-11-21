@@ -79,14 +79,14 @@ class FlagdProviderSyncResourcesTest {
     @Test
     void callingInitialize_wakesUpWaitingThread() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
-        final AtomicBoolean successfulTest = new AtomicBoolean();
+        final AtomicLong waitTime = new AtomicLong(Long.MAX_VALUE);
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
             flagdProviderSyncResources.waitForInitialization(10000);
             long end = System.currentTimeMillis();
             long duration = end - start;
-            successfulTest.set(duration < MAX_TIME_TOLERANCE * 2);
+            waitTime.set(duration);
         });
         waitingThread.start();
 
@@ -100,7 +100,11 @@ class FlagdProviderSyncResourcesTest {
 
         waitingThread.join();
 
-        Assertions.assertTrue(successfulTest.get());
+        Assertions.assertTrue(
+                waitTime.get() < MAX_TIME_TOLERANCE * 2,
+                () -> "Wakeup should be almost instant, but took " + waitTime.get()
+                        + " ms, which is more than the max of"
+                        + (MAX_TIME_TOLERANCE * 2) + " ms");
     }
 
     @Timeout(2)
