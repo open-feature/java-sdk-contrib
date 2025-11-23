@@ -7,17 +7,18 @@ import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTE
 import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_LOCALE;
 import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_PRIVATE_ATTRIBUTES;
 import static dev.openfeature.contrib.providers.statsig.ContextTransformer.CONTEXT_USER_AGENT;
+import static org.apache.commons.lang3.builder.ToStringStyle.NO_CLASS_NAME_STYLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-import com.statsig.sdk.DynamicConfig;
-import com.statsig.sdk.Layer;
-import com.statsig.sdk.Statsig;
-import com.statsig.sdk.StatsigOptions;
-import com.statsig.sdk.StatsigUser;
+import com.statsig.DynamicConfig;
+import com.statsig.Layer;
+import com.statsig.StatsigOptions;
+import com.statsig.StatsigUser;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
@@ -30,9 +31,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.commons.util.ReflectionUtils;
 
 /**
  * StatsigProvider test, based on local config file evaluation. Configuration file test by statsig
@@ -60,12 +63,14 @@ class StatsigProviderTest {
     @BeforeAll
     static void setUp() {
         String sdkKey = "test";
-        StatsigOptions statsigOptions = new StatsigOptions();
-        statsigOptions.setLocalMode(true);
-        StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder()
-                .sdkKey(sdkKey)
-                .options(statsigOptions)
+        StatsigOptions statsigOptions = new StatsigOptions.Builder()
+//                .setLocalMode(true)
                 .build();
+        StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder()
+            .sdkKey(sdkKey)
+            .options(statsigOptions)
+            .build();
+
         statsigProvider = spy(new StatsigProvider(statsigProviderConfig));
         OpenFeatureAPI.getInstance().setProviderAndWait(statsigProvider);
         client = OpenFeatureAPI.getInstance().getClient();
@@ -74,53 +79,64 @@ class StatsigProviderTest {
 
     @SneakyThrows
     private static void buildFlags() {
-        Statsig.overrideGate(FLAG_NAME, true);
+
+        boolean res = statsigProvider.getStatsig().checkGate(new StatsigUser.Builder()
+                .setUserID(TARGETING_KEY)
+                .build(), FLAG_NAME);
+
+        System.out.println("Initial flag evaluation: " + res);
+
+        statsigProvider.getStatsig().overrideGate(FLAG_NAME, true);
+
+        res = statsigProvider.getStatsig().checkGate(new StatsigUser.Builder()
+                .setUserID(TARGETING_KEY)
+                .build(), FLAG_NAME);
+
+        System.out.println("Overridden flag evaluation: " + res);
+
         Map<String, Object> configMap = new HashMap<>();
         configMap.put("boolean", true);
         configMap.put("alias", "test");
         configMap.put("revision", INT_FLAG_VALUE);
         configMap.put("price", DOUBLE_FLAG_VALUE);
-        Statsig.overrideConfig("product", configMap);
-        Statsig.overrideLayer("product", configMap);
+        statsigProvider.getStatsig().overrideDynamicConfig("product", configMap);
+        statsigProvider.getStatsig().overrideLayer("product", configMap);
 
         ArrayList<Map<String, String>> secondaryExposures = new ArrayList<>();
         secondaryExposures.add(Collections.singletonMap("test-exposure", "test-exposure-value"));
-        DynamicConfig dynamicConfig = new DynamicConfig(
-                "object-config-name",
-                Collections.singletonMap("value-key", "test-value"),
-                "test-rule-id",
-                "test-group-name",
-                secondaryExposures);
+
+        DynamicConfig dynamicConfig = mock(DynamicConfig.class);
+        when(dynamicConfig.getName()).thenReturn("object-config-name");
+        when(dynamicConfig.getValue()).thenReturn(Collections.singletonMap("value-key", "test-value"));
+        when(dynamicConfig.getRuleID()).thenReturn("test-rule-id");
 
         doAnswer(invocation -> {
-                    if ("object-config-name"
-                            .equals(invocation
-                                    .getArgument(1, StatsigProvider.FeatureConfig.class)
-                                    .getName())) {
-                        return dynamicConfig;
-                    }
-                    return invocation.callRealMethod();
-                })
+            if ("object-config-name"
+                    .equals(invocation
+                            .getArgument(1, StatsigProvider.FeatureConfig.class)
+                            .getName())) {
+                return dynamicConfig;
+            }
+            return invocation.callRealMethod();
+        })
                 .when(statsigProvider)
                 .fetchDynamicConfig(any(), any());
 
-        Layer layer = new Layer(
-                "layer-name",
-                "test-rule-id",
-                "test-group-name",
-                Collections.singletonMap("value-key", "test-value"),
-                secondaryExposures,
-                "allocated",
-                null);
+        // Mock Layer
+        Layer layer = mock(Layer.class);
+        when(layer.getName()).thenReturn("layer-name");
+        when(layer.getValue()).thenReturn(Collections.singletonMap("value-key", "test-value"));
+        when(layer.getRuleID()).thenReturn("test-rule-id");
+
         doAnswer(invocation -> {
-                    if ("layer-name"
-                            .equals(invocation
-                                    .getArgument(1, StatsigProvider.FeatureConfig.class)
-                                    .getName())) {
-                        return layer;
-                    }
-                    return invocation.callRealMethod();
-                })
+            if ("layer-name"
+                    .equals(invocation
+                            .getArgument(1, StatsigProvider.FeatureConfig.class)
+                            .getName())) {
+                return layer;
+            }
+            return invocation.callRealMethod();
+        })
                 .when(statsigProvider)
                 .fetchLayer(any(), any());
     }
@@ -136,6 +152,13 @@ class StatsigProviderTest {
                 client.getBooleanDetails(FLAG_NAME, false, new ImmutableContext());
         assertEquals(false, flagEvaluationDetails.getValue());
         assertEquals("ERROR", flagEvaluationDetails.getReason());
+
+        boolean res = statsigProvider.getStatsig().checkGate(new StatsigUser.Builder()
+                .setUserID(TARGETING_KEY)
+                .build(), FLAG_NAME);
+
+        System.out.println("Overridden flag evaluation: " + res);
+
 
         MutableContext evaluationContext = new MutableContext();
         evaluationContext.setTargetingKey(TARGETING_KEY);
@@ -197,8 +220,7 @@ class StatsigProviderTest {
                 .getObjectEvaluation("dummy", new Value("fallback"), evaluationContext)
                 .getValue();
 
-        String expectedObjectEvaluation = "{groupName=test-group-name, name=object-config-name, secondaryExposures="
-                + "[{test-exposure=test-exposure-value}], ruleID=test-rule-id, value={value-key=test-value}}";
+        String expectedObjectEvaluation = "{name=object-config-name, ruleID=test-rule-id, value={value-key=test-value}}";
         assertEquals(
                 expectedObjectEvaluation,
                 objectEvaluation.asStructure().asObjectMap().toString());
@@ -216,8 +238,7 @@ class StatsigProviderTest {
                 .getObjectEvaluation("dummy", new Value("fallback"), evaluationContext)
                 .getValue();
 
-        String expectedObjectEvaluation = "{groupName=test-group-name, name=layer-name, secondaryExposures="
-                + "[{test-exposure=test-exposure-value}], allocatedExperiment=allocated, ruleID=test-rule-id, "
+        String expectedObjectEvaluation = "{groupName=null, name=layer-name, allocatedExperiment=null, ruleID=test-rule-id, "
                 + "value={value-key=test-value}}";
         assertEquals(
                 expectedObjectEvaluation,
@@ -407,19 +428,27 @@ class StatsigProviderTest {
 
         HashMap<String, String> customMap = new HashMap<>();
         customMap.put(customPropertyKey, customPropertyValue);
-        StatsigUser expectedUser = new StatsigUser(evaluationContext.getTargetingKey());
-        expectedUser.setEmail(email);
-        expectedUser.setCountry(country);
-        expectedUser.setUserAgent(userAgent);
-        expectedUser.setIp(ip);
-        expectedUser.setAppVersion(appVersion);
-        Map<String, String> privateAttributesMap = new HashMap<>();
-        privateAttributesMap.put(CONTEXT_LOCALE, locale);
-        expectedUser.setPrivateAttributes(privateAttributesMap);
-        expectedUser.setCustomIDs(customMap);
+        StatsigUser expectedUser = new StatsigUser.Builder()
+            .setUserID(evaluationContext.getTargetingKey())
+            .setEmail(email)
+            .setCountry(country)
+            .setUserAgent(userAgent)
+            .setIp(ip)
+            .setAppVersion(appVersion)
+            .setPrivateAttributes(Collections.singletonMap(CONTEXT_LOCALE, locale))
+            .setCustomIDs(customMap)
+            .build();
         StatsigUser transformedUser = ContextTransformer.transform(evaluationContext);
 
-        // equals not implemented for User, using toString
-        assertEquals(expectedUser.toString(), transformedUser.toString());
+        assertEquals(expectedUser.getUserID(), transformedUser.getUserID());
+        assertEquals(expectedUser.getEmail(), transformedUser.getEmail());
+        assertEquals(expectedUser.getCountry(), transformedUser.getCountry());
+        assertEquals(expectedUser.getUserAgent(), transformedUser.getUserAgent());
+        assertEquals(expectedUser.getIp(), transformedUser.getIp());
+        assertEquals(expectedUser.getAppVersion(), transformedUser.getAppVersion());
+        assertEquals(
+            expectedUser.getPrivateAttributes(),
+            transformedUser.getPrivateAttributes());
+        assertEquals(expectedUser.getCustomIDs(), transformedUser.getCustomIDs());
     }
 }

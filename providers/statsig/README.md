@@ -74,4 +74,7 @@ As it is limited, evaluation context based tests are limited.
 See [statsigProviderTest](./src/test/java/dev/openfeature/contrib/providers/statsig/StatsigProviderTest.java)
 for more information.
 
+## Release Notes
 
+### 0.3.0
+ Migrated to according to [Migration guide](https://docs.statsig.com/server-core/migration-guides/java#java-migration-steps).
