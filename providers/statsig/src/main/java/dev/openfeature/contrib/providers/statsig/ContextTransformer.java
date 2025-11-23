@@ -23,8 +23,7 @@ class ContextTransformer {
         if (ctx.getTargetingKey() == null) {
             throw new TargetingKeyMissingError("targeting key is required.");
         }
-        StatsigUser.Builder user = new StatsigUser.Builder()
-            .setUserID(ctx.getTargetingKey());
+        StatsigUser.Builder user = new StatsigUser.Builder().setUserID(ctx.getTargetingKey());
         Map<String, String> customMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {
             switch (k) {

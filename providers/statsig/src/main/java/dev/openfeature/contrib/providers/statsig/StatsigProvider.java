@@ -12,7 +12,6 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -64,9 +63,6 @@ public class StatsigProvider extends EventProvider {
 
     @SneakyThrows
     @Override
-    @SuppressFBWarnings(
-            value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"},
-            justification = "reason can be null")
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         StatsigUser user = ContextTransformer.transform(ctx);
         Boolean evaluatedValue = defaultValue;
@@ -76,11 +72,6 @@ public class StatsigProvider extends EventProvider {
             FeatureGate featureGate = statsig.getFeatureGate(user, key);
             reason = featureGate.getEvaluationDetails().getReason();
             evaluatedValue = featureGate.getValue();
-
-            // in case of evaluation failure, remain with default value.
-//            if (!assumeFailure(featureGate)) {
-//                evaluatedValue = featureGate.getValue();
-//            }
         } else {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
             switch (featureConfig.getType()) {
@@ -102,18 +93,6 @@ public class StatsigProvider extends EventProvider {
                 .reason(reason)
                 .build();
     }
-
-    /*
-    https://github.com/statsig-io/java-server-sdk/issues/22#issuecomment-2002346349
-    failure is assumed by reason, since success status is not returned.
-    */
-//    private boolean assumeFailure(FeatureGate featureGate) {
-//        EvaluationReason reason = featureGate.getEvaluationDetails().getReason();
-//        return EvaluationReason.DEFAULT.equals(reason)
-//                || EvaluationReason.UNINITIALIZED.equals(reason)
-//                || EvaluationReason.UNRECOGNIZED.equals(reason)
-//                || EvaluationReason.UNSUPPORTED.equals(reason);
-//    }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {

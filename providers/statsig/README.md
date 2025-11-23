@@ -77,4 +77,4 @@ for more information.
 ## Release Notes
 
 ### 0.3.0
- Migrated to according to [Migration guide](https://docs.statsig.com/server-core/migration-guides/java#java-migration-steps).
+ Migrated to Java Core according to [Migration guide](https://docs.statsig.com/server-core/migration-guides/java#java-migration-steps).
