@@ -7,9 +7,11 @@ import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_S
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_RPC_PORT;
 import static dev.openfeature.contrib.providers.flagd.Config.KEEP_ALIVE_MS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.KEEP_ALIVE_MS_ENV_VAR_NAME_OLD;
+import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_ENV_VAR;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_IN_PROCESS;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_RPC;
+import static dev.openfeature.contrib.providers.flagd.Config.SYNC_PORT_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.TARGET_URI_ENV_VAR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -199,6 +201,37 @@ class FlagdOptionsTest {
 
         assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
         assertThat(flagdOptions.getPort()).isEqualTo(1000);
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = SYNC_PORT_ENV_VAR_NAME, value = "9999")
+    void testInProcessProvider_usesSyncPortEnvVarWhenSet() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(9999);
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "8888")
+    void testInProcessProvider_fallsBackToFlagdPortWhenSyncPortNotSet() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(8888);
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "8888")
+    @SetEnvironmentVariable(key = SYNC_PORT_ENV_VAR_NAME, value = "9999")
+    void testInProcessProvider_syncPortTakesPrecedenceOverFlagdPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(9999);
     }
 
     @Test

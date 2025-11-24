@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.18](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.17...dev.openfeature.contrib.providers.flagd-v0.11.18) (2025-11-17)
+
+
+### 🐛 Bug Fixes
+
+* possible tight busy loop on certain connection errors ([#1629](https://github.com/open-feature/java-sdk-contrib/issues/1629)) ([a2f5f28](https://github.com/open-feature/java-sdk-contrib/commit/a2f5f28509699bf6fb8684db6acc0dda5297b72a))
+
 ## [0.11.17](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.16...dev.openfeature.contrib.providers.flagd-v0.11.17) (2025-10-15)
 
 

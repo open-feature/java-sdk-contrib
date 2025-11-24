@@ -24,6 +24,7 @@ public final class Config {
     static final String RESOLVER_ENV_VAR = "FLAGD_RESOLVER";
     static final String HOST_ENV_VAR_NAME = "FLAGD_HOST";
     static final String PORT_ENV_VAR_NAME = "FLAGD_PORT";
+    static final String SYNC_PORT_ENV_VAR_NAME = "FLAGD_SYNC_PORT";
     static final String TLS_ENV_VAR_NAME = "FLAGD_TLS";
     static final String DEFAULT_AUTHORITY_ENV_VAR_NAME = "FLAGD_DEFAULT_AUTHORITY";
     static final String SOCKET_PATH_ENV_VAR_NAME = "FLAGD_SOCKET_PATH";
