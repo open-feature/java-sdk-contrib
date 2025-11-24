@@ -86,7 +86,7 @@ public class ChannelConnector {
         log.debug("Channel state changed to: {}", currentState);
         if (currentState == ConnectivityState.TRANSIENT_FAILURE || currentState == ConnectivityState.SHUTDOWN) {
             this.onConnectionEvent.accept(new FlagdProviderEvent(
-                    ProviderEvent.PROVIDER_ERROR, Collections.emptyList(), new ImmutableStructure()));
+                    ProviderEvent.PROVIDER_STALE, Collections.emptyList(), new ImmutableStructure()));
         }
         if (currentState != ConnectivityState.SHUTDOWN) {
             log.debug("continuing to monitor the grpc channel");
