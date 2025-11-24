@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  * Represents configuration options for the HTTP connector.
  */
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
+        value = {"EI_EXPOSE_REP", "CT_CONSTRUCTOR_THROW"},
         justification = "builder validations")
 @Slf4j
 @Getter

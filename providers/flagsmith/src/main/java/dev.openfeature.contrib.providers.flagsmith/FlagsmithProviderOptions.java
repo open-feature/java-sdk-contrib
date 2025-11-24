@@ -15,7 +15,7 @@ import okhttp3.Interceptor;
 
 /** FlagsmithProviderOptions contains the options to initialise the Flagsmith provider. */
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification = "The headers need to be mutable")
 @Builder(toBuilder = true)
 @Getter
