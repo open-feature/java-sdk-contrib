@@ -17,6 +17,18 @@
         <Bug pattern="PREDICTABLE_RANDOM" />
     </Match>
 
+    <!-- Suppress: EI_EXPOSE_REP2 in ModuleMachine -->
+    <Match>
+        <Class name="dev.openfeature.contrib.providers.gofeatureflag.wasm.ModuleMachine"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Suppress: SKIPPED_CLASS_TOO_BIG in ModuleMachineFuncGroup_0 -->
+    <Match>
+        <Class name="dev.openfeature.contrib.providers.gofeatureflag.wasm.ModuleMachineFuncGroup_0"/>
+        <Bug pattern="SKIPPED_CLASS_TOO_BIG"/>
+    </Match>
+
     <!-- All bugs in test classes, except for JUnit-specific bugs -->
     <Match>
         <Class name="~.*\.*Test" />
