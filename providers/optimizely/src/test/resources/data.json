@@ -16,7 +16,12 @@
           "audienceIds": [],
           "variations": [
             {
-              "variables": [],
+              "variables": [
+                {
+                  "id": "boolean_variable_1",
+                  "value": "true"
+                }
+              ],
               "id": "boolean_feature_variation",
               "key": "boolean_feature_variation",
               "featureEnabled": true
@@ -81,6 +86,8 @@
       "key": "boolean-feature"
     },
     {
+      "id": "boolean_feature_flag",
+      "key": "boolean_feature_flag",
       "experimentIds": [],
       "rolloutId": "string_feature_rollout",
       "variables": [
@@ -89,10 +96,100 @@
           "type": "string",
           "id": "string_variable_1",
           "key": "string_variable_1"
+        },
+        {
+          "id": "value",
+          "key": "value",
+          "defaultValue": "true",
+          "type": "boolean"
+        },
+        {
+          "id": "var_bool",
+          "key": "var_bool",
+          "defaultValue": "true",
+          "type": "boolean"
         }
-      ],
+      ]
+    },
+    {
       "id": "string_feature_flag",
-      "key": "string-feature"
+      "key": "string_feature_flag",
+      "experimentIds": [],
+      "rolloutId": "string_feature_rollout",
+      "variables": [
+        {
+          "id": "value",
+          "key": "value",
+          "defaultValue": "str1",
+          "type": "string"
+        },
+        {
+          "id": "var_str",
+          "key": "var_str",
+          "defaultValue": "str2",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "int_feature_flag",
+      "key": "int_feature_flag",
+      "experimentIds": [],
+      "rolloutId": "int_feature_rollout",
+      "variables": [
+        {
+          "id": "value",
+          "key": "value",
+          "defaultValue": "1",
+          "type": "integer"
+        },
+        {
+          "id": "var_int",
+          "key": "var_int",
+          "defaultValue": "2",
+          "type": "integer"
+        }
+      ]
+    },
+    {
+      "id": "double_feature_flag",
+      "key": "double_feature_flag",
+      "experimentIds": [],
+      "rolloutId": "double_feature_rollout",
+      "variables": [
+        {
+          "id": "value",
+          "key": "value",
+          "defaultValue": "1.5",
+          "type": "double"
+        },
+        {
+          "id": "var_double",
+          "key": "var_double",
+          "defaultValue": "2.5",
+          "type": "double"
+        }
+      ]
+    },
+    {
+      "id": "json_feature_flag",
+      "key": "json_feature_flag",
+      "experimentIds": [],
+      "rolloutId": "json_feature_rollout",
+      "variables": [
+        {
+          "id": "value",
+          "key": "value",
+          "defaultValue": "{\"key1\":\"value1\",\"key2\":2}",
+          "type": "json"
+        },
+        {
+          "id": "var_json",
+          "key": "var_json",
+          "defaultValue": "{\"key1\":\"value1a\",\"key2\":3}",
+          "type": "json"
+        }
+      ]
     }
   ],
   "experiments": [],

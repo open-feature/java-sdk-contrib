@@ -2,15 +2,14 @@ package dev.openfeature.contrib.providers.optimizely;
 
 import com.optimizely.ab.Optimizely;
 import com.optimizely.ab.OptimizelyUserContext;
-import com.optimizely.ab.optimizelydecision.OptimizelyDecision;
 import com.optimizely.ab.optimizelyjson.OptimizelyJSON;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -69,68 +68,135 @@ public class OptimizelyProvider extends EventProvider {
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         OptimizelyUserContext userContext = contextTransformer.transform(ctx);
-        OptimizelyDecision decision = userContext.decide(key);
-        String variationKey = decision.getVariationKey();
-        String reasonsString = null;
-        if (variationKey == null) {
-            List<String> reasons = decision.getReasons();
-            reasonsString = String.join(", ", reasons);
+
+        String variableKey = getVariableKey(ctx);
+        Boolean enabled = optimizely.getFeatureVariableBoolean(
+                key, variableKey, userContext.getUserId(), userContext.getAttributes());
+
+        String variant = variableKey;
+        String reason = Reason.TARGETING_MATCH.name();
+        if (enabled == null) {
+            enabled = false;
+            variant = null;
+            reason = Reason.DEFAULT.name();
         }
 
-        boolean enabled = decision.getEnabled();
         return ProviderEvaluation.<Boolean>builder()
                 .value(enabled)
-                .reason(reasonsString)
+                .reason(reason)
+                .variant(variant)
                 .build();
+    }
+
+    private static String getVariableKey(EvaluationContext ctx) {
+        String variableKey = "value";
+        Value varKey = ctx.getValue("variableKey");
+        if (varKey != null && varKey.isString() && !varKey.asString().isBlank()) {
+            variableKey = varKey.asString();
+        }
+        return variableKey;
     }
 
     @SneakyThrows
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        throw new UnsupportedOperationException("String evaluation is not directly supported by Optimizely provider,"
-                + "use getObjectEvaluation instead.");
+        OptimizelyUserContext userContext = contextTransformer.transform(ctx);
+
+        String variableKey = getVariableKey(ctx);
+        String value = optimizely.getFeatureVariableString(
+                key, variableKey, userContext.getUserId(), userContext.getAttributes());
+
+        String variant = variableKey;
+        String reason = Reason.TARGETING_MATCH.name();
+        if (value == null) {
+            value = defaultValue;
+            variant = null;
+            reason = Reason.DEFAULT.name();
+        }
+
+        return ProviderEvaluation.<String>builder()
+                .value(value)
+                .reason(reason)
+                .variant(variant)
+                .build();
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        throw new UnsupportedOperationException("Integer evaluation is not directly supported by Optimizely provider,"
-                + "use getObjectEvaluation instead.");
+        OptimizelyUserContext userContext = contextTransformer.transform(ctx);
+
+        String variableKey = getVariableKey(ctx);
+        Integer value = optimizely.getFeatureVariableInteger(
+                key, variableKey, userContext.getUserId(), userContext.getAttributes());
+
+        String variant = variableKey;
+        String reason = Reason.TARGETING_MATCH.name();
+        if (value == null) {
+            value = defaultValue;
+            variant = null;
+            reason = Reason.DEFAULT.name();
+        }
+
+        return ProviderEvaluation.<Integer>builder()
+                .value(value)
+                .reason(reason)
+                .variant(variant)
+                .build();
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        throw new UnsupportedOperationException("Double evaluation is not directly supported by Optimizely provider,"
-                + "use getObjectEvaluation instead.");
+        OptimizelyUserContext userContext = contextTransformer.transform(ctx);
+
+        String variableKey = getVariableKey(ctx);
+        Double value = optimizely.getFeatureVariableDouble(
+                key, variableKey, userContext.getUserId(), userContext.getAttributes());
+
+        String variant = variableKey;
+        String reason = Reason.TARGETING_MATCH.name();
+        if (value == null) {
+            value = defaultValue;
+            variant = null;
+            reason = Reason.DEFAULT.name();
+        }
+
+        return ProviderEvaluation.<Double>builder()
+                .value(value)
+                .reason(reason)
+                .variant(variant)
+                .build();
     }
 
     @SneakyThrows
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         OptimizelyUserContext userContext = contextTransformer.transform(ctx);
-        OptimizelyDecision decision = userContext.decide(key);
-        String variationKey = decision.getVariationKey();
-        String reasonsString = null;
-        if (variationKey == null) {
-            List<String> reasons = decision.getReasons();
-            reasonsString = String.join(", ", reasons);
-        }
 
-        Value evaluatedValue = defaultValue;
-        boolean enabled = decision.getEnabled();
-        if (enabled) {
-            OptimizelyJSON variables = decision.getVariables();
-            evaluatedValue = toValue(variables);
+        String variableKey = getVariableKey(ctx);
+        OptimizelyJSON value = optimizely.getFeatureVariableJSON(
+                key, variableKey, userContext.getUserId(), userContext.getAttributes());
+        Value evaluatedValue = toValue(value);
+
+        String variant = variableKey;
+        String reason = Reason.TARGETING_MATCH.name();
+        if (value == null) {
+            evaluatedValue = defaultValue;
+            variant = null;
+            reason = Reason.DEFAULT.name();
         }
 
         return ProviderEvaluation.<Value>builder()
                 .value(evaluatedValue)
-                .reason(reasonsString)
-                .variant(variationKey)
+                .reason(reason)
+                .variant(variant)
                 .build();
     }
 
     @SneakyThrows
     private Value toValue(OptimizelyJSON optimizelyJson) {
+        if (optimizelyJson == null) {
+            return new Value();
+        }
         Map<String, Object> map = optimizelyJson.toMap();
         Structure structure = Structure.mapToStructure(map);
         return new Value(structure);
