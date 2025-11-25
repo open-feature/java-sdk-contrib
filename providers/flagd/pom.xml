@@ -11,7 +11,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.11.18</version> <!--x-release-please-version -->
+    <version>0.11.19</version> <!--x-release-please-version -->
 
     <properties>
         <!-- exclusion expression for e2e tests -->
