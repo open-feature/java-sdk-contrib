@@ -229,8 +229,10 @@ public class StatsigProvider extends EventProvider {
     @Override
     public void shutdown() {
         log.info("shutdown begin");
-        CompletableFuture<Void> shutdownFuture = statsig.shutdown();
-        shutdownFuture.get();
+        if (statsig != null) {
+            CompletableFuture<Void> shutdownFuture = statsig.shutdown();
+            shutdownFuture.get();
+        }
         log.info("shutdown end");
     }
 

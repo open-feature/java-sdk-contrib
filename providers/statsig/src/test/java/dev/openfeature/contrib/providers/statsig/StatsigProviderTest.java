@@ -61,7 +61,6 @@ class StatsigProviderTest {
     static void setUp() {
         String sdkKey = "test";
         StatsigOptions statsigOptions = new StatsigOptions.Builder()
-                //                .setLocalMode(true)
                 .build();
         StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder()
                 .sdkKey(sdkKey)
