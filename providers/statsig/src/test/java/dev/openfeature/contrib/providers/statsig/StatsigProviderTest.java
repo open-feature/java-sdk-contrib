@@ -60,8 +60,7 @@ class StatsigProviderTest {
     @BeforeAll
     static void setUp() {
         String sdkKey = "test";
-        StatsigOptions statsigOptions = new StatsigOptions.Builder()
-                .build();
+        StatsigOptions statsigOptions = new StatsigOptions.Builder().build();
         StatsigProviderConfig statsigProviderConfig = StatsigProviderConfig.builder()
                 .sdkKey(sdkKey)
                 .options(statsigOptions)
