@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.1...dev.openfeature.contrib.providers.go-feature-flag-v1.1.0) (2025-11-24)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** fix wrong environment variable and test execution ([#1589](https://github.com/open-feature/java-sdk-contrib/issues/1589)) ([e1d8e54](https://github.com/open-feature/java-sdk-contrib/commit/e1d8e54cb15f7e9f27626c60cebded3690a84698))
+
+
+### ✨ New Features
+
+* compile go-feature-flag to Java bytecode ([#1628](https://github.com/open-feature/java-sdk-contrib/issues/1628)) ([129c9bd](https://github.com/open-feature/java-sdk-contrib/commit/129c9bdd130b3a193cf641c7ab02b43b2567b9df))
+
 ## [1.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.0...dev.openfeature.contrib.providers.go-feature-flag-v1.0.1) (2025-09-19)
 
 
