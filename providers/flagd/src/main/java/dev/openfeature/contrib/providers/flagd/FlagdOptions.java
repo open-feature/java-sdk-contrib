@@ -254,8 +254,14 @@ public class FlagdOptions {
             }
 
             if (port == 0 && resolverType != Config.Resolver.FILE) {
-                port = Integer.parseInt(
-                        fallBackToEnvOrDefault(Config.PORT_ENV_VAR_NAME, determineDefaultPortForResolver()));
+                String defaultPort = determineDefaultPortForResolver();
+                String fromPortEnv = fallBackToEnvOrDefault(Config.PORT_ENV_VAR_NAME, defaultPort);
+
+                String portValue = resolverType == Config.Resolver.IN_PROCESS
+                        ? fallBackToEnvOrDefault(Config.SYNC_PORT_ENV_VAR_NAME, fromPortEnv)
+                        : fromPortEnv;
+
+                port = Integer.parseInt(portValue);
             }
         }
 

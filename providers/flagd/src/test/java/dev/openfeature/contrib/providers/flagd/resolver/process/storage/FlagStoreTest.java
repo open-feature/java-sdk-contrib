@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 class FlagStoreTest {
@@ -100,7 +99,7 @@ class FlagStoreTest {
                 FlagParser.parseString(getFlagsFromResource(VALID_LONG), true).getFlags();
         expectedChangedFlags.remove("myBoolFlag");
         // flags changed from initial VALID_SIMPLE flag, as a set because we don't care about order
-        Assert.assertEquals(
+        assertEquals(
                 expectedChangedFlags.keySet().stream().collect(Collectors.toSet()),
                 new HashSet<>(storageStateDTOS.take().getChangedFlagsKeys()));
     }
