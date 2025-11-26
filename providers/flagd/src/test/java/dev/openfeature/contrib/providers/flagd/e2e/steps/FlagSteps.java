@@ -15,10 +15,8 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.parallel.Isolated;
 
 @Slf4j
-@Isolated()
 public class FlagSteps extends AbstractSteps {
 
     public FlagSteps(State state) {

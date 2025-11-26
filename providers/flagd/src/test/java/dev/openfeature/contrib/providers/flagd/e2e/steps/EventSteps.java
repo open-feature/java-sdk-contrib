@@ -11,9 +11,7 @@ import io.cucumber.java.en.When;
 import java.util.LinkedList;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.parallel.Isolated;
 
-@Isolated()
 @Slf4j
 public class EventSteps extends AbstractSteps {
 

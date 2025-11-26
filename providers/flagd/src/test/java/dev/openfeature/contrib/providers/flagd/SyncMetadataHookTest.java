@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagValueType;
@@ -9,7 +9,7 @@ import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** SyncMetadataHookTest */
 public class SyncMetadataHookTest {

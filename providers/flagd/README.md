@@ -106,27 +106,27 @@ variables.
 
 Given below are the supported configurations:
 
-| Option name           | Environment variable name      | Type & Values            | Default   | Compatible resolver     |
-|-----------------------|--------------------------------|--------------------------|-----------|-------------------------|
-| resolver              | FLAGD_RESOLVER                 | String - rpc, in-process | rpc       |                         |
-| host                  | FLAGD_HOST                     | String                   | localhost | rpc & in-process        |
-| port                  | FLAGD_PORT                     | int                      | 8013      | rpc & in-process        |
-| targetUri             | FLAGD_TARGET_URI               | string                   | null      | rpc & in-process        |
-| tls                   | FLAGD_TLS                      | boolean                  | false     | rpc & in-process        |
-| defaultAuthority      | FLAGD_DEFAULT_AUTHORITY        | String                   | null      | rpc & in-process        |
-| socketPath            | FLAGD_SOCKET_PATH              | String                   | null      | rpc & in-process        |
-| certPath              | FLAGD_SERVER_CERT_PATH         | String                   | null      | rpc & in-process        |
-| deadline              | FLAGD_DEADLINE_MS              | int                      | 500       | rpc & in-process & file |
-| streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS       | int                      | 600000    | rpc & in-process        |
-| keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS       | long                     | 0         | rpc & in-process        |
-| selector              | FLAGD_SOURCE_SELECTOR          | String                   | null      | in-process              |
-| providerId            | FLAGD_SOURCE_PROVIDER_ID       | String                   | null      | in-process              |
-| cache                 | FLAGD_CACHE                    | String - lru, disabled   | lru       | rpc                     |
-| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int                      | 1000      | rpc                     |
-| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int                      | 5         | rpc                     |
-| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS         | int                      | 1000      | rpc                     |
-| offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH | String                   | null      | file                    |
-| offlinePollIntervalMs | FLAGD_OFFLINE_POLL_MS          | int                      | 5000      | file                    |
+| Option name           | Environment variable name                                              | Type & Values            | Default                       | Compatible resolver     |
+|-----------------------|------------------------------------------------------------------------|--------------------------|-------------------------------|-------------------------|
+| resolver              | FLAGD_RESOLVER                                                         | String - rpc, in-process | rpc                           |                         |
+| host                  | FLAGD_HOST                                                             | String                   | localhost                     | rpc & in-process        |
+| port                  | FLAGD_PORT (rpc), FLAGD_SYNC_PORT (in-process, FLAGD_PORT as fallback) | int                      | 8013 (rpc), 8015 (in-process) | rpc & in-process        |
+| targetUri             | FLAGD_TARGET_URI                                                       | string                   | null                          | rpc & in-process        |
+| tls                   | FLAGD_TLS                                                              | boolean                  | false                         | rpc & in-process        |
+| defaultAuthority      | FLAGD_DEFAULT_AUTHORITY                                                | String                   | null                          | rpc & in-process        |
+| socketPath            | FLAGD_SOCKET_PATH                                                      | String                   | null                          | rpc & in-process        |
+| certPath              | FLAGD_SERVER_CERT_PATH                                                 | String                   | null                          | rpc & in-process        |
+| deadline              | FLAGD_DEADLINE_MS                                                      | int                      | 500                           | rpc & in-process & file |
+| streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS                                               | int                      | 600000                        | rpc & in-process        |
+| keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS                                               | long                     | 0                             | rpc & in-process        |
+| selector              | FLAGD_SOURCE_SELECTOR                                                  | String                   | null                          | in-process              |
+| providerId            | FLAGD_SOURCE_PROVIDER_ID                                               | String                   | null                          | in-process              |
+| cache                 | FLAGD_CACHE                                                            | String - lru, disabled   | lru                           | rpc                     |
+| maxCacheSize          | FLAGD_MAX_CACHE_SIZE                                                   | int                      | 1000                          | rpc                     |
+| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES                                         | int                      | 5                             | rpc                     |
+| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS                                                 | int                      | 1000                          | rpc                     |
+| offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH                                         | String                   | null                          | file                    |
+| offlinePollIntervalMs | FLAGD_OFFLINE_POLL_MS                                                  | int                      | 5000                          | file                    |
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.

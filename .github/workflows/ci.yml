@@ -43,4 +43,5 @@ jobs:
             ${{ runner.os }}${{ matrix.build.java }}-maven-
 
       - name: Maven Verify
-        run: mvn --batch-mode --activate-profiles e2e,${{ matrix.build.profile }} clean verify
+        # Run Maven build with e2e and specific profile, using parallel threads (if some provider decides to use a different toolchain version, this might break)
+        run: mvn -T 2C --batch-mode --activate-profiles e2e,${{ matrix.build.profile }} clean verify

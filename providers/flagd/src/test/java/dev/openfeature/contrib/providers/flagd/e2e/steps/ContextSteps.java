@@ -7,9 +7,7 @@ import dev.openfeature.sdk.Value;
 import io.cucumber.java.en.Given;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.parallel.Isolated;
 
-@Isolated()
 public class ContextSteps extends AbstractSteps {
 
     public ContextSteps(State state) {

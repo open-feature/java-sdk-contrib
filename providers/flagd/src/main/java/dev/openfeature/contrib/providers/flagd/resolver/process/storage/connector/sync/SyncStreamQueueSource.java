@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @SuppressFBWarnings(
-        value = {"PREDICTABLE_RANDOM", "EI_EXPOSE_REP"},
+        value = {"EI_EXPOSE_REP"},
         justification = "Random is used to generate a variation & flag configurations require exposing")
 public class SyncStreamQueueSource implements QueueSource {
     private static final int QUEUE_SIZE = 5;

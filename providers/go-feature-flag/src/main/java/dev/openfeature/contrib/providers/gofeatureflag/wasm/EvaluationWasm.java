@@ -1,14 +1,15 @@
 package dev.openfeature.contrib.providers.gofeatureflag.wasm;
 
+import com.dylibso.chicory.runtime.ByteArrayMemory;
 import com.dylibso.chicory.runtime.ExportFunction;
 import com.dylibso.chicory.runtime.HostFunction;
+import com.dylibso.chicory.runtime.ImportFunction;
+import com.dylibso.chicory.runtime.ImportValues;
 import com.dylibso.chicory.runtime.Instance;
 import com.dylibso.chicory.runtime.Memory;
-import com.dylibso.chicory.runtime.Store;
 import com.dylibso.chicory.wasi.WasiExitException;
 import com.dylibso.chicory.wasi.WasiOptions;
 import com.dylibso.chicory.wasi.WasiPreview1;
-import com.dylibso.chicory.wasm.Parser;
 import com.dylibso.chicory.wasm.types.ValueType;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.WasmFileNotFound;
@@ -16,9 +17,11 @@ import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.val;
 
 /**
@@ -42,36 +45,21 @@ public final class EvaluationWasm {
         val wasi = WasiPreview1.builder()
                 .withOptions(WasiOptions.builder().inheritSystem().build())
                 .build();
-        val hostFunctions = wasi.toHostFunctions();
-        val store = new Store().addFunction(hostFunctions);
-        store.addFunction(getProcExitFunc());
-        this.instance = store.instantiate("evaluation", Parser.parse(getWasmFile()));
+        List<ImportFunction> hostFunctions =
+                Arrays.stream(wasi.toHostFunctions()).map(this::replaceProcExit).collect(Collectors.toList());
+        this.instance = Instance.builder(Module.load())
+                .withMemoryFactory(ByteArrayMemory::new)
+                .withMachineFactory(Module::create)
+                .withImportValues(
+                        ImportValues.builder().withFunctions(hostFunctions).build())
+                .build();
         this.evaluate = this.instance.export("evaluate");
         this.malloc = this.instance.export("malloc");
         this.free = this.instance.export("free");
     }
 
-    /**
-     * getWasmFile is a function that returns the path to the WASM file.
-     * It looks for the file in the classpath under the directory "wasm".
-     * This method handles both file system resources and JAR-packaged resources.
-     *
-     * @return the path to the WASM file
-     * @throws WasmFileNotFound - if the file is not found
-     */
-    private InputStream getWasmFile() throws WasmFileNotFound {
-        try {
-            final String wasmResourcePath = "wasm/gofeatureflag-evaluation.wasi";
-            InputStream inputStream = EvaluationWasm.class.getClassLoader().getResourceAsStream(wasmResourcePath);
-            if (inputStream == null) {
-                throw new WasmFileNotFound("WASM resource not found in classpath: " + wasmResourcePath);
-            }
-            return inputStream;
-        } catch (WasmFileNotFound e) {
-            throw e;
-        } catch (Exception e) {
-            throw new WasmFileNotFound(e);
-        }
+    private ImportFunction replaceProcExit(HostFunction hf) {
+        return hf.name().equals("proc_exit") ? getProcExitFunc() : hf;
     }
 
     /**
@@ -81,7 +69,7 @@ public final class EvaluationWasm {
      *
      * @return a HostFunction that is called when the WASM module calls proc_exit
      */
-    private HostFunction getProcExitFunc() {
+    private ImportFunction getProcExitFunc() {
         return new HostFunction(
                 "wasi_snapshot_preview1",
                 "proc_exit",
