@@ -91,7 +91,7 @@ public class FlagdProvider extends EventProvider {
         }
         hooks.add(new SyncMetadataHook(this::getEnrichedContext));
         contextEnricher = options.getContextEnricher();
-        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        errorExecutor = Executors.newSingleThreadScheduledExecutor(new FlagdThreadFactory("flagd-provider-thread"));
         gracePeriod = options.getRetryGracePeriod();
         deadline = options.getDeadline();
     }
@@ -105,7 +105,7 @@ public class FlagdProvider extends EventProvider {
         deadline = Config.DEFAULT_DEADLINE;
         gracePeriod = Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD;
         hooks.add(new SyncMetadataHook(this::getEnrichedContext));
-        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        errorExecutor = Executors.newSingleThreadScheduledExecutor(new FlagdThreadFactory("flagd-provider-thread"));
         if (initialized) {
             this.syncResources.initialize();
         }
