@@ -69,11 +69,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
         metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
                 .withWaitForReady();
-        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "flagd-sync-retry-scheduler");
-            t.setDaemon(true);
-            return t;
-        });
+        scheduler = createScheduler();
     }
 
     // internal use only
@@ -91,7 +87,11 @@ public class SyncStreamQueueSource implements QueueSource {
         flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         metadataStub = blockingStubMock;
-        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        scheduler = createScheduler();
+    }
+
+    private static ScheduledExecutorService createScheduler() {
+        return Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "flagd-sync-retry-scheduler");
             t.setDaemon(true);
             return t;
@@ -178,7 +178,7 @@ public class SyncStreamQueueSource implements QueueSource {
      */
     private void scheduleRetry() {
         if (shutdown.get()) {
-            log.info("Shutdown invoked, exiting event stream listener");
+            log.debug("Shutdown in progress, not scheduling retry.");
             return;
         }
         try {
