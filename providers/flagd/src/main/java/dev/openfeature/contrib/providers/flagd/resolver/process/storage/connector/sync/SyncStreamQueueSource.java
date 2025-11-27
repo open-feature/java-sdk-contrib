@@ -21,7 +21,9 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -49,6 +51,7 @@ public class SyncStreamQueueSource implements QueueSource {
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final FlagSyncServiceStub flagSyncStub;
     private final FlagSyncServiceBlockingStub metadataStub;
+    private final ScheduledExecutorService scheduler;
 
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event stream.
@@ -65,6 +68,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
         metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
                 .withWaitForReady();
+        scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
     // internal use only
@@ -82,6 +86,7 @@ public class SyncStreamQueueSource implements QueueSource {
         flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         metadataStub = blockingStubMock;
+        scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
     /** Initialize sync stream connector. */
@@ -109,6 +114,8 @@ public class SyncStreamQueueSource implements QueueSource {
             log.debug("Shutdown already in progress or completed");
             return;
         }
+        this.scheduler.shutdownNow();
+        this.scheduler.awaitTermination(deadline, TimeUnit.MILLISECONDS);
         this.channelConnector.shutdown();
     }
 
@@ -120,43 +127,47 @@ public class SyncStreamQueueSource implements QueueSource {
         // "waitForReady" on the channel, plus our retry policy slow this loop down in
         // error conditions
         while (!shutdown.get()) {
+            if (shouldThrottle.getAndSet(false)) {
+                log.debug("Previous stream ended with error, waiting {} ms before retry", this.maxBackoffMs);
+                scheduleRetry();
+                return;
+            }
+
+            log.debug("Initializing sync stream request");
+            SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue, shouldThrottle);
             try {
-                if (shouldThrottle.getAndSet(false)) {
-                    log.debug("Previous stream ended with error, waiting {} ms before retry", this.maxBackoffMs);
-                    Thread.sleep(this.maxBackoffMs);
+                observer.metadata = getMetadata();
+            } catch (Exception metaEx) {
+                // retry if getMetadata fails
+                String message = metaEx.getMessage();
+                log.debug("Metadata request error: {}, will restart", message, metaEx);
+                enqueueError(String.format("Error in getMetadata request: %s", message));
+                shouldThrottle.set(true);
+                continue;
+            }
 
-                    // Check shutdown again after sleep to avoid unnecessary work
-                    if (shutdown.get()) {
-                        break;
-                    }
-                }
-
-                log.debug("Initializing sync stream request");
-                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue, shouldThrottle);
-                try {
-                    observer.metadata = getMetadata();
-                } catch (Exception metaEx) {
-                    // retry if getMetadata fails
-                    String message = metaEx.getMessage();
-                    log.debug("Metadata request error: {}, will restart", message, metaEx);
-                    enqueueError(String.format("Error in getMetadata request: %s", message));
-                    shouldThrottle.set(true);
-                    continue;
-                }
-
-                try {
-                    syncFlags(observer);
-                } catch (Exception ex) {
-                    log.error("Unexpected sync stream exception, will restart.", ex);
-                    enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
-                    shouldThrottle.set(true);
-                }
-            } catch (InterruptedException ie) {
-                log.debug("Stream loop interrupted, most likely shutdown was invoked", ie);
+            try {
+                syncFlags(observer);
+            } catch (Exception ex) {
+                log.error("Unexpected sync stream exception, will restart.", ex);
+                enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
+                shouldThrottle.set(true);
             }
         }
 
         log.info("Shutdown invoked, exiting event stream listener");
+    }
+
+    /**
+     * Schedules a retry of the sync stream after the backoff period.
+     * Uses a non-blocking approach instead of Thread.sleep().
+     */
+    private void scheduleRetry() {
+        if (shutdown.get()) {
+            log.info("Shutdown invoked, exiting event stream listener");
+            return;
+        }
+        scheduler.schedule(this::observeSyncStream, this.maxBackoffMs, TimeUnit.MILLISECONDS);
     }
 
     // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
