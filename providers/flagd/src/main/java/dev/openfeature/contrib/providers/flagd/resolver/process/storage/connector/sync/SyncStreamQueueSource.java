@@ -23,6 +23,7 @@ import io.grpc.stub.StreamObserver;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -68,7 +69,11 @@ public class SyncStreamQueueSource implements QueueSource {
                 FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
         metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
                 .withWaitForReady();
-        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "flagd-sync-retry-scheduler");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     // internal use only
@@ -86,7 +91,11 @@ public class SyncStreamQueueSource implements QueueSource {
         flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         metadataStub = blockingStubMock;
-        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "flagd-sync-retry-scheduler");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     /** Initialize sync stream connector. */
@@ -115,7 +124,12 @@ public class SyncStreamQueueSource implements QueueSource {
             return;
         }
         this.scheduler.shutdownNow();
-        this.scheduler.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+        try {
+            this.scheduler.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            log.debug("Scheduler termination was interrupted", e);
+            Thread.currentThread().interrupt();
+        }
         this.channelConnector.shutdown();
     }
 
@@ -167,7 +181,12 @@ public class SyncStreamQueueSource implements QueueSource {
             log.info("Shutdown invoked, exiting event stream listener");
             return;
         }
-        scheduler.schedule(this::observeSyncStream, this.maxBackoffMs, TimeUnit.MILLISECONDS);
+        try {
+            scheduler.schedule(this::observeSyncStream, this.maxBackoffMs, TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException e) {
+            // Scheduler was shut down after the shutdown check, which is fine
+            log.debug("Retry scheduling rejected, scheduler is shut down", e);
+        }
     }
 
     // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
