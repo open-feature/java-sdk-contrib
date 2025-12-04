@@ -152,7 +152,7 @@ class FlagdProviderTest {
                 .thenReturn(objectResponse);
 
         ChannelConnector grpc = mock(ChannelConnector.class);
-        OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc, serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
         assertTrue(booleanDetails.getValue());
@@ -230,7 +230,7 @@ class FlagdProviderTest {
 
         ChannelConnector grpc = mock(ChannelConnector.class);
 
-        OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc, serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
 
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
         assertEquals(false, booleanDetails.getValue());
@@ -294,7 +294,7 @@ class FlagdProviderTest {
                 .thenReturn(booleanResponse);
 
         ChannelConnector grpc = mock(ChannelConnector.class);
-        OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc, serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
 
         // when
         FlagEvaluationDetails<Boolean> booleanDetails = api.getClient().getBooleanDetails(FLAG_KEY_BOOLEAN, false);
@@ -376,7 +376,7 @@ class FlagdProviderTest {
                 .thenReturn(booleanResponse);
 
         ChannelConnector grpc = mock(ChannelConnector.class);
-        OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc, serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
 
         final MutableContext context = new MutableContext("MY_TARGETING_KEY");
         context.add(BOOLEAN_ATTR_KEY, BOOLEAN_ATTR_VALUE);
@@ -415,7 +415,7 @@ class FlagdProviderTest {
                         .build());
 
         ChannelConnector grpc = mock(ChannelConnector.class);
-        OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc, serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
 
         // then
         final Boolean evaluation = api.getClient().getBooleanValue(flagA, defaultVariant, context);
@@ -439,7 +439,7 @@ class FlagdProviderTest {
                 .thenReturn(badReasonResponse);
 
         ChannelConnector grpc = mock(ChannelConnector.class);
-        OpenFeatureAPI.getInstance().setProviderAndWait(createProvider(grpc, serviceBlockingStubMock));
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
 
         FlagEvaluationDetails<Boolean> booleanDetails =
                 api.getClient().getBooleanDetails(FLAG_KEY, false, new MutableContext());
@@ -498,7 +498,7 @@ class FlagdProviderTest {
                 .thenReturn(objectResponse);
 
         ChannelConnector grpc = mock(ChannelConnector.class);
-        FlagdProvider provider = createProvider(grpc, serviceBlockingStubMock);
+        FlagdProvider provider = FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock);
 
         // provider.setState(eventStreamAlive); // caching only available when event
         // stream is alive
@@ -675,67 +675,5 @@ class FlagdProviderTest {
                             Collections.emptyMap());
             assertEquals(val, contextFromHook.get().getValue(key).asString());
         }
-    }
-
-    // test helper
-    // create provider with given grpc provider and state supplier
-    private FlagdProvider createProvider(ChannelConnector connector, ServiceBlockingStub mockBlockingStub) {
-        final Cache cache = new Cache("lru", 5);
-        final ServiceStub mockStub = mock(ServiceStub.class);
-
-        return createProvider(connector, cache, mockStub, mockBlockingStub);
-    }
-
-    // create provider with given grpc provider, cache and state supplier
-    private FlagdProvider createProvider(
-            ChannelConnector connector, Cache cache, ServiceStub mockStub, ServiceBlockingStub mockBlockingStub) {
-        final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (connectionEvent) -> {});
-
-        try {
-            Field resolver = RpcResolver.class.getDeclaredField("connector");
-            resolver.setAccessible(true);
-            resolver.set(grpcResolver, connector);
-
-            Field stub = RpcResolver.class.getDeclaredField("stub");
-            stub.setAccessible(true);
-            stub.set(grpcResolver, mockStub);
-
-            Field blockingStub = RpcResolver.class.getDeclaredField("blockingStub");
-            blockingStub.setAccessible(true);
-            blockingStub.set(grpcResolver, mockBlockingStub);
-
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        final FlagdProvider provider = new FlagdProvider(grpcResolver, true);
-        return provider;
-    }
-
-    // Create an in process provider
-    private FlagdProvider createInProcessProvider() {
-
-        final FlagdOptions flagdOptions = FlagdOptions.builder()
-                .resolverType(Config.Resolver.IN_PROCESS)
-                .deadline(1000)
-                .build();
-        final FlagdProvider provider = new FlagdProvider(flagdOptions);
-        final MockStorage mockStorage = new MockStorage(
-                new HashMap<String, FeatureFlag>(),
-                new LinkedBlockingQueue<StorageStateChange>(Arrays.asList(new StorageStateChange(StorageState.OK))));
-
-        try {
-            final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
-            flagResolver.setAccessible(true);
-            final Resolver resolver = (Resolver) flagResolver.get(provider);
-
-            final Field flagStore = InProcessResolver.class.getDeclaredField("flagStore");
-            flagStore.setAccessible(true);
-            flagStore.set(resolver, mockStorage);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-
-        return provider;
     }
 }
