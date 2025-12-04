@@ -1,19 +1,18 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.vmlens.api.AllInterleavings;
 import com.vmlens.api.Runner;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.Value;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class FlagdProviderCT {
     private FlagdProvider provider;
@@ -47,7 +46,7 @@ class FlagdProviderCT {
         );
         provider.initialize(ImmutableContext.EMPTY);
     }
-/*
+
     @Test
     void concurrentFlagEvaluationsWork() {
         var invocationContext = ImmutableContext.EMPTY;
@@ -62,7 +61,7 @@ class FlagdProviderCT {
                 );
             }
         }
-    }*/
+    }
 
     @Test
     void flagEvaluationsWhileSettingContextWork() {
