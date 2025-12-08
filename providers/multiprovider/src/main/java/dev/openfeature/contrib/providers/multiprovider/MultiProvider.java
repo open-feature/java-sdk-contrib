@@ -21,8 +21,17 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
-/** Provider implementation for Multi-provider. */
+/**
+ * Multi-provider implementation that composes multiple providers.
+ *
+ * <p>This implementation lives in the contrib repository and is kept for backwards compatibility
+ * with existing users.</p>
+ *
+ * @deprecated Use {@link dev.openfeature.sdk.multiprovider.MultiProvider}
+ *     from the core Java SDK instead.
+ */
 @Slf4j
+@Deprecated
 public class MultiProvider extends EventProvider {
 
     @Getter
