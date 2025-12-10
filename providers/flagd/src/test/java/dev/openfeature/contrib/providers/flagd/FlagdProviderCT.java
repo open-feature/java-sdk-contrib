@@ -24,8 +24,8 @@ class FlagdProviderCT {
                         "flag",
                         new FeatureFlag(
                                 "ENABLED",
-                                "default",
-                                Map.of("default", "a", "other", "b"),
+                                "a",
+                                Map.of("a", "a", "b", "b", "c", "c"),
                                 "{\n"
                                         + "        \"if\": [\n"
                                         + "          {\n"
@@ -36,8 +36,8 @@ class FlagdProviderCT {
                                         + "              \"@ingen.com\"\n"
                                         + "            ]\n"
                                         + "          },\n"
-                                        + "          \"default\",\n"
-                                        + "          \"other\"\n"
+                                        + "          \"b\",\n"
+                                        + "          \"c\"\n"
                                         + "        ]\n"
                                         + "      }",
                                 null
@@ -54,9 +54,9 @@ class FlagdProviderCT {
         try (var interleavings = new AllInterleavings("Concurrent Flag evaluations")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> assertEquals("a",
+                        () -> assertEquals("c",
                                 provider.getStringEvaluation("flag", "z", invocationContext).getValue()),
-                        () -> assertEquals("a",
+                        () -> assertEquals("c",
                                 provider.getStringEvaluation("flag", "z", invocationContext).getValue())
                 );
             }
@@ -75,9 +75,30 @@ class FlagdProviderCT {
         try (var interleavings = new AllInterleavings("Concurrently setting client context and evaluating a Flag")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> assertTrue(List.of("a", "b")
+                        () -> assertTrue(List.of("b", "c")
                                 .contains(provider.getStringEvaluation("flag", "z", invocationContext).getValue())),
                         () -> client.setEvaluationContext(context)
+                );
+            }
+        }
+    }
+
+    @Test
+    void settingDifferentContextsWorks() {
+
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+        var client = OpenFeatureAPI.getInstance().getClient();
+
+        var clientContext = new ImmutableContext(Map.of("email", new Value("someone@ingen.com")));
+        var apiContext = new ImmutableContext(Map.of("email", new Value("someone.else@test.com")));
+
+        try (var interleavings = new AllInterleavings("Concurrently setting client and api context")) {
+            while (interleavings.hasNext()) {
+                Runner.runParallel(
+                        () -> client.setEvaluationContext(clientContext),
+                        () -> OpenFeatureAPI.getInstance().setEvaluationContext(apiContext),
+                        () -> assertTrue(List.of("b", "c")
+                                .contains(provider.getStringEvaluation("flag", "z", ImmutableContext.EMPTY).getValue()))
                 );
             }
         }
