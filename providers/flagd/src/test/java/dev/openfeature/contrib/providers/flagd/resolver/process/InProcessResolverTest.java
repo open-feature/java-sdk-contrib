@@ -18,10 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -57,34 +55,24 @@ import org.junit.jupiter.api.Test;
 
 class InProcessResolverTest {
     @Test
-    void onError_reinitializesOnlyIfOptionTrue() throws Exception {
-        // Setup: option true, should call reinitializeChannelComponents
-        FlagdOptions options = FlagdOptions.builder().reinitializeOnError(true).build();
+    void onError_delegatesToQueueSource() throws Exception {
+        // given
+        FlagdOptions options = FlagdOptions.builder().build(); // option value doesn't matter here
         SyncStreamQueueSource mockConnector = mock(SyncStreamQueueSource.class);
-        // Mock getStreamQueue to return a non-null queue
-        when(mockConnector.getStreamQueue()).thenReturn(new LinkedBlockingQueue<>());
         InProcessResolver resolver = new InProcessResolver(options, e -> {});
+
         // Inject mock connector
         java.lang.reflect.Field queueSourceField = InProcessResolver.class.getDeclaredField("queueSource");
         queueSourceField.setAccessible(true);
         queueSourceField.set(resolver, mockConnector);
+
+        // when
         resolver.onError();
 
+        // then
+        // InProcessResolver should always delegate to the queue source.
+        // The decision to re-initialize or not is handled within SyncStreamQueueSource.
         verify(mockConnector, times(1)).reinitializeChannelComponents();
-    }
-
-    @Test
-    void onError_doesNotReinitializeIfOptionFalse() throws Exception {
-        // Setup: option false, should NOT call reinitializeChannelComponents
-        FlagdOptions options = FlagdOptions.builder().reinitializeOnError(false).build();
-        SyncStreamQueueSource mockConnector = mock(SyncStreamQueueSource.class);
-        InProcessResolver resolver = new InProcessResolver(options, e -> {});
-        // Inject mock connector
-        java.lang.reflect.Field queueSourceField = InProcessResolver.class.getDeclaredField("queueSource");
-        queueSourceField.setAccessible(true);
-        queueSourceField.set(resolver, mockConnector);
-        resolver.onError();
-        verify(mockConnector, never()).reinitializeChannelComponents();
     }
 
     @Test

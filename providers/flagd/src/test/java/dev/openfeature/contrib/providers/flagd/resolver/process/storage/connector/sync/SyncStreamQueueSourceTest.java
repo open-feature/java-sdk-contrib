@@ -42,13 +42,13 @@ class SyncStreamQueueSourceTest {
         SyncStreamQueueSource queueSource =
                 new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
 
-        // Save references
-        ChannelConnector oldConnector = (ChannelConnector) getPrivateField(queueSource, "channelConnector");
+        // save reference to old GrpcComponents
+        Object oldComponents = getPrivateField(queueSource, "grpcComponents");
         queueSource.reinitializeChannelComponents();
-        ChannelConnector newConnector = (ChannelConnector) getPrivateField(queueSource, "channelConnector");
-        // Should have replaced channelConnector
-        assertNotNull(newConnector);
-        org.junit.jupiter.api.Assertions.assertNotSame(oldConnector, newConnector);
+        Object newComponents = getPrivateField(queueSource, "grpcComponents");
+        // should have replaced grpcComponents
+        assertNotNull(newComponents);
+        org.junit.jupiter.api.Assertions.assertNotSame(oldComponents, newComponents);
     }
 
     @Test
@@ -60,11 +60,11 @@ class SyncStreamQueueSourceTest {
         SyncStreamQueueSource queueSource =
                 new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
 
-        ChannelConnector oldConnector = (ChannelConnector) getPrivateField(queueSource, "channelConnector");
+        Object oldComponents = getPrivateField(queueSource, "grpcComponents");
         queueSource.reinitializeChannelComponents();
-        ChannelConnector newConnector = (ChannelConnector) getPrivateField(queueSource, "channelConnector");
-        // Should NOT have replaced channelConnector
-        org.junit.jupiter.api.Assertions.assertSame(oldConnector, newConnector);
+        Object newComponents = getPrivateField(queueSource, "grpcComponents");
+        // should NOT have replaced grpcComponents
+        org.junit.jupiter.api.Assertions.assertSame(oldComponents, newComponents);
     }
 
     @Test
@@ -77,13 +77,13 @@ class SyncStreamQueueSourceTest {
                 new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
 
         queueSource.shutdown();
-        ChannelConnector oldConnector = (ChannelConnector) getPrivateField(queueSource, "channelConnector");
+        Object oldComponents = getPrivateField(queueSource, "grpcComponents");
         queueSource.reinitializeChannelComponents();
-        ChannelConnector newConnector = (ChannelConnector) getPrivateField(queueSource, "channelConnector");
-        // Should NOT have replaced channelConnector
-        org.junit.jupiter.api.Assertions.assertSame(oldConnector, newConnector);
+        Object newComponents = getPrivateField(queueSource, "grpcComponents");
+        // should NOT have replaced grpcComponents
+        org.junit.jupiter.api.Assertions.assertSame(oldComponents, newComponents);
     }
-    // Helper to access private fields via reflection
+    // helper to access private fields via reflection
     private static Object getPrivateField(Object instance, String fieldName) {
         try {
             java.lang.reflect.Field field = instance.getClass().getDeclaredField(fieldName);
@@ -110,7 +110,7 @@ class SyncStreamQueueSourceTest {
         when(blockingStub.getMetadata(any())).thenReturn(GetMetadataResponse.getDefaultInstance());
 
         mockConnector = mock(ChannelConnector.class);
-        doNothing().when(mockConnector).initialize(); // Mock the initialize method
+        doNothing().when(mockConnector).initialize(); // mock the initialize method
 
         stub = mock(FlagSyncServiceStub.class);
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
@@ -123,7 +123,7 @@ class SyncStreamQueueSourceTest {
                     return null;
                 })
                 .when(stub)
-                .syncFlags(any(SyncFlagsRequest.class), any()); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any()); // mock the initialize
 
         syncErrorStub = mock(FlagSyncServiceStub.class);
         when(syncErrorStub.withDeadlineAfter(anyLong(), any())).thenReturn(syncErrorStub);
@@ -136,7 +136,7 @@ class SyncStreamQueueSourceTest {
                     throw new StatusRuntimeException(io.grpc.Status.NOT_FOUND);
                 })
                 .when(syncErrorStub)
-                .syncFlags(any(SyncFlagsRequest.class), any()); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any()); // mock the initialize
 
         asyncErrorStub = mock(FlagSyncServiceStub.class);
         when(asyncErrorStub.withDeadlineAfter(anyLong(), any())).thenReturn(asyncErrorStub);
@@ -147,10 +147,10 @@ class SyncStreamQueueSourceTest {
                     observer = obs;
                     latch.countDown();
 
-                    // Start a thread to call onError after a short delay
+                    // start a thread to call onError after a short delay
                     new Thread(() -> {
                                 try {
-                                    Thread.sleep(10); // Wait 100ms before calling onError
+                                    Thread.sleep(10); // wait 10ms before calling onError
                                     observer.onError(new StatusRuntimeException(io.grpc.Status.INTERNAL));
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -161,7 +161,7 @@ class SyncStreamQueueSourceTest {
                     return null;
                 })
                 .when(asyncErrorStub)
-                .syncFlags(any(SyncFlagsRequest.class), any()); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any()); // mock the initialize
     }
 
     @Test
@@ -182,7 +182,7 @@ class SyncStreamQueueSourceTest {
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
         assertEquals(QueuePayloadType.ERROR, payload.getType());
-        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for reties
+        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for retries
 
         // should have retried the stream (2 calls); initial + 1 retry
         // it's very important that the retry count is low, to confirm no busy-loop
@@ -207,7 +207,7 @@ class SyncStreamQueueSourceTest {
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
         assertEquals(QueuePayloadType.ERROR, payload.getType());
-        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for reties
+        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for retries
 
         // should have retried the stream (2 calls); initial + 1 retry
         // it's very important that the retry count is low, to confirm no busy-loop

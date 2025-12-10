@@ -50,9 +50,24 @@ public class SyncStreamQueueSource implements QueueSource {
     private final FlagdOptions options;
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-    private volatile ChannelConnector channelConnector;
-    private volatile FlagSyncServiceStub flagSyncStub;
-    private volatile FlagSyncServiceBlockingStub metadataStub;
+    private volatile GrpcComponents grpcComponents;
+
+    /**
+     * Container for gRPC components to ensure atomicity during reinitialization.
+     * All three components are updated together to prevent consumers from seeing
+     * an inconsistent state where components are from different channel instances.
+     */
+    private static class GrpcComponents {
+        final ChannelConnector channelConnector;
+        final FlagSyncServiceStub flagSyncStub;
+        final FlagSyncServiceBlockingStub metadataStub;
+
+        GrpcComponents(ChannelConnector connector, FlagSyncServiceStub stub, FlagSyncServiceBlockingStub blockingStub) {
+            this.channelConnector = connector;
+            this.flagSyncStub = stub;
+            this.metadataStub = blockingStub;
+        }
+    }
 
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event
@@ -81,14 +96,12 @@ public class SyncStreamQueueSource implements QueueSource {
         deadline = options.getDeadline();
         selector = options.getSelector();
         providerId = options.getProviderId();
-        channelConnector = connectorMock;
         maxBackoffMs = options.getRetryBackoffMaxMs();
-        flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         reinitializeOnError = options.isReinitializeOnError();
-        metadataStub = blockingStubMock;
         this.options = options;
         this.onConnectionEvent = null;
+        this.grpcComponents = new GrpcComponents(connectorMock, stubMock, blockingStubMock);
     }
 
     /** Initialize channel connector and stubs. */
@@ -100,10 +113,8 @@ public class SyncStreamQueueSource implements QueueSource {
         FlagSyncServiceBlockingStub newMetadataStub =
                 FlagSyncServiceGrpc.newBlockingStub(newConnector.getChannel()).withWaitForReady();
 
-        // Atomic assignment of all components
-        channelConnector = newConnector;
-        flagSyncStub = newFlagSyncStub;
-        metadataStub = newMetadataStub;
+        // atomic assignment of all components as a single unit
+        grpcComponents = new GrpcComponents(newConnector, newFlagSyncStub, newMetadataStub);
     }
 
     /** Reinitialize channel connector and stubs on error. */
@@ -113,20 +124,20 @@ public class SyncStreamQueueSource implements QueueSource {
         }
 
         log.info("Reinitializing channel gRPC components in attempt to restore stream...");
-        ChannelConnector oldConnector = channelConnector;
+        GrpcComponents oldComponents = grpcComponents;
 
         try {
-            // Create new channel components first
+            // create new channel components first
             initializeChannelComponents();
         } catch (Exception e) {
             log.error("Failed to reinitialize channel components", e);
             return;
         }
 
-        // Shutdown old connector after successful reinitialization
-        if (oldConnector != null) {
+        // shutdown old connector after successful reinitialization
+        if (oldComponents != null && oldComponents.channelConnector != null) {
             try {
-                oldConnector.shutdown();
+                oldComponents.channelConnector.shutdown();
             } catch (Exception e) {
                 log.debug("Error shutting down old channel connector during reinitialization", e);
             }
@@ -135,7 +146,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
     /** Initialize sync stream connector. */
     public void init() throws Exception {
-        channelConnector.initialize();
+        grpcComponents.channelConnector.initialize();
         Thread listener = new Thread(this::observeSyncStream);
         listener.setDaemon(true);
         listener.start();
@@ -158,7 +169,7 @@ public class SyncStreamQueueSource implements QueueSource {
             log.debug("Shutdown already in progress or completed");
             return;
         }
-        this.channelConnector.shutdown();
+        grpcComponents.channelConnector.shutdown();
     }
 
     /** Contains blocking calls, to be used concurrently. */
@@ -215,7 +226,7 @@ public class SyncStreamQueueSource implements QueueSource {
             return null;
         }
 
-        FlagSyncServiceBlockingStub localStub = metadataStub;
+        FlagSyncServiceBlockingStub localStub = grpcComponents.metadataStub;
 
         if (deadline > 0) {
             localStub = localStub.withDeadlineAfter(deadline, TimeUnit.MILLISECONDS);
@@ -243,7 +254,7 @@ public class SyncStreamQueueSource implements QueueSource {
     }
 
     private void syncFlags(SyncStreamObserver streamObserver) {
-        FlagSyncServiceStub localStub = flagSyncStub; // don't mutate the stub
+        FlagSyncServiceStub localStub = grpcComponents.flagSyncStub; // don't mutate the stub
         if (streamDeadline > 0) {
             localStub = localStub.withDeadlineAfter(streamDeadline, TimeUnit.MILLISECONDS);
         }
