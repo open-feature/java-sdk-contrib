@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.19](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.18...dev.openfeature.contrib.providers.flagd-v0.11.19) (2025-12-10)
+
+
+### ✨ New Features
+
+* Add FLAGD_SYNC_PORT support for in-process providers with backwards compatibility ([#1651](https://github.com/open-feature/java-sdk-contrib/issues/1651)) ([4f91f74](https://github.com/open-feature/java-sdk-contrib/commit/4f91f74f8f7125299ac2c5dd835a048507e359ef))
+
 ## [0.11.18](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.17...dev.openfeature.contrib.providers.flagd-v0.11.18) (2025-11-17)
 
 
