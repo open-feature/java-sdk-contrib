@@ -19,6 +19,7 @@
         <io.grpc.version>1.77.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
+        <com.vmlens.version>1.2.22</com.vmlens.version>
     </properties>
 
     <name>flagd</name>
@@ -175,6 +176,13 @@
             <version>2.0.17</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.vmlens</groupId>
+            <artifactId>api</artifactId>
+            <version>${com.vmlens.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -287,6 +295,25 @@
                         <configuration>
                             <onlyAnalyze>dev.openfeature.contrib.-</onlyAnalyze>
                         </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.vmlens</groupId>
+                        <artifactId>vmlens-maven-plugin</artifactId>
+                        <version>${com.vmlens.version}</version>
+                        <executions>
+                            <execution>
+                                <id>test</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <includes>
+                                        <include>**/*CT.java</include>
+                                    </includes>
+                                    <failIfNoTests>true</failIfNoTests>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

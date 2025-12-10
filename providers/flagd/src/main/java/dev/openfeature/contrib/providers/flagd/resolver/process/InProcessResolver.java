@@ -166,7 +166,7 @@ public class InProcessResolver implements Resolver {
             return ProviderEvaluation.<T>builder()
                     .errorMessage("flag: " + key + " not found")
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(getFlagMetadata(storageQueryResult))
+                    .flagMetadata(getFlagMetadata(storageQueryResult, scope))
                     .build();
         }
 
@@ -175,7 +175,7 @@ public class InProcessResolver implements Resolver {
             return ProviderEvaluation.<T>builder()
                     .errorMessage("flag: " + key + " is disabled")
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(getFlagMetadata(storageQueryResult))
+                    .flagMetadata(getFlagMetadata(storageQueryResult, scope))
                     .build();
         }
 
@@ -210,7 +210,7 @@ public class InProcessResolver implements Resolver {
                         .reason(Reason.ERROR.toString())
                         .errorCode(ErrorCode.FLAG_NOT_FOUND)
                         .errorMessage("Flag '" + key + "' has no default variant defined, will use code default")
-                        .flagMetadata(getFlagMetadata(storageQueryResult))
+                        .flagMetadata(getFlagMetadata(storageQueryResult, scope))
                         .build();
             }
 
@@ -235,11 +235,11 @@ public class InProcessResolver implements Resolver {
                 .value((T) value)
                 .variant(resolvedVariant)
                 .reason(reason)
-                .flagMetadata(getFlagMetadata(storageQueryResult))
+                .flagMetadata(getFlagMetadata(storageQueryResult, scope))
                 .build();
     }
 
-    private ImmutableMetadata getFlagMetadata(StorageQueryResult storageQueryResult) {
+    private static ImmutableMetadata getFlagMetadata(StorageQueryResult storageQueryResult, String scope) {
         ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
         for (Map.Entry<String, Object> entry :
                 storageQueryResult.getFlagSetMetadata().entrySet()) {
@@ -260,7 +260,7 @@ public class InProcessResolver implements Resolver {
         return metadataBuilder.build();
     }
 
-    private void addEntryToMetadataBuilder(
+    private static void addEntryToMetadataBuilder(
             ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder, String key, Object value) {
         if (value instanceof Number) {
             if (value instanceof Long) {
