@@ -28,12 +28,13 @@ import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Implements the {@link QueueSource} contract and emit flags obtained from flagd sync gRPC contract.
+ * Implements the {@link QueueSource} contract and emit flags obtained from
+ * flagd sync gRPC contract.
  */
 @Slf4j
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP"},
-        justification = "Random is used to generate a variation & flag configurations require exposing")
+        justification = "We need to expose the BlockingQueue to allow consumers to read from it")
 public class SyncStreamQueueSource implements QueueSource {
     private static final int QUEUE_SIZE = 5;
 
@@ -45,13 +46,17 @@ public class SyncStreamQueueSource implements QueueSource {
     private final String selector;
     private final String providerId;
     private final boolean syncMetadataDisabled;
-    private final ChannelConnector channelConnector;
+    private final boolean reinitializeOnError;
+    private final FlagdOptions options;
+    private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-    private final FlagSyncServiceStub flagSyncStub;
-    private final FlagSyncServiceBlockingStub metadataStub;
+    private volatile ChannelConnector channelConnector;
+    private volatile FlagSyncServiceStub flagSyncStub;
+    private volatile FlagSyncServiceBlockingStub metadataStub;
 
     /**
-     * Creates a new SyncStreamQueueSource responsible for observing the event stream.
+     * Creates a new SyncStreamQueueSource responsible for observing the event
+     * stream.
      */
     public SyncStreamQueueSource(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         streamDeadline = options.getStreamDeadlineMs();
@@ -60,11 +65,10 @@ public class SyncStreamQueueSource implements QueueSource {
         providerId = options.getProviderId();
         maxBackoffMs = options.getRetryBackoffMaxMs();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
-        channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
-        flagSyncStub =
-                FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
-        metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
-                .withWaitForReady();
+        reinitializeOnError = options.isReinitializeOnError();
+        this.options = options;
+        this.onConnectionEvent = onConnectionEvent;
+        initializeChannelComponents();
     }
 
     // internal use only
@@ -81,7 +85,52 @@ public class SyncStreamQueueSource implements QueueSource {
         maxBackoffMs = options.getRetryBackoffMaxMs();
         flagSyncStub = stubMock;
         syncMetadataDisabled = options.isSyncMetadataDisabled();
+        reinitializeOnError = options.isReinitializeOnError();
         metadataStub = blockingStubMock;
+        this.options = options;
+        this.onConnectionEvent = null;
+    }
+
+    /** Initialize channel connector and stubs. */
+    private synchronized void initializeChannelComponents() {
+        ChannelConnector newConnector =
+                new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
+        FlagSyncServiceStub newFlagSyncStub =
+                FlagSyncServiceGrpc.newStub(newConnector.getChannel()).withWaitForReady();
+        FlagSyncServiceBlockingStub newMetadataStub =
+                FlagSyncServiceGrpc.newBlockingStub(newConnector.getChannel()).withWaitForReady();
+
+        // Atomic assignment of all components
+        channelConnector = newConnector;
+        flagSyncStub = newFlagSyncStub;
+        metadataStub = newMetadataStub;
+    }
+
+    /** Reinitialize channel connector and stubs on error. */
+    public synchronized void reinitializeChannelComponents() {
+        if (!reinitializeOnError || shutdown.get()) {
+            return;
+        }
+
+        log.info("Reinitializing channel gRPC components in attempt to restore stream...");
+        ChannelConnector oldConnector = channelConnector;
+
+        try {
+            // Create new channel components first
+            initializeChannelComponents();
+        } catch (Exception e) {
+            log.error("Failed to reinitialize channel components", e);
+            return;
+        }
+
+        // Shutdown old connector after successful reinitialization
+        if (oldConnector != null) {
+            try {
+                oldConnector.shutdown();
+            } catch (Exception e) {
+                log.debug("Error shutting down old channel connector during reinitialization", e);
+            }
+        }
     }
 
     /** Initialize sync stream connector. */
@@ -159,7 +208,8 @@ public class SyncStreamQueueSource implements QueueSource {
         log.info("Shutdown invoked, exiting event stream listener");
     }
 
-    // TODO: remove the metadata call entirely after https://github.com/open-feature/flagd/issues/1584
+    // TODO: remove the metadata call entirely after
+    // https://github.com/open-feature/flagd/issues/1584
     private Struct getMetadata() {
         if (syncMetadataDisabled) {
             return null;
@@ -180,7 +230,8 @@ public class SyncStreamQueueSource implements QueueSource {
 
             return null;
         } catch (StatusRuntimeException e) {
-            // In newer versions of flagd, metadata is part of the sync stream. If the method is unimplemented, we
+            // In newer versions of flagd, metadata is part of the sync stream. If the
+            // method is unimplemented, we
             // can ignore the error
             if (e.getStatus() != null
                     && Status.Code.UNIMPLEMENTED.equals(e.getStatus().getCode())) {

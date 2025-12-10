@@ -20,6 +20,7 @@ public final class Config {
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
     static final int DEFAULT_OFFLINE_POLL_MS = 5000;
     static final long DEFAULT_KEEP_ALIVE = 0;
+    static final String DEFAULT_REINITIALIZE_ON_ERROR = "false";
 
     static final String RESOLVER_ENV_VAR = "FLAGD_RESOLVER";
     static final String HOST_ENV_VAR_NAME = "FLAGD_HOST";
@@ -51,6 +52,7 @@ public final class Config {
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME = "FLAGD_KEEP_ALIVE_TIME_MS";
     static final String TARGET_URI_ENV_VAR_NAME = "FLAGD_TARGET_URI";
     static final String STREAM_RETRY_GRACE_PERIOD = "FLAGD_RETRY_GRACE_PERIOD";
+    static final String REINITIALIZE_ON_ERROR_ENV_VAR_NAME = "FLAGD_REINITIALIZE_ON_ERROR";
 
     static final String RESOLVER_RPC = "rpc";
     static final String RESOLVER_IN_PROCESS = "in-process";
