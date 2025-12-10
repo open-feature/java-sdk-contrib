@@ -104,10 +104,8 @@ public class InProcessResolver implements Resolver {
     public void onError() {
         if (queueSource instanceof SyncStreamQueueSource) {
             SyncStreamQueueSource syncConnector = (SyncStreamQueueSource) queueSource;
-            if (syncConnector.getStreamQueue() != null) {
-                // Only reinitialize if option is enabled
-                syncConnector.reinitializeChannelComponents();
-            }
+            // only reinitialize if option is enabled
+            syncConnector.reinitializeChannelComponents();
         }
     }
 
