@@ -4,7 +4,6 @@ import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
@@ -24,7 +23,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -99,7 +97,6 @@ public class SyncStreamQueueSource implements QueueSource {
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         reinitializeOnError = options.isReinitializeOnError();
         this.options = options;
-        //this.onConnectionEvent = null;
         this.grpcComponents = new GrpcComponents(connectorMock, stubMock, blockingStubMock);
     }
 
