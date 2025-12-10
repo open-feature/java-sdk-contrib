@@ -100,7 +100,7 @@ public class SyncStreamQueueSource implements QueueSource {
         syncMetadataDisabled = options.isSyncMetadataDisabled();
         reinitializeOnError = options.isReinitializeOnError();
         this.options = options;
-        this.onConnectionEvent = null;
+        this.onConnectionEvent = e -> {};
         this.grpcComponents = new GrpcComponents(connectorMock, stubMock, blockingStubMock);
     }
 
