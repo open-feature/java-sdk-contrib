@@ -17,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -51,6 +56,36 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class InProcessResolverTest {
+    @Test
+    void onError_reinitializesOnlyIfOptionTrue() throws Exception {
+        // Setup: option true, should call reinitializeChannelComponents
+        FlagdOptions options = FlagdOptions.builder().reinitializeOnError(true).build();
+        SyncStreamQueueSource mockConnector = mock(SyncStreamQueueSource.class);
+        // Mock getStreamQueue to return a non-null queue
+        when(mockConnector.getStreamQueue()).thenReturn(new LinkedBlockingQueue<>());
+        InProcessResolver resolver = new InProcessResolver(options, e -> {});
+        // Inject mock connector
+        java.lang.reflect.Field queueSourceField = InProcessResolver.class.getDeclaredField("queueSource");
+        queueSourceField.setAccessible(true);
+        queueSourceField.set(resolver, mockConnector);
+        resolver.onError();
+
+        verify(mockConnector, times(1)).reinitializeChannelComponents();
+    }
+
+    @Test
+    void onError_doesNotReinitializeIfOptionFalse() throws Exception {
+        // Setup: option false, should NOT call reinitializeChannelComponents
+        FlagdOptions options = FlagdOptions.builder().reinitializeOnError(false).build();
+        SyncStreamQueueSource mockConnector = mock(SyncStreamQueueSource.class);
+        InProcessResolver resolver = new InProcessResolver(options, e -> {});
+        // Inject mock connector
+        java.lang.reflect.Field queueSourceField = InProcessResolver.class.getDeclaredField("queueSource");
+        queueSourceField.setAccessible(true);
+        queueSourceField.set(resolver, mockConnector);
+        resolver.onError();
+        verify(mockConnector, never()).reinitializeChannelComponents();
+    }
 
     @Test
     public void connectorSetup() {
@@ -70,9 +105,9 @@ class InProcessResolverTest {
                 .build();
 
         // then
-        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getConnector(forGrpcOptions));
-        assertInstanceOf(FileQueueSource.class, InProcessResolver.getConnector(forOfflineOptions));
-        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions));
+        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getQueueSource(forGrpcOptions));
+        assertInstanceOf(FileQueueSource.class, InProcessResolver.getQueueSource(forOfflineOptions));
+        assertInstanceOf(MockConnector.class, InProcessResolver.getQueueSource(forCustomConnectorOptions));
     }
 
     @Test
