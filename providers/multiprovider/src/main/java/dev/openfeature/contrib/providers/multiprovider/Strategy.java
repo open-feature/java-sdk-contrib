@@ -6,7 +6,13 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import java.util.Map;
 import java.util.function.Function;
 
-/** strategy. */
+/**
+ * Strategy for evaluating flags across multiple providers.
+ *
+ * @deprecated Use the strategy classes in {@code dev.openfeature.sdk.multiprovider}
+ *     from the core Java SDK instead.
+ */
+@Deprecated
 public interface Strategy {
     <T> ProviderEvaluation<T> evaluate(
             Map<String, FeatureProvider> providers,
