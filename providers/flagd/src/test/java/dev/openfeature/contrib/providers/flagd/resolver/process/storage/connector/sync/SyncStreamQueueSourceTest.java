@@ -33,7 +33,7 @@ import org.mockito.stubbing.Answer;
 
 class SyncStreamQueueSourceTest {
     @Test
-    void reinitializeChannelComponents_reinitializesWhenEnabled() {
+    void reinitializeChannelComponents_reinitializesWhenEnabled() throws InterruptedException {
         FlagdOptions options = FlagdOptions.builder().reinitializeOnError(true).build();
         ChannelConnector initialConnector = mock(ChannelConnector.class);
         FlagSyncServiceStub initialStub = mock(FlagSyncServiceStub.class);
@@ -41,17 +41,21 @@ class SyncStreamQueueSourceTest {
         SyncStreamQueueSource queueSource =
                 new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
 
-        // save reference to old GrpcComponents
-        Object oldComponents = getPrivateField(queueSource, "grpcComponents");
-        queueSource.reinitializeChannelComponents();
-        Object newComponents = getPrivateField(queueSource, "grpcComponents");
-        // should have replaced grpcComponents
-        assertNotNull(newComponents);
-        org.junit.jupiter.api.Assertions.assertNotSame(oldComponents, newComponents);
+        try {
+            // save reference to old GrpcComponents
+            Object oldComponents = getPrivateField(queueSource, "grpcComponents");
+            queueSource.reinitializeChannelComponents();
+            Object newComponents = getPrivateField(queueSource, "grpcComponents");
+            // should have replaced grpcComponents
+            assertNotNull(newComponents);
+            org.junit.jupiter.api.Assertions.assertNotSame(oldComponents, newComponents);
+        } finally {
+            queueSource.shutdown();
+        }
     }
 
     @Test
-    void reinitializeChannelComponents_doesNothingWhenDisabled() {
+    void reinitializeChannelComponents_doesNothingWhenDisabled() throws InterruptedException {
         FlagdOptions options = FlagdOptions.builder().reinitializeOnError(false).build();
         ChannelConnector initialConnector = mock(ChannelConnector.class);
         FlagSyncServiceStub initialStub = mock(FlagSyncServiceStub.class);
@@ -59,11 +63,15 @@ class SyncStreamQueueSourceTest {
         SyncStreamQueueSource queueSource =
                 new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
 
-        Object oldComponents = getPrivateField(queueSource, "grpcComponents");
-        queueSource.reinitializeChannelComponents();
-        Object newComponents = getPrivateField(queueSource, "grpcComponents");
-        // should NOT have replaced grpcComponents
-        org.junit.jupiter.api.Assertions.assertSame(oldComponents, newComponents);
+        try {
+            Object oldComponents = getPrivateField(queueSource, "grpcComponents");
+            queueSource.reinitializeChannelComponents();
+            Object newComponents = getPrivateField(queueSource, "grpcComponents");
+            // should NOT have replaced grpcComponents
+            org.junit.jupiter.api.Assertions.assertSame(oldComponents, newComponents);
+        } finally {
+            queueSource.shutdown();
+        }
     }
 
     @Test
