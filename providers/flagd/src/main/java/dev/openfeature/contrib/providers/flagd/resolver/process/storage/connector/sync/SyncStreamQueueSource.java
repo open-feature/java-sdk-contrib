@@ -143,7 +143,6 @@ public class SyncStreamQueueSource implements QueueSource {
                     if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name())) {
                         //throw new FatalError("Failed to connect for metadata request, not retrying for error " + metaEx.getStatus());
                         enqueueFatal("Fatal: Failed to connect for metadata request, not retrying for error " + metaEx.getStatus().getCode());
-                        return;
                     }
                     // retry for other status codes
                     String message = metaEx.getMessage();

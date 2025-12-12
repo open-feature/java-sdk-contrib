@@ -194,7 +194,7 @@ public class FlagdProvider extends EventProvider {
 
     @SuppressWarnings("checkstyle:fallthrough")
     private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
-        log.info("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
+        log.debug("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
         synchronized (syncResources) {
             /*
              * We only use Error and Ready as previous states.
@@ -240,7 +240,6 @@ public class FlagdProvider extends EventProvider {
 
     private void onError() {
         this.emitProviderError(ProviderEventDetails.builder().errorCode(ErrorCode.PROVIDER_FATAL).build());
-        shutdown();
     }
 
     private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
