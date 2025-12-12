@@ -5,6 +5,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEven
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
@@ -135,7 +136,7 @@ public class FlagdProvider extends EventProvider {
     public void shutdown() {
         synchronized (syncResources) {
             try {
-                if (!syncResources.isInitialized() || syncResources.isShutDown()) {
+                if (syncResources.isShutDown()) {
                     return;
                 }
 
@@ -222,18 +223,23 @@ public class FlagdProvider extends EventProvider {
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;
-
-                case PROVIDER_ERROR:
-                    if (syncResources.getPreviousEvent() != ProviderEvent.PROVIDER_ERROR) {
-                        onError();
-                        syncResources.setPreviousEvent(ProviderEvent.PROVIDER_ERROR);
+                case PROVIDER_STALE:
+                    if (syncResources.getPreviousEvent() != ProviderEvent.PROVIDER_STALE) {
+                        onStale();
+                        syncResources.setPreviousEvent(ProviderEvent.PROVIDER_STALE);
                     }
                     break;
-
+                case PROVIDER_ERROR:
+                    onError();
+                    break;
                 default:
                     log.warn("Unknown event {}", flagdProviderEvent.getEvent());
             }
         }
+    }
+
+    private void onError() {
+        this.emitProviderError(ProviderEventDetails.builder().errorCode(ErrorCode.PROVIDER_FATAL).build());
     }
 
     private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
@@ -255,7 +261,7 @@ public class FlagdProvider extends EventProvider {
                 ProviderEventDetails.builder().message("connected to flagd").build());
     }
 
-    private void onError() {
+    private void onStale() {
         log.debug(
                 "Stream error. Emitting STALE, scheduling ERROR, and waiting {}s for connection to become available.",
                 gracePeriod);
@@ -270,7 +276,7 @@ public class FlagdProvider extends EventProvider {
         if (!errorExecutor.isShutdown()) {
             errorTask = errorExecutor.schedule(
                     () -> {
-                        if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_ERROR) {
+                        if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_STALE) {
                             log.error(
                                     "Provider did not reconnect successfully within {}s. Emitting ERROR event...",
                                     gracePeriod);

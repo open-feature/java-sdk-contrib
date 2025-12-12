@@ -68,6 +68,7 @@ public final class RpcResolver implements Resolver {
     private final Consumer<FlagdProviderEvent> onProviderEvent;
     private final ServiceStub stub;
     private final ServiceBlockingStub blockingStub;
+    private final List<String> fatalStatusCodes;
 
     /**
      * Resolves flag values using
@@ -89,6 +90,7 @@ public final class RpcResolver implements Resolver {
         this.stub = ServiceGrpc.newStub(this.connector.getChannel()).withWaitForReady();
         this.blockingStub =
                 ServiceGrpc.newBlockingStub(this.connector.getChannel()).withWaitForReady();
+        this.fatalStatusCodes = options.getFatalStatusCodes();
     }
 
     // testing only
@@ -107,6 +109,7 @@ public final class RpcResolver implements Resolver {
         this.onProviderEvent = onProviderEvent;
         this.stub = mockStub;
         this.blockingStub = mockBlockingStub;
+        this.fatalStatusCodes = options.getFatalStatusCodes();
     }
 
     /**
@@ -353,7 +356,12 @@ public final class RpcResolver implements Resolver {
                     log.debug(
                             "Exception in event stream connection, streamException {}, will reconnect",
                             streamException);
-                    this.handleErrorOrComplete();
+                    if (streamException instanceof StatusRuntimeException && fatalStatusCodes.contains(
+                            ((StatusRuntimeException) streamException).getStatus().getCode().name())) {
+                        this.handleFatalError();
+                    } else {
+                        this.handleErrorOrComplete();
+                    }
                     break;
                 }
 
@@ -412,9 +420,15 @@ public final class RpcResolver implements Resolver {
      * Handles provider error events by clearing the cache (if enabled) and notifying listeners of the error.
      */
     private void handleErrorOrComplete() {
-        log.debug("Emitting provider error event");
+        log.debug("Emitting provider stale event");
 
         // complete is an error, logically...even if the server went down gracefully we need to reconnect.
+        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_STALE));
+    }
+
+    private void handleFatalError() {
+        log.debug("Emitting provider error event");
+
         onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
     }
 }
