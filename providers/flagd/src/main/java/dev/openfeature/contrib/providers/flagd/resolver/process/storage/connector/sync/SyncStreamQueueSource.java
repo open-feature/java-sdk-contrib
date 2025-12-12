@@ -119,7 +119,7 @@ public class SyncStreamQueueSource implements QueueSource {
             return;
         }
 
-        log.info("Reinitializing channel gRPC components in attempt to restore stream...");
+        log.info("Reinitializing channel gRPC components in attempt to restore stream.");
         GrpcComponents oldComponents = grpcComponents;
 
         try {
