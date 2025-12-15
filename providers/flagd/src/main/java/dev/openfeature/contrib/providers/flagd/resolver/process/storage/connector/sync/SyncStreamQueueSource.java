@@ -86,7 +86,6 @@ public class SyncStreamQueueSource implements QueueSource {
 
     /** Initialize sync stream connector. */
     public void init() throws Exception {
-        channelConnector.initialize();
         Thread listener = new Thread(this::observeSyncStream);
         listener.setDaemon(true);
         listener.start();

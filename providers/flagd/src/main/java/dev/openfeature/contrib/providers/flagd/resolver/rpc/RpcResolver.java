@@ -113,8 +113,6 @@ public final class RpcResolver implements Resolver {
      * Initialize RpcResolver resolver.
      */
     public void init() throws Exception {
-        this.connector.initialize();
-
         Thread listener = new Thread(() -> {
             try {
                 observeEventStream();
