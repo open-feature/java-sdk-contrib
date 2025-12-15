@@ -3,7 +3,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import io.grpc.ManagedChannel;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,11 +27,9 @@ public class ChannelConnector {
      * Constructs a new {@code ChannelConnector} instance with the specified options and parameters.
      *
      * @param options             the configuration options for the GRPC connection
-     * @param onConnectionEvent   a consumer to handle connection events
      * @param channel             the managed channel for the GRPC connection
      */
-    public ChannelConnector(
-            final FlagdOptions options, final Consumer<FlagdProviderEvent> onConnectionEvent, ManagedChannel channel) {
+    public ChannelConnector(final FlagdOptions options, ManagedChannel channel) {
         this.channel = channel;
         this.deadline = options.getDeadline();
     }
