@@ -4,7 +4,6 @@ import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
@@ -24,7 +23,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -53,14 +51,14 @@ public class SyncStreamQueueSource implements QueueSource {
     /**
      * Creates a new SyncStreamQueueSource responsible for observing the event stream.
      */
-    public SyncStreamQueueSource(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+    public SyncStreamQueueSource(final FlagdOptions options) {
         streamDeadline = options.getStreamDeadlineMs();
         deadline = options.getDeadline();
         selector = options.getSelector();
         providerId = options.getProviderId();
         maxBackoffMs = options.getRetryBackoffMaxMs();
         syncMetadataDisabled = options.isSyncMetadataDisabled();
-        channelConnector = new ChannelConnector(options, onConnectionEvent, ChannelBuilder.nettyChannel(options));
+        channelConnector = new ChannelConnector(options, ChannelBuilder.nettyChannel(options));
         flagSyncStub =
                 FlagSyncServiceGrpc.newStub(channelConnector.getChannel()).withWaitForReady();
         metadataStub = FlagSyncServiceGrpc.newBlockingStub(channelConnector.getChannel())
@@ -86,7 +84,6 @@ public class SyncStreamQueueSource implements QueueSource {
 
     /** Initialize sync stream connector. */
     public void init() throws Exception {
-        channelConnector.initialize();
         Thread listener = new Thread(this::observeSyncStream);
         listener.setDaemon(true);
         listener.start();

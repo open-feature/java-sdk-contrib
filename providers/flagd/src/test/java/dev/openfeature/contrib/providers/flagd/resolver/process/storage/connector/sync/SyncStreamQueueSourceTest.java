@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,7 +47,6 @@ class SyncStreamQueueSourceTest {
         when(blockingStub.getMetadata(any())).thenReturn(GetMetadataResponse.getDefaultInstance());
 
         mockConnector = mock(ChannelConnector.class);
-        doNothing().when(mockConnector).initialize(); // Mock the initialize method
 
         stub = mock(FlagSyncServiceStub.class);
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
