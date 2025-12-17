@@ -136,7 +136,7 @@ public class FlagdProvider extends EventProvider {
     public void shutdown() {
         synchronized (syncResources) {
             try {
-                if (syncResources.isShutDown()) {
+                if (!syncResources.isInitialized() || syncResources.isShutDown()) {
                     return;
                 }
 

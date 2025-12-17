@@ -138,6 +138,7 @@ public class SyncStreamQueueSource implements QueueSource {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
                     if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name())) {
+                        log.debug("Fatal status code for metadata request: {}, not retrying", metaEx.getStatus().getCode());
                         enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", metaEx.getStatus().getCode()));
                     } else {
                         // retry for other status codes
@@ -153,6 +154,7 @@ public class SyncStreamQueueSource implements QueueSource {
                     syncFlags(observer);
                 } catch (StatusRuntimeException ex) {
                     if (fatalStatusCodes.contains(ex.getStatus().getCode().toString())) {
+                        log.debug("Fatal status code during sync stream: {}, not retrying", ex.getStatus().getCode());
                         enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", ex.getStatus().getCode()));
                     } else {
                         // retry for other status codes

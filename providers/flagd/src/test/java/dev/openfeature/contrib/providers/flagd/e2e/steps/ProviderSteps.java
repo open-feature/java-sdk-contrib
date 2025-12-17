@@ -53,7 +53,7 @@ public class ProviderSteps extends AbstractSteps {
                 .withExposedService("flagd", 8015, Wait.forListeningPort())
                 .withExposedService("flagd", 8080, Wait.forListeningPort())
                 .withExposedService("envoy", 9211, Wait.forListeningPort())
-                .withExposedService("envoy", 9212, Wait.forListeningPort())
+                .withExposedService("envoy", FORBIDDEN_PORT, Wait.forListeningPort())
                 .withStartupTimeout(Duration.ofSeconds(45));
         container.start();
     }

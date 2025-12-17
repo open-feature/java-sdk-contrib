@@ -424,6 +424,10 @@ public final class RpcResolver implements Resolver {
         onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_STALE));
     }
 
+    /**
+     * Handles fatal error events (i.e. error codes defined in fatalStatusCodes) by transitioning the provider into
+     * fatal state
+     */
     private void handleFatalError() {
         log.debug("Emitting provider error event");
 
