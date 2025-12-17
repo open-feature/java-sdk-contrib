@@ -38,6 +38,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicBoolean shouldThrottle = new AtomicBoolean(false);
+    private final AtomicBoolean successfulSync = new AtomicBoolean(false);
     private final int streamDeadline;
     private final int deadline;
     private final int maxBackoffMs;
@@ -137,7 +138,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 try {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
-                    if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name())) {
+                    if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name()) && !successfulSync.get()) {
                         log.debug("Fatal status code for metadata request: {}, not retrying", metaEx.getStatus().getCode());
                         enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", metaEx.getStatus().getCode()));
                     } else {
@@ -152,8 +153,9 @@ public class SyncStreamQueueSource implements QueueSource {
 
                 try {
                     syncFlags(observer);
+                    successfulSync.set(true);
                 } catch (StatusRuntimeException ex) {
-                    if (fatalStatusCodes.contains(ex.getStatus().getCode().toString())) {
+                    if (fatalStatusCodes.contains(ex.getStatus().getCode().toString()) && !successfulSync.get()) {
                         log.debug("Fatal status code during sync stream: {}, not retrying", ex.getStatus().getCode());
                         enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", ex.getStatus().getCode()));
                     } else {

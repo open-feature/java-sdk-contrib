@@ -60,6 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 public final class RpcResolver implements Resolver {
     private static final int QUEUE_SIZE = 5;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean successfulConnection = new AtomicBoolean(false);
     private final ChannelConnector connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
@@ -351,18 +352,20 @@ public final class RpcResolver implements Resolver {
 
                 Throwable streamException = taken.getError();
                 if (streamException != null) {
-                    log.debug(
-                            "Exception in event stream connection, streamException {}, will reconnect",
-                            streamException);
                     if (streamException instanceof StatusRuntimeException && fatalStatusCodes.contains(
-                            ((StatusRuntimeException) streamException).getStatus().getCode().name())) {
+                            ((StatusRuntimeException) streamException).getStatus().getCode().name()) && !successfulConnection.get()) {
+                        log.debug("Fatal error code received: {}", ((StatusRuntimeException) streamException).getStatus().getCode());
                         this.handleFatalError();
                     } else {
+                        log.debug(
+                                "Exception in event stream connection, streamException {}, will reconnect",
+                                streamException);
                         this.handleErrorOrComplete();
                     }
                     break;
                 }
 
+                successfulConnection.set(true);
                 final EventStreamResponse response = taken.getResponse();
                 log.debug("Got stream response: {}", response);
 
