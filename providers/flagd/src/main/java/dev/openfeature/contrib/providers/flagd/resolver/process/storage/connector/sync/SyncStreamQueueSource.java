@@ -101,8 +101,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
     /** Initialize channel connector and stubs. */
     private synchronized void initializeChannelComponents() {
-        ChannelConnector newConnector =
-                new ChannelConnector(options, ChannelBuilder.nettyChannel(options));
+        ChannelConnector newConnector = new ChannelConnector(options, ChannelBuilder.nettyChannel(options));
         FlagSyncServiceStub newFlagSyncStub =
                 FlagSyncServiceGrpc.newStub(newConnector.getChannel()).withWaitForReady();
         FlagSyncServiceBlockingStub newMetadataStub =
