@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
-/** Satus of the storage. */
+/** Status of the storage. */
 public enum StorageState {
     /** Storage is upto date and working as expected. */
     OK,

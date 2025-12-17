@@ -141,13 +141,13 @@ public class SyncStreamQueueSource implements QueueSource {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
                     if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name())) {
-                        //throw new FatalError("Failed to connect for metadata request, not retrying for error " + metaEx.getStatus());
-                        enqueueFatal("Fatal: Failed to connect for metadata request, not retrying for error " + metaEx.getStatus().getCode());
+                        enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", metaEx.getStatus().getCode()));
+                    } else {
+                        // retry for other status codes
+                        String message = metaEx.getMessage();
+                        log.debug("Metadata request error: {}, will restart", message, metaEx);
+                        enqueueError(String.format("Error in getMetadata request: %s", message));
                     }
-                    // retry for other status codes
-                    String message = metaEx.getMessage();
-                    log.debug("Metadata request error: {}, will restart", message, metaEx);
-                    enqueueError(String.format("Error in getMetadata request: %s", message));
                     shouldThrottle.set(true);
                     continue;
                 }
@@ -156,13 +156,12 @@ public class SyncStreamQueueSource implements QueueSource {
                     syncFlags(observer);
                 } catch (StatusRuntimeException ex) {
                     if (fatalStatusCodes.contains(ex.getStatus().getCode().toString())) {
-                        //throw new FatalError("Failed to connect for metadata request, not retrying for error " + ex.getStatus().getCode());
-                        enqueueFatal("Fatal: Failed to connect for metadata request, not retrying for error " + ex.getStatus().getCode());
-                        return;
+                        enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", ex.getStatus().getCode()));
+                    } else {
+                        // retry for other status codes
+                        log.error("Unexpected sync stream exception, will restart.", ex);
+                        enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
                     }
-                    // retry for other status codes
-                    log.error("Unexpected sync stream exception, will restart.", ex);
-                    enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
                     shouldThrottle.set(true);
                 }
             } catch (InterruptedException ie) {

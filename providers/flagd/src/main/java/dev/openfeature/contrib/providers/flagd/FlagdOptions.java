@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
+import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefaultList;
 import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
@@ -10,7 +11,6 @@ import dev.openfeature.sdk.Structure;
 import io.grpc.ClientInterceptor;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import lombok.Builder;
@@ -129,7 +129,7 @@ public class FlagdOptions {
      * Defaults to empty list
      */
     @Builder.Default
-    private List<String> fatalStatusCodes = new ArrayList<>();
+    private List<String> fatalStatusCodes = fallBackToEnvOrDefaultList(Config.FATAL_STATUS_CODES_ENV_VAR_NAME, List.of());
 
     /**
      * Selector to be used with flag sync gRPC contract.
