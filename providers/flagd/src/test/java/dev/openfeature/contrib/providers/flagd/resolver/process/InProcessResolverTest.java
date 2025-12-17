@@ -17,6 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -51,6 +54,26 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class InProcessResolverTest {
+    @Test
+    void onError_delegatesToQueueSource() throws Exception {
+        // given
+        FlagdOptions options = FlagdOptions.builder().build(); // option value doesn't matter here
+        SyncStreamQueueSource mockConnector = mock(SyncStreamQueueSource.class);
+        InProcessResolver resolver = new InProcessResolver(options, e -> {});
+
+        // Inject mock connector
+        java.lang.reflect.Field queueSourceField = InProcessResolver.class.getDeclaredField("queueSource");
+        queueSourceField.setAccessible(true);
+        queueSourceField.set(resolver, mockConnector);
+
+        // when
+        resolver.onError();
+
+        // then
+        // InProcessResolver should always delegate to the queue source.
+        // The decision to re-initialize or not is handled within SyncStreamQueueSource.
+        verify(mockConnector, times(1)).reinitializeChannelComponents();
+    }
 
     @Test
     public void connectorSetup() {
@@ -70,9 +93,9 @@ class InProcessResolverTest {
                 .build();
 
         // then
-        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getConnector(forGrpcOptions));
-        assertInstanceOf(FileQueueSource.class, InProcessResolver.getConnector(forOfflineOptions));
-        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions));
+        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getQueueSource(forGrpcOptions));
+        assertInstanceOf(FileQueueSource.class, InProcessResolver.getQueueSource(forOfflineOptions));
+        assertInstanceOf(MockConnector.class, InProcessResolver.getQueueSource(forCustomConnectorOptions));
     }
 
     @Test
