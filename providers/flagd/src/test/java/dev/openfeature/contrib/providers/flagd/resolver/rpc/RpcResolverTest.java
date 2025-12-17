@@ -44,7 +44,6 @@ class RpcResolverTest {
         blockingStub = mock(ServiceBlockingStub.class);
 
         mockConnector = mock(ChannelConnector.class);
-        doNothing().when(mockConnector).initialize(); // Mock the initialize method
 
         stub = mock(ServiceStub.class);
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);

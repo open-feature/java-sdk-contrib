@@ -70,9 +70,9 @@ class InProcessResolverTest {
                 .build();
 
         // then
-        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getConnector(forGrpcOptions, e -> {}));
-        assertInstanceOf(FileQueueSource.class, InProcessResolver.getConnector(forOfflineOptions, e -> {}));
-        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions, e -> {}));
+        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getConnector(forGrpcOptions));
+        assertInstanceOf(FileQueueSource.class, InProcessResolver.getConnector(forOfflineOptions));
+        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions));
     }
 
     @Test
