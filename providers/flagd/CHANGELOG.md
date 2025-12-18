@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.19](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.18...dev.openfeature.contrib.providers.flagd-v0.11.19) (2025-12-18)
+
+
+### ✨ New Features
+
+* Add FLAGD_SYNC_PORT support for in-process providers with backwards compatibility ([#1651](https://github.com/open-feature/java-sdk-contrib/issues/1651)) ([4f91f74](https://github.com/open-feature/java-sdk-contrib/commit/4f91f74f8f7125299ac2c5dd835a048507e359ef))
+* add option to rebuild gRPC connection on error ([#1668](https://github.com/open-feature/java-sdk-contrib/issues/1668)) ([9444297](https://github.com/open-feature/java-sdk-contrib/commit/9444297f511ce584799e804f960b7d486c80570d))
+* flagd provider creates named daemon threads for error executor ([#1625](https://github.com/open-feature/java-sdk-contrib/issues/1625)) ([ba277bf](https://github.com/open-feature/java-sdk-contrib/commit/ba277bf21dc3f4476bae2846a821b4655ede899f))
+* Improve flaky tests and add error messages ([#1653](https://github.com/open-feature/java-sdk-contrib/issues/1653)) ([48df358](https://github.com/open-feature/java-sdk-contrib/commit/48df358267d617c48ed5cefdaf6a0f680f3cfa1c))
+
 ## [0.11.18](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.17...dev.openfeature.contrib.providers.flagd-v0.11.18) (2025-11-17)
 
 
