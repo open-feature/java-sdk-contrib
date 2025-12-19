@@ -111,7 +111,7 @@ class RpcResolverTest {
 
         // should run consumer with error
         await().untilAsserted(() ->
-                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_ERROR)));
+                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_STALE)));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }
@@ -128,7 +128,7 @@ class RpcResolverTest {
 
         // should run consumer with error
         await().untilAsserted(() ->
-                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_ERROR)));
+                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_STALE)));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }

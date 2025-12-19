@@ -125,7 +125,7 @@ public class FlagdOptions {
             fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
 
     /**
-     * List of grpc response status codes for which failed connections are not retried.
+     * List of grpc response status codes for which the provider transitions into fatal state upon first connection.
      * Defaults to empty list
      */
     @Builder.Default

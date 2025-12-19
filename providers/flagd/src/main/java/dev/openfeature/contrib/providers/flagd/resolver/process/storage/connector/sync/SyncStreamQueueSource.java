@@ -141,6 +141,7 @@ public class SyncStreamQueueSource implements QueueSource {
                     if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name()) && !successfulSync.get()) {
                         log.debug("Fatal status code for metadata request: {}, not retrying", metaEx.getStatus().getCode());
                         enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", metaEx.getStatus().getCode()));
+                        return;
                     } else {
                         // retry for other status codes
                         String message = metaEx.getMessage();
@@ -158,6 +159,7 @@ public class SyncStreamQueueSource implements QueueSource {
                     if (fatalStatusCodes.contains(ex.getStatus().getCode().toString()) && !successfulSync.get()) {
                         log.debug("Fatal status code during sync stream: {}, not retrying", ex.getStatus().getCode());
                         enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", ex.getStatus().getCode()));
+                        return;
                     } else {
                         // retry for other status codes
                         log.error("Unexpected sync stream exception, will restart.", ex);
