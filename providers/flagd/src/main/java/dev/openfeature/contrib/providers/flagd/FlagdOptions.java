@@ -214,6 +214,16 @@ public class FlagdOptions {
     private String defaultAuthority = fallBackToEnvOrDefault(Config.DEFAULT_AUTHORITY_ENV_VAR_NAME, null);
 
     /**
+     * !EXPERIMENTAL!
+     * Whether to reinitialize the channel (TCP connection) after the grace period is exceeded.
+     * This can help recover from connection issues by creating fresh connections.
+     * Particularly useful for troubleshooting network issues related to proxies or service meshes.
+     */
+    @Builder.Default
+    private boolean reinitializeOnError = Boolean.parseBoolean(
+            fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR));
+
+    /**
      * Builder overwrite in order to customize the "build" method.
      *
      * @return the flagd options builder
