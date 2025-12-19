@@ -195,8 +195,11 @@ public class SyncStreamQueueSource implements QueueSource {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
                     if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name()) && !successfulSync.get()) {
-                        log.debug("Fatal status code for metadata request: {}, not retrying", metaEx.getStatus().getCode());
-                        enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", metaEx.getStatus().getCode()));
+                        log.debug("Fatal status code for metadata request: {}, not retrying",
+                                metaEx.getStatus().getCode());
+                        enqueueFatal(String.format(
+                                "Fatal: Failed to connect for metadata request, not retrying for error %s",
+                                metaEx.getStatus().getCode()));
                         return;
                     } else {
                         // retry for other status codes
@@ -214,7 +217,9 @@ public class SyncStreamQueueSource implements QueueSource {
                 } catch (StatusRuntimeException ex) {
                     if (fatalStatusCodes.contains(ex.getStatus().getCode().toString()) && !successfulSync.get()) {
                         log.debug("Fatal status code during sync stream: {}, not retrying", ex.getStatus().getCode());
-                        enqueueFatal(String.format("Fatal: Failed to connect for metadata request, not retrying for error %s", ex.getStatus().getCode()));
+                        enqueueFatal(String.format(
+                                "Fatal: Failed to connect for metadata request, not retrying for error %s",
+                                ex.getStatus().getCode()));
                         return;
                     } else {
                         // retry for other status codes
@@ -289,14 +294,14 @@ public class SyncStreamQueueSource implements QueueSource {
         enqueueError(outgoingQueue, message);
     }
 
-    private void enqueueFatal(String message) {
-        enqueueFatal(outgoingQueue, message);
-    }
-
     private static void enqueueError(BlockingQueue<QueuePayload> queue, String message) {
         if (!queue.offer(new QueuePayload(QueuePayloadType.ERROR, message, null))) {
             log.error("Failed to convey ERROR status, queue is full");
         }
+    }
+
+    private void enqueueFatal(String message) {
+        enqueueFatal(outgoingQueue, message);
     }
 
     private static void enqueueFatal(BlockingQueue<QueuePayload> queue, String message) {
@@ -313,7 +318,8 @@ public class SyncStreamQueueSource implements QueueSource {
 
         private Struct metadata;
 
-        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue, AtomicBoolean shouldThrottle, List<String> fatalStatusCodes) {
+        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue, AtomicBoolean shouldThrottle,
+                List<String> fatalStatusCodes) {
             this.outgoingQueue = outgoingQueue;
             this.shouldThrottle = shouldThrottle;
             this.fatalStatusCodes = fatalStatusCodes;
@@ -337,7 +343,7 @@ public class SyncStreamQueueSource implements QueueSource {
                 Status status = Status.fromThrowable(throwable);
                 String message = throwable != null ? throwable.getMessage() : "unknown";
                 log.debug("Stream error: {}, will restart", message, throwable);
-                if (fatalStatusCodes.contains(status.getCode())) {
+                if (fatalStatusCodes.contains(status.getCode().name())) {
                     enqueueFatal(outgoingQueue, String.format("Error from stream: %s", message));
                 } else {
                     enqueueError(outgoingQueue, String.format("Error from stream: %s", message));

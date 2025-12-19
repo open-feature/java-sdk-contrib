@@ -129,7 +129,8 @@ public class FlagdOptions {
      * Defaults to empty list
      */
     @Builder.Default
-    private List<String> fatalStatusCodes = fallBackToEnvOrDefaultList(Config.FATAL_STATUS_CODES_ENV_VAR_NAME, List.of());
+    private List<String> fatalStatusCodes =
+            fallBackToEnvOrDefaultList(Config.FATAL_STATUS_CODES_ENV_VAR_NAME, List.of());
 
     /**
      * Selector to be used with flag sync gRPC contract.
