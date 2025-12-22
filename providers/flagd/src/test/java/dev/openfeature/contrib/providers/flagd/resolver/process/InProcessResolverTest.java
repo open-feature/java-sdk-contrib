@@ -116,7 +116,7 @@ class InProcessResolverTest {
                     boolean isDisconnected =
                             event == ProviderEvent.PROVIDER_ERROR || event == ProviderEvent.PROVIDER_STALE;
                     receiver.offer(new StorageStateChange(
-                            isDisconnected ? StorageState.FATAL_ERROR : StorageState.OK,
+                            isDisconnected ? StorageState.ERROR : StorageState.OK,
                             details != null ? details.getFlagsChanged() : Collections.emptyList(),
                             metadata));
                 });
@@ -135,7 +135,7 @@ class InProcessResolverTest {
                 TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
-        if (!sender.offer(new StorageStateChange(StorageState.FATAL_ERROR), 100, TimeUnit.MILLISECONDS)) {
+        if (!sender.offer(new StorageStateChange(StorageState.ERROR), 100, TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
 

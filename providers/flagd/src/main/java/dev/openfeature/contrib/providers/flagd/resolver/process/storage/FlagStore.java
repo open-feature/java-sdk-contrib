@@ -132,19 +132,19 @@ public class FlagStore implements Storage {
                     } catch (Throwable e) {
                         // catch all exceptions and avoid stream listener interruptions
                         log.warn("Invalid flag sync payload from connector", e);
-                        if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.TRANSIENT_ERROR))) {
+                        if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
                             log.warn("Failed to convey TRANSIENT_ERROR status, queue is full");
                         }
                     }
                     break;
                 case ERROR:
-                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.TRANSIENT_ERROR))) {
+                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
                         log.warn("Failed to convey TRANSIENT_ERROR status, queue is full");
                     }
                     break;
                 case SHUTDOWN:
                     shutdown();
-                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.FATAL_ERROR))) {
+                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.ERROR))) {
                         log.warn("Failed to convey FATAL_ERROR status, queue is full");
                     }
                     break;

@@ -88,10 +88,10 @@ public class InProcessResolver implements Resolver {
 
                             log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
                             break;
-                        case TRANSIENT_ERROR:
+                        case STALE:
                             onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
                             break;
-                        case FATAL_ERROR:
+                        case ERROR:
                             onConnectionEvent.accept(
                                     ProviderEvent.PROVIDER_ERROR,
                                     ProviderEventDetails.builder()
