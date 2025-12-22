@@ -20,13 +20,17 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import dev.openfeature.sdk.internal.TriConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -38,7 +42,7 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public class InProcessResolver implements Resolver {
     private final Storage flagStore;
-    private final Consumer<FlagdProviderEvent> onConnectionEvent;
+    private final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
     private final Operator operator;
     private final String scope;
     private final QueueSource queueSource;
@@ -52,7 +56,7 @@ public class InProcessResolver implements Resolver {
      * @param onConnectionEvent lambda which handles changes in the
      *                          connection/stream
      */
-    public InProcessResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+    public InProcessResolver(FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
         this.queueSource = getQueueSource(options);
         this.flagStore = new FlagStore(queueSource);
         this.onConnectionEvent = onConnectionEvent;
@@ -73,17 +77,23 @@ public class InProcessResolver implements Resolver {
                     switch (storageStateChange.getStorageState()) {
                         case OK:
                             log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
-                            onConnectionEvent.accept(new FlagdProviderEvent(
-                                    ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
-                                    storageStateChange.getChangedFlagsKeys(),
-                                    storageStateChange.getSyncMetadata()));
+
+                            var eventDetails = ProviderEventDetails.builder()
+                                    .flagsChanged(storageStateChange.getChangedFlagsKeys())
+                                    .message("configuration changed")
+                                    .build();
+
+                            onConnectionEvent.accept(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, eventDetails, storageStateChange.getSyncMetadata());
+
                             log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
                             break;
-                        case STALE:
-                            onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_STALE));
+                        case TRANSIENT_ERROR:
+                            onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
                             break;
-                        case ERROR:
-                            onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
+                        case FATAL_ERROR:
+                            onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, ProviderEventDetails.builder()
+                                    .errorCode(ErrorCode.PROVIDER_FATAL)
+                                    .build(), null);
                             break;
                         default:
                             log.warn(String.format(

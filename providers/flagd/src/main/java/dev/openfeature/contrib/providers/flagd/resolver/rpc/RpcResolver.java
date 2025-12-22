@@ -31,12 +31,15 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import dev.openfeature.sdk.internal.TriConsumer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
@@ -66,7 +69,7 @@ public final class RpcResolver implements Resolver {
     private final ResolveStrategy strategy;
     private final FlagdOptions options;
     private final LinkedBlockingQueue<StreamResponseModel<EventStreamResponse>> incomingQueue;
-    private final Consumer<FlagdProviderEvent> onProviderEvent;
+    private final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent;
     private final ServiceStub stub;
     private final ServiceBlockingStub blockingStub;
     private final List<String> fatalStatusCodes;
@@ -81,7 +84,7 @@ public final class RpcResolver implements Resolver {
      * @param onProviderEvent lambda which handles changes in the connection/stream
      */
     public RpcResolver(
-            final FlagdOptions options, final Cache cache, final Consumer<FlagdProviderEvent> onProviderEvent) {
+            final FlagdOptions options, final Cache cache, final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
@@ -98,7 +101,7 @@ public final class RpcResolver implements Resolver {
     protected RpcResolver(
             final FlagdOptions options,
             final Cache cache,
-            final Consumer<FlagdProviderEvent> onProviderEvent,
+            final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent,
             ServiceStub mockStub,
             ServiceBlockingStub mockBlockingStub,
             ChannelConnector connector) {
@@ -414,7 +417,7 @@ public final class RpcResolver implements Resolver {
             changedFlags.forEach(this.cache::remove);
         }
 
-        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, changedFlags));
+        onProviderEvent.accept(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, ProviderEventDetails.builder().flagsChanged(changedFlags).build(), null);
     }
 
     /**
@@ -422,7 +425,7 @@ public final class RpcResolver implements Resolver {
      */
     private void handleProviderReadyEvent() {
         log.debug("Emitting provider ready event");
-        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
+        onProviderEvent.accept(ProviderEvent.PROVIDER_READY, null, null);
     }
 
     /**
@@ -432,7 +435,7 @@ public final class RpcResolver implements Resolver {
         log.debug("Emitting provider stale event");
 
         // complete is an error, logically...even if the server went down gracefully we need to reconnect.
-        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_STALE));
+        onProviderEvent.accept(ProviderEvent.PROVIDER_STALE, null, null);
     }
 
     /**
@@ -442,6 +445,6 @@ public final class RpcResolver implements Resolver {
     private void handleFatalError() {
         log.debug("Emitting provider error event");
 
-        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
+        onProviderEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
     }
 }

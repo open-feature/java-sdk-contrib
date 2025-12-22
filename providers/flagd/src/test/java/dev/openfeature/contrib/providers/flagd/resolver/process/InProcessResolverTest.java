@@ -112,7 +112,7 @@ class InProcessResolverTest {
         InProcessResolver inProcessResolver = getInProcessResolverWith(
                 new MockStorage(new HashMap<>(), sender),
                 connectionEvent -> receiver.offer(new StorageStateChange(
-                        connectionEvent.isDisconnected() ? StorageState.ERROR : StorageState.OK,
+                        connectionEvent.isDisconnected() ? StorageState.FATAL_ERROR : StorageState.OK,
                         connectionEvent.getFlagsChanged(),
                         connectionEvent.getSyncMetadata())));
 
@@ -130,7 +130,7 @@ class InProcessResolverTest {
                 TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
-        if (!sender.offer(new StorageStateChange(StorageState.ERROR), 100, TimeUnit.MILLISECONDS)) {
+        if (!sender.offer(new StorageStateChange(StorageState.FATAL_ERROR), 100, TimeUnit.MILLISECONDS)) {
             Assertions.fail("failed to send the event");
         }
 

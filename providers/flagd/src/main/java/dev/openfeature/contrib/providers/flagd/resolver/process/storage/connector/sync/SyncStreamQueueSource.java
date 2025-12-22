@@ -39,7 +39,6 @@ public class SyncStreamQueueSource implements QueueSource {
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicBoolean shouldThrottle = new AtomicBoolean(false);
-    private final AtomicBoolean successfulSync = new AtomicBoolean(false);
     private final int streamDeadline;
     private final int deadline;
     private final int maxBackoffMs;
@@ -167,6 +166,8 @@ public class SyncStreamQueueSource implements QueueSource {
             log.debug("Shutdown already in progress or completed");
             return;
         }
+
+        enqueue(QueuePayload.SHUTDOWN);
         grpcComponents.channelConnector.shutdown();
     }
 
@@ -190,23 +191,20 @@ public class SyncStreamQueueSource implements QueueSource {
                 }
 
                 log.debug("Initializing sync stream request");
-                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue, shouldThrottle, fatalStatusCodes);
+                SyncStreamObserver observer = new SyncStreamObserver(outgoingQueue);
                 try {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
-                    if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name()) && !successfulSync.get()) {
+                    if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name())) {
                         log.debug(
                                 "Fatal status code for metadata request: {}, not retrying",
                                 metaEx.getStatus().getCode());
-                        enqueueFatal(String.format(
-                                "Fatal: Failed to connect for metadata request, not retrying for error %s",
-                                metaEx.getStatus().getCode()));
-                        return;
+                        shutdown();
                     } else {
                         // retry for other status codes
                         String message = metaEx.getMessage();
                         log.debug("Metadata request error: {}, will restart", message, metaEx);
-                        enqueueError(String.format("Error in getMetadata request: %s", message));
+                        enqueue(QueuePayload.ERROR);
                     }
                     shouldThrottle.set(true);
                     continue;
@@ -214,20 +212,17 @@ public class SyncStreamQueueSource implements QueueSource {
 
                 try {
                     syncFlags(observer);
-                    successfulSync.set(true);
+                    handleObserverError(observer);
                 } catch (StatusRuntimeException ex) {
-                    if (fatalStatusCodes.contains(ex.getStatus().getCode().toString()) && !successfulSync.get()) {
+                    if (fatalStatusCodes.contains(ex.getStatus().getCode().toString())) {
                         log.debug(
                                 "Fatal status code during sync stream: {}, not retrying",
                                 ex.getStatus().getCode());
-                        enqueueFatal(String.format(
-                                "Fatal: Failed to connect for metadata request, not retrying for error %s",
-                                ex.getStatus().getCode()));
-                        return;
+                        shutdown();
                     } else {
                         // retry for other status codes
                         log.error("Unexpected sync stream exception, will restart.", ex);
-                        enqueueError(String.format("Error in syncStream: %s", ex.getMessage()));
+                        enqueue(QueuePayload.ERROR);
                     }
                     shouldThrottle.set(true);
                 }
@@ -293,41 +288,40 @@ public class SyncStreamQueueSource implements QueueSource {
         streamObserver.done.await();
     }
 
-    private void enqueueError(String message) {
-        enqueueError(outgoingQueue, message);
-    }
-
-    private static void enqueueError(BlockingQueue<QueuePayload> queue, String message) {
-        if (!queue.offer(new QueuePayload(QueuePayloadType.ERROR, message, null))) {
-            log.error("Failed to convey ERROR status, queue is full");
+    private void handleObserverError(SyncStreamObserver observer) throws InterruptedException {
+        if (observer.throwable == null) {
+            return;
         }
+
+        Throwable throwable = observer.throwable;
+        Status status = Status.fromThrowable(throwable);
+        String message = throwable.getMessage();
+        if (fatalStatusCodes.contains(status.getCode().name())) {
+            shutdown();
+        } else {
+            log.debug("Stream error: {}, will restart", message, throwable);
+            enqueue(QueuePayload.ERROR);
+        }
+
+        // Set throttling flag to ensure backoff before retry
+        this.shouldThrottle.set(true);
     }
 
-    private void enqueueFatal(String message) {
-        enqueueFatal(outgoingQueue, message);
-    }
-
-    private static void enqueueFatal(BlockingQueue<QueuePayload> queue, String message) {
-        if (!queue.offer(new QueuePayload(QueuePayloadType.FATAL, message, null))) {
-            log.error("Failed to convey FATAL status, queue is full");
+    private void enqueue(QueuePayload queuePayload) {
+        if (!outgoingQueue.offer(queuePayload)) {
+            log.error("Failed to convey {} status, queue is full", queuePayload.getType());
         }
     }
 
     private static class SyncStreamObserver implements StreamObserver<SyncFlagsResponse> {
         private final BlockingQueue<QueuePayload> outgoingQueue;
-        private final AtomicBoolean shouldThrottle;
         private final Awaitable done = new Awaitable();
-        private final List<String> fatalStatusCodes;
 
         private Struct metadata;
+        private Throwable throwable;
 
-        public SyncStreamObserver(
-                BlockingQueue<QueuePayload> outgoingQueue,
-                AtomicBoolean shouldThrottle,
-                List<String> fatalStatusCodes) {
+        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue) {
             this.outgoingQueue = outgoingQueue;
-            this.shouldThrottle = shouldThrottle;
-            this.fatalStatusCodes = fatalStatusCodes;
         }
 
         @Override
@@ -344,21 +338,9 @@ public class SyncStreamQueueSource implements QueueSource {
 
         @Override
         public void onError(Throwable throwable) {
-            try {
-                Status status = Status.fromThrowable(throwable);
-                String message = throwable != null ? throwable.getMessage() : "unknown";
-                log.debug("Stream error: {}, will restart", message, throwable);
-                if (fatalStatusCodes.contains(status.getCode().name())) {
-                    enqueueFatal(outgoingQueue, String.format("Error from stream: %s", message));
-                } else {
-                    enqueueError(outgoingQueue, String.format("Error from stream: %s", message));
-                }
-
-                // Set throttling flag to ensure backoff before retry
-                this.shouldThrottle.set(true);
-            } finally {
-                done.wakeup();
-            }
+            log.debug("Sync stream error received", throwable);
+            this.throwable = throwable;
+            done.wakeup();
         }
 
         @Override

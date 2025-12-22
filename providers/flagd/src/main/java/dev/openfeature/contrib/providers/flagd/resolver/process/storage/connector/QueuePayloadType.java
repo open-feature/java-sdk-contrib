@@ -4,5 +4,5 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 public enum QueuePayloadType {
     DATA,
     ERROR,
-    FATAL
+    SHUTDOWN
 }
