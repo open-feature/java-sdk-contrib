@@ -18,6 +18,7 @@ public class QueuePayload {
     public QueuePayload(QueuePayloadType type, String flagData) {
         this(type, flagData, null);
     }
+
     public QueuePayload(QueuePayloadType type) {
         this(type, null, null);
     }

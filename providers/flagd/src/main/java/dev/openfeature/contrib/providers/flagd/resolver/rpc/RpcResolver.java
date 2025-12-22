@@ -11,7 +11,6 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
@@ -49,7 +48,6 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 
@@ -84,7 +82,9 @@ public final class RpcResolver implements Resolver {
      * @param onProviderEvent lambda which handles changes in the connection/stream
      */
     public RpcResolver(
-            final FlagdOptions options, final Cache cache, final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent) {
+            final FlagdOptions options,
+            final Cache cache,
+            final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
@@ -417,7 +417,10 @@ public final class RpcResolver implements Resolver {
             changedFlags.forEach(this.cache::remove);
         }
 
-        onProviderEvent.accept(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, ProviderEventDetails.builder().flagsChanged(changedFlags).build(), null);
+        onProviderEvent.accept(
+                ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                ProviderEventDetails.builder().flagsChanged(changedFlags).build(),
+                null);
     }
 
     /**

@@ -192,7 +192,8 @@ public class FlagdProvider extends EventProvider {
     }
 
     @SuppressWarnings("checkstyle:fallthrough")
-    private void onProviderEvent(ProviderEvent providerEvent, ProviderEventDetails providerEventDetails, Structure syncMetadata) {
+    private void onProviderEvent(
+            ProviderEvent providerEvent, ProviderEventDetails providerEventDetails, Structure syncMetadata) {
         log.debug("FlagdProviderEvent event {} ", providerEvent);
         synchronized (syncResources) {
             /*
@@ -223,7 +224,8 @@ public class FlagdProvider extends EventProvider {
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;
                 case PROVIDER_ERROR:
-                    if (providerEventDetails != null && providerEventDetails.getErrorCode() == ErrorCode.PROVIDER_FATAL) {
+                    if (providerEventDetails != null
+                            && providerEventDetails.getErrorCode() == ErrorCode.PROVIDER_FATAL) {
                         onFatal();
                         break;
                     }

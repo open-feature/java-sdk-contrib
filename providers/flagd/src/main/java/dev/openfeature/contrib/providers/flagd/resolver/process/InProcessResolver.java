@@ -4,7 +4,6 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.model.Fea
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
@@ -27,10 +26,8 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import dev.openfeature.sdk.internal.TriConsumer;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -56,7 +53,8 @@ public class InProcessResolver implements Resolver {
      * @param onConnectionEvent lambda which handles changes in the
      *                          connection/stream
      */
-    public InProcessResolver(FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
+    public InProcessResolver(
+            FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
         this.queueSource = getQueueSource(options);
         this.flagStore = new FlagStore(queueSource);
         this.onConnectionEvent = onConnectionEvent;
@@ -83,7 +81,10 @@ public class InProcessResolver implements Resolver {
                                     .message("configuration changed")
                                     .build();
 
-                            onConnectionEvent.accept(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, eventDetails, storageStateChange.getSyncMetadata());
+                            onConnectionEvent.accept(
+                                    ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                                    eventDetails,
+                                    storageStateChange.getSyncMetadata());
 
                             log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
                             break;
@@ -91,9 +92,12 @@ public class InProcessResolver implements Resolver {
                             onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
                             break;
                         case FATAL_ERROR:
-                            onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, ProviderEventDetails.builder()
-                                    .errorCode(ErrorCode.PROVIDER_FATAL)
-                                    .build(), null);
+                            onConnectionEvent.accept(
+                                    ProviderEvent.PROVIDER_ERROR,
+                                    ProviderEventDetails.builder()
+                                            .errorCode(ErrorCode.PROVIDER_FATAL)
+                                            .build(),
+                                    null);
                             break;
                         default:
                             log.warn(String.format(
