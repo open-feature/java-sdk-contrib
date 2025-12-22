@@ -195,7 +195,8 @@ public class SyncStreamQueueSource implements QueueSource {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
                     if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name()) && !successfulSync.get()) {
-                        log.debug("Fatal status code for metadata request: {}, not retrying",
+                        log.debug(
+                                "Fatal status code for metadata request: {}, not retrying",
                                 metaEx.getStatus().getCode());
                         enqueueFatal(String.format(
                                 "Fatal: Failed to connect for metadata request, not retrying for error %s",
@@ -216,7 +217,9 @@ public class SyncStreamQueueSource implements QueueSource {
                     successfulSync.set(true);
                 } catch (StatusRuntimeException ex) {
                     if (fatalStatusCodes.contains(ex.getStatus().getCode().toString()) && !successfulSync.get()) {
-                        log.debug("Fatal status code during sync stream: {}, not retrying", ex.getStatus().getCode());
+                        log.debug(
+                                "Fatal status code during sync stream: {}, not retrying",
+                                ex.getStatus().getCode());
                         enqueueFatal(String.format(
                                 "Fatal: Failed to connect for metadata request, not retrying for error %s",
                                 ex.getStatus().getCode()));
@@ -318,7 +321,9 @@ public class SyncStreamQueueSource implements QueueSource {
 
         private Struct metadata;
 
-        public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue, AtomicBoolean shouldThrottle,
+        public SyncStreamObserver(
+                BlockingQueue<QueuePayload> outgoingQueue,
+                AtomicBoolean shouldThrottle,
                 List<String> fatalStatusCodes) {
             this.outgoingQueue = outgoingQueue;
             this.shouldThrottle = shouldThrottle;

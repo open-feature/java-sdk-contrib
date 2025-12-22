@@ -352,11 +352,17 @@ public final class RpcResolver implements Resolver {
 
                 Throwable streamException = taken.getError();
                 if (streamException != null) {
-                    if (streamException instanceof StatusRuntimeException && fatalStatusCodes.contains(
-                            ((StatusRuntimeException) streamException).getStatus().getCode().name())
+                    if (streamException instanceof StatusRuntimeException
+                            && fatalStatusCodes.contains(((StatusRuntimeException) streamException)
+                                    .getStatus()
+                                    .getCode()
+                                    .name())
                             && !successfulConnection.get()) {
-                        log.debug("Fatal error code received: {}",
-                                ((StatusRuntimeException) streamException).getStatus().getCode());
+                        log.debug(
+                                "Fatal error code received: {}",
+                                ((StatusRuntimeException) streamException)
+                                        .getStatus()
+                                        .getCode());
                         this.handleFatalError();
                     } else {
                         log.debug(

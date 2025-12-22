@@ -239,7 +239,9 @@ public class FlagdProvider extends EventProvider {
     }
 
     private void onError() {
-        this.emitProviderError(ProviderEventDetails.builder().errorCode(ErrorCode.PROVIDER_FATAL).build());
+        this.emitProviderError(ProviderEventDetails.builder()
+                .errorCode(ErrorCode.PROVIDER_FATAL)
+                .build());
     }
 
     private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {

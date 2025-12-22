@@ -41,8 +41,9 @@ public final class Utils {
             case "CacheType":
                 return CacheType.valueOf(value.toUpperCase()).getValue();
             case "StringList":
-                return value.isEmpty() ? List.of() : Arrays.stream(value.split(",")).map(String::trim).collect(
-                        Collectors.toList());
+                return value.isEmpty()
+                        ? List.of()
+                        : Arrays.stream(value.split(",")).map(String::trim).collect(Collectors.toList());
             case "Object":
                 return Value.objectToValue(new ObjectMapper().readValue(value, Object.class));
         }

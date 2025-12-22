@@ -99,9 +99,11 @@ public final class Config {
 
     static List<String> fallBackToEnvOrDefaultList(String key, List<String> defaultValue) {
         try {
-            return System.getenv(key) != null ? Arrays.stream(System.getenv(key).split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toList()) : defaultValue;
+            return System.getenv(key) != null
+                    ? Arrays.stream(System.getenv(key).split(","))
+                            .map(String::trim)
+                            .collect(Collectors.toList())
+                    : defaultValue;
         } catch (Exception e) {
             return defaultValue;
         }
