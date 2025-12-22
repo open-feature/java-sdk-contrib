@@ -3,5 +3,6 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 /** Payload type emitted by {@link QueueSource}. */
 public enum QueuePayloadType {
     DATA,
-    ERROR
+    ERROR,
+    SHUTDOWN
 }
