@@ -26,6 +26,7 @@ import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringRequest;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
@@ -348,7 +349,7 @@ public final class RpcResolver implements Resolver {
                 final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();
                 if (taken.isComplete()) {
                     log.debug("Event stream completed, will reconnect");
-                    this.handleErrorOrComplete();
+                    this.handleErrorOrComplete(false);
                     // The stream is complete, we still try to reconnect
                     break;
                 }
@@ -366,12 +367,12 @@ public final class RpcResolver implements Resolver {
                                 ((StatusRuntimeException) streamException)
                                         .getStatus()
                                         .getCode());
-                        this.handleFatalError();
+                        this.handleErrorOrComplete(true);
                     } else {
                         log.debug(
                                 "Exception in event stream connection, streamException {}, will reconnect",
                                 streamException);
-                        this.handleErrorOrComplete();
+                        this.handleErrorOrComplete(false);
                     }
                     break;
                 }
@@ -434,20 +435,12 @@ public final class RpcResolver implements Resolver {
     /**
      * Handles provider error events by clearing the cache (if enabled) and notifying listeners of the error.
      */
-    private void handleErrorOrComplete() {
-        log.debug("Emitting provider stale event");
+    private void handleErrorOrComplete(boolean fatal) {
+        log.debug("Emitting provider error event");
+        ErrorCode errorCode = fatal ? ErrorCode.PROVIDER_FATAL : ErrorCode.GENERAL;
+        var details = ProviderEventDetails.builder().errorCode(errorCode).build();
 
         // complete is an error, logically...even if the server went down gracefully we need to reconnect.
-        onProviderEvent.accept(ProviderEvent.PROVIDER_STALE, null, null);
-    }
-
-    /**
-     * Handles fatal error events (i.e. error codes defined in fatalStatusCodes) by transitioning the provider into
-     * fatal state
-     */
-    private void handleFatalError() {
-        log.debug("Emitting provider error event");
-
-        onProviderEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
+        onProviderEvent.accept(ProviderEvent.PROVIDER_ERROR, details, null);
     }
 }

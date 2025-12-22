@@ -111,7 +111,7 @@ class RpcResolverTest {
         observer.onCompleted();
 
         // should run consumer with error
-        await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_STALE), any(), any()));
+        await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_ERROR), any(), any()));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }
@@ -127,7 +127,7 @@ class RpcResolverTest {
         observer.onError(new Exception("fake error"));
 
         // should run consumer with error
-        await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_STALE), any(), any()));
+        await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_ERROR), any(), any()));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }
