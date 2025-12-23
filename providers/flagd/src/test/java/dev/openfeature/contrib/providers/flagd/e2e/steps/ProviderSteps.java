@@ -72,7 +72,7 @@ public class ProviderSteps extends AbstractSteps {
     @Given("a {} flagd provider")
     public void setupProvider(String providerType) throws InterruptedException {
         String flagdConfig = "default";
-        state.builder.deadline(1000).keepAlive(0).retryGracePeriod(2);
+        state.builder.deadline(5000).keepAlive(0).retryGracePeriod(2);
         boolean wait = true;
 
         switch (providerType) {

@@ -16,6 +16,7 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import dev.openfeature.sdk.Awaitable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -35,6 +36,9 @@ import lombok.extern.slf4j.Slf4j;
         justification = "We need to expose the BlockingQueue to allow consumers to read from it")
 public class SyncStreamQueueSource implements QueueSource {
     private static final int QUEUE_SIZE = 5;
+
+    private static final Metadata.Key<String> FLAGD_SELECTOR_KEY =
+            Metadata.Key.of("Flagd-Selector", Metadata.ASCII_STRING_MARSHALLER);
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicBoolean shouldThrottle = new AtomicBoolean(false);
