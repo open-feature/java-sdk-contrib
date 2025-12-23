@@ -8,9 +8,11 @@ import com.dylibso.chicory.compiler.MachineFactoryCompiler;
 import com.dylibso.chicory.runtime.ExportFunction;
 import com.dylibso.chicory.runtime.HostFunction;
 import com.dylibso.chicory.runtime.Instance;
+import com.dylibso.chicory.runtime.Machine;
 import com.dylibso.chicory.runtime.Memory;
 import com.dylibso.chicory.runtime.Store;
 import com.dylibso.chicory.wasm.Parser;
+import com.dylibso.chicory.wasm.WasmModule;
 import com.dylibso.chicory.wasm.types.FunctionType;
 import com.dylibso.chicory.wasm.types.ValType;
 import com.dylibso.chicory.wasm.types.ValueType;
@@ -48,6 +50,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -59,6 +62,7 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public class InProcessWasmResolver implements Resolver {
 
+    private static final Function<Instance, Machine> MACHINE_FUNCTION;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final String scope;
@@ -69,9 +73,19 @@ public class InProcessWasmResolver implements Resolver {
     private ExportFunction evaluate;
     private ExportFunction dealloc;
     private Memory memory;
+    private static final WasmModule WASM_MODULE;
 
     static {
-
+        byte[] wasmBytes = null;
+        try {
+            wasmBytes = Files.readAllBytes(Path.of("flagd_evaluator.wasm"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        WASM_MODULE = Parser.parse(wasmBytes);
+        MACHINE_FUNCTION = MachineFactoryCompiler.builder(WASM_MODULE)
+                .withInterpreterFallback(InterpreterFallback.WARN)
+                .compile();
     }
 
     /**
@@ -89,18 +103,34 @@ public class InProcessWasmResolver implements Resolver {
         this.scope = options.getSelector();
 
         var store = new Store();
-        store.addFunction(createDescribe(),
-                createExternrefTableGrow(), createExternrefTableSetNull(), createGetRandomValues(),
-                createObjectDropRef());
+        store.addFunction(
+                createDescribe(),
+                createExternrefTableGrow(),
+                createExternrefTableSetNull(),
+                createGetRandomValues(),
+                createObjectDropRef(),
+                createNew0(),
+                createGetTime(),
+                createWbindgenThrow(),
+                createWbindgenRethrow(),
+                createWbindgenMemory(),
+                createWbindgenIsUndefined(),
+                createWbindgenStringNew(),
+                createWbindgenNumberGet(),
+                createWbindgenBooleanGet(),
+                createWbindgenIsNull(),
+                createWbindgenIsObject(),
+                createWbindgenIsString(),
+                createWbindgenObjectCloneRef(),
+                createWbindgenJsvalEq(),
+                createWbindgenError()
+        );
 
-        byte[] wasmBytes = null;
-        try {
-            wasmBytes = Files.readAllBytes(Path.of("flagd_evaluator.wasm"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        var module = Parser.parse(wasmBytes);
-        var instance = Instance.builder(module).withImportValues(store.toImportValues()).build();
+        var instance = Instance.builder(WASM_MODULE)
+                .withImportValues(store.toImportValues())
+                .withMachineFactory(
+                        MACHINE_FUNCTION)
+                .build();
         updateStore = instance.export("update_state");
         evaluate = instance.export("evaluate");
         validationMode = instance.export("set_validation_mode");
@@ -142,7 +172,7 @@ public class InProcessWasmResolver implements Resolver {
                             var flagsChangedResponse = OBJECT_MAPPER.readValue(result,
                                     FlagsChangedResponse.class);
 
-                            if(flagsChangedResponse.isSuccess()) {
+                            if (flagsChangedResponse.isSuccess()) {
                                 onConnectionEvent.accept(new FlagdProviderEvent(
                                         ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
                                         flagsChangedResponse.getChangedFlags(),
@@ -401,6 +431,223 @@ public class InProcessWasmResolver implements Resolver {
                 (Instance instance, long... args) -> {
                     // No-op: We don't maintain an externref table
                     return null;
+                }
+        );
+    }
+
+    private static HostFunction createNew0() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbg_new_0_23cedd11d9b40c9d",
+                FunctionType.of(
+                        List.of(),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    // Return a dummy reference
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createGetTime() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbg_getTime_ad1e9878a735af08",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of(ValType.F64)
+                ),
+                (Instance instance, long... args) -> {
+                    // Return current time in milliseconds
+                    return new long[] {Double.doubleToRawLongBits((double) System.currentTimeMillis())};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenThrow() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbg___wbindgen_throw_dd24417ed36fc46e",
+                FunctionType.of(
+                        List.of(ValType.I32, ValType.I32),
+                        List.of()
+                ),
+                (Instance instance, long... args) -> {
+                    // Throw exception - read the error message from memory
+                    int ptr = (int) args[0];
+                    int len = (int) args[1];
+                    Memory memory = instance.memory();
+                    String message = memory.readString(ptr, len);
+                    throw new RuntimeException("WASM threw: " + message);
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenRethrow() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_rethrow",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of()
+                ),
+                (Instance instance, long... args) -> {
+                    throw new RuntimeException("WASM rethrow");
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenMemory() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_memory",
+                FunctionType.of(
+                        List.of(),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenIsUndefined() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_is_undefined",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenStringNew() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_string_new",
+                FunctionType.of(
+                        List.of(ValType.I32, ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenNumberGet() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_number_get",
+                FunctionType.of(
+                        List.of(ValType.I32, ValType.I32),
+                        List.of()
+                ),
+                (Instance instance, long... args) -> {
+                    return null;
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenBooleanGet() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_boolean_get",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenIsNull() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_is_null",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenIsObject() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_is_object",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenIsString() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_is_string",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenObjectCloneRef() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_object_clone_ref",
+                FunctionType.of(
+                        List.of(ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {args[0]};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenJsvalEq() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_jsval_eq",
+                FunctionType.of(
+                        List.of(ValType.I32, ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {args[0] == args[1] ? 1L : 0L};
+                }
+        );
+    }
+
+    private static HostFunction createWbindgenError() {
+        return new HostFunction(
+                "__wbindgen_placeholder__",
+                "__wbindgen_error_new",
+                FunctionType.of(
+                        List.of(ValType.I32, ValType.I32),
+                        List.of(ValType.I32)
+                ),
+                (Instance instance, long... args) -> {
+                    return new long[] {0L};
                 }
         );
     }
