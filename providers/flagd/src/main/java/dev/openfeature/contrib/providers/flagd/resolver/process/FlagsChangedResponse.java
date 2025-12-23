@@ -12,8 +12,7 @@ public class FlagsChangedResponse {
     private List<String> changedFlags;
 
     // Constructors
-    public FlagsChangedResponse() {
-    }
+    public FlagsChangedResponse() {}
 
     public FlagsChangedResponse(boolean success, List<String> changedFlags) {
         this.success = success;
@@ -39,9 +38,6 @@ public class FlagsChangedResponse {
 
     @Override
     public String toString() {
-        return "FlagChangeResponse{" +
-                "success=" + success +
-                ", changedFlags=" + changedFlags +
-                '}';
+        return "FlagChangeResponse{" + "success=" + success + ", changedFlags=" + changedFlags + '}';
     }
 }
