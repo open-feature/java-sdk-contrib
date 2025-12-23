@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessWasmResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;

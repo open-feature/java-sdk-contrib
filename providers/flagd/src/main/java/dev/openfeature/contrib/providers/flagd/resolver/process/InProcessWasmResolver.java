@@ -1,29 +1,24 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag.EMPTY_TARGETING_STRING;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.createStoreWithHostFunctions;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.getMachineFunction;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.getModule;
 
-import com.dylibso.chicory.compiler.InterpreterFallback;
-import com.dylibso.chicory.compiler.MachineFactoryCompiler;
 import com.dylibso.chicory.runtime.ExportFunction;
 import com.dylibso.chicory.runtime.HostFunction;
 import com.dylibso.chicory.runtime.Instance;
-import com.dylibso.chicory.runtime.Machine;
 import com.dylibso.chicory.runtime.Memory;
-import com.dylibso.chicory.runtime.Store;
-import com.dylibso.chicory.wasm.Parser;
-import com.dylibso.chicory.wasm.WasmModule;
 import com.dylibso.chicory.wasm.types.FunctionType;
 import com.dylibso.chicory.wasm.types.ValType;
-import com.dylibso.chicory.wasm.types.ValueType;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.BeanDeserializerBuilder;
-import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -31,34 +26,23 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileQueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.SyncStreamQueueSource;
-import dev.openfeature.contrib.providers.flagd.resolver.process.targeting.TargetingRuleException;
-import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ImmutableStructure;
+import dev.openfeature.sdk.LayeredEvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
-import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.ParseError;
-import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Resolves flag values using
@@ -68,7 +52,6 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public class InProcessWasmResolver implements Resolver {
 
-    private static final Function<Instance, Machine> MACHINE_FUNCTION;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     {
@@ -76,6 +59,7 @@ public class InProcessWasmResolver implements Resolver {
         // Register this module with your ObjectMapper
         SimpleModule module = new SimpleModule();
         module.addDeserializer(ImmutableMetadata.class, new ImmutableMetadataDeserializer());
+        module.addSerializer(LayeredEvaluationContext.class, new LayeredEvalContextSerializer());
         OBJECT_MAPPER.registerModule(module);
     }
 
@@ -88,20 +72,6 @@ public class InProcessWasmResolver implements Resolver {
     private ExportFunction evaluate;
     private ExportFunction dealloc;
     private Memory memory;
-    private static final WasmModule WASM_MODULE;
-
-    static {
-        byte[] wasmBytes = null;
-        try {
-            wasmBytes = Files.readAllBytes(Path.of("flagd_evaluator.wasm"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        WASM_MODULE = Parser.parse(wasmBytes);
-        MACHINE_FUNCTION = MachineFactoryCompiler.builder(WASM_MODULE)
-                .withInterpreterFallback(InterpreterFallback.WARN)
-                .compile();
-    }
 
     /**
      * Resolves flag values using
@@ -117,34 +87,11 @@ public class InProcessWasmResolver implements Resolver {
         this.connector = getConnector(options, onConnectionEvent);
         this.scope = options.getSelector();
 
-        var store = new Store();
-        store.addFunction(
-                createDescribe(),
-                createExternrefTableGrow(),
-                createExternrefTableSetNull(),
-                createGetRandomValues(),
-                createObjectDropRef(),
-                createNew0(),
-                createGetTime(),
-                createWbindgenThrow(),
-                createWbindgenRethrow(),
-                createWbindgenMemory(),
-                createWbindgenIsUndefined(),
-                createWbindgenStringNew(),
-                createWbindgenNumberGet(),
-                createWbindgenBooleanGet(),
-                createWbindgenIsNull(),
-                createWbindgenIsObject(),
-                createWbindgenIsString(),
-                createWbindgenObjectCloneRef(),
-                createWbindgenJsvalEq(),
-                createWbindgenError()
-        );
+        var store = createStoreWithHostFunctions();
 
-        var instance = Instance.builder(WASM_MODULE)
+        var instance = Instance.builder(getModule())
                 .withImportValues(store.toImportValues())
-                .withMachineFactory(
-                        MACHINE_FUNCTION)
+                .withMachineFactory(getMachineFunction())
                 .build();
         updateStore = instance.export("update_state");
         evaluate = instance.export("evaluate");
@@ -184,8 +131,7 @@ public class InProcessWasmResolver implements Resolver {
 
                             dealloc.apply(dataPtr, data.length);
 
-                            var flagsChangedResponse = OBJECT_MAPPER.readValue(result,
-                                    FlagsChangedResponse.class);
+                            var flagsChangedResponse = OBJECT_MAPPER.readValue(result, FlagsChangedResponse.class);
 
                             if (flagsChangedResponse.isSuccess()) {
                                 onConnectionEvent.accept(new FlagdProviderEvent(
@@ -196,7 +142,6 @@ public class InProcessWasmResolver implements Resolver {
 
                             break;
                         case ERROR:
-
                             break;
                         default:
                             log.warn(String.format("Payload with unknown type: %s", payload.getType()));
@@ -220,9 +165,7 @@ public class InProcessWasmResolver implements Resolver {
      *
      * @throws InterruptedException if stream can't be closed within deadline.
      */
-    public void shutdown() throws InterruptedException {
-
-    }
+    public void shutdown() throws InterruptedException {}
 
     /**
      * Resolve a boolean flag.
@@ -275,7 +218,7 @@ public class InProcessWasmResolver implements Resolver {
             return options.getCustomConnector();
         }
         return options.getOfflineFlagSourcePath() != null
-                && !options.getOfflineFlagSourcePath().isEmpty()
+                        && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
                 : new SyncStreamQueueSource(options, onConnectionEvent);
     }
@@ -285,34 +228,36 @@ public class InProcessWasmResolver implements Resolver {
         long flagPtr = alloc.apply(flagBytes.length)[0];
         memory.writeString((int) flagPtr, key);
 
-        byte[] ctxBytes = null;
+        String ctxJson = "{}";
         if (ctx.isEmpty()) {
-            ctxBytes = "{}".getBytes();
         } else {
             Map<String, Object> objectMap = ctx.asObjectMap();
             try {
-                String s = OBJECT_MAPPER.writeValueAsString(objectMap);
-                ctxBytes = s.getBytes();
+                ctxJson = OBJECT_MAPPER.writeValueAsString(objectMap);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
         }
+
+        byte[] ctxBytes = ctxJson.getBytes();
         long ctxPtr = alloc.apply(ctxBytes.length)[0];
         memory.write((int) ctxPtr, ctxBytes);
 
-        long packedResult = evaluate.apply(flagPtr, flagBytes.length, ctxPtr, ctxBytes.length)[0];
-        int resultPtr = (int) (packedResult >>> 32);
-        int resultLen = (int) (packedResult & 0xFFFFFFFFL);
-
-        String result = memory.readString(resultPtr, resultLen);
-
-        dealloc.apply(flagPtr, flagBytes.length);
-        dealloc.apply(ctxPtr, ctxBytes.length);
         try {
-            ProviderEvaluation providerEvaluation = OBJECT_MAPPER.readValue(result, ProviderEvaluation.class);
+            long packedResult = evaluate.apply(flagPtr, flagBytes.length, ctxPtr, ctxBytes.length)[0];
+            int resultPtr = (int) (packedResult >>> 32);
+            int resultLen = (int) (packedResult & 0xFFFFFFFFL);
+
+            String result = memory.readString(resultPtr, resultLen);
+            JavaType javaType = OBJECT_MAPPER.getTypeFactory().constructParametricType(ProviderEvaluation.class, type);
+            ProviderEvaluation<T> providerEvaluation = OBJECT_MAPPER.readValue(result, javaType);
+
             return providerEvaluation;
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            dealloc.apply(flagPtr, flagBytes.length);
+            dealloc.apply(ctxPtr, ctxBytes.length);
         }
     }
 
@@ -375,304 +320,11 @@ public class InProcessWasmResolver implements Resolver {
         return new ImmutableStructure();
     }
 
-
-    private static HostFunction createObjectDropRef() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_object_drop_ref",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of()
-                ),
-                (Instance instance, long... args) -> {
-                    // No-op: We're not tracking JS objects in Java
-                    return null;
-                }
-        );
-    }
-
-    private static HostFunction createDescribe() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_describe",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of()
-                ),
-                (Instance instance, long... args) -> {
-                    // No-op: Type description not needed at runtime
-                    return null;
-                }
-        );
-    }
-
-    private static HostFunction createGetRandomValues() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbg_getRandomValues_1c61fac11405ffdc",
-                FunctionType.of(
-                        List.of(ValType.I32, ValType.I32),
-                        List.of()
-                ),
-                (Instance instance, long... args) -> {
-
-                    return null;
-                }
-        );
-    }
-
-    private static HostFunction createExternrefTableGrow() {
-        return new HostFunction(
-                "__wbindgen_externref_xform__",
-                "__wbindgen_externref_table_grow",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    // Return previous size
-                    return new long[] {128L};
-                }
-        );
-    }
-
-    private static HostFunction createExternrefTableSetNull() {
-        return new HostFunction(
-                "__wbindgen_externref_xform__",
-                "__wbindgen_externref_table_set_null",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of()
-                ),
-                (Instance instance, long... args) -> {
-                    // No-op: We don't maintain an externref table
-                    return null;
-                }
-        );
-    }
-
-    private static HostFunction createNew0() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbg_new_0_23cedd11d9b40c9d",
-                FunctionType.of(
-                        List.of(),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    // Return a dummy reference
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createGetTime() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbg_getTime_ad1e9878a735af08",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.F64)
-                ),
-                (Instance instance, long... args) -> {
-                    // Return current time in milliseconds
-                    return new long[] {Double.doubleToRawLongBits((double) System.currentTimeMillis())};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenThrow() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbg___wbindgen_throw_dd24417ed36fc46e",
-                FunctionType.of(
-                        List.of(ValType.I32, ValType.I32),
-                        List.of()
-                ),
-                (Instance instance, long... args) -> {
-                    // Throw exception - read the error message from memory
-                    int ptr = (int) args[0];
-                    int len = (int) args[1];
-                    Memory memory = instance.memory();
-                    String message = memory.readString(ptr, len);
-                    throw new RuntimeException("WASM threw: " + message);
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenRethrow() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_rethrow",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of()
-                ),
-                (Instance instance, long... args) -> {
-                    throw new RuntimeException("WASM rethrow");
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenMemory() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_memory",
-                FunctionType.of(
-                        List.of(),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenIsUndefined() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_is_undefined",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenStringNew() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_string_new",
-                FunctionType.of(
-                        List.of(ValType.I32, ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenNumberGet() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_number_get",
-                FunctionType.of(
-                        List.of(ValType.I32, ValType.I32),
-                        List.of()
-                ),
-                (Instance instance, long... args) -> {
-                    return null;
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenBooleanGet() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_boolean_get",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenIsNull() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_is_null",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenIsObject() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_is_object",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenIsString() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_is_string",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenObjectCloneRef() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_object_clone_ref",
-                FunctionType.of(
-                        List.of(ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {args[0]};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenJsvalEq() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_jsval_eq",
-                FunctionType.of(
-                        List.of(ValType.I32, ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {args[0] == args[1] ? 1L : 0L};
-                }
-        );
-    }
-
-    private static HostFunction createWbindgenError() {
-        return new HostFunction(
-                "__wbindgen_placeholder__",
-                "__wbindgen_error_new",
-                FunctionType.of(
-                        List.of(ValType.I32, ValType.I32),
-                        List.of(ValType.I32)
-                ),
-                (Instance instance, long... args) -> {
-                    return new long[] {0L};
-                }
-        );
-    }
-
     // Implement a custom deserializer for ImmutableMetadata
     public class ImmutableMetadataDeserializer extends JsonDeserializer<ImmutableMetadata> {
         @Override
-        public ImmutableMetadata deserialize(com.fasterxml.jackson.core.JsonParser p,
-                com.fasterxml.jackson.databind.DeserializationContext ctxt)
+        public ImmutableMetadata deserialize(
+                com.fasterxml.jackson.core.JsonParser p, com.fasterxml.jackson.databind.DeserializationContext ctxt)
                 throws IOException {
             // Deserialize into a Map or DTO, then use the builder
             Map<String, Object> map = p.readValueAs(Map.class);
@@ -681,6 +333,22 @@ public class InProcessWasmResolver implements Resolver {
                 builder.addString(entry.getKey(), entry.getValue().toString());
             }
             return builder.build();
+        }
+    }
+
+    public class LayeredEvalContextSerializer extends JsonSerializer<LayeredEvaluationContext> {
+        @Override
+        public void serialize(LayeredEvaluationContext ctx, JsonGenerator gen, SerializerProvider serializers)
+                throws IOException {
+            gen.writeStartObject();
+
+            // Use the keySet and getValue to stream the entries
+            for (String key : ctx.keySet()) {
+                Object value = ctx.getValue(key);
+                gen.writeObjectField(key, value);
+            }
+
+            gen.writeEndObject();
         }
     }
 }
