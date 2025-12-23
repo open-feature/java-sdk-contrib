@@ -17,8 +17,14 @@ import com.dylibso.chicory.wasm.types.FunctionType;
 import com.dylibso.chicory.wasm.types.ValType;
 import com.dylibso.chicory.wasm.types.ValueType;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerBuilder;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
@@ -64,6 +70,15 @@ public class InProcessWasmResolver implements Resolver {
 
     private static final Function<Instance, Machine> MACHINE_FUNCTION;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    {
+
+        // Register this module with your ObjectMapper
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(ImmutableMetadata.class, new ImmutableMetadataDeserializer());
+        OBJECT_MAPPER.registerModule(module);
+    }
+
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final String scope;
     private final QueueSource connector;
@@ -294,7 +309,8 @@ public class InProcessWasmResolver implements Resolver {
         dealloc.apply(flagPtr, flagBytes.length);
         dealloc.apply(ctxPtr, ctxBytes.length);
         try {
-            return OBJECT_MAPPER.readValue(result, ProviderEvaluation.class);
+            ProviderEvaluation providerEvaluation = OBJECT_MAPPER.readValue(result, ProviderEvaluation.class);
+            return providerEvaluation;
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -652,4 +668,19 @@ public class InProcessWasmResolver implements Resolver {
         );
     }
 
+    // Implement a custom deserializer for ImmutableMetadata
+    public class ImmutableMetadataDeserializer extends JsonDeserializer<ImmutableMetadata> {
+        @Override
+        public ImmutableMetadata deserialize(com.fasterxml.jackson.core.JsonParser p,
+                com.fasterxml.jackson.databind.DeserializationContext ctxt)
+                throws IOException {
+            // Deserialize into a Map or DTO, then use the builder
+            Map<String, Object> map = p.readValueAs(Map.class);
+            ImmutableMetadata.ImmutableMetadataBuilder builder = ImmutableMetadata.builder();
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                builder.addString(entry.getKey(), entry.getValue().toString());
+            }
+            return builder.build();
+        }
+    }
 }
