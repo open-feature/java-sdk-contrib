@@ -165,7 +165,8 @@ public class ChannelBuilder {
                 channelBuilder.intercept(createSelectorInterceptor(options.getSelector()));
             }
 
-            return channelBuilder.defaultServiceConfig(buildRetryPolicy(options))
+            return channelBuilder
+                    .defaultServiceConfig(buildRetryPolicy(options))
                     .enableRetry()
                     .build();
         } catch (SSLException ssle) {
