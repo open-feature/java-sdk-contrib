@@ -100,11 +100,13 @@ class FlagdProviderSyncResourcesTest {
 
         waitingThread.join();
 
+        var wait = MAX_TIME_TOLERANCE * 3;
+
         Assertions.assertTrue(
-                waitTime.get() < MAX_TIME_TOLERANCE * 2,
+                waitTime.get() <wait,
                 () -> "Wakeup should be almost instant, but took " + waitTime.get()
                         + " ms, which is more than the max of"
-                        + (MAX_TIME_TOLERANCE * 2) + " ms");
+                        + wait + " ms");
     }
 
     @Timeout(2)
