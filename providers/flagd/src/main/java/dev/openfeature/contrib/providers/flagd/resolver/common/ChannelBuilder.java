@@ -3,7 +3,14 @@ package dev.openfeature.contrib.providers.flagd.resolver.common;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.nameresolvers.EnvoyResolverProvider;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
+import io.grpc.ForwardingClientCall;
 import io.grpc.ManagedChannel;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
 import io.grpc.NameResolverRegistry;
 import io.grpc.Status.Code;
 import io.grpc.netty.GrpcSslContexts;
@@ -26,6 +33,10 @@ import javax.net.ssl.SSLException;
 /** gRPC channel builder helper. */
 @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we don't care to serialize this")
 public class ChannelBuilder {
+
+    private static final Metadata.Key<String> FLAGD_SELECTOR_KEY =
+            Metadata.Key.of("flagd-selector", Metadata.ASCII_STRING_MARSHALLER);
+
     /**
      * Controls retry (not-reconnection) policy for failed RPCs.
      */
@@ -94,14 +105,19 @@ public class ChannelBuilder {
             if (!Epoll.isAvailable()) {
                 throw new IllegalStateException("unix socket cannot be used", Epoll.unavailabilityCause());
             }
-            return NettyChannelBuilder.forAddress(new DomainSocketAddress(options.getSocketPath()))
+            var channelBuilder = NettyChannelBuilder.forAddress(new DomainSocketAddress(options.getSocketPath()))
                     .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS)
                     .eventLoopGroup(new MultiThreadIoEventLoopGroup(EpollIoHandler.newFactory()))
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
                     .defaultServiceConfig(buildRetryPolicy(options))
-                    .enableRetry()
-                    .build();
+                    .enableRetry();
+
+            // add header-based selector interceptor if selector is provided
+            if (options.getSelector() != null) {
+                channelBuilder.intercept(createSelectorInterceptor(options.getSelector()));
+            }
+            return channelBuilder.build();
         }
 
         // build a TCP socket
@@ -116,14 +132,14 @@ public class ChannelBuilder {
             final String defaultTarget = String.format("%s:%s", options.getHost(), options.getPort());
             final String targetUri = isValidTargetUri(options.getTargetUri()) ? options.getTargetUri() : defaultTarget;
 
-            final NettyChannelBuilder builder =
+            final NettyChannelBuilder channelBuilder =
                     NettyChannelBuilder.forTarget(targetUri).keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS);
 
             if (options.getDefaultAuthority() != null) {
-                builder.overrideAuthority(options.getDefaultAuthority());
+                channelBuilder.overrideAuthority(options.getDefaultAuthority());
             }
             if (options.getClientInterceptors() != null) {
-                builder.intercept(options.getClientInterceptors());
+                channelBuilder.intercept(options.getClientInterceptors());
             }
             if (options.isTls()) {
                 SslContextBuilder sslContext = GrpcSslContexts.forClient();
@@ -135,17 +151,22 @@ public class ChannelBuilder {
                     }
                 }
 
-                builder.sslContext(sslContext.build());
+                channelBuilder.sslContext(sslContext.build());
             } else {
-                builder.usePlaintext();
+                channelBuilder.usePlaintext();
             }
 
             // telemetry interceptor if option is provided
             if (options.getOpenTelemetry() != null) {
-                builder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
+                channelBuilder.intercept(new FlagdGrpcInterceptor(options.getOpenTelemetry()));
+            }
+            // add header-based selector interceptor if selector is provided
+            if (options.getSelector() != null) {
+                channelBuilder.intercept(createSelectorInterceptor(options.getSelector()));
             }
 
-            return builder.defaultServiceConfig(buildRetryPolicy(options))
+            return channelBuilder
+                    .defaultServiceConfig(buildRetryPolicy(options))
                     .enableRetry()
                     .build();
         } catch (SSLException ssle) {
@@ -158,6 +179,30 @@ public class ChannelBuilder {
             genericConfigException.initCause(argumentException);
             throw genericConfigException;
         }
+    }
+
+    /**
+     * Creates a ClientInterceptor that adds the flagd-selector header to gRPC requests.
+     * This is the preferred approach for passing selectors as per flagd issue #1814.
+     *
+     * @param selector the selector value to pass in the header
+     * @return a ClientInterceptor that adds the flagd-selector header
+     */
+    private static ClientInterceptor createSelectorInterceptor(String selector) {
+        return new ClientInterceptor() {
+            @Override
+            public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+                    MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+                return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+                        next.newCall(method, callOptions)) {
+                    @Override
+                    public void start(Listener<RespT> responseListener, Metadata headers) {
+                        headers.put(FLAGD_SELECTOR_KEY, selector);
+                        super.start(responseListener, headers);
+                    }
+                };
+            }
+        };
     }
 
     private static boolean isValidTargetUri(String targetUri) {
