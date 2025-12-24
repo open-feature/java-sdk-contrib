@@ -103,7 +103,7 @@ class FlagdProviderSyncResourcesTest {
         var wait = MAX_TIME_TOLERANCE * 3;
 
         Assertions.assertTrue(
-                waitTime.get() <wait,
+                waitTime.get() < wait,
                 () -> "Wakeup should be almost instant, but took " + waitTime.get()
                         + " ms, which is more than the max of"
                         + wait + " ms");
