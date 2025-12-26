@@ -1,5 +1,9 @@
 # OpenFeature Multi-Provider for Java
 
+> **Deprecated:** This module has been superseded by the multi-provider implementation in the **core Java SDK**.  
+> For new projects, please use  [`dev.openfeature.sdk.multiprovider.MultiProvider`](https://github.com/open-feature/java-sdk/blob/main/src/main/java/dev/openfeature/sdk/multiprovider/MultiProvider.java) from the core SDK instead of this contrib module.  
+> This artifact remains available for backwards compatibility but may be removed in a future release.
+
 The OpenFeature Multi-Provider wraps multiple underlying providers in a unified interface, allowing the SDK client to transparently interact with all those providers at once.
 This allows use cases where a single client and evaluation interface is desired, but where the flag data should come from more than one source.
 
@@ -13,6 +17,11 @@ Some examples:
 - Setting a fallback for cloud providers.
   You can use the Multi-Provider to automatically fall back to a local configuration if an external vendor provider goes down, rather than using the default values.
   By using the FirstSuccessfulStrategy, the Multi-Provider will move on to the next provider in the list if an error is thrown.
+
+> **Recommended replacement:** For new integrations, see the multi-provider in the core SDK:
+>
+> - Class: [`dev.openfeature.sdk.multiprovider.MultiProvider`](https://github.com/open-feature/java-sdk/blob/main/src/main/java/dev/openfeature/sdk/multiprovider/MultiProvider.java)
+> - Documentation: refer to the [Java SDK README](https://github.com/open-feature/java-sdk#openfeature-java-sdk) Javadoc.
 
 ## Strategies
 
@@ -49,6 +58,9 @@ Rather than making assumptions about when to use a provider’s result and when 
 
 ## Installation
 
+> **Note: ** The following coordinates are kept for existing users of the contrib multi-provider.  
+> New projects should prefer the core SDK dependency and its `dev.openfeature.sdk.providers.multiprovider.MultiProvider` implementation.
+
 <!-- x-release-please-start-version -->
 
 ```xml
@@ -63,6 +75,8 @@ Rather than making assumptions about when to use a provider’s result and when 
 <!-- x-release-please-end-version -->
 
 ## Usage
+Legacy usage: This example shows how to use the contrib multi-provider.
+For new code, use dev.openfeature.sdk.providers.multiprovider.MultiProvider from the core SDK and follow the examples in the Java SDK README.
 
 Usage example:
 
