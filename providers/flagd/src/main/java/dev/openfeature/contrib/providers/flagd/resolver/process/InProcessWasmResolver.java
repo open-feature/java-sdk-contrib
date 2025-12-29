@@ -11,21 +11,16 @@ import com.dylibso.chicory.runtime.Instance;
 import com.dylibso.chicory.runtime.Memory;
 import com.dylibso.chicory.wasm.types.FunctionType;
 import com.dylibso.chicory.wasm.types.ValType;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
+import dev.openfeature.contrib.providers.flagd.resolver.process.jackson.ImmutableMetadataDeserializer;
+import dev.openfeature.contrib.providers.flagd.resolver.process.jackson.LayeredEvalContextSerializer;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileQueueSource;
@@ -38,8 +33,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import java.io.IOException;
-import java.util.List;
+import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -54,9 +48,8 @@ public class InProcessWasmResolver implements Resolver {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    {
-
-        // Register this module with your ObjectMapper
+    static {
+        // Register custom serializers/deserializers with the ObjectMapper
         SimpleModule module = new SimpleModule();
         module.addDeserializer(ImmutableMetadata.class, new ImmutableMetadataDeserializer());
         module.addSerializer(LayeredEvaluationContext.class, new LayeredEvalContextSerializer());
@@ -66,6 +59,7 @@ public class InProcessWasmResolver implements Resolver {
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final String scope;
     private final QueueSource connector;
+    private Thread stateWatcher;
     private final ExportFunction validationMode;
     private ExportFunction updateStore;
     private ExportFunction alloc;
@@ -109,14 +103,13 @@ public class InProcessWasmResolver implements Resolver {
     public void init() throws Exception {
 
         connector.init();
-        final Thread stateWatcher = new Thread(() -> {
-            try {
-                var streamPayloads = connector.getStreamQueue();
-                while (true) {
+        this.stateWatcher = new Thread(() -> {
+            var streamPayloads = connector.getStreamQueue();
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
                     final QueuePayload payload = streamPayloads.take();
                     switch (payload.getType()) {
                         case DATA:
-                            List<String> changedFlagsKeys;
                             var data = payload.getFlagData().getBytes();
                             long dataPtr = alloc.apply(data.length)[0];
                             memory.write((int) dataPtr, data);
@@ -146,18 +139,17 @@ public class InProcessWasmResolver implements Resolver {
                         default:
                             log.warn(String.format("Payload with unknown type: %s", payload.getType()));
                     }
+                } catch (InterruptedException e) {
+                    log.debug("Storage state watcher interrupted", e);
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (JsonProcessingException e) {
+                    log.error("Error processing flag data, skipping update", e);
                 }
-            } catch (InterruptedException e) {
-                log.warn("Storage state watcher interrupted", e);
-                Thread.currentThread().interrupt();
-            } catch (JsonMappingException e) {
-                throw new RuntimeException(e);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
             }
         });
-        stateWatcher.setDaemon(true);
-        stateWatcher.start();
+        this.stateWatcher.setDaemon(true);
+        this.stateWatcher.start();
     }
 
     /**
@@ -165,7 +157,12 @@ public class InProcessWasmResolver implements Resolver {
      *
      * @throws InterruptedException if stream can't be closed within deadline.
      */
-    public void shutdown() throws InterruptedException {}
+    public void shutdown() throws InterruptedException {
+        if (stateWatcher != null) {
+            stateWatcher.interrupt();
+        }
+        connector.shutdown();
+    }
 
     /**
      * Resolve a boolean flag.
@@ -253,60 +250,14 @@ public class InProcessWasmResolver implements Resolver {
             ProviderEvaluation<T> providerEvaluation = OBJECT_MAPPER.readValue(result, javaType);
 
             return providerEvaluation;
+        } catch (JsonProcessingException e) {
+            throw new GeneralError("Error deserializing WASM evaluation result", e);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new GeneralError("Error during WASM evaluation", e);
         } finally {
             dealloc.apply(flagPtr, flagBytes.length);
             dealloc.apply(ctxPtr, ctxBytes.length);
         }
-    }
-
-    private ImmutableMetadata getFlagMetadata(StorageQueryResult storageQueryResult) {
-        ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
-        for (Map.Entry<String, Object> entry :
-                storageQueryResult.getFlagSetMetadata().entrySet()) {
-            addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
-        }
-
-        if (scope != null) {
-            metadataBuilder.addString("scope", scope);
-        }
-
-        FeatureFlag flag = storageQueryResult.getFeatureFlag();
-        if (flag != null) {
-            for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
-                addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
-            }
-        }
-
-        return metadataBuilder.build();
-    }
-
-    private void addEntryToMetadataBuilder(
-            ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder, String key, Object value) {
-        if (value instanceof Number) {
-            if (value instanceof Long) {
-                metadataBuilder.addLong(key, (Long) value);
-                return;
-            } else if (value instanceof Double) {
-                metadataBuilder.addDouble(key, (Double) value);
-                return;
-            } else if (value instanceof Integer) {
-                metadataBuilder.addInteger(key, (Integer) value);
-                return;
-            } else if (value instanceof Float) {
-                metadataBuilder.addFloat(key, (Float) value);
-                return;
-            }
-        } else if (value instanceof Boolean) {
-            metadataBuilder.addBoolean(key, (Boolean) value);
-            return;
-        } else if (value instanceof String) {
-            metadataBuilder.addString(key, (String) value);
-            return;
-        }
-        throw new IllegalArgumentException(
-                "The type of the Metadata entry with key " + key + " and value " + value + " is not supported");
     }
 
     private Structure parseSyncContext(Struct syncContext) {
@@ -318,37 +269,5 @@ public class InProcessWasmResolver implements Resolver {
             }
         }
         return new ImmutableStructure();
-    }
-
-    // Implement a custom deserializer for ImmutableMetadata
-    public class ImmutableMetadataDeserializer extends JsonDeserializer<ImmutableMetadata> {
-        @Override
-        public ImmutableMetadata deserialize(
-                com.fasterxml.jackson.core.JsonParser p, com.fasterxml.jackson.databind.DeserializationContext ctxt)
-                throws IOException {
-            // Deserialize into a Map or DTO, then use the builder
-            Map<String, Object> map = p.readValueAs(Map.class);
-            ImmutableMetadata.ImmutableMetadataBuilder builder = ImmutableMetadata.builder();
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                builder.addString(entry.getKey(), entry.getValue().toString());
-            }
-            return builder.build();
-        }
-    }
-
-    public class LayeredEvalContextSerializer extends JsonSerializer<LayeredEvaluationContext> {
-        @Override
-        public void serialize(LayeredEvaluationContext ctx, JsonGenerator gen, SerializerProvider serializers)
-                throws IOException {
-            gen.writeStartObject();
-
-            // Use the keySet and getValue to stream the entries
-            for (String key : ctx.keySet()) {
-                Object value = ctx.getValue(key);
-                gen.writeObjectField(key, value);
-            }
-
-            gen.writeEndObject();
-        }
     }
 }

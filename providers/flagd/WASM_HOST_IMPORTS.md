@@ -76,6 +76,9 @@ private static HostFunction createGetCurrentTimeUnixSeconds() {
 
 **Implementation:**
 ```java
+// Static SecureRandom instance for efficiency (reused across calls)
+private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
 private static HostFunction createGetRandomValues() {
     return new HostFunction(
             "__wbindgen_placeholder__",
@@ -93,7 +96,7 @@ private static HostFunction createGetRandomValues() {
                 // The WASM code expects a 32-byte buffer at bufferPtr
                 // Fill it with cryptographically secure random bytes
                 byte[] randomBytes = new byte[32];
-                new java.security.SecureRandom().nextBytes(randomBytes);
+                SECURE_RANDOM.nextBytes(randomBytes);
 
                 Memory memory = instance.memory();
                 memory.write(bufferPtr, randomBytes);

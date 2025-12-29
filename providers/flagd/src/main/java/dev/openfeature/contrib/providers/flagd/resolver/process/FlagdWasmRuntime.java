@@ -12,8 +12,8 @@ import com.dylibso.chicory.wasm.WasmModule;
 import com.dylibso.chicory.wasm.types.FunctionType;
 import com.dylibso.chicory.wasm.types.ValType;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.function.Function;
 
@@ -29,11 +29,16 @@ public final class FlagdWasmRuntime {
 
     private static final WasmModule WASM_MODULE;
     private static final Function<Instance, Machine> MACHINE_FUNCTION;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     static {
         byte[] wasmBytes;
-        try {
-            wasmBytes = Files.readAllBytes(Path.of("flagd_evaluator.wasm"));
+        try (InputStream wasmStream =
+                FlagdWasmRuntime.class.getResourceAsStream("/flagd_evaluator.wasm")) {
+            if (wasmStream == null) {
+                throw new IOException("WASM resource 'flagd_evaluator.wasm' not found in classpath");
+            }
+            wasmBytes = wasmStream.readAllBytes();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load flagd_evaluator.wasm", e);
         }
@@ -148,7 +153,7 @@ public final class FlagdWasmRuntime {
                     // The WASM code expects a 32-byte buffer at bufferPtr
                     // Fill it with cryptographically secure random bytes
                     byte[] randomBytes = new byte[32];
-                    new java.security.SecureRandom().nextBytes(randomBytes);
+                    SECURE_RANDOM.nextBytes(randomBytes);
 
                     Memory memory = instance.memory();
                     memory.write(bufferPtr, randomBytes);
