@@ -1,21 +1,14 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import com.dylibso.chicory.compiler.InterpreterFallback;
-import com.dylibso.chicory.compiler.MachineFactoryCompiler;
 import com.dylibso.chicory.runtime.HostFunction;
 import com.dylibso.chicory.runtime.Instance;
-import com.dylibso.chicory.runtime.Machine;
 import com.dylibso.chicory.runtime.Memory;
 import com.dylibso.chicory.runtime.Store;
-import com.dylibso.chicory.wasm.Parser;
-import com.dylibso.chicory.wasm.WasmModule;
 import com.dylibso.chicory.wasm.types.FunctionType;
 import com.dylibso.chicory.wasm.types.ValType;
-import java.io.IOException;
-import java.io.InputStream;
+import dev.openfeature.flagd.evaluator.CompiledEvaluator;
 import java.security.SecureRandom;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Runtime environment for the flagd-evaluator WASM module.
@@ -27,47 +20,10 @@ import java.util.function.Function;
  */
 public final class FlagdWasmRuntime {
 
-    private static final WasmModule WASM_MODULE;
-    private static final Function<Instance, Machine> MACHINE_FUNCTION;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
-    static {
-        byte[] wasmBytes;
-        try (InputStream wasmStream =
-                FlagdWasmRuntime.class.getResourceAsStream("/flagd_evaluator.wasm")) {
-            if (wasmStream == null) {
-                throw new IOException("WASM resource 'flagd_evaluator.wasm' not found in classpath");
-            }
-            wasmBytes = wasmStream.readAllBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load flagd_evaluator.wasm", e);
-        }
-        WASM_MODULE = Parser.parse(wasmBytes);
-        MACHINE_FUNCTION = MachineFactoryCompiler.builder(WASM_MODULE)
-                .withInterpreterFallback(InterpreterFallback.WARN)
-                .compile();
-    }
 
     private FlagdWasmRuntime() {
         // Utility class - prevent instantiation
-    }
-
-    /**
-     * Get the WASM module.
-     *
-     * @return the parsed WASM module
-     */
-    public static WasmModule getModule() {
-        return WASM_MODULE;
-    }
-
-    /**
-     * Get the machine factory function.
-     *
-     * @return the compiled machine factory
-     */
-    public static Function<Instance, Machine> getMachineFunction() {
-        return MACHINE_FUNCTION;
     }
 
     /**
@@ -123,9 +79,9 @@ public final class FlagdWasmRuntime {
      */
     public static Instance createInstance() {
         Store store = createStoreWithHostFunctions();
-        return Instance.builder(WASM_MODULE)
+        return Instance.builder(CompiledEvaluator.load())
                 .withImportValues(store.toImportValues())
-                .withMachineFactory(MACHINE_FUNCTION)
+                .withMachineFactory(CompiledEvaluator::create)
                 .build();
     }
 

@@ -17,6 +17,7 @@
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.77.0</io.grpc.version>
+        <chicory.version>1.6.1</chicory.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
     </properties>
@@ -178,18 +179,18 @@
         <dependency>
             <groupId>com.dylibso.chicory</groupId>
             <artifactId>runtime</artifactId>
-            <version>1.6.0</version>
+            <version>${chicory.version}</version>
         </dependency>
         <dependency>
             <groupId>com.dylibso.chicory</groupId>
             <artifactId>compiler</artifactId>
-            <version>1.6.0</version>
+            <version>${chicory.version}</version>
         </dependency>
         <!-- Chicory WASM parser -->
         <dependency>
             <groupId>com.dylibso.chicory</groupId>
             <artifactId>wasm</artifactId>
-            <version>1.6.0</version>
+            <version>${chicory.version}</version>
         </dependency>
     </dependencies>
 
@@ -282,6 +283,25 @@
                             <goal>compile</goal>
                             <goal>compile-custom</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.dylibso.chicory</groupId>
+                <artifactId>chicory-compiler-maven-plugin</artifactId>
+                <version>${chicory.version}</version>
+                <executions>
+                    <execution>
+                        <id>compiler-gen</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <wasmFile>${project.basedir}/src/main/resources/flagd_evaluator.wasm</wasmFile>
+                            <name>dev.openfeature.flagd.evaluator.CompiledEvaluator</name>
+                            <!-- Allow interpreter fallback for functions that exceed JVM method size limits -->
+                            <interpreterFallback>WARN</interpreterFallback>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

@@ -1,16 +1,10 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.createStoreWithHostFunctions;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.getMachineFunction;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.getModule;
+import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.createInstance;
 
 import com.dylibso.chicory.runtime.ExportFunction;
-import com.dylibso.chicory.runtime.HostFunction;
-import com.dylibso.chicory.runtime.Instance;
 import com.dylibso.chicory.runtime.Memory;
-import com.dylibso.chicory.wasm.types.FunctionType;
-import com.dylibso.chicory.wasm.types.ValType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,7 +51,6 @@ public class InProcessWasmResolver implements Resolver {
     }
 
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
-    private final String scope;
     private final QueueSource connector;
     private Thread stateWatcher;
     private final ExportFunction validationMode;
@@ -78,15 +71,9 @@ public class InProcessWasmResolver implements Resolver {
      */
     public InProcessWasmResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
         this.onConnectionEvent = onConnectionEvent;
-        this.connector = getConnector(options, onConnectionEvent);
-        this.scope = options.getSelector();
+        this.connector = getConnector(options);
 
-        var store = createStoreWithHostFunctions();
-
-        var instance = Instance.builder(getModule())
-                .withImportValues(store.toImportValues())
-                .withMachineFactory(getMachineFunction())
-                .build();
+        var instance = createInstance();
         updateStore = instance.export("update_state");
         evaluate = instance.export("evaluate");
         validationMode = instance.export("set_validation_mode");
@@ -210,14 +197,14 @@ public class InProcessWasmResolver implements Resolver {
                 .build();
     }
 
-    static QueueSource getConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+    static QueueSource getConnector(final FlagdOptions options) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
         return options.getOfflineFlagSourcePath() != null
                         && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
-                : new SyncStreamQueueSource(options, onConnectionEvent);
+                : new SyncStreamQueueSource(options);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {
