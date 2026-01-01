@@ -177,8 +177,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>dev.openfeature</groupId>
+            <artifactId>flagd-evaluator-java</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+            <systemPath>${project.basedir}/flagd-evaluator-java-0.1.0-SNAPSHOT.jar</systemPath>
+	        <scope>system</scope>
+        </dependency>        <!-- Chicory WASM Runtime -->
+        <dependency>
             <groupId>com.dylibso.chicory</groupId>
             <artifactId>runtime</artifactId>
+            <version>${chicory.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.dylibso.chicory</groupId>
+            <artifactId>wasm</artifactId>
             <version>${chicory.version}</version>
         </dependency>
         <dependency>
@@ -186,12 +198,7 @@
             <artifactId>compiler</artifactId>
             <version>${chicory.version}</version>
         </dependency>
-        <!-- Chicory WASM parser -->
-        <dependency>
-            <groupId>com.dylibso.chicory</groupId>
-            <artifactId>wasm</artifactId>
-            <version>${chicory.version}</version>
-        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
@@ -283,25 +290,6 @@
                             <goal>compile</goal>
                             <goal>compile-custom</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.dylibso.chicory</groupId>
-                <artifactId>chicory-compiler-maven-plugin</artifactId>
-                <version>${chicory.version}</version>
-                <executions>
-                    <execution>
-                        <id>compiler-gen</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <wasmFile>${project.basedir}/src/main/resources/flagd_evaluator.wasm</wasmFile>
-                            <name>dev.openfeature.flagd.evaluator.CompiledEvaluator</name>
-                            <!-- Allow interpreter fallback for functions that exceed JVM method size limits -->
-                            <interpreterFallback>WARN</interpreterFallback>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

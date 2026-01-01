@@ -38,6 +38,6 @@ public class FlagsChangedResponse {
 
     @Override
     public String toString() {
-        return "FlagChangeResponse{" + "success=" + success + ", changedFlags=" + changedFlags + '}';
+        return "FlagsChangedResponse{" + "success=" + success + ", changedFlags=" + changedFlags + '}';
     }
 }

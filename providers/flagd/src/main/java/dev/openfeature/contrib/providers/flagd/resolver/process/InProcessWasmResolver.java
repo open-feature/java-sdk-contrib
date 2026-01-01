@@ -1,30 +1,25 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.FlagdWasmRuntime.createInstance;
 
-import com.dylibso.chicory.runtime.ExportFunction;
-import com.dylibso.chicory.runtime.Memory;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.process.jackson.ImmutableMetadataDeserializer;
-import dev.openfeature.contrib.providers.flagd.resolver.process.jackson.LayeredEvalContextSerializer;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileQueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.SyncStreamQueueSource;
+import dev.openfeature.flagd.evaluator.EvaluationResult;
+import dev.openfeature.flagd.evaluator.EvaluatorException;
+import dev.openfeature.flagd.evaluator.FlagEvaluator;
+import dev.openfeature.flagd.evaluator.UpdateStateResult;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ImmutableStructure;
-import dev.openfeature.sdk.LayeredEvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
@@ -40,25 +35,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class InProcessWasmResolver implements Resolver {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    static {
-        // Register custom serializers/deserializers with the ObjectMapper
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(ImmutableMetadata.class, new ImmutableMetadataDeserializer());
-        module.addSerializer(LayeredEvaluationContext.class, new LayeredEvalContextSerializer());
-        OBJECT_MAPPER.registerModule(module);
-    }
-
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final QueueSource connector;
     private Thread stateWatcher;
-    private final ExportFunction validationMode;
-    private ExportFunction updateStore;
-    private ExportFunction alloc;
-    private ExportFunction evaluate;
-    private ExportFunction dealloc;
-    private Memory memory;
+    private FlagEvaluator evaluator;
 
     /**
      * Resolves flag values using
@@ -70,18 +50,10 @@ public class InProcessWasmResolver implements Resolver {
      *                          connection/stream
      */
     public InProcessWasmResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+        this.evaluator = new FlagEvaluator(FlagEvaluator.ValidationMode.PERMISSIVE);
+
         this.onConnectionEvent = onConnectionEvent;
         this.connector = getConnector(options);
-
-        var instance = createInstance();
-        updateStore = instance.export("update_state");
-        evaluate = instance.export("evaluate");
-        validationMode = instance.export("set_validation_mode");
-        alloc = instance.export("alloc");
-        dealloc = instance.export("dealloc");
-        validationMode.apply(1);
-
-        memory = instance.memory();
     }
 
     /**
@@ -97,31 +69,24 @@ public class InProcessWasmResolver implements Resolver {
                     final QueuePayload payload = streamPayloads.take();
                     switch (payload.getType()) {
                         case DATA:
-                            var data = payload.getFlagData().getBytes();
-                            long dataPtr = alloc.apply(data.length)[0];
-                            memory.write((int) dataPtr, data);
+                            try {
+                                UpdateStateResult updateStateResult = evaluator.updateState(payload.getFlagData());
 
-                            Structure syncContext = parseSyncContext(payload.getSyncContext());
-                            long packedResult = updateStore.apply(dataPtr, data.length)[0];
-
-                            int resultPtr = (int) (packedResult >>> 32);
-                            int resultLen = (int) (packedResult & 0xFFFFFFFFL);
-
-                            String result = memory.readString(resultPtr, resultLen);
-
-                            dealloc.apply(dataPtr, data.length);
-
-                            var flagsChangedResponse = OBJECT_MAPPER.readValue(result, FlagsChangedResponse.class);
-
-                            if (flagsChangedResponse.isSuccess()) {
-                                onConnectionEvent.accept(new FlagdProviderEvent(
-                                        ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
-                                        flagsChangedResponse.getChangedFlags(),
-                                        syncContext));
+                                Structure syncContext = parseSyncContext(payload.getSyncContext());
+                                if (updateStateResult.isSuccess()) {
+                                    onConnectionEvent.accept(new FlagdProviderEvent(
+                                            ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                                            updateStateResult.getChangedFlags(),
+                                            syncContext));
+                                }
+                            } catch (EvaluatorException e) {
+                                log.error("Error updating state from WASM evaluator", e);
                             }
+
 
                             break;
                         case ERROR:
+                            log.error("Received error payload from connector");
                             break;
                         default:
                             log.warn(String.format("Payload with unknown type: %s", payload.getType()));
@@ -130,8 +95,6 @@ public class InProcessWasmResolver implements Resolver {
                     log.debug("Storage state watcher interrupted", e);
                     Thread.currentThread().interrupt();
                     break;
-                } catch (JsonProcessingException e) {
-                    log.error("Error processing flag data, skipping update", e);
                 }
             }
         });
@@ -208,42 +171,22 @@ public class InProcessWasmResolver implements Resolver {
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {
-        byte[] flagBytes = key.getBytes();
-        long flagPtr = alloc.apply(flagBytes.length)[0];
-        memory.writeString((int) flagPtr, key);
-
-        String ctxJson = "{}";
-        if (ctx.isEmpty()) {
-        } else {
-            Map<String, Object> objectMap = ctx.asObjectMap();
-            try {
-                ctxJson = OBJECT_MAPPER.writeValueAsString(objectMap);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        byte[] ctxBytes = ctxJson.getBytes();
-        long ctxPtr = alloc.apply(ctxBytes.length)[0];
-        memory.write((int) ctxPtr, ctxBytes);
-
         try {
-            long packedResult = evaluate.apply(flagPtr, flagBytes.length, ctxPtr, ctxBytes.length)[0];
-            int resultPtr = (int) (packedResult >>> 32);
-            int resultLen = (int) (packedResult & 0xFFFFFFFFL);
-
-            String result = memory.readString(resultPtr, resultLen);
-            JavaType javaType = OBJECT_MAPPER.getTypeFactory().constructParametricType(ProviderEvaluation.class, type);
-            ProviderEvaluation<T> providerEvaluation = OBJECT_MAPPER.readValue(result, javaType);
-
-            return providerEvaluation;
-        } catch (JsonProcessingException e) {
-            throw new GeneralError("Error deserializing WASM evaluation result", e);
-        } catch (Exception e) {
-            throw new GeneralError("Error during WASM evaluation", e);
-        } finally {
-            dealloc.apply(flagPtr, flagBytes.length);
-            dealloc.apply(ctxPtr, ctxBytes.length);
+            EvaluationResult<T> evaluationResult = evaluator.evaluateFlag(type, key, ctx);
+            return new ProviderEvaluation<>(
+                    evaluationResult.getValue(),
+                    evaluationResult.getVariant(),
+                    evaluationResult.getReason(),
+                    ErrorCode.valueOf(evaluationResult.getErrorCode()),
+                    evaluationResult.getErrorMessage(),
+                    evaluationResult.getFlagMetadata()
+            );
+        } catch (EvaluatorException e) {
+            return ProviderEvaluation.<T>builder()
+                    .reason(Reason.ERROR.toString())
+                    .errorCode(ErrorCode.GENERAL)
+                    .errorMessage("Error during wasm evaluation: " + e.getMessage())
+                    .build();
         }
     }
 
