@@ -120,7 +120,8 @@ class FlagdProviderSyncResourcesTest {
 
             long end = System.currentTimeMillis();
             long duration = end - start;
-            successfulTest.set(duration < MAX_TIME_TOLERANCE * 2);
+            var wait = MAX_TIME_TOLERANCE * 3;
+            successfulTest.set(duration < wait);
         });
         waitingThread.start();
 

@@ -11,6 +11,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +110,7 @@ public class FlagStore implements Storage {
             switch (payload.getType()) {
                 case DATA:
                     try {
-                        List<String> changedFlagsKeys;
+                        List<String> changedFlagsKeys = Collections.emptyList();
                         ParsingResult parsingResult = FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
                         Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
                         Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
