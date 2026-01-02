@@ -35,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
         justification = "We need to expose the BlockingQueue to allow consumers to read from it")
 public class SyncStreamQueueSource implements QueueSource {
     private static final int QUEUE_SIZE = 5;
-
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicBoolean shouldThrottle = new AtomicBoolean(false);
     private final int streamDeadline;
@@ -253,6 +252,8 @@ public class SyncStreamQueueSource implements QueueSource {
         }
 
         final SyncFlagsRequest.Builder syncRequest = SyncFlagsRequest.newBuilder();
+        // Selector is now passed via header using ClientInterceptor (see constructor)
+        // Keeping this for backward compatibility with older flagd versions
         if (this.selector != null) {
             syncRequest.setSelector(this.selector);
         }
