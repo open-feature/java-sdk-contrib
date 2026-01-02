@@ -203,6 +203,15 @@ public class FlagsmithProviderTest {
                         .getName());
     }
 
+    @Test
+    void shouldDefaultEnvironmentRefreshIntervalSecondsTo60() {
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                .apiKey("API_KEY")
+                .localEvaluation(true)
+                .build();
+        assertEquals(Integer.valueOf(60), options.getEnvironmentRefreshIntervalSeconds());
+    }
+
     @ParameterizedTest
     @MethodSource("invalidOptions")
     void shouldThrowAnExceptionWhenOptionsInvalid(FlagsmithProviderOptions options) {

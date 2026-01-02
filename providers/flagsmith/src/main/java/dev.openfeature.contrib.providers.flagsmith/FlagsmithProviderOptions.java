@@ -118,7 +118,8 @@ public class FlagsmithProviderOptions {
      * Set environment refresh rate with polling manager. Only needed when local evaluation is true.
      * Optional. Default: 60
      */
-    private int environmentRefreshIntervalSeconds = 60;
+    @Builder.Default
+    private Integer environmentRefreshIntervalSeconds = 60;
 
     /**
      * Controls whether Flag Analytics data is sent to the Flagsmith API See

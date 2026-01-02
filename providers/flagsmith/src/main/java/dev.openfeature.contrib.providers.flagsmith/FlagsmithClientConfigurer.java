@@ -118,7 +118,7 @@ public class FlagsmithClientConfigurer {
             flagsmithConfig.withLocalEvaluation(options.isLocalEvaluation());
         }
 
-        if (options.getEnvironmentRefreshIntervalSeconds() > -1) {
+        if (options.getEnvironmentRefreshIntervalSeconds() != null) {
             flagsmithConfig.withEnvironmentRefreshIntervalSeconds(options.getEnvironmentRefreshIntervalSeconds());
         }
 
