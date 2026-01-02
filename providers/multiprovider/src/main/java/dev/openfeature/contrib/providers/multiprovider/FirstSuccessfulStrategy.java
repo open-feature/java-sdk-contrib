@@ -10,12 +10,18 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * First Successful Strategy. Similar to “First Match”, except that errors from evaluated providers
- * do not halt execution. Instead, it will return the first successful result from a provider. If no
- * provider successfully responds, it will throw an error result.
+ * First Successful strategy.
+ *
+ * <p>Similar to “First Match”, except that errors from evaluated providers do not halt execution.
+ * Instead, it will return the first successful result from a provider. If no provider successfully
+ * responds, it will throw an error result.</p>
+ *
+ * @deprecated Use {@link dev.openfeature.sdk.multiprovider.FirstSuccessfulStrategy}
+ *     from the core Java SDK instead.
  */
 @Slf4j
 @NoArgsConstructor
+@Deprecated
 public class FirstSuccessfulStrategy implements Strategy {
 
     @Override
