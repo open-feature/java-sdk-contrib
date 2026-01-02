@@ -19,7 +19,6 @@ import static org.mockito.Mockito.when;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.MockStorage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
@@ -45,9 +44,11 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.internal.TriConsumer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -59,7 +60,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -556,11 +556,12 @@ class FlagdProviderTest {
         flagResolver.setAccessible(true);
         flagResolver.set(provider, resolverMock);
 
-        Method onProviderEvent = FlagdProvider.class.getDeclaredMethod("onProviderEvent", FlagdProviderEvent.class);
+        Method onProviderEvent = FlagdProvider.class.getDeclaredMethod(
+                "onProviderEvent", ProviderEvent.class, ProviderEventDetails.class, Structure.class);
         onProviderEvent.setAccessible(true);
 
         doAnswer((i) -> {
-                    onProviderEvent.invoke(provider, new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
+                    onProviderEvent.invoke(provider, ProviderEvent.PROVIDER_READY, null, null);
                     return null;
                 })
                 .when(resolverMock)
@@ -596,17 +597,16 @@ class FlagdProviderTest {
         // mock a resolver
         try (MockedConstruction<InProcessResolver> mockResolver =
                 mockConstruction(InProcessResolver.class, (mock, context) -> {
-                    Consumer<FlagdProviderEvent> onConnectionEvent;
+                    TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
 
                     // get a reference to the onConnectionEvent callback
-                    onConnectionEvent =
-                            (Consumer<FlagdProviderEvent>) context.arguments().get(1);
+                    onConnectionEvent = (TriConsumer<ProviderEvent, ProviderEventDetails, Structure>)
+                            context.arguments().get(1);
 
                     // when our mock resolver initializes, it runs the passed onConnectionEvent
                     // callback
                     doAnswer(invocation -> {
-                                onConnectionEvent.accept(
-                                        new FlagdProviderEvent(ProviderEvent.PROVIDER_READY, metadata));
+                                onConnectionEvent.accept(ProviderEvent.PROVIDER_READY, null, metadata);
                                 return null;
                             })
                             .when(mock)
@@ -637,17 +637,16 @@ class FlagdProviderTest {
         // mock a resolver
         try (MockedConstruction<InProcessResolver> mockResolver =
                 mockConstruction(InProcessResolver.class, (mock, context) -> {
-                    Consumer<FlagdProviderEvent> onConnectionEvent;
+                    TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
 
                     // get a reference to the onConnectionEvent callback
-                    onConnectionEvent =
-                            (Consumer<FlagdProviderEvent>) context.arguments().get(1);
+                    onConnectionEvent = (TriConsumer<ProviderEvent, ProviderEventDetails, Structure>)
+                            context.arguments().get(1);
 
                     // when our mock resolver initializes, it runs the passed onConnectionEvent
                     // callback
                     doAnswer(invocation -> {
-                                onConnectionEvent.accept(
-                                        new FlagdProviderEvent(ProviderEvent.PROVIDER_READY, metadata));
+                                onConnectionEvent.accept(ProviderEvent.PROVIDER_READY, null, metadata);
                                 return null;
                             })
                             .when(mock)
@@ -690,7 +689,7 @@ class FlagdProviderTest {
     private FlagdProvider createProvider(
             ChannelConnector connector, Cache cache, ServiceStub mockStub, ServiceBlockingStub mockBlockingStub) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (connectionEvent) -> {});
+        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (event, details, metadata) -> {});
 
         try {
             Field resolver = RpcResolver.class.getDeclaredField("connector");

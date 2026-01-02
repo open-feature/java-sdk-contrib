@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefault;
+import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefaultList;
 import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
@@ -122,6 +123,15 @@ public class FlagdOptions {
     @Builder.Default
     private int retryGracePeriod =
             fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
+
+    /**
+     * List of grpc response status codes for which the provider transitions into fatal state upon first connection.
+     * Defaults to empty list
+     */
+    @Builder.Default
+    private List<String> fatalStatusCodes =
+            fallBackToEnvOrDefaultList(Config.FATAL_STATUS_CODES_ENV_VAR_NAME, List.of());
+
     /**
      * Selector to be used with flag sync gRPC contract.
      *

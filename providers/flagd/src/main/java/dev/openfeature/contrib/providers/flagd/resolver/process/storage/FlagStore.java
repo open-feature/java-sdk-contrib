@@ -11,6 +11,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +110,7 @@ public class FlagStore implements Storage {
             switch (payload.getType()) {
                 case DATA:
                     try {
-                        List<String> changedFlagsKeys;
+                        List<String> changedFlagsKeys = Collections.emptyList();
                         ParsingResult parsingResult = FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
                         Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
                         Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
@@ -133,13 +134,19 @@ public class FlagStore implements Storage {
                         // catch all exceptions and avoid stream listener interruptions
                         log.warn("Invalid flag sync payload from connector", e);
                         if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
-                            log.warn("Failed to convey STALE status, queue is full");
+                            log.warn("Failed to convey TRANSIENT_ERROR status, queue is full");
                         }
                     }
                     break;
                 case ERROR:
+                    if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.STALE))) {
+                        log.warn("Failed to convey TRANSIENT_ERROR status, queue is full");
+                    }
+                    break;
+                case SHUTDOWN:
+                    shutdown();
                     if (!stateBlockingQueue.offer(new StorageStateChange(StorageState.ERROR))) {
-                        log.warn("Failed to convey ERROR status, queue is full");
+                        log.warn("Failed to convey FATAL_ERROR status, queue is full");
                     }
                     break;
                 default:

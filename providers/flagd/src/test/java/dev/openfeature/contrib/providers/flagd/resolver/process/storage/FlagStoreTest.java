@@ -64,14 +64,14 @@ class FlagStoreTest {
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            assertEquals(StorageState.ERROR, states.take().getStorageState());
+            assertEquals(StorageState.STALE, states.take().getStorageState());
         });
 
         // Shutdown handling
         store.shutdown();
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            assertEquals(StorageState.ERROR, states.take().getStorageState());
+            assertEquals(StorageState.STALE, states.take().getStorageState());
         });
     }
 
