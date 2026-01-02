@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,6 +32,75 @@ import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 class SyncStreamQueueSourceTest {
+    @Test
+    void reinitializeChannelComponents_reinitializesWhenEnabled() throws InterruptedException {
+        FlagdOptions options = FlagdOptions.builder().reinitializeOnError(true).build();
+        ChannelConnector initialConnector = mock(ChannelConnector.class);
+        FlagSyncServiceStub initialStub = mock(FlagSyncServiceStub.class);
+        FlagSyncServiceBlockingStub initialBlockingStub = mock(FlagSyncServiceBlockingStub.class);
+        SyncStreamQueueSource queueSource =
+                new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
+
+        try {
+            // save reference to old GrpcComponents
+            Object oldComponents = getPrivateField(queueSource, "grpcComponents");
+            queueSource.reinitializeChannelComponents();
+            Object newComponents = getPrivateField(queueSource, "grpcComponents");
+            // should have replaced grpcComponents
+            assertNotNull(newComponents);
+            org.junit.jupiter.api.Assertions.assertNotSame(oldComponents, newComponents);
+        } finally {
+            queueSource.shutdown();
+        }
+    }
+
+    @Test
+    void reinitializeChannelComponents_doesNothingWhenDisabled() throws InterruptedException {
+        FlagdOptions options = FlagdOptions.builder().reinitializeOnError(false).build();
+        ChannelConnector initialConnector = mock(ChannelConnector.class);
+        FlagSyncServiceStub initialStub = mock(FlagSyncServiceStub.class);
+        FlagSyncServiceBlockingStub initialBlockingStub = mock(FlagSyncServiceBlockingStub.class);
+        SyncStreamQueueSource queueSource =
+                new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
+
+        try {
+            Object oldComponents = getPrivateField(queueSource, "grpcComponents");
+            queueSource.reinitializeChannelComponents();
+            Object newComponents = getPrivateField(queueSource, "grpcComponents");
+            // should NOT have replaced grpcComponents
+            org.junit.jupiter.api.Assertions.assertSame(oldComponents, newComponents);
+        } finally {
+            queueSource.shutdown();
+        }
+    }
+
+    @Test
+    void reinitializeChannelComponents_doesNothingWhenShutdown() throws InterruptedException {
+        FlagdOptions options = FlagdOptions.builder().reinitializeOnError(true).build();
+        ChannelConnector initialConnector = mock(ChannelConnector.class);
+        FlagSyncServiceStub initialStub = mock(FlagSyncServiceStub.class);
+        FlagSyncServiceBlockingStub initialBlockingStub = mock(FlagSyncServiceBlockingStub.class);
+        SyncStreamQueueSource queueSource =
+                new SyncStreamQueueSource(options, initialConnector, initialStub, initialBlockingStub);
+
+        queueSource.shutdown();
+        Object oldComponents = getPrivateField(queueSource, "grpcComponents");
+        queueSource.reinitializeChannelComponents();
+        Object newComponents = getPrivateField(queueSource, "grpcComponents");
+        // should NOT have replaced grpcComponents
+        org.junit.jupiter.api.Assertions.assertSame(oldComponents, newComponents);
+    }
+    // helper to access private fields via reflection
+    private static Object getPrivateField(Object instance, String fieldName) {
+        try {
+            java.lang.reflect.Field field = instance.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(instance);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private ChannelConnector mockConnector;
     private FlagSyncServiceBlockingStub blockingStub;
     private FlagSyncServiceStub stub;
@@ -42,47 +110,53 @@ class SyncStreamQueueSourceTest {
     private CountDownLatch latch; // used to wait for observer to be initialized
 
     @BeforeEach
+    @SuppressWarnings("deprecation")
     public void setup() throws Exception {
         blockingStub = mock(FlagSyncServiceBlockingStub.class);
         when(blockingStub.withDeadlineAfter(anyLong(), any())).thenReturn(blockingStub);
         when(blockingStub.getMetadata(any())).thenReturn(GetMetadataResponse.getDefaultInstance());
 
         mockConnector = mock(ChannelConnector.class);
-        doNothing().when(mockConnector).initialize(); // Mock the initialize method
 
         stub = mock(FlagSyncServiceStub.class);
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
         doAnswer((Answer<Void>) invocation -> {
                     Object[] args = invocation.getArguments();
-                    observer = (StreamObserver<SyncFlagsResponse>) args[1];
+                    @SuppressWarnings("unchecked")
+                    StreamObserver<SyncFlagsResponse> obs = (StreamObserver<SyncFlagsResponse>) args[1];
+                    observer = obs;
                     latch.countDown();
                     return null;
                 })
                 .when(stub)
-                .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any()); // mock the initialize
 
         syncErrorStub = mock(FlagSyncServiceStub.class);
         when(syncErrorStub.withDeadlineAfter(anyLong(), any())).thenReturn(syncErrorStub);
         doAnswer((Answer<Void>) invocation -> {
                     Object[] args = invocation.getArguments();
-                    observer = (StreamObserver<SyncFlagsResponse>) args[1];
+                    @SuppressWarnings("unchecked")
+                    StreamObserver<SyncFlagsResponse> obs = (StreamObserver<SyncFlagsResponse>) args[1];
+                    observer = obs;
                     latch.countDown();
                     throw new StatusRuntimeException(io.grpc.Status.NOT_FOUND);
                 })
                 .when(syncErrorStub)
-                .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any()); // mock the initialize
 
         asyncErrorStub = mock(FlagSyncServiceStub.class);
         when(asyncErrorStub.withDeadlineAfter(anyLong(), any())).thenReturn(asyncErrorStub);
         doAnswer((Answer<Void>) invocation -> {
                     Object[] args = invocation.getArguments();
-                    observer = (StreamObserver<SyncFlagsResponse>) args[1];
+                    @SuppressWarnings("unchecked")
+                    StreamObserver<SyncFlagsResponse> obs = (StreamObserver<SyncFlagsResponse>) args[1];
+                    observer = obs;
                     latch.countDown();
 
-                    // Start a thread to call onError after a short delay
+                    // start a thread to call onError after a short delay
                     new Thread(() -> {
                                 try {
-                                    Thread.sleep(10); // Wait 100ms before calling onError
+                                    Thread.sleep(10); // wait 10ms before calling onError
                                     observer.onError(new StatusRuntimeException(io.grpc.Status.INTERNAL));
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -93,7 +167,7 @@ class SyncStreamQueueSourceTest {
                     return null;
                 })
                 .when(asyncErrorStub)
-                .syncFlags(any(SyncFlagsRequest.class), any(StreamObserver.class)); // Mock the initialize
+                .syncFlags(any(SyncFlagsRequest.class), any()); // mock the initialize
     }
 
     @Test
@@ -114,7 +188,7 @@ class SyncStreamQueueSourceTest {
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
         assertEquals(QueuePayloadType.ERROR, payload.getType());
-        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for reties
+        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for retries
 
         // should have retried the stream (2 calls); initial + 1 retry
         // it's very important that the retry count is low, to confirm no busy-loop
@@ -139,7 +213,7 @@ class SyncStreamQueueSourceTest {
         QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
         assertNotNull(payload);
         assertEquals(QueuePayloadType.ERROR, payload.getType());
-        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for reties
+        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2)); // wait 1.5x our delay for retries
 
         // should have retried the stream (2 calls); initial + 1 retry
         // it's very important that the retry count is low, to confirm no busy-loop
@@ -168,6 +242,7 @@ class SyncStreamQueueSourceTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void onNextEnqueuesDataPayloadMetadataDisabled() throws Exception {
         // disable GetMetadata call
         SyncStreamQueueSource queueSource = new SyncStreamQueueSource(

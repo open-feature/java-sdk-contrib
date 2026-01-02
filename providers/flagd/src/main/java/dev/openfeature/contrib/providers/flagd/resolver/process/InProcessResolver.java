@@ -41,6 +41,7 @@ public class InProcessResolver implements Resolver {
     private final Consumer<FlagdProviderEvent> onConnectionEvent;
     private final Operator operator;
     private final String scope;
+    private final QueueSource queueSource;
 
     /**
      * Resolves flag values using
@@ -52,7 +53,8 @@ public class InProcessResolver implements Resolver {
      *                          connection/stream
      */
     public InProcessResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
-        this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
+        this.queueSource = getQueueSource(options);
+        this.flagStore = new FlagStore(queueSource);
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
         this.scope = options.getSelector();
@@ -92,6 +94,19 @@ public class InProcessResolver implements Resolver {
         });
         stateWatcher.setDaemon(true);
         stateWatcher.start();
+    }
+
+    /**
+     * Called when the provider enters error state after grace period.
+     * Attempts to reinitialize the sync connector if enabled.
+     */
+    @Override
+    public void onError() {
+        if (queueSource instanceof SyncStreamQueueSource) {
+            SyncStreamQueueSource syncConnector = (SyncStreamQueueSource) queueSource;
+            // only reinitialize if option is enabled
+            syncConnector.reinitializeChannelComponents();
+        }
     }
 
     /**
@@ -147,14 +162,14 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    static QueueSource getConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+    static QueueSource getQueueSource(final FlagdOptions options) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
         return options.getOfflineFlagSourcePath() != null
                         && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
-                : new SyncStreamQueueSource(options, onConnectionEvent);
+                : new SyncStreamQueueSource(options);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {

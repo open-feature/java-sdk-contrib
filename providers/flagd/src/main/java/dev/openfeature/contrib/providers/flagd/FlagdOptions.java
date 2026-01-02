@@ -124,6 +124,14 @@ public class FlagdOptions {
             fallBackToEnvOrDefault(Config.STREAM_RETRY_GRACE_PERIOD, Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD);
     /**
      * Selector to be used with flag sync gRPC contract.
+     *
+     * <p>The SDK automatically passes the selector via the {@code flagd-selector} gRPC metadata header
+     * (the preferred approach per <a href="https://github.com/open-feature/flagd/issues/1814">flagd issue #1814</a>).
+     * For backward compatibility with older flagd versions, the selector is also sent in the request body.
+     *
+     * <p>Only applicable for in-process resolver mode.
+     *
+     * @see <a href="https://github.com/open-feature/java-sdk-contrib/tree/main/providers/flagd#selector-filtering-in-process-mode-only">Selector filtering documentation</a>
      **/
     @Builder.Default
     private String selector = fallBackToEnvOrDefault(Config.SOURCE_SELECTOR_ENV_VAR_NAME, null);
@@ -203,6 +211,16 @@ public class FlagdOptions {
      */
     @Builder.Default
     private String defaultAuthority = fallBackToEnvOrDefault(Config.DEFAULT_AUTHORITY_ENV_VAR_NAME, null);
+
+    /**
+     * !EXPERIMENTAL!
+     * Whether to reinitialize the channel (TCP connection) after the grace period is exceeded.
+     * This can help recover from connection issues by creating fresh connections.
+     * Particularly useful for troubleshooting network issues related to proxies or service meshes.
+     */
+    @Builder.Default
+    private boolean reinitializeOnError = Boolean.parseBoolean(
+            fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR));
 
     /**
      * Builder overwrite in order to customize the "build" method.

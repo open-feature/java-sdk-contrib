@@ -8,7 +8,6 @@ import dev.openfeature.sdk.ProviderEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.util.LinkedList;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,7 +18,6 @@ public class EventSteps extends AbstractSteps {
 
     public EventSteps(State state) {
         super(state);
-        state.events = new LinkedList<>();
     }
 
     @Given("a {} event handler")

@@ -84,7 +84,7 @@ public final class RpcResolver implements Resolver {
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
         incomingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        this.connector = new ChannelConnector(options, onProviderEvent, ChannelBuilder.nettyChannel(options));
+        this.connector = new ChannelConnector(options, ChannelBuilder.nettyChannel(options));
         this.onProviderEvent = onProviderEvent;
         this.stub = ServiceGrpc.newStub(this.connector.getChannel()).withWaitForReady();
         this.blockingStub =
@@ -113,8 +113,6 @@ public final class RpcResolver implements Resolver {
      * Initialize RpcResolver resolver.
      */
     public void init() throws Exception {
-        this.connector.initialize();
-
         Thread listener = new Thread(() -> {
             try {
                 observeEventStream();
