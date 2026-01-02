@@ -17,6 +17,7 @@
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.77.0</io.grpc.version>
+        <chicory.version>1.6.1</chicory.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
     </properties>
@@ -175,6 +176,29 @@
             <version>2.0.17</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>dev.openfeature</groupId>
+            <artifactId>flagd-evaluator-java</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+            <systemPath>${project.basedir}/flagd-evaluator-java-0.1.0-SNAPSHOT.jar</systemPath>
+	        <scope>system</scope>
+        </dependency>        <!-- Chicory WASM Runtime -->
+        <dependency>
+            <groupId>com.dylibso.chicory</groupId>
+            <artifactId>runtime</artifactId>
+            <version>${chicory.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.dylibso.chicory</groupId>
+            <artifactId>wasm</artifactId>
+            <version>${chicory.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.dylibso.chicory</groupId>
+            <artifactId>compiler</artifactId>
+            <version>${chicory.version}</version>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
