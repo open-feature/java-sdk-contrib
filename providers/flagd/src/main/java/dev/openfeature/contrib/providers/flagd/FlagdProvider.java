@@ -2,7 +2,7 @@ package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
-import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessWasmResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.sdk.EvaluationContext;
@@ -79,7 +79,7 @@ public class FlagdProvider extends EventProvider {
         switch (options.getResolverType().asString()) {
             case Config.RESOLVER_FILE:
             case Config.RESOLVER_IN_PROCESS:
-                this.flagResolver = new InProcessResolver(options, this::onProviderEvent);
+                this.flagResolver = new InProcessWasmResolver(options, this::onProviderEvent);
                 break;
             case Config.RESOLVER_RPC:
                 this.flagResolver = new RpcResolver(
