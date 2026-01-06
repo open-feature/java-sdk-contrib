@@ -287,6 +287,7 @@ public class FlagdProvider extends EventProvider {
         if (errorTask != null && !errorTask.isCancelled()) {
             errorTask.cancel(false);
         }
+        this.syncResources.setFatal(true);
 
         this.emitProviderError(ProviderEventDetails.builder()
                 .errorCode(ErrorCode.PROVIDER_FATAL)

@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static io.restassured.RestAssured.when;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -24,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -202,9 +200,6 @@ public class ProviderSteps extends AbstractSteps {
 
     @Then("the client should be in {} state")
     public void the_client_should_be_in_fatal_state(String clientState) {
-        await().pollDelay(100, TimeUnit.MILLISECONDS)
-                .atMost(1000, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> assertThat(state.client.getProviderState())
-                        .isEqualTo(ProviderState.valueOf(clientState.toUpperCase())));
+        assertThat(state.client.getProviderState()).isEqualTo(ProviderState.valueOf(clientState.toUpperCase()));
     }
 }

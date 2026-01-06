@@ -159,6 +159,7 @@ public class SyncStreamQueueSource implements QueueSource {
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
+        // Do not enqueue errors from here, as this method can be called externally, causing multiple shutdown signals
         // Use atomic compareAndSet to ensure shutdown is only executed once
         // This prevents race conditions when shutdown is called from multiple threads
         if (!shutdown.compareAndSet(false, true)) {
@@ -166,7 +167,6 @@ public class SyncStreamQueueSource implements QueueSource {
             return;
         }
 
-        enqueue(QueuePayload.SHUTDOWN);
         grpcComponents.channelConnector.shutdown();
     }
 
@@ -195,10 +195,11 @@ public class SyncStreamQueueSource implements QueueSource {
                     observer.metadata = getMetadata();
                 } catch (StatusRuntimeException metaEx) {
                     if (fatalStatusCodes.contains(metaEx.getStatus().getCode().name())) {
-                        log.debug(
+                        log.info(
                                 "Fatal status code for metadata request: {}, not retrying",
                                 metaEx.getStatus().getCode());
                         shutdown();
+                        enqueue(QueuePayload.SHUTDOWN);
                     } else {
                         // retry for other status codes
                         String message = metaEx.getMessage();
@@ -213,11 +214,12 @@ public class SyncStreamQueueSource implements QueueSource {
                     syncFlags(observer);
                     handleObserverError(observer);
                 } catch (StatusRuntimeException ex) {
-                    if (fatalStatusCodes.contains(ex.getStatus().getCode().toString())) {
-                        log.debug(
+                    if (fatalStatusCodes.contains(ex.getStatus().getCode().name())) {
+                        log.info(
                                 "Fatal status code during sync stream: {}, not retrying",
                                 ex.getStatus().getCode());
                         shutdown();
+                        enqueue(QueuePayload.SHUTDOWN);
                     } else {
                         // retry for other status codes
                         log.error("Unexpected sync stream exception, will restart.", ex);
