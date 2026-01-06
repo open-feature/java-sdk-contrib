@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,8 +17,11 @@ class FlagdProviderSyncResources {
     @Setter
     private volatile ProviderEvent previousEvent = null;
 
+    @Setter
+    private volatile boolean isFatal;
+
     private volatile EvaluationContext enrichedContext = new ImmutableContext();
-    private volatile boolean initialized;
+    private volatile boolean isInitialized;
     private volatile boolean isShutDown;
 
     public void setEnrichedContext(EvaluationContext context) {
@@ -31,32 +35,40 @@ class FlagdProviderSyncResources {
      * @return true iff this was the first call to {@code initialize()}
      */
     public synchronized boolean initialize() {
-        if (this.initialized) {
+        if (this.isInitialized) {
             return false;
         }
-        this.initialized = true;
+        this.isInitialized = true;
+        this.isFatal = false;
         this.notifyAll();
         return true;
     }
 
     /**
-     * Blocks the calling thread until either {@link FlagdProviderSyncResources#initialize()} or
-     * {@link FlagdProviderSyncResources#shutdown()} is called or the deadline is exceeded, whatever happens first. If
-     * {@link FlagdProviderSyncResources#initialize()} has been executed before {@code waitForInitialization(long)} is
-     * called, it will return instantly. If the deadline is exceeded, a GeneralError will be thrown.
-     * If {@link FlagdProviderSyncResources#shutdown()} is called in the meantime, an {@link IllegalStateException} will
+     * Blocks the calling thread until either
+     * {@link FlagdProviderSyncResources#initialize()} or
+     * {@link FlagdProviderSyncResources#shutdown()} is called or the deadline is
+     * exceeded, whatever happens first. If
+     * {@link FlagdProviderSyncResources#initialize()} has been executed before
+     * {@code waitForInitialization(long)} is
+     * called, it will return instantly. If the deadline is exceeded, a GeneralError
+     * will be thrown.
+     * If {@link FlagdProviderSyncResources#shutdown()} is called in the meantime,
+     * an {@link IllegalStateException} will
      * be thrown. Otherwise, the method will return cleanly.
      *
      * @param deadline the maximum time in ms to wait
-     * @throws GeneralError          when the deadline is exceeded before
-     *                               {@link FlagdProviderSyncResources#initialize()} is called on this object
-     * @throws IllegalStateException when {@link FlagdProviderSyncResources#shutdown()} is called or has been called on
-     *                               this object
+     * @throws GeneralError when the deadline is exceeded before
+     *                      {@link FlagdProviderSyncResources#initialize()} is
+     *                      called on this object, or when
+     *                      {@link FlagdProviderSyncResources#shutdown()}
+     * @throws FatalError   when the provider has been marked as fatal during
+     *                      shutdown
      */
     public void waitForInitialization(long deadline) {
         long start = System.currentTimeMillis();
         long end = start + deadline;
-        while (!initialized && !isShutDown) {
+        while (!isInitialized && !isShutDown) {
             long now = System.currentTimeMillis();
             // if wait(0) is called, the thread would wait forever, so we abort when this would happen
             if (now >= end) {
@@ -68,7 +80,7 @@ class FlagdProviderSyncResources {
                 if (isShutDown) {
                     break;
                 }
-                if (initialized) { // might have changed in the meantime
+                if (isInitialized) { // might have changed in the meantime
                     return;
                 }
                 try {
@@ -80,7 +92,11 @@ class FlagdProviderSyncResources {
             }
         }
         if (isShutDown) {
-            throw new IllegalStateException("Already shut down");
+            String msg = "Already shut down due to previous error.";
+            if (isFatal) {
+                throw new FatalError(msg);
+            }
+            throw new GeneralError(msg);
         }
     }
 

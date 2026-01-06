@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static io.restassured.RestAssured.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -9,10 +10,12 @@ import dev.openfeature.contrib.providers.flagd.e2e.ContainerUtil;
 import dev.openfeature.contrib.providers.flagd.e2e.State;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderState;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterAll;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +34,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 public class ProviderSteps extends AbstractSteps {
 
     public static final int UNAVAILABLE_PORT = 9999;
+    public static final int FORBIDDEN_PORT = 9212;
     static ComposeContainer container;
 
     static Path sharedTempDir;
@@ -49,6 +53,7 @@ public class ProviderSteps extends AbstractSteps {
                 .withExposedService("flagd", 8015, Wait.forListeningPort())
                 .withExposedService("flagd", 8080, Wait.forListeningPort())
                 .withExposedService("envoy", 9211, Wait.forListeningPort())
+                .withExposedService("envoy", FORBIDDEN_PORT, Wait.forListeningPort())
                 .withStartupTimeout(Duration.ofSeconds(45));
         container.start();
     }
@@ -83,6 +88,10 @@ public class ProviderSteps extends AbstractSteps {
 
                     state.builder.offlineFlagSourcePath("not-existing");
                 }
+                wait = false;
+                break;
+            case "forbidden":
+                state.builder.port(container.getServicePort("envoy", FORBIDDEN_PORT));
                 wait = false;
                 break;
             case "socket":
@@ -187,5 +196,10 @@ public class ProviderSteps extends AbstractSteps {
         when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/change")
                 .then()
                 .statusCode(200);
+    }
+
+    @Then("the client should be in {} state")
+    public void the_client_should_be_in_fatal_state(String clientState) {
+        assertThat(state.client.getProviderState()).isEqualTo(ProviderState.valueOf(clientState.toUpperCase()));
     }
 }
