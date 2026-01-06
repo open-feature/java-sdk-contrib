@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.19](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.18...dev.openfeature.contrib.providers.flagd-v0.11.19) (2026-01-06)
+
+
+### ✨ New Features
+
+* Add FLAGD_SYNC_PORT support for in-process providers with backwards compatibility ([#1651](https://github.com/open-feature/java-sdk-contrib/issues/1651)) ([4f91f74](https://github.com/open-feature/java-sdk-contrib/commit/4f91f74f8f7125299ac2c5dd835a048507e359ef))
+* add option to rebuild gRPC connection on error ([#1668](https://github.com/open-feature/java-sdk-contrib/issues/1668)) ([9444297](https://github.com/open-feature/java-sdk-contrib/commit/9444297f511ce584799e804f960b7d486c80570d))
+* flagd provider creates named daemon threads for error executor ([#1625](https://github.com/open-feature/java-sdk-contrib/issues/1625)) ([ba277bf](https://github.com/open-feature/java-sdk-contrib/commit/ba277bf21dc3f4476bae2846a821b4655ede899f))
+* **flagd:** Implement header-based selector for in-process sync stream connection [#1622](https://github.com/open-feature/java-sdk-contrib/issues/1622) ([#1623](https://github.com/open-feature/java-sdk-contrib/issues/1623)) ([630d470](https://github.com/open-feature/java-sdk-contrib/commit/630d470276f9c118b474b1dfb69f49b531c62cd5))
+* **flagd:** introduce fatalStatusCodes option ([#1624](https://github.com/open-feature/java-sdk-contrib/issues/1624)) ([7018eea](https://github.com/open-feature/java-sdk-contrib/commit/7018eeae44282e265fdd34ababfa0f42810f475d))
+* Improve flaky tests and add error messages ([#1653](https://github.com/open-feature/java-sdk-contrib/issues/1653)) ([48df358](https://github.com/open-feature/java-sdk-contrib/commit/48df358267d617c48ed5cefdaf6a0f680f3cfa1c))
+
 ## [0.11.18](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.17...dev.openfeature.contrib.providers.flagd-v0.11.18) (2025-11-17)
 
 
