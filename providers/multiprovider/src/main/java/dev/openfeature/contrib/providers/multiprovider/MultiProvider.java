@@ -6,7 +6,6 @@ import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
