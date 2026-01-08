@@ -90,7 +90,7 @@ public class MultiProvider extends EventProvider {
         json.put("name", NAME);
         JSONObject providersMetadata = new JSONObject();
         json.put("originalMetadata", providersMetadata);
-        ExecutorService initPool = Executors.newFixedThreadPool(INIT_THREADS_COUNT);
+
         Collection<Callable<Boolean>> tasks = new ArrayList<>(providers.size());
         for (FeatureProvider provider : providers.values()) {
             tasks.add(() -> {
@@ -101,12 +101,19 @@ public class MultiProvider extends EventProvider {
             providerMetadata.put("name", provider.getMetadata().getName());
             providersMetadata.put(provider.getMetadata().getName(), providerMetadata);
         }
-        List<Future<Boolean>> results = initPool.invokeAll(tasks);
-        for (Future<Boolean> result : results) {
-            if (!result.get()) {
-                throw new GeneralError("init failed");
+
+        ExecutorService initPool = Executors.newFixedThreadPool(INIT_THREADS_COUNT);
+        try {
+            List<Future<Boolean>> results = initPool.invokeAll(tasks);
+            for (Future<Boolean> result : results) {
+                if (!result.get()) {
+                    throw new GeneralError("init failed");
+                }
             }
+        } finally {
+            initPool.shutdown();
         }
+
         metadataName = json.toString();
     }
 
