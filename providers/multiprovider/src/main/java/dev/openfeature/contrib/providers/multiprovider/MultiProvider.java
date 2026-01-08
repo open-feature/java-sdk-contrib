@@ -105,10 +105,10 @@ public class MultiProvider extends EventProvider {
         ExecutorService initPool = Executors.newFixedThreadPool(INIT_THREADS_COUNT);
         try {
             List<Future<Boolean>> results = initPool.invokeAll(tasks);
+            // Wait for all provider initializations to complete.
+            // If any provider.initialize() throws, result.get() will throw ExecutionException.
             for (Future<Boolean> result : results) {
-                if (!result.get()) {
-                    throw new GeneralError("init failed");
-                }
+                result.get();
             }
         } finally {
             initPool.shutdown();
