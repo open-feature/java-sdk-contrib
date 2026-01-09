@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -541,6 +542,36 @@ class InProcessResolverTest {
         // then
         assertThat(providerEvaluation.getFlagMetadata()).isNotNull();
         assertThat(providerEvaluation.getFlagMetadata().getString("key")).isEqualTo("expected");
+    }
+
+    @Test
+    void testStateWatcherThreadIsCleanedUpDuringShutdown() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("booleanFlag", BOOLEAN_FLAG);
+
+        var initialThreadCount = currentDaemonThreadCount();
+
+        var queue = new LinkedBlockingQueue<StorageStateChange>();
+        InProcessResolver inProcessResolver =
+                getInProcessResolverWith(new MockStorage(flagMap, queue), (event, details, metadata) -> {});
+
+        // when
+        inProcessResolver.init();
+        var threadCountAfterInit = currentDaemonThreadCount();
+        inProcessResolver.shutdown();
+        queue.put(new StorageStateChange(StorageState.STALE));
+
+        // then
+        assertThat(threadCountAfterInit).isGreaterThan(initialThreadCount);
+        Awaitility.await()
+                .untilAsserted(() -> assertThat(currentDaemonThreadCount()).isEqualTo(initialThreadCount));
+    }
+
+    private long currentDaemonThreadCount() {
+        return Thread.getAllStackTraces().keySet().stream()
+                .filter(Thread::isDaemon)
+                .count();
     }
 
     private InProcessResolver getInProcessResolverWith(final FlagdOptions options, final MockStorage storage)
