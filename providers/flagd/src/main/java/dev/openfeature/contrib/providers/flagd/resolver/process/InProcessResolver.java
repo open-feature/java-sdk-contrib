@@ -28,6 +28,7 @@ import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import dev.openfeature.sdk.internal.TriConsumer;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -43,6 +44,7 @@ public class InProcessResolver implements Resolver {
     private final Operator operator;
     private final String scope;
     private final QueueSource queueSource;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     /**
      * Resolves flag values using
@@ -69,7 +71,7 @@ public class InProcessResolver implements Resolver {
         flagStore.init();
         final Thread stateWatcher = new Thread(() -> {
             try {
-                while (true) {
+                while (!shutdown.get()) {
                     final StorageStateChange storageStateChange =
                             flagStore.getStateQueue().take();
                     switch (storageStateChange.getStorageState()) {
@@ -132,6 +134,7 @@ public class InProcessResolver implements Resolver {
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
+        shutdown.set(true);
         flagStore.shutdown();
     }
 
