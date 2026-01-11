@@ -560,7 +560,6 @@ class InProcessResolverTest {
         inProcessResolver.init();
         var threadCountAfterInit = currentDaemonThreadCount();
         inProcessResolver.shutdown();
-        queue.put(new StorageStateChange(StorageState.STALE));
 
         // then
         assertThat(threadCountAfterInit).isGreaterThan(initialThreadCount);
