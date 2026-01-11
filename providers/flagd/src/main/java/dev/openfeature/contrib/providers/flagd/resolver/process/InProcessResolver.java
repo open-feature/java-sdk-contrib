@@ -29,6 +29,7 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import dev.openfeature.sdk.internal.TriConsumer;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -45,6 +46,7 @@ public class InProcessResolver implements Resolver {
     private final String scope;
     private final QueueSource queueSource;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicReference<Thread> stateWatcher = new AtomicReference<>();
 
     /**
      * Resolves flag values using
@@ -107,12 +109,12 @@ public class InProcessResolver implements Resolver {
                     }
                 }
             } catch (InterruptedException e) {
-                log.warn("Storage state watcher interrupted", e);
-                Thread.currentThread().interrupt();
+                log.debug("Storage state watcher interrupted, most likely shutdown was invoked", e);
             }
-        });
+        }, "InProcessResolver.stateWatcher");
         stateWatcher.setDaemon(true);
         stateWatcher.start();
+        this.stateWatcher.set(stateWatcher);
     }
 
     /**
@@ -134,8 +136,17 @@ public class InProcessResolver implements Resolver {
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
-        shutdown.set(true);
+        if (!shutdown.compareAndSet(false, true)) {
+            log.debug("Shutdown already in progress or completed");
+            return;
+        }
         flagStore.shutdown();
+        stateWatcher.getAndUpdate(existing -> {
+            if (existing != null) {
+                existing.interrupt();
+            }
+            return null;
+        });
     }
 
     /**
