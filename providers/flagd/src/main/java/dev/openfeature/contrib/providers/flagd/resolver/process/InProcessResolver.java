@@ -28,6 +28,8 @@ import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import dev.openfeature.sdk.internal.TriConsumer;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -38,11 +40,15 @@ import org.apache.commons.lang3.StringUtils;
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
+
+    static final String STATE_WATCHER_THREAD_NAME = "InProcessResolver.stateWatcher";
     private final Storage flagStore;
     private final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
     private final Operator operator;
     private final String scope;
     private final QueueSource queueSource;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicReference<Thread> stateWatcher = new AtomicReference<>();
 
     /**
      * Resolves flag values using
@@ -67,50 +73,52 @@ public class InProcessResolver implements Resolver {
      */
     public void init() throws Exception {
         flagStore.init();
-        final Thread stateWatcher = new Thread(() -> {
-            try {
-                while (true) {
-                    final StorageStateChange storageStateChange =
-                            flagStore.getStateQueue().take();
-                    switch (storageStateChange.getStorageState()) {
-                        case OK:
-                            log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
-
-                            var eventDetails = ProviderEventDetails.builder()
-                                    .flagsChanged(storageStateChange.getChangedFlagsKeys())
-                                    .message("configuration changed")
-                                    .build();
-
-                            onConnectionEvent.accept(
-                                    ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
-                                    eventDetails,
-                                    storageStateChange.getSyncMetadata());
-
-                            log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
-                            break;
-                        case STALE:
-                            onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
-                            break;
-                        case ERROR:
-                            onConnectionEvent.accept(
-                                    ProviderEvent.PROVIDER_ERROR,
-                                    ProviderEventDetails.builder()
-                                            .errorCode(ErrorCode.PROVIDER_FATAL)
-                                            .build(),
-                                    null);
-                            break;
-                        default:
-                            log.warn(String.format(
-                                    "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
-                    }
-                }
-            } catch (InterruptedException e) {
-                log.warn("Storage state watcher interrupted", e);
-                Thread.currentThread().interrupt();
-            }
-        });
+        final Thread stateWatcher = new Thread(this::stateWatcher, STATE_WATCHER_THREAD_NAME);
         stateWatcher.setDaemon(true);
+        this.stateWatcher.set(stateWatcher);
         stateWatcher.start();
+    }
+
+    private void stateWatcher() {
+        try {
+            while (!shutdown.get()) {
+                final StorageStateChange storageStateChange =
+                        flagStore.getStateQueue().take();
+                switch (storageStateChange.getStorageState()) {
+                    case OK:
+                        log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+
+                        var eventDetails = ProviderEventDetails.builder()
+                                .flagsChanged(storageStateChange.getChangedFlagsKeys())
+                                .message("configuration changed")
+                                .build();
+
+                        onConnectionEvent.accept(
+                                ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                                eventDetails,
+                                storageStateChange.getSyncMetadata());
+
+                        log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+                        break;
+                    case STALE:
+                        onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
+                        break;
+                    case ERROR:
+                        onConnectionEvent.accept(
+                                ProviderEvent.PROVIDER_ERROR,
+                                ProviderEventDetails.builder()
+                                        .errorCode(ErrorCode.PROVIDER_FATAL)
+                                        .build(),
+                                null);
+                        break;
+                    default:
+                        log.warn(String.format(
+                                "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
+                }
+            }
+        } catch (InterruptedException e) {
+            log.debug("Storage state watcher interrupted, most likely shutdown was invoked", e);
+        }
     }
 
     /**
@@ -132,7 +140,17 @@ public class InProcessResolver implements Resolver {
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
+        if (!shutdown.compareAndSet(false, true)) {
+            log.debug("Shutdown already in progress or completed");
+            return;
+        }
         flagStore.shutdown();
+        stateWatcher.getAndUpdate(existing -> {
+            if (existing != null && existing.isAlive()) {
+                existing.interrupt();
+            }
+            return null;
+        });
     }
 
     /**
