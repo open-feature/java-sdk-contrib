@@ -558,13 +558,19 @@ class InProcessResolverTest {
 
         // when
         inProcessResolver.init();
+        Thread stateWatcher = Thread.getAllStackTraces().keySet().stream()
+                .filter(thread -> InProcessResolver.STATE_WATCHER_THREAD_NAME.equals(thread.getName()))
+                .findFirst()
+                .orElseThrow();
         var threadCountAfterInit = currentDaemonThreadCount();
+        var stateWatcherWasStarted = stateWatcher.isAlive();
         inProcessResolver.shutdown();
 
         // then
+        assertThat(stateWatcherWasStarted).isTrue();
         assertThat(threadCountAfterInit).isGreaterThan(initialThreadCount);
-        Awaitility.await()
-                .untilAsserted(() -> assertThat(currentDaemonThreadCount()).isEqualTo(initialThreadCount));
+        Awaitility.await().until(() -> !stateWatcher.isAlive());
+        assertThat(currentDaemonThreadCount()).isEqualTo(initialThreadCount);
     }
 
     private long currentDaemonThreadCount() {

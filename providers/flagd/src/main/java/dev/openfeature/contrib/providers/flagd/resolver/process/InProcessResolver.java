@@ -40,6 +40,8 @@ import org.apache.commons.lang3.StringUtils;
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
+
+    static final String STATE_WATCHER_THREAD_NAME = "InProcessResolver.stateWatcher";
     private final Storage flagStore;
     private final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
     private final Operator operator;
@@ -71,50 +73,54 @@ public class InProcessResolver implements Resolver {
      */
     public void init() throws Exception {
         flagStore.init();
-        final Thread stateWatcher = new Thread(() -> {
-            try {
-                while (!shutdown.get()) {
-                    final StorageStateChange storageStateChange =
-                            flagStore.getStateQueue().take();
-                    switch (storageStateChange.getStorageState()) {
-                        case OK:
-                            log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+        final Thread stateWatcher = new Thread(
+                () -> {
+                    try {
+                        while (!shutdown.get()) {
+                            final StorageStateChange storageStateChange =
+                                    flagStore.getStateQueue().take();
+                            switch (storageStateChange.getStorageState()) {
+                                case OK:
+                                    log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
 
-                            var eventDetails = ProviderEventDetails.builder()
-                                    .flagsChanged(storageStateChange.getChangedFlagsKeys())
-                                    .message("configuration changed")
-                                    .build();
+                                    var eventDetails = ProviderEventDetails.builder()
+                                            .flagsChanged(storageStateChange.getChangedFlagsKeys())
+                                            .message("configuration changed")
+                                            .build();
 
-                            onConnectionEvent.accept(
-                                    ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
-                                    eventDetails,
-                                    storageStateChange.getSyncMetadata());
+                                    onConnectionEvent.accept(
+                                            ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                                            eventDetails,
+                                            storageStateChange.getSyncMetadata());
 
-                            log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
-                            break;
-                        case STALE:
-                            onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
-                            break;
-                        case ERROR:
-                            onConnectionEvent.accept(
-                                    ProviderEvent.PROVIDER_ERROR,
-                                    ProviderEventDetails.builder()
-                                            .errorCode(ErrorCode.PROVIDER_FATAL)
-                                            .build(),
-                                    null);
-                            break;
-                        default:
-                            log.warn(String.format(
-                                    "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
+                                    log.debug(
+                                            "post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+                                    break;
+                                case STALE:
+                                    onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
+                                    break;
+                                case ERROR:
+                                    onConnectionEvent.accept(
+                                            ProviderEvent.PROVIDER_ERROR,
+                                            ProviderEventDetails.builder()
+                                                    .errorCode(ErrorCode.PROVIDER_FATAL)
+                                                    .build(),
+                                            null);
+                                    break;
+                                default:
+                                    log.warn(String.format(
+                                            "Storage emitted unhandled status: %s",
+                                            storageStateChange.getStorageState()));
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        log.debug("Storage state watcher interrupted, most likely shutdown was invoked", e);
                     }
-                }
-            } catch (InterruptedException e) {
-                log.debug("Storage state watcher interrupted, most likely shutdown was invoked", e);
-            }
-        }, "InProcessResolver.stateWatcher");
+                },
+                STATE_WATCHER_THREAD_NAME);
         stateWatcher.setDaemon(true);
-        stateWatcher.start();
         this.stateWatcher.set(stateWatcher);
+        stateWatcher.start();
     }
 
     /**
@@ -142,7 +148,7 @@ public class InProcessResolver implements Resolver {
         }
         flagStore.shutdown();
         stateWatcher.getAndUpdate(existing -> {
-            if (existing != null) {
+            if (existing != null && existing.isAlive()) {
                 existing.interrupt();
             }
             return null;
