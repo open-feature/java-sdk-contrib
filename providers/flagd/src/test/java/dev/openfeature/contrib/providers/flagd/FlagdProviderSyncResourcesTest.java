@@ -1,9 +1,12 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,7 +118,6 @@ class FlagdProviderSyncResourcesTest {
     void callingShutdownWithPreviousNonFatal_wakesUpWaitingThread_WithGeneralException() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
         final AtomicBoolean successfulTest = new AtomicBoolean();
-        flagdProviderSyncResources.setFatal(false);
 
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
@@ -147,7 +149,7 @@ class FlagdProviderSyncResourcesTest {
     void callingShutdownWithPreviousFatal_wakesUpWaitingThread_WithFatalException() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
         final AtomicBoolean successfulTest = new AtomicBoolean();
-        flagdProviderSyncResources.setFatal(true);
+        flagdProviderSyncResources.fatalError(null);
 
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
@@ -183,5 +185,64 @@ class FlagdProviderSyncResourcesTest {
         long end = System.currentTimeMillis();
         // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
         Assertions.assertTrue(start + 1 >= end);
+    }
+
+    @Timeout(2)
+    @Test
+    void fatalHasPrecedenceOverInitAndShutdown() {
+        flagdProviderSyncResources.fatalError(null);
+        flagdProviderSyncResources.initialize();
+        flagdProviderSyncResources.shutdown();
+
+        Assertions.assertThrows(FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
+    }
+
+    @Timeout(2)
+    @Test
+    void fatalAbortsInit() throws InterruptedException {
+        final AtomicBoolean isWaiting = new AtomicBoolean();
+        final AtomicLong waitTime = new AtomicLong(Long.MAX_VALUE);
+        final AtomicReference<Exception> fatalException = new AtomicReference<>();
+
+        Thread waitingThread = new Thread(() -> {
+            long start = System.currentTimeMillis();
+            isWaiting.set(true);
+            try {
+                flagdProviderSyncResources.waitForInitialization(10000);
+            } catch (Exception e) {
+                fatalException.set(e);
+            }
+            long end = System.currentTimeMillis();
+            long duration = end - start;
+            waitTime.set(duration);
+        });
+        waitingThread.start();
+
+        while (!isWaiting.get()) {
+            Thread.yield();
+        }
+
+        Thread.sleep(MAX_TIME_TOLERANCE); // waitingThread should have started waiting in the meantime
+
+        var fatalEvent = ProviderEventDetails.builder()
+                .errorCode(ErrorCode.PROVIDER_FATAL)
+                .message("Some message")
+                .build();
+        flagdProviderSyncResources.fatalError(fatalEvent);
+
+        waitingThread.join();
+
+        var wait = MAX_TIME_TOLERANCE * 3;
+
+        Assertions.assertTrue(
+                waitTime.get() < wait,
+                () -> "Wakeup should be almost instant, but took " + waitTime.get()
+                        + " ms, which is more than the max of"
+                        + wait + " ms");
+        Assertions.assertNotNull(fatalException.get());
+        Assertions.assertInstanceOf(FatalError.class, fatalException.get());
+        Assertions.assertEquals(
+                "Initialization failed due to a fatal error: " + fatalEvent.getMessage(),
+                fatalException.get().getMessage());
     }
 }

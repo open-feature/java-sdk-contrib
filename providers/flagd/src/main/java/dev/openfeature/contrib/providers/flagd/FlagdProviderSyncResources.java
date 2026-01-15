@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.Getter;
@@ -15,10 +16,10 @@ import lombok.Setter;
 @Getter
 class FlagdProviderSyncResources {
     @Setter
-    private volatile ProviderEvent previousEvent = null;
+    private volatile ProviderEvent previousEvent;
 
-    @Setter
     private volatile boolean isFatal;
+    private volatile ProviderEventDetails fatalProviderEventDetails;
 
     private volatile EvaluationContext enrichedContext = new ImmutableContext();
     private volatile boolean isInitialized;
@@ -39,7 +40,6 @@ class FlagdProviderSyncResources {
             return false;
         }
         this.isInitialized = true;
-        this.isFatal = false;
         this.notifyAll();
         return true;
     }
@@ -68,7 +68,7 @@ class FlagdProviderSyncResources {
     public void waitForInitialization(long deadline) {
         long start = System.currentTimeMillis();
         long end = start + deadline;
-        while (!isInitialized && !isShutDown) {
+        while (!isInitialized && !isShutDown && !isFatal) {
             long now = System.currentTimeMillis();
             // if wait(0) is called, the thread would wait forever, so we abort when this would happen
             if (now >= end) {
@@ -77,7 +77,7 @@ class FlagdProviderSyncResources {
             }
             long remaining = end - now;
             synchronized (this) {
-                if (isShutDown) {
+                if (isShutDown || isFatal) {
                     break;
                 }
                 if (isInitialized) { // might have changed in the meantime
@@ -91,11 +91,16 @@ class FlagdProviderSyncResources {
                 }
             }
         }
+        if (isFatal) {
+            var fatalEvent = fatalProviderEventDetails;
+            if (fatalEvent != null) {
+                throw new FatalError("Initialization failed due to a fatal error: " + fatalEvent.getMessage());
+            } else {
+                throw new FatalError("Initialization failed due to a fatal error.");
+            }
+        }
         if (isShutDown) {
             String msg = "Already shut down due to previous error.";
-            if (isFatal) {
-                throw new FatalError(msg);
-            }
             throw new GeneralError(msg);
         }
     }
@@ -105,6 +110,12 @@ class FlagdProviderSyncResources {
      */
     public synchronized void shutdown() {
         isShutDown = true;
+        this.notifyAll();
+    }
+
+    public synchronized void fatalError(ProviderEventDetails providerEventDetails) {
+        isFatal = true;
+        fatalProviderEventDetails = providerEventDetails;
         this.notifyAll();
     }
 }
