@@ -28,7 +28,7 @@ For documentation related to flags management in GO Feature Flag, refer to the [
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>go-feature-flag</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
