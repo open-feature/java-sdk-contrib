@@ -100,8 +100,7 @@ class FlagdProviderSyncResources {
             }
         }
         if (isShutDown) {
-            String msg = "Already shut down due to previous error.";
-            throw new GeneralError(msg);
+            throw new GeneralError("Already shut down due to previous error.");
         }
     }
 
