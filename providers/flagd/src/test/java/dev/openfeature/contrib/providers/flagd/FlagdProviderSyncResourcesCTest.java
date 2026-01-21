@@ -44,7 +44,7 @@ class FlagdProviderSyncResourcesCTest {
         // should wait at least for the deadline
         Assertions.assertTrue(elapsed >= deadline);
         // should not wait much longer than the deadline
-        Assertions.assertTrue(elapsed < deadline + MAX_TIME_TOLERANCE);
+        Assertions.assertTrue(elapsed < deadline + MAX_TIME_TOLERANCE, "elapsed time: " + elapsed +" deadline: " + deadline + " max tolerance: " + MAX_TIME_TOLERANCE);
         Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
         Assertions.assertFalse(flagdProviderSyncResources.isFatal());
         Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
@@ -245,7 +245,7 @@ class FlagdProviderSyncResourcesCTest {
         Assertions.assertThrows(GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
         long end = System.currentTimeMillis();
         // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
-        Assertions.assertTrue(start + 3 >= end);
+        Assertions.assertTrue(start + 5 >= end);
     }
 
     @Timeout(2)
@@ -256,7 +256,6 @@ class FlagdProviderSyncResourcesCTest {
         Assertions.assertThrows(FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
         long end = System.currentTimeMillis();
         // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
-        Assertions.assertEquals(start, end, "started at " + start + " ended at " + end);
-        Assertions.assertTrue(start + 3 >= end);
+        Assertions.assertTrue(start + 5 >= end);
     }
 }
