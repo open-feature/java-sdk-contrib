@@ -198,7 +198,8 @@ class FlagdProviderSyncResourcesCTest {
     @Timeout(5)
     @Test
     void concurrentInitializeAndShutdownAndSetFatalShutsDownWork() {
-        try (var interleavings = new AllInterleavings("concurrent initialize() and shutdown() and fatal() calls work")) {
+        try (var interleavings = new AllInterleavings(
+                "concurrent initialize() and shutdown() and fatal() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
                         () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.shutdown(),
@@ -255,6 +256,7 @@ class FlagdProviderSyncResourcesCTest {
         Assertions.assertThrows(FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
         long end = System.currentTimeMillis();
         // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
+        Assertions.assertEquals(start, end, "started at " + start + " ended at " + end);
         Assertions.assertTrue(start + 3 >= end);
     }
 }
