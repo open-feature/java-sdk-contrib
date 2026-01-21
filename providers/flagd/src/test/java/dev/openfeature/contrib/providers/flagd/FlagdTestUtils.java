@@ -11,10 +11,11 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageS
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -22,7 +23,7 @@ class FlagdTestUtils {
     // test helper
     // create provider with given grpc provider and state supplier
     static FlagdProvider createProvider(ChannelConnector connector, ServiceGrpc.ServiceBlockingStub mockBlockingStub) {
-        final Cache cache = new Cache("lru", 5);
+        final Cache cache = new Cache(CacheType.LRU.getValue(), 5);
         final ServiceGrpc.ServiceStub mockStub = mock(ServiceGrpc.ServiceStub.class);
 
         return createProvider(connector, cache, mockStub, mockBlockingStub);
@@ -35,7 +36,7 @@ class FlagdTestUtils {
             ServiceGrpc.ServiceStub mockStub,
             ServiceGrpc.ServiceBlockingStub mockBlockingStub) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (connectionEvent) -> {});
+        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (event, details, data) -> {});
 
         try {
             Field resolver = RpcResolver.class.getDeclaredField("connector");
@@ -53,8 +54,7 @@ class FlagdTestUtils {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        final FlagdProvider provider = new FlagdProvider(grpcResolver, true);
-        return provider;
+        return new FlagdProvider(grpcResolver, true);
     }
 
     static FlagdProvider createInProcessProvider(Map<String, FeatureFlag> mockFlags) {
@@ -65,7 +65,7 @@ class FlagdTestUtils {
                 .build();
         final FlagdProvider provider = new FlagdProvider(flagdOptions);
         final MockStorage mockStorage = new MockStorage(
-                mockFlags, new LinkedBlockingQueue<>(Arrays.asList(new StorageStateChange(StorageState.OK))));
+                mockFlags, new LinkedBlockingQueue<>(List.of(new StorageStateChange(StorageState.OK))));
 
         try {
             final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");

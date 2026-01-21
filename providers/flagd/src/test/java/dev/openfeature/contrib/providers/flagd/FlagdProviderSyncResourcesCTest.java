@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd;
 
 import com.vmlens.api.AllInterleavings;
 import com.vmlens.api.Runner;
+import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Assertions;
@@ -128,6 +129,36 @@ class FlagdProviderSyncResourcesCTest {
 
     @Timeout(5)
     @Test
+    void callingFatalError_wakesUpWaitingThreadWithException() {
+        try (var interleavings = new AllInterleavings(
+                "calling setFatal(true) wakes up waiting thread with exception")) {
+            while (interleavings.hasNext()) {
+                final var startTime = new AtomicLong();
+                final var endTime = new AtomicLong();
+                Runner.runParallel(
+                        () -> {
+                            Assertions.assertThrows(
+                                    FatalError.class,
+                                    () -> flagdProviderSyncResources.waitForInitialization(10000));
+                            endTime.set(System.currentTimeMillis());
+                            Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+                            Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
+                        },
+                        () -> {
+                            startTime.set(System.currentTimeMillis());
+                            flagdProviderSyncResources.setFatal(true);
+                        });
+
+                Assertions.assertTrue(
+                        endTime.get() - startTime.get() <= MAX_TIME_TOLERANCE,
+                        () -> "Expected waiting thread to be released shortly after initialization, but waited for "
+                                + (endTime.get() - startTime.get()) + "ms");
+            }
+        }
+    }
+
+    @Timeout(5)
+    @Test
     void concurrentInitializesWork() {
         try (var interleavings = new AllInterleavings("concurrent initialize() calls work")) {
             while (interleavings.hasNext()) {
@@ -151,12 +182,38 @@ class FlagdProviderSyncResourcesCTest {
         }
     }
 
+    @Timeout(5)
+    @Test
+    void concurrentInitializeAndShutdownAndSetFatalShutsDownWork() {
+        try (var interleavings = new AllInterleavings("concurrent initialize() and shutdown() and fatal() calls work")) {
+            while (interleavings.hasNext()) {
+                Runner.runParallel(
+                        () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.shutdown(),
+                        () -> flagdProviderSyncResources.setFatal(true));
+                Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+                Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
+                Assertions.assertTrue(flagdProviderSyncResources.isFatal());
+            }
+        }
+    }
+
     @Timeout(2)
     @Test
     void waitForInitializationAfterCallingInitialize_returnsInstantly() {
         flagdProviderSyncResources.initialize();
         long start = System.currentTimeMillis();
         flagdProviderSyncResources.waitForInitialization(10000);
+        long end = System.currentTimeMillis();
+        // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
+        Assertions.assertTrue(start + 1 >= end);
+    }
+
+    @Timeout(2)
+    @Test
+    void waitForInitializationAfterCallingFatal_returnsInstantly() {
+        flagdProviderSyncResources.setFatal(true);
+        long start = System.currentTimeMillis();
+        Assertions.assertThrows(FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
         long end = System.currentTimeMillis();
         // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
         Assertions.assertTrue(start + 1 >= end);
