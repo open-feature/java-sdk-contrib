@@ -24,6 +24,9 @@ class FlagdProviderSyncResourcesCTest {
     @Test
     void waitForInitialization_failsWhenDeadlineElapses() {
         Assertions.assertThrows(GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(2));
+        Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+        Assertions.assertFalse(flagdProviderSyncResources.isFatal());
+        Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
     }
 
     @Timeout(2)
@@ -42,6 +45,9 @@ class FlagdProviderSyncResourcesCTest {
         Assertions.assertTrue(elapsed >= deadline);
         // should not wait much longer than the deadline
         Assertions.assertTrue(elapsed < deadline + MAX_TIME_TOLERANCE);
+        Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+        Assertions.assertFalse(flagdProviderSyncResources.isFatal());
+        Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
     }
 
     @Timeout(2)
@@ -68,6 +74,9 @@ class FlagdProviderSyncResourcesCTest {
                 // even though thread was interrupted, it still waited for the deadline
                 Assertions.assertTrue(duration >= deadline);
                 Assertions.assertTrue(duration < deadline + MAX_TIME_TOLERANCE);
+                Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+                Assertions.assertFalse(flagdProviderSyncResources.isFatal());
+                Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
             }
         }
     }
@@ -84,6 +93,8 @@ class FlagdProviderSyncResourcesCTest {
                             flagdProviderSyncResources.waitForInitialization(10000);
                             endTime.set(System.currentTimeMillis());
                             Assertions.assertTrue(flagdProviderSyncResources.isInitialized());
+                            Assertions.assertFalse(flagdProviderSyncResources.isFatal());
+                            Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
                         },
                         () -> {
                             startTime.set(System.currentTimeMillis());
@@ -112,6 +123,7 @@ class FlagdProviderSyncResourcesCTest {
                                     () -> flagdProviderSyncResources.waitForInitialization(10000));
                             endTime.set(System.currentTimeMillis());
                             Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+                            Assertions.assertFalse(flagdProviderSyncResources.isFatal());
                             Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
                         },
                         () -> {
@@ -142,7 +154,8 @@ class FlagdProviderSyncResourcesCTest {
                                     () -> flagdProviderSyncResources.waitForInitialization(10000));
                             endTime.set(System.currentTimeMillis());
                             Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
-                            Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
+                            Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
+                            Assertions.assertTrue(flagdProviderSyncResources.isFatal());
                         },
                         () -> {
                             startTime.set(System.currentTimeMillis());
@@ -197,10 +210,36 @@ class FlagdProviderSyncResourcesCTest {
         }
     }
 
+    @Timeout(5)
+    @Test
+    void concurrentInitializeAndSetFatalShutsDownWork() {
+        try (var interleavings = new AllInterleavings("concurrent initialize() and fatal() calls work")) {
+            while (interleavings.hasNext()) {
+                Runner.runParallel(
+                        () -> flagdProviderSyncResources.initialize(),
+                        () -> flagdProviderSyncResources.setFatal(true));
+                Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+                Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
+                Assertions.assertTrue(flagdProviderSyncResources.isFatal());
+            }
+        }
+    }
+
     @Timeout(2)
     @Test
     void waitForInitializationAfterCallingInitialize_returnsInstantly() {
         flagdProviderSyncResources.initialize();
+        long start = System.currentTimeMillis();
+        flagdProviderSyncResources.waitForInitialization(10000);
+        long end = System.currentTimeMillis();
+        // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
+        Assertions.assertTrue(start + 1 >= end);
+    }
+
+    @Timeout(2)
+    @Test
+    void waitForInitializationAfterCallingShutdown_returnsInstantly() {
+        flagdProviderSyncResources.shutdown();
         long start = System.currentTimeMillis();
         flagdProviderSyncResources.waitForInitialization(10000);
         long end = System.currentTimeMillis();
