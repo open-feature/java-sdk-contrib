@@ -4,9 +4,7 @@ import com.vmlens.api.AllInterleavings;
 import com.vmlens.api.Runner;
 import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
-
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,8 +121,7 @@ class FlagdProviderSyncResourcesCTest {
                 Runner.runParallel(
                         () -> {
                             Assertions.assertThrows(
-                                    GeneralError.class,
-                                    () -> flagdProviderSyncResources.waitForInitialization(10000));
+                                    GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
                             endTime.set(System.currentTimeMillis());
                             Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                             Assertions.assertFalse(flagdProviderSyncResources.isFatal());
@@ -147,7 +144,7 @@ class FlagdProviderSyncResourcesCTest {
     @Test
     void callingFatalError_wakesUpWaitingThreadWithException() {
         try (var interleavings =
-                     new AllInterleavings("calling setFatal(true) wakes up waiting thread with exception")) {
+                new AllInterleavings("calling setFatal(true) wakes up waiting thread with exception")) {
             while (interleavings.hasNext()) {
                 final var startTime = new AtomicLong();
                 final var endTime = new AtomicLong();
@@ -202,7 +199,7 @@ class FlagdProviderSyncResourcesCTest {
     @Test
     void concurrentInitializeAndShutdownAndSetFatalShutsDownWork() {
         try (var interleavings =
-                     new AllInterleavings("concurrent initialize() and shutdown() and fatal() calls work")) {
+                new AllInterleavings("concurrent initialize() and shutdown() and fatal() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
                         () -> flagdProviderSyncResources.initialize(),
