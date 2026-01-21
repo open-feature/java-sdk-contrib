@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import static org.mockito.Mockito.mock;
+
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
@@ -13,11 +15,8 @@ import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import static org.mockito.Mockito.mock;
 
 class FlagdTestUtils {
     // test helper
@@ -31,7 +30,9 @@ class FlagdTestUtils {
 
     // create provider with given grpc provider, cache and state supplier
     static FlagdProvider createProvider(
-            ChannelConnector connector, Cache cache, ServiceGrpc.ServiceStub mockStub,
+            ChannelConnector connector,
+            Cache cache,
+            ServiceGrpc.ServiceStub mockStub,
             ServiceGrpc.ServiceBlockingStub mockBlockingStub) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
         final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (connectionEvent) -> {});
@@ -64,8 +65,7 @@ class FlagdTestUtils {
                 .build();
         final FlagdProvider provider = new FlagdProvider(flagdOptions);
         final MockStorage mockStorage = new MockStorage(
-                mockFlags,
-                new LinkedBlockingQueue<>(Arrays.asList(new StorageStateChange(StorageState.OK))));
+                mockFlags, new LinkedBlockingQueue<>(Arrays.asList(new StorageStateChange(StorageState.OK))));
 
         try {
             final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");

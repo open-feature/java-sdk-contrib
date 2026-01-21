@@ -19,7 +19,7 @@
         <io.grpc.version>1.79.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
-        <com.vmlens.version>1.2.22</com.vmlens.version>
+        <com.vmlens.version>1.2.24</com.vmlens.version>
     </properties>
 
     <name>flagd</name>
@@ -301,7 +301,7 @@
                                 </goals>
                                 <configuration>
                                     <includes>
-                                        <include>**/*CT.java</include>
+                                        <include>**/*CTest.java</include>
                                     </includes>
                                     <failIfNoTests>true</failIfNoTests>
                                 </configuration>

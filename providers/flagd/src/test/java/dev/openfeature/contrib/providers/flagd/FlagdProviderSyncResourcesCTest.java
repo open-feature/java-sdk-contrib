@@ -3,16 +3,13 @@ package dev.openfeature.contrib.providers.flagd;
 import com.vmlens.api.AllInterleavings;
 import com.vmlens.api.Runner;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-class FlagdProviderSyncResourcesCT {
+class FlagdProviderSyncResourcesCTest {
     private static final long MAX_TIME_TOLERANCE = 20;
 
     private FlagdProviderSyncResources flagdProviderSyncResources;
@@ -49,34 +46,29 @@ class FlagdProviderSyncResourcesCT {
     @Timeout(2)
     @Test
     void interruptingWaitingThread_isIgnored() throws InterruptedException {
-        final AtomicBoolean isWaiting = new AtomicBoolean();
-        final long deadline = 500;
-        Thread waitingThread = new Thread(() -> {
-            long start = System.currentTimeMillis();
-            isWaiting.set(true);
-            Assertions.assertThrows(
-                    GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(deadline));
+        try (var interleavings = new AllInterleavings("calling interrupt on a waiting thread is ignored")) {
+            final long deadline = 10;
+            while (interleavings.hasNext()) {
+                final var startTime = new AtomicLong();
+                final var endTime = new AtomicLong();
+                var waitingThread = new Thread(() -> {
+                    startTime.set(System.currentTimeMillis());
+                    Assertions.assertThrows(
+                            GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(deadline));
+                    endTime.set(System.currentTimeMillis());
+                });
+                waitingThread.start();
 
-            long end = System.currentTimeMillis();
-            long duration = end - start;
-            // even though thread was interrupted, it still waited for the deadline
-            Assertions.assertTrue(duration >= deadline);
-            Assertions.assertTrue(duration < deadline + MAX_TIME_TOLERANCE);
-        });
-        waitingThread.start();
+                waitingThread.interrupt();
 
-        while (!isWaiting.get()) {
-            Thread.yield();
+                waitingThread.join();
+
+                long duration = endTime.get() - startTime.get();
+                // even though thread was interrupted, it still waited for the deadline
+                Assertions.assertTrue(duration >= deadline);
+                Assertions.assertTrue(duration < deadline + MAX_TIME_TOLERANCE);
+            }
         }
-
-        Thread.sleep(MAX_TIME_TOLERANCE); // waitingThread should have started waiting in the meantime
-
-        for (int i = 0; i < 50; i++) {
-            waitingThread.interrupt();
-            Thread.sleep(10);
-        }
-
-        waitingThread.join();
     }
 
     @Timeout(5)
@@ -95,13 +87,12 @@ class FlagdProviderSyncResourcesCT {
                         () -> {
                             startTime.set(System.currentTimeMillis());
                             flagdProviderSyncResources.initialize();
-                        }
-                );
+                        });
 
-                Assertions.assertTrue(endTime.get() - startTime.get() <= MAX_TIME_TOLERANCE, () ->
-                        "Expected waiting thread to be released shortly after initialization, but waited for "
-                                + (endTime.get() - startTime.get()) + "ms"
-                );
+                Assertions.assertTrue(
+                        endTime.get() - startTime.get() <= MAX_TIME_TOLERANCE,
+                        () -> "Expected waiting thread to be released shortly after initialization, but waited for "
+                                + (endTime.get() - startTime.get()) + "ms");
             }
         }
     }
@@ -118,19 +109,19 @@ class FlagdProviderSyncResourcesCT {
                             Assertions.assertThrows(
                                     IllegalStateException.class,
                                     () -> flagdProviderSyncResources.waitForInitialization(10000));
+                            endTime.set(System.currentTimeMillis());
                             Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                             Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
                         },
                         () -> {
                             startTime.set(System.currentTimeMillis());
                             flagdProviderSyncResources.shutdown();
-                        }
-                );
+                        });
 
-                Assertions.assertTrue(endTime.get() - startTime.get() <= MAX_TIME_TOLERANCE, () ->
-                        "Expected waiting thread to be released shortly after initialization, but waited for "
-                                + (endTime.get() - startTime.get()) + "ms"
-                );
+                Assertions.assertTrue(
+                        endTime.get() - startTime.get() <= MAX_TIME_TOLERANCE,
+                        () -> "Expected waiting thread to be released shortly after initialization, but waited for "
+                                + (endTime.get() - startTime.get()) + "ms");
             }
         }
     }
@@ -141,9 +132,7 @@ class FlagdProviderSyncResourcesCT {
         try (var interleavings = new AllInterleavings("concurrent initialize() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> flagdProviderSyncResources.initialize(),
-                        () -> flagdProviderSyncResources.initialize()
-                );
+                        () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.initialize());
                 Assertions.assertTrue(flagdProviderSyncResources.isInitialized());
             }
         }
@@ -152,12 +141,10 @@ class FlagdProviderSyncResourcesCT {
     @Timeout(5)
     @Test
     void concurrentInitializeAndShutdownShutsDownWork() {
-        try (var interleavings = new AllInterleavings("concurrent initialize() calls work")) {
+        try (var interleavings = new AllInterleavings("concurrent initialize() and shutdown() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> flagdProviderSyncResources.initialize(),
-                        () -> flagdProviderSyncResources.shutdown()
-                );
+                        () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.shutdown());
                 Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                 Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
             }

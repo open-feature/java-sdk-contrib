@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
