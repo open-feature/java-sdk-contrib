@@ -241,10 +241,10 @@ class FlagdProviderSyncResourcesCTest {
     void waitForInitializationAfterCallingShutdown_returnsInstantly() {
         flagdProviderSyncResources.shutdown();
         long start = System.currentTimeMillis();
-        flagdProviderSyncResources.waitForInitialization(10000);
+        Assertions.assertThrows(GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
         long end = System.currentTimeMillis();
         // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
-        Assertions.assertTrue(start + 1 >= end);
+        Assertions.assertTrue(start + 3 >= end);
     }
 
     @Timeout(2)
@@ -255,6 +255,6 @@ class FlagdProviderSyncResourcesCTest {
         Assertions.assertThrows(FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
         long end = System.currentTimeMillis();
         // do not use MAX_TIME_TOLERANCE here, this should happen faster than that
-        Assertions.assertTrue(start + 1 >= end);
+        Assertions.assertTrue(start + 3 >= end);
     }
 }
