@@ -4,7 +4,9 @@ import com.vmlens.api.AllInterleavings;
 import com.vmlens.api.Runner;
 import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
+
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +48,7 @@ class FlagdProviderSyncResourcesCTest {
         // should not wait much longer than the deadline
         Assertions.assertTrue(
                 elapsed < deadline + MAX_TIME_TOLERANCE,
-                ()->"elapsed time: " + elapsed + " deadline: " + deadline + " max tolerance: " + MAX_TIME_TOLERANCE);
+                () -> "elapsed time: " + elapsed + " deadline: " + deadline + " max tolerance: " + MAX_TIME_TOLERANCE);
         Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
         Assertions.assertFalse(flagdProviderSyncResources.isFatal());
         Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
@@ -121,7 +123,7 @@ class FlagdProviderSyncResourcesCTest {
                 Runner.runParallel(
                         () -> {
                             Assertions.assertThrows(
-                                    IllegalStateException.class,
+                                    GeneralError.class,
                                     () -> flagdProviderSyncResources.waitForInitialization(10000));
                             endTime.set(System.currentTimeMillis());
                             Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
@@ -145,7 +147,7 @@ class FlagdProviderSyncResourcesCTest {
     @Test
     void callingFatalError_wakesUpWaitingThreadWithException() {
         try (var interleavings =
-                new AllInterleavings("calling setFatal(true) wakes up waiting thread with exception")) {
+                     new AllInterleavings("calling setFatal(true) wakes up waiting thread with exception")) {
             while (interleavings.hasNext()) {
                 final var startTime = new AtomicLong();
                 final var endTime = new AtomicLong();
@@ -200,7 +202,7 @@ class FlagdProviderSyncResourcesCTest {
     @Test
     void concurrentInitializeAndShutdownAndSetFatalShutsDownWork() {
         try (var interleavings =
-                new AllInterleavings("concurrent initialize() and shutdown() and fatal() calls work")) {
+                     new AllInterleavings("concurrent initialize() and shutdown() and fatal() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
                         () -> flagdProviderSyncResources.initialize(),
@@ -220,7 +222,6 @@ class FlagdProviderSyncResourcesCTest {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
                         () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.setFatal(true));
-                Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                 Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
                 Assertions.assertTrue(flagdProviderSyncResources.isFatal());
             }
@@ -258,5 +259,32 @@ class FlagdProviderSyncResourcesCTest {
         long end = System.currentTimeMillis();
         // for some reason, throwing the exception takes very long
         Assertions.assertTrue(start + MAX_TIME_TOLERANCE >= end);
+    }
+
+    @Timeout(2)
+    @Test
+    void initializeAfterFatalReturnsFalse() {
+        flagdProviderSyncResources.setFatal(true);
+        Assertions.assertFalse(flagdProviderSyncResources.initialize());
+    }
+
+    @Timeout(2)
+    @Test
+    void initializeAfterShutdownReturnsFalse() {
+        flagdProviderSyncResources.shutdown();
+        Assertions.assertFalse(flagdProviderSyncResources.initialize());
+    }
+
+    @Timeout(2)
+    @Test
+    void initializeAfterInitializeReturnsFalse() {
+        flagdProviderSyncResources.initialize();
+        Assertions.assertFalse(flagdProviderSyncResources.initialize());
+    }
+
+    @Timeout(2)
+    @Test
+    void firstInitializeReturnsTrue() {
+        Assertions.assertTrue(flagdProviderSyncResources.initialize());
     }
 }
