@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -14,6 +13,7 @@ import com.optimizely.ab.event.EventProcessor;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import java.io.File;
@@ -78,24 +78,69 @@ public class OptimizelyProviderTest {
     @Test
     public void testGetObjectEvaluation() {
         EvaluationContext ctx = new MutableContext("targetingKey");
-        ProviderEvaluation<Value> result = provider.getObjectEvaluation("string-feature", new Value(), ctx);
+        ProviderEvaluation<Value> evaluation = provider.getObjectEvaluation("json_feature_flag", new Value(), ctx);
 
-        assertNotNull(result.getValue());
-        assertEquals("string_feature_variation", result.getVariant());
         assertEquals(
-                "str1",
-                result.getValue().asStructure().getValue("string_variable_1").asString());
+                "{key1=value1, key2=2.0}",
+                evaluation.getValue().asStructure().asObjectMap().toString());
 
-        result = provider.getObjectEvaluation("non-existing-object-feature", new Value(), ctx);
-        assertNotNull(result.getReason());
+        MutableContext contextWithVarKey = new MutableContext("targetingKey");
+        contextWithVarKey.add("variableKey", "var_json");
+
+        evaluation = provider.getObjectEvaluation("json_feature_flag", new Value(), contextWithVarKey);
+
+        assertEquals(
+                "{key1=value1a, key2=3.0}",
+                evaluation.getValue().asStructure().asObjectMap().toString());
+        assertEquals("var_json", evaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.name(), evaluation.getReason());
+
+        MutableContext contextWithNonExistingVarKey = new MutableContext("targetingKey");
+        contextWithNonExistingVarKey.add("variableKey", "non-existing-var");
+
+        evaluation = provider.getObjectEvaluation("json_feature_flag", new Value(), contextWithNonExistingVarKey);
+
+        assertTrue(evaluation.getValue().isNull());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
+
+        EvaluationContext emptyEvaluationContext = new MutableContext();
+        assertThrows(TargetingKeyMissingError.class, () -> {
+            provider.getObjectEvaluation("string-feature", new Value(), emptyEvaluationContext);
+        });
+
+        evaluation = provider.getObjectEvaluation("non-existing-feature", new Value(), ctx);
+        assertTrue(evaluation.getValue().isNull());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
     }
 
     @Test
     public void testGetBooleanEvaluation() {
         EvaluationContext ctx = new MutableContext("targetingKey");
-        ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation("string-feature", false, ctx);
+        ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation("boolean_feature_flag", false, ctx);
 
         assertTrue(evaluation.getValue());
+        assertEquals("value", evaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.name(), evaluation.getReason());
+
+        MutableContext contextWithVarKey = new MutableContext("targetingKey");
+        contextWithVarKey.add("variableKey", "var_bool");
+
+        evaluation = provider.getBooleanEvaluation("boolean_feature_flag", false, contextWithVarKey);
+
+        assertTrue(evaluation.getValue());
+        assertEquals("var_bool", evaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.name(), evaluation.getReason());
+
+        MutableContext contextWithNonExistingVarKey = new MutableContext("targetingKey");
+        contextWithNonExistingVarKey.add("variableKey", "non-existing-var");
+
+        evaluation = provider.getBooleanEvaluation("boolean_feature_flag", false, contextWithNonExistingVarKey);
+
+        assertFalse(evaluation.getValue());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
 
         EvaluationContext emptyEvaluationContext = new MutableContext();
         assertThrows(TargetingKeyMissingError.class, () -> {
@@ -104,24 +149,116 @@ public class OptimizelyProviderTest {
 
         evaluation = provider.getBooleanEvaluation("non-existing-feature", false, ctx);
         assertFalse(evaluation.getValue());
-        assertNotNull(evaluation.getReason());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
     }
 
     @Test
-    public void testUnsupportedEvaluations() {
+    public void testGetStringEvaluation() {
         EvaluationContext ctx = new MutableContext("targetingKey");
+        ProviderEvaluation<String> evaluation = provider.getStringEvaluation("string_feature_flag", "", ctx);
 
-        assertThrows(UnsupportedOperationException.class, () -> {
-            provider.getDoubleEvaluation("string-feature", 0.0, ctx);
+        assertEquals("str1", evaluation.getValue());
+
+        MutableContext contextWithVarKey = new MutableContext("targetingKey");
+        contextWithVarKey.add("variableKey", "var_str");
+
+        evaluation = provider.getStringEvaluation("string_feature_flag", "", contextWithVarKey);
+
+        assertEquals("str2", evaluation.getValue());
+        assertEquals("var_str", evaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.name(), evaluation.getReason());
+
+        MutableContext contextWithNonExistingVarKey = new MutableContext("targetingKey");
+        contextWithNonExistingVarKey.add("variableKey", "non-existing-var");
+
+        evaluation = provider.getStringEvaluation("string_feature_flag", "", contextWithNonExistingVarKey);
+
+        assertEquals("", evaluation.getValue());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
+
+        EvaluationContext emptyEvaluationContext = new MutableContext();
+        assertThrows(TargetingKeyMissingError.class, () -> {
+            provider.getStringEvaluation("string-feature", "", emptyEvaluationContext);
         });
 
-        assertThrows(UnsupportedOperationException.class, () -> {
-            provider.getIntegerEvaluation("string-feature", 0, ctx);
+        evaluation = provider.getStringEvaluation("non-existing-feature", "", ctx);
+        assertEquals("", evaluation.getValue());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
+    }
+
+    @Test
+    public void testGetIntegerEvaluation() {
+        EvaluationContext ctx = new MutableContext("targetingKey");
+        ProviderEvaluation<Integer> evaluation = provider.getIntegerEvaluation("int_feature_flag", 0, ctx);
+
+        assertEquals(1, evaluation.getValue());
+
+        MutableContext contextWithVarKey = new MutableContext("targetingKey");
+        contextWithVarKey.add("variableKey", "var_int");
+
+        evaluation = provider.getIntegerEvaluation("int_feature_flag", 0, contextWithVarKey);
+
+        assertEquals(2, evaluation.getValue());
+        assertEquals("var_int", evaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.name(), evaluation.getReason());
+
+        MutableContext contextWithNonExistingVarKey = new MutableContext("targetingKey");
+        contextWithNonExistingVarKey.add("variableKey", "non-existing-var");
+
+        evaluation = provider.getIntegerEvaluation("int_feature_flag", 0, contextWithNonExistingVarKey);
+
+        assertEquals(0, evaluation.getValue());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
+
+        EvaluationContext emptyEvaluationContext = new MutableContext();
+        assertThrows(TargetingKeyMissingError.class, () -> {
+            provider.getIntegerEvaluation("string-feature", 0, emptyEvaluationContext);
         });
 
-        assertThrows(UnsupportedOperationException.class, () -> {
-            provider.getStringEvaluation("string-feature", "default", ctx);
+        evaluation = provider.getIntegerEvaluation("non-existing-feature", 0, ctx);
+        assertEquals(0, evaluation.getValue());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
+    }
+
+    @Test
+    public void testGetDoubleEvaluation() {
+        EvaluationContext ctx = new MutableContext("targetingKey");
+        ProviderEvaluation<Double> evaluation = provider.getDoubleEvaluation("double_feature_flag", 0.0, ctx);
+
+        assertEquals(1.5, evaluation.getValue());
+
+        MutableContext contextWithVarKey = new MutableContext("targetingKey");
+        contextWithVarKey.add("variableKey", "var_double");
+
+        evaluation = provider.getDoubleEvaluation("double_feature_flag", 0.0, contextWithVarKey);
+
+        assertEquals(2.5, evaluation.getValue());
+        assertEquals("var_double", evaluation.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.name(), evaluation.getReason());
+
+        MutableContext contextWithNonExistingVarKey = new MutableContext("targetingKey");
+        contextWithNonExistingVarKey.add("variableKey", "non-existing-var");
+
+        evaluation = provider.getDoubleEvaluation("double_feature_flag", 0.0, contextWithNonExistingVarKey);
+
+        assertEquals(0.0, evaluation.getValue());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
+
+        EvaluationContext emptyEvaluationContext = new MutableContext();
+        assertThrows(TargetingKeyMissingError.class, () -> {
+            provider.getDoubleEvaluation("string-feature", 0.0, emptyEvaluationContext);
         });
+
+        evaluation = provider.getDoubleEvaluation("non-existing-feature", 0.0, ctx);
+        assertEquals(0.0, evaluation.getValue());
+        assertEquals(null, evaluation.getVariant());
+        assertEquals(Reason.DEFAULT.name(), evaluation.getReason());
     }
 
     @SneakyThrows

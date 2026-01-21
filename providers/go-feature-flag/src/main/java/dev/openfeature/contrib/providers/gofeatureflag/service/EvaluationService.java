@@ -68,6 +68,12 @@ public class EvaluationService {
 
         val goffResp = evaluator.evaluate(flagKey, defaultValue, evaluationContext);
 
+        // Check for FLAG_NOT_FOUND error first, before general error handling
+        if (goffResp.getErrorCode() != null
+                && ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {
+            throw new FlagNotFoundError("Flag " + flagKey + " was not found in your configuration");
+        }
+
         // If we have an error code, we return the error directly.
         if (goffResp.getErrorCode() != null && !goffResp.getErrorCode().isEmpty()) {
             return ProviderEvaluation.<T>builder()
@@ -86,10 +92,6 @@ public class EvaluationService {
                     .variant(goffResp.getVariationType())
                     .reason(Reason.DISABLED.name())
                     .build();
-        }
-
-        if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(goffResp.getErrorCode())) {
-            throw new FlagNotFoundError("Flag " + flagKey + " was not found in your configuration");
         }
 
         // Convert the value received from the API.

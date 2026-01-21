@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -79,14 +80,14 @@ class FlagdProviderSyncResourcesTest {
     @Test
     void callingInitialize_wakesUpWaitingThread() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
-        final AtomicBoolean successfulTest = new AtomicBoolean();
+        final AtomicLong waitTime = new AtomicLong(Long.MAX_VALUE);
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
             flagdProviderSyncResources.waitForInitialization(10000);
             long end = System.currentTimeMillis();
             long duration = end - start;
-            successfulTest.set(duration < MAX_TIME_TOLERANCE * 2);
+            waitTime.set(duration);
         });
         waitingThread.start();
 
@@ -100,23 +101,63 @@ class FlagdProviderSyncResourcesTest {
 
         waitingThread.join();
 
+        var wait = MAX_TIME_TOLERANCE * 3;
+
+        Assertions.assertTrue(
+                waitTime.get() < wait,
+                () -> "Wakeup should be almost instant, but took " + waitTime.get()
+                        + " ms, which is more than the max of"
+                        + wait + " ms");
+    }
+
+    @Timeout(2)
+    @Test
+    void callingShutdownWithPreviousNonFatal_wakesUpWaitingThread_WithGeneralException() throws InterruptedException {
+        final AtomicBoolean isWaiting = new AtomicBoolean();
+        final AtomicBoolean successfulTest = new AtomicBoolean();
+        flagdProviderSyncResources.setFatal(false);
+
+        Thread waitingThread = new Thread(() -> {
+            long start = System.currentTimeMillis();
+            isWaiting.set(true);
+            Assertions.assertThrows(GeneralError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
+
+            long end = System.currentTimeMillis();
+            long duration = end - start;
+            var wait = MAX_TIME_TOLERANCE * 3;
+            successfulTest.set(duration < wait);
+        });
+        waitingThread.start();
+
+        while (!isWaiting.get()) {
+            Thread.yield();
+        }
+
+        Thread.sleep(MAX_TIME_TOLERANCE); // waitingThread should have started waiting in the meantime
+
+        flagdProviderSyncResources.shutdown();
+
+        waitingThread.join();
+
         Assertions.assertTrue(successfulTest.get());
     }
 
     @Timeout(2)
     @Test
-    void callingShutdown_wakesUpWaitingThreadWithException() throws InterruptedException {
+    void callingShutdownWithPreviousFatal_wakesUpWaitingThread_WithFatalException() throws InterruptedException {
         final AtomicBoolean isWaiting = new AtomicBoolean();
         final AtomicBoolean successfulTest = new AtomicBoolean();
+        flagdProviderSyncResources.setFatal(true);
+
         Thread waitingThread = new Thread(() -> {
             long start = System.currentTimeMillis();
             isWaiting.set(true);
-            Assertions.assertThrows(
-                    IllegalStateException.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
+            Assertions.assertThrows(FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
 
             long end = System.currentTimeMillis();
             long duration = end - start;
-            successfulTest.set(duration < MAX_TIME_TOLERANCE * 2);
+            var wait = MAX_TIME_TOLERANCE * 3;
+            successfulTest.set(duration < wait);
         });
         waitingThread.start();
 

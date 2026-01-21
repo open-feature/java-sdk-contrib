@@ -1,10 +1,10 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
@@ -91,7 +91,7 @@ public class FlagdProvider extends EventProvider {
         }
         hooks.add(new SyncMetadataHook(this::getEnrichedContext));
         contextEnricher = options.getContextEnricher();
-        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        errorExecutor = Executors.newSingleThreadScheduledExecutor(new FlagdThreadFactory("flagd-provider-thread"));
         gracePeriod = options.getRetryGracePeriod();
         deadline = options.getDeadline();
     }
@@ -105,7 +105,7 @@ public class FlagdProvider extends EventProvider {
         deadline = Config.DEFAULT_DEADLINE;
         gracePeriod = Config.DEFAULT_STREAM_RETRY_GRACE_PERIOD;
         hooks.add(new SyncMetadataHook(this::getEnrichedContext));
-        errorExecutor = Executors.newSingleThreadScheduledExecutor();
+        errorExecutor = Executors.newSingleThreadScheduledExecutor(new FlagdThreadFactory("flagd-provider-thread"));
         if (initialized) {
             this.syncResources.initialize();
         }
@@ -192,8 +192,9 @@ public class FlagdProvider extends EventProvider {
     }
 
     @SuppressWarnings("checkstyle:fallthrough")
-    private void onProviderEvent(FlagdProviderEvent flagdProviderEvent) {
-        log.debug("FlagdProviderEvent event {} ", flagdProviderEvent.getEvent());
+    private void onProviderEvent(
+            ProviderEvent providerEvent, ProviderEventDetails providerEventDetails, Structure syncMetadata) {
+        log.debug("FlagdProviderEvent event {} ", providerEvent);
         synchronized (syncResources) {
             /*
              * We only use Error and Ready as previous states.
@@ -204,10 +205,10 @@ public class FlagdProvider extends EventProvider {
              * forward a configuration changed to the ready, if we are not in the ready
              * state.
              */
-            switch (flagdProviderEvent.getEvent()) {
+            switch (providerEvent) {
                 case PROVIDER_CONFIGURATION_CHANGED:
                     if (syncResources.getPreviousEvent() == ProviderEvent.PROVIDER_READY) {
-                        onConfigurationChanged(flagdProviderEvent);
+                        emit(providerEvent, providerEventDetails);
                         break;
                     }
                 // intentional fall through
@@ -216,31 +217,28 @@ public class FlagdProvider extends EventProvider {
                      * Sync metadata is used to enrich the context, and is immutable in flagd,
                      * so we only need it to be fetched once at READY.
                      */
-                    if (flagdProviderEvent.getSyncMetadata() != null) {
-                        syncResources.setEnrichedContext(contextEnricher.apply(flagdProviderEvent.getSyncMetadata()));
+                    if (syncMetadata != null) {
+                        syncResources.setEnrichedContext(contextEnricher.apply(syncMetadata));
                     }
                     onReady();
                     syncResources.setPreviousEvent(ProviderEvent.PROVIDER_READY);
                     break;
-
                 case PROVIDER_ERROR:
+                    if (providerEventDetails != null
+                            && providerEventDetails.getErrorCode() == ErrorCode.PROVIDER_FATAL) {
+                        onFatal();
+                        break;
+                    }
+
                     if (syncResources.getPreviousEvent() != ProviderEvent.PROVIDER_ERROR) {
                         onError();
                         syncResources.setPreviousEvent(ProviderEvent.PROVIDER_ERROR);
                     }
                     break;
-
                 default:
-                    log.warn("Unknown event {}", flagdProviderEvent.getEvent());
+                    log.warn("Unknown event {}", providerEvent);
             }
         }
-    }
-
-    private void onConfigurationChanged(FlagdProviderEvent flagdProviderEvent) {
-        this.emitProviderConfigurationChanged(ProviderEventDetails.builder()
-                .flagsChanged(flagdProviderEvent.getFlagsChanged())
-                .message("configuration changed")
-                .build());
     }
 
     private void onReady() {
@@ -283,5 +281,18 @@ public class FlagdProvider extends EventProvider {
                     gracePeriod,
                     TimeUnit.SECONDS);
         }
+    }
+
+    private void onFatal() {
+        if (errorTask != null && !errorTask.isCancelled()) {
+            errorTask.cancel(false);
+        }
+        this.syncResources.setFatal(true);
+
+        this.emitProviderError(ProviderEventDetails.builder()
+                .errorCode(ErrorCode.PROVIDER_FATAL)
+                .build());
+
+        shutdown();
     }
 }

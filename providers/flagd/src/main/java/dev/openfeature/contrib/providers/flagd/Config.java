@@ -1,7 +1,10 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Helper class to hold configuration default values. */
@@ -20,6 +23,7 @@ public final class Config {
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
     static final int DEFAULT_OFFLINE_POLL_MS = 5000;
     static final long DEFAULT_KEEP_ALIVE = 0;
+    static final String DEFAULT_REINITIALIZE_ON_ERROR = "false";
 
     static final String RESOLVER_ENV_VAR = "FLAGD_RESOLVER";
     static final String HOST_ENV_VAR_NAME = "FLAGD_HOST";
@@ -36,6 +40,7 @@ public final class Config {
     static final String FLAGD_RETRY_BACKOFF_MAX_MS_VAR_NAME = "FLAGD_RETRY_BACKOFF_MAX_MS";
     static final String STREAM_DEADLINE_MS_ENV_VAR_NAME = "FLAGD_STREAM_DEADLINE_MS";
     static final String SOURCE_SELECTOR_ENV_VAR_NAME = "FLAGD_SOURCE_SELECTOR";
+    static final String FATAL_STATUS_CODES_ENV_VAR_NAME = "FLAGD_FATAL_STATUS_CODES";
     /**
      * Environment variable to fetch Provider id.
      *
@@ -51,6 +56,7 @@ public final class Config {
     static final String KEEP_ALIVE_MS_ENV_VAR_NAME = "FLAGD_KEEP_ALIVE_TIME_MS";
     static final String TARGET_URI_ENV_VAR_NAME = "FLAGD_TARGET_URI";
     static final String STREAM_RETRY_GRACE_PERIOD = "FLAGD_RETRY_GRACE_PERIOD";
+    static final String REINITIALIZE_ON_ERROR_ENV_VAR_NAME = "FLAGD_REINITIALIZE_ON_ERROR";
 
     static final String RESOLVER_RPC = "rpc";
     static final String RESOLVER_IN_PROCESS = "in-process";
@@ -86,6 +92,18 @@ public final class Config {
     static long fallBackToEnvOrDefault(String key, long defaultValue) {
         try {
             return System.getenv(key) != null ? Long.parseLong(System.getenv(key)) : defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
+    static List<String> fallBackToEnvOrDefaultList(String key, List<String> defaultValue) {
+        try {
+            return System.getenv(key) != null
+                    ? Arrays.stream(System.getenv(key).split(","))
+                            .map(String::trim)
+                            .collect(Collectors.toList())
+                    : defaultValue;
         } catch (Exception e) {
             return defaultValue;
         }

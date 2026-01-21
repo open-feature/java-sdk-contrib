@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.0...dev.openfeature.contrib.providers.go-feature-flag-v1.1.1) (2026-01-15)
+
+
+### 🐛 Bug Fixes
+
+* **gofeatureflag:** fix unreachable code when flag not found ([#1679](https://github.com/open-feature/java-sdk-contrib/issues/1679)) ([95e149e](https://github.com/open-feature/java-sdk-contrib/commit/95e149e94dc7b4478bb8022b7c74d24c71f6d9e3))
+
 ## [1.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.0.1...dev.openfeature.contrib.providers.go-feature-flag-v1.1.0) (2025-11-24)
 
 

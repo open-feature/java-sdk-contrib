@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>optimizely</artifactId>
-    <version>0.0.1</version> <!--x-release-please-version -->
+    <version>0.1.0</version> <!--x-release-please-version -->
 
     <name>optimizely</name>
     <description>optimizely provider for Java</description>

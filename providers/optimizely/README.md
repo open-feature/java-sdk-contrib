@@ -19,9 +19,13 @@
 
 ## Concepts
 
-* Boolean evaluation gets feature  [enabled](https://docs.developers.optimizely.com/feature-experimentation/docs/create-feature-flags) value.
-* Object evaluation gets a structure representing the evaluated variant variables.
-* String/Integer/Double evaluations evaluation are not directly supported by Optimizely provider, use getObjectEvaluation instead.
+### Evaluation Context
+
+The `targetingKey` is required and maps to the Optimizely user ID. Additional attributes are passed to Optimizely for audience targeting.
+
+### Variable Key Selection
+
+Optimizely flags can have multiple variables. By default, the provider looks for a variable named `"value"`. Specify a different variable using the `variableKey` attribute:
 
 ## Usage
 Optimizely OpenFeature Provider is based on [Optimizely Java SDK documentation](https://docs.developers.optimizely.com/feature-experimentation/docs/java-sdk).
@@ -57,3 +61,9 @@ provider.getOptimizely()...
 Unit test based on optimizely [Local Data File](https://docs.developers.optimizely.com/feature-experimentation/docs/initialize-sdk-java).
 See [OptimizelyProviderTest](./src/test/java/dev/openfeature/contrib/providers/optimizely/OptimizelyProviderTest.java)
 for more information.
+
+## Release Notes
+
+### 0.1.0
+
+Concepts updated, evaluation acts accordingly.

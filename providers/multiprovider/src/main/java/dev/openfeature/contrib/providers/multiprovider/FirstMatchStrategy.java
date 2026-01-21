@@ -12,15 +12,21 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * First match strategy. Return the first result returned by a provider. Skip providers that
- * indicate they had no value due to FLAG_NOT_FOUND. In all other cases, use the value returned by
- * the provider. If any provider returns an error result other than FLAG_NOT_FOUND, the whole
- * evaluation should error and “bubble up” the individual provider’s error in the result. As soon as
- * a value is returned by a provider, the rest of the operation should short-circuit and not call
- * the rest of the providers.
+ * First Match strategy.
+ *
+ * <p>Return the first result returned by a provider. Skip providers that indicate they had no
+ * value due to {@code FLAG_NOT_FOUND}. In all other cases, use the value returned by the
+ * provider. If any provider returns an error result other than {@code FLAG_NOT_FOUND}, the whole
+ * evaluation should error and “bubble up” the individual provider’s error in the result. As soon
+ * as a value is returned by a provider, the rest of the operation should short-circuit and not
+ * call the rest of the providers.</p>
+ *
+ * @deprecated Use {@link dev.openfeature.sdk.multiprovider.FirstMatchStrategy}
+ *     from the core Java SDK instead.
  */
 @Slf4j
 @NoArgsConstructor
+@Deprecated
 public class FirstMatchStrategy implements Strategy {
 
     /**
