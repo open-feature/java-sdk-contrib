@@ -20,7 +20,7 @@
         <!-- override module name defined in parent ("-" is not allowed) -->
         <module-name>${groupId}.gofeatureflag</module-name>
 
-        <wasm.version>v1.45.4</wasm.version>
+        <wasm.version>1.0.3</wasm.version>
     </properties>
 
     <developers>
