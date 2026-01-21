@@ -44,7 +44,9 @@ class FlagdProviderSyncResourcesCTest {
         // should wait at least for the deadline
         Assertions.assertTrue(elapsed >= deadline);
         // should not wait much longer than the deadline
-        Assertions.assertTrue(elapsed < deadline + MAX_TIME_TOLERANCE, "elapsed time: " + elapsed +" deadline: " + deadline + " max tolerance: " + MAX_TIME_TOLERANCE);
+        Assertions.assertTrue(
+                elapsed < deadline + MAX_TIME_TOLERANCE,
+                "elapsed time: " + elapsed + " deadline: " + deadline + " max tolerance: " + MAX_TIME_TOLERANCE);
         Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
         Assertions.assertFalse(flagdProviderSyncResources.isFatal());
         Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
@@ -142,16 +144,15 @@ class FlagdProviderSyncResourcesCTest {
     @Timeout(5)
     @Test
     void callingFatalError_wakesUpWaitingThreadWithException() {
-        try (var interleavings = new AllInterleavings(
-                "calling setFatal(true) wakes up waiting thread with exception")) {
+        try (var interleavings =
+                new AllInterleavings("calling setFatal(true) wakes up waiting thread with exception")) {
             while (interleavings.hasNext()) {
                 final var startTime = new AtomicLong();
                 final var endTime = new AtomicLong();
                 Runner.runParallel(
                         () -> {
                             Assertions.assertThrows(
-                                    FatalError.class,
-                                    () -> flagdProviderSyncResources.waitForInitialization(10000));
+                                    FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
                             endTime.set(System.currentTimeMillis());
                             Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                             Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
@@ -198,11 +199,12 @@ class FlagdProviderSyncResourcesCTest {
     @Timeout(5)
     @Test
     void concurrentInitializeAndShutdownAndSetFatalShutsDownWork() {
-        try (var interleavings = new AllInterleavings(
-                "concurrent initialize() and shutdown() and fatal() calls work")) {
+        try (var interleavings =
+                new AllInterleavings("concurrent initialize() and shutdown() and fatal() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.shutdown(),
+                        () -> flagdProviderSyncResources.initialize(),
+                        () -> flagdProviderSyncResources.shutdown(),
                         () -> flagdProviderSyncResources.setFatal(true));
                 Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                 Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
@@ -217,8 +219,7 @@ class FlagdProviderSyncResourcesCTest {
         try (var interleavings = new AllInterleavings("concurrent initialize() and fatal() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> flagdProviderSyncResources.initialize(),
-                        () -> flagdProviderSyncResources.setFatal(true));
+                        () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.setFatal(true));
                 Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                 Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
                 Assertions.assertTrue(flagdProviderSyncResources.isFatal());

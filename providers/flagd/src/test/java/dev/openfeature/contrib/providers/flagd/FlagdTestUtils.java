@@ -64,8 +64,8 @@ class FlagdTestUtils {
                 .deadline(1000)
                 .build();
         final FlagdProvider provider = new FlagdProvider(flagdOptions);
-        final MockStorage mockStorage = new MockStorage(
-                mockFlags, new LinkedBlockingQueue<>(List.of(new StorageStateChange(StorageState.OK))));
+        final MockStorage mockStorage =
+                new MockStorage(mockFlags, new LinkedBlockingQueue<>(List.of(new StorageStateChange(StorageState.OK))));
 
         try {
             final Field flagResolver = FlagdProvider.class.getDeclaredField("flagResolver");
