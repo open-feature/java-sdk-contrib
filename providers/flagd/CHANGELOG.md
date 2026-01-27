@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.20](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.19...dev.openfeature.contrib.providers.flagd-v0.11.20) (2026-01-27)
+
+
+### 🐛 Bug Fixes
+
+* thread memory leak in InProcessResolver ([#1678](https://github.com/open-feature/java-sdk-contrib/issues/1678)) ([fed5f39](https://github.com/open-feature/java-sdk-contrib/commit/fed5f39e3c4af8ddd425f072137d28de4d55b0e2))
+
 ## [0.11.19](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.18...dev.openfeature.contrib.providers.flagd-v0.11.19) (2026-01-06)
 
 
