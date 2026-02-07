@@ -35,11 +35,10 @@ class FlagdProviderSyncResources {
      * @return true iff this was the first call to {@code initialize()}
      */
     public synchronized boolean initialize() {
-        if (this.isInitialized) {
+        if (this.isInitialized || this.isShutDown || this.isFatal) {
             return false;
         }
         this.isInitialized = true;
-        this.isFatal = false;
         this.notifyAll();
         return true;
     }
@@ -68,7 +67,7 @@ class FlagdProviderSyncResources {
     public void waitForInitialization(long deadline) {
         long start = System.currentTimeMillis();
         long end = start + deadline;
-        while (!isInitialized && !isShutDown) {
+        while (!isInitialized && !isShutDown && !isFatal) {
             long now = System.currentTimeMillis();
             // if wait(0) is called, the thread would wait forever, so we abort when this would happen
             if (now >= end) {
@@ -77,7 +76,7 @@ class FlagdProviderSyncResources {
             }
             long remaining = end - now;
             synchronized (this) {
-                if (isShutDown) {
+                if (isShutDown || isFatal) {
                     break;
                 }
                 if (isInitialized) { // might have changed in the meantime
@@ -91,12 +90,11 @@ class FlagdProviderSyncResources {
                 }
             }
         }
+        if (isFatal) {
+            throw new FatalError("Already shut down due to previous fatal error.");
+        }
         if (isShutDown) {
-            String msg = "Already shut down due to previous error.";
-            if (isFatal) {
-                throw new FatalError(msg);
-            }
-            throw new GeneralError(msg);
+            throw new GeneralError("Already shut down due to previous error.");
         }
     }
 
