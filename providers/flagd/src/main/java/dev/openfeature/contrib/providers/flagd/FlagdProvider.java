@@ -226,7 +226,7 @@ public class FlagdProvider extends EventProvider {
                 case PROVIDER_ERROR:
                     if (providerEventDetails != null
                             && providerEventDetails.getErrorCode() == ErrorCode.PROVIDER_FATAL) {
-                        onFatal();
+                        onFatal(providerEventDetails);
                         break;
                     }
 
@@ -283,15 +283,12 @@ public class FlagdProvider extends EventProvider {
         }
     }
 
-    private void onFatal() {
+    private void onFatal(ProviderEventDetails providerEventDetails) {
         if (errorTask != null && !errorTask.isCancelled()) {
             errorTask.cancel(false);
         }
-        this.syncResources.setFatal(true);
-
-        this.emitProviderError(ProviderEventDetails.builder()
-                .errorCode(ErrorCode.PROVIDER_FATAL)
-                .build());
+        this.syncResources.fatalError(providerEventDetails);
+        this.emitProviderError(providerEventDetails);
 
         shutdown();
     }
