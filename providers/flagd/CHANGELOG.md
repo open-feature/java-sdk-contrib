@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.11.20](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.19...dev.openfeature.contrib.providers.flagd-v0.11.20) (2026-02-10)
+
+
+### 🐛 Bug Fixes
+
+* thread memory leak in InProcessResolver ([#1678](https://github.com/open-feature/java-sdk-contrib/issues/1678)) ([fed5f39](https://github.com/open-feature/java-sdk-contrib/commit/fed5f39e3c4af8ddd425f072137d28de4d55b0e2))
+* use shaded netty transport jar ([#1694](https://github.com/open-feature/java-sdk-contrib/issues/1694)) ([506f2a3](https://github.com/open-feature/java-sdk-contrib/commit/506f2a398a7dacc00a42b60bfcaa076492ebdb88))
+
+
+### ✨ New Features
+
+* Propagate fatal error on wait for init ([#1681](https://github.com/open-feature/java-sdk-contrib/issues/1681)) ([ecc3c31](https://github.com/open-feature/java-sdk-contrib/commit/ecc3c31619dfb22eeabc62d2840db26c047f893b))
+
 ## [0.11.19](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.18...dev.openfeature.contrib.providers.flagd-v0.11.19) (2026-01-06)
 
 
