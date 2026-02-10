@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.openfeature.contrib</groupId>
+        <artifactId>parent</artifactId>
+        <version>[1.0,2.0)</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>dev.openfeature.contrib.tools</groupId>
+    <artifactId>flagd-api</artifactId>
+    <version>0.0.1</version> <!--x-release-please-version -->
+
+<properties>
+        <module-name>${groupId}.flagdapi</module-name>
+    </properties>
+
+    <name>flagd-api</name>
+    <description>API contracts for flagd in-process evaluation</description>
+    <url>https://openfeature.dev</url>
+
+    <developers>
+        <developer>
+            <id>toddbaert</id>
+            <name>Todd Baert</name>
+            <organization>OpenFeature</organization>
+            <url>https://openfeature.dev/</url>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <!-- we inherit dev.openfeature.javasdk from the parent pom -->
+    </dependencies>
+
+</project>

@@ -1,9 +1,8 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
-import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageQueryResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
+import dev.openfeature.contrib.tools.flagd.core.model.FeatureFlag;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -41,9 +40,18 @@ public class MockStorage implements Storage {
         // no-op
     }
 
-    @Override
-    public StorageQueryResult getFlag(String key) {
-        return new StorageQueryResult(mockFlags.get(key), flagSetMetadata);
+    /**
+     * Get a flag by key. This method is used by MockEvaluator for testing.
+     */
+    public FeatureFlag getFlag(String key) {
+        return mockFlags.get(key);
+    }
+
+    /**
+     * Get the flag set metadata. Used by MockEvaluator for testing.
+     */
+    public Map<String, Object> getFlagSetMetadata() {
+        return flagSetMetadata;
     }
 
     @Nullable public BlockingQueue<StorageStateChange> getStateQueue() {
