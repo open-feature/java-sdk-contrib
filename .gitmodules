@@ -11,3 +11,6 @@
 [submodule "providers/go-feature-flag/wasm-releases"]
 	path = providers/go-feature-flag/wasm-releases
 	url = https://github.com/go-feature-flag/wasm-releases.git
+[submodule "tools/flagd-core/schemas"]
+	path = tools/flagd-core/schemas
+	url = https://github.com/open-feature/schemas.git

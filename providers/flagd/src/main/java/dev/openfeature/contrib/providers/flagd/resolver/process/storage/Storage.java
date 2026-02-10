@@ -8,7 +8,5 @@ public interface Storage {
 
     void shutdown() throws InterruptedException;
 
-    StorageQueryResult getFlag(final String key);
-
     BlockingQueue<StorageStateChange> getStateQueue();
 }

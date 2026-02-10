@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
+import dev.openfeature.contrib.tools.flagd.core.model.FeatureFlag;
 import java.util.HashMap;
 import java.util.Map;
 
