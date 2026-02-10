@@ -13,14 +13,13 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.NameResolverRegistry;
 import io.grpc.Status.Code;
-import io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.NettyChannelBuilder;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollDomainSocketChannel;
-import io.netty.channel.epoll.EpollIoHandler;
-import io.netty.channel.unix.DomainSocketAddress;
-import io.netty.handler.ssl.SslContextBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.netty.channel.epoll.Epoll;
+import io.grpc.netty.shaded.io.netty.channel.epoll.EpollDomainSocketChannel;
+import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
+import io.grpc.netty.shaded.io.netty.channel.unix.DomainSocketAddress;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -107,7 +106,7 @@ public class ChannelBuilder {
             }
             var channelBuilder = NettyChannelBuilder.forAddress(new DomainSocketAddress(options.getSocketPath()))
                     .keepAliveTime(keepAliveMs, TimeUnit.MILLISECONDS)
-                    .eventLoopGroup(new MultiThreadIoEventLoopGroup(EpollIoHandler.newFactory()))
+                    .eventLoopGroup(new EpollEventLoopGroup())
                     .channelType(EpollDomainSocketChannel.class)
                     .usePlaintext()
                     .defaultServiceConfig(buildRetryPolicy(options))
