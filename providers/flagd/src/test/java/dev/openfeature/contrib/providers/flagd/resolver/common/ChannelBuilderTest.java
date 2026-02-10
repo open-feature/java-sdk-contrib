@@ -7,9 +7,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -19,15 +16,12 @@ import static org.mockito.Mockito.when;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
-import io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.NettyChannelBuilder;
-import io.netty.channel.IoHandlerFactory;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollDomainSocketChannel;
-import io.netty.channel.epoll.EpollIoHandler;
-import io.netty.channel.unix.DomainSocketAddress;
-import io.netty.handler.ssl.SslContextBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.netty.channel.epoll.Epoll;
+import io.grpc.netty.shaded.io.netty.channel.epoll.EpollDomainSocketChannel;
+import io.grpc.netty.shaded.io.netty.channel.unix.DomainSocketAddress;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,12 +40,10 @@ class ChannelBuilderTest {
     @EnabledOnOs(OS.LINUX)
     void testNettyChannel_withSocketPath() {
         try (MockedStatic<Epoll> epollMock = mockStatic(Epoll.class);
-                MockedStatic<EpollIoHandler> nativeMock = mockStatic(EpollIoHandler.class);
                 MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
 
             // Mocks
             epollMock.when(Epoll::isAvailable).thenReturn(true);
-            nativeMock.when(EpollIoHandler::newFactory).thenReturn(mock(IoHandlerFactory.class));
             NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
             ManagedChannel mockChannel = mock(ManagedChannel.class);
 
@@ -60,8 +52,6 @@ class ChannelBuilderTest {
                     .thenReturn(mockBuilder);
 
             when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
-            when(mockBuilder.eventLoopGroup(any(MultiThreadIoEventLoopGroup.class)))
-                    .thenReturn(mockBuilder);
             when(mockBuilder.channelType(EpollDomainSocketChannel.class)).thenReturn(mockBuilder);
             when(mockBuilder.defaultServiceConfig(any())).thenReturn(mockBuilder);
             when(mockBuilder.maxRetryAttempts(anyInt())).thenReturn(mockBuilder);
@@ -82,7 +72,6 @@ class ChannelBuilderTest {
             assertThat(channel).isEqualTo(mockChannel);
             nettyMock.verify(() -> NettyChannelBuilder.forAddress(new DomainSocketAddress("/path/to/socket")));
             verify(mockBuilder).keepAliveTime(1000, TimeUnit.MILLISECONDS);
-            verify(mockBuilder).eventLoopGroup(any(MultiThreadIoEventLoopGroup.class));
             verify(mockBuilder).channelType(EpollDomainSocketChannel.class);
             verify(mockBuilder).usePlaintext();
             verify(mockBuilder).build();
@@ -93,12 +82,10 @@ class ChannelBuilderTest {
     @EnabledOnOs(OS.LINUX)
     void testNettyChannel_withSocketPath_withRetryPolicy() {
         try (MockedStatic<Epoll> epollMock = mockStatic(Epoll.class);
-                MockedStatic<EpollIoHandler> nativeMock = mockStatic(EpollIoHandler.class);
                 MockedStatic<NettyChannelBuilder> nettyMock = mockStatic(NettyChannelBuilder.class)) {
 
             // Mocks
             epollMock.when(Epoll::isAvailable).thenReturn(true);
-            nativeMock.when(EpollIoHandler::newFactory).thenReturn(mock(IoHandlerFactory.class));
             NettyChannelBuilder mockBuilder = mock(NettyChannelBuilder.class);
             ManagedChannel mockChannel = mock(ManagedChannel.class);
 
@@ -113,8 +100,6 @@ class ChannelBuilderTest {
                     .thenReturn(mockBuilder);
 
             when(mockBuilder.keepAliveTime(anyLong(), any(TimeUnit.class))).thenReturn(mockBuilder);
-            when(mockBuilder.eventLoopGroup(any(MultiThreadIoEventLoopGroup.class)))
-                    .thenReturn(mockBuilder);
             when(mockBuilder.channelType(EpollDomainSocketChannel.class)).thenReturn(mockBuilder);
             when(mockBuilder.defaultServiceConfig(ChannelBuilder.buildRetryPolicy(options)))
                     .thenReturn(mockBuilder);
@@ -129,7 +114,6 @@ class ChannelBuilderTest {
             assertThat(channel).isEqualTo(mockChannel);
             nettyMock.verify(() -> NettyChannelBuilder.forAddress(new DomainSocketAddress("/path/to/socket")));
             verify(mockBuilder).keepAliveTime(1000, TimeUnit.MILLISECONDS);
-            verify(mockBuilder).eventLoopGroup(any(MultiThreadIoEventLoopGroup.class));
             verify(mockBuilder).channelType(EpollDomainSocketChannel.class);
             verify(mockBuilder).defaultServiceConfig(ChannelBuilder.buildRetryPolicy(options));
             verify(mockBuilder).usePlaintext();
