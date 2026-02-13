@@ -1,8 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.UPDATABLE_FILE;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getResourcePath;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
@@ -12,19 +9,22 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connecto
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class FileConnectorTest {
 
     @Test
-    void readAndExposeFeatureFlagsFromSource() throws IOException {
-        // given
-        final FileQueueSource connector = new FileQueueSource(getResourcePath(VALID_LONG), 5000);
+    void readAndExposeFeatureFlagsFromSource(@TempDir Path tempDir) throws IOException {
+        // given - create a temporary file with some content
+        Path testFile = tempDir.resolve("flags.txt");
+        Files.write(testFile, "test data".getBytes());
+
+        final FileQueueSource connector = new FileQueueSource(testFile.toString(), 5000);
 
         // when
         connector.init();
@@ -65,17 +65,15 @@ class FileConnectorTest {
 
     @Test
     @Disabled("Disabled as unstable on GH Action. Useful for functionality validation")
-    void watchForFileUpdatesAndEmitThem() throws IOException {
-        final String initial =
-                "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"}}}";
-        final String updatedFlags =
-                "{\"flags\":{\"myBoolFlag\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"off\"}}}";
+    void watchForFileUpdatesAndEmitThem(@TempDir Path tempDir) throws IOException {
+        final String initial = "initial content";
+        final String updated = "updated content";
 
-        // given
-        final Path updPath = Paths.get(getResourcePath(UPDATABLE_FILE));
-        Files.write(updPath, initial.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+        // given - create temp file with initial content
+        final Path testFile = tempDir.resolve("watchable.txt");
+        Files.write(testFile, initial.getBytes());
 
-        final FileQueueSource connector = new FileQueueSource(updPath.toString(), 5000);
+        final FileQueueSource connector = new FileQueueSource(testFile.toString(), 5000);
 
         // when
         connector.init();
@@ -92,13 +90,13 @@ class FileConnectorTest {
         assertEquals(initial, payload[0].getFlagData());
 
         // then update the flags
-        Files.write(updPath, updatedFlags.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+        Files.write(testFile, updated.getBytes(), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
         // finally wait for updated payload
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             payload[0] = stream.take();
         });
 
-        assertEquals(updatedFlags, payload[0].getFlagData());
+        assertEquals(updated, payload[0].getFlagData());
     }
 }

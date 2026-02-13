@@ -1,0 +1,46 @@
+{
+  "flags": {
+    "boolFlag": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
+    "stringFlag": {
+      "state": "ENABLED",
+      "variants": {
+        "greeting": "hello",
+        "farewell": "goodbye"
+      },
+      "defaultVariant": "greeting"
+    },
+    "intFlag": {
+      "state": "ENABLED",
+      "variants": {
+        "one": 1,
+        "two": 2
+      },
+      "defaultVariant": "one"
+    },
+    "doubleFlag": {
+      "state": "ENABLED",
+      "variants": {
+        "pi": 3.14,
+        "e": 2.71
+      },
+      "defaultVariant": "pi"
+    },
+    "disabledFlag": {
+      "state": "DISABLED",
+      "variants": {
+        "on": true
+      },
+      "defaultVariant": "on"
+    }
+  },
+  "metadata": {
+    "version": "1.0.0"
+  }
+}
