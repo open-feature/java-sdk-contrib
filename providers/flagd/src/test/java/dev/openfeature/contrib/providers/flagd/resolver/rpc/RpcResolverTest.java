@@ -3,7 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.rpc;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -13,14 +13,15 @@ import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.Structure;
+import dev.openfeature.sdk.internal.TriConsumer;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -31,20 +32,20 @@ class RpcResolverTest {
     private ServiceBlockingStub blockingStub;
     private ServiceStub stub;
     private QueueingStreamObserver<EventStreamResponse> observer;
-    private Consumer<FlagdProviderEvent> consumer;
+    private TriConsumer<ProviderEvent, ProviderEventDetails, Structure> consumer;
     private CountDownLatch latch; // used to wait for observer to be initialized
 
+    @SuppressWarnings("unchecked")
     @BeforeEach
     public void init() throws Exception {
         latch = new CountDownLatch(1);
         observer = null;
-        consumer = mock(Consumer.class);
-        doNothing().when(consumer).accept(any());
+        consumer = mock(TriConsumer.class);
+        doNothing().when(consumer).accept(any(), any(), any());
 
         blockingStub = mock(ServiceBlockingStub.class);
 
         mockConnector = mock(ChannelConnector.class);
-        doNothing().when(mockConnector).initialize(); // Mock the initialize method
 
         stub = mock(ServiceStub.class);
         when(stub.withDeadlineAfter(anyLong(), any())).thenReturn(stub);
@@ -75,8 +76,7 @@ class RpcResolverTest {
                 .build());
 
         // should run consumer with payload
-        await().untilAsserted(() ->
-                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_READY)));
+        await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_READY), any(), any()));
         // should NOT have restarted the stream (1 call)
         verify(stub, times(1)).eventStream(any(), any());
     }
@@ -96,8 +96,8 @@ class RpcResolverTest {
         // should run consumer with payload
         verify(stub, times(1)).eventStream(any(), any());
         // should have restarted the stream (2 calls)
-        await().untilAsserted(() -> verify(consumer)
-                .accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_CONFIGURATION_CHANGED)));
+        await().untilAsserted(
+                        () -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED), any(), any()));
     }
 
     @Test
@@ -111,8 +111,7 @@ class RpcResolverTest {
         observer.onCompleted();
 
         // should run consumer with error
-        await().untilAsserted(() ->
-                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_ERROR)));
+        await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_ERROR), any(), any()));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }
@@ -128,8 +127,7 @@ class RpcResolverTest {
         observer.onError(new Exception("fake error"));
 
         // should run consumer with error
-        await().untilAsserted(() ->
-                verify(consumer).accept(argThat((arg) -> arg.getEvent() == ProviderEvent.PROVIDER_ERROR)));
+        await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_ERROR), any(), any()));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
     }

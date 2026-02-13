@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.13](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.12...dev.openfeature.contrib.providers.flagsmith-v0.0.13) (2026-01-05)
+
+
+### 🐛 Bug Fixes
+
+* Set default environment refresh interval to 60 seconds and use `Integer` type for configuration ([#1671](https://github.com/open-feature/java-sdk-contrib/issues/1671)) ([d6ab37e](https://github.com/open-feature/java-sdk-contrib/commit/d6ab37e048c716ad7a5b7359f106bfc7497207d8))
+
 ## [0.0.12](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagsmith-v0.0.11...dev.openfeature.contrib.providers.flagsmith-v0.0.12) (2025-07-09)
 
 

@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>go-feature-flag</artifactId>
-    <version>1.0.1</version> <!--x-release-please-version -->
+    <version>1.1.1</version> <!--x-release-please-version -->
 
     <name>go-feature-flag</name>
     <description>GO Feature Flag provider for Java</description>
@@ -19,6 +19,8 @@
     <properties>
         <!-- override module name defined in parent ("-" is not allowed) -->
         <module-name>${groupId}.gofeatureflag</module-name>
+
+        <wasm.version>0.1.4</wasm.version>
     </properties>
 
     <developers>
@@ -34,19 +36,19 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>2.20.0</version>
+            <version>2.20.1</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.20.0</version>
+            <version>2.20.1</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.20.0</version>
+            <version>2.20.1</version>
         </dependency>
 
         <dependency>
@@ -70,20 +72,14 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j2-impl</artifactId>
-            <version>2.25.1</version>
+            <version>2.25.2</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>com.dylibso.chicory</groupId>
-            <artifactId>runtime</artifactId>
-            <version>1.5.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.dylibso.chicory</groupId>
             <artifactId>wasi</artifactId>
-            <version>1.5.0</version>
+            <version>1.6.0</version>
         </dependency>
 
         <dependency>
@@ -117,20 +113,18 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
+                <groupId>com.dylibso.chicory</groupId>
+                <artifactId>chicory-compiler-maven-plugin</artifactId>
+                <version>1.6.0</version>
                 <executions>
                     <execution>
-                        <id>download-latest-github-asset</id>
-                        <phase>generate-resources</phase>
+                        <id>gofeatureflag</id>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <executable>bash</executable>
-                            <arguments>
-                                <argument>${project.basedir}/download-wasm.sh</argument>
-                            </arguments>
+                            <name>dev.openfeature.contrib.providers.gofeatureflag.wasm.Module</name>
+                            <wasmFile>wasm-releases/evaluation/gofeatureflag-evaluation_${wasm.version}.wasi</wasmFile>
                         </configuration>
                     </execution>
                 </executions>

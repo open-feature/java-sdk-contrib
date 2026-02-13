@@ -17,10 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.MockConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
@@ -33,11 +35,15 @@ import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import dev.openfeature.sdk.internal.TriConsumer;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collections;
@@ -46,11 +52,31 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class InProcessResolverTest {
+    @Test
+    void onError_delegatesToQueueSource() throws Exception {
+        // given
+        FlagdOptions options = FlagdOptions.builder().build(); // option value doesn't matter here
+        SyncStreamQueueSource mockConnector = mock(SyncStreamQueueSource.class);
+        InProcessResolver resolver = new InProcessResolver(options, (event, details, metadata) -> {});
+
+        // Inject mock connector
+        java.lang.reflect.Field queueSourceField = InProcessResolver.class.getDeclaredField("queueSource");
+        queueSourceField.setAccessible(true);
+        queueSourceField.set(resolver, mockConnector);
+
+        // when
+        resolver.onError();
+
+        // then
+        // InProcessResolver should always delegate to the queue source.
+        // The decision to re-initialize or not is handled within SyncStreamQueueSource.
+        verify(mockConnector, times(1)).reinitializeChannelComponents();
+    }
 
     @Test
     public void connectorSetup() {
@@ -70,9 +96,9 @@ class InProcessResolverTest {
                 .build();
 
         // then
-        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getConnector(forGrpcOptions, e -> {}));
-        assertInstanceOf(FileQueueSource.class, InProcessResolver.getConnector(forOfflineOptions, e -> {}));
-        assertInstanceOf(MockConnector.class, InProcessResolver.getConnector(forCustomConnectorOptions, e -> {}));
+        assertInstanceOf(SyncStreamQueueSource.class, InProcessResolver.getQueueSource(forGrpcOptions));
+        assertInstanceOf(FileQueueSource.class, InProcessResolver.getQueueSource(forOfflineOptions));
+        assertInstanceOf(MockConnector.class, InProcessResolver.getQueueSource(forCustomConnectorOptions));
     }
 
     @Test
@@ -86,12 +112,15 @@ class InProcessResolverTest {
         final MutableStructure syncMetadata = new MutableStructure();
         syncMetadata.add(key, val);
 
-        InProcessResolver inProcessResolver = getInProcessResolverWith(
-                new MockStorage(new HashMap<>(), sender),
-                connectionEvent -> receiver.offer(new StorageStateChange(
-                        connectionEvent.isDisconnected() ? StorageState.ERROR : StorageState.OK,
-                        connectionEvent.getFlagsChanged(),
-                        connectionEvent.getSyncMetadata())));
+        InProcessResolver inProcessResolver =
+                getInProcessResolverWith(new MockStorage(new HashMap<>(), sender), (event, details, metadata) -> {
+                    boolean isDisconnected =
+                            event == ProviderEvent.PROVIDER_ERROR || event == ProviderEvent.PROVIDER_STALE;
+                    receiver.offer(new StorageStateChange(
+                            isDisconnected ? StorageState.ERROR : StorageState.OK,
+                            details != null ? details.getFlagsChanged() : Collections.emptyList(),
+                            metadata));
+                });
 
         // when - init and emit events
         Thread initThread = new Thread(() -> {
@@ -126,7 +155,7 @@ class InProcessResolverTest {
         flagMap.put("booleanFlag", BOOLEAN_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<Boolean> providerEvaluation =
@@ -145,7 +174,7 @@ class InProcessResolverTest {
         flagMap.put("doubleFlag", DOUBLE_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<Double> providerEvaluation =
@@ -164,7 +193,7 @@ class InProcessResolverTest {
         flagMap.put("doubleFlag", DOUBLE_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<Integer> providerEvaluation =
@@ -183,7 +212,7 @@ class InProcessResolverTest {
         flagMap.put("integerFlag", INT_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<Double> providerEvaluation =
@@ -202,7 +231,7 @@ class InProcessResolverTest {
         flagMap.put("integerFlag", INT_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<Integer> providerEvaluation =
@@ -221,7 +250,7 @@ class InProcessResolverTest {
         flagMap.put("objectFlag", OBJECT_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         Map<String, Object> typeDefault = new HashMap<>();
         typeDefault.put("key", "0164");
@@ -247,7 +276,7 @@ class InProcessResolverTest {
         final Map<String, FeatureFlag> flagMap = new HashMap<>();
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when/then
         ProviderEvaluation<Boolean> missingFlag =
@@ -262,7 +291,7 @@ class InProcessResolverTest {
         flagMap.put("disabledFlag", DISABLED_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when/then
         ProviderEvaluation<Boolean> disabledFlag =
@@ -277,7 +306,7 @@ class InProcessResolverTest {
         flagMap.put("mismatchFlag", VARIANT_MISMATCH_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when/then
         assertThrows(GeneralError.class, () -> {
@@ -292,7 +321,7 @@ class InProcessResolverTest {
         flagMap.put("booleanFlag", BOOLEAN_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when/then
         assertThrows(TypeMismatchError.class, () -> {
@@ -307,7 +336,7 @@ class InProcessResolverTest {
         flagMap.put("shorthand", FLAG_WIH_SHORTHAND_TARGETING);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         ProviderEvaluation<Boolean> providerEvaluation =
                 inProcessResolver.booleanEvaluation("shorthand", false, new ImmutableContext());
@@ -325,7 +354,7 @@ class InProcessResolverTest {
         flagMap.put("stringFlag", FLAG_WIH_IF_IN_TARGET);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<String> providerEvaluation = inProcessResolver.stringEvaluation(
@@ -344,7 +373,7 @@ class InProcessResolverTest {
         flagMap.put("stringFlag", FLAG_WIH_IF_IN_TARGET);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<String> providerEvaluation = inProcessResolver.stringEvaluation(
@@ -363,7 +392,7 @@ class InProcessResolverTest {
         flagMap.put("stringFlag", FLAG_WITH_TARGETING_KEY);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when
         ProviderEvaluation<String> providerEvaluation =
@@ -382,7 +411,7 @@ class InProcessResolverTest {
         flagMap.put("targetingErrorFlag", FLAG_WIH_INVALID_TARGET);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), (connectionEvent) -> {});
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {});
 
         // when/then
         assertThrows(ParseError.class, () -> {
@@ -417,7 +446,7 @@ class InProcessResolverTest {
         flagMap.put("flag", INT_FLAG);
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), connectionEvent -> {}, "selector");
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {}, "selector");
 
         // when
         ProviderEvaluation<Integer> providerEvaluation =
@@ -437,7 +466,7 @@ class InProcessResolverTest {
         flagMap.put("flag", new FeatureFlag("stage", "loop", stringVariants, "", flagMetadata));
 
         InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap), connectionEvent -> {}, "selector");
+                getInProcessResolverWith(new MockStorage(flagMap), (event, details, metadata) -> {}, "selector");
 
         // when
         ProviderEvaluation<String> providerEvaluation =
@@ -458,8 +487,8 @@ class InProcessResolverTest {
 
         final Map<String, Object> flagSetMetadata = new HashMap<>();
         flagSetMetadata.put("flagSetMetadata", "metadata");
-        InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
+        InProcessResolver inProcessResolver = getInProcessResolverWith(
+                new MockStorage(flagMap, flagSetMetadata), (event, details, metadata) -> {}, "selector");
 
         // when
         ProviderEvaluation<String> providerEvaluation =
@@ -479,8 +508,8 @@ class InProcessResolverTest {
 
         final Map<String, Object> flagSetMetadata = new HashMap<>();
         flagSetMetadata.put("flagSetMetadata", "metadata");
-        InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
+        InProcessResolver inProcessResolver = getInProcessResolverWith(
+                new MockStorage(flagMap, flagSetMetadata), (event, details, metadata) -> {}, "selector");
 
         // when
         ProviderEvaluation<String> providerEvaluation =
@@ -503,8 +532,8 @@ class InProcessResolverTest {
 
         final Map<String, Object> flagSetMetadata = new HashMap<>();
         flagSetMetadata.put("key", "unexpected");
-        InProcessResolver inProcessResolver =
-                getInProcessResolverWith(new MockStorage(flagMap, flagSetMetadata), connectionEvent -> {}, "selector");
+        InProcessResolver inProcessResolver = getInProcessResolverWith(
+                new MockStorage(flagMap, flagSetMetadata), (event, details, metadata) -> {}, "selector");
 
         // when
         ProviderEvaluation<String> providerEvaluation =
@@ -515,15 +544,51 @@ class InProcessResolverTest {
         assertThat(providerEvaluation.getFlagMetadata().getString("key")).isEqualTo("expected");
     }
 
+    @Test
+    void testStateWatcherThreadIsCleanedUpDuringShutdown() throws Exception {
+        // given
+        final Map<String, FeatureFlag> flagMap = new HashMap<>();
+        flagMap.put("booleanFlag", BOOLEAN_FLAG);
+
+        var initialThreadCount = currentDaemonThreadCount();
+
+        var queue = new LinkedBlockingQueue<StorageStateChange>();
+        InProcessResolver inProcessResolver =
+                getInProcessResolverWith(new MockStorage(flagMap, queue), (event, details, metadata) -> {});
+
+        // when
+        inProcessResolver.init();
+        Thread stateWatcher = Thread.getAllStackTraces().keySet().stream()
+                .filter(thread -> InProcessResolver.STATE_WATCHER_THREAD_NAME.equals(thread.getName()))
+                .findFirst()
+                .orElseThrow();
+        var threadCountAfterInit = currentDaemonThreadCount();
+        var stateWatcherWasStarted = stateWatcher.isAlive();
+        inProcessResolver.shutdown();
+
+        // then
+        assertThat(stateWatcherWasStarted).isTrue();
+        assertThat(threadCountAfterInit).isGreaterThan(initialThreadCount);
+        Awaitility.await().until(() -> !stateWatcher.isAlive());
+        assertThat(currentDaemonThreadCount()).isEqualTo(initialThreadCount);
+    }
+
+    private long currentDaemonThreadCount() {
+        return Thread.getAllStackTraces().keySet().stream()
+                .filter(Thread::isDaemon)
+                .count();
+    }
+
     private InProcessResolver getInProcessResolverWith(final FlagdOptions options, final MockStorage storage)
             throws NoSuchFieldException, IllegalAccessException {
 
-        final InProcessResolver resolver = new InProcessResolver(options, connectionEvent -> {});
+        final InProcessResolver resolver = new InProcessResolver(options, (event, details, metadata) -> {});
         return injectFlagStore(resolver, storage);
     }
 
     private InProcessResolver getInProcessResolverWith(
-            final MockStorage storage, final Consumer<FlagdProviderEvent> onConnectionEvent)
+            final MockStorage storage,
+            final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent)
             throws NoSuchFieldException, IllegalAccessException {
 
         final InProcessResolver resolver =
@@ -532,7 +597,9 @@ class InProcessResolverTest {
     }
 
     private InProcessResolver getInProcessResolverWith(
-            final MockStorage storage, final Consumer<FlagdProviderEvent> onConnectionEvent, String selector)
+            final MockStorage storage,
+            final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent,
+            String selector)
             throws NoSuchFieldException, IllegalAccessException {
 
         final InProcessResolver resolver = new InProcessResolver(

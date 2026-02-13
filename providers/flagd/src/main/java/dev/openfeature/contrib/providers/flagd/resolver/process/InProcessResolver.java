@@ -4,7 +4,6 @@ import static dev.openfeature.contrib.providers.flagd.resolver.process.model.Fea
 
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.Storage;
@@ -20,13 +19,17 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import dev.openfeature.sdk.internal.TriConsumer;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -37,10 +40,15 @@ import org.apache.commons.lang3.StringUtils;
  */
 @Slf4j
 public class InProcessResolver implements Resolver {
+
+    static final String STATE_WATCHER_THREAD_NAME = "InProcessResolver.stateWatcher";
     private final Storage flagStore;
-    private final Consumer<FlagdProviderEvent> onConnectionEvent;
+    private final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
     private final Operator operator;
     private final String scope;
+    private final QueueSource queueSource;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicReference<Thread> stateWatcher = new AtomicReference<>();
 
     /**
      * Resolves flag values using
@@ -51,8 +59,10 @@ public class InProcessResolver implements Resolver {
      * @param onConnectionEvent lambda which handles changes in the
      *                          connection/stream
      */
-    public InProcessResolver(FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
-        this.flagStore = new FlagStore(getConnector(options, onConnectionEvent));
+    public InProcessResolver(
+            FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
+        this.queueSource = getQueueSource(options);
+        this.flagStore = new FlagStore(queueSource);
         this.onConnectionEvent = onConnectionEvent;
         this.operator = new Operator();
         this.scope = options.getSelector();
@@ -63,35 +73,65 @@ public class InProcessResolver implements Resolver {
      */
     public void init() throws Exception {
         flagStore.init();
-        final Thread stateWatcher = new Thread(() -> {
-            try {
-                while (true) {
-                    final StorageStateChange storageStateChange =
-                            flagStore.getStateQueue().take();
-                    switch (storageStateChange.getStorageState()) {
-                        case OK:
-                            log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
-                            onConnectionEvent.accept(new FlagdProviderEvent(
-                                    ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
-                                    storageStateChange.getChangedFlagsKeys(),
-                                    storageStateChange.getSyncMetadata()));
-                            log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
-                            break;
-                        case ERROR:
-                            onConnectionEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
-                            break;
-                        default:
-                            log.warn(String.format(
-                                    "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
-                    }
-                }
-            } catch (InterruptedException e) {
-                log.warn("Storage state watcher interrupted", e);
-                Thread.currentThread().interrupt();
-            }
-        });
+        final Thread stateWatcher = new Thread(this::stateWatcher, STATE_WATCHER_THREAD_NAME);
         stateWatcher.setDaemon(true);
+        this.stateWatcher.set(stateWatcher);
         stateWatcher.start();
+    }
+
+    private void stateWatcher() {
+        try {
+            while (!shutdown.get()) {
+                final StorageStateChange storageStateChange =
+                        flagStore.getStateQueue().take();
+                switch (storageStateChange.getStorageState()) {
+                    case OK:
+                        log.debug("onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+
+                        var eventDetails = ProviderEventDetails.builder()
+                                .flagsChanged(storageStateChange.getChangedFlagsKeys())
+                                .message("configuration changed")
+                                .build();
+
+                        onConnectionEvent.accept(
+                                ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                                eventDetails,
+                                storageStateChange.getSyncMetadata());
+
+                        log.debug("post onConnectionEvent.accept ProviderEvent.PROVIDER_CONFIGURATION_CHANGED");
+                        break;
+                    case STALE:
+                        onConnectionEvent.accept(ProviderEvent.PROVIDER_ERROR, null, null);
+                        break;
+                    case ERROR:
+                        onConnectionEvent.accept(
+                                ProviderEvent.PROVIDER_ERROR,
+                                ProviderEventDetails.builder()
+                                        .errorCode(ErrorCode.PROVIDER_FATAL)
+                                        .build(),
+                                null);
+                        break;
+                    default:
+                        log.warn(String.format(
+                                "Storage emitted unhandled status: %s", storageStateChange.getStorageState()));
+                }
+            }
+        } catch (InterruptedException e) {
+            log.debug("Storage state watcher interrupted, most likely shutdown was invoked", e);
+        }
+    }
+
+    /**
+     * Called when the provider enters error state after grace period.
+     * Attempts to reinitialize the sync connector if enabled.
+     */
+    @Override
+    public void onError() {
+        if (queueSource instanceof SyncStreamQueueSource) {
+            SyncStreamQueueSource syncConnector = (SyncStreamQueueSource) queueSource;
+            // only reinitialize if option is enabled
+            syncConnector.reinitializeChannelComponents();
+        }
     }
 
     /**
@@ -100,7 +140,17 @@ public class InProcessResolver implements Resolver {
      * @throws InterruptedException if stream can't be closed within deadline.
      */
     public void shutdown() throws InterruptedException {
+        if (!shutdown.compareAndSet(false, true)) {
+            log.debug("Shutdown already in progress or completed");
+            return;
+        }
         flagStore.shutdown();
+        stateWatcher.getAndUpdate(existing -> {
+            if (existing != null && existing.isAlive()) {
+                existing.interrupt();
+            }
+            return null;
+        });
     }
 
     /**
@@ -147,14 +197,14 @@ public class InProcessResolver implements Resolver {
                 .build();
     }
 
-    static QueueSource getConnector(final FlagdOptions options, Consumer<FlagdProviderEvent> onConnectionEvent) {
+    static QueueSource getQueueSource(final FlagdOptions options) {
         if (options.getCustomConnector() != null) {
             return options.getCustomConnector();
         }
         return options.getOfflineFlagSourcePath() != null
                         && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
-                : new SyncStreamQueueSource(options, onConnectionEvent);
+                : new SyncStreamQueueSource(options);
     }
 
     private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {

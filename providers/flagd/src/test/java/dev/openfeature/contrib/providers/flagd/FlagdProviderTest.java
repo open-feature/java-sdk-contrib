@@ -19,7 +19,6 @@ import static org.mockito.Mockito.when;
 import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.MockStorage;
 import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
@@ -35,6 +34,7 @@ import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveObjectResponse;
 import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringResponse;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.FlagValueType;
@@ -45,9 +45,12 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FatalError;
+import dev.openfeature.sdk.internal.TriConsumer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -59,9 +62,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -556,11 +560,12 @@ class FlagdProviderTest {
         flagResolver.setAccessible(true);
         flagResolver.set(provider, resolverMock);
 
-        Method onProviderEvent = FlagdProvider.class.getDeclaredMethod("onProviderEvent", FlagdProviderEvent.class);
+        Method onProviderEvent = FlagdProvider.class.getDeclaredMethod(
+                "onProviderEvent", ProviderEvent.class, ProviderEventDetails.class, Structure.class);
         onProviderEvent.setAccessible(true);
 
         doAnswer((i) -> {
-                    onProviderEvent.invoke(provider, new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
+                    onProviderEvent.invoke(provider, ProviderEvent.PROVIDER_READY, null, null);
                     return null;
                 })
                 .when(resolverMock)
@@ -596,17 +601,16 @@ class FlagdProviderTest {
         // mock a resolver
         try (MockedConstruction<InProcessResolver> mockResolver =
                 mockConstruction(InProcessResolver.class, (mock, context) -> {
-                    Consumer<FlagdProviderEvent> onConnectionEvent;
+                    TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
 
                     // get a reference to the onConnectionEvent callback
-                    onConnectionEvent =
-                            (Consumer<FlagdProviderEvent>) context.arguments().get(1);
+                    onConnectionEvent = (TriConsumer<ProviderEvent, ProviderEventDetails, Structure>)
+                            context.arguments().get(1);
 
                     // when our mock resolver initializes, it runs the passed onConnectionEvent
                     // callback
                     doAnswer(invocation -> {
-                                onConnectionEvent.accept(
-                                        new FlagdProviderEvent(ProviderEvent.PROVIDER_READY, metadata));
+                                onConnectionEvent.accept(ProviderEvent.PROVIDER_READY, null, metadata);
                                 return null;
                             })
                             .when(mock)
@@ -637,17 +641,16 @@ class FlagdProviderTest {
         // mock a resolver
         try (MockedConstruction<InProcessResolver> mockResolver =
                 mockConstruction(InProcessResolver.class, (mock, context) -> {
-                    Consumer<FlagdProviderEvent> onConnectionEvent;
+                    TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent;
 
                     // get a reference to the onConnectionEvent callback
-                    onConnectionEvent =
-                            (Consumer<FlagdProviderEvent>) context.arguments().get(1);
+                    onConnectionEvent = (TriConsumer<ProviderEvent, ProviderEventDetails, Structure>)
+                            context.arguments().get(1);
 
                     // when our mock resolver initializes, it runs the passed onConnectionEvent
                     // callback
                     doAnswer(invocation -> {
-                                onConnectionEvent.accept(
-                                        new FlagdProviderEvent(ProviderEvent.PROVIDER_READY, metadata));
+                                onConnectionEvent.accept(ProviderEvent.PROVIDER_READY, null, metadata);
                                 return null;
                             })
                             .when(mock)
@@ -677,6 +680,38 @@ class FlagdProviderTest {
         }
     }
 
+    @Test
+    void initAfterFatalPropagatesErrorEvent() {
+        // given
+        final var ctx = new ImmutableContext();
+        final var metadata = new MutableStructure();
+
+        // mock a resolver
+        final var onEvent = new AtomicReference<TriConsumer<ProviderEvent, ProviderEventDetails, Structure>>();
+        try (var mockResolver = mockConstruction(
+                InProcessResolver.class,
+                (mock, context) -> onEvent.set((TriConsumer<ProviderEvent, ProviderEventDetails, Structure>)
+                        context.arguments().get(1)))) {
+
+            FlagdProvider provider = new FlagdProvider(FlagdOptions.builder()
+                    .resolverType(Config.Resolver.IN_PROCESS)
+                    .build());
+
+            onEvent.get()
+                    .accept(
+                            ProviderEvent.PROVIDER_ERROR,
+                            ProviderEventDetails.builder()
+                                    .message("msg")
+                                    .errorCode(ErrorCode.PROVIDER_FATAL)
+                                    .build(),
+                            metadata);
+
+            var error = Assertions.assertThrows(FatalError.class, () -> provider.initialize(ctx));
+            Assertions.assertEquals("Initialization failed due to a fatal error: msg", error.getMessage());
+            Assertions.assertEquals(ErrorCode.PROVIDER_FATAL, error.getErrorCode());
+        }
+    }
+
     // test helper
     // create provider with given grpc provider and state supplier
     private FlagdProvider createProvider(ChannelConnector connector, ServiceBlockingStub mockBlockingStub) {
@@ -690,7 +725,7 @@ class FlagdProviderTest {
     private FlagdProvider createProvider(
             ChannelConnector connector, Cache cache, ServiceStub mockStub, ServiceBlockingStub mockBlockingStub) {
         final FlagdOptions flagdOptions = FlagdOptions.builder().build();
-        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (connectionEvent) -> {});
+        final RpcResolver grpcResolver = new RpcResolver(flagdOptions, cache, (event, details, metadata) -> {});
 
         try {
             Field resolver = RpcResolver.class.getDeclaredField("connector");

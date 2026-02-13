@@ -15,7 +15,7 @@ import okhttp3.Interceptor;
 
 /** FlagsmithProviderOptions contains the options to initialise the Flagsmith provider. */
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification = "The headers need to be mutable")
 @Builder(toBuilder = true)
 @Getter
@@ -118,7 +118,8 @@ public class FlagsmithProviderOptions {
      * Set environment refresh rate with polling manager. Only needed when local evaluation is true.
      * Optional. Default: 60
      */
-    private int environmentRefreshIntervalSeconds = 60;
+    @Builder.Default
+    private Integer environmentRefreshIntervalSeconds = 60;
 
     /**
      * Controls whether Flag Analytics data is sent to the Flagsmith API See

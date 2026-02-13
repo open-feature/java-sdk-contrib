@@ -11,7 +11,6 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
-import dev.openfeature.contrib.providers.flagd.resolver.common.FlagdProviderEvent;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
@@ -27,16 +26,20 @@ import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringRequest;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import dev.openfeature.sdk.internal.TriConsumer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
@@ -46,7 +49,6 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,14 +62,16 @@ import lombok.extern.slf4j.Slf4j;
 public final class RpcResolver implements Resolver {
     private static final int QUEUE_SIZE = 5;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean successfulConnection = new AtomicBoolean(false);
     private final ChannelConnector connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
     private final FlagdOptions options;
     private final LinkedBlockingQueue<StreamResponseModel<EventStreamResponse>> incomingQueue;
-    private final Consumer<FlagdProviderEvent> onProviderEvent;
+    private final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent;
     private final ServiceStub stub;
     private final ServiceBlockingStub blockingStub;
+    private final List<String> fatalStatusCodes;
 
     /**
      * Resolves flag values using
@@ -79,23 +83,26 @@ public final class RpcResolver implements Resolver {
      * @param onProviderEvent lambda which handles changes in the connection/stream
      */
     public RpcResolver(
-            final FlagdOptions options, final Cache cache, final Consumer<FlagdProviderEvent> onProviderEvent) {
+            final FlagdOptions options,
+            final Cache cache,
+            final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent) {
         this.cache = cache;
         this.strategy = ResolveFactory.getStrategy(options);
         this.options = options;
         incomingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        this.connector = new ChannelConnector(options, onProviderEvent, ChannelBuilder.nettyChannel(options));
+        this.connector = new ChannelConnector(options, ChannelBuilder.nettyChannel(options));
         this.onProviderEvent = onProviderEvent;
         this.stub = ServiceGrpc.newStub(this.connector.getChannel()).withWaitForReady();
         this.blockingStub =
                 ServiceGrpc.newBlockingStub(this.connector.getChannel()).withWaitForReady();
+        this.fatalStatusCodes = options.getFatalStatusCodes();
     }
 
     // testing only
     protected RpcResolver(
             final FlagdOptions options,
             final Cache cache,
-            final Consumer<FlagdProviderEvent> onProviderEvent,
+            final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent,
             ServiceStub mockStub,
             ServiceBlockingStub mockBlockingStub,
             ChannelConnector connector) {
@@ -107,14 +114,13 @@ public final class RpcResolver implements Resolver {
         this.onProviderEvent = onProviderEvent;
         this.stub = mockStub;
         this.blockingStub = mockBlockingStub;
+        this.fatalStatusCodes = options.getFatalStatusCodes();
     }
 
     /**
      * Initialize RpcResolver resolver.
      */
     public void init() throws Exception {
-        this.connector.initialize();
-
         Thread listener = new Thread(() -> {
             try {
                 observeEventStream();
@@ -343,20 +349,35 @@ public final class RpcResolver implements Resolver {
                 final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();
                 if (taken.isComplete()) {
                     log.debug("Event stream completed, will reconnect");
-                    this.handleErrorOrComplete();
+                    this.handleErrorOrComplete(false);
                     // The stream is complete, we still try to reconnect
                     break;
                 }
 
                 Throwable streamException = taken.getError();
                 if (streamException != null) {
-                    log.debug(
-                            "Exception in event stream connection, streamException {}, will reconnect",
-                            streamException);
-                    this.handleErrorOrComplete();
+                    if (streamException instanceof StatusRuntimeException
+                            && fatalStatusCodes.contains(((StatusRuntimeException) streamException)
+                                    .getStatus()
+                                    .getCode()
+                                    .name())
+                            && !successfulConnection.get()) {
+                        log.debug(
+                                "Fatal error code received: {}",
+                                ((StatusRuntimeException) streamException)
+                                        .getStatus()
+                                        .getCode());
+                        this.handleErrorOrComplete(true);
+                    } else {
+                        log.debug(
+                                "Exception in event stream connection, streamException {}, will reconnect",
+                                streamException);
+                        this.handleErrorOrComplete(false);
+                    }
                     break;
                 }
 
+                successfulConnection.set(true);
                 final EventStreamResponse response = taken.getResponse();
                 log.debug("Got stream response: {}", response);
 
@@ -397,7 +418,10 @@ public final class RpcResolver implements Resolver {
             changedFlags.forEach(this.cache::remove);
         }
 
-        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, changedFlags));
+        onProviderEvent.accept(
+                ProviderEvent.PROVIDER_CONFIGURATION_CHANGED,
+                ProviderEventDetails.builder().flagsChanged(changedFlags).build(),
+                null);
     }
 
     /**
@@ -405,16 +429,18 @@ public final class RpcResolver implements Resolver {
      */
     private void handleProviderReadyEvent() {
         log.debug("Emitting provider ready event");
-        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_READY));
+        onProviderEvent.accept(ProviderEvent.PROVIDER_READY, null, null);
     }
 
     /**
      * Handles provider error events by clearing the cache (if enabled) and notifying listeners of the error.
      */
-    private void handleErrorOrComplete() {
+    private void handleErrorOrComplete(boolean fatal) {
         log.debug("Emitting provider error event");
+        ErrorCode errorCode = fatal ? ErrorCode.PROVIDER_FATAL : ErrorCode.GENERAL;
+        var details = ProviderEventDetails.builder().errorCode(errorCode).build();
 
         // complete is an error, logically...even if the server went down gracefully we need to reconnect.
-        onProviderEvent.accept(new FlagdProviderEvent(ProviderEvent.PROVIDER_ERROR));
+        onProviderEvent.accept(ProviderEvent.PROVIDER_ERROR, details, null);
     }
 }
