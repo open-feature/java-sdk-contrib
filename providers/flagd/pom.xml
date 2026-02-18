@@ -20,6 +20,8 @@
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
         <com.vmlens.version>1.2.24</com.vmlens.version>
+        <!-- Match any core version locally- at release, CI sets exact version: -Dflagd-core.version=$(cat tools/flagd-core/version.txt) -->
+        <flagd-core.version>[0.0.1,)</flagd-core.version>
     </properties>
 
     <name>flagd</name>
@@ -37,6 +39,13 @@
 
     <dependencies>
         <!-- we inherent dev.openfeature.javasdk and the test dependencies from the parent pom -->
+
+        <!-- flagd core evaluation logic -->
+        <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>flagd-core</artifactId>
+            <version>${flagd-core.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -64,37 +73,6 @@
         <!-- grpc-netty-shaded bundles netty with epoll support for unix sockets -->
 
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.20.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.jamsesso</groupId>
-            <artifactId>json-logic-java</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-
-        <!-- Override gson usage of json-logic-java-->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.13.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.networknt</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>1.5.9</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-lang3</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
             <!-- necessary for Java 9+ -->
             <groupId>org.apache.tomcat</groupId>
             <artifactId>annotations-api</artifactId>
@@ -109,27 +87,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.20.0</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
             <version>1.56.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.semver4j</groupId>
-            <artifactId>semver4j</artifactId>
-            <version>5.8.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <version>1.20.0</version>
         </dependency>
 
         <dependency>
@@ -213,7 +173,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <!-- run: git submodule update \-\-init schemas -->
+                            <!-- run: git submodule update \-\-init schemas for protos -->
                             <executable>git</executable>
                             <arguments>
                                 <argument>submodule</argument>
@@ -221,31 +181,6 @@
                                 <argument>--init</argument>
                                 <argument>schemas</argument>
                             </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
-                <executions>
-                    <execution>
-                        <id>copy-json-schemas</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${basedir}/src/main/resources/flagd/schemas/</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${basedir}/schemas/json/</directory>
-                                    <includes>
-                                        <include>flags.json</include>
-                                        <include>targeting.json</include>
-                                    </includes>
-                                </resource>
-                            </resources>
                         </configuration>
                     </execution>
                 </executions>

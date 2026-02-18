@@ -5,13 +5,14 @@ import static org.mockito.Mockito.mock;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
+import dev.openfeature.contrib.providers.flagd.resolver.process.MockEvaluator;
 import dev.openfeature.contrib.providers.flagd.resolver.process.MockStorage;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageState;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
+import dev.openfeature.contrib.tools.flagd.core.model.FeatureFlag;
 import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -75,6 +76,11 @@ class FlagdTestUtils {
             final Field flagStore = InProcessResolver.class.getDeclaredField("flagStore");
             flagStore.setAccessible(true);
             flagStore.set(resolver, mockStorage);
+
+            MockEvaluator mockEvaluator = new MockEvaluator(mockStorage);
+            final Field evaluatorField = InProcessResolver.class.getDeclaredField("evaluator");
+            evaluatorField.setAccessible(true);
+            evaluatorField.set(resolver, mockEvaluator);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }

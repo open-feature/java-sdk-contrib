@@ -1,39 +1,40 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.INVALID_FLAG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_LONG;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.VALID_SIMPLE;
-import static dev.openfeature.contrib.providers.flagd.resolver.process.TestUtils.getFlagsFromResource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import dev.openfeature.contrib.tools.flagd.core.FlagdCore;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class FlagStoreTest {
+
+    // Minimal valid flag configs for testing state transitions
+    private static final String VALID_FLAGS_1 =
+            "{\"flags\":{\"flag1\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"}}}";
+    private static final String VALID_FLAGS_2 =
+            "{\"flags\":{\"flag1\":{\"state\":\"ENABLED\",\"variants\":{\"on\":true,\"off\":false},\"defaultVariant\":\"on\"},\"flag2\":{\"state\":\"ENABLED\",\"variants\":{\"a\":\"x\"},\"defaultVariant\":\"a\"}}}";
+    private static final String INVALID_FLAGS = "not valid json";
 
     @Test
     void connectorHandling() throws Exception {
         final int maxDelay = 1000;
 
         final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<>();
-        FlagStore store = new FlagStore(new MockConnector(payload), true);
+        FlagStore store = new FlagStore(new MockConnector(payload), new FlagdCore(true));
 
         store.init();
         final BlockingQueue<StorageStateChange> states = store.getStateQueue();
 
-        // OK for simple flag
+        // OK for valid flags
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, VALID_FLAGS_1));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
@@ -42,16 +43,16 @@ class FlagStoreTest {
 
         // STALE for invalid flag
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(INVALID_FLAG)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, INVALID_FLAGS));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
             assertEquals(StorageState.STALE, states.take().getStorageState());
         });
 
-        // OK again for next payload
+        // OK again for next valid payload
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, VALID_FLAGS_2));
         });
 
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
@@ -79,28 +80,24 @@ class FlagStoreTest {
     public void changedFlags() throws Exception {
         final int maxDelay = 500;
         final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<>();
-        FlagStore store = new FlagStore(new MockConnector(payload), true);
+        FlagStore store = new FlagStore(new MockConnector(payload), new FlagdCore(true));
         store.init();
         final BlockingQueue<StorageStateChange> storageStateDTOS = store.getStateQueue();
 
+        // First payload - flag1 is new
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_SIMPLE)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, VALID_FLAGS_1));
         });
-        // flags changed for first time
         assertEquals(
-                FlagParser.parseString(getFlagsFromResource(VALID_SIMPLE), true).getFlags().keySet().stream()
-                        .collect(Collectors.toList()),
-                storageStateDTOS.take().getChangedFlagsKeys());
+                new HashSet<>(Arrays.asList("flag1")),
+                new HashSet<>(storageStateDTOS.take().getChangedFlagsKeys()));
 
+        // Second payload - flag2 is new, flag1 unchanged
         assertTimeoutPreemptively(Duration.ofMillis(maxDelay), () -> {
-            payload.offer(new QueuePayload(QueuePayloadType.DATA, getFlagsFromResource(VALID_LONG)));
+            payload.offer(new QueuePayload(QueuePayloadType.DATA, VALID_FLAGS_2));
         });
-        Map<String, FeatureFlag> expectedChangedFlags =
-                FlagParser.parseString(getFlagsFromResource(VALID_LONG), true).getFlags();
-        expectedChangedFlags.remove("myBoolFlag");
-        // flags changed from initial VALID_SIMPLE flag, as a set because we don't care about order
         assertEquals(
-                expectedChangedFlags.keySet().stream().collect(Collectors.toSet()),
+                new HashSet<>(Arrays.asList("flag2")),
                 new HashSet<>(storageStateDTOS.take().getChangedFlagsKeys()));
     }
 }

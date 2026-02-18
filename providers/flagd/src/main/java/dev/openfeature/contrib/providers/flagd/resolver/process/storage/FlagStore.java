@@ -3,25 +3,16 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 import static dev.openfeature.contrib.providers.flagd.resolver.common.Convert.convertProtobufMapToStructure;
 
 import com.google.protobuf.Struct;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FeatureFlag;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.FlagParser;
-import dev.openfeature.contrib.providers.flagd.resolver.process.model.ParsingResult;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.contrib.tools.flagd.api.Evaluator;
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Feature flag storage. */
@@ -30,25 +21,15 @@ import lombok.extern.slf4j.Slf4j;
         value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagStore implements Storage {
-    private final ReentrantReadWriteLock sync = new ReentrantReadWriteLock();
-    private final ReadLock readLock = sync.readLock();
-    private final WriteLock writeLock = sync.writeLock();
-
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(4);
-    private final Map<String, FeatureFlag> flags = new HashMap<>();
-    private final Map<String, Object> flagSetMetadata = new HashMap<>();
 
     private final QueueSource connector;
-    private final boolean throwIfInvalid;
+    private final Evaluator evaluator;
 
-    public FlagStore(final QueueSource connector) {
-        this(connector, false);
-    }
-
-    public FlagStore(final QueueSource connector, final boolean throwIfInvalid) {
+    public FlagStore(final QueueSource connector, final Evaluator evaluator) {
         this.connector = connector;
-        this.throwIfInvalid = throwIfInvalid;
+        this.evaluator = evaluator;
     }
 
     /** Initialize storage layer. */
@@ -81,21 +62,6 @@ public class FlagStore implements Storage {
         connector.shutdown();
     }
 
-    /** Retrieve flag for the given key and the flag set metadata. */
-    @Override
-    public StorageQueryResult getFlag(final String key) {
-        readLock.lock();
-        FeatureFlag flag;
-        Map<String, Object> metadata;
-        try {
-            flag = flags.get(key);
-            metadata = new HashMap<>(flagSetMetadata);
-        } finally {
-            readLock.unlock();
-        }
-        return new StorageQueryResult(flag, metadata);
-    }
-
     /** Retrieve blocking queue to check storage status. */
     @Override
     public BlockingQueue<StorageStateChange> getStateQueue() {
@@ -110,22 +76,10 @@ public class FlagStore implements Storage {
             switch (payload.getType()) {
                 case DATA:
                     try {
-                        List<String> changedFlagsKeys = Collections.emptyList();
-                        ParsingResult parsingResult = FlagParser.parseString(payload.getFlagData(), throwIfInvalid);
-                        Map<String, FeatureFlag> flagMap = parsingResult.getFlags();
-                        Map<String, Object> flagSetMetadataMap = parsingResult.getFlagSetMetadata();
-
+                        // Delegate flag parsing to the evaluator
+                        List<String> changedFlagsKeys = evaluator.setFlagsAndGetChangedKeys(payload.getFlagData());
                         Structure syncContext = parseSyncContext(payload.getSyncContext());
-                        writeLock.lock();
-                        try {
-                            changedFlagsKeys = getChangedFlagsKeys(flagMap);
-                            flags.clear();
-                            flags.putAll(flagMap);
-                            flagSetMetadata.clear();
-                            flagSetMetadata.putAll(flagSetMetadataMap);
-                        } finally {
-                            writeLock.unlock();
-                        }
+
                         if (!stateBlockingQueue.offer(
                                 new StorageStateChange(StorageState.OK, changedFlagsKeys, syncContext))) {
                             log.warn("Failed to convey OK status, queue is full");
@@ -166,28 +120,5 @@ public class FlagStore implements Storage {
             }
         }
         return new ImmutableStructure();
-    }
-
-    private List<String> getChangedFlagsKeys(Map<String, FeatureFlag> newFlags) {
-        Map<String, FeatureFlag> changedFlags = new HashMap<>();
-        Map<String, FeatureFlag> addedFeatureFlags = new HashMap<>();
-        Map<String, FeatureFlag> removedFeatureFlags = new HashMap<>();
-        Map<String, FeatureFlag> updatedFeatureFlags = new HashMap<>();
-        newFlags.forEach((key, value) -> {
-            if (!flags.containsKey(key)) {
-                addedFeatureFlags.put(key, value);
-            } else if (flags.containsKey(key) && !value.equals(flags.get(key))) {
-                updatedFeatureFlags.put(key, value);
-            }
-        });
-        flags.forEach((key, value) -> {
-            if (!newFlags.containsKey(key)) {
-                removedFeatureFlags.put(key, value);
-            }
-        });
-        changedFlags.putAll(addedFeatureFlags);
-        changedFlags.putAll(removedFeatureFlags);
-        changedFlags.putAll(updatedFeatureFlags);
-        return changedFlags.keySet().stream().collect(Collectors.toList());
     }
 }
