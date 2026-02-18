@@ -18,7 +18,9 @@ class FlagdProviderSyncResources {
     @Setter
     private volatile ProviderEvent previousEvent;
 
+    @Setter
     private volatile boolean isFatal;
+
     private volatile ProviderEventDetails fatalProviderEventDetails;
 
     private volatile EvaluationContext enrichedContext = new ImmutableContext();
