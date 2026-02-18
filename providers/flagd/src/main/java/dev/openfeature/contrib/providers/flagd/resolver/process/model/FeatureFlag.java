@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -39,7 +39,7 @@ public class FeatureFlag {
         this.variants = variants;
         this.targeting = targeting;
         if (metadata == null) {
-            this.metadata = new HashMap<>();
+            this.metadata = Collections.emptyMap();
         } else {
             this.metadata = metadata;
         }
@@ -51,7 +51,7 @@ public class FeatureFlag {
         this.defaultVariant = defaultVariant;
         this.variants = variants;
         this.targeting = targeting;
-        this.metadata = new HashMap<>();
+        this.metadata = Collections.emptyMap();
     }
 
     /** Get targeting rule of the flag. */

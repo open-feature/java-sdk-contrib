@@ -18,7 +18,9 @@ class FlagdProviderSyncResources {
     @Setter
     private volatile ProviderEvent previousEvent;
 
+    @Setter
     private volatile boolean isFatal;
+
     private volatile ProviderEventDetails fatalProviderEventDetails;
 
     private volatile EvaluationContext enrichedContext = new ImmutableContext();
@@ -36,7 +38,7 @@ class FlagdProviderSyncResources {
      * @return true iff this was the first call to {@code initialize()}
      */
     public synchronized boolean initialize() {
-        if (this.isInitialized) {
+        if (this.isInitialized || this.isShutDown || this.isFatal) {
             return false;
         }
         this.isInitialized = true;
