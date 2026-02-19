@@ -12,7 +12,7 @@
   "providers/multiprovider": "0.0.3",
   "providers/ofrep": "0.0.1",
   "tools/junit-openfeature": "0.2.1",
-  "tools/flagd-http-connector": "0.0.4",
+  "tools/flagd-http-connector": "0.0.5",
   "tools/flagd-api": "0.0.1",
   "tools/flagd-core": "0.0.1",
   ".": "1.0.0"
