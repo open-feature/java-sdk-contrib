@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v1.0.0...dev.openfeature.contrib.parent-v1.1.0) (2026-02-19)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** fix wrong environment variable and test execution ([#1589](https://github.com/open-feature/java-sdk-contrib/issues/1589)) ([e1d8e54](https://github.com/open-feature/java-sdk-contrib/commit/e1d8e54cb15f7e9f27626c60cebded3690a84698))
+* **go-feature-flag:** Fix javadoc generation blocking release please ([#1592](https://github.com/open-feature/java-sdk-contrib/issues/1592)) ([7a3a8f4](https://github.com/open-feature/java-sdk-contrib/commit/7a3a8f4f11b1750c02e72d5f1b2fd616823f3d94))
+* **security:** update dependency org.assertj:assertj-core to v3.27.7 [security] ([#1690](https://github.com/open-feature/java-sdk-contrib/issues/1690)) ([257083e](https://github.com/open-feature/java-sdk-contrib/commit/257083e83a94f82a77173e801c53f1523216f102))
+
+
+### ✨ New Features
+
+* Add Optimizely provider ([#1510](https://github.com/open-feature/java-sdk-contrib/issues/1510)) ([482daea](https://github.com/open-feature/java-sdk-contrib/commit/482daea27e123c768ee7ef093b11836a608291cf))
+* compile go-feature-flag to Java bytecode ([#1628](https://github.com/open-feature/java-sdk-contrib/issues/1628)) ([129c9bd](https://github.com/open-feature/java-sdk-contrib/commit/129c9bdd130b3a193cf641c7ab02b43b2567b9df))
+* extract core flagd evaluation and API modules ([#1696](https://github.com/open-feature/java-sdk-contrib/issues/1696)) ([fe98d88](https://github.com/open-feature/java-sdk-contrib/commit/fe98d88361a5c42ea6753e0828b66e0c6356c81a))
+* ofrep provider ([#1429](https://github.com/open-feature/java-sdk-contrib/issues/1429)) ([a33ef58](https://github.com/open-feature/java-sdk-contrib/commit/a33ef5838ac0876bdbd158e08be775a8bacdda6f))
+
 ## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.parent-v0.2.2...dev.openfeature.contrib.parent-v1.0.0) (2025-07-09)
 
 
