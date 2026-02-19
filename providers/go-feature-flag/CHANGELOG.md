@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.1...dev.openfeature.contrib.providers.go-feature-flag-v1.1.2) (2026-02-19)
+
+
+### 🐛 Bug Fixes
+
+* **gofeatureflag:** Added Locale.ENGLISH to SimpleDateFormat for parsing the Last-Modified HTTP header ([#1626](https://github.com/open-feature/java-sdk-contrib/issues/1626)) ([ca71995](https://github.com/open-feature/java-sdk-contrib/commit/ca719956f0c6980162bd5ebb0cc78255cd6768f8))
+
 ## [1.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.0...dev.openfeature.contrib.providers.go-feature-flag-v1.1.1) (2026-01-15)
 
 
