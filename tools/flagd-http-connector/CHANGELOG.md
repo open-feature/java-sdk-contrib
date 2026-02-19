@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.4...dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.5) (2026-02-19)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency org.apache.commons:commons-lang3 to v3.18.0 [security] ([#1512](https://github.com/open-feature/java-sdk-contrib/issues/1512)) ([d178006](https://github.com/open-feature/java-sdk-contrib/commit/d178006411b91ff05376ac8f604c5282f2f19383))
+
 ## [0.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.3...dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.4) (2025-07-09)
 
 
