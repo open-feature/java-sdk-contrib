@@ -15,5 +15,6 @@
   "tools/flagd-http-connector": "0.0.4",
   "tools/flagd-api": "0.0.1",
   "tools/flagd-core": "0.0.1",
-  ".": "1.0.0"
+  ".": "1.0.0",
+  "providers/optimizely": "1.0.0"
 }
