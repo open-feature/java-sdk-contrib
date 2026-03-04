@@ -56,6 +56,11 @@ public class ChannelBuilder {
                                             {
                                                 put("service", "flagd.evaluation.v1.Service");
                                             }
+                                        },
+                                        new HashMap() {
+                                            {
+                                                put("service", "flagd.evaluation.v2.Service");
+                                            }
                                         }));
                         put("retryPolicy", new HashMap() {
                             {

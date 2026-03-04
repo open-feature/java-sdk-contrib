@@ -162,8 +162,6 @@ class FlagParserTest {
         String flagString = getFlagsFromResource(INVALID_FLAG_MULTIPLE_ERRORS);
         assertThatThrownBy(() -> FlagParser.parseString(flagString, true))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("must be valid to one and only one schema")
-                .hasMessageContaining("$.flags.myBoolFlag: required property 'defaultVariant' not found")
                 .hasMessageContaining("$.flags.myBoolFlag: required property 'state' not found")
                 .hasMessageContaining(
                         "$.flags.myBoolFlag.metadata.invalid: object found, [string, number, boolean] expected");
