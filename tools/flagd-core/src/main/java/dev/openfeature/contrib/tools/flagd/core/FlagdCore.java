@@ -273,7 +273,7 @@ public class FlagdCore implements Evaluator {
             addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
         }
 
-        if (flag != null && flag.getTargeting() != null) {
+        if (flag != null && flag.getMetadata() != null) {
             for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
                 addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
             }
