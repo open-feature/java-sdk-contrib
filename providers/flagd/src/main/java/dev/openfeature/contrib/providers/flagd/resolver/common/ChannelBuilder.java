@@ -23,6 +23,7 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -47,21 +48,9 @@ public class ChannelBuilder {
                         put(
                                 "name",
                                 Arrays.asList(
-                                        new HashMap() {
-                                            {
-                                                put("service", "flagd.sync.v1.FlagSyncService");
-                                            }
-                                        },
-                                        new HashMap() {
-                                            {
-                                                put("service", "flagd.evaluation.v1.Service");
-                                            }
-                                        },
-                                        new HashMap() {
-                                            {
-                                                put("service", "flagd.evaluation.v2.Service");
-                                            }
-                                        }));
+                                        Collections.singletonMap("service", "flagd.sync.v1.FlagSyncService"),
+                                        Collections.singletonMap("service", "flagd.evaluation.v1.Service"),
+                                        Collections.singletonMap("service", "flagd.evaluation.v2.Service")));
                         put("retryPolicy", new HashMap() {
                             {
                                 // 1 + 2 + 4
