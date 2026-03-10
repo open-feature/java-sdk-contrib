@@ -144,7 +144,8 @@ class FlagdCoreTest {
 
         assertThatNoException().isThrownBy(() -> {
             flagdCore.setFlags(configWithNullMetadata);
-            ProviderEvaluation<Boolean> result = flagdCore.resolveBooleanValue("nullMetadataFlag", new ImmutableContext());
+            ProviderEvaluation<Boolean> result =
+                    flagdCore.resolveBooleanValue("nullMetadataFlag", new ImmutableContext());
             assertThat(result.getFlagMetadata()).isNotNull();
         });
     }
