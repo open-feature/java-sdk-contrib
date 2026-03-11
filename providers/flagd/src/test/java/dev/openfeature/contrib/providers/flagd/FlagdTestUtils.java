@@ -13,7 +13,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import dev.openfeature.contrib.tools.flagd.core.model.FeatureFlag;
-import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
+import dev.openfeature.flagd.grpc.evaluation.v2.ServiceGrpc;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;

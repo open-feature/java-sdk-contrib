@@ -14,3 +14,7 @@ target
 
 # IntelliJ files
 *.iml
+# Eclipse IDE settings
+.settings/
+.classpath
+.project
