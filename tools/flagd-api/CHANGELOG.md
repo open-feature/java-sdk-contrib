@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapi-v0.0.2...dev.openfeature.contrib.tools.flagdapi-v0.1.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* graceful fallback to code default when no default variant resolved ([#1707](https://github.com/open-feature/java-sdk-contrib/issues/1707))
+
+### ✨ New Features
+
+* graceful fallback to code default when no default variant resolved ([#1707](https://github.com/open-feature/java-sdk-contrib/issues/1707)) ([71fd7d0](https://github.com/open-feature/java-sdk-contrib/commit/71fd7d052c87da24a657cc39bd91ae9be64245b9))
+
 ## [0.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapi-v0.0.1...dev.openfeature.contrib.tools.flagdapi-v0.0.2) (2026-02-19)
 
 
