@@ -49,11 +49,18 @@ public class InProcessResolver implements Resolver {
      */
     public InProcessResolver(
             FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
+        Evaluator evaluator = options.getEvaluator();
+        if (evaluator == null) {
+            evaluator = new FlagdCore();
+        }
         this.queueSource = getQueueSource(options);
-        Evaluator flagdCore = new FlagdCore();
-        this.evaluator = flagdCore;
-        this.flagStore = new FlagStore(queueSource, flagdCore);
+        this.evaluator = evaluator;
+        this.flagStore = new FlagStore(queueSource, evaluator);
         this.onConnectionEvent = onConnectionEvent;
+    }
+
+    Evaluator getEvaluator() {
+        return evaluator;
     }
 
     /**
