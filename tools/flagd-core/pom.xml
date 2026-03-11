@@ -35,7 +35,7 @@
         <dependency>
             <groupId>dev.openfeature.contrib.tools</groupId>
             <artifactId>flagd-api</artifactId>
-            <version>0.0.2</version>
+            <version>0.1.0</version>
         </dependency>
 
         <dependency>
@@ -130,7 +130,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>3.5.0</version>
                 <executions>
                     <execution>
                         <id>copy-json-schemas</id>
