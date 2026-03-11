@@ -21,7 +21,10 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +51,11 @@ public class SyncStreamQueueSource implements QueueSource {
     private final FlagdOptions options;
     private final BlockingQueue<QueuePayload> outgoingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final List<String> fatalStatusCodes;
+    private final ScheduledExecutorService retryScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "flagd-sync-retry-scheduler");
+        t.setDaemon(true);
+        return t;
+    });
     private volatile GrpcComponents grpcComponents;
 
     /**
@@ -143,9 +151,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
     /** Initialize sync stream connector. */
     public void init() throws Exception {
-        Thread listener = new Thread(this::observeSyncStream);
-        listener.setDaemon(true);
-        listener.start();
+        retryScheduler.execute(this::observeSyncStream);
     }
 
     /** Get blocking queue to obtain payloads exposed by this connector. */
@@ -167,6 +173,7 @@ public class SyncStreamQueueSource implements QueueSource {
             return;
         }
 
+        retryScheduler.shutdownNow();
         grpcComponents.channelConnector.shutdown();
     }
 
@@ -181,12 +188,12 @@ public class SyncStreamQueueSource implements QueueSource {
             try {
                 if (shouldThrottle.getAndSet(false)) {
                     log.debug("Previous stream ended with error, waiting {} ms before retry", this.maxBackoffMs);
-                    Thread.sleep(this.maxBackoffMs);
-
-                    // Check shutdown again after sleep to avoid unnecessary work
-                    if (shutdown.get()) {
-                        break;
+                    try {
+                        retryScheduler.schedule(this::observeSyncStream, this.maxBackoffMs, TimeUnit.MILLISECONDS);
+                    } catch (RejectedExecutionException e) {
+                        log.debug("Retry scheduling rejected, most likely shutdown was invoked", e);
                     }
+                    return;
                 }
 
                 log.debug("Initializing sync stream request");
@@ -228,7 +235,8 @@ public class SyncStreamQueueSource implements QueueSource {
                     shouldThrottle.set(true);
                 }
             } catch (InterruptedException ie) {
-                log.debug("Stream loop interrupted, most likely shutdown was invoked", ie);
+                log.debug("Stream observer interrupted, most likely shutdown was invoked", ie);
+                Thread.currentThread().interrupt();
             }
         }
 
