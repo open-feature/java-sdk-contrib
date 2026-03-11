@@ -174,6 +174,7 @@ public class SyncStreamQueueSource implements QueueSource {
         }
 
         retryScheduler.shutdownNow();
+        retryScheduler.awaitTermination(deadline, TimeUnit.MILLISECONDS);
         grpcComponents.channelConnector.shutdown();
     }
 
