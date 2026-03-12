@@ -185,5 +185,4 @@ public class InProcessResolver implements Resolver {
                 ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
                 : new SyncStreamQueueSource(options);
     }
-
 }
