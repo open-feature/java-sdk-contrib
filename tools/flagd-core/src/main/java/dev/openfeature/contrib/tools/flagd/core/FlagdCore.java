@@ -144,28 +144,30 @@ public class FlagdCore implements Evaluator {
     }
 
     @Override
-    public ProviderEvaluation<Boolean> resolveBooleanValue(String flagKey, EvaluationContext ctx) {
-        return resolve(Boolean.class, flagKey, ctx);
+    public ProviderEvaluation<Boolean> resolveBooleanValue(
+            String flagKey, Boolean defaultValue, EvaluationContext ctx) {
+        return resolve(Boolean.class, flagKey, defaultValue, ctx);
     }
 
     @Override
-    public ProviderEvaluation<String> resolveStringValue(String flagKey, EvaluationContext ctx) {
-        return resolve(String.class, flagKey, ctx);
+    public ProviderEvaluation<String> resolveStringValue(String flagKey, String defaultValue, EvaluationContext ctx) {
+        return resolve(String.class, flagKey, defaultValue, ctx);
     }
 
     @Override
-    public ProviderEvaluation<Integer> resolveIntegerValue(String flagKey, EvaluationContext ctx) {
-        return resolve(Integer.class, flagKey, ctx);
+    public ProviderEvaluation<Integer> resolveIntegerValue(
+            String flagKey, Integer defaultValue, EvaluationContext ctx) {
+        return resolve(Integer.class, flagKey, defaultValue, ctx);
     }
 
     @Override
-    public ProviderEvaluation<Double> resolveDoubleValue(String flagKey, EvaluationContext ctx) {
-        return resolve(Double.class, flagKey, ctx);
+    public ProviderEvaluation<Double> resolveDoubleValue(String flagKey, Double defaultValue, EvaluationContext ctx) {
+        return resolve(Double.class, flagKey, defaultValue, ctx);
     }
 
     @Override
-    public ProviderEvaluation<Value> resolveObjectValue(String flagKey, EvaluationContext ctx) {
-        final ProviderEvaluation<Object> evaluation = resolve(Object.class, flagKey, ctx);
+    public ProviderEvaluation<Value> resolveObjectValue(String flagKey, Value defaultValue, EvaluationContext ctx) {
+        final ProviderEvaluation<Object> evaluation = resolve(Object.class, flagKey, defaultValue, ctx);
 
         return ProviderEvaluation.<Value>builder()
                 .value(Value.objectToValue(evaluation.getValue()))
@@ -177,7 +179,7 @@ public class FlagdCore implements Evaluator {
                 .build();
     }
 
-    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, EvaluationContext ctx) {
+    private <T> ProviderEvaluation<T> resolve(Class<T> type, String key, T defaultValue, EvaluationContext ctx) {
         final FeatureFlag flag;
         final Map<String, Object> currentFlagSetMetadata;
 
@@ -235,9 +237,8 @@ public class FlagdCore implements Evaluator {
         if (value == null) {
             if (StringUtils.isEmpty(resolvedVariant) && StringUtils.isEmpty(flag.getDefaultVariant())) {
                 return ProviderEvaluation.<T>builder()
-                        .reason(Reason.ERROR.toString())
-                        .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                        .errorMessage("Flag '" + key + "' has no default variant defined, will use code default")
+                        .value(defaultValue)
+                        .reason(Reason.DEFAULT.toString())
                         .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
                         .build();
             }

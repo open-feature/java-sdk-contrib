@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.tools</groupId>
     <artifactId>flagd-core</artifactId>
-    <version>0.0.2</version> <!--x-release-please-version -->
+    <version>0.1.0</version> <!--x-release-please-version -->
 
 <properties>
         <module-name>${groupId}.flagdcore</module-name>
@@ -35,13 +35,13 @@
         <dependency>
             <groupId>dev.openfeature.contrib.tools</groupId>
             <artifactId>flagd-api</artifactId>
-            <version>0.0.2</version>
+            <version>0.1.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.20.1</version>
+            <version>2.21.1</version>
         </dependency>
 
         <dependency>
@@ -84,13 +84,13 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.20.0</version>
+            <version>1.21.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.14.1</version>
+            <version>5.14.3</version>
             <scope>test</scope>
         </dependency>
 
@@ -130,7 +130,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>3.5.0</version>
                 <executions>
                     <execution>
                         <id>copy-json-schemas</id>
