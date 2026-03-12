@@ -125,7 +125,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             final String jsonPath)
             throws JsonLogicEvaluationException {
         int mmrHash = MurmurHash3.hash32x86(hashKey, 0, hashKey.length, 0);
-        int bucket = (int) (((mmrHash * (long)totalWeight) >> 32) & 0xFFFFFFFFL);
+        int bucket = (int) (((mmrHash * (long) totalWeight) >> 32) & 0xFFFFFFFFL);
 
         int bucketSum = 0;
         for (FractionProperty p : propertyList) {
