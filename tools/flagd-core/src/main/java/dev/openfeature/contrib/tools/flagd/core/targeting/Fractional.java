@@ -84,23 +84,23 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     private byte[] numberToByteArray(Number number) {
         if (number instanceof Integer) {
             return new byte[] {
-                    (byte) ((int) number >> 24),
-                    (byte) ((int) number >> 16),
-                    (byte) ((int) number >> 8),
-                    (byte) ((int) number)
+                (byte) ((int) number >> 24),
+                (byte) ((int) number >> 16),
+                (byte) ((int) number >> 8),
+                (byte) ((int) number)
             };
         } else if (number instanceof Double) {
             return numberToByteArray(Double.doubleToLongBits((Double) number));
         } else if (number instanceof Long) {
             return new byte[] {
-                    (byte) ((long) number >> 56),
-                    (byte) ((long) number >> 48),
-                    (byte) ((long) number >> 40),
-                    (byte) ((long) number >> 32),
-                    (byte) ((long) number >> 24),
-                    (byte) ((long) number >> 16),
-                    (byte) ((long) number >> 8),
-                    (byte) ((long) number)
+                (byte) ((long) number >> 56),
+                (byte) ((long) number >> 48),
+                (byte) ((long) number >> 40),
+                (byte) ((long) number >> 32),
+                (byte) ((long) number >> 24),
+                (byte) ((long) number >> 16),
+                (byte) ((long) number >> 8),
+                (byte) ((long) number)
             };
         } else if (number instanceof BigInteger) {
             return ((BigInteger) number).toByteArray();
@@ -108,8 +108,8 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             return new byte[] {(byte) number};
         } else if (number instanceof Short) {
             return new byte[] {
-                    (byte) ((short) number >> 8),
-                    (byte) ((short) number)
+                (byte) ((short) number >> 8),
+                (byte) ((short) number)
             };
         } else if (number instanceof Float) {
             return numberToByteArray(Float.floatToIntBits((Float) number));
