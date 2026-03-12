@@ -206,8 +206,8 @@ public class SyncStreamQueueSource implements QueueSource {
                         log.info(
                                 "Fatal status code for metadata request: {}, not retrying",
                                 metaEx.getStatus().getCode());
-                        shutdown();
                         enqueue(QueuePayload.SHUTDOWN);
+                        shutdown();
                     } else {
                         // retry for other status codes
                         String message = metaEx.getMessage();
@@ -226,8 +226,8 @@ public class SyncStreamQueueSource implements QueueSource {
                         log.info(
                                 "Fatal status code during sync stream: {}, not retrying",
                                 ex.getStatus().getCode());
-                        shutdown();
                         enqueue(QueuePayload.SHUTDOWN);
+                        shutdown();
                     } else {
                         // retry for other status codes
                         log.error("Unexpected sync stream exception, will restart.", ex);
