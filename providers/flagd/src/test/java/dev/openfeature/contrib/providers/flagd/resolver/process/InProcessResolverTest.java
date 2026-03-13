@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -27,6 +28,8 @@ import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageS
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.StorageStateChange;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.file.FileQueueSource;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.sync.SyncStreamQueueSource;
+import dev.openfeature.contrib.tools.flagd.api.Evaluator;
+import dev.openfeature.contrib.tools.flagd.core.FlagdCore;
 import dev.openfeature.contrib.tools.flagd.core.model.FeatureFlag;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
@@ -57,6 +60,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class InProcessResolverTest {
     private final List<InProcessResolver> resolversToShutdown = new ArrayList<>();
@@ -549,6 +553,27 @@ class InProcessResolverTest {
         Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> !stateWatcher.isAlive());
         // Note: We don't assert exact thread count equality because other tests or JVM
         // background threads can affect the count, making such assertions flaky in CI.
+    }
+
+    @Test
+    void usesSuppliedEvaluator() {
+        var evaluator = Mockito.mock(Evaluator.class);
+        var key = "key";
+        var ctx = new ImmutableContext(key);
+        when(evaluator.resolveBooleanValue(key, ctx)).thenReturn(Mockito.mock(ProviderEvaluation.class));
+        var resolver = new InProcessResolver(
+                FlagdOptions.builder().evaluator(evaluator).build(), (event, details, metadata) -> {});
+
+        resolver.booleanEvaluation(key, true, ctx);
+        Mockito.verify(evaluator).resolveBooleanValue(key, ctx);
+        assertThat(resolver.getEvaluator()).isEqualTo(evaluator);
+    }
+
+    @Test
+    void usesFlagdCoreEvaluatorWhenNotSupplied() {
+        var resolver = new InProcessResolver(FlagdOptions.builder().build(), (event, details, metadata) -> {});
+
+        assertThat(resolver.getEvaluator()).isInstanceOf(FlagdCore.class);
     }
 
     private long currentDaemonThreadCount() {
