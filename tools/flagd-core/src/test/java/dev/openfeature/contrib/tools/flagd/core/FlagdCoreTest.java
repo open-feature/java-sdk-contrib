@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.tools.flagd.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import dev.openfeature.contrib.tools.flagd.api.FlagStoreException;
 import dev.openfeature.sdk.ImmutableContext;
@@ -126,5 +127,26 @@ class FlagdCoreTest {
 
         // Then: boolFlag should be in the changed keys (it was removed)
         assertThat(changedKeys).contains("boolFlag");
+    }
+
+    @Test
+    void resolveBooleanValue_flagWithNullMetadata_doesNotThrowNPE() {
+        String configWithNullMetadata = "{"
+                + "\"$schema\": \"https://flagd.dev/schema/v0/flags.json\","
+                + "\"flags\": {"
+                + "  \"nullMetadataFlag\": {"
+                + "    \"state\": \"ENABLED\","
+                + "    \"defaultVariant\": \"on\","
+                + "    \"variants\": { \"on\": true }"
+                + "  }"
+                + "}"
+                + "}";
+
+        assertThatNoException().isThrownBy(() -> {
+            flagdCore.setFlags(configWithNullMetadata);
+            ProviderEvaluation<Boolean> result =
+                    flagdCore.resolveBooleanValue("nullMetadataFlag", new ImmutableContext());
+            assertThat(result.getFlagMetadata()).isNotNull();
+        });
     }
 }
