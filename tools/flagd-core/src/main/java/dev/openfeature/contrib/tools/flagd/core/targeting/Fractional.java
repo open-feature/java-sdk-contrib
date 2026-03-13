@@ -84,23 +84,23 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     private byte[] numberToByteArray(Number number) {
         if (number instanceof Integer) {
             return new byte[] {
-                (byte) ((int) number >> 24),
-                (byte) ((int) number >> 16),
-                (byte) ((int) number >> 8),
-                (byte) ((int) number)
+                    (byte) ((int) number >> 24),
+                    (byte) ((int) number >> 16),
+                    (byte) ((int) number >> 8),
+                    (byte) ((int) number)
             };
         } else if (number instanceof Double) {
             return numberToByteArray(Double.doubleToLongBits((Double) number));
         } else if (number instanceof Long) {
             return new byte[] {
-                (byte) ((long) number >> 56),
-                (byte) ((long) number >> 48),
-                (byte) ((long) number >> 40),
-                (byte) ((long) number >> 32),
-                (byte) ((long) number >> 24),
-                (byte) ((long) number >> 16),
-                (byte) ((long) number >> 8),
-                (byte) ((long) number)
+                    (byte) ((long) number >> 56),
+                    (byte) ((long) number >> 48),
+                    (byte) ((long) number >> 40),
+                    (byte) ((long) number >> 32),
+                    (byte) ((long) number >> 24),
+                    (byte) ((long) number >> 16),
+                    (byte) ((long) number >> 8),
+                    (byte) ((long) number)
             };
         } else if (number instanceof BigInteger) {
             return ((BigInteger) number).toByteArray();
@@ -108,8 +108,8 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             return new byte[] {(byte) number};
         } else if (number instanceof Short) {
             return new byte[] {
-                (byte) ((short) number >> 8),
-                (byte) ((short) number)
+                    (byte) ((short) number >> 8),
+                    (byte) ((short) number)
             };
         } else if (number instanceof Float) {
             return numberToByteArray(Float.floatToIntBits((Float) number));
@@ -125,24 +125,36 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             final String jsonPath)
             throws JsonLogicEvaluationException {
         int mmrHash = MurmurHash3.hash32x86(hashKey, 0, hashKey.length, 0);
-        int bucket = Math.abs((int) ((mmrHash * (long) totalWeight) >> 32));
+        return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
+    }
+
+    static String distributeValueFromHash(
+            final int hash, final List<FractionProperty> propertyList, final int totalWeight,
+            final String jsonPath)
+            throws JsonLogicEvaluationException {
+        long longHash = Math.abs((long) hash);
+        if (hash < 0) {
+            // preserve the MSB (sign) of the hash, which would get lost in a typecast and in Math.abs
+            longHash = longHash | (1L << 31);
+        }
+        int bucket = Math.abs((int) ((longHash * totalWeight) >> 32));
 
         int bucketSum = 0;
         for (FractionProperty p : propertyList) {
             bucketSum += p.weight;
 
-            if (bucket < bucketSum) {
+            if (bucket <= bucketSum) {
                 return p.getVariant();
             }
         }
 
         // this shall not be reached
-        throw new JsonLogicEvaluationException("Unable to find a correct bucket", jsonPath);
+        throw new JsonLogicEvaluationException("Unable to find a correct bucket for hash " + hash, jsonPath);
     }
 
     @Getter
     @SuppressWarnings({"checkstyle:NoFinalizer"})
-    private static class FractionProperty {
+    static class FractionProperty {
         private final String variant;
         private final int weight;
 
@@ -178,13 +190,6 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             } else {
                 weight = 1;
             }
-        }
-
-        float getPercentage(int totalWeight) {
-            if (weight == 0) {
-                return 0;
-            }
-            return (float) (weight * 100) / totalWeight;
         }
     }
 }
