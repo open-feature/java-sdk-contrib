@@ -75,7 +75,7 @@ class OperatorTest {
     }
 
     @Test
-    void fractionalTestA() throws TargetingRuleException {
+    void fractionalTestB() throws TargetingRuleException {
         // given
 
         // fractional rule with email as expression key
@@ -112,11 +112,11 @@ class OperatorTest {
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
         // then
-        assertEquals("yellow", evalVariant);
+        assertEquals("blue", evalVariant);
     }
 
     @Test
-    void fractionalTestB() throws TargetingRuleException {
+    void fractionalTestA() throws TargetingRuleException {
         // given
 
         // fractional rule with email as expression key
@@ -153,7 +153,7 @@ class OperatorTest {
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
         // then
-        assertEquals("blue", evalVariant);
+        assertEquals("red", evalVariant);
     }
 
     @Test
