@@ -10,7 +10,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.cucumber.java.sl.In;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import java.io.IOException;
@@ -26,17 +25,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.converter.ArgumentConversionException;
 import org.junit.jupiter.params.converter.ConvertWith;
 import org.junit.jupiter.params.converter.TypedArgumentConverter;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.jupiter.params.support.ParameterDeclarations;
 
 class FractionalTest {
 
@@ -63,15 +57,7 @@ class FractionalTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {
-            0,
-            1,
-            -1,
-            Integer.MAX_VALUE,
-            Integer.MAX_VALUE - 1,
-            Integer.MIN_VALUE,
-            Integer.MIN_VALUE + 1
-    })
+    @ValueSource(ints = {0, 1, -1, Integer.MAX_VALUE, Integer.MAX_VALUE - 1, Integer.MIN_VALUE, Integer.MIN_VALUE + 1})
     void edgeCasesDoNotThrow(int hash) throws JsonLogicException {
         int totalWeight = 8;
         int buckets = 4;
@@ -98,8 +84,7 @@ class FractionalTest {
             bucketsList.add(new Fractional.FractionProperty(List.of("" + i, weight), ""));
         }
         bucketsList.add(
-                new Fractional.FractionProperty(List.of("" + (buckets - 1), totalWeight - weight * (buckets - 1)), "")
-        );
+                new Fractional.FractionProperty(List.of("" + (buckets - 1), totalWeight - weight * (buckets - 1)), ""));
 
         for (long i = Integer.MIN_VALUE; i <= Integer.MAX_VALUE; i += 127) {
             String bucketStr = Fractional.distributeValueFromHash((int) i, bucketsList, totalWeight, "");
@@ -120,7 +105,9 @@ class FractionalTest {
         }
 
         int delta = max - min;
-        assertTrue(delta < 3, "Delta should be less than 5, but was " + delta);
+        assertTrue(
+                delta < 3,
+                "Delta should be less than 3, but was " + delta + ". Distributions: " + Arrays.toString(hits));
     }
 
     public static Stream<?> allFilesInDir() throws IOException {
