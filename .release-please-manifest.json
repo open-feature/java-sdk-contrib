@@ -15,5 +15,5 @@
   "tools/flagd-http-connector": "0.0.4",
   "tools/flagd-api": "0.1.0",
   "tools/flagd-core": "0.1.0",
-  ".": "1.0.0"
+  ".": "2.0.0"
 }
