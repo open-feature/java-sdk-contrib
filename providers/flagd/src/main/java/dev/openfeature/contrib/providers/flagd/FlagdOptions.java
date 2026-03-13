@@ -14,6 +14,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import java.util.List;
 import java.util.function.Function;
+import jdk.jfr.Experimental;
 import lombok.Builder;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -240,7 +241,8 @@ public class FlagdOptions {
      * mode
      */
     @Builder.Default
-    private Evaluator evaluator;
+    @Experimental
+    private Evaluator evaluator = null;
 
     /**
      * Builder overwrite in order to customize the "build" method.
