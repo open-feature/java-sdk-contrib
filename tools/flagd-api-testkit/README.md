@@ -7,6 +7,8 @@ A testkit for verifying implementations of the
 
 | Artifact | Description |
 |---|---|
+| `EvaluatorFactory` | `@FunctionalInterface` — register a lambda to create your `Evaluator` |
+| `EvaluatorInitSteps` | Concrete Cucumber step class — owns `@Given("an evaluator")` and context reset |
 | `EvaluatorState` | Shared Cucumber scenario state — injected via PicoContainer |
 | `EvaluationSteps` | `Given`/`When`/`Then` steps for flag evaluation |
 | `ContextSteps` | Steps for building up evaluation context |
@@ -49,28 +51,33 @@ at build time. Consumers do not need a submodule of their own.
 </dependency>
 ```
 
-### 2. Implement one step — the evaluator initialiser
+### 2. Register an `EvaluatorFactory` lambda
+
+Create a single glue class with a `@Before` hook that registers a factory lambda on `EvaluatorState`.
+The `@Before` ensures Cucumber discovers the class, and the factory is set before the testkit's
+`@Given("an evaluator")` step fires and invokes it with the bundled flag JSON.
 
 ```java
 package com.example.e2e;
 
 import dev.openfeature.contrib.tools.flagd.api.testkit.EvaluatorState;
-import dev.openfeature.contrib.tools.flagd.api.testkit.TestkitFlags;
-import io.cucumber.java.en.Given;
+import io.cucumber.java.Before;
 
-public class MyEvaluatorInitSteps {
+public class MyEvaluatorSetup {
 
     private final EvaluatorState state;
 
-    public MyEvaluatorInitSteps(EvaluatorState state) {
+    public MyEvaluatorSetup(EvaluatorState state) {
         this.state = state;
     }
 
-    @Given("a stable evaluator")
-    public void setup() throws Exception {
-        MyEvaluator evaluator = new MyEvaluator();
-        evaluator.setFlags(TestkitFlags.loadFlags());
-        state.setEvaluator(evaluator);
+    @Before
+    public void registerFactory() {
+        state.setFactory(flagsJson -> {
+            MyEvaluator evaluator = new MyEvaluator();
+            evaluator.setFlags(flagsJson);
+            return evaluator;
+        });
     }
 }
 ```
@@ -82,7 +89,6 @@ package com.example.e2e;
 
 import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 import static io.cucumber.junit.platform.engine.Constants.OBJECT_FACTORY_PROPERTY_NAME;
-import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
@@ -92,7 +98,6 @@ import org.junit.platform.suite.api.Suite;
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")            // discovers features from the testkit JAR
-@ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
 @ConfigurationParameter(
     key = GLUE_PROPERTY_NAME,
     value = "dev.openfeature.contrib.tools.flagd.api.testkit,"  // testkit steps
@@ -111,8 +116,6 @@ submodule. After cloning this repo:
 
 ```bash
 # from tools/flagd-api-testkit/
-git submodule add https://github.com/open-feature/test-harness.git test-harness
-# or, after the submodule is already registered:
 git submodule update --init test-harness
 ```
 

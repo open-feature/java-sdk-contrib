@@ -9,11 +9,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Shared Cucumber scenario state for the flagd-api testkit.
  * Injected via PicoContainer into every step definition class.
  *
- * <p>Consumers must provide one step that creates an {@link Evaluator} and
- * assigns it here via {@link #setEvaluator(Evaluator)}.
+ * <p>Consumers register an {@link EvaluatorFactory} lambda in their glue class constructor.
+ * The testkit's {@code @Given("an evaluator")} step invokes the factory with the bundled
+ * flag configuration and stores the resulting {@link Evaluator} here.
  */
 public class EvaluatorState {
 
+    private EvaluatorFactory factory;
     private Evaluator evaluator;
 
     /** The flag key and type under test. */
@@ -27,6 +29,16 @@ public class EvaluatorState {
 
     /** Evaluation context accumulated by context steps. */
     public MutableContext context = new MutableContext();
+
+    /** Returns the evaluator factory registered by the consumer. */
+    public EvaluatorFactory getFactory() {
+        return factory;
+    }
+
+    /** Registers the evaluator factory. Call this from your glue class constructor. */
+    public void setFactory(EvaluatorFactory factory) {
+        this.factory = factory;
+    }
 
     /** Returns the evaluator under test. */
     @SuppressFBWarnings(
