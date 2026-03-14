@@ -14,18 +14,18 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+import java.util.logging.Logger;
 
-/**
- * Cucumber step definitions for evaluating flags via the
+/** Cucumber step definitions for evaluating flags via the
  * {@link dev.openfeature.contrib.tools.flagd.api.Evaluator} interface.
  *
  * <p>These steps cover: flag setup, evaluation dispatch, and assertions on value, reason,
  * variant, error code, and flag metadata. Consumers only need to implement the
  * {@code Given an evaluator} step.
  */
-@Slf4j
 public class EvaluationSteps {
+
+    private static final Logger log = Logger.getLogger(EvaluationSteps.class.getName());
 
     private final EvaluatorState state;
 
@@ -85,7 +85,7 @@ public class EvaluationSteps {
     @Then("the resolved details value should be {string}")
     public void resolvedValueEquals(String value) throws Throwable {
         if (state.evaluation.getErrorCode() != null) {
-            log.warn("Evaluation error: {}", state.evaluation.getErrorMessage());
+            log.warning("Evaluation error: " + state.evaluation.getErrorMessage());
         }
         assertThat(state.evaluation.getValue()).isEqualTo(EvaluatorUtils.convert(value, state.flagType));
     }

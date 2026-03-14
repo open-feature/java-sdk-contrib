@@ -7,11 +7,12 @@ A testkit for verifying implementations of the
 
 | Artifact | Description |
 |---|---|
-| `EvaluatorFactory` | `@FunctionalInterface` — register a lambda to create your `Evaluator` |
-| `EvaluatorInitSteps` | Concrete Cucumber step class — owns `@Given("an evaluator")` and context reset |
-| `EvaluatorState` | Shared Cucumber scenario state — injected via PicoContainer |
-| `EvaluationSteps` | `Given`/`When`/`Then` steps for flag evaluation |
-| `ContextSteps` | Steps for building up evaluation context |
+| `AbstractEvaluatorTest` | Abstract JUnit Suite — extend this and implement one method |
+| `EvaluatorFactory` | SPI interface — implement `create(String flagsJson)` |
+| `EvaluatorInitSteps` | Cucumber steps — `@Given("an evaluator")` and context reset (internal) |
+| `EvaluatorState` | Shared Cucumber scenario state — PicoContainer DI (internal) |
+| `EvaluationSteps` | `Given`/`When`/`Then` steps for flag evaluation (internal) |
+| `ContextSteps` | Steps for building up evaluation context (internal) |
 | `TestkitFlags` | Loads the bundled flag configuration JSON from the classpath |
 | `features/*.feature` | Gherkin scenarios bundled in the JAR |
 | `flags/testkit-flags.json` | Flag configuration bundled in the JAR |
@@ -51,62 +52,42 @@ at build time. Consumers do not need a submodule of their own.
 </dependency>
 ```
 
-### 2. Register an `EvaluatorFactory` lambda
+### 2. Write one class
 
-Create a single glue class with a `@Before` hook that registers a factory lambda on `EvaluatorState`.
-The `@Before` ensures Cucumber discovers the class, and the factory is set before the testkit's
-`@Given("an evaluator")` step fires and invokes it with the bundled flag JSON.
+Extend `AbstractEvaluatorTest` and implement `create()`. That's it — no Cucumber annotations,
+no runner configuration, no glue packages.
 
 ```java
-package com.example.e2e;
+public class MyEvaluatorTest extends AbstractEvaluatorTest {
 
-import dev.openfeature.contrib.tools.flagd.api.testkit.EvaluatorState;
-import io.cucumber.java.Before;
-
-public class MyEvaluatorSetup {
-
-    private final EvaluatorState state;
-
-    public MyEvaluatorSetup(EvaluatorState state) {
-        this.state = state;
-    }
-
-    @Before
-    public void registerFactory() {
-        state.setFactory(flagsJson -> {
-            MyEvaluator evaluator = new MyEvaluator();
-            evaluator.setFlags(flagsJson);
-            return evaluator;
-        });
+    @Override
+    public Evaluator create(String flagsJson) throws Exception {
+        MyEvaluator evaluator = new MyEvaluator();
+        evaluator.setFlags(flagsJson);
+        return evaluator;
     }
 }
 ```
 
-### 3. Create a Cucumber test runner
+### 3. Register via SPI
 
-```java
-package com.example.e2e;
-
-import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
-import static io.cucumber.junit.platform.engine.Constants.OBJECT_FACTORY_PROPERTY_NAME;
-
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
-
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")            // discovers features from the testkit JAR
-@ConfigurationParameter(
-    key = GLUE_PROPERTY_NAME,
-    value = "dev.openfeature.contrib.tools.flagd.api.testkit,"  // testkit steps
-          + "com.example.e2e")                                   // your init step
-@ConfigurationParameter(
-    key = OBJECT_FACTORY_PROPERTY_NAME,
-    value = "io.cucumber.picocontainer.PicoFactory")
-public class EvaluatorComplianceTest {}
+Create the file:
 ```
+src/test/resources/META-INF/services/dev.openfeature.contrib.tools.flagd.api.testkit.EvaluatorFactory
+```
+containing the fully-qualified name of your test class:
+```
+com.example.e2e.MyEvaluatorTest
+```
+
+That's all. Run your tests normally with Maven or your IDE.
+
+## How it works
+
+The `EvaluatorFactory` SPI is discovered via `java.util.ServiceLoader` inside the testkit's
+`@Given("an evaluator")` step — no Cucumber glue scanning of the consumer's package is needed.
+All Cucumber runner configuration (`@Suite`, `@SelectClasspathResource("features")`,
+`GLUE_PROPERTY_NAME`, `OBJECT_FACTORY_PROPERTY_NAME`) is inherited from `AbstractEvaluatorTest`.
 
 ## Building / submodule setup
 

@@ -1,32 +1,15 @@
 package dev.openfeature.contrib.tools.flagd.api.testkit;
 
 /**
- * Factory for creating an {@link dev.openfeature.contrib.tools.flagd.api.Evaluator} instance
+ * SPI interface for creating an {@link dev.openfeature.contrib.tools.flagd.api.Evaluator}
  * loaded with the testkit flag configuration.
  *
- * <p>Register a lambda implementation via {@link EvaluatorState#setFactory(EvaluatorFactory)}
- * inside a {@code @Before} hook — this ensures Cucumber discovers your class and the factory
- * is set before the {@code @Given("an evaluator")} step fires:
+ * <p>Consumers extend {@link AbstractEvaluatorTest} (which implements this interface) and
+ * register their concrete class in:
+ * {@code META-INF/services/dev.openfeature.contrib.tools.flagd.api.testkit.EvaluatorFactory}
  *
- * <pre>{@code
- * public class MyEvaluatorSetup {
- *
- *     private final EvaluatorState state;
- *
- *     public MyEvaluatorSetup(EvaluatorState state) {
- *         this.state = state;
- *     }
- *
- *     @Before
- *     public void registerFactory() {
- *         state.setFactory(flagsJson -> {
- *             MyEvaluator evaluator = new MyEvaluator();
- *             evaluator.setFlags(flagsJson);
- *             return evaluator;
- *         });
- *     }
- * }
- * }</pre>
+ * <p>The testkit discovers the factory via {@link java.util.ServiceLoader} — no Cucumber
+ * annotations or glue package configuration required on the consumer side.
  */
 @FunctionalInterface
 public interface EvaluatorFactory {
