@@ -35,7 +35,7 @@ public final class EvaluatorUtils {
             case "Float":
                 return value.isEmpty() ? 0.0 : Double.parseDouble(value);
             case "Object":
-                if (value.isEmpty() || value.equals("{}")) {
+                if (value.isEmpty()) {
                     return Value.objectToValue(MAPPER.readValue("{}", Object.class));
                 }
                 return Value.objectToValue(MAPPER.readValue(value, Object.class));

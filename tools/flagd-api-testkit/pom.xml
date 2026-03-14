@@ -16,6 +16,8 @@
         <module-name>${groupId}.flagdapitestkit</module-name>
         <!-- Match any flagd-api version locally; CI sets exact version -->
         <flagd-api.version>[0.0.1,)</flagd-api.version>
+        <jackson-databind.version>2.21.1</jackson-databind.version>
+        <assertj.version>3.27.7</assertj.version>
     </properties>
 
     <name>flagd-api-testkit</name>
@@ -59,14 +61,14 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.27.7</version>
+            <version>${assertj.version}</version>
         </dependency>
 
         <!-- Jackson for Object-type flag value parsing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.21.1</version>
+            <version>${jackson-databind.version}</version>
         </dependency>
 
         <!-- JUnit Platform Suite — compile scope so AbstractEvaluatorTest can carry
