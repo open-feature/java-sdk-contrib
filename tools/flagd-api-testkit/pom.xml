@@ -68,6 +68,23 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.21.1</version>
         </dependency>
+
+        <!-- JUnit Platform Suite — compile scope so AbstractEvaluatorTest can carry
+             @Suite/@IncludeEngines/@SelectClasspathResource/@ConfigurationParameter -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <version>1.14.3</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Cucumber JUnit Platform Engine — compile scope for OBJECT_FACTORY_PROPERTY_NAME
+             and GLUE_PROPERTY_NAME constants used in AbstractEvaluatorTest -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>7.34.3</version>
+        </dependency>
     </dependencies>
 
     <build>

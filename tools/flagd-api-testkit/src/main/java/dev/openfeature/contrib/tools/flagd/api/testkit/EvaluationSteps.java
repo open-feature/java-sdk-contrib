@@ -11,7 +11,6 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -114,13 +113,9 @@ public class EvaluationSteps {
 
     /** Asserts the resolved flag metadata map is empty. */
     @Then("the resolved metadata is empty")
-    @SuppressWarnings("unchecked")
-    public void resolvedMetadataIsEmpty() throws NoSuchFieldException, IllegalAccessException {
+    public void resolvedMetadataIsEmpty() {
         ImmutableMetadata flagMetadata = state.evaluation.getFlagMetadata();
-        Field metadataField = flagMetadata.getClass().getDeclaredField("metadata");
-        metadataField.setAccessible(true);
-        Map<String, Object> metadataMap = (Map<String, Object>) metadataField.get(flagMetadata);
-        assertThat(metadataMap).isEmpty();
+        assertThat(flagMetadata.asUnmodifiableMap()).isEmpty();
     }
 
     /** Asserts that the resolved flag metadata contains the key/value pairs from the data table. */

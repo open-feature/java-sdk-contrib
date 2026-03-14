@@ -5,6 +5,7 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.Value;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cucumber.java.en.Given;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,9 +26,9 @@ public class ContextSteps {
 
     /** Adds a typed key/value pair to the evaluation context. */
     @Given("a context containing a key {string}, with type {string} and with value {string}")
-    public void contextKeyWithTypeAndValue(String key, String type, String value) {
+    public void contextKeyWithTypeAndValue(String key, String type, String value) throws IOException {
         Map<String, Value> map = new HashMap<>(state.context.asMap());
-        map.put(key, new Value(value));
+        map.put(key, Value.objectToValue(EvaluatorUtils.convert(value, type)));
         state.context = new MutableContext(state.context.getTargetingKey(), map);
     }
 
