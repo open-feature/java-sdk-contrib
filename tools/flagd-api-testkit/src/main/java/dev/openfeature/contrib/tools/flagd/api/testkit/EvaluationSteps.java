@@ -38,7 +38,7 @@ public class EvaluationSteps {
 
     /** Registers the flag key, type and default value for the current scenario. */
     @Given("a {}-flag with key {string} and a fallback value {string}")
-    public void givenAFlag(String type, String key, String defaultValue) throws Throwable {
+    public void givenAFlag(String type, String key, String defaultValue) throws IOException {
         state.flagType = type;
         state.flagKey = key;
         state.defaultValue = EvaluatorUtils.convert(defaultValue, type);
@@ -82,7 +82,7 @@ public class EvaluationSteps {
 
     /** Asserts the resolved flag value equals the expected string (converted to the flag type). */
     @Then("the resolved details value should be {string}")
-    public void resolvedValueEquals(String value) throws Throwable {
+    public void resolvedValueEquals(String value) throws IOException {
         if (state.evaluation.getErrorCode() != null) {
             log.warning("Evaluation error: " + state.evaluation.getErrorMessage());
         }
@@ -120,8 +120,7 @@ public class EvaluationSteps {
 
     /** Asserts that the resolved flag metadata contains the key/value pairs from the data table. */
     @Then("the resolved metadata should contain")
-    @SuppressWarnings("unchecked")
-    public void resolvedMetadataContains(DataTable dataTable) throws IOException, ClassNotFoundException {
+    public void resolvedMetadataContains(DataTable dataTable) throws IOException {
         ImmutableMetadata flagMetadata = state.evaluation.getFlagMetadata();
         List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
         for (Map<String, String> row : rows) {

@@ -21,7 +21,6 @@ public final class EvaluatorUtils {
      * @param type  the flag type name: Boolean, String, Integer, Float, or Object
      * @return the converted value, or {@code null} if {@code value} is "null" or empty for Object
      */
-    @SuppressWarnings("unchecked")
     public static Object convert(String value, String type) throws IOException {
         if (value == null || value.equals("null")) {
             return null;
