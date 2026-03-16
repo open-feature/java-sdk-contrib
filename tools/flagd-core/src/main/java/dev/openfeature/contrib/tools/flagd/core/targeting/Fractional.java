@@ -5,6 +5,7 @@ import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,35 +82,21 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
     private byte[] numberToByteArray(Number number) {
         if (number instanceof Integer) {
-            return new byte[] {
-                (byte) ((int) number >> 24),
-                (byte) ((int) number >> 16),
-                (byte) ((int) number >> 8),
-                (byte) ((int) number)
-            };
+            return ByteBuffer.allocate(4).putInt(number.intValue()).array();
         } else if (number instanceof Double) {
-            return numberToByteArray(Double.doubleToLongBits((Double) number));
+            return ByteBuffer.allocate(8).putDouble(number.doubleValue()).array();
         } else if (number instanceof Long) {
-            return new byte[] {
-                (byte) ((long) number >> 56),
-                (byte) ((long) number >> 48),
-                (byte) ((long) number >> 40),
-                (byte) ((long) number >> 32),
-                (byte) ((long) number >> 24),
-                (byte) ((long) number >> 16),
-                (byte) ((long) number >> 8),
-                (byte) ((long) number)
-            };
+            return ByteBuffer.allocate(8).putLong(number.longValue()).array();
         } else if (number instanceof BigInteger) {
             return ((BigInteger) number).toByteArray();
         } else if (number instanceof Byte) {
-            return new byte[] {(byte) number};
+            return new byte[] {number.byteValue()};
         } else if (number instanceof Short) {
-            return new byte[] {(byte) ((short) number >> 8), (byte) ((short) number)};
+            return ByteBuffer.allocate(2).putShort(number.shortValue()).array();
         } else if (number instanceof Float) {
-            return numberToByteArray(Float.floatToIntBits((Float) number));
+            return ByteBuffer.allocate(4).putFloat(number.floatValue()).array();
         } else if (number instanceof BigDecimal) {
-            return numberToByteArray(Double.doubleToLongBits(number.doubleValue()));
+            return ByteBuffer.allocate(8).putDouble(number.doubleValue()).array();
         } else {
             throw new IllegalArgumentException("Unsupported number type: " + number.getClass());
         }
