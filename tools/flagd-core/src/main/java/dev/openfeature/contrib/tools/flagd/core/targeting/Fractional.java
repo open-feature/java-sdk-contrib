@@ -128,18 +128,14 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     static String distributeValueFromHash(
             final int hash, final List<FractionProperty> propertyList, final int totalWeight, final String jsonPath)
             throws JsonLogicEvaluationException {
-        long longHash = Math.abs((long) hash);
-        if (hash < 0) {
-            // preserve the MSB (sign) of the hash, which would get lost in a typecast and in Math.abs
-            longHash = longHash | (1L << 31);
-        }
+        long longHash = Integer.toUnsignedLong(hash);
         int bucket = Math.abs((int) ((longHash * totalWeight) >> 32));
 
         int bucketSum = 0;
         for (FractionProperty p : propertyList) {
             bucketSum += p.weight;
 
-            if (bucket <= bucketSum) {
+            if (bucket < bucketSum) {
                 return p.getVariant();
             }
         }
