@@ -39,9 +39,9 @@ public class EvaluationSteps {
     /** Registers the flag key, type and default value for the current scenario. */
     @Given("a {}-flag with key {string} and a fallback value {string}")
     public void givenAFlag(String type, String key, String defaultValue) throws IOException {
-        state.flagType = type;
+        state.flagType = FlagType.fromString(type);
         state.flagKey = key;
-        state.defaultValue = EvaluatorUtils.convert(defaultValue, type);
+        state.defaultValue = EvaluatorUtils.convert(defaultValue, state.flagType);
     }
 
     /** Evaluates the registered flag via the {@code Evaluator} and stores the result. */
@@ -49,23 +49,23 @@ public class EvaluationSteps {
     public void flagEvaluatedWithDetails() {
         try {
             switch (state.flagType) {
-                case "Boolean":
+                case BOOLEAN:
                     state.evaluation = state.getEvaluator()
                             .resolveBooleanValue(state.flagKey, (Boolean) state.defaultValue, state.context);
                     break;
-                case "String":
+                case STRING:
                     state.evaluation = state.getEvaluator()
                             .resolveStringValue(state.flagKey, (String) state.defaultValue, state.context);
                     break;
-                case "Integer":
+                case INTEGER:
                     state.evaluation = state.getEvaluator()
                             .resolveIntegerValue(state.flagKey, (Integer) state.defaultValue, state.context);
                     break;
-                case "Float":
+                case FLOAT:
                     state.evaluation = state.getEvaluator()
                             .resolveDoubleValue(state.flagKey, (Double) state.defaultValue, state.context);
                     break;
-                case "Object":
+                case OBJECT:
                     state.evaluation = state.getEvaluator()
                             .resolveObjectValue(state.flagKey, (Value) state.defaultValue, state.context);
                     break;

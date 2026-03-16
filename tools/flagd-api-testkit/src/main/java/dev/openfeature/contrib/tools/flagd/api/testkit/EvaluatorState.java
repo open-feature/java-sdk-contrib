@@ -16,7 +16,7 @@ public class EvaluatorState {
     /** The flag key and type under test. */
     public String flagKey;
 
-    public String flagType;
+    public FlagType flagType;
     public Object defaultValue;
 
     /** Result populated by evaluation steps. */

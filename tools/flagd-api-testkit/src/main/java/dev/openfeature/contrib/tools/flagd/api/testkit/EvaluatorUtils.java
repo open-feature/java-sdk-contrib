@@ -43,4 +43,15 @@ public final class EvaluatorUtils {
                 throw new IllegalArgumentException("Unknown flag type: " + type);
         }
     }
+
+    /**
+     * Overload of {@link #convert(String, String)} that accepts a {@link FlagType} enum.
+     *
+     * @param value    the string value from the Gherkin table
+     * @param flagType the flag type enum constant
+     * @return the converted value
+     */
+    public static Object convert(String value, FlagType flagType) throws IOException {
+        return convert(value, flagType.getGherkinName());
+    }
 }
