@@ -560,12 +560,12 @@ class InProcessResolverTest {
         var evaluator = Mockito.mock(Evaluator.class);
         var key = "key";
         var ctx = new ImmutableContext(key);
-        when(evaluator.resolveBooleanValue(key, ctx)).thenReturn(Mockito.mock(ProviderEvaluation.class));
+        when(evaluator.resolveBooleanValue(key, false, ctx)).thenReturn(Mockito.mock(ProviderEvaluation.class));
         var resolver = new InProcessResolver(
                 FlagdOptions.builder().evaluator(evaluator).build(), (event, details, metadata) -> {});
 
-        resolver.booleanEvaluation(key, true, ctx);
-        Mockito.verify(evaluator).resolveBooleanValue(key, ctx);
+        resolver.booleanEvaluation(key, false, ctx);
+        Mockito.verify(evaluator).resolveBooleanValue(key, false, ctx);
         assertThat(resolver.getEvaluator()).isEqualTo(evaluator);
     }
 
