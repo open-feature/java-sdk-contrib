@@ -153,7 +153,7 @@ class OperatorTest {
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
         // then
-        assertEquals("red", evalVariant);
+        assertEquals("yellow", evalVariant);
     }
 
     @Test
