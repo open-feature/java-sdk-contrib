@@ -1,6 +1,6 @@
 {
   "hooks/open-telemetry": "3.3.1",
-  "providers/flagd": "0.11.20",
+  "providers/flagd": "0.12.0",
   "providers/go-feature-flag": "1.1.1",
   "providers/flagsmith": "0.0.13",
   "providers/env-var": "0.0.12",
@@ -13,7 +13,7 @@
   "providers/ofrep": "0.0.1",
   "tools/junit-openfeature": "0.2.1",
   "tools/flagd-http-connector": "0.0.4",
-  "tools/flagd-api": "0.0.2",
-  "tools/flagd-core": "0.0.2",
+  "tools/flagd-api": "0.1.0",
+  "tools/flagd-core": "0.1.0",
   ".": "1.0.0"
 }

@@ -45,7 +45,7 @@ public interface Evaluator {
      * @param ctx      the evaluation context
      * @return the resolution result
      */
-    ProviderEvaluation<Boolean> resolveBooleanValue(String flagKey, EvaluationContext ctx);
+    ProviderEvaluation<Boolean> resolveBooleanValue(String flagKey, Boolean defaultValue, EvaluationContext ctx);
 
     /**
      * Resolve a string flag value.
@@ -54,7 +54,7 @@ public interface Evaluator {
      * @param ctx      the evaluation context
      * @return the resolution result
      */
-    ProviderEvaluation<String> resolveStringValue(String flagKey, EvaluationContext ctx);
+    ProviderEvaluation<String> resolveStringValue(String flagKey, String defaultValue, EvaluationContext ctx);
 
     /**
      * Resolve an integer flag value.
@@ -63,7 +63,7 @@ public interface Evaluator {
      * @param ctx      the evaluation context
      * @return the resolution result
      */
-    ProviderEvaluation<Integer> resolveIntegerValue(String flagKey, EvaluationContext ctx);
+    ProviderEvaluation<Integer> resolveIntegerValue(String flagKey, Integer defaultValue, EvaluationContext ctx);
 
     /**
      * Resolve a double/float flag value.
@@ -72,7 +72,7 @@ public interface Evaluator {
      * @param ctx      the evaluation context
      * @return the resolution result
      */
-    ProviderEvaluation<Double> resolveDoubleValue(String flagKey, EvaluationContext ctx);
+    ProviderEvaluation<Double> resolveDoubleValue(String flagKey, Double defaultValue, EvaluationContext ctx);
 
     /**
      * Resolve an object flag value.
@@ -81,5 +81,5 @@ public interface Evaluator {
      * @param ctx      the evaluation context
      * @return the resolution result
      */
-    ProviderEvaluation<Value> resolveObjectValue(String flagKey, EvaluationContext ctx);
+    ProviderEvaluation<Value> resolveObjectValue(String flagKey, Value defaultValue, EvaluationContext ctx);
 }

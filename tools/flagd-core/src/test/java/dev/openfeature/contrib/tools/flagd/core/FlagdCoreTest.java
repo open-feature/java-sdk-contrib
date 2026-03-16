@@ -35,7 +35,7 @@ class FlagdCoreTest {
 
     @Test
     void resolveBooleanValue_returnsCorrectValue() {
-        ProviderEvaluation<Boolean> result = flagdCore.resolveBooleanValue("boolFlag", new ImmutableContext());
+        ProviderEvaluation<Boolean> result = flagdCore.resolveBooleanValue("boolFlag", false, new ImmutableContext());
 
         assertThat(result.getValue()).isTrue();
         assertThat(result.getVariant()).isEqualTo("on");
@@ -44,7 +44,8 @@ class FlagdCoreTest {
 
     @Test
     void resolveStringValue_returnsCorrectValue() {
-        ProviderEvaluation<String> result = flagdCore.resolveStringValue("stringFlag", new ImmutableContext());
+        ProviderEvaluation<String> result =
+                flagdCore.resolveStringValue("stringFlag", "default", new ImmutableContext());
 
         assertThat(result.getValue()).isEqualTo("hello");
         assertThat(result.getVariant()).isEqualTo("greeting");
@@ -53,7 +54,7 @@ class FlagdCoreTest {
 
     @Test
     void resolveIntegerValue_returnsCorrectValue() {
-        ProviderEvaluation<Integer> result = flagdCore.resolveIntegerValue("intFlag", new ImmutableContext());
+        ProviderEvaluation<Integer> result = flagdCore.resolveIntegerValue("intFlag", -1, new ImmutableContext());
 
         assertThat(result.getValue()).isEqualTo(1);
         assertThat(result.getVariant()).isEqualTo("one");
@@ -61,7 +62,7 @@ class FlagdCoreTest {
 
     @Test
     void resolveDoubleValue_returnsCorrectValue() {
-        ProviderEvaluation<Double> result = flagdCore.resolveDoubleValue("doubleFlag", new ImmutableContext());
+        ProviderEvaluation<Double> result = flagdCore.resolveDoubleValue("doubleFlag", -1.0, new ImmutableContext());
 
         assertThat(result.getValue()).isEqualTo(3.14);
         assertThat(result.getVariant()).isEqualTo("pi");
@@ -69,7 +70,8 @@ class FlagdCoreTest {
 
     @Test
     void resolveBooleanValue_flagNotFound_returnsError() {
-        ProviderEvaluation<Boolean> result = flagdCore.resolveBooleanValue("missingFlag", new ImmutableContext());
+        ProviderEvaluation<Boolean> result =
+                flagdCore.resolveBooleanValue("missingFlag", false, new ImmutableContext());
 
         assertThat(result.getErrorCode()).isNotNull();
         assertThat(result.getErrorMessage()).contains("not found");
@@ -77,7 +79,8 @@ class FlagdCoreTest {
 
     @Test
     void resolveBooleanValue_disabledFlag_returnsError() {
-        ProviderEvaluation<Boolean> result = flagdCore.resolveBooleanValue("disabledFlag", new ImmutableContext());
+        ProviderEvaluation<Boolean> result =
+                flagdCore.resolveBooleanValue("disabledFlag", false, new ImmutableContext());
 
         assertThat(result.getErrorCode()).isNotNull();
         assertThat(result.getErrorMessage()).contains("disabled");
@@ -103,7 +106,7 @@ class FlagdCoreTest {
     void setFlagsAndGetChangedKeys_detectsRemovedFlags() throws FlagStoreException {
         // Given: initial config has boolFlag
         assertThat(flagdCore
-                        .resolveBooleanValue("boolFlag", new ImmutableContext())
+                        .resolveBooleanValue("boolFlag", false, new ImmutableContext())
                         .getValue())
                 .isTrue();
 
