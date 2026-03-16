@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.20...dev.openfeature.contrib.providers.flagd-v0.12.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* graceful fallback to code default when no default variant resolved ([#1707](https://github.com/open-feature/java-sdk-contrib/issues/1707))
+
+### ✨ New Features
+
+* Add VMLens Tests ([#1661](https://github.com/open-feature/java-sdk-contrib/issues/1661)) ([0856ee9](https://github.com/open-feature/java-sdk-contrib/commit/0856ee955dc8341414dc0a4930fb886e840f24f5))
+* extract core flagd evaluation and API modules ([#1696](https://github.com/open-feature/java-sdk-contrib/issues/1696)) ([fe98d88](https://github.com/open-feature/java-sdk-contrib/commit/fe98d88361a5c42ea6753e0828b66e0c6356c81a))
+* graceful fallback to code default when no default variant resolved ([#1707](https://github.com/open-feature/java-sdk-contrib/issues/1707)) ([71fd7d0](https://github.com/open-feature/java-sdk-contrib/commit/71fd7d052c87da24a657cc39bd91ae9be64245b9))
+
 ## [0.11.20](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.19...dev.openfeature.contrib.providers.flagd-v0.11.20) (2026-02-10)
 
 

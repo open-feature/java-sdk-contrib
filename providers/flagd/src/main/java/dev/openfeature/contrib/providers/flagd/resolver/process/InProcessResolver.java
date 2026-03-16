@@ -152,35 +152,35 @@ public class InProcessResolver implements Resolver {
      * Resolve a boolean flag.
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return evaluator.resolveBooleanValue(key, ctx);
+        return evaluator.resolveBooleanValue(key, defaultValue, ctx);
     }
 
     /**
      * Resolve a string flag.
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return evaluator.resolveStringValue(key, ctx);
+        return evaluator.resolveStringValue(key, defaultValue, ctx);
     }
 
     /**
      * Resolve a double flag.
      */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return evaluator.resolveDoubleValue(key, ctx);
+        return evaluator.resolveDoubleValue(key, defaultValue, ctx);
     }
 
     /**
      * Resolve an integer flag.
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return evaluator.resolveIntegerValue(key, ctx);
+        return evaluator.resolveIntegerValue(key, defaultValue, ctx);
     }
 
     /**
      * Resolve an object flag.
      */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return evaluator.resolveObjectValue(key, ctx);
+        return evaluator.resolveObjectValue(key, defaultValue, ctx);
     }
 
     static QueueSource getQueueSource(final FlagdOptions options) {

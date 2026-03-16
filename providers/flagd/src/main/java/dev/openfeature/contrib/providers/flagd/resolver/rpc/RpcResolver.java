@@ -16,16 +16,16 @@ import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseMod
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveFactory;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveStrategy;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamRequest;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.EventStreamResponse;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveBooleanRequest;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveFloatRequest;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveIntRequest;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveObjectRequest;
-import dev.openfeature.flagd.grpc.evaluation.Evaluation.ResolveStringRequest;
-import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc;
-import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceBlockingStub;
-import dev.openfeature.flagd.grpc.evaluation.ServiceGrpc.ServiceStub;
+import dev.openfeature.flagd.grpc.evaluation.v2.Evaluation.EventStreamRequest;
+import dev.openfeature.flagd.grpc.evaluation.v2.Evaluation.EventStreamResponse;
+import dev.openfeature.flagd.grpc.evaluation.v2.Evaluation.ResolveBooleanRequest;
+import dev.openfeature.flagd.grpc.evaluation.v2.Evaluation.ResolveFloatRequest;
+import dev.openfeature.flagd.grpc.evaluation.v2.Evaluation.ResolveIntRequest;
+import dev.openfeature.flagd.grpc.evaluation.v2.Evaluation.ResolveObjectRequest;
+import dev.openfeature.flagd.grpc.evaluation.v2.Evaluation.ResolveStringRequest;
+import dev.openfeature.flagd.grpc.evaluation.v2.ServiceGrpc;
+import dev.openfeature.flagd.grpc.evaluation.v2.ServiceGrpc.ServiceBlockingStub;
+import dev.openfeature.flagd.grpc.evaluation.v2.ServiceGrpc.ServiceStub;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableMetadata;
@@ -156,8 +156,7 @@ public final class RpcResolver implements Resolver {
      */
     public ProviderEvaluation<Boolean> booleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         ResolveBooleanRequest request = ResolveBooleanRequest.newBuilder().buildPartial();
-
-        return resolve(key, ctx, request, getBlockingStub()::resolveBoolean, null);
+        return resolve(key, defaultValue, ctx, request, getBlockingStub()::resolveBoolean, null);
     }
 
     /**
@@ -165,7 +164,7 @@ public final class RpcResolver implements Resolver {
      */
     public ProviderEvaluation<String> stringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
         ResolveStringRequest request = ResolveStringRequest.newBuilder().buildPartial();
-        return resolve(key, ctx, request, getBlockingStub()::resolveString, null);
+        return resolve(key, defaultValue, ctx, request, getBlockingStub()::resolveString, null);
     }
 
     /**
@@ -173,39 +172,26 @@ public final class RpcResolver implements Resolver {
      */
     public ProviderEvaluation<Double> doubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
         ResolveFloatRequest request = ResolveFloatRequest.newBuilder().buildPartial();
-
-        return resolve(key, ctx, request, getBlockingStub()::resolveFloat, null);
+        return resolve(key, defaultValue, ctx, request, getBlockingStub()::resolveFloat, null);
     }
 
     /**
      * Integer evaluation from grpc resolver.
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
-
-        return resolve(key, ctx, request, getBlockingStub()::resolveInt, (Object value) -> ((Long) value).intValue());
-    }
-
-    private ServiceGrpc.ServiceBlockingStub getBlockingStub() {
-        ServiceBlockingStub localStub = blockingStub;
-
-        if (options.getDeadline() > 0) {
-            localStub = localStub.withDeadlineAfter(options.getDeadline(), TimeUnit.MILLISECONDS);
-        }
-
-        return localStub;
+        return resolve(key, defaultValue, ctx, request, getBlockingStub()::resolveInt, (Object value) -> ((Long) value)
+                .intValue());
     }
 
     /**
      * Object evaluation from grpc resolver.
      */
     public ProviderEvaluation<Value> objectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-
         ResolveObjectRequest request = ResolveObjectRequest.newBuilder().buildPartial();
-
         return resolve(
                 key,
+                defaultValue,
                 ctx,
                 request,
                 getBlockingStub()::resolveObject,
@@ -218,6 +204,7 @@ public final class RpcResolver implements Resolver {
      */
     private <ValT, ReqT extends Message, ResT extends Message> ProviderEvaluation<ValT> resolve(
             String key,
+            ValT defaultValue,
             EvaluationContext ctx,
             ReqT request,
             Function<ReqT, ResT> resolverRef,
@@ -255,12 +242,18 @@ public final class RpcResolver implements Resolver {
         // Extract metadata from response
         ImmutableMetadata immutableMetadata = metadataFromResponse(response);
 
-        ProviderEvaluation<ValT> result = ProviderEvaluation.<ValT>builder()
-                .value(value)
-                .variant(getField(response, Config.VARIANT_FIELD))
-                .reason(getField(response, Config.REASON_FIELD))
-                .flagMetadata(immutableMetadata)
-                .build();
+        final String reason = getField(response, Config.REASON_FIELD);
+        final String variant = getField(response, Config.VARIANT_FIELD);
+
+        final ProviderEvaluation.ProviderEvaluationBuilder<ValT> resultBuilder;
+        if ("DEFAULT".equals(reason) && variant.isEmpty()) {
+            resultBuilder = ProviderEvaluation.<ValT>builder().value(defaultValue);
+        } else {
+            resultBuilder = ProviderEvaluation.<ValT>builder().value(value).variant(variant);
+        }
+
+        ProviderEvaluation<ValT> result =
+                resultBuilder.reason(reason).flagMetadata(immutableMetadata).build();
 
         // cache if cache enabled
         if (this.isEvaluationCacheable(result)) {
@@ -268,6 +261,16 @@ public final class RpcResolver implements Resolver {
         }
 
         return result;
+    }
+
+    private ServiceGrpc.ServiceBlockingStub getBlockingStub() {
+        ServiceBlockingStub localStub = blockingStub;
+
+        if (options.getDeadline() > 0) {
+            localStub = localStub.withDeadlineAfter(options.getDeadline(), TimeUnit.MILLISECONDS);
+        }
+
+        return localStub;
     }
 
     private <T> boolean isEvaluationCacheable(ProviderEvaluation<T> evaluation) {

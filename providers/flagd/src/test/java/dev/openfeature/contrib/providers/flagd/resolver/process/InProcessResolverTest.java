@@ -47,18 +47,32 @@ import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import dev.openfeature.sdk.internal.TriConsumer;
 import java.lang.reflect.Field;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 class InProcessResolverTest {
+    private final List<InProcessResolver> resolversToShutdown = new ArrayList<>();
+
+    @AfterEach
+    void tearDown() throws InterruptedException {
+        for (InProcessResolver resolver : resolversToShutdown) {
+            resolver.shutdown();
+        }
+        resolversToShutdown.clear();
+    }
+
     @Test
     void onError_delegatesToQueueSource() throws Exception {
         // given
@@ -522,10 +536,13 @@ class InProcessResolverTest {
 
         // when
         inProcessResolver.init();
-        Thread stateWatcher = Thread.getAllStackTraces().keySet().stream()
-                .filter(thread -> InProcessResolver.STATE_WATCHER_THREAD_NAME.equals(thread.getName()))
-                .findFirst()
-                .orElseThrow();
+
+        Field stateWatcherField = InProcessResolver.class.getDeclaredField("stateWatcher");
+        stateWatcherField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        AtomicReference<Thread> stateWatcherRef = (AtomicReference<Thread>) stateWatcherField.get(inProcessResolver);
+        Thread stateWatcher = stateWatcherRef.get();
+
         var threadCountAfterInit = currentDaemonThreadCount();
         var stateWatcherWasStarted = stateWatcher.isAlive();
         inProcessResolver.shutdown();
@@ -572,6 +589,7 @@ class InProcessResolverTest {
 
         final InProcessResolver resolver =
                 new InProcessResolver(FlagdOptions.builder().deadline(1000).build(), onConnectionEvent);
+        resolversToShutdown.add(resolver);
         return injectFlagStoreAndEvaluator(resolver, storage);
     }
 
