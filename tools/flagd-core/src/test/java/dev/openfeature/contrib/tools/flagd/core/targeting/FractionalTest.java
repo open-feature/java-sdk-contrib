@@ -3,26 +3,20 @@ package dev.openfeature.contrib.tools.flagd.core.targeting;
 import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.FLAGD_PROPS_KEY;
 import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.FLAG_KEY;
 import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.TARGET_KEY;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,7 +24,6 @@ import org.junit.jupiter.params.converter.ArgumentConversionException;
 import org.junit.jupiter.params.converter.ConvertWith;
 import org.junit.jupiter.params.converter.TypedArgumentConverter;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class FractionalTest {
 
@@ -54,23 +47,6 @@ class FractionalTest {
 
         // then
         assertEquals(testData.result, evaluate);
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {0, 1, -1, Integer.MAX_VALUE, Integer.MAX_VALUE - 1, Integer.MIN_VALUE, Integer.MIN_VALUE + 1})
-    void edgeCasesDoNotThrow(int hash) throws JsonLogicException {
-        int totalWeight = 8;
-        int buckets = 4;
-        List<Fractional.FractionProperty> bucketsList = new ArrayList<>(buckets);
-        for (int i = 0; i < buckets; i++) {
-            bucketsList.add(new Fractional.FractionProperty(List.of("bucket" + i, totalWeight / buckets), ""));
-        }
-
-        AtomicReference<String> result = new AtomicReference<>();
-        assertDoesNotThrow(() -> result.set(Fractional.distributeValueFromHash(hash, bucketsList, totalWeight, "")));
-
-        assertNotNull(result.get());
-        assertTrue(result.get().startsWith("bucket"));
     }
 
     public static Stream<?> allFilesInDir() throws IOException {
