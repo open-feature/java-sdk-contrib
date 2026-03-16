@@ -6,7 +6,6 @@ package dev.openfeature.contrib.tools.flagd.api.testkit;
  * (e.g., {@code a Boolean-flag with key ...}).
  */
 public enum FlagType {
-
     BOOLEAN("Boolean"),
     STRING("String"),
     INTEGER("Integer"),
