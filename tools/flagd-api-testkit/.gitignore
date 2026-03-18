@@ -1,0 +1,4 @@
+# Generated from test-harness submodule at build time (mvn generate-resources).
+# Do not edit these files directly — edit them in open-feature/test-harness evaluator/ directory.
+src/main/resources/features/
+src/main/resources/flags/
