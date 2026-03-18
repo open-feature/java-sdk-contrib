@@ -39,7 +39,6 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         if (arg1 instanceof String) {
             // first arg is a String, use for bucketing
             bucketBy = (String) arg1;
-
             Object[] source = arguments.toArray();
             distributions = Arrays.copyOfRange(source, 1, source.length);
         } else {
@@ -72,15 +71,25 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     private static String distributeValue(
-            final String hashKey, final List<FractionProperty> propertyList, int totalWeight, String jsonPath)
+            final String hashKey,
+            final List<FractionProperty> propertyList,
+            final int totalWeight,
+            final String jsonPath)
             throws JsonLogicEvaluationException {
         byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
-        float bucket = Math.abs(mmrHash) * 1.0f / Integer.MAX_VALUE * 100;
+        return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
+    }
 
-        float bucketSum = 0;
+    static String distributeValueFromHash(
+            final int hash, final List<FractionProperty> propertyList, final int totalWeight, final String jsonPath)
+            throws JsonLogicEvaluationException {
+        long longHash = Integer.toUnsignedLong(hash);
+        int bucket = (int) ((longHash * totalWeight) >> 32);
+
+        int bucketSum = 0;
         for (FractionProperty p : propertyList) {
-            bucketSum += p.getPercentage(totalWeight);
+            bucketSum += p.weight;
 
             if (bucket < bucketSum) {
                 return p.getVariant();
@@ -88,12 +97,12 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         }
 
         // this shall not be reached
-        throw new JsonLogicEvaluationException("Unable to find a correct bucket", jsonPath);
+        throw new JsonLogicEvaluationException("Unable to find a correct bucket for hash " + hash, jsonPath);
     }
 
     @Getter
     @SuppressWarnings({"checkstyle:NoFinalizer"})
-    private static class FractionProperty {
+    static class FractionProperty {
         private final String variant;
         private final int weight;
 
@@ -128,13 +137,6 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             } else {
                 weight = 1;
             }
-        }
-
-        float getPercentage(int totalWeight) {
-            if (weight == 0) {
-                return 0;
-            }
-            return (float) (weight * 100) / totalWeight;
         }
     }
 }
