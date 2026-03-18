@@ -3,9 +3,6 @@ package dev.openfeature.contrib.tools.flagd.core.targeting;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,19 +33,12 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         // check optional string target in first arg
         Object arg1 = arguments.get(0);
 
-        final byte[] bucketBy;
+        final String bucketBy;
         final Object[] distributions;
 
         if (arg1 instanceof String) {
-            bucketBy = ((String) arg1).getBytes(StandardCharsets.UTF_8);
-            Object[] source = arguments.toArray();
-            distributions = Arrays.copyOfRange(source, 1, source.length);
-        } else if (arg1 instanceof Number) {
-            bucketBy = numberToByteArray((Number) arg1);
-            Object[] source = arguments.toArray();
-            distributions = Arrays.copyOfRange(source, 1, source.length);
-        } else if (arg1 instanceof Boolean) {
-            bucketBy = new byte[] {(byte) (((boolean) arg1) ? 1 : 0)};
+            // first arg is a String, use for bucketing
+            bucketBy = (String) arg1;
             Object[] source = arguments.toArray();
             distributions = Arrays.copyOfRange(source, 1, source.length);
         } else {
@@ -58,7 +48,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 return null;
             }
 
-            bucketBy = (properties.getFlagKey() + properties.getTargetingKey()).getBytes(StandardCharsets.UTF_8);
+            bucketBy = properties.getFlagKey() + properties.getTargetingKey();
             distributions = arguments.toArray();
         }
 
@@ -80,35 +70,14 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         return distributeValue(bucketBy, propertyList, totalWeight, jsonPath);
     }
 
-    private byte[] numberToByteArray(Number number) {
-        if (number instanceof Integer) {
-            return ByteBuffer.allocate(4).putInt(number.intValue()).array();
-        } else if (number instanceof Double) {
-            return ByteBuffer.allocate(8).putDouble(number.doubleValue()).array();
-        } else if (number instanceof Long) {
-            return ByteBuffer.allocate(8).putLong(number.longValue()).array();
-        } else if (number instanceof BigInteger) {
-            return ((BigInteger) number).toByteArray();
-        } else if (number instanceof Byte) {
-            return new byte[] {number.byteValue()};
-        } else if (number instanceof Short) {
-            return ByteBuffer.allocate(2).putShort(number.shortValue()).array();
-        } else if (number instanceof Float) {
-            return ByteBuffer.allocate(4).putFloat(number.floatValue()).array();
-        } else if (number instanceof BigDecimal) {
-            return ByteBuffer.allocate(8).putDouble(number.doubleValue()).array();
-        } else {
-            throw new IllegalArgumentException("Unsupported number type: " + number.getClass());
-        }
-    }
-
     private static String distributeValue(
-            final byte[] hashKey,
+            final String hashKey,
             final List<FractionProperty> propertyList,
             final int totalWeight,
             final String jsonPath)
             throws JsonLogicEvaluationException {
-        int mmrHash = MurmurHash3.hash32x86(hashKey, 0, hashKey.length, 0);
+        byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
+        int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
         return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
     }
 
@@ -116,7 +85,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             final int hash, final List<FractionProperty> propertyList, final int totalWeight, final String jsonPath)
             throws JsonLogicEvaluationException {
         long longHash = Integer.toUnsignedLong(hash);
-        int bucket = Math.abs((int) ((longHash * totalWeight) >> 32));
+        int bucket = (int) ((longHash * totalWeight) >> 32);
 
         int bucketSum = 0;
         for (FractionProperty p : propertyList) {
