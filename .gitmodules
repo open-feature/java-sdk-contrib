@@ -17,3 +17,4 @@
 [submodule "tools/flagd-api-testkit/test-harness"]
 	path = tools/flagd-api-testkit/test-harness
 	url = https://github.com/open-feature/test-harness.git
+	branch = v3.1.0
