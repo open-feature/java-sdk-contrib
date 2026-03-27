@@ -270,11 +270,14 @@ public class FlagdCore implements Evaluator {
 
     private static ImmutableMetadata getFlagMetadata(Map<String, Object> currentFlagSetMetadata, FeatureFlag flag) {
         ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
-        for (Map.Entry<String, Object> entry : currentFlagSetMetadata.entrySet()) {
-            addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
+
+        if (currentFlagSetMetadata != null) {
+            for (Map.Entry<String, Object> entry : currentFlagSetMetadata.entrySet()) {
+                addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
+            }
         }
 
-        if (flag != null) {
+        if (flag != null && flag.getMetadata() != null) {
             for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
                 addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
             }
