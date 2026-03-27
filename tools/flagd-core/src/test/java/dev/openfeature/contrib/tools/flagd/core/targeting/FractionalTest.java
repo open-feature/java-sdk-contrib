@@ -1,6 +1,8 @@
 package dev.openfeature.contrib.tools.flagd.core.targeting;
 
-import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.*;
+import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.FLAGD_PROPS_KEY;
+import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.FLAG_KEY;
+import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.TARGET_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
