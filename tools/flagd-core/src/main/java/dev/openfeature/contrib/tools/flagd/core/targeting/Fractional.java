@@ -17,6 +17,8 @@ import org.apache.commons.codec.digest.MurmurHash3;
 @Slf4j
 class Fractional implements PreEvaluatedArgumentsExpression {
 
+    static final int MAX_WEIGHT = Integer.MAX_VALUE;
+
     @Override
     public String key() {
         return "fractional";
@@ -24,7 +26,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
     @Override
     public Object evaluate(List arguments, Object data, String jsonPath) throws JsonLogicEvaluationException {
-        if (arguments.size() < 2) {
+        if (arguments.size() < 1) {
             return null;
         }
 
@@ -53,7 +55,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         }
 
         final List<FractionProperty> propertyList = new ArrayList<>();
-        int totalWeight = 0;
+        long totalWeight = 0;
 
         try {
             for (Object dist : distributions) {
@@ -66,11 +68,21 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             return null;
         }
 
+        if (totalWeight > MAX_WEIGHT) {
+            log.debug("Total weight {} exceeds maximum allowed value {}", totalWeight, MAX_WEIGHT);
+            return null;
+        }
+
+        if (totalWeight == 0) {
+            log.debug("Total weight is 0, no valid distribution possible");
+            return null;
+        }
+
         // find distribution
-        return distributeValue(bucketBy, propertyList, totalWeight, jsonPath);
+        return distributeValue(bucketBy, propertyList, (int) totalWeight, jsonPath);
     }
 
-    private static String distributeValue(
+    private static Object distributeValue(
             final String hashKey,
             final List<FractionProperty> propertyList,
             final int totalWeight,
@@ -81,11 +93,11 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
     }
 
-    static String distributeValueFromHash(
+    static Object distributeValueFromHash(
             final int hash, final List<FractionProperty> propertyList, final int totalWeight, final String jsonPath)
             throws JsonLogicEvaluationException {
         long longHash = Integer.toUnsignedLong(hash);
-        int bucket = (int) ((longHash * totalWeight) >> 32);
+        int bucket = (int) ((longHash * totalWeight) >>> 32);
 
         int bucketSum = 0;
         for (FractionProperty p : propertyList) {
@@ -103,7 +115,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     @Getter
     @SuppressWarnings({"checkstyle:NoFinalizer"})
     static class FractionProperty {
-        private final String variant;
+        private final Object variant;
         private final int weight;
 
         protected final void finalize() {
@@ -121,19 +133,34 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 throw new JsonLogicException("Fraction property needs at least one element", jsonPath);
             }
 
-            // first must be a string
-            if (!(array.get(0) instanceof String)) {
+            // variant must be a primitive (string, number, boolean) or null;
+            // nested JSONLogic expressions are pre-evaluated to these types
+            Object first = array.get(0);
+            if (first instanceof String || first instanceof Number || first instanceof Boolean || first == null) {
+                variant = first;
+            } else {
                 throw new JsonLogicException(
-                        "First element of the fraction property is not a string variant", jsonPath);
+                        "First element of the fraction property must resolve to a string, number, boolean, or null",
+                        jsonPath);
             }
 
-            variant = (String) array.get(0);
             if (array.size() >= 2) {
-                // second element must be a number
+                // weight must be a number
                 if (!(array.get(1) instanceof Number)) {
                     throw new JsonLogicException("Second element of the fraction property is not a number", jsonPath);
                 }
-                weight = ((Number) array.get(1)).intValue();
+                Number rawWeight = (Number) array.get(1);
+
+                // weights must be integers
+                double weightDouble = rawWeight.doubleValue();
+                if (Double.isInfinite(weightDouble)
+                        || Double.isNaN(weightDouble)
+                        || weightDouble != Math.floor(weightDouble)) {
+                    throw new JsonLogicException("Weights must be integers", jsonPath);
+                }
+
+                // clamp negative weights to 0
+                weight = Math.max(0, (int) weightDouble);
             } else {
                 weight = 1;
             }
