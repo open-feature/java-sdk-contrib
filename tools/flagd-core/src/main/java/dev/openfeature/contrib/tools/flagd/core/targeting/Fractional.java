@@ -159,7 +159,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                     throw new JsonLogicException("Weights must be integers", jsonPath);
                 }
 
-                // clamp negative weights to 0
+                // negative weights can be the result of rollout calculations, so we clamp to 0 rather than throwing an error
                 weight = Math.max(0, (int) weightDouble);
             } else {
                 weight = 1;
