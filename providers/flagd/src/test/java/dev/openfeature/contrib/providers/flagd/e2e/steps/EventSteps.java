@@ -60,9 +60,18 @@ public class EventSteps extends AbstractSteps {
                 .atMost(ms, MILLISECONDS)
                 .pollInterval(10, MILLISECONDS)
                 .until(() -> state.events.stream().anyMatch(event -> event.type.equals(eventType)));
-        state.lastEvent = state.events.stream()
-                .filter(event -> event.type.equals(eventType))
-                .findFirst();
-        state.events.clear();
+        // Drain all events up to and including the first match. This ensures that
+        // older events (e.g. a READY from before a disconnect) cannot satisfy a
+        // later assertion that expects a *new* event of the same type, while still
+        // preserving events that arrived *after* the match for subsequent steps.
+        Event matched = null;
+        while (!state.events.isEmpty()) {
+            Event head = state.events.poll();
+            if (head != null && head.type.equals(eventType)) {
+                matched = head;
+                break;
+            }
+        }
+        state.lastEvent = java.util.Optional.ofNullable(matched);
     }
 }
