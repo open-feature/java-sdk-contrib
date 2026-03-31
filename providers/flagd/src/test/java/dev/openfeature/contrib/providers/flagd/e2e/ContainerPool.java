@@ -29,7 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ContainerPool {
 
-    private static final int POOL_SIZE = Integer.getInteger("flagd.e2e.pool.size", 2);
+    private static final int POOL_SIZE =
+            Integer.getInteger("flagd.e2e.pool.size", Runtime.getRuntime().availableProcessors());
 
     private static final BlockingQueue<ContainerEntry> pool = new LinkedBlockingQueue<>();
     private static final List<ContainerEntry> all = new ArrayList<>();
