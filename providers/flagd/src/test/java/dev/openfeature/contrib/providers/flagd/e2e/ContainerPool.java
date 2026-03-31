@@ -43,19 +43,32 @@ public class ContainerPool {
         }
         log.info("Starting container pool of size {}...", POOL_SIZE);
         ExecutorService executor = Executors.newFixedThreadPool(POOL_SIZE);
-        List<Future<ContainerEntry>> futures = new ArrayList<>();
-
-        for (int i = 0; i < POOL_SIZE; i++) {
-            futures.add(executor.submit(ContainerEntry::start));
+        try {
+            List<Future<ContainerEntry>> futures = new ArrayList<>();
+            for (int i = 0; i < POOL_SIZE; i++) {
+                futures.add(executor.submit(ContainerEntry::start));
+            }
+            for (Future<ContainerEntry> future : futures) {
+                ContainerEntry entry = future.get();
+                pool.add(entry);
+                all.add(entry);
+            }
+        } catch (Exception e) {
+            // Stop any containers that started successfully before the failure
+            all.forEach(entry -> {
+                try {
+                    entry.stop();
+                } catch (IOException suppressed) {
+                    e.addSuppressed(suppressed);
+                }
+            });
+            pool.clear();
+            all.clear();
+            refCount.decrementAndGet();
+            throw e;
+        } finally {
+            executor.shutdown();
         }
-
-        for (Future<ContainerEntry> future : futures) {
-            ContainerEntry entry = future.get();
-            pool.add(entry);
-            all.add(entry);
-        }
-
-        executor.shutdown();
         log.info("Container pool ready ({} containers).", POOL_SIZE);
     }
 
