@@ -16,6 +16,11 @@ public class State {
     public ProviderType providerType;
     public Client client;
     public FeatureProvider provider;
+    /** The domain name under which this scenario's provider is registered with OpenFeatureAPI. */
+    public String providerName;
+    /** The container borrowed from {@link ContainerPool} for this scenario. */
+    public ContainerEntry containerEntry;
+
     public ConcurrentLinkedQueue<Event> events = new ConcurrentLinkedQueue<>();
     public Optional<Event> lastEvent;
     public FlagSteps.Flag flag;
