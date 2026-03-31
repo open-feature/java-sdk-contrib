@@ -28,6 +28,8 @@ public class State {
     public FlagEvaluationDetails evaluation;
     public FlagdOptions options;
     public FlagdOptions.FlagdOptionsBuilder builder = FlagdOptions.builder();
-    public static Config.Resolver resolverType;
+    public Config.Resolver resolverType;
     public boolean hasError;
+    /** True if this scenario acquired the JVM-wide restart slot via {@link ContainerPool#acquireRestartSlot()}. */
+    public boolean restartSlotAcquired;
 }
