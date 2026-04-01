@@ -36,16 +36,20 @@ public class ProviderSteps extends AbstractSteps {
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-        ContainerPool.initialize();
+        // Container pool initializes lazily on first acquire() — nothing to do here.
     }
 
     @AfterAll
     public static void afterAll() {
-        ContainerPool.shutdown();
+        // Container pool shuts down via JVM shutdown hook — nothing to do here.
     }
 
     @After
     public void tearDown() {
+        if (state.restartSlotAcquired) {
+            ContainerPool.releaseRestartSlot();
+            state.restartSlotAcquired = false;
+        }
         if (state.containerEntry != null) {
             if (state.client != null) {
                 when().post("http://" + ContainerUtil.getLaunchpadUrl(state.containerEntry.container) + "/stop")
@@ -64,7 +68,7 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @Given("a {} flagd provider")
-    public void setupProvider(String providerType) throws InterruptedException {
+    public void setupProvider(String providerType) throws Exception {
         state.containerEntry = ContainerPool.acquire();
         ComposeContainer container = state.containerEntry.container;
 
@@ -81,7 +85,7 @@ public class ProviderSteps extends AbstractSteps {
             case "unavailable":
                 this.state.providerType = ProviderType.SOCKET;
                 state.builder.port(UNAVAILABLE_PORT);
-                if (State.resolverType == Config.Resolver.FILE) {
+                if (state.resolverType == Config.Resolver.FILE) {
                     state.builder.offlineFlagSourcePath("not-existing");
                 }
                 wait = false;
@@ -106,14 +110,14 @@ public class ProviderSteps extends AbstractSteps {
                 String absolutePath = file.getAbsolutePath();
                 this.state.providerType = ProviderType.SSL;
                 state.builder
-                        .port(ContainerUtil.getPort(container, State.resolverType))
+                        .port(ContainerUtil.getPort(container, state.resolverType))
                         .tls(true)
                         .certPath(absolutePath);
                 flagdConfig = "ssl";
                 break;
             case "metadata":
                 flagdConfig = "metadata";
-                if (State.resolverType == Config.Resolver.FILE) {
+                if (state.resolverType == Config.Resolver.FILE) {
                     FlagdOptions build = state.builder.build();
                     String selector = build.getSelector();
                     String replace = selector.replace("rawflags/", "");
@@ -121,16 +125,16 @@ public class ProviderSteps extends AbstractSteps {
                             .port(UNAVAILABLE_PORT)
                             .offlineFlagSourcePath(new File("test-harness/flags/" + replace).getAbsolutePath());
                 } else {
-                    state.builder.port(ContainerUtil.getPort(container, State.resolverType));
+                    state.builder.port(ContainerUtil.getPort(container, state.resolverType));
                 }
                 break;
             case "syncpayload":
                 flagdConfig = "sync-payload";
-                state.builder.port(ContainerUtil.getPort(container, State.resolverType));
+                state.builder.port(ContainerUtil.getPort(container, state.resolverType));
                 break;
             case "stable":
                 this.state.providerType = ProviderType.DEFAULT;
-                if (State.resolverType == Config.Resolver.FILE) {
+                if (state.resolverType == Config.Resolver.FILE) {
                     state.builder
                             .port(UNAVAILABLE_PORT)
                             .offlineFlagSourcePath(state.containerEntry
@@ -139,7 +143,7 @@ public class ProviderSteps extends AbstractSteps {
                                     .toAbsolutePath()
                                     .toString());
                 } else {
-                    state.builder.port(ContainerUtil.getPort(container, State.resolverType));
+                    state.builder.port(ContainerUtil.getPort(container, state.resolverType));
                 }
                 break;
             default:
@@ -158,10 +162,26 @@ public class ProviderSteps extends AbstractSteps {
                 .then()
                 .statusCode(200);
 
-        Thread.sleep(50);
+        // For FILE resolver, the provider reads from a file written by the launchpad.
+        // Under parallel load the write may not complete within a fixed sleep — poll instead.
+        if (state.resolverType == Config.Resolver.FILE) {
+            FlagdOptions built = state.builder.build();
+            String filePath = built.getOfflineFlagSourcePath();
+            if (filePath != null) {
+                java.io.File flagFile = new java.io.File(filePath);
+                long deadline = System.currentTimeMillis() + 5_000;
+                while ((!flagFile.exists() || flagFile.length() == 0) && System.currentTimeMillis() < deadline) {
+                    Thread.sleep(50);
+                }
+            }
+        } else {
+            // The launchpad polls /readyz before returning, but gRPC ports may lag slightly.
+            // Wait for the actual gRPC port to accept connections to prevent init timeouts.
+            ContainerUtil.waitForGrpcPort(container, state.resolverType, 5_000);
+        }
 
         FeatureProvider provider =
-                new FlagdProvider(state.builder.resolverType(State.resolverType).build());
+                new FlagdProvider(state.builder.resolverType(state.resolverType).build());
         String providerName = "Provider " + Math.random();
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
 
@@ -176,14 +196,18 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     @When("the connection is lost")
-    public void the_connection_is_lost() {
+    public void the_connection_is_lost() throws InterruptedException {
+        ContainerPool.acquireRestartSlot();
+        state.restartSlotAcquired = true;
         when().post("http://" + ContainerUtil.getLaunchpadUrl(state.containerEntry.container) + "/stop")
                 .then()
                 .statusCode(200);
     }
 
     @When("the connection is lost for {int}s")
-    public void the_connection_is_lost_for(int seconds) {
+    public void the_connection_is_lost_for(int seconds) throws InterruptedException {
+        ContainerPool.acquireRestartSlot();
+        state.restartSlotAcquired = true;
         when().post(
                         "http://" + ContainerUtil.getLaunchpadUrl(state.containerEntry.container)
                                 + "/restart?seconds={seconds}",
