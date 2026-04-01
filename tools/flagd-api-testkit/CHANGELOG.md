@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapitestkit-v0.2.0...dev.openfeature.contrib.tools.flagdapitestkit-v0.2.1) (2026-04-01)
+
+
+### 🐛 Bug Fixes
+
+* testkit dep hierarchy ([df3aa5b](https://github.com/open-feature/java-sdk-contrib/commit/df3aa5b61dbac91e9d8932a6ff25071500c5dd57))
+
 ## [0.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapitestkit-v0.1.0...dev.openfeature.contrib.tools.flagdapitestkit-v0.2.0) (2026-04-01)
 
 
