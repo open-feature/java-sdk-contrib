@@ -5,6 +5,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.fallBackToEnvOrDefa
 import static dev.openfeature.contrib.providers.flagd.Config.fromValueProvider;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
+import dev.openfeature.contrib.tools.flagd.api.Evaluator;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.Structure;
@@ -13,6 +14,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import java.util.List;
 import java.util.function.Function;
+import jdk.jfr.Experimental;
 import lombok.Builder;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -141,7 +143,9 @@ public class FlagdOptions {
      *
      * <p>Only applicable for in-process resolver mode.
      *
-     * @see <a href="https://github.com/open-feature/java-sdk-contrib/tree/main/providers/flagd#selector-filtering-in-process-mode-only">Selector filtering documentation</a>
+     * @see <a
+     *         href="https://github.com/open-feature/java-sdk-contrib/tree/main/providers/flagd#selector-filtering-in-process-mode-only">Selector
+     *         filtering documentation</a>
      **/
     @Builder.Default
     private String selector = fallBackToEnvOrDefault(Config.SOURCE_SELECTOR_ENV_VAR_NAME, null);
@@ -231,6 +235,14 @@ public class FlagdOptions {
     @Builder.Default
     private boolean reinitializeOnError = Boolean.parseBoolean(
             fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR));
+
+    /**
+     * The evaluator to use for flag evaluations. Defaults to {@code new FlagdCore()}. Only applicable in the in-process
+     * mode
+     */
+    @Builder.Default
+    @Experimental
+    private Evaluator evaluator = null;
 
     /**
      * Builder overwrite in order to customize the "build" method.
