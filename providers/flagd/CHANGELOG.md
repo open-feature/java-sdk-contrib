@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.12.0...dev.openfeature.contrib.providers.flagd-v0.13.0) (2026-04-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* fractional bucketing improvements ([#1740](https://github.com/open-feature/java-sdk-contrib/issues/1740))
+
+### ✨ New Features
+
+* fractional bucketing improvements ([#1740](https://github.com/open-feature/java-sdk-contrib/issues/1740)) ([0f0c440](https://github.com/open-feature/java-sdk-contrib/commit/0f0c44057c99840bb45c6e4f4d6dc135362f9329))
+* Make the Evaluator customizable ([#1733](https://github.com/open-feature/java-sdk-contrib/issues/1733)) ([f21d871](https://github.com/open-feature/java-sdk-contrib/commit/f21d871fa65a4dbfc2fd965859cfdd24f35c20ba))
+
 ## [0.12.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.20...dev.openfeature.contrib.providers.flagd-v0.12.0) (2026-03-11)
 
 
