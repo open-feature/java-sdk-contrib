@@ -465,10 +465,11 @@
           "$ref": "#/definitions/args"
         },
         {
-          "description": "Weighted distribution for this variant key. Must be an integer. Can be a JSONLogic expression that evaluates to a number (e.g. for time-based progressive rollouts).",
+          "description": "Weighted distribution for this variant key. Must be a non-negative integer. Can be a JSONLogic expression that evaluates to a number (e.g. for time-based progressive rollouts); computed negative weights are clamped to 0 at evaluation time. The total weight sum across all variants must not exceed 2,147,483,647.",
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 0
             },
             {
               "$ref": "#/definitions/anyRule"
