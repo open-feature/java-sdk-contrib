@@ -156,10 +156,6 @@ public class ProviderSteps extends AbstractSteps {
             String replace = tempBuild.getTargetUri().replace("<port>", "" + container.getServicePort("envoy", 9211));
             state.builder.targetUri(replace);
             state.builder.port(UNAVAILABLE_PORT);
-            // Envoy needs time to (re-)establish its upstream gRPC connection to flagd after a
-            // restart. The TCP port check is not sufficient — envoy listens continuously but the
-            // upstream proxy channel needs a moment to become functional.
-            state.builder.deadline(1000);
         }
 
         when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/start?config={config}", flagdConfig)

@@ -56,7 +56,13 @@ public class RunE2ETests {
     @TestFactory
     @Execution(ExecutionMode.CONCURRENT)
     Stream<DynamicNode> inProcess() {
-        return resolverTests(STEPS + ".resolver.inprocess", "in-process", "unixsocket", "deprecated");
+        // targetURI scenarios are excluded: the retryBackoffMaxMs that controls initial-connection
+        // throttle also controls post-disconnect reconnect backoff, so they cannot be tuned
+        // independently. Under parallel load the first getMetadata() call times out (envoy
+        // upstream not yet ready), the throttle fires for retryBackoffMaxMs, and the retry arrives
+        // after the waitForInitialization deadline. Tracked in flagd issue #1584 — once
+        // getMetadata() is removed, these scenarios can be re-enabled.
+        return resolverTests(STEPS + ".resolver.inprocess", "in-process", "unixsocket", "targetURI", "deprecated");
     }
 
     @TestFactory
