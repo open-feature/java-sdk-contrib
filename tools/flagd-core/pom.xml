@@ -12,9 +12,9 @@
     <artifactId>flagd-core</artifactId>
     <version>0.1.0</version> <!--x-release-please-version -->
 
-<properties>
+    <properties>
         <module-name>${groupId}.flagdcore</module-name>
-        <!-- Match any testkit version locally; at release CI sets exact version: -Dflagd-api-testkit.version=$(cat tools/flagd-api-testkit/version.txt) -->
+        <!-- Match any testkit version locally -->
         <flagd-api-testkit.version>[0.0.1,)</flagd-api-testkit.version>
     </properties>
 
