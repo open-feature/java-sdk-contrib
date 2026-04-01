@@ -79,38 +79,43 @@ public class ContainerPool {
         log.debug("Restart slot released.");
     }
 
-    private static synchronized void ensureInitialized() throws Exception {
-        if (!initialized.compareAndSet(false, true)) {
+    private static void ensureInitialized() throws Exception {
+        if (initialized.get()) {
             return;
         }
-        log.info("Starting container pool of size {}...", POOL_SIZE);
-        ExecutorService executor = Executors.newFixedThreadPool(POOL_SIZE);
-        try {
-            List<Future<ContainerEntry>> futures = new ArrayList<>();
-            for (int i = 0; i < POOL_SIZE; i++) {
-                futures.add(executor.submit(ContainerEntry::start));
+        synchronized (ContainerPool.class) {
+            if (!initialized.compareAndSet(false, true)) {
+                return;
             }
-            for (Future<ContainerEntry> future : futures) {
-                ContainerEntry entry = future.get();
-                pool.add(entry);
-                all.add(entry);
-            }
-        } catch (Exception e) {
-            all.forEach(entry -> {
-                try {
-                    entry.stop();
-                } catch (IOException suppressed) {
-                    e.addSuppressed(suppressed);
+            log.info("Starting container pool of size {}...", POOL_SIZE);
+            ExecutorService executor = Executors.newFixedThreadPool(POOL_SIZE);
+            try {
+                List<Future<ContainerEntry>> futures = new ArrayList<>();
+                for (int i = 0; i < POOL_SIZE; i++) {
+                    futures.add(executor.submit(ContainerEntry::start));
                 }
-            });
-            pool.clear();
-            all.clear();
-            initialized.set(false);
-            throw e;
-        } finally {
-            executor.shutdown();
+                for (Future<ContainerEntry> future : futures) {
+                    ContainerEntry entry = future.get();
+                    pool.add(entry);
+                    all.add(entry);
+                }
+            } catch (Exception e) {
+                all.forEach(entry -> {
+                    try {
+                        entry.stop();
+                    } catch (IOException suppressed) {
+                        e.addSuppressed(suppressed);
+                    }
+                });
+                pool.clear();
+                all.clear();
+                initialized.set(false);
+                throw e;
+            } finally {
+                executor.shutdown();
+            }
+            log.info("Container pool ready ({} containers).", POOL_SIZE);
         }
-        log.info("Container pool ready ({} containers).", POOL_SIZE);
     }
 
     private static void stopAll() {

@@ -1,9 +1,9 @@
 package dev.openfeature.contrib.providers.flagd.e2e;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.reporting.ReportEntry;
@@ -20,9 +20,9 @@ import org.junit.platform.launcher.TestPlan;
 @Slf4j
 class CucumberResultListener implements TestExecutionListener {
 
-    private final Set<String> started = new LinkedHashSet<>();
-    private final Map<String, TestExecutionResult> results = new LinkedHashMap<>();
-    private final Map<String, String> skipped = new LinkedHashMap<>();
+    private final Set<String> started = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Map<String, TestExecutionResult> results = new ConcurrentHashMap<>();
+    private final Map<String, String> skipped = new ConcurrentHashMap<>();
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
