@@ -1,0 +1,13 @@
+{
+  "rule": [
+    [
+      true,
+      50
+    ],
+    [
+      false,
+      50
+    ]
+  ],
+  "result": true
+}

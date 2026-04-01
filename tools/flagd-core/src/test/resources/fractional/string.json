@@ -1,8 +1,13 @@
 {
   "rule": [
+    "some string",
     [
       "blue",
       50
+    ],
+    [
+      "green",
+      70
     ]
   ],
   "result": "blue"

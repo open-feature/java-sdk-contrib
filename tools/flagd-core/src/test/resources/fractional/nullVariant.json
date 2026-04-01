@@ -1,9 +1,13 @@
 {
   "rule": [
     [
+      null,
+      50
+    ],
+    [
       "blue",
       50
     ]
   ],
-  "result": "blue"
+  "result": null
 }
