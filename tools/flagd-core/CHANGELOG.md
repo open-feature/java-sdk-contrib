@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v0.2.0...dev.openfeature.contrib.tools.flagdcore-v1.0.0) (2026-04-02)
+
+
+### ✨ New Features
+
+* 1.0 flagd core transitive deps ([#1758](https://github.com/open-feature/java-sdk-contrib/issues/1758)) ([f81f2a9](https://github.com/open-feature/java-sdk-contrib/commit/f81f2a9ec8cd5e52fe7a2efd8b86466f2fc2c99b))
+
 ## [0.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v0.1.0...dev.openfeature.contrib.tools.flagdcore-v0.2.0) (2026-04-01)
 
 
