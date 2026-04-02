@@ -20,8 +20,8 @@
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
         <com.vmlens.version>1.2.27</com.vmlens.version>
-        <!-- Match any core version locally- at release, CI sets exact version: -Dflagd-core.version=$(cat tools/flagd-core/version.txt) -->
-        <flagd-core.version>[0.0.1,)</flagd-core.version>
+        <!-- Transitive flagd-core version -->
+        <flagd-core.version>0.2.0</flagd-core.version>
     </properties>
 
     <name>flagd</name>
