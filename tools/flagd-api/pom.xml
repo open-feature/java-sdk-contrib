@@ -12,7 +12,7 @@
     <artifactId>flagd-api</artifactId>
     <version>0.1.0</version> <!--x-release-please-version -->
 
-<properties>
+    <properties>
         <module-name>${groupId}.flagdapi</module-name>
     </properties>
 
