@@ -21,7 +21,7 @@
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
         <com.vmlens.version>1.2.27</com.vmlens.version>
         <!-- Transitive flagd-core version -->
-        <flagd-core.version>0.2.0</flagd-core.version>
+        <flagd-core.version>[1.0.0,2.0.0)</flagd-core.version>
     </properties>
 
     <name>flagd</name>
