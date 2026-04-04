@@ -45,6 +45,8 @@
         <module>providers/optimizely</module>
         <module>providers/multiprovider</module>
         <module>providers/ofrep</module>
+        <module>providers/gcp-parameter-manager</module>
+        <module>providers/gcp-secret-manager</module>
         <module>tools/flagd-http-connector</module>
     </modules>
 

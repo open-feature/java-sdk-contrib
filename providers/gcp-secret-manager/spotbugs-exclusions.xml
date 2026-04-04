@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter xmlns="https://github.com/spotbugs/filter/3.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+    <!-- Ignore generated dev.openfeature.flagd.grpc schemas -->
+    <Match>
+        <Package name="~dev\.openfeature\.flagd\.grpc.*" />
+    </Match>
+
+    <!-- Ignore generated dev.openfeature.flagd.sync schemas -->
+    <Match>
+        <Package name="~dev\.openfeature\.flagd\.sync.*" />
+    </Match>
+
+    <!-- Allow predictable random for backoff jitter generation -->
+    <Match>
+        <Class name="dev.openfeature.contrib.providers.flagd.resolver.common.backoff.BackoffService" />
+        <Bug pattern="PREDICTABLE_RANDOM" />
+    </Match>
+
+    <!-- Suppress: EI_EXPOSE_REP2 in ModuleMachine -->
+    <Match>
+        <Class name="dev.openfeature.contrib.providers.gofeatureflag.wasm.ModuleMachine"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Suppress: SKIPPED_CLASS_TOO_BIG in ModuleMachineFuncGroup_0 -->
+    <Match>
+        <Class name="dev.openfeature.contrib.providers.gofeatureflag.wasm.ModuleMachineFuncGroup_0"/>
+        <Bug pattern="SKIPPED_CLASS_TOO_BIG"/>
+    </Match>
+
+    <!-- All bugs in test classes, except for JUnit-specific bugs -->
+    <Match>
+        <Class name="~.*\.*Test" />
+        <Not>
+            <Bug code="IJU" />
+        </Not>
+    </Match>
+</FindBugsFilter>
