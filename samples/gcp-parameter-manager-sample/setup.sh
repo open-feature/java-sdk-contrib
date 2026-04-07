@@ -33,7 +33,7 @@ create_parameter() {
         gcloud parametermanager parameters create "${full_name}" \
             --project="${PROJECT}" \
             --location="${LOCATION}" \
-            --format=unformatted \
+            --parameter-format=UNFORMATTED \
             --quiet
         echo "  [CREATED] ${full_name}"
     fi

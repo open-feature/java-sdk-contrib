@@ -17,6 +17,13 @@ for name in dark-mode banner-text max-cart-items discount-rate checkout-config; 
     full_name="of-sample-${name}"
     if gcloud parametermanager parameters describe "${full_name}" \
             --project="${PROJECT}" --location="${LOCATION}" &>/dev/null; then
+        for version in $(gcloud parametermanager parameters versions list \
+            --parameter="${full_name}" --project="${PROJECT}" --location="${LOCATION}" \
+            --format="value(name.basename())" 2>/dev/null); do
+            gcloud parametermanager parameters versions delete "${version}" \
+                --parameter="${full_name}" --project="${PROJECT}" --location="${LOCATION}" --quiet
+            echo "  [DELETED] ${full_name}/versions/${version}"
+        done
         gcloud parametermanager parameters delete "${full_name}" \
             --project="${PROJECT}" --location="${LOCATION}" --quiet
         echo "  [DELETED] ${full_name}"
