@@ -77,6 +77,14 @@ public class EvaluationSteps {
                     .errorCode(ErrorCode.TYPE_MISMATCH)
                     .errorMessage(e.getMessage())
                     .build();
+        } catch (dev.openfeature.sdk.exceptions.OpenFeatureError e) {
+            // Mirror the OpenFeature SDK client behaviour: on any provider error, return the
+            // caller-supplied default value together with the error code and message.
+            state.evaluation = dev.openfeature.sdk.ProviderEvaluation.builder()
+                    .value(state.defaultValue)
+                    .errorCode(e.getErrorCode())
+                    .errorMessage(e.getMessage())
+                    .build();
         }
     }
 
