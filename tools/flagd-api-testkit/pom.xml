@@ -16,7 +16,7 @@
         <module-name>${groupId}.flagdapitestkit</module-name>
         <!-- Match any flagd-api version locally; CI sets exact version -->
         <flagd-api.version>[0.0.1,)</flagd-api.version>
-        <jackson-databind.version>2.21.1</jackson-databind.version>
+        <jackson-databind.version>2.21.2</jackson-databind.version>
         <assertj.version>3.27.7</assertj.version>
     </properties>
 
