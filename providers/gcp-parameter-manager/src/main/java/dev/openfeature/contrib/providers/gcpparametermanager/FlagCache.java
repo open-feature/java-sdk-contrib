@@ -22,12 +22,13 @@ class FlagCache {
     FlagCache(Duration ttl, int maxSize) {
         this.ttl = ttl;
         this.store = Collections.synchronizedMap(
-                new LinkedHashMap<String, CacheEntry>(16, 0.75f, false) {
-                    @Override
-                    protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
-                        return size() > maxSize;
-                    }
-                });
+            new LinkedHashMap<String, CacheEntry>(16, 0.75f, false) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
+                    return size() > maxSize;
+                }
+            }
+        );
     }
 
     /**
@@ -42,7 +43,7 @@ class FlagCache {
             return Optional.empty();
         }
         if (entry.isExpired()) {
-            store.remove(key);
+            store.remove(key, entry);
             return Optional.empty();
         }
         return Optional.of(entry.value);
@@ -74,6 +75,7 @@ class FlagCache {
     }
 
     private static final class CacheEntry {
+
         final String value;
         final Instant expiresAt;
 
