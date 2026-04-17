@@ -178,8 +178,8 @@ public class FliptProvider extends EventProvider {
             log.error("Error evaluating variant", e);
             throw new GeneralError(e.getMessage());
         }
-
-        if (!response.isMatch()) {
+        boolean hasVariantKey = response.getVariantKey() != null && !response.getVariantKey().isEmpty();
+        if (!response.isMatch() && !hasVariantKey) {
             log.debug("non matching variant for {} : {}", key, response.getReason());
             return ProviderEvaluation.<Value>builder()
                     .value(defaultValue)
