@@ -201,7 +201,7 @@ public class FliptProvider extends EventProvider {
         return ProviderEvaluation.<Value>builder()
                 .value(value)
                 .variant(response.getVariantKey())
-                .reason(TARGETING_MATCH.name())
+                .reason(response.isMatch() ? TARGETING_MATCH.name() : response.getReason().toString())
                 .flagMetadata(flagMetadataBuilder.build())
                 .build();
     }
