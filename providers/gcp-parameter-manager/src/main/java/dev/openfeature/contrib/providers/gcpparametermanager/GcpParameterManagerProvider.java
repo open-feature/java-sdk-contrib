@@ -129,19 +129,18 @@ public class GcpParameterManagerProvider implements FeatureProvider {
     private <T> ProviderEvaluation<T> evaluate(String key, Class<T> targetType) {
         String rawValue = fetchWithCache(key);
         T value = FlagValueConverter.convert(rawValue, targetType);
-        return ProviderEvaluation.<T>builder()
-                .value(value)
-                .reason(Reason.STATIC.toString())
-                .build();
+        return ProviderEvaluation.<T>builder().value(value).reason(Reason.CACHED.toString()).build();
     }
 
     private String fetchWithCache(String key) {
         String paramName = buildParameterName(key);
-        return cache.get(paramName).orElseGet(() -> {
-            String value = fetchFromGcp(paramName);
-            cache.put(paramName, value);
-            return value;
-        });
+        return cache
+            .get(paramName)
+            .orElseGet(() -> {
+                String value = fetchFromGcp(paramName);
+                cache.put(paramName, value);
+                return value;
+            });
     }
 
     /**
@@ -162,15 +161,19 @@ public class GcpParameterManagerProvider implements FeatureProvider {
      */
     private String fetchFromGcp(String parameterName) {
         try {
-            ParameterVersionName versionName =
-                    ParameterVersionName.of(options.getProjectId(), options.getLocationId(), parameterName, options.getParameterVersion());
+            ParameterVersionName versionName = ParameterVersionName.of(
+                options.getProjectId(),
+                options.getLocationId(),
+                parameterName,
+                options.getParameterVersion()
+            );
             log.debug("Fetching parameter '{}' from GCP", versionName);
             RenderParameterVersionResponse response = client.renderParameterVersion(versionName);
             return response.getRenderedPayload().toStringUtf8();
         } catch (NotFoundException e) {
             throw new FlagNotFoundError("Parameter not found: " + parameterName);
         } catch (Exception e) {
-            throw new GeneralError("Error fetching parameter '" + parameterName + "': " + e.getMessage());
+            throw new GeneralError("Error fetching parameter '" + parameterName + "': " + e.getMessage(), e);
         }
     }
 }

@@ -106,7 +106,7 @@ class GcpParameterManagerProviderTest {
             ProviderEvaluation<Boolean> result =
                     provider.getBooleanEvaluation("bool-flag", false, new ImmutableContext());
             assertThat(result.getValue()).isTrue();
-            assertThat(result.getReason()).isEqualTo(Reason.STATIC.toString());
+            assertThat(result.getReason()).isEqualTo(Reason.CACHED.toString());
         }
 
         @Test
