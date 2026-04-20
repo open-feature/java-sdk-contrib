@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd;
 
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ShutdownUtils;
 import dev.openfeature.contrib.providers.flagd.resolver.process.InProcessResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.RpcResolver;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
@@ -142,7 +143,8 @@ public class FlagdProvider extends EventProvider {
                 this.flagResolver.shutdown();
                 if (errorExecutor != null) {
                     errorExecutor.shutdownNow();
-                    errorExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+                    ShutdownUtils.awaitTerminationQuietly(
+                            () -> errorExecutor.awaitTermination(deadline, TimeUnit.MILLISECONDS));
                 }
             } catch (Exception e) {
                 log.error("Error during shutdown {}", FLAGD_PROVIDER, e);

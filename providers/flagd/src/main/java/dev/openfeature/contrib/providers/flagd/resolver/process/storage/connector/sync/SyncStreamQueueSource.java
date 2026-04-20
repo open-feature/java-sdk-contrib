@@ -4,6 +4,7 @@ import com.google.protobuf.Struct;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ShutdownUtils;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
@@ -161,10 +162,8 @@ public class SyncStreamQueueSource implements QueueSource {
 
     /**
      * Shutdown gRPC stream connector.
-     *
-     * @throws InterruptedException if stream can't be closed within deadline.
      */
-    public void shutdown() throws InterruptedException {
+    public void shutdown() {
         // Do not enqueue errors from here, as this method can be called externally, causing multiple shutdown signals
         // Use atomic compareAndSet to ensure shutdown is only executed once
         // This prevents race conditions when shutdown is called from multiple threads
@@ -173,9 +172,12 @@ public class SyncStreamQueueSource implements QueueSource {
             return;
         }
 
-        retryScheduler.shutdownNow();
-        retryScheduler.awaitTermination(deadline, TimeUnit.MILLISECONDS);
-        grpcComponents.channelConnector.shutdown();
+        synchronized (this) {
+            retryScheduler.shutdownNow();
+            ShutdownUtils.awaitTerminationQuietly(
+                    () -> retryScheduler.awaitTermination(deadline, TimeUnit.MILLISECONDS));
+            grpcComponents.channelConnector.shutdown();
+        }
     }
 
     /** Contains blocking calls, to be used concurrently. */
