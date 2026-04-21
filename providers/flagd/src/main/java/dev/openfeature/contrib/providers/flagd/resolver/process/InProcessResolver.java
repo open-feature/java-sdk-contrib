@@ -131,10 +131,8 @@ public class InProcessResolver implements Resolver {
 
     /**
      * Shutdown in-process resolver.
-     *
-     * @throws InterruptedException if stream can't be closed within deadline.
      */
-    public void shutdown() throws InterruptedException {
+    public void shutdown() {
         if (!shutdown.compareAndSet(false, true)) {
             log.debug("Shutdown already in progress or completed");
             return;
