@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.0.0...dev.openfeature.contrib.tools.flagdcore-v1.0.1) (2026-04-21)
+
+
+### 🐛 Bug Fixes
+
+* fixing null pointer exception error ([#1709](https://github.com/open-feature/java-sdk-contrib/issues/1709)) ([03d7966](https://github.com/open-feature/java-sdk-contrib/commit/03d796679e4cbc311c42413563fb8571be69da82))
+
 ## [1.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v0.2.0...dev.openfeature.contrib.tools.flagdcore-v1.0.0) (2026-04-02)
 
 
