@@ -70,8 +70,33 @@ class StringCompTest {
         // given
         final StringComp operator = new StringComp(StringComp.Type.STARTS_WITH);
 
-        // when
+        // when - too many args
         Object result = operator.evaluate(Arrays.asList("123", "12", "1"), new Object(), "jsonPath");
+
+        // then
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void tooFewArgs() throws JsonLogicEvaluationException {
+        // given
+        final StringComp startsWith = new StringComp(StringComp.Type.STARTS_WITH);
+        final StringComp endsWith = new StringComp(StringComp.Type.ENDS_WITH);
+
+        // when/then - single arg returns null
+        assertThat(startsWith.evaluate(Arrays.asList("abc"), new Object(), "jsonPath"))
+                .isNull();
+        assertThat(endsWith.evaluate(Arrays.asList("xyz"), new Object(), "jsonPath"))
+                .isNull();
+    }
+
+    @Test
+    public void endsWithNonStringInput() throws JsonLogicEvaluationException {
+        // given
+        final StringComp operator = new StringComp(StringComp.Type.ENDS_WITH);
+
+        // when - non-string first arg
+        Object result = operator.evaluate(Arrays.asList(123, "abc"), new Object(), "jsonPath");
 
         // then
         assertThat(result).isNull();
