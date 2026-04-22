@@ -6,7 +6,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.Flag;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
-import dev.openfeature.contrib.providers.gofeatureflag.wasm.EvaluationWasm;
+import dev.openfeature.contrib.providers.gofeatureflag.wasm.WasmEvaluatorPool;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.FlagContext;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
@@ -16,7 +16,6 @@ import dev.openfeature.sdk.Reason;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
-import io.reactivex.rxjava3.subjects.PublishSubject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -35,20 +34,20 @@ import lombok.val;
 public class InProcessEvaluator implements IEvaluator {
     /** API to contact GO Feature Flag. */
     private final GoFeatureFlagApi api;
-    /** WASM evaluation engine. */
-    private final EvaluationWasm evaluationEngine;
+    /** Pool of WASM evaluation engine instances for thread-safe concurrent evaluation. */
+    private final WasmEvaluatorPool evaluationPool;
     /** Options to configure the provider. */
     private final GoFeatureFlagProviderOptions options;
     /** Method to call when we have a configuration change. */
     private final Consumer<ProviderEventDetails> emitProviderConfigurationChanged;
     /** Local copy of the flags' configuration. */
-    private Map<String, Flag> flags;
+    private volatile Map<String, Flag> flags;
     /** Evaluation context enrichment. */
-    private Map<String, Object> evaluationContextEnrichment;
+    private volatile Map<String, Object> evaluationContextEnrichment;
     /** Last hash of the flags' configuration. */
-    private String etag;
+    private volatile String etag;
     /** Last update of the flags' configuration. */
-    private Date lastUpdate;
+    private volatile Date lastUpdate;
     /** disposable which manage the polling of the flag configurations. */
     private Disposable configurationDisposable;
 
@@ -69,12 +68,16 @@ public class InProcessEvaluator implements IEvaluator {
         this.options = options;
         this.lastUpdate = new Date(0);
         this.emitProviderConfigurationChanged = emitProviderConfigurationChanged;
-        this.evaluationEngine = new EvaluationWasm();
+        int poolSize = options.getWasmEvaluatorPoolSize() != null
+                ? options.getWasmEvaluatorPoolSize()
+                : Const.DEFAULT_WASM_EVALUATOR_POOL_SIZE;
+        this.evaluationPool = new WasmEvaluatorPool(poolSize);
     }
 
     @Override
     public GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
-        if (this.flags.get(key) == null) {
+        Map<String, Flag> currentFlags = this.flags;
+        if (currentFlags.get(key) == null) {
             val err = new GoFeatureFlagResponse();
             err.setReason(Reason.ERROR.name());
             err.setErrorCode(ErrorCode.FLAG_NOT_FOUND.name());
@@ -88,10 +91,10 @@ public class InProcessEvaluator implements IEvaluator {
                         .evaluationContextEnrichment(this.evaluationContextEnrichment)
                         .build())
                 .evalContext(evaluationContext.asObjectMap())
-                .flag(this.flags.get(key))
+                .flag(currentFlags.get(key))
                 .flagKey(key)
                 .build();
-        return this.evaluationEngine.evaluate(wasmInput);
+        return this.evaluationPool.evaluate(wasmInput);
     }
 
     @Override
@@ -108,7 +111,7 @@ public class InProcessEvaluator implements IEvaluator {
         this.lastUpdate = configFlags.getLastUpdated();
         this.evaluationContextEnrichment = configFlags.getEvaluationContextEnrichment();
         // We call the WASM engine to avoid a cold start at the 1st evaluation
-        this.evaluationEngine.preWarmWasm();
+        this.evaluationPool.preWarmWasm();
 
         // start the polling of the flag configuration
         this.configurationDisposable = startCheckFlagConfigurationChangesDaemon();
@@ -131,11 +134,8 @@ public class InProcessEvaluator implements IEvaluator {
                 ? options.getFlagChangePollingIntervalMs()
                 : Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
 
-        PublishSubject<Object> stopSignal = PublishSubject.create();
         Observable<Long> intervalObservable = Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS);
         Observable<FlagConfigResponse> apiCallObservable = intervalObservable
-                // as soon something is published in stopSignal, the interval will stop
-                .takeUntil(stopSignal)
                 .flatMap(tick -> Observable.fromCallable(
                                 () -> this.api.retrieveFlagConfiguration(this.etag, options.getEvaluationFlagList()))
                         .onErrorResumeNext(e -> {
