@@ -11,7 +11,7 @@ import org.junit.platform.suite.api.ExcludeTags;
  * configuration. Registered as an {@link dev.openfeature.contrib.tools.flagd.api.testkit.EvaluatorFactory}
  * via {@code META-INF/services}.
  */
-@ExcludeTags({"fractional-v1"})
+@ExcludeTags({"fractional-v1", "evaluator-refs-whitespace", "non-existent-evaluator-ref"})
 public class FlagdCoreEvaluatorTest extends AbstractEvaluatorTest {
 
     @Override

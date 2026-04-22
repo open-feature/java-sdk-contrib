@@ -36,13 +36,27 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         Object arg1 = arguments.get(0);
 
         final String bucketBy;
-        final Object[] distributions;
+        final List<Object> distributions;
 
         if (arg1 instanceof String) {
             // first arg is a String, use for bucketing
             bucketBy = (String) arg1;
             Object[] source = arguments.toArray();
-            distributions = Arrays.copyOfRange(source, 1, source.length);
+            Object[] remaining = Arrays.copyOfRange(source, 1, source.length);
+
+            // json-logic pre-evaluation flattens a single-entry fractional
+            // e.g. [["single",1]] becomes ["single", 1]; detect and re-wrap
+            if (remaining.length > 0 && !(remaining[0] instanceof List)) {
+                List<Object> wrapped = new ArrayList<>();
+                wrapped.add(arg1);
+                for (Object r : remaining) {
+                    wrapped.add(r);
+                }
+                distributions = new ArrayList<>();
+                distributions.add(wrapped);
+            } else {
+                distributions = Arrays.asList(remaining);
+            }
         } else {
             // fallback to targeting key if present
             if (properties.getTargetingKey() == null) {
@@ -51,7 +65,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             }
 
             bucketBy = properties.getFlagKey() + properties.getTargetingKey();
-            distributions = arguments.toArray();
+            distributions = arguments;
         }
 
         final List<FractionProperty> propertyList = new ArrayList<>();
