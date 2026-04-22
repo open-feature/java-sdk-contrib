@@ -31,12 +31,7 @@ public final class WasmEvaluatorPool {
         for (int i = 0; i < size; i++) {
             EvaluationWasm instance = new EvaluationWasm();
             instance.preWarmWasm();
-            if (!pool.offer(instance)) {
-                log.warn(
-                        "Failed to add WASM instance {} to pool during initialisation"
-                                + " — pool capacity may be exceeded",
-                        i);
-            }
+            pool.add(instance);
         }
     }
 

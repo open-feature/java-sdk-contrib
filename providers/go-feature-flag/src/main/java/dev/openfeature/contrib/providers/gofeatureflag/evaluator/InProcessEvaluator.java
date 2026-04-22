@@ -143,7 +143,8 @@ public class InProcessEvaluator implements IEvaluator {
                 ? options.getFlagChangePollingIntervalMs()
                 : Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
 
-        Observable<Long> intervalObservable = Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS);
+        Observable<Long> intervalObservable = Observable.interval(
+                pollingIntervalMs, TimeUnit.MILLISECONDS, Schedulers.io());
         Observable<FlagConfigResponse> apiCallObservable = intervalObservable
                 .flatMap(tick -> Observable.fromCallable(() ->
                                 this.api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList()))
