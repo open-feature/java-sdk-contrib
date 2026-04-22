@@ -620,21 +620,22 @@ class GoFeatureFlagProviderTest {
 
             for (int t = 0; t < threadCount; t++) {
                 new Thread(() -> {
-                    try {
-                        startGate.await();
-                        for (int i = 0; i < evaluationsPerThread; i++) {
-                            FlagEvaluationDetails<Boolean> result = client.getBooleanDetails(
-                                    "bool_targeting_match", false, TestUtils.defaultEvaluationContext);
-                            if (result.getErrorCode() != null) {
-                                errorCount.incrementAndGet();
+                            try {
+                                startGate.await();
+                                for (int i = 0; i < evaluationsPerThread; i++) {
+                                    FlagEvaluationDetails<Boolean> result = client.getBooleanDetails(
+                                            "bool_targeting_match", false, TestUtils.defaultEvaluationContext);
+                                    if (result.getErrorCode() != null) {
+                                        errorCount.incrementAndGet();
+                                    }
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            } finally {
+                                doneLatch.countDown();
                             }
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } finally {
-                        doneLatch.countDown();
-                    }
-                }).start();
+                        })
+                        .start();
             }
 
             startGate.countDown();

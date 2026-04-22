@@ -29,7 +29,12 @@ public final class WasmEvaluatorPool {
     public WasmEvaluatorPool(int size) throws WasmFileNotFound {
         this.pool = new ArrayBlockingQueue<>(size);
         for (int i = 0; i < size; i++) {
-            pool.offer(new EvaluationWasm());
+            if (!pool.offer(new EvaluationWasm())) {
+                log.warn(
+                        "Failed to add WASM instance {} to pool during initialisation"
+                                + " — pool capacity may be exceeded",
+                        i);
+            }
         }
     }
 
