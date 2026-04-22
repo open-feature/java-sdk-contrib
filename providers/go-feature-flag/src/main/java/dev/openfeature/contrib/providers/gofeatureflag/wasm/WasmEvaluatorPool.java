@@ -23,7 +23,7 @@ public final class WasmEvaluatorPool {
      * All instances are allocated eagerly so that first-call latency is
      * absorbed at provider initialisation time.
      *
-     * @param size number of WASM instances; must be &gt;= 1
+     * @param size number of WASM instances; must be >= 1
      * @throws WasmFileNotFound if the embedded WASM module cannot be loaded
      */
     public WasmEvaluatorPool(int size) throws WasmFileNotFound {
