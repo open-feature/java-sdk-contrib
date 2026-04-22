@@ -40,16 +40,28 @@ public class InProcessEvaluator implements IEvaluator {
     private final GoFeatureFlagProviderOptions options;
     /** Method to call when we have a configuration change. */
     private final Consumer<ProviderEventDetails> emitProviderConfigurationChanged;
-    /** Local copy of the flags' configuration. */
-    private volatile Map<String, Flag> flags;
-    /** Evaluation context enrichment. */
-    private volatile Map<String, Object> evaluationContextEnrichment;
-    /** Last hash of the flags' configuration. */
-    private volatile String etag;
-    /** Last update of the flags' configuration. */
-    private volatile Date lastUpdate;
+    /** Immutable snapshot of all flag configuration state; updated atomically by the polling daemon. */
+    private volatile EvaluatorState state;
     /** disposable which manage the polling of the flag configurations. */
     private Disposable configurationDisposable;
+
+    private static final class EvaluatorState {
+        final Map<String, Flag> flags;
+        final Map<String, Object> evaluationContextEnrichment;
+        final String etag;
+        final Date lastUpdate;
+
+        EvaluatorState(
+                Map<String, Flag> flags,
+                Map<String, Object> evaluationContextEnrichment,
+                String etag,
+                Date lastUpdate) {
+            this.flags = flags;
+            this.evaluationContextEnrichment = evaluationContextEnrichment;
+            this.etag = etag;
+            this.lastUpdate = lastUpdate;
+        }
+    }
 
     /**
      * Constructor of the InProcessEvaluator.
@@ -63,11 +75,9 @@ public class InProcessEvaluator implements IEvaluator {
             GoFeatureFlagProviderOptions options,
             Consumer<ProviderEventDetails> emitProviderConfigurationChanged) {
         this.api = api;
-        this.flags = Collections.emptyMap();
-        this.etag = "";
         this.options = options;
-        this.lastUpdate = new Date(0);
         this.emitProviderConfigurationChanged = emitProviderConfigurationChanged;
+        this.state = new EvaluatorState(Collections.emptyMap(), null, "", new Date(0));
         int poolSize = options.getWasmEvaluatorPoolSize() != null
                 ? options.getWasmEvaluatorPoolSize()
                 : Const.DEFAULT_WASM_EVALUATOR_POOL_SIZE;
@@ -76,8 +86,8 @@ public class InProcessEvaluator implements IEvaluator {
 
     @Override
     public GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
-        Map<String, Flag> currentFlags = this.flags;
-        if (currentFlags.get(key) == null) {
+        EvaluatorState current = this.state;
+        if (current.flags.get(key) == null) {
             val err = new GoFeatureFlagResponse();
             err.setReason(Reason.ERROR.name());
             err.setErrorCode(ErrorCode.FLAG_NOT_FOUND.name());
@@ -88,10 +98,10 @@ public class InProcessEvaluator implements IEvaluator {
         val wasmInput = WasmInput.builder()
                 .flagContext(FlagContext.builder()
                         .defaultSdkValue(defaultValue)
-                        .evaluationContextEnrichment(this.evaluationContextEnrichment)
+                        .evaluationContextEnrichment(current.evaluationContextEnrichment)
                         .build())
                 .evalContext(evaluationContext.asObjectMap())
-                .flag(currentFlags.get(key))
+                .flag(current.flags.get(key))
                 .flagKey(key)
                 .build();
         return this.evaluationPool.evaluate(wasmInput);
@@ -99,19 +109,18 @@ public class InProcessEvaluator implements IEvaluator {
 
     @Override
     public boolean isFlagTrackable(final String flagKey) {
-        Flag flag = this.flags.get(flagKey);
+        Flag flag = this.state.flags.get(flagKey);
         return flag != null && (flag.getTrackEvents() == null || flag.getTrackEvents());
     }
 
     @Override
     public void init() {
-        val configFlags = api.retrieveFlagConfiguration(this.etag, options.getEvaluationFlagList());
-        this.flags = configFlags.getFlags();
-        this.etag = configFlags.getEtag();
-        this.lastUpdate = configFlags.getLastUpdated();
-        this.evaluationContextEnrichment = configFlags.getEvaluationContextEnrichment();
-        // We call the WASM engine to avoid a cold start at the 1st evaluation
-        this.evaluationPool.preWarmWasm();
+        val configFlags = api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList());
+        this.state = new EvaluatorState(
+                configFlags.getFlags(),
+                configFlags.getEvaluationContextEnrichment(),
+                configFlags.getEtag(),
+                configFlags.getLastUpdated());
 
         // start the polling of the flag configuration
         this.configurationDisposable = startCheckFlagConfigurationChangesDaemon();
@@ -136,8 +145,8 @@ public class InProcessEvaluator implements IEvaluator {
 
         Observable<Long> intervalObservable = Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS);
         Observable<FlagConfigResponse> apiCallObservable = intervalObservable
-                .flatMap(tick -> Observable.fromCallable(
-                                () -> this.api.retrieveFlagConfiguration(this.etag, options.getEvaluationFlagList()))
+                .flatMap(tick -> Observable.fromCallable(() ->
+                                this.api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList()))
                         .onErrorResumeNext(e -> {
                             log.error("error while calling flag configuration API", e);
                             return Observable.empty();
@@ -146,22 +155,24 @@ public class InProcessEvaluator implements IEvaluator {
 
         return apiCallObservable.subscribe(
                 response -> {
-                    if (response.getEtag().equals(this.etag)) {
+                    EvaluatorState current = this.state;
+                    if (response.getEtag().equals(current.etag)) {
                         log.debug("flag configuration has not changed: {}", response);
                         return;
                     }
 
-                    if (response.getLastUpdated().before(this.lastUpdate)) {
+                    if (response.getLastUpdated().before(current.lastUpdate)) {
                         log.info("configuration received is older than the current one");
                         return;
                     }
 
                     log.info("flag configuration has changed");
-                    this.etag = response.getEtag();
-                    this.lastUpdate = response.getLastUpdated();
-                    val flagChanges = findFlagConfigurationChanges(this.flags, response.getFlags());
-                    this.flags = response.getFlags();
-                    this.evaluationContextEnrichment = response.getEvaluationContextEnrichment();
+                    val flagChanges = findFlagConfigurationChanges(current.flags, response.getFlags());
+                    this.state = new EvaluatorState(
+                            response.getFlags(),
+                            response.getEvaluationContextEnrichment(),
+                            response.getEtag(),
+                            response.getLastUpdated());
                     val changeDetails = ProviderEventDetails.builder()
                             .flagsChanged(flagChanges)
                             .message("flag configuration has changed")

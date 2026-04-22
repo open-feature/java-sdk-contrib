@@ -29,7 +29,9 @@ public final class WasmEvaluatorPool {
     public WasmEvaluatorPool(int size) throws WasmFileNotFound {
         this.pool = new ArrayBlockingQueue<>(size);
         for (int i = 0; i < size; i++) {
-            if (!pool.offer(new EvaluationWasm())) {
+            EvaluationWasm instance = new EvaluationWasm();
+            instance.preWarmWasm();
+            if (!pool.offer(instance)) {
                 log.warn(
                         "Failed to add WASM instance {} to pool during initialisation"
                                 + " — pool capacity may be exceeded",
@@ -62,16 +64,8 @@ public final class WasmEvaluatorPool {
             return instance.evaluate(wasmInput);
         } finally {
             if (!pool.offer(instance)) {
-                log.warn("Failed to return WASM instance to pool — pool may be exhausted");
+                log.error("Failed to return WASM instance to pool — instance leaked, pool capacity may be compromised");
             }
         }
-    }
-
-    /**
-     * Pre-warms all instances in the pool to avoid cold-start latency on
-     * the first evaluation after provider initialisation.
-     */
-    public void preWarmWasm() {
-        pool.forEach(EvaluationWasm::preWarmWasm);
     }
 }
