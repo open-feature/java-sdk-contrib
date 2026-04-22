@@ -5,7 +5,6 @@ import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +24,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     @Override
+    @SuppressWarnings("unchecked") // json-logic-java's PreEvaluatedArgumentsExpression uses raw List
     public Object evaluate(List arguments, Object data, String jsonPath) throws JsonLogicEvaluationException {
         if (arguments.size() < 1) {
             return null;
@@ -41,21 +41,17 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         if (arg1 instanceof String) {
             // first arg is a String, use for bucketing
             bucketBy = (String) arg1;
-            Object[] source = arguments.toArray();
-            Object[] remaining = Arrays.copyOfRange(source, 1, source.length);
+            List<Object> remaining = arguments.subList(1, arguments.size());
 
             // json-logic pre-evaluation flattens a single-entry fractional
             // e.g. [["single",1]] becomes ["single", 1]; detect and re-wrap
-            if (remaining.length > 0 && !(remaining[0] instanceof List)) {
-                List<Object> wrapped = new ArrayList<>();
+            if (!remaining.isEmpty() && !(remaining.get(0) instanceof List)) {
+                List<Object> wrapped = new ArrayList<>(remaining.size() + 1);
                 wrapped.add(arg1);
-                for (Object r : remaining) {
-                    wrapped.add(r);
-                }
-                distributions = new ArrayList<>();
-                distributions.add(wrapped);
+                wrapped.addAll(remaining);
+                distributions = List.of(wrapped);
             } else {
-                distributions = Arrays.asList(remaining);
+                distributions = remaining;
             }
         } else {
             // fallback to targeting key if present
