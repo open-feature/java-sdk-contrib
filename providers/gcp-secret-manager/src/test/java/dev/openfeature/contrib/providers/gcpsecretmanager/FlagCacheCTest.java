@@ -8,7 +8,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -23,47 +22,21 @@ class FlagCacheCTest {
      * Verifies that a concurrent expiry-removal does not accidentally evict a freshly inserted
      * entry that reuses the same key. The scenario is:
      * <ol>
-     *   <li>Thread A inserts "key" with a TTL that is about to expire.</li>
-     *   <li>Thread B calls get("key") and observes the entry as expired — about to remove it.</li>
-     *   <li>Thread A inserts "key" again with a fresh TTL.</li>
-     *   <li>Thread B completes the removal — the new entry must survive.</li>
+     *   <li>An entry for "key" is inserted with a TTL that has already elapsed.</li>
+     *   <li>Thread A re-inserts "key" with a fresh TTL ("new-value").</li>
+     *   <li>Thread B calls get("key"), observes the original entry as expired, and removes it.</li>
+     *   <li>After both threads finish, "new-value" must still be present — Thread B's removal
+     *       must not accidentally evict the entry written by Thread A.</li>
      * </ol>
      */
     @Test
     void concurrentExpiryAndInsertDoNotLoseNewEntry() throws Exception {
-        AtomicReference<Instant> now = new AtomicReference<>(Instant.parse("2024-01-01T00:00:00Z"));
-        Clock controllableClock = new Clock() {
-            @Override
-            public ZoneOffset getZone() {
-                return ZoneOffset.UTC;
-            }
-
-            @Override
-            public Clock withZone(java.time.ZoneId zone) {
-                return this;
-            }
-
-            @Override
-            public Instant instant() {
-                return now.get();
-            }
-        };
-
-        FlagCache cache = new FlagCache(Duration.ofSeconds(30), 100, controllableClock);
-        cache.put("key", "old-value");
-
-        // Advance clock so the entry is expired before threads start
-        now.set(now.get().plusSeconds(31));
-
-        try (AllInterleavings interleavings = new AllInterleavings("FlagCache expiry vs insert")) {
+        try (AllInterleavings interleavings =
+                new AllInterleavings("FlagCache expiry vs insert")) {
             while (interleavings.hasNext()) {
-                // Reset: insert an already-expired entry
-                cache.put("key", "old-value");
-                now.set(now.get().plusSeconds(31));
-
-                // Wind the clock forward to fresh time so new entries won't expire
-                AtomicReference<Instant> fresh = new AtomicReference<>(Instant.now());
-                Clock freshClock = new Clock() {
+                AtomicReference<Instant> now =
+                        new AtomicReference<>(Instant.parse("2024-01-01T00:00:00Z"));
+                Clock clock = new Clock() {
                     @Override
                     public ZoneOffset getZone() {
                         return ZoneOffset.UTC;
@@ -76,26 +49,25 @@ class FlagCacheCTest {
 
                     @Override
                     public Instant instant() {
-                        return fresh.get();
+                        return now.get();
                     }
                 };
-                FlagCache sharedCache = new FlagCache(Duration.ofMinutes(5), 100, freshClock);
-                sharedCache.put("key", "expired-value");
-                // Make entry expire
-                fresh.set(fresh.get().plus(Duration.ofMinutes(6)));
+
+                FlagCache cache = new FlagCache(Duration.ofSeconds(30), 100, clock);
+                cache.put("key", "expired-value");
+
+                // Advance clock past TTL so "expired-value" is expired when threads start
+                now.set(now.get().plusSeconds(31));
 
                 Runner.runParallel(
-                        // Thread A: re-insert fresh value for the same key
-                        () -> sharedCache.put("key", "new-value"),
-                        // Thread B: get() triggers expiry-removal of the old entry
-                        () -> sharedCache.get("key"));
+                        // Thread A: re-insert a fresh value under the same key
+                        () -> cache.put("key", "new-value"),
+                        // Thread B: get() finds expired entry and attempts removal
+                        () -> cache.get("key"));
 
-                // After both threads complete, either the new value is present or the cache is
-                // empty — the new value must never silently disappear after being inserted.
-                Optional<String> result = sharedCache.get("key");
-                if (result.isPresent()) {
-                    assertThat(result.get()).isEqualTo("new-value");
-                }
+                // Thread A's put() has completed, so "new-value" must be present.
+                // Thread B's expiry-removal must not have evicted Thread A's new entry.
+                assertThat(cache.get("key")).isPresent().hasValue("new-value");
             }
         }
     }
