@@ -18,7 +18,28 @@ public class ContextSteps extends AbstractSteps {
     public void a_context_containing_a_key_with_type_and_with_value(String key, String type, String value)
             throws ClassNotFoundException, InstantiationException {
         Map<String, Value> map = state.context.asMap();
-        map.put(key, new Value(value));
+        Value typedValue;
+        switch (type) {
+            case "Integer":
+                long longVal = Long.parseLong(value);
+                if (longVal >= Integer.MIN_VALUE && longVal <= Integer.MAX_VALUE) {
+                    typedValue = new Value((int) longVal);
+                } else {
+                    // value exceeds int range; store as string to preserve precision
+                    typedValue = new Value(value);
+                }
+                break;
+            case "Float":
+                typedValue = new Value(Double.parseDouble(value));
+                break;
+            case "Boolean":
+                typedValue = new Value(Boolean.parseBoolean(value));
+                break;
+            default:
+                typedValue = new Value(value);
+                break;
+        }
+        map.put(key, typedValue);
         state.context = new MutableContext(state.context.getTargetingKey(), map);
     }
 
