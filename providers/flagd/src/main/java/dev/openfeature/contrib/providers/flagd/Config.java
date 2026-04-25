@@ -85,6 +85,11 @@ public final class Config {
         try {
             return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : defaultValue;
         } catch (Exception e) {
+            log.error(
+                    "Failed to parse env variable '{}' with value '{}' as int, using default: {}",
+                    key,
+                    System.getenv(key),
+                    defaultValue);
             return defaultValue;
         }
     }
@@ -93,6 +98,11 @@ public final class Config {
         try {
             return System.getenv(key) != null ? Long.parseLong(System.getenv(key)) : defaultValue;
         } catch (Exception e) {
+            log.error(
+                    "Failed to parse env variable '{}' with value '{}' as long, using default: {}",
+                    key,
+                    System.getenv(key),
+                    defaultValue);
             return defaultValue;
         }
     }
@@ -105,6 +115,11 @@ public final class Config {
                             .collect(Collectors.toList())
                     : defaultValue;
         } catch (Exception e) {
+            log.error(
+                    "Failed to parse env variable '{}' with value '{}' as list, using default: {}",
+                    key,
+                    System.getenv(key),
+                    defaultValue);
             return defaultValue;
         }
     }
