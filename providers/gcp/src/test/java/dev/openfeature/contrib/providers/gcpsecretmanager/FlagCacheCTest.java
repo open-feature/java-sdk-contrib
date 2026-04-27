@@ -64,42 +64,16 @@ class FlagCacheCTest {
      */
     @Test
     void concurrentExpiryAndInsertDoNotLoseNewEntry() throws Exception {
-        // T0: entries inserted at this instant expire at T0 + 30 s
-        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
-        // T1: 31 s later — the "expired-value" entry is stale, but a new entry inserted here
-        //     won't expire until T1 + 30 s = T0 + 61 s, which is safely in the future
-        Instant t1 = t0.plusSeconds(31);
-
-        AtomicReference<Instant> now = new AtomicReference<>(t0);
-        Clock clock = new Clock() {
-            @Override
-            public ZoneOffset getZone() {
-                return ZoneOffset.UTC;
-            }
-
-            @Override
-            public Clock withZone(java.time.ZoneId zone) {
-                return this;
-            }
-
-            @Override
-            public Instant instant() {
-                return now.get();
-            }
-        };
-
-        FlagCache cache = new FlagCache(Duration.ofSeconds(30), 100, clock);
-
         try (AllInterleavings interleavings =
                 new AllInterleavings("FlagCache concurrent expiry and re-insert")) {
             while (interleavings.hasNext()) {
                 // Reset state for this interleaving:
                 //   - clock at T0 so the inserted entry records expiresAt = T0 + 30 s
-                now.set(t0);
+                now.set(T0);
                 cache.clear();
                 cache.put("key", "expired-value");
                 //   - advance clock to T1 so the entry is now expired
-                now.set(t1);
+                now.set(T1);
 
                 Runner.runParallel(
                         // Thread A: re-insert the same key with a fresh value
