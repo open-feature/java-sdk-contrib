@@ -98,9 +98,42 @@ class FractionalTest {
                 // bucket key is a null var result (simulated by being a non-string, non-list)
                 List.of("one", 50), List.of("two", 50));
 
-        // targeting key is null, so fractional falls back to flagKey + targetingKey
+        // bucketing key is null, so fractional falls back to flagKey + targetingKey
         // but targetingKey is null, so it should return null
         assertNull(fractional.evaluate(rule, data, "path"));
+    }
+
+    @Test
+    void singleEntryFractionalWithNonStringVariant() throws JsonLogicEvaluationException {
+        // simulates pre-evaluation flattening of [[100, 1]] -> [100, 1]
+        Fractional fractional = new Fractional();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put(TARGET_KEY, "user");
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
+
+        List<Object> rule = List.of(100, 1);
+
+        assertEquals(100, fractional.evaluate(rule, data, "path"));
+    }
+
+    @Test
+    void singleEntryFractionalWithStringVariant() throws JsonLogicEvaluationException {
+        // simulates pre-evaluation flattening of [["single", 1]] -> ["single", 1]
+        // "single" looks like a bucketing key but is actually the variant
+        Fractional fractional = new Fractional();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put(TARGET_KEY, "user");
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
+
+        List<Object> rule = List.of("single", 1);
+
+        assertEquals("single", fractional.evaluate(rule, data, "path"));
     }
 
     @Test
