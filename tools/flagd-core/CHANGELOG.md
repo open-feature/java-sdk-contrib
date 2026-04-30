@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.0.1...dev.openfeature.contrib.tools.flagdcore-v1.0.2) (2026-04-30)
+
+
+### 🐛 Bug Fixes
+
+* various custom operator conformance fixes ([#1778](https://github.com/open-feature/java-sdk-contrib/issues/1778)) ([cced215](https://github.com/open-feature/java-sdk-contrib/commit/cced215af4ecbff010ae7bb4af82072224bc6eb0))
+
 ## [1.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.0.0...dev.openfeature.contrib.tools.flagdcore-v1.0.1) (2026-04-21)
 
 
