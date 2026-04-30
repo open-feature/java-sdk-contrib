@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.13.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.0...dev.openfeature.contrib.providers.flagd-v0.13.1) (2026-04-30)
+
+
+### 🐛 Bug Fixes
+
+* ignore redundant interrupted exceptions ([#1777](https://github.com/open-feature/java-sdk-contrib/issues/1777)) ([c51861e](https://github.com/open-feature/java-sdk-contrib/commit/c51861eb88ddc2d26feddcd1af77584380ce9a40))
+* various custom operator conformance fixes ([#1778](https://github.com/open-feature/java-sdk-contrib/issues/1778)) ([cced215](https://github.com/open-feature/java-sdk-contrib/commit/cced215af4ecbff010ae7bb4af82072224bc6eb0))
+
+
+### ✨ New Features
+
+* 1.0 flagd core transitive deps ([#1755](https://github.com/open-feature/java-sdk-contrib/issues/1755)) ([fec3753](https://github.com/open-feature/java-sdk-contrib/commit/fec3753c34785c4dc911441def6686ff666bcc08))
+
 ## [0.13.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.12.0...dev.openfeature.contrib.providers.flagd-v0.13.0) (2026-04-01)
 
 
