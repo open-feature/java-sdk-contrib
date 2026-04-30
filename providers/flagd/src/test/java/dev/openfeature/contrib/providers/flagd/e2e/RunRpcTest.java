@@ -31,12 +31,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ExcludeTags({
     "unixsocket",
     "fractional-v1",
-    "deprecated",
-    "operator-errors",
-    "semver-edge-cases",
-    "evaluator-refs-whitespace",
-    "non-existent-evaluator-ref",
-    "fractional-single-entry"
+    "deprecated"
 })
 @Testcontainers
 public class RunRpcTest {
