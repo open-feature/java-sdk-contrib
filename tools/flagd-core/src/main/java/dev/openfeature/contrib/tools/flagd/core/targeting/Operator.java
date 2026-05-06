@@ -19,13 +19,26 @@ public class Operator {
     static final String TARGET_KEY = "targetingKey";
     static final String TIME_STAMP = "timestamp";
 
+    static final String DISABLE_TARGETING_COMPILATION_ENV_VAR_NAME = "FLAGD_DISABLE_TARGETING_COMPILATION";
+
     private final JsonLogic jsonLogicHandler;
 
     /**
      * Construct a targeting operator.
+     * Compiles targeting rules into native Java methods by default, unless the
+     * FLAGD_DISABLE_TARGETING_COMPILATION environment variable is set.
      */
     public Operator() {
-        jsonLogicHandler = new JsonLogic();
+        this(!Boolean.parseBoolean(System.getenv(DISABLE_TARGETING_COMPILATION_ENV_VAR_NAME)));
+    }
+
+    /**
+     * Construct a targeting operator.
+     *
+     * @param compileExpressions whether to compile JsonLogic expressions for better performance
+     */
+    public Operator(boolean compileExpressions) {
+        jsonLogicHandler = new JsonLogic(compileExpressions);
         jsonLogicHandler.addOperation(new Fractional());
         jsonLogicHandler.addOperation(new SemVer());
         jsonLogicHandler.addOperation(new StringComp(StringComp.Type.STARTS_WITH));

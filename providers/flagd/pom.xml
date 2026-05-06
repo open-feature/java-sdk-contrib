@@ -19,7 +19,7 @@
         <io.grpc.version>1.79.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
-        <com.vmlens.version>1.2.27</com.vmlens.version>
+        <com.vmlens.version>1.2.28</com.vmlens.version>
         <!-- Transitive flagd-core version -->
         <flagd-core.version>[1.0.0,2.0.0)</flagd-core.version>
     </properties>
@@ -239,6 +239,10 @@
                                         <include>**/*CTest.java</include>
                                     </includes>
                                     <failIfNoTests>true</failIfNoTests>
+                                    <environmentVariables>
+                                        <!-- disable JsonLogic compilation to reduce VMLens interleaving combinations -->
+                                        <FLAGD_DISABLE_TARGETING_COMPILATION>true</FLAGD_DISABLE_TARGETING_COMPILATION>
+                                    </environmentVariables>
                                 </configuration>
                             </execution>
                         </executions>
