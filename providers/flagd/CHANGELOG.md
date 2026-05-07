@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.1...dev.openfeature.contrib.providers.flagd-v0.13.2) (2026-05-07)
+
+
+### ✨ New Features
+
+* switch to io.github.gzsombor json logic lib ([#1786](https://github.com/open-feature/java-sdk-contrib/issues/1786)) ([4f2c023](https://github.com/open-feature/java-sdk-contrib/commit/4f2c023a233f8a898b232cb18effd920a91dd64f))
+
 ## [0.13.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.0...dev.openfeature.contrib.providers.flagd-v0.13.1) (2026-04-30)
 
 
