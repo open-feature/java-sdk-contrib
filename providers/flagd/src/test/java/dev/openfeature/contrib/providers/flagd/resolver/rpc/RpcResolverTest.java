@@ -31,6 +31,7 @@ class RpcResolverTest {
     private ChannelConnector mockConnector;
     private ServiceBlockingStub blockingStub;
     private ServiceStub stub;
+    private ServiceStub errorStub;
     private QueueingStreamObserver<EventStreamResponse> observer;
     private TriConsumer<ProviderEvent, ProviderEventDetails, Structure> consumer;
     private CountDownLatch latch; // used to wait for observer to be initialized
@@ -61,6 +62,29 @@ class RpcResolverTest {
                 })
                 .when(stub)
                 .eventStream(any(), any()); // Mock the initialize method
+
+        // stub that immediately fires onError on every eventStream call
+        errorStub = mock(ServiceStub.class);
+        when(errorStub.withDeadlineAfter(anyLong(), any())).thenReturn(errorStub);
+        doAnswer((Answer<Void>) invocation -> {
+                    @SuppressWarnings("unchecked")
+                    QueueingStreamObserver<EventStreamResponse> obs = (QueueingStreamObserver<EventStreamResponse>)
+                            invocation.getArguments()[1];
+                    latch.countDown();
+                    // immediately fire error on a separate thread
+                    new Thread(() -> {
+                                try {
+                                    Thread.sleep(10);
+                                    obs.onError(new Exception("immediate error"));
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            })
+                            .start();
+                    return null;
+                })
+                .when(errorStub)
+                .eventStream(any(), any());
     }
 
     @Test
@@ -102,8 +126,13 @@ class RpcResolverTest {
 
     @Test
     void onCompletedRerunsStreamWithError() throws Exception {
-        RpcResolver resolver =
-                new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, blockingStub, mockConnector);
+        RpcResolver resolver = new RpcResolver(
+                FlagdOptions.builder().retryBackoffMaxMs(100).build(),
+                null,
+                consumer,
+                stub,
+                blockingStub,
+                mockConnector);
         resolver.init();
         latch.await();
 
@@ -118,8 +147,13 @@ class RpcResolverTest {
 
     @Test
     void onErrorRunsConsumerWithError() throws Exception {
-        RpcResolver resolver =
-                new RpcResolver(FlagdOptions.builder().build(), null, consumer, stub, blockingStub, mockConnector);
+        RpcResolver resolver = new RpcResolver(
+                FlagdOptions.builder().retryBackoffMaxMs(100).build(),
+                null,
+                consumer,
+                stub,
+                blockingStub,
+                mockConnector);
         resolver.init();
         latch.await();
 
@@ -130,5 +164,52 @@ class RpcResolverTest {
         await().untilAsserted(() -> verify(consumer).accept(eq(ProviderEvent.PROVIDER_ERROR), any(), any()));
         // should have restarted the stream (2 calls)
         await().untilAsserted(() -> verify(stub, times(2)).eventStream(any(), any()));
+    }
+
+    @Test
+    void onError_RetriesWithNonBlockingBackoff() throws Exception {
+        // make sure we do not spin in a busy loop on immediate errors
+        int maxBackoffMs = 1000;
+        RpcResolver resolver = new RpcResolver(
+                FlagdOptions.builder().retryBackoffMaxMs(maxBackoffMs).build(),
+                null,
+                consumer,
+                errorStub,
+                blockingStub,
+                mockConnector);
+        resolver.init();
+        latch.await();
+
+        // wait 1.5x our delay for retries
+        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2));
+
+        // should have retried the stream (2 calls); initial + 1 retry
+        // it's very important that the retry count is low, to confirm no busy-loop
+        verify(errorStub, times(2)).eventStream(any(), any());
+    }
+
+    @Test
+    void onCompleted_RetriesWithNonBlockingBackoff() throws Exception {
+        // make sure we do not spin in a busy loop on stream completion
+        int maxBackoffMs = 1000;
+        RpcResolver resolver = new RpcResolver(
+                FlagdOptions.builder().retryBackoffMaxMs(maxBackoffMs).build(),
+                null,
+                consumer,
+                stub,
+                blockingStub,
+                mockConnector);
+        resolver.init();
+        latch.await();
+
+        // fire completion
+        observer.onCompleted();
+
+        // wait 1.5x our delay for retries
+        Thread.sleep(maxBackoffMs + (maxBackoffMs / 2));
+
+        // should have retried the stream (2 calls); initial + 1 retry
+        // it's very important that the retry count is low, to confirm no busy-loop
+        verify(stub, times(2)).eventStream(any(), any());
     }
 }
