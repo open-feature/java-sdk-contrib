@@ -133,10 +133,7 @@ public final class RpcResolver implements Resolver {
      * Initialize RpcResolver resolver.
      */
     public void init() throws Exception {
-        Thread listener = new Thread(this::observeEventStream);
-
-        listener.setDaemon(true);
-        listener.start();
+        retryScheduler.execute(this::observeEventStream);
     }
 
     /**
