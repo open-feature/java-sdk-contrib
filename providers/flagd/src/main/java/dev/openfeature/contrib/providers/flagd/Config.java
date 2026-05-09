@@ -1,10 +1,11 @@
 package dev.openfeature.contrib.providers.flagd;
 
-import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import lombok.extern.slf4j.Slf4j;
 
 /** Helper class to hold configuration default values. */
@@ -85,8 +86,9 @@ public final class Config {
         try {
             return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : defaultValue;
         } catch (Exception e) {
-            return defaultValue;
-        }
+    log.error("Invalid value for environment variable: {}", key, e);
+    return defaultValue;
+}
     }
 
     static long fallBackToEnvOrDefault(String key, long defaultValue) {
