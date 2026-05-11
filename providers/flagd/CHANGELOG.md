@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.2...dev.openfeature.contrib.providers.flagd-v0.13.3) (2026-05-11)
+
+
+### 🐛 Bug Fixes
+
+* tight loop in RPC mode event stream reconnect ([#1789](https://github.com/open-feature/java-sdk-contrib/issues/1789)) ([9a1f89b](https://github.com/open-feature/java-sdk-contrib/commit/9a1f89b319e70a61740b01b1ba488688e8e7fde7))
+
+
+### ✨ New Features
+
+* intelligent enum for rule pre-compilation  ([#1791](https://github.com/open-feature/java-sdk-contrib/issues/1791)) ([d79f27c](https://github.com/open-feature/java-sdk-contrib/commit/d79f27cb38c09cd82a5e807ed04f5e583195e75f))
+
 ## [0.13.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.1...dev.openfeature.contrib.providers.flagd-v0.13.2) (2026-05-07)
 
 
