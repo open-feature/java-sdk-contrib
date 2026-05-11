@@ -51,7 +51,7 @@ public class InProcessResolver implements Resolver {
             FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
         Evaluator evaluator = options.getEvaluator();
         if (evaluator == null) {
-            evaluator = new FlagdCore();
+            evaluator = new FlagdCore(false, options.isCompileTargeting());
         }
         this.queueSource = getQueueSource(options);
         this.evaluator = evaluator;

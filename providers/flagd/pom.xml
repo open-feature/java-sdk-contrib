@@ -239,10 +239,6 @@
                                         <include>**/*CTest.java</include>
                                     </includes>
                                     <failIfNoTests>true</failIfNoTests>
-                                    <environmentVariables>
-                                        <!-- disable JsonLogic compilation to reduce VMLens interleaving combinations -->
-                                        <FLAGD_DISABLE_TARGETING_COMPILATION>true</FLAGD_DISABLE_TARGETING_COMPILATION>
-                                    </environmentVariables>
                                 </configuration>
                             </execution>
                         </executions>
