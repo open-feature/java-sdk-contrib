@@ -142,8 +142,10 @@ public final class Config {
             case "auto":
                 return CompileTargetingMode.AUTO;
             default:
-                log.warn("Unrecognized FLAGD_COMPILE_TARGETING value: '{}'. "
-                        + "Valid values are: enabled, disabled, auto. Defaulting to auto.", value);
+                log.warn(
+                        "Unrecognized FLAGD_COMPILE_TARGETING value: '{}'. "
+                                + "Valid values are: enabled, disabled, auto. Defaulting to auto.",
+                        value);
                 return CompileTargetingMode.AUTO;
         }
     }
