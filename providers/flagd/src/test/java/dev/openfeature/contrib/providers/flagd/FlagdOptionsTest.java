@@ -54,7 +54,7 @@ class FlagdOptionsTest {
         assertEquals(0, builder.getKeepAlive());
         assertNull(builder.getDefaultAuthority());
         assertNull(builder.getClientInterceptors());
-        assertFalse(builder.isCompileTargeting());
+        assertEquals(CompileTargetingMode.AUTO, builder.getCompileTargeting());
     }
 
     @Test
@@ -79,7 +79,7 @@ class FlagdOptionsTest {
                 .keepAlive(1000)
                 .defaultAuthority("test-authority.sync.example.com")
                 .clientInterceptors(clientInterceptors)
-                .compileTargeting(true)
+                .compileTargeting(CompileTargetingMode.ENABLED)
                 .build();
 
         assertEquals("https://hosted-flagd", flagdOptions.getHost());
@@ -97,7 +97,7 @@ class FlagdOptionsTest {
         assertEquals(1000, flagdOptions.getKeepAlive());
         assertEquals("test-authority.sync.example.com", flagdOptions.getDefaultAuthority());
         assertEquals(clientInterceptors, flagdOptions.getClientInterceptors());
-        assertTrue(flagdOptions.isCompileTargeting());
+        assertEquals(CompileTargetingMode.ENABLED, flagdOptions.getCompileTargeting());
     }
 
     @Test

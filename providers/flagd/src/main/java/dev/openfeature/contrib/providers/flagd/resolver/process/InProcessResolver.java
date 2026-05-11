@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process;
 
+import dev.openfeature.contrib.providers.flagd.CompileTargetingMode;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.FlagStore;
@@ -20,6 +21,7 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.internal.TriConsumer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.tools.ToolProvider;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -51,14 +53,8 @@ public class InProcessResolver implements Resolver {
             FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
         Evaluator evaluator = options.getEvaluator();
         if (evaluator == null) {
-            if (options.isCompileTargeting()) {
-                log.info("Targeting rule compilation enabled; requires the jdk.compiler module at runtime.");
-            } else {
-                log.info("Targeting rule compilation is disabled. Enable it via FlagdOptions.compileTargeting(true)"
-                        + " or the FLAGD_COMPILE_TARGETING env var for improved evaluation performance"
-                        + " (requires the jdk.compiler module at runtime).");
-            }
-            evaluator = new FlagdCore(false, options.isCompileTargeting());
+            boolean compile = resolveCompileTargeting(options.getCompileTargeting());
+            evaluator = new FlagdCore(false, compile);
         }
         this.queueSource = getQueueSource(options);
         this.evaluator = evaluator;
@@ -196,5 +192,30 @@ public class InProcessResolver implements Resolver {
                         && !options.getOfflineFlagSourcePath().isEmpty()
                 ? new FileQueueSource(options.getOfflineFlagSourcePath(), options.getOfflinePollIntervalMs())
                 : new SyncStreamQueueSource(options);
+    }
+
+    /**
+     * Resolve the compile targeting mode to a boolean, performing auto-detection if needed.
+     */
+    static boolean resolveCompileTargeting(CompileTargetingMode mode) {
+        switch (mode) {
+            case ENABLED:
+                log.info("Targeting rule compilation enabled; requires the jdk.compiler module at runtime.");
+                return true;
+            case DISABLED:
+                log.info("Targeting rule compilation is disabled.");
+                return false;
+            case AUTO:
+            default:
+                boolean compilerAvailable = ToolProvider.getSystemJavaCompiler() != null;
+                if (compilerAvailable) {
+                    log.info("jdk.compiler detected; targeting rule compilation enabled automatically."
+                            + " Set FLAGD_COMPILE_TARGETING=disabled to disable.");
+                } else {
+                    log.info("jdk.compiler not detected; targeting rule compilation disabled."
+                            + " Set FLAGD_COMPILE_TARGETING=enabled to force (requires a JDK at runtime).");
+                }
+                return compilerAvailable;
+        }
     }
 }

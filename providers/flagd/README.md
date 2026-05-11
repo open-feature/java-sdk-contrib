@@ -170,7 +170,7 @@ Given below are the supported configurations:
 | offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH                                         | String                   | null                          | file                                                                            |
 | offlinePollIntervalMs | FLAGD_OFFLINE_POLL_MS                                                  | int                      | 5000                          | file                                                                            |
 | contextEnricher       | -                                                                      | function                 | identity                      | in-process                                                                      |
-| compileTargeting      | FLAGD_COMPILE_TARGETING                                                | boolean                  | false                         | in-process (experimental)                                                       |
+| compileTargeting      | FLAGD_COMPILE_TARGETING                                                | String - enabled, disabled, auto | auto                    | in-process (experimental)                                                       |
 | reinitializeOnError   | FLAGD_REINITIALIZE_ON_ERROR                                            | boolean                  | false                         | rpc & in-process (experimental)                                                 |
 
 > [!NOTE]  
@@ -180,7 +180,7 @@ Given below are the supported configurations:
 > The `selector` option automatically uses the `flagd-selector` header (the preferred approach per [flagd issue #1814](https://github.com/open-feature/flagd/issues/1814)) while maintaining backward compatibility with older flagd versions. See [Selector filtering](#selector-filtering-in-process-mode-only) for details.
 
 > [!TIP]
-> The `compileTargeting` option (experimental) enables pre-compilation of JsonLogic targeting rules for improved evaluation performance. This requires the `jdk.compiler` module at runtime, which is typically not available in JRE-only images (distroless, Alpine, UBI Micro, etc.). If the compiler is unavailable, it falls back to interpretation silently. This option is off by default.
+> The `compileTargeting` option (experimental) controls pre-compilation of JsonLogic targeting rules into Java bytecode for improved evaluation performance. This requires the `jdk.compiler` module at runtime, which is typically not available in JRE-only images (distroless, Alpine, UBI Micro, etc.). In `auto` mode (the default), the provider calls `javax.tools.ToolProvider.getSystemJavaCompiler()` at initialization; if it returns non-null, compilation is enabled, otherwise the interpreter is used. Set to `enabled` to force compilation (a warning is logged if the compiler is unavailable), or `disabled` to always use the interpreter. Note that compilation adds latency to the first evaluation of each rule (source generation, in-memory javac, and class loading); subsequent evaluations of the same rule are faster.
 
 ### Unix socket support
 
