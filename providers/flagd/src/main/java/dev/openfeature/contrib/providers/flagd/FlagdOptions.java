@@ -250,9 +250,8 @@ public class FlagdOptions {
      * Only applicable in the in-process mode.
      */
     @Builder.Default
-    private CompileTargetingMode compileTargeting = CompileTargetingMode.valueOf(
-            fallBackToEnvOrDefault(Config.COMPILE_TARGETING_ENV_VAR_NAME, Config.DEFAULT_COMPILE_TARGETING)
-                    .toUpperCase());
+    private CompileTargetingMode compileTargeting = Config.compileTargetingFromString(
+            fallBackToEnvOrDefault(Config.COMPILE_TARGETING_ENV_VAR_NAME, Config.DEFAULT_COMPILE_TARGETING));
 
     /**
      * The evaluator to use for flag evaluations. Defaults to {@code new FlagdCore()}. Only applicable in the in-process

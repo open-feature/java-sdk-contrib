@@ -130,6 +130,24 @@ public final class Config {
         }
     }
 
+    static CompileTargetingMode compileTargetingFromString(String value) {
+        if (value == null) {
+            return CompileTargetingMode.AUTO;
+        }
+        switch (value.toLowerCase()) {
+            case "enabled":
+                return CompileTargetingMode.ENABLED;
+            case "disabled":
+                return CompileTargetingMode.DISABLED;
+            case "auto":
+                return CompileTargetingMode.AUTO;
+            default:
+                log.warn("Unrecognized FLAGD_COMPILE_TARGETING value: '{}'. "
+                        + "Valid values are: enabled, disabled, auto. Defaulting to auto.", value);
+                return CompileTargetingMode.AUTO;
+        }
+    }
+
     /** intermediate interface to unify deprecated Evaluator and new Resolver. */
     public interface EvaluatorType {
         String asString();
