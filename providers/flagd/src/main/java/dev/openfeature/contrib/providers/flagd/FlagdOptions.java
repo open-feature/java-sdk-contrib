@@ -237,8 +237,9 @@ public class FlagdOptions {
             fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR));
 
     /**
+     * !EXPERIMENTAL!
      * Whether to compile JsonLogic targeting rules into native Java methods for improved performance.
-     * Requires a full JDK (jdk.compiler module) at runtime; falls back to interpreter mode if unavailable.
+     * Requires the jdk.compiler module at runtime; falls back to interpreter mode if unavailable.
      * Defaults to false.
      * Only applicable in the in-process mode.
      */

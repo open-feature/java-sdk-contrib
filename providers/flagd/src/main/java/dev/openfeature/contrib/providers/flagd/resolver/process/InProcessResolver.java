@@ -51,6 +51,13 @@ public class InProcessResolver implements Resolver {
             FlagdOptions options, TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onConnectionEvent) {
         Evaluator evaluator = options.getEvaluator();
         if (evaluator == null) {
+            if (options.isCompileTargeting()) {
+                log.info("Targeting rule compilation enabled; requires the jdk.compiler module at runtime.");
+            } else {
+                log.info("Targeting rule compilation is disabled. Enable it via FlagdOptions.compileTargeting(true)"
+                        + " or the FLAGD_COMPILE_TARGETING env var for improved evaluation performance"
+                        + " (requires the jdk.compiler module at runtime).");
+            }
             evaluator = new FlagdCore(false, options.isCompileTargeting());
         }
         this.queueSource = getQueueSource(options);

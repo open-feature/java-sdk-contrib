@@ -160,20 +160,27 @@ Given below are the supported configurations:
 | streamDeadlineMs      | FLAGD_STREAM_DEADLINE_MS                                               | int                      | 600000                        | rpc & in-process                                                                |
 | keepAliveTime         | FLAGD_KEEP_ALIVE_TIME_MS                                               | long                     | 0                             | rpc & in-process                                                                |
 | selector              | FLAGD_SOURCE_SELECTOR                                                  | String                   | null                          | in-process (see [migration guidance](#selector-filtering-in-process-mode-only)) |
-| providerId            | FLAGD_SOURCE_PROVIDER_ID                                               | String                   | null                          | in-process                                                                      |
+| providerId            | FLAGD_PROVIDER_ID (FLAGD_SOURCE_PROVIDER_ID deprecated)                | String                   | null                          | in-process                                                                      |
 | cache                 | FLAGD_CACHE                                                            | String - lru, disabled   | lru                           | rpc                                                                             |
 | maxCacheSize          | FLAGD_MAX_CACHE_SIZE                                                   | int                      | 1000                          | rpc                                                                             |
-| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES                                         | int                      | 5                             | rpc                                                                             |
-| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS                                                 | int                      | 1000                          | rpc                                                                             |
+| retryBackoffMs        | FLAGD_RETRY_BACKOFF_MS                                                 | int                      | 1000                          | rpc & in-process                                                                |
+| retryBackoffMaxMs     | FLAGD_RETRY_BACKOFF_MAX_MS                                             | int                      | 12000                         | rpc & in-process                                                                |
+| retryGracePeriod      | FLAGD_RETRY_GRACE_PERIOD                                               | int                      | 5                             | rpc & in-process & file                                                         |
+| fatalStatusCodes      | FLAGD_FATAL_STATUS_CODES                                               | list                     | []                            | rpc & in-process                                                                |
 | offlineFlagSourcePath | FLAGD_OFFLINE_FLAG_SOURCE_PATH                                         | String                   | null                          | file                                                                            |
 | offlinePollIntervalMs | FLAGD_OFFLINE_POLL_MS                                                  | int                      | 5000                          | file                                                                            |
+| contextEnricher       | -                                                                      | function                 | identity                      | in-process                                                                      |
+| compileTargeting      | FLAGD_COMPILE_TARGETING                                                | boolean                  | false                         | in-process (experimental)                                                       |
+| reinitializeOnError   | FLAGD_REINITIALIZE_ON_ERROR                                            | boolean                  | false                         | rpc & in-process (experimental)                                                 |
 
 > [!NOTE]  
 > Some configurations are only applicable for RPC resolver.
 
 > [!NOTE]
 > The `selector` option automatically uses the `flagd-selector` header (the preferred approach per [flagd issue #1814](https://github.com/open-feature/flagd/issues/1814)) while maintaining backward compatibility with older flagd versions. See [Selector filtering](#selector-filtering-in-process-mode-only) for details.
->
+
+> [!TIP]
+> The `compileTargeting` option (experimental) enables pre-compilation of JsonLogic targeting rules for improved evaluation performance. This requires the `jdk.compiler` module at runtime, which is typically not available in JRE-only images (distroless, Alpine, UBI Micro, etc.). If the compiler is unavailable, it falls back to interpretation silently. This option is off by default.
 
 ### Unix socket support
 
