@@ -63,22 +63,21 @@ class RpcResolverTest {
                 .when(stub)
                 .eventStream(any(), any()); // Mock the initialize method
 
-        // stub that immediately fires onError on every eventStream call
+        // stub that fires onError shortly after every eventStream call
         errorStub = mock(ServiceStub.class);
         when(errorStub.withDeadlineAfter(anyLong(), any())).thenReturn(errorStub);
         doAnswer((Answer<Void>) invocation -> {
                     @SuppressWarnings("unchecked")
                     QueueingStreamObserver<EventStreamResponse> obs = (QueueingStreamObserver<EventStreamResponse>)
                             invocation.getArguments()[1];
-                    latch.countDown();
-                    // immediately fire error on a separate thread
                     new Thread(() -> {
                                 try {
                                     Thread.sleep(10);
-                                    obs.onError(new Exception("immediate error"));
                                 } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
+                                    throw new RuntimeException(e);
                                 }
+                                obs.onError(new Exception("error"));
+                                latch.countDown();
                             })
                             .start();
                     return null;

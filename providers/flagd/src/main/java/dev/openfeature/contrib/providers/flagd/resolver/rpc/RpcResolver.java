@@ -12,6 +12,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ShutdownUtils;
 import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveFactory;
@@ -144,6 +145,8 @@ public final class RpcResolver implements Resolver {
             return;
         }
         this.retryScheduler.shutdownNow();
+        ShutdownUtils.awaitTerminationQuietly(
+                () -> retryScheduler.awaitTermination(options.getDeadline(), TimeUnit.MILLISECONDS));
         this.connector.shutdown();
     }
 
