@@ -63,7 +63,7 @@ public class FlagdCore implements Evaluator {
      * Construct a FlagdCore instance.
      */
     public FlagdCore() {
-        this(false);
+        this(false, false);
     }
 
     /**
@@ -72,7 +72,17 @@ public class FlagdCore implements Evaluator {
      * @param throwIfInvalid whether to throw an exception if flag configuration is invalid
      */
     public FlagdCore(boolean throwIfInvalid) {
-        this.operator = new Operator();
+        this(throwIfInvalid, false);
+    }
+
+    /**
+     * Construct a FlagdCore instance.
+     *
+     * @param throwIfInvalid whether to throw an exception if flag configuration is invalid
+     * @param compileTargeting whether to compile targeting rules for better performance
+     */
+    public FlagdCore(boolean throwIfInvalid, boolean compileTargeting) {
+        this.operator = new Operator(compileTargeting);
         this.throwIfInvalid = throwIfInvalid;
     }
 
