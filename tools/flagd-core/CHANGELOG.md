@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.1.0...dev.openfeature.contrib.tools.flagdcore-v1.2.0) (2026-05-11)
+
+
+### ✨ New Features
+
+* intelligent enum for rule pre-compilation  ([#1791](https://github.com/open-feature/java-sdk-contrib/issues/1791)) ([d79f27c](https://github.com/open-feature/java-sdk-contrib/commit/d79f27cb38c09cd82a5e807ed04f5e583195e75f))
+
+## [1.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.0.2...dev.openfeature.contrib.tools.flagdcore-v1.1.0) (2026-05-07)
+
+
+### ✨ New Features
+
+* switch to io.github.gzsombor json logic lib ([#1786](https://github.com/open-feature/java-sdk-contrib/issues/1786)) ([4f2c023](https://github.com/open-feature/java-sdk-contrib/commit/4f2c023a233f8a898b232cb18effd920a91dd64f))
+
+## [1.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.0.1...dev.openfeature.contrib.tools.flagdcore-v1.0.2) (2026-04-30)
+
+
+### 🐛 Bug Fixes
+
+* various custom operator conformance fixes ([#1778](https://github.com/open-feature/java-sdk-contrib/issues/1778)) ([cced215](https://github.com/open-feature/java-sdk-contrib/commit/cced215af4ecbff010ae7bb4af82072224bc6eb0))
+
 ## [1.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.0.0...dev.openfeature.contrib.tools.flagdcore-v1.0.1) (2026-04-21)
 
 

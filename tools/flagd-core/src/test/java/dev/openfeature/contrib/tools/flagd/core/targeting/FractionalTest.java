@@ -4,6 +4,7 @@ import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.FLAGD_
 import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.FLAG_KEY;
 import static dev.openfeature.contrib.tools.flagd.core.targeting.Operator.TARGET_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.converter.ArgumentConversionException;
 import org.junit.jupiter.params.converter.ConvertWith;
@@ -79,5 +81,73 @@ class FractionalTest {
 
         @JsonProperty("rule")
         List<Object> rule;
+    }
+
+    @Test
+    void missingBucketKeyReturnsNull() throws JsonLogicEvaluationException {
+        // no targeting key in data; bucket key var resolves to null
+        Fractional fractional = new Fractional();
+
+        Map<String, Object> data = new HashMap<>();
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
+        // no TARGET_KEY set
+
+        List<Object> rule = List.of(
+                // bucket key is a null var result (simulated by being a non-string, non-list)
+                List.of("one", 50), List.of("two", 50));
+
+        // bucketing key is null, so fractional falls back to flagKey + targetingKey
+        // but targetingKey is null, so it should return null
+        assertNull(fractional.evaluate(rule, data, "path"));
+    }
+
+    @Test
+    void singleEntryFractionalWithNonStringVariant() throws JsonLogicEvaluationException {
+        // simulates pre-evaluation flattening of [[100, 1]] -> [100, 1]
+        Fractional fractional = new Fractional();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put(TARGET_KEY, "user");
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
+
+        List<Object> rule = List.of(100, 1);
+
+        assertEquals(100, fractional.evaluate(rule, data, "path"));
+    }
+
+    @Test
+    void singleEntryFractionalWithStringVariant() throws JsonLogicEvaluationException {
+        // simulates pre-evaluation flattening of [["single", 1]] -> ["single", 1]
+        // "single" looks like a bucketing key but is actually the variant
+        Fractional fractional = new Fractional();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put(TARGET_KEY, "user");
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
+
+        List<Object> rule = List.of("single", 1);
+
+        assertEquals("single", fractional.evaluate(rule, data, "path"));
+    }
+
+    @Test
+    void zeroWeightsReturnsNull() throws JsonLogicEvaluationException {
+        Fractional fractional = new Fractional();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put(TARGET_KEY, "user");
+        Map<String, String> flagdProperties = new HashMap<>();
+        flagdProperties.put(FLAG_KEY, "flagA");
+        data.put(FLAGD_PROPS_KEY, flagdProperties);
+
+        List<Object> rule = List.of(List.of("one", 0), List.of("two", 0));
+
+        assertNull(fractional.evaluate(rule, data, "path"));
     }
 }
