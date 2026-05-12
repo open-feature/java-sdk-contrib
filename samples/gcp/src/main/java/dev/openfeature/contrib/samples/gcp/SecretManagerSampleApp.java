@@ -1,7 +1,7 @@
-package dev.openfeature.contrib.samples.gcpsecretmanager;
+package dev.openfeature.contrib.samples.gcp;
 
-import dev.openfeature.contrib.providers.gcpsecretmanager.GcpSecretManagerProvider;
-import dev.openfeature.contrib.providers.gcpsecretmanager.GcpSecretManagerProviderOptions;
+import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProvider;
+import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProviderOptions;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
@@ -41,13 +41,12 @@ public class SecretManagerSampleApp {
         System.out.println();
 
         // Build provider options
-        GcpSecretManagerProviderOptions options =
-                GcpSecretManagerProviderOptions.builder()
-                        .projectId(projectId)
-                        .secretNamePrefix(PREFIX) // secrets are named "of-sample-<flagKey>"
-                        .secretVersion("latest")
-                        .cacheExpiry(Duration.ofSeconds(30))
-                        .build();
+        GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builder()
+            .projectId(projectId)
+            .secretNamePrefix(PREFIX) // secrets are named "of-sample-<flagKey>"
+            .secretVersion("latest")
+            .cacheExpiry(Duration.ofSeconds(30))
+            .build();
 
         // Register the provider with OpenFeature
         GcpSecretManagerProvider provider = new GcpSecretManagerProvider(options);
