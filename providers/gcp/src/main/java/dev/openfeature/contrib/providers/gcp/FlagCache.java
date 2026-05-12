@@ -28,14 +28,12 @@ class FlagCache {
     FlagCache(Duration ttl, int maxSize, Clock clock) {
         this.ttl = ttl;
         this.clock = clock;
-        this.store = Collections.synchronizedMap(
-            new LinkedHashMap<String, CacheEntry>(16, 0.75f, false) {
-                @Override
-                protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
-                    return size() > maxSize;
-                }
+        this.store = Collections.synchronizedMap(new LinkedHashMap<String, CacheEntry>(16, 0.75f, false) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
+                return size() > maxSize;
             }
-        );
+        });
     }
 
     /**

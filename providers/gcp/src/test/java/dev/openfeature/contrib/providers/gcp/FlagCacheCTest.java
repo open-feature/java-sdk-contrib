@@ -75,11 +75,10 @@ class FlagCacheCTest {
                 now.set(T1);
 
                 Runner.runParallel(
-                    // Thread A: re-insert the same key with a fresh value
-                    () -> cache.put("key", "new-value"),
-                    // Thread B: get() detects the stale entry and attempts removal
-                    () -> cache.get("key")
-                );
+                        // Thread A: re-insert the same key with a fresh value
+                        () -> cache.put("key", "new-value"),
+                        // Thread B: get() detects the stale entry and attempts removal
+                        () -> cache.get("key"));
 
                 // Thread A's put() has returned, so "new-value" must be in the cache.
                 // Thread B's expiry-removal must not have silently evicted it.
@@ -107,17 +106,14 @@ class FlagCacheCTest {
         try (var interleavings = new AllInterleavings("FlagCache: get on timed-out entry concurrent with insert")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                    // Thread A: insert a fresh value for the same key
-                    () -> cache.put("key", "new-value"),
-                    // Thread B: get() on the timed-out entry must return nothing
-                    // (expired entry removed) or "new-value" (Thread A won the race) —
-                    // never the stale "stale-value" whose TTL has elapsed
-                    () ->
-                        assertThat(cache.get("key")).satisfiesAnyOf(
-                            opt -> assertThat(opt).isEmpty(),
-                            opt -> assertThat(opt).hasValue("new-value")
-                        )
-                );
+                        // Thread A: insert a fresh value for the same key
+                        () -> cache.put("key", "new-value"),
+                        // Thread B: get() on the timed-out entry must return nothing
+                        // (expired entry removed) or "new-value" (Thread A won the race) —
+                        // never the stale "stale-value" whose TTL has elapsed
+                        () -> assertThat(cache.get("key"))
+                                .satisfiesAnyOf(opt -> assertThat(opt).isEmpty(), opt -> assertThat(opt)
+                                        .hasValue("new-value")));
             }
         }
     }

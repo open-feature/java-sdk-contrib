@@ -20,14 +20,14 @@ class FlagValueConverterTest {
     class BooleanConversion {
 
         @ParameterizedTest
-        @ValueSource(strings = { "true", "True", "TRUE", "tRuE" })
+        @ValueSource(strings = {"true", "True", "TRUE", "tRuE"})
         @DisplayName("converts truthy strings to true")
         void trueVariants(String input) {
             assertThat(FlagValueConverter.convert(input, Boolean.class)).isTrue();
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "false", "False", "FALSE", "fAlSe" })
+        @ValueSource(strings = {"false", "False", "FALSE", "fAlSe"})
         @DisplayName("converts falsy strings to false")
         void falseVariants(String input) {
             assertThat(FlagValueConverter.convert(input, Boolean.class)).isFalse();
@@ -36,7 +36,8 @@ class FlagValueConverterTest {
         @Test
         @DisplayName("throws ParseError for non-boolean string")
         void nonBooleanThrows() {
-            assertThatThrownBy(() -> FlagValueConverter.convert("yes", Boolean.class)).isInstanceOf(ParseError.class);
+            assertThatThrownBy(() -> FlagValueConverter.convert("yes", Boolean.class))
+                    .isInstanceOf(ParseError.class);
         }
     }
 
@@ -59,7 +60,8 @@ class FlagValueConverterTest {
         @Test
         @DisplayName("throws ParseError for non-numeric string")
         void nonNumericThrows() {
-            assertThatThrownBy(() -> FlagValueConverter.convert("abc", Integer.class)).isInstanceOf(ParseError.class);
+            assertThatThrownBy(() -> FlagValueConverter.convert("abc", Integer.class))
+                    .isInstanceOf(ParseError.class);
         }
     }
 
@@ -88,9 +90,8 @@ class FlagValueConverterTest {
         @Test
         @DisplayName("throws ParseError for non-numeric string")
         void nonNumericThrows() {
-            assertThatThrownBy(() -> FlagValueConverter.convert("not-a-number", Double.class)).isInstanceOf(
-                ParseError.class
-            );
+            assertThatThrownBy(() -> FlagValueConverter.convert("not-a-number", Double.class))
+                    .isInstanceOf(ParseError.class);
         }
     }
 
@@ -138,12 +139,14 @@ class FlagValueConverterTest {
     @Test
     @DisplayName("throws TypeMismatchError for unsupported type")
     void unsupportedTypeThrows() {
-        assertThatThrownBy(() -> FlagValueConverter.convert("foo", Object.class)).isInstanceOf(TypeMismatchError.class);
+        assertThatThrownBy(() -> FlagValueConverter.convert("foo", Object.class))
+                .isInstanceOf(TypeMismatchError.class);
     }
 
     @Test
     @DisplayName("throws ParseError when raw value is null")
     void nullRawThrows() {
-        assertThatThrownBy(() -> FlagValueConverter.convert(null, Boolean.class)).isInstanceOf(ParseError.class);
+        assertThatThrownBy(() -> FlagValueConverter.convert(null, Boolean.class))
+                .isInstanceOf(ParseError.class);
     }
 }
