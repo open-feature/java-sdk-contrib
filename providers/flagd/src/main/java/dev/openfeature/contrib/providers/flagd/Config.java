@@ -57,6 +57,8 @@ public final class Config {
     static final String TARGET_URI_ENV_VAR_NAME = "FLAGD_TARGET_URI";
     static final String STREAM_RETRY_GRACE_PERIOD = "FLAGD_RETRY_GRACE_PERIOD";
     static final String REINITIALIZE_ON_ERROR_ENV_VAR_NAME = "FLAGD_REINITIALIZE_ON_ERROR";
+    static final String COMPILE_TARGETING_ENV_VAR_NAME = "FLAGD_COMPILE_TARGETING";
+    static final String DEFAULT_COMPILE_TARGETING = "auto";
 
     static final String RESOLVER_RPC = "rpc";
     static final String RESOLVER_IN_PROCESS = "in-process";
@@ -125,6 +127,26 @@ public final class Config {
             default:
                 log.warn("Unsupported resolver variable: {}", resolverVar);
                 return DEFAULT_RESOLVER_TYPE;
+        }
+    }
+
+    static CompileTargetingMode compileTargetingFromString(String value) {
+        if (value == null) {
+            return CompileTargetingMode.AUTO;
+        }
+        switch (value.toLowerCase()) {
+            case "enabled":
+                return CompileTargetingMode.ENABLED;
+            case "disabled":
+                return CompileTargetingMode.DISABLED;
+            case "auto":
+                return CompileTargetingMode.AUTO;
+            default:
+                log.warn(
+                        "Unrecognized FLAGD_COMPILE_TARGETING value: '{}'. "
+                                + "Valid values are: enabled, disabled, auto. Defaulting to auto.",
+                        value);
+                return CompileTargetingMode.AUTO;
         }
     }
 

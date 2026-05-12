@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.13.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.2...dev.openfeature.contrib.providers.flagd-v0.13.3) (2026-05-11)
+
+
+### 🐛 Bug Fixes
+
+* tight loop in RPC mode event stream reconnect ([#1789](https://github.com/open-feature/java-sdk-contrib/issues/1789)) ([9a1f89b](https://github.com/open-feature/java-sdk-contrib/commit/9a1f89b319e70a61740b01b1ba488688e8e7fde7))
+
+
+### ✨ New Features
+
+* intelligent enum for rule pre-compilation  ([#1791](https://github.com/open-feature/java-sdk-contrib/issues/1791)) ([d79f27c](https://github.com/open-feature/java-sdk-contrib/commit/d79f27cb38c09cd82a5e807ed04f5e583195e75f))
+
+## [0.13.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.1...dev.openfeature.contrib.providers.flagd-v0.13.2) (2026-05-07)
+
+
+### ✨ New Features
+
+* switch to io.github.gzsombor json logic lib ([#1786](https://github.com/open-feature/java-sdk-contrib/issues/1786)) ([4f2c023](https://github.com/open-feature/java-sdk-contrib/commit/4f2c023a233f8a898b232cb18effd920a91dd64f))
+
+## [0.13.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.0...dev.openfeature.contrib.providers.flagd-v0.13.1) (2026-04-30)
+
+
+### 🐛 Bug Fixes
+
+* ignore redundant interrupted exceptions ([#1777](https://github.com/open-feature/java-sdk-contrib/issues/1777)) ([c51861e](https://github.com/open-feature/java-sdk-contrib/commit/c51861eb88ddc2d26feddcd1af77584380ce9a40))
+* various custom operator conformance fixes ([#1778](https://github.com/open-feature/java-sdk-contrib/issues/1778)) ([cced215](https://github.com/open-feature/java-sdk-contrib/commit/cced215af4ecbff010ae7bb4af82072224bc6eb0))
+
+
+### ✨ New Features
+
+* 1.0 flagd core transitive deps ([#1755](https://github.com/open-feature/java-sdk-contrib/issues/1755)) ([fec3753](https://github.com/open-feature/java-sdk-contrib/commit/fec3753c34785c4dc911441def6686ff666bcc08))
+
 ## [0.13.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.12.0...dev.openfeature.contrib.providers.flagd-v0.13.0) (2026-04-01)
 
 

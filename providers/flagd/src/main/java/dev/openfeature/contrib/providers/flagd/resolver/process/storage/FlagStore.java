@@ -49,12 +49,10 @@ public class FlagStore implements Storage {
     }
 
     /**
-     * Shutdown storage layer.
-     *
-     * @throws InterruptedException if stream can't be closed within deadline.
+     * Shutdown storage connector.
      */
     @Override
-    public void shutdown() throws InterruptedException {
+    public void shutdown() {
         if (shutdown.getAndSet(true)) {
             return;
         }

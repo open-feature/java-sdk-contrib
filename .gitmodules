@@ -4,7 +4,6 @@
 [submodule "providers/flagd/test-harness"]
 	path = providers/flagd/test-harness
 	url = https://github.com/open-feature/test-harness.git
-	branch = v3.5.0
 [submodule "providers/flagd/spec"]
 	path = providers/flagd/spec
 	url = https://github.com/open-feature/spec.git
@@ -17,4 +16,3 @@
 [submodule "tools/flagd-api-testkit/test-harness"]
 	path = tools/flagd-api-testkit/test-harness
 	url = https://github.com/open-feature/test-harness.git
-	branch = v3.5.0

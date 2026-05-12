@@ -11,5 +11,5 @@ public interface QueueSource {
 
     BlockingQueue<QueuePayload> getStreamQueue();
 
-    void shutdown() throws InterruptedException;
+    void shutdown();
 }

@@ -49,17 +49,25 @@ class SemVer implements PreEvaluatedArgumentsExpression {
             return null;
         }
 
-        for (int i = 0; i < 3; i++) {
-            if (!(arguments.get(i) instanceof String)) {
-                log.debug("Invalid argument type. Require Strings");
-                return null;
-            }
+        // arg 1 and arg 3 must be strings or numbers (coerced to string)
+        // arg 2 must be a string (operator)
+        final String arg1Str = coerceToString(arguments.get(0));
+        final String arg3Str = coerceToString(arguments.get(2));
+
+        if (arg1Str == null || arg3Str == null) {
+            log.debug("Arguments 1 and 3 must be strings or numbers");
+            return null;
+        }
+
+        if (!(arguments.get(1) instanceof String)) {
+            log.debug("Argument 2 (operator) must be a string");
+            return null;
         }
 
         // arg 1 should be a SemVer
         final Semver arg1Parsed;
 
-        if ((arg1Parsed = Semver.parse((String) arguments.get(0))) == null) {
+        if ((arg1Parsed = normalizeVersion(arg1Str)) == null) {
             log.debug("Argument one is not a valid SemVer");
             return null;
         }
@@ -75,12 +83,56 @@ class SemVer implements PreEvaluatedArgumentsExpression {
         // arg 3 should be a SemVer
         final Semver arg3Parsed;
 
-        if ((arg3Parsed = Semver.parse((String) arguments.get(2))) == null) {
+        if ((arg3Parsed = normalizeVersion(arg3Str)) == null) {
             log.debug("Argument three is not a valid SemVer");
             return null;
         }
 
         return compare(arg2Parsed, arg1Parsed, arg3Parsed, jsonPath);
+    }
+
+    /**
+     * Coerce a value to a string representation suitable for semver parsing.
+     */
+    private static String coerceToString(Object value) {
+        if (value instanceof String) {
+            return (String) value;
+        }
+        if (value instanceof Number) {
+            Number num = (Number) value;
+            double dub = num.doubleValue();
+            if (dub == Math.floor(dub) && !Double.isInfinite(dub)) {
+                return String.valueOf(num.longValue());
+            }
+            return String.valueOf(dub);
+        }
+        return null;
+    }
+
+    /**
+     * Parse a semver string, handling v-prefix (case-insensitive) and partial versions.
+     */
+    private static Semver normalizeVersion(String version) {
+        // strip v/V prefix
+        String stripped = version;
+        if (stripped.startsWith("v") || stripped.startsWith("V")) {
+            stripped = stripped.substring(1);
+        }
+
+        // try strict parse first
+        Semver result = Semver.parse(stripped);
+        if (result != null) {
+            return result;
+        }
+
+        // fall back to coerce for partial versions (fewer than 2 dots)
+        // do not coerce strings that have too many parts (e.g. "2.0.0.0")
+        long dotCount = stripped.chars().filter(c -> c == '.').count();
+        if (dotCount < 2) {
+            return Semver.coerce(stripped);
+        }
+
+        return null;
     }
 
     private static boolean compare(final String operator, final Semver arg1, final Semver arg2, final String jsonPath)

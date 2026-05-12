@@ -1,7 +1,7 @@
 {
   "hooks/open-telemetry": "3.3.1",
-  "providers/flagd": "0.13.0",
-  "providers/go-feature-flag": "1.1.1",
+  "providers/flagd": "0.13.3",
+  "providers/go-feature-flag": "1.1.2",
   "providers/flagsmith": "0.0.13",
   "providers/env-var": "0.0.12",
   "providers/jsonlogic-eval-provider": "1.2.1",
@@ -16,6 +16,6 @@
   "tools/flagd-http-connector": "0.0.4",
   "tools/flagd-api": "1.0.0",
   "tools/flagd-api-testkit": "0.2.1",
-  "tools/flagd-core": "1.0.0",
+  "tools/flagd-core": "1.2.0",
   ".": "1.0.0"
 }
