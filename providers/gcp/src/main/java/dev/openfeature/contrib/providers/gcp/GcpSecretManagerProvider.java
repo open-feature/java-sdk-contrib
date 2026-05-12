@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>Each feature flag is stored as an individual secret in GCP Secret Manager. The flag key
  * maps directly to the secret name (with an optional prefix configured via
- * {@link GcpSecretManagerProviderOptions#getSecretNamePrefix()}).
+ * {@link GcpProviderOptions#getNamePrefix()}).
  *
  * <p>Flag values are read as UTF-8 strings from the secret payload and parsed to the requested
  * type. Supported raw value formats:
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  * </ul>
  *
  * <p>Results are cached in-process for the duration configured in
- * {@link GcpSecretManagerProviderOptions#getCacheExpiry()}.
+ * {@link GcpProviderOptions#getCacheExpiry()}.
  *
  * <p>Example:
  * <pre>{@code
@@ -48,7 +48,7 @@ public class GcpSecretManagerProvider implements FeatureProvider {
 
     static final String PROVIDER_NAME = "GCP Secret Manager Provider";
 
-    private final GcpSecretManagerProviderOptions options;
+    private final GcpProviderOptions options;
     private SecretManagerServiceClient client;
     private FlagCache cache;
 
@@ -58,14 +58,14 @@ public class GcpSecretManagerProvider implements FeatureProvider {
      *
      * @param options provider configuration; must not be null
      */
-    public GcpSecretManagerProvider(GcpSecretManagerProviderOptions options) {
+    public GcpSecretManagerProvider(GcpProviderOptions options) {
         this.options = options;
     }
 
     /**
      * Package-private constructor allowing injection of a pre-built client for testing.
      */
-    GcpSecretManagerProvider(GcpSecretManagerProviderOptions options, SecretManagerServiceClient client) {
+    GcpSecretManagerProvider(GcpProviderOptions options, SecretManagerServiceClient client) {
         this.options = options;
         this.client = client;
     }
@@ -130,10 +130,7 @@ public class GcpSecretManagerProvider implements FeatureProvider {
     private <T> ProviderEvaluation<T> evaluate(String key, Class<T> targetType) {
         String rawValue = fetchWithCache(key);
         T value = FlagValueConverter.convert(rawValue, targetType);
-        return ProviderEvaluation.<T>builder()
-                .value(value)
-                .reason(Reason.STATIC.toString())
-                .build();
+        return ProviderEvaluation.<T>builder().value(value).reason(Reason.STATIC.toString()).build();
     }
 
     private String fetchWithCache(String key) {
@@ -143,11 +140,13 @@ public class GcpSecretManagerProvider implements FeatureProvider {
             return cached.get();
         }
         synchronized (this) {
-            return cache.get(secretName).orElseGet(() -> {
-                String value = fetchFromGcp(secretName);
-                cache.put(secretName, value);
-                return value;
-            });
+            return cache
+                .get(secretName)
+                .orElseGet(() -> {
+                    String value = fetchFromGcp(secretName);
+                    cache.put(secretName, value);
+                    return value;
+                });
         }
     }
 
@@ -155,7 +154,7 @@ public class GcpSecretManagerProvider implements FeatureProvider {
      * Applies the configured prefix (if any) and returns the GCP secret name for the flag.
      */
     private String buildSecretName(String flagKey) {
-        String prefix = options.getSecretNamePrefix();
+        String prefix = options.getNamePrefix();
         return (prefix != null && !prefix.isEmpty()) ? prefix + flagKey : flagKey;
     }
 
@@ -169,8 +168,11 @@ public class GcpSecretManagerProvider implements FeatureProvider {
      */
     private String fetchFromGcp(String secretName) {
         try {
-            SecretVersionName versionName =
-                    SecretVersionName.of(options.getProjectId(), secretName, options.getSecretVersion());
+            SecretVersionName versionName = SecretVersionName.of(
+                options.getProjectId(),
+                secretName,
+                options.getVersion()
+            );
             log.debug("Accessing secret '{}' from GCP", versionName);
             AccessSecretVersionResponse response = client.accessSecretVersion(versionName);
             return response.getPayload().getData().toStringUtf8();

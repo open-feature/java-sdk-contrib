@@ -74,7 +74,7 @@ GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builde
 | `secretVersion` | `String` | `"latest"` | Secret version to access. Use `"latest"` for the current version or a numeric string (e.g. `"3"`) to pin to a specific version |
 | `cacheExpiry` | `Duration` | `5 minutes` | How long fetched secret values are cached before re-fetching from GCP |
 | `cacheMaxSize` | `int` | `500` | Maximum number of secret values held in the in-memory cache |
-| `secretNamePrefix` | `String` | `null` | Optional prefix prepended to every flag key. E.g. prefix `"ff-"` maps flag `"my-flag"` to secret `"ff-my-flag"` |
+| `namePrefix` | `String` | `null` | Optional prefix prepended to every flag key. E.g. prefix `"ff-"` maps flag `"my-flag"` to secret `"ff-my-flag"` |
 
 ## Advanced Usage
 
@@ -92,7 +92,7 @@ GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builde
 ```java
 GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builder()
     .projectId("my-gcp-project")
-    .secretNamePrefix("feature-flags/")
+    .namePrefix("feature-flags/")
     .build();
 ```
 

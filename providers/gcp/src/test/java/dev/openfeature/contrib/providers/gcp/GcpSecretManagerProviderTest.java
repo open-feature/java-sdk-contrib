@@ -35,12 +35,12 @@ class GcpSecretManagerProviderTest {
     @Mock
     private SecretManagerServiceClient mockClient;
 
-    private GcpSecretManagerProviderOptions options;
+    private GcpProviderOptions options;
     private GcpSecretManagerProvider provider;
 
     @BeforeEach
     void setUp() throws Exception {
-        options = GcpSecretManagerProviderOptions.builder().projectId("test-project").build();
+        options = GcpProviderOptions.builder().projectId("test-project").build();
         provider = new GcpSecretManagerProvider(options, mockClient);
         provider.initialize(new ImmutableContext());
     }
@@ -78,7 +78,7 @@ class GcpSecretManagerProviderTest {
         @Test
         @DisplayName("throws IllegalArgumentException when projectId is blank")
         void blankProjectIdThrows() {
-            GcpSecretManagerProviderOptions badOpts = GcpSecretManagerProviderOptions.builder().projectId("").build();
+            GcpProviderOptions badOpts = GcpProviderOptions.builder().projectId("").build();
             GcpSecretManagerProvider badProvider = new GcpSecretManagerProvider(badOpts, mockClient);
             assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext())).isInstanceOf(
                 IllegalArgumentException.class
@@ -88,7 +88,7 @@ class GcpSecretManagerProviderTest {
         @Test
         @DisplayName("throws IllegalArgumentException when projectId is null")
         void nullProjectIdThrows() {
-            GcpSecretManagerProviderOptions badOpts = GcpSecretManagerProviderOptions.builder().build();
+            GcpProviderOptions badOpts = GcpProviderOptions.builder().build();
             GcpSecretManagerProvider badProvider = new GcpSecretManagerProvider(badOpts, mockClient);
             assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext())).isInstanceOf(
                 IllegalArgumentException.class
@@ -253,9 +253,9 @@ class GcpSecretManagerProviderTest {
         @Test
         @DisplayName("prefix is prepended to the flag key when building secret name")
         void prefixApplied() {
-            GcpSecretManagerProviderOptions prefixedOpts = GcpSecretManagerProviderOptions.builder()
+            GcpProviderOptions prefixedOpts = GcpProviderOptions.builder()
                 .projectId("test-project")
-                .secretNamePrefix("ff-")
+                .namePrefix("ff-")
                 .build();
             stubSecret("true");
             GcpSecretManagerProvider prefixedProvider = new GcpSecretManagerProvider(prefixedOpts, mockClient);
