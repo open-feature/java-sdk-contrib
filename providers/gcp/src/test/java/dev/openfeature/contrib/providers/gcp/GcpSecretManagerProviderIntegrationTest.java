@@ -35,7 +35,7 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
  *
  * <p>To run these tests:
  * <pre>{@code
- * GCP_PROJECT_ID=my-project mvn verify -pl providers/gcp-secret-manager -Dgroups=integration
+ * GCP_PROJECT_ID=my-project mvn verify -pl providers/gcp -Dgroups=integration
  * }</pre>
  */
 @Tag("integration")

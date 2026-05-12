@@ -1,6 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>dev.openfeature.contrib</groupId>
@@ -45,20 +48,23 @@
         <module>providers/optimizely</module>
         <module>providers/multiprovider</module>
         <module>providers/ofrep</module>
-        <module>providers/gcp-secret-manager</module>
+        <module>providers/gcp</module>
         <module>tools/flagd-http-connector</module>
     </modules>
 
     <scm>
-        <connection>scm:git:https://github.com/open-feature/java-sdk-contrib.git</connection>
-        <developerConnection>scm:git:https://github.com/open-feature/java-sdk-contrib.git</developerConnection>
+        <connection
+        >scm:git:https://github.com/open-feature/java-sdk-contrib.git</connection>
+        <developerConnection
+        >scm:git:https://github.com/open-feature/java-sdk-contrib.git</developerConnection>
         <url>https://github.com/open-feature/java-sdk-contrib</url>
     </scm>
 
     <properties>
         <toolchain.jdk.version>[21,)</toolchain.jdk.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <project.reporting.outputEncoding
+        >UTF-8</project.reporting.outputEncoding>
         <module-name>${groupId}.${artifactId}</module-name>
         <javadoc.failOnWarnings>true</javadoc.failOnWarnings>
         <!--  This is required for later correct replacement of surefireArgLine -->
@@ -238,7 +244,8 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>${module-name}</Automatic-Module-Name>
+                            <Automatic-Module-Name
+                            >${module-name}</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -286,8 +293,10 @@
                         </executions>
                         <configuration>
                             <skip>${maven.deploy.skip}</skip>
-                            <repository>https://repo1.maven.org/maven2</repository>
-                            <snapshotRepository>https://central.sonatype.com/repository/maven-snapshots</snapshotRepository>
+                            <repository
+                            >https://repo1.maven.org/maven2</repository>
+                            <snapshotRepository
+                            >https://central.sonatype.com/repository/maven-snapshots</snapshotRepository>
                             <snapshotServerId>central</snapshotServerId>
                         </configuration>
                     </plugin>
@@ -311,7 +320,8 @@
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <version>3.12.0</version>
                         <configuration>
-                            <failOnWarnings>${javadoc.failOnWarnings}</failOnWarnings>
+                            <failOnWarnings
+                            >${javadoc.failOnWarnings}</failOnWarnings>
                             <excludePackageNames>
                                 dev.openfeature.flagd.grpc
                             </excludePackageNames>
@@ -339,7 +349,8 @@
                         <configuration>
                             <projectType>library</projectType>
                             <schemaVersion>1.3</schemaVersion>
-                            <includeBomSerialNumber>true</includeBomSerialNumber>
+                            <includeBomSerialNumber
+                            >true</includeBomSerialNumber>
                             <includeCompileScope>true</includeCompileScope>
                             <includeProvidedScope>true</includeProvidedScope>
                             <includeRuntimeScope>true</includeRuntimeScope>
@@ -385,7 +396,8 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
-                            <skipPublishing>${maven.deploy.skip}</skipPublishing>
+                            <skipPublishing
+                            >${maven.deploy.skip}</skipPublishing>
                         </configuration>
                     </plugin>
                     <!-- End publish to maven central -->
@@ -413,7 +425,8 @@
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <linkXRef>false</linkXRef>
-                            <excludeGeneratedSources>true</excludeGeneratedSources>
+                            <excludeGeneratedSources
+                            >true</excludeGeneratedSources>
                         </configuration>
                         <dependencies>
                             <dependency>
@@ -438,7 +451,8 @@
                         <artifactId>maven-pmd-plugin</artifactId>
                         <version>3.28.0</version>
                         <configuration>
-                            <excludeRoots>${basedir}/target/generated-sources/</excludeRoots>
+                            <excludeRoots
+                            >${basedir}/target/generated-sources/</excludeRoots>
                         </configuration>
                         <executions>
                             <execution>
@@ -457,7 +471,8 @@
                         <artifactId>spotbugs-maven-plugin</artifactId>
                         <version>4.9.8.3</version>
                         <configuration>
-                            <excludeFilterFile>spotbugs-exclusions.xml</excludeFilterFile>
+                            <excludeFilterFile
+                            >spotbugs-exclusions.xml</excludeFilterFile>
                             <plugins>
                                 <plugin>
                                     <groupId>com.h3xstream.findsecbugs</groupId>
@@ -502,8 +517,8 @@
                                         <include>.gitignore</include>
                                     </includes>
                                     <!-- define the steps to apply to those files -->
-                                    <trimTrailingWhitespace/>
-                                    <endWithNewline/>
+                                    <trimTrailingWhitespace />
+                                    <endWithNewline />
                                     <indent>
                                         <spaces>true</spaces>
                                         <spacesPerTab>4</spacesPerTab>
@@ -512,16 +527,16 @@
                             </formats>
                             <!-- define a language-specific format -->
                             <java>
-                                <palantirJavaFormat/>
+                                <palantirJavaFormat />
 
                                 <indent>
                                     <spaces>true</spaces>
                                     <spacesPerTab>4</spacesPerTab>
                                 </indent>
-                                <importOrder/>
+                                <importOrder />
 
-                                <removeUnusedImports/>
-                                <formatAnnotations/>
+                                <removeUnusedImports />
+                                <formatAnnotations />
 
                             </java>
                         </configuration>

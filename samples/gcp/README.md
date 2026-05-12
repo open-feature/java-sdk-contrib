@@ -1,6 +1,6 @@
 # GCP — OpenFeature Sample
 
-A runnable Java application demonstrating the [GCP Secret Manager OpenFeature provider](../../providers/gcp-secret-manager).
+A runnable Java application demonstrating the [GCP Secret Manager OpenFeature provider](../../providers/gcp).
 
 It evaluates five feature flags (covering every supported type) that are stored as secrets in
 Google Cloud Secret Manager.
@@ -60,7 +60,7 @@ This installs the provider JAR to your local Maven repository (`~/.m2`).
 ## Step 4 — Create the feature-flag secrets
 
 ```bash
-cd samples/gcp-secret-manager-sample
+cd samples/gcp
 bash setup.sh
 ```
 
@@ -151,4 +151,4 @@ Re-run the sample to see the new value (cache expires after 30 seconds in this s
 | `PERMISSION_DENIED` | Missing IAM role | Grant `roles/secretmanager.secretAccessor` |
 | `UNAUTHENTICATED` | No credentials | Run `gcloud auth application-default login` |
 | `secretmanager.googleapis.com is not enabled` | API disabled | Run Step 1 |
-| `Could not find artifact ...gcp-secret-manager` | Provider not installed | Run Step 3 |
+| `Could not find artifact ...gcp` | Provider not installed | Run Step 3 |

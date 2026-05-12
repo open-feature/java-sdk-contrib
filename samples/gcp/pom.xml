@@ -31,7 +31,7 @@
         <!-- GCP Secret Manager OpenFeature provider (install first: mvn install -DskipTests) -->
         <dependency>
             <groupId>dev.openfeature.contrib.providers</groupId>
-            <artifactId>gcp-secret-manager</artifactId>
+            <artifactId>gcp</artifactId>
             <version>0.0.1</version>
         </dependency>
 
