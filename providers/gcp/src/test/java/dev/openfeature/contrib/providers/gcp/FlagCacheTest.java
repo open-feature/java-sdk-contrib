@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -92,7 +92,7 @@ class FlagCacheTest {
         tinyCache.put("third", "3");
         assertThat(tinyCache.get("third")).isPresent().hasValue("3");
         int present = 0;
-        for (String key : new String[] {"first", "second", "third"}) {
+        for (String key : new String[] { "first", "second", "third" }) {
             if (tinyCache.get(key).isPresent()) {
                 present++;
             }

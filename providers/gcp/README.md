@@ -17,8 +17,8 @@ An OpenFeature provider that reads feature flags from Google Cloud. Currently su
 ## Quick Start
 
 ```java
-import dev.openfeature.contrib.providers.gcpsecretmanager.GcpSecretManagerProvider;
-import dev.openfeature.contrib.providers.gcpsecretmanager.GcpSecretManagerProviderOptions;
+import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProvider;
+import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProviderOptions;
 import dev.openfeature.sdk.OpenFeatureAPI;
 
 GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builder()
