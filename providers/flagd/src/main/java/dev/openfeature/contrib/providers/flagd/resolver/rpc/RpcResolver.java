@@ -12,6 +12,7 @@ import dev.openfeature.contrib.providers.flagd.resolver.Resolver;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelBuilder;
 import dev.openfeature.contrib.providers.flagd.resolver.common.ChannelConnector;
 import dev.openfeature.contrib.providers.flagd.resolver.common.QueueingStreamObserver;
+import dev.openfeature.contrib.providers.flagd.resolver.common.ShutdownUtils;
 import dev.openfeature.contrib.providers.flagd.resolver.common.StreamResponseModel;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.Cache;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.strategy.ResolveFactory;
@@ -46,7 +47,10 @@ import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -62,16 +66,23 @@ import lombok.extern.slf4j.Slf4j;
 public final class RpcResolver implements Resolver {
     private static final int QUEUE_SIZE = 5;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean shouldThrottle = new AtomicBoolean(false);
     private final AtomicBoolean successfulConnection = new AtomicBoolean(false);
     private final ChannelConnector connector;
     private final Cache cache;
     private final ResolveStrategy strategy;
     private final FlagdOptions options;
+    private final int maxBackoffMs;
     private final LinkedBlockingQueue<StreamResponseModel<EventStreamResponse>> incomingQueue;
     private final TriConsumer<ProviderEvent, ProviderEventDetails, Structure> onProviderEvent;
     private final ServiceStub stub;
     private final ServiceBlockingStub blockingStub;
     private final List<String> fatalStatusCodes;
+    private final ScheduledExecutorService retryScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "flagd-rpc-retry-scheduler");
+        t.setDaemon(true);
+        return t;
+    });
 
     /**
      * Resolves flag values using
@@ -96,6 +107,7 @@ public final class RpcResolver implements Resolver {
         this.blockingStub =
                 ServiceGrpc.newBlockingStub(this.connector.getChannel()).withWaitForReady();
         this.fatalStatusCodes = options.getFatalStatusCodes();
+        this.maxBackoffMs = options.getRetryBackoffMaxMs();
     }
 
     // testing only
@@ -115,23 +127,14 @@ public final class RpcResolver implements Resolver {
         this.stub = mockStub;
         this.blockingStub = mockBlockingStub;
         this.fatalStatusCodes = options.getFatalStatusCodes();
+        this.maxBackoffMs = options.getRetryBackoffMaxMs();
     }
 
     /**
      * Initialize RpcResolver resolver.
      */
     public void init() throws Exception {
-        Thread listener = new Thread(() -> {
-            try {
-                observeEventStream();
-            } catch (InterruptedException e) {
-                log.warn("gRPC event stream interrupted, flag configurations are stale", e);
-                Thread.currentThread().interrupt();
-            }
-        });
-
-        listener.setDaemon(true);
-        listener.start();
+        retryScheduler.execute(this::observeEventStream);
     }
 
     /**
@@ -141,6 +144,9 @@ public final class RpcResolver implements Resolver {
         if (shutdown.getAndSet(true)) {
             return;
         }
+        this.retryScheduler.shutdownNow();
+        ShutdownUtils.awaitTerminationQuietly(
+                () -> retryScheduler.awaitTermination(options.getDeadline(), TimeUnit.MILLISECONDS));
         this.connector.shutdown();
     }
 
@@ -337,63 +343,81 @@ public final class RpcResolver implements Resolver {
     }
 
     /** Contains blocking calls, to be used concurrently. */
-    private void observeEventStream() throws InterruptedException {
+    private void observeEventStream() {
 
         log.info("Initializing event stream observer");
 
         // outer loop for re-issuing the stream request
         // "waitForReady" on the channel, plus our retry policy slow this loop down in error conditions
         while (!shutdown.get()) {
-
-            log.debug("Initializing event stream request");
-            restartStream();
-            // inner loop for handling messages
-            while (!shutdown.get()) {
-                final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();
-                if (taken.isComplete()) {
-                    log.debug("Event stream completed, will reconnect");
-                    this.handleErrorOrComplete(false);
-                    // The stream is complete, we still try to reconnect
-                    break;
-                }
-
-                Throwable streamException = taken.getError();
-                if (streamException != null) {
-                    if (streamException instanceof StatusRuntimeException
-                            && fatalStatusCodes.contains(((StatusRuntimeException) streamException)
-                                    .getStatus()
-                                    .getCode()
-                                    .name())
-                            && !successfulConnection.get()) {
-                        log.debug(
-                                "Fatal error code received: {}",
-                                ((StatusRuntimeException) streamException)
-                                        .getStatus()
-                                        .getCode());
-                        this.handleErrorOrComplete(true);
-                    } else {
-                        log.debug(
-                                "Exception in event stream connection, streamException {}, will reconnect",
-                                streamException);
-                        this.handleErrorOrComplete(false);
+            try {
+                // explicit backoff after stream errors to prevent tight loops when errors are returned immediately
+                // (e.g., by intervening proxies like Envoy)
+                if (shouldThrottle.getAndSet(false)) {
+                    log.debug("Previous stream ended with error, waiting {} ms before retry", this.maxBackoffMs);
+                    try {
+                        retryScheduler.schedule(this::observeEventStream, this.maxBackoffMs, TimeUnit.MILLISECONDS);
+                    } catch (RejectedExecutionException e) {
+                        log.debug("Retry scheduling rejected, most likely shutdown was invoked", e);
                     }
-                    break;
+                    return;
                 }
 
-                successfulConnection.set(true);
-                final EventStreamResponse response = taken.getResponse();
-                log.debug("Got stream response: {}", response);
+                log.debug("Initializing event stream request");
+                restartStream();
+                // inner loop for handling messages
+                while (!shutdown.get()) {
+                    final StreamResponseModel<EventStreamResponse> taken = incomingQueue.take();
+                    if (taken.isComplete()) {
+                        log.debug("Event stream completed, will reconnect");
+                        this.handleErrorOrComplete(false);
+                        shouldThrottle.set(true);
+                        // the stream is complete, we still try to reconnect
+                        break;
+                    }
 
-                switch (response.getType()) {
-                    case Constants.CONFIGURATION_CHANGE:
-                        this.handleConfigurationChangeEvent(response);
+                    Throwable streamException = taken.getError();
+                    if (streamException != null) {
+                        if (streamException instanceof StatusRuntimeException
+                                && fatalStatusCodes.contains(((StatusRuntimeException) streamException)
+                                        .getStatus()
+                                        .getCode()
+                                        .name())
+                                && !successfulConnection.get()) {
+                            log.debug(
+                                    "Fatal error code received: {}",
+                                    ((StatusRuntimeException) streamException)
+                                            .getStatus()
+                                            .getCode());
+                            this.handleErrorOrComplete(true);
+                        } else {
+                            log.debug(
+                                    "Exception in event stream connection, streamException {}, will reconnect",
+                                    streamException);
+                            this.handleErrorOrComplete(false);
+                        }
+                        shouldThrottle.set(true);
                         break;
-                    case Constants.PROVIDER_READY:
-                        this.handleProviderReadyEvent();
-                        break;
-                    default:
-                        log.debug("Unhandled event type {}", response.getType());
+                    }
+
+                    successfulConnection.set(true);
+                    final EventStreamResponse response = taken.getResponse();
+                    log.debug("Got stream response: {}", response);
+
+                    switch (response.getType()) {
+                        case Constants.CONFIGURATION_CHANGE:
+                            this.handleConfigurationChangeEvent(response);
+                            break;
+                        case Constants.PROVIDER_READY:
+                            this.handleProviderReadyEvent();
+                            break;
+                        default:
+                            log.debug("Unhandled event type {}", response.getType());
+                    }
                 }
+            } catch (InterruptedException ie) {
+                log.debug("Stream observer interrupted, most likely shutdown was invoked", ie);
+                Thread.currentThread().interrupt();
             }
         }
 

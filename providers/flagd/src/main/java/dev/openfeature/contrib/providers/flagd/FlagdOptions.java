@@ -237,6 +237,23 @@ public class FlagdOptions {
             fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR));
 
     /**
+     * !EXPERIMENTAL!
+     * Controls whether JsonLogic targeting rules are compiled into Java bytecode for improved
+     * evaluation performance.
+     * Requires the jdk.compiler module at runtime; falls back to interpreter mode if unavailable.
+     * In AUTO mode, the provider checks {@code javax.tools.ToolProvider.getSystemJavaCompiler() != null}
+     * at initialization to determine whether compilation is available.
+     * Compilation adds latency to the first evaluation of each rule (source generation, in-memory
+     * javac, class loading); subsequent evaluations are faster. This trade-off favors long-running
+     * services where rules are evaluated many times.
+     * Defaults to AUTO (compile if the compiler is available, otherwise use the interpreter).
+     * Only applicable in the in-process mode.
+     */
+    @Builder.Default
+    private CompileTargetingMode compileTargeting = Config.compileTargetingFromString(
+            fallBackToEnvOrDefault(Config.COMPILE_TARGETING_ENV_VAR_NAME, Config.DEFAULT_COMPILE_TARGETING));
+
+    /**
      * The evaluator to use for flag evaluations. Defaults to {@code new FlagdCore()}. Only applicable in the in-process
      * mode
      */
