@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import java.time.Duration;

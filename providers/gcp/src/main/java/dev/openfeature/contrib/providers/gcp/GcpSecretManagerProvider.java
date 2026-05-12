@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
@@ -130,10 +130,7 @@ public class GcpSecretManagerProvider implements FeatureProvider {
     private <T> ProviderEvaluation<T> evaluate(String key, Class<T> targetType) {
         String rawValue = fetchWithCache(key);
         T value = FlagValueConverter.convert(rawValue, targetType);
-        return ProviderEvaluation.<T>builder()
-                .value(value)
-                .reason(Reason.STATIC.toString())
-                .build();
+        return ProviderEvaluation.<T>builder().value(value).reason(Reason.STATIC.toString()).build();
     }
 
     private String fetchWithCache(String key) {
@@ -143,11 +140,13 @@ public class GcpSecretManagerProvider implements FeatureProvider {
             return cached.get();
         }
         synchronized (this) {
-            return cache.get(secretName).orElseGet(() -> {
-                String value = fetchFromGcp(secretName);
-                cache.put(secretName, value);
-                return value;
-            });
+            return cache
+                .get(secretName)
+                .orElseGet(() -> {
+                    String value = fetchFromGcp(secretName);
+                    cache.put(secretName, value);
+                    return value;
+                });
         }
     }
 
@@ -169,8 +168,11 @@ public class GcpSecretManagerProvider implements FeatureProvider {
      */
     private String fetchFromGcp(String secretName) {
         try {
-            SecretVersionName versionName =
-                    SecretVersionName.of(options.getProjectId(), secretName, options.getSecretVersion());
+            SecretVersionName versionName = SecretVersionName.of(
+                options.getProjectId(),
+                secretName,
+                options.getSecretVersion()
+            );
             log.debug("Accessing secret '{}' from GCP", versionName);
             AccessSecretVersionResponse response = client.accessSecretVersion(versionName);
             return response.getPayload().getData().toStringUtf8();

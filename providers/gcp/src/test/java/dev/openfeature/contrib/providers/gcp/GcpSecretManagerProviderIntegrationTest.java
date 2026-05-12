@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,8 +48,7 @@ class GcpSecretManagerProviderIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         String projectId = System.getenv("GCP_PROJECT_ID");
-        GcpSecretManagerProviderOptions opts =
-                GcpSecretManagerProviderOptions.builder().projectId(projectId).build();
+        GcpSecretManagerProviderOptions opts = GcpSecretManagerProviderOptions.builder().projectId(projectId).build();
         provider = new GcpSecretManagerProvider(opts);
         provider.initialize(new ImmutableContext());
     }
@@ -62,43 +61,41 @@ class GcpSecretManagerProviderIntegrationTest {
     @Test
     @DisplayName("evaluates boolean secret")
     void booleanFlag() {
-        assertThat(provider.getBooleanEvaluation("it-bool-flag", false, new ImmutableContext())
-                        .getValue())
-                .isTrue();
+        assertThat(provider.getBooleanEvaluation("it-bool-flag", false, new ImmutableContext()).getValue()).isTrue();
     }
 
     @Test
     @DisplayName("evaluates string secret")
     void stringFlag() {
-        assertThat(provider.getStringEvaluation("it-string-flag", "", new ImmutableContext())
-                        .getValue())
-                .isEqualTo("hello");
+        assertThat(provider.getStringEvaluation("it-string-flag", "", new ImmutableContext()).getValue()).isEqualTo(
+            "hello"
+        );
     }
 
     @Test
     @DisplayName("evaluates integer secret")
     void integerFlag() {
-        assertThat(provider.getIntegerEvaluation("it-int-flag", 0, new ImmutableContext())
-                        .getValue())
-                .isEqualTo(99);
+        assertThat(provider.getIntegerEvaluation("it-int-flag", 0, new ImmutableContext()).getValue()).isEqualTo(99);
     }
 
     @Test
     @DisplayName("evaluates double secret")
     void doubleFlag() {
-        assertThat(provider.getDoubleEvaluation("it-double-flag", 0.0, new ImmutableContext())
-                        .getValue())
-                .isEqualTo(2.71);
+        assertThat(provider.getDoubleEvaluation("it-double-flag", 0.0, new ImmutableContext()).getValue()).isEqualTo(
+            2.71
+        );
     }
 
     @Test
     @DisplayName("evaluates object secret as Value/Structure")
     void objectFlag() {
-        assertThat(provider.getObjectEvaluation("it-object-flag", null, new ImmutableContext())
-                        .getValue()
-                        .asStructure()
-                        .getValue("key")
-                        .asString())
-                .isEqualTo("val");
+        assertThat(
+            provider
+                .getObjectEvaluation("it-object-flag", null, new ImmutableContext())
+                .getValue()
+                .asStructure()
+                .getValue("key")
+                .asString()
+        ).isEqualTo("val");
     }
 }

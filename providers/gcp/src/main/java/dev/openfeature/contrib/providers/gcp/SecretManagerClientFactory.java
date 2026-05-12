@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;

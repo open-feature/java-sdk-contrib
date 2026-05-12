@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Concurrency tests for {@link FlagCache} using VmLens to explore thread interleavings.
  *
- * <p>Run with: {@code mvn verify -pl providers/gcp-secret-manager -P concurrency-tests}
+ * <p>Run with: {@code mvn verify -pl providers/gcp -P concurrency-tests}
  */
 class FlagCacheCTest {
 
@@ -64,8 +64,7 @@ class FlagCacheCTest {
      */
     @Test
     void concurrentExpiryAndInsertDoNotLoseNewEntry() throws Exception {
-        try (AllInterleavings interleavings =
-                new AllInterleavings("FlagCache concurrent expiry and re-insert")) {
+        try (AllInterleavings interleavings = new AllInterleavings("FlagCache concurrent expiry and re-insert")) {
             while (interleavings.hasNext()) {
                 // Reset state for this interleaving:
                 //   - clock at T0 so the inserted entry records expiresAt = T0 + 30 s
@@ -76,10 +75,11 @@ class FlagCacheCTest {
                 now.set(T1);
 
                 Runner.runParallel(
-                        // Thread A: re-insert the same key with a fresh value
-                        () -> cache.put("key", "new-value"),
-                        // Thread B: get() detects the stale entry and attempts removal
-                        () -> cache.get("key"));
+                    // Thread A: re-insert the same key with a fresh value
+                    () -> cache.put("key", "new-value"),
+                    // Thread B: get() detects the stale entry and attempts removal
+                    () -> cache.get("key")
+                );
 
                 // Thread A's put() has returned, so "new-value" must be in the cache.
                 // Thread B's expiry-removal must not have silently evicted it.
@@ -104,18 +104,20 @@ class FlagCacheCTest {
         cache.put("key", "stale-value");
         now.set(T1);
 
-        try (var interleavings =
-                new AllInterleavings("FlagCache: get on timed-out entry concurrent with insert")) {
+        try (var interleavings = new AllInterleavings("FlagCache: get on timed-out entry concurrent with insert")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        // Thread A: insert a fresh value for the same key
-                        () -> cache.put("key", "new-value"),
-                        // Thread B: get() on the timed-out entry must return nothing
-                        // (expired entry removed) or "new-value" (Thread A won the race) —
-                        // never the stale "stale-value" whose TTL has elapsed
-                        () -> assertThat(cache.get("key")).satisfiesAnyOf(
-                                opt -> assertThat(opt).isEmpty(),
-                                opt -> assertThat(opt).hasValue("new-value")));
+                    // Thread A: insert a fresh value for the same key
+                    () -> cache.put("key", "new-value"),
+                    // Thread B: get() on the timed-out entry must return nothing
+                    // (expired entry removed) or "new-value" (Thread A won the race) —
+                    // never the stale "stale-value" whose TTL has elapsed
+                    () ->
+                        assertThat(cache.get("key")).satisfiesAnyOf(
+                            opt -> assertThat(opt).isEmpty(),
+                            opt -> assertThat(opt).hasValue("new-value")
+                        )
+                );
             }
         }
     }
