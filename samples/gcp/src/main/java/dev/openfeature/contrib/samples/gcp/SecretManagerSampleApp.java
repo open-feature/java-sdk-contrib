@@ -43,7 +43,7 @@ public class SecretManagerSampleApp {
         // Build provider options
         GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builder()
             .projectId(projectId)
-            .secretNamePrefix(PREFIX) // secrets are named "of-sample-<flagKey>"
+            .namePrefix(PREFIX) // secrets are named "of-sample-<flagKey>"
             .secretVersion("latest")
             .cacheExpiry(Duration.ofSeconds(30))
             .build();

@@ -16,7 +16,7 @@ final class SecretManagerClientFactory {
     /**
      * Creates a new {@link SecretManagerServiceClient} using the provided options.
      *
-     * <p>When {@link GcpSecretManagerProviderOptions#getCredentials()} is non-null, those
+     * <p>When {@link GcpProviderOptions#getCredentials()} is non-null, those
      * credentials are used explicitly. Otherwise, the GCP client library falls back to
      * Application Default Credentials (ADC) automatically.
      *
@@ -24,7 +24,7 @@ final class SecretManagerClientFactory {
      * @return a configured {@link SecretManagerServiceClient}
      * @throws IOException if the client cannot be created
      */
-    static SecretManagerServiceClient create(GcpSecretManagerProviderOptions options) throws IOException {
+    static SecretManagerServiceClient create(GcpProviderOptions options) throws IOException {
         SecretManagerServiceSettings.Builder settingsBuilder = SecretManagerServiceSettings.newBuilder();
         if (options.getCredentials() != null) {
             settingsBuilder.setCredentialsProvider(FixedCredentialsProvider.create(options.getCredentials()));
