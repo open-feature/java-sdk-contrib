@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,7 +16,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Converts raw string secret values (fetched from GCP Secret Manager) into the
+ * Converts raw string values (fetched from GCP services) into the
  * typed values expected by the OpenFeature SDK evaluation methods.
  */
 @Slf4j
@@ -39,7 +39,7 @@ final class FlagValueConverter {
      *       non-JSON strings are wrapped in a string {@link Value}</li>
      * </ul>
      *
-     * @param raw        the raw string value from GCP Secret Manager
+     * @param raw        the raw string value from GCP
      * @param targetType the desired OpenFeature type
      * @param <T>        the target type
      * @return the converted value

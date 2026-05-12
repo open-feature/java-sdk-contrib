@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-           https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+           https://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>dev.openfeature.contrib</groupId>
@@ -12,16 +14,16 @@
     </parent>
 
     <groupId>dev.openfeature.contrib.providers</groupId>
-    <artifactId>gcp-secret-manager</artifactId>
+    <artifactId>gcp</artifactId>
     <version>0.0.1</version> <!--x-release-please-version -->
 
     <properties>
         <!-- "-" is not allowed in automatic module names -->
-        <module-name>${groupId}.gcpsecretmanager</module-name>
+        <module-name>${groupId}.gcp</module-name>
     </properties>
 
-    <name>gcp-secret-manager</name>
-    <description>GCP Secret Manager provider for OpenFeature Java SDK</description>
+    <name>gcp</name>
+    <description>GCP provider for OpenFeature Java SDK</description>
     <url>https://openfeature.dev</url>
 
     <developers>

@@ -1,6 +1,6 @@
-# GCP Secret Manager Provider
+# GCP Provider
 
-An OpenFeature provider that reads feature flags from [Google Cloud Secret Manager](https://cloud.google.com/secret-manager), purpose-built for secrets requiring versioning, rotation, and fine-grained IAM access control.
+An OpenFeature provider that reads feature flags from Google Cloud. Currently supports [Google Cloud Secret Manager](https://cloud.google.com/secret-manager), purpose-built for secrets requiring versioning, rotation, and fine-grained IAM access control.
 
 ## Installation
 
@@ -8,7 +8,7 @@ An OpenFeature provider that reads feature flags from [Google Cloud Secret Manag
 ```xml
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
-    <artifactId>gcp-secret-manager</artifactId>
+    <artifactId>gcp</artifactId>
     <version>0.0.1</version>
 </dependency>
 ```

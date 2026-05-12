@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpsecretmanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Thread-safe TTL-based in-memory cache for flag values fetched from GCP Secret Manager.
+ * Thread-safe TTL-based in-memory cache for flag values fetched from GCP services.
  *
  * <p>Entries expire after the configured {@code ttl}. When the cache reaches {@code maxSize},
  * the entry with the earliest insertion time is evicted in O(1) via {@link LinkedHashMap}'s
@@ -28,12 +28,14 @@ class FlagCache {
     FlagCache(Duration ttl, int maxSize, Clock clock) {
         this.ttl = ttl;
         this.clock = clock;
-        this.store = Collections.synchronizedMap(new LinkedHashMap<String, CacheEntry>(16, 0.75f, false) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
-                return size() > maxSize;
+        this.store = Collections.synchronizedMap(
+            new LinkedHashMap<String, CacheEntry>(16, 0.75f, false) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
+                    return size() > maxSize;
+                }
             }
-        });
+        );
     }
 
     /**
