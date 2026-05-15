@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.2.1...dev.openfeature.contrib.providers.jsonlogic-v1.3.0) (2026-05-15)
+
+
+### ✨ New Features
+
+* switch to io.github.gzsombor json logic lib ([#1779](https://github.com/open-feature/java-sdk-contrib/issues/1779)) ([d549d7b](https://github.com/open-feature/java-sdk-contrib/commit/d549d7b4e67f2d93eb67f364299ce3bc65546959))
+
 ## [1.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.jsonlogic-v1.2.0...dev.openfeature.contrib.providers.jsonlogic-v1.2.1) (2025-07-09)
 
 
