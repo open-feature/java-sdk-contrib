@@ -87,6 +87,7 @@ public final class Config {
         try {
             return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : defaultValue;
         } catch (Exception e) {
+            log.error("Invalid value for environment variable: {}", key, e);
             return defaultValue;
         }
     }
