@@ -16,5 +16,5 @@
   "tools/flagd-api": "1.0.0",
   "tools/flagd-api-testkit": "0.2.1",
   "tools/flagd-core": "1.2.0",
-  ".": "1.0.0"
+  ".": "2.0.0"
 }
