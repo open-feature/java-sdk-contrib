@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.3...dev.openfeature.contrib.providers.flagd-v0.13.4) (2026-05-15)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency io.opentelemetry:opentelemetry-api to v1.62.0 [security] ([#1794](https://github.com/open-feature/java-sdk-contrib/issues/1794)) ([75ff112](https://github.com/open-feature/java-sdk-contrib/commit/75ff112f273b9798645f85ab3e7a91e587b7ca44))
+
 ## [0.13.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.2...dev.openfeature.contrib.providers.flagd-v0.13.3) (2026-05-11)
 
 
