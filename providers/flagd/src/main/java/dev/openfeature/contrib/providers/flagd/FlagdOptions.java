@@ -342,6 +342,19 @@ public class FlagdOptions {
                     }
                 }
 
+                if (!isValidPort(portValue)) {
+                    // Last-line-of-defence: FLAGD_PORT itself can be polluted by Kubernetes
+                    // service-link injection too if a Service named `flagd` exists in the
+                    // pod's namespace (FLAGD_PORT=tcp://<clusterIP>:8013), which would
+                    // affect RPC-mode consumers identically. Fall back to the resolver's
+                    // default port rather than throwing at parse time.
+                    log.warn(
+                            "Configured port value '{}' is not a valid port; falling back to default '{}'.",
+                            portValue,
+                            defaultPort);
+                    portValue = defaultPort;
+                }
+
                 port = Integer.parseInt(portValue);
             }
         }
