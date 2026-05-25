@@ -213,9 +213,8 @@ public class FlagdCore implements Evaluator {
         // state check
         if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
-                    .errorMessage("flag: " + key + " is disabled")
-                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, null))
+                    .reason(Reason.DISABLED.toString())
+                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
                     .build();
         }
 
