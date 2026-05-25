@@ -76,7 +76,7 @@ public class MockEvaluator implements Evaluator {
     public ProviderEvaluation<Value> resolveObjectValue(String flagKey, Value defaultValue, EvaluationContext ctx) {
         final ProviderEvaluation<Object> evaluation = resolve(Object.class, flagKey, defaultValue, ctx);
         return ProviderEvaluation.<Value>builder()
-                .value(Value.objectToValue(evaluation.getValue()))
+                .value(evaluation.getValue() != null ? Value.objectToValue(evaluation.getValue()) : null)
                 .variant(evaluation.getVariant())
                 .reason(evaluation.getReason())
                 .errorCode(evaluation.getErrorCode())

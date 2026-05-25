@@ -7,6 +7,7 @@ import dev.openfeature.contrib.tools.flagd.api.FlagStoreException;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -82,6 +83,17 @@ class FlagdCoreTest {
     void resolveBooleanValue_disabledFlag_returnsDisabledReason() {
         ProviderEvaluation<Boolean> result =
                 flagdCore.resolveBooleanValue("disabledFlag", false, new ImmutableContext());
+
+        assertThat(result.getErrorCode()).isNull();
+        assertThat(result.getValue()).isNull();
+        assertThat(result.getVariant()).isNull();
+        assertThat(result.getReason()).isEqualTo(Reason.DISABLED.toString());
+    }
+
+    @Test
+    void resolveObjectValue_disabledFlag_returnsDisabledReasonWithNullValue() {
+        ProviderEvaluation<Value> result =
+                flagdCore.resolveObjectValue("disabledFlag", null, new ImmutableContext());
 
         assertThat(result.getErrorCode()).isNull();
         assertThat(result.getValue()).isNull();
