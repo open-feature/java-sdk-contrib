@@ -238,6 +238,64 @@ class FlagdOptionsTest {
     }
 
     @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "8888")
+    @SetEnvironmentVariable(key = SYNC_PORT_ENV_VAR_NAME, value = "tcp://10.0.0.1:8015")
+    void testInProcessProvider_invalidSyncPortFallsBackToFlagdPort() {
+        // Kubernetes service-link injection populates FLAGD_SYNC_PORT with a URL like
+        // tcp://<clusterIP>:<port> when a Service named flagd-sync shares the pod's
+        // namespace. The SDK must not fail on this; it should fall back to FLAGD_PORT.
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(8888);
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = SYNC_PORT_ENV_VAR_NAME, value = "tcp://10.0.0.1:8015")
+    void testInProcessProvider_invalidSyncPortWithNoFlagdPortUsesDefault() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_IN_PROCESS_PORT));
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "8888")
+    @SetEnvironmentVariable(key = SYNC_PORT_ENV_VAR_NAME, value = "99999")
+    void testInProcessProvider_outOfRangeSyncPortFallsBackToFlagdPort() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(8888);
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_RPC)
+    @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "tcp://10.0.0.1:8013")
+    void testRpcProvider_invalidFlagdPortFallsBackToDefault() {
+        // RPC-mode equivalent of the in-process collision: if a Service named `flagd`
+        // shares the pod's namespace, kubelet injects FLAGD_PORT=tcp://<clusterIP>:8013.
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.RPC);
+        assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_RPC_PORT));
+    }
+
+    @Test
+    @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_IN_PROCESS)
+    @SetEnvironmentVariable(key = PORT_ENV_VAR_NAME, value = "tcp://10.0.0.1:8013")
+    @SetEnvironmentVariable(key = SYNC_PORT_ENV_VAR_NAME, value = "tcp://10.0.0.1:8015")
+    void testInProcessProvider_bothPortEnvsInvalidFallsBackToDefault() {
+        FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+        assertThat(flagdOptions.getResolverType()).isEqualTo(Resolver.IN_PROCESS);
+        assertThat(flagdOptions.getPort()).isEqualTo(Integer.parseInt(DEFAULT_IN_PROCESS_PORT));
+    }
+
+    @Test
     @SetEnvironmentVariable(key = RESOLVER_ENV_VAR, value = RESOLVER_RPC)
     void testRpcProviderFromEnv_noPortConfigured_defaultsToCorrectPort() {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
