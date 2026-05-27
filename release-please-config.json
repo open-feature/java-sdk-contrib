@@ -9,7 +9,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/flagsmith": {
       "package-name": "dev.openfeature.contrib.providers.flagsmith",
@@ -17,7 +20,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/go-feature-flag": {
       "package-name": "dev.openfeature.contrib.providers.go-feature-flag",
@@ -25,7 +31,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/jsonlogic-eval-provider": {
       "package-name": "dev.openfeature.contrib.providers.jsonlogic",
@@ -33,7 +42,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/env-var": {
       "package-name": "dev.openfeature.contrib.providers.env-var",
@@ -41,7 +53,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/unleash": {
       "package-name": "dev.openfeature.contrib.providers.unleash",
@@ -49,7 +64,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/flipt": {
       "package-name": "dev.openfeature.contrib.providers.flipt",
@@ -57,7 +75,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/configcat": {
       "package-name": "dev.openfeature.contrib.providers.configcat",
@@ -65,7 +86,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/statsig": {
       "package-name": "dev.openfeature.contrib.providers.statsig",
@@ -73,7 +97,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/optimizely": {
       "package-name": "dev.openfeature.contrib.providers.optimizely",
@@ -81,7 +108,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/multiprovider": {
       "package-name": "dev.openfeature.contrib.providers.multiprovider",
@@ -89,7 +119,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/ofrep": {
       "package-name": "dev.openfeature.contrib.providers.ofrep",
@@ -97,7 +130,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "providers/gcp": {
       "package-name": "dev.openfeature.contrib.providers.gcp",
@@ -105,7 +141,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "hooks/open-telemetry": {
       "package-name": "dev.openfeature.contrib.hooks.otel",
@@ -113,7 +152,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "tools/junit-openfeature": {
       "package-name": "dev.openfeature.contrib.tools.junitopenfeature",
@@ -121,7 +163,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "tools/flagd-api": {
       "package-name": "dev.openfeature.contrib.tools.flagdapi",
@@ -129,7 +174,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "tools/flagd-core": {
       "package-name": "dev.openfeature.contrib.tools.flagdcore",
@@ -137,7 +185,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "tools/flagd-api-testkit": {
       "package-name": "dev.openfeature.contrib.tools.flagdapitestkit",
@@ -145,7 +196,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     "tools/flagd-http-connector": {
       "package-name": "dev.openfeature.contrib.tools.flagdhttpconnector",
@@ -153,7 +207,10 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     },
     ".": {
       "package-name": "dev.openfeature.contrib.parent",
@@ -170,7 +227,10 @@
         "release",
         "tools"
       ],
-      "extra-files": ["pom.xml", "README.md"]
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
     }
   },
   "changelog-sections": [
