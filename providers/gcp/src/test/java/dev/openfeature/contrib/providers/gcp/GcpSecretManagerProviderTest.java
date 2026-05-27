@@ -47,8 +47,10 @@ class GcpSecretManagerProviderTest {
 
     private void stubSecret(String value) {
         AccessSecretVersionResponse response = AccessSecretVersionResponse.newBuilder()
-            .setPayload(SecretPayload.newBuilder().setData(ByteString.copyFromUtf8(value)).build())
-            .build();
+                .setPayload(SecretPayload.newBuilder()
+                        .setData(ByteString.copyFromUtf8(value))
+                        .build())
+                .build();
         when(mockClient.accessSecretVersion(any(SecretVersionName.class))).thenReturn(response);
     }
 
@@ -78,11 +80,11 @@ class GcpSecretManagerProviderTest {
         @Test
         @DisplayName("throws IllegalArgumentException when projectId is blank")
         void blankProjectIdThrows() {
-            GcpProviderOptions badOpts = GcpProviderOptions.builder().projectId("").build();
+            GcpProviderOptions badOpts =
+                    GcpProviderOptions.builder().projectId("").build();
             GcpSecretManagerProvider badProvider = new GcpSecretManagerProvider(badOpts, mockClient);
-            assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext())).isInstanceOf(
-                IllegalArgumentException.class
-            );
+            assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext()))
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
@@ -90,9 +92,8 @@ class GcpSecretManagerProviderTest {
         void nullProjectIdThrows() {
             GcpProviderOptions badOpts = GcpProviderOptions.builder().build();
             GcpSecretManagerProvider badProvider = new GcpSecretManagerProvider(badOpts, mockClient);
-            assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext())).isInstanceOf(
-                IllegalArgumentException.class
-            );
+            assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext()))
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -104,11 +105,8 @@ class GcpSecretManagerProviderTest {
         @DisplayName("returns true for secret value 'true'")
         void trueValue() {
             stubSecret("true");
-            ProviderEvaluation<Boolean> result = provider.getBooleanEvaluation(
-                "bool-flag",
-                false,
-                new ImmutableContext()
-            );
+            ProviderEvaluation<Boolean> result =
+                    provider.getBooleanEvaluation("bool-flag", false, new ImmutableContext());
             assertThat(result.getValue()).isTrue();
             assertThat(result.getReason()).isEqualTo(Reason.STATIC.toString());
         }
@@ -117,11 +115,8 @@ class GcpSecretManagerProviderTest {
         @DisplayName("returns false for secret value 'false'")
         void falseValue() {
             stubSecret("false");
-            ProviderEvaluation<Boolean> result = provider.getBooleanEvaluation(
-                "bool-flag",
-                true,
-                new ImmutableContext()
-            );
+            ProviderEvaluation<Boolean> result =
+                    provider.getBooleanEvaluation("bool-flag", true, new ImmutableContext());
             assertThat(result.getValue()).isFalse();
         }
 
@@ -129,9 +124,8 @@ class GcpSecretManagerProviderTest {
         @DisplayName("throws ParseError for malformed boolean value")
         void malformedBooleanThrows() {
             stubSecret("not-a-bool");
-            assertThatThrownBy(() ->
-                provider.getBooleanEvaluation("bool-flag", false, new ImmutableContext())
-            ).isInstanceOf(ParseError.class);
+            assertThatThrownBy(() -> provider.getBooleanEvaluation("bool-flag", false, new ImmutableContext()))
+                    .isInstanceOf(ParseError.class);
         }
     }
 
@@ -143,11 +137,8 @@ class GcpSecretManagerProviderTest {
         @DisplayName("returns string value as-is")
         void stringValue() {
             stubSecret("dark-mode");
-            ProviderEvaluation<String> result = provider.getStringEvaluation(
-                "str-flag",
-                "light-mode",
-                new ImmutableContext()
-            );
+            ProviderEvaluation<String> result =
+                    provider.getStringEvaluation("str-flag", "light-mode", new ImmutableContext());
             assertThat(result.getValue()).isEqualTo("dark-mode");
         }
     }
@@ -168,9 +159,8 @@ class GcpSecretManagerProviderTest {
         @DisplayName("throws ParseError for non-numeric value")
         void nonNumericThrows() {
             stubSecret("abc");
-            assertThatThrownBy(() -> provider.getIntegerEvaluation("int-flag", 0, new ImmutableContext())).isInstanceOf(
-                ParseError.class
-            );
+            assertThatThrownBy(() -> provider.getIntegerEvaluation("int-flag", 0, new ImmutableContext()))
+                    .isInstanceOf(ParseError.class);
         }
     }
 
@@ -182,11 +172,8 @@ class GcpSecretManagerProviderTest {
         @DisplayName("parses numeric string to Double")
         void doubleValue() {
             stubSecret("3.14");
-            ProviderEvaluation<Double> result = provider.getDoubleEvaluation(
-                "double-flag",
-                0.0,
-                new ImmutableContext()
-            );
+            ProviderEvaluation<Double> result =
+                    provider.getDoubleEvaluation("double-flag", 0.0, new ImmutableContext());
             assertThat(result.getValue()).isEqualTo(3.14);
         }
     }
@@ -199,13 +186,11 @@ class GcpSecretManagerProviderTest {
         @DisplayName("parses JSON string to Value/Structure")
         void jsonValue() {
             stubSecret("{\"color\":\"blue\",\"count\":3}");
-            ProviderEvaluation<Value> result = provider.getObjectEvaluation(
-                "obj-flag",
-                new Value(),
-                new ImmutableContext()
-            );
+            ProviderEvaluation<Value> result =
+                    provider.getObjectEvaluation("obj-flag", new Value(), new ImmutableContext());
             assertThat(result.getValue().asStructure()).isNotNull();
-            assertThat(result.getValue().asStructure().getValue("color").asString()).isEqualTo("blue");
+            assertThat(result.getValue().asStructure().getValue("color").asString())
+                    .isEqualTo("blue");
         }
     }
 
@@ -217,18 +202,16 @@ class GcpSecretManagerProviderTest {
         @DisplayName("throws FlagNotFoundError when secret does not exist")
         void flagNotFound() {
             stubSecretNotFound();
-            assertThatThrownBy(() ->
-                provider.getBooleanEvaluation("missing-flag", false, new ImmutableContext())
-            ).isInstanceOf(FlagNotFoundError.class);
+            assertThatThrownBy(() -> provider.getBooleanEvaluation("missing-flag", false, new ImmutableContext()))
+                    .isInstanceOf(FlagNotFoundError.class);
         }
 
         @Test
         @DisplayName("throws GeneralError on unexpected GCP API exception")
         void gcpApiError() {
             stubSecretError("Connection refused");
-            assertThatThrownBy(() -> provider.getBooleanEvaluation("flag", false, new ImmutableContext())).isInstanceOf(
-                GeneralError.class
-            );
+            assertThatThrownBy(() -> provider.getBooleanEvaluation("flag", false, new ImmutableContext()))
+                    .isInstanceOf(GeneralError.class);
         }
     }
 
@@ -254,9 +237,9 @@ class GcpSecretManagerProviderTest {
         @DisplayName("prefix is prepended to the flag key when building secret name")
         void prefixApplied() {
             GcpProviderOptions prefixedOpts = GcpProviderOptions.builder()
-                .projectId("test-project")
-                .namePrefix("ff-")
-                .build();
+                    .projectId("test-project")
+                    .namePrefix("ff-")
+                    .build();
             stubSecret("true");
             GcpSecretManagerProvider prefixedProvider = new GcpSecretManagerProvider(prefixedOpts, mockClient);
             try {
@@ -264,11 +247,8 @@ class GcpSecretManagerProviderTest {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            ProviderEvaluation<Boolean> result = prefixedProvider.getBooleanEvaluation(
-                "my-flag",
-                false,
-                new ImmutableContext()
-            );
+            ProviderEvaluation<Boolean> result =
+                    prefixedProvider.getBooleanEvaluation("my-flag", false, new ImmutableContext());
             assertThat(result.getValue()).isTrue();
         }
     }
