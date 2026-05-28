@@ -21,7 +21,7 @@ import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProvider;
 import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProviderOptions;
 import dev.openfeature.sdk.OpenFeatureAPI;
 
-GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builder()
+GcpProviderOptions options = GcpSecretManagerProviderOptions.builder()
     .projectId("my-gcp-project")
     .build();
 
