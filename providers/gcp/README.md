@@ -71,7 +71,7 @@ GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builde
 |--------|------|---------|-------------|
 | `projectId` | `String` | *(required)* | GCP project ID that owns the secrets |
 | `credentials` | `GoogleCredentials` | `null` (ADC) | Explicit credentials; falls back to Application Default Credentials when null |
-| `secretVersion` | `String` | `"latest"` | Secret version to access. Use `"latest"` for the current version or a numeric string (e.g. `"3"`) to pin to a specific version |
+| `version` | `String` | `"latest"` | Secret version to access. Use `"latest"` for the current version or a numeric string (e.g. `"3"`) to pin to a specific version |
 | `cacheExpiry` | `Duration` | `5 minutes` | How long fetched secret values are cached before re-fetching from GCP |
 | `cacheMaxSize` | `int` | `500` | Maximum number of secret values held in the in-memory cache |
 | `namePrefix` | `String` | `null` | Optional prefix prepended to every flag key. E.g. prefix `"ff-"` maps flag `"my-flag"` to secret `"ff-my-flag"` |
