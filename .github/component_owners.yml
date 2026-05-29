@@ -28,6 +28,8 @@ components:
   providers/flipt:
     - liran2000
     - markphelps
+  providers/gcp:
+    - mahpatil
   providers/configcat:
     - liran2000
     - z4kn4fein

@@ -135,8 +135,8 @@
         "README.md"
       ]
     },
-    "providers/gcp-parameter-manager": {
-      "package-name": "dev.openfeature.contrib.providers.gcp-parameter-manager",
+    "providers/gcp": {
+      "package-name": "dev.openfeature.contrib.providers.gcp",
       "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
