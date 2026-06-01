@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.gcpparametermanager;
+package dev.openfeature.contrib.providers.gcp;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.cloud.parametermanager.v1.ParameterManagerClient;
