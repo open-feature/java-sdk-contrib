@@ -92,8 +92,7 @@ class FlagdCoreTest {
 
     @Test
     void resolveObjectValue_disabledFlag_returnsDisabledReasonWithDefault() {
-        ProviderEvaluation<Value> result =
-                flagdCore.resolveObjectValue("disabledFlag", null, new ImmutableContext());
+        ProviderEvaluation<Value> result = flagdCore.resolveObjectValue("disabledFlag", null, new ImmutableContext());
 
         assertThat(result.getErrorCode()).isNull();
         assertThat(result.getValue()).isNull();
