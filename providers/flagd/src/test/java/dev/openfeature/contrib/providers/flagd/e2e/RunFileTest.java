@@ -36,8 +36,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     "events",
     "contextEnrichment",
     "fractional-v1",
-    "deprecated",
-    "operator-errors"
+    "deprecated"
 })
 @Testcontainers
 public class RunFileTest {

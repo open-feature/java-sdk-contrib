@@ -92,6 +92,14 @@ public class GoFeatureFlagProviderOptions {
     private Long flagChangePollingIntervalMs;
 
     /**
+     * (optional) Number of WASM instances kept in the evaluation pool for in-process evaluation.
+     * Each instance owns independent WASM linear memory, allowing fully concurrent evaluations
+     * without serialisation. Must be &gt;= 1 when set explicitly.
+     * Default: number of available CPU cores.
+     */
+    private Integer wasmEvaluatorPoolSize;
+
+    /**
      * Validate the options provided to the provider.
      *
      * @throws InvalidOptions - if options are invalid
@@ -105,6 +113,10 @@ public class GoFeatureFlagProviderOptions {
             new URL(getEndpoint());
         } catch (MalformedURLException e) {
             throw new InvalidEndpoint("malformed endpoint: " + getEndpoint());
+        }
+
+        if (getWasmEvaluatorPoolSize() != null && getWasmEvaluatorPoolSize() < 1) {
+            throw new InvalidOptions("wasmEvaluatorPoolSize must be at least 1");
         }
 
         if (getExporterMetadata() != null) {

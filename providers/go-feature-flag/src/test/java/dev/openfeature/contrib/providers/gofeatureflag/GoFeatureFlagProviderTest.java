@@ -28,7 +28,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -595,6 +598,49 @@ class GoFeatureFlagProviderTest {
                         .build();
                 assertEquals(want, got);
             }
+        }
+
+        @DisplayName("Should evaluate flags correctly under concurrent access")
+        @SneakyThrows
+        @Test
+        void shouldEvaluateFlagsCorrectlyUnderConcurrentAccess() {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .flagChangePollingIntervalMs(999999L)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+            int threadCount = 20;
+            int evaluationsPerThread = 100;
+            AtomicInteger errorCount = new AtomicInteger(0);
+            CountDownLatch startGate = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+            for (int t = 0; t < threadCount; t++) {
+                new Thread(() -> {
+                            try {
+                                startGate.await();
+                                for (int i = 0; i < evaluationsPerThread; i++) {
+                                    FlagEvaluationDetails<Boolean> result = client.getBooleanDetails(
+                                            "bool_targeting_match", false, TestUtils.defaultEvaluationContext);
+                                    if (result.getErrorCode() != null) {
+                                        errorCount.incrementAndGet();
+                                    }
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            } finally {
+                                doneLatch.countDown();
+                            }
+                        })
+                        .start();
+            }
+
+            startGate.countDown();
+            assertTrue(doneLatch.await(30, TimeUnit.SECONDS), "Threads did not finish in time");
+            assertEquals(0, errorCount.get(), "Concurrent evaluations produced errors");
         }
     }
 

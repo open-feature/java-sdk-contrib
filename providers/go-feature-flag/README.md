@@ -28,7 +28,7 @@ For documentation related to flags management in GO Feature Flag, refer to the [
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>go-feature-flag</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
@@ -82,6 +82,7 @@ You can configure the provider with several options to customize its behavior. T
 | **`exporterMetadata`**            | `false`   | exporterMetadata is the metadata we send to the GO Feature Flag relay proxy when we report the evaluation data usage.                                                                                                                                                                                                                                                           |
 | **`evaluationFlagList`**          | `false`   | If you are using in process evaluation, by default we will load in memory all the flags available in the relay proxy. If you want to limit the number of flags loaded in memory, you can use this parameter. By setting this parameter, you will only load the flags available in the list. <p>If null or empty, all the flags available in the relay proxy will be loaded.</p> |
 | **`flagChangePollingIntervalMs`** | `false`   | interval time we poll the proxy to check if the configuration has changed. It is used for the in process evaluation to check if we should refresh our internal cache. default: `120000`                                                                                                                                                                                         |
+| **`wasmEvaluatorPoolSize`**       | `false`   | _(IN_PROCESS only)_ Number of WASM instances kept in the evaluation pool. Each instance owns independent memory, allowing fully concurrent flag evaluations without serialisation. Must be `>= 1`. _(default: number of available CPU cores)_                                                                                                                                   |
 
 ### Evaluate a feature flag
 The OpenFeature client is used to retrieve values for the current `EvaluationContext`. For example, retrieving a boolean value for the flag **"my-flag"**:

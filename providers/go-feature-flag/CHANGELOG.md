@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.1...dev.openfeature.contrib.providers.go-feature-flag-v1.1.2) (2026-04-25)
+
+
+### 🐛 Bug Fixes
+
+* **gofeatureflag:** Added Locale.ENGLISH to SimpleDateFormat for parsing the Last-Modified HTTP header ([#1626](https://github.com/open-feature/java-sdk-contrib/issues/1626)) ([ca71995](https://github.com/open-feature/java-sdk-contrib/commit/ca719956f0c6980162bd5ebb0cc78255cd6768f8))
+* **gofeatureflag:** issue when using inProcess with high concurency ([#1781](https://github.com/open-feature/java-sdk-contrib/issues/1781)) ([e9a2431](https://github.com/open-feature/java-sdk-contrib/commit/e9a2431ea718b40d229070d5848d73359b7cdff2))
+* **security:** update dependency com.fasterxml.jackson.core:jackson-core to v2.21.1 [security] ([#1705](https://github.com/open-feature/java-sdk-contrib/issues/1705)) ([7760d09](https://github.com/open-feature/java-sdk-contrib/commit/7760d098b6c965c5a299e274ddf790e10b967738))
+
 ## [1.1.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.0...dev.openfeature.contrib.providers.go-feature-flag-v1.1.1) (2026-01-15)
 
 
