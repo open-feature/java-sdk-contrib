@@ -313,7 +313,7 @@ class InProcessResolverTest {
         ProviderEvaluation<Boolean> disabledFlag =
                 inProcessResolver.booleanEvaluation("disabledFlag", false, new ImmutableContext());
         assertEquals(null, disabledFlag.getErrorCode());
-        assertEquals(null, disabledFlag.getValue());
+        assertEquals(false, disabledFlag.getValue());
         assertEquals(null, disabledFlag.getVariant());
         assertEquals(Reason.DISABLED.toString(), disabledFlag.getReason());
 

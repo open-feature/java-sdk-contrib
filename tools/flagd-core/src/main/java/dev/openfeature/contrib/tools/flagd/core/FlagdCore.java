@@ -210,9 +210,10 @@ public class FlagdCore implements Evaluator {
                     .build();
         }
 
-        // state check
+        // state check (DISABLED flags default with reason = DEFAULT)
         if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
                     .reason(Reason.DISABLED.toString())
                     .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
                     .build();

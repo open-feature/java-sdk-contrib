@@ -254,6 +254,8 @@ public final class RpcResolver implements Resolver {
         final ProviderEvaluation.ProviderEvaluationBuilder<ValT> resultBuilder;
         if ("DEFAULT".equals(reason) && variant.isEmpty()) {
             resultBuilder = ProviderEvaluation.<ValT>builder().value(defaultValue);
+        } else if ("DISABLED".equals(reason)) {
+            resultBuilder = ProviderEvaluation.<ValT>builder().value(defaultValue);
         } else {
             resultBuilder = ProviderEvaluation.<ValT>builder().value(value).variant(variant);
         }

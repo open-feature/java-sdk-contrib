@@ -80,18 +80,18 @@ class FlagdCoreTest {
     }
 
     @Test
-    void resolveBooleanValue_disabledFlag_returnsDisabledReason() {
+    void resolveBooleanValue_disabledFlag_returnsDisabledReasonWithDefault() {
         ProviderEvaluation<Boolean> result =
                 flagdCore.resolveBooleanValue("disabledFlag", false, new ImmutableContext());
 
         assertThat(result.getErrorCode()).isNull();
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getValue()).isFalse();
         assertThat(result.getVariant()).isNull();
         assertThat(result.getReason()).isEqualTo(Reason.DISABLED.toString());
     }
 
     @Test
-    void resolveObjectValue_disabledFlag_returnsDisabledReasonWithNullValue() {
+    void resolveObjectValue_disabledFlag_returnsDisabledReasonWithDefault() {
         ProviderEvaluation<Value> result =
                 flagdCore.resolveObjectValue("disabledFlag", null, new ImmutableContext());
 

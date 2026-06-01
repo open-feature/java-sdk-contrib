@@ -97,12 +97,6 @@ public class EvaluationSteps {
         assertThat(state.evaluation.getValue()).isEqualTo(EvaluatorUtils.convert(value, state.flagType));
     }
 
-    /** Asserts the resolved value is absent (null) — used for disabled flags where the evaluator omits the value. */
-    @Then("the resolved value should be absent")
-    public void resolvedValueIsAbsent() {
-        assertThat(state.evaluation.getValue()).isNull();
-    }
-
     /** Asserts the evaluation reason matches the expected value. */
     @Then("the reason should be {string}")
     public void reasonEquals(String reason) {

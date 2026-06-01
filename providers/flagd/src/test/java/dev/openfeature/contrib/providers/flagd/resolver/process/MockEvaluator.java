@@ -101,6 +101,7 @@ public class MockEvaluator implements Evaluator {
         // state check
         if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
                     .reason(Reason.DISABLED.toString())
                     .flagMetadata(getFlagMetadata(flagSetMetadata, flag))
                     .build();
