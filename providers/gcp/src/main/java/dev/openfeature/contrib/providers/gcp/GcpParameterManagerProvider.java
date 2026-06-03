@@ -47,7 +47,7 @@ public class GcpParameterManagerProvider implements FeatureProvider {
 
     static final String PROVIDER_NAME = "GCP Parameter Manager Provider";
 
-    private final GcpParameterManagerProviderOptions options;
+    private final GcpProviderOptions options;
     private ParameterManagerClient client;
     private FlagCache cache;
 
@@ -57,14 +57,14 @@ public class GcpParameterManagerProvider implements FeatureProvider {
      *
      * @param options provider configuration; must not be null
      */
-    public GcpParameterManagerProvider(GcpParameterManagerProviderOptions options) {
+    public GcpParameterManagerProvider(GcpProviderOptions options) {
         this.options = options;
     }
 
     /**
      * Package-private constructor allowing injection of a pre-built client for testing.
      */
-    GcpParameterManagerProvider(GcpParameterManagerProviderOptions options, ParameterManagerClient client) {
+    GcpParameterManagerProvider(GcpProviderOptions options, ParameterManagerClient client) {
         this.options = options;
         this.client = client;
     }
@@ -148,7 +148,7 @@ public class GcpParameterManagerProvider implements FeatureProvider {
      * Applies the configured prefix (if any) and returns the GCP parameter name for the flag.
      */
     private String buildParameterName(String flagKey) {
-        String prefix = options.getParameterNamePrefix();
+        String prefix = options.getNamePrefix();
         return (prefix != null && !prefix.isEmpty()) ? prefix + flagKey : flagKey;
     }
 
@@ -163,7 +163,7 @@ public class GcpParameterManagerProvider implements FeatureProvider {
     private String fetchFromGcp(String parameterName) {
         try {
             ParameterVersionName versionName = ParameterVersionName.of(
-                    options.getProjectId(), options.getLocationId(), parameterName, options.getParameterVersion());
+                    options.getProjectId(), options.getLocationId(), parameterName, options.getVersion());
             log.debug("Fetching parameter '{}' from GCP", versionName);
             RenderParameterVersionResponse response = client.renderParameterVersion(versionName);
             return response.getRenderedPayload().toStringUtf8();

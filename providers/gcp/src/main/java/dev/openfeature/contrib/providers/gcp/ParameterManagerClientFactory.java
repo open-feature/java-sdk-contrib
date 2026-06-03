@@ -24,7 +24,7 @@ final class ParameterManagerClientFactory {
      * @return a configured {@link ParameterManagerClient}
      * @throws IOException if the client cannot be created
      */
-    static ParameterManagerClient create(GcpParameterManagerProviderOptions options) throws IOException {
+    static ParameterManagerClient create(GcpProviderOptions options) throws IOException {
         ParameterManagerSettings.Builder settingsBuilder = ParameterManagerSettings.newBuilder();
         if (options.getCredentials() != null) {
             settingsBuilder.setCredentialsProvider(FixedCredentialsProvider.create(options.getCredentials()));
