@@ -15,7 +15,7 @@
 
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>gcp</artifactId>
-    <version>0.0.1</version> <!--x-release-please-version -->
+    <version>0.0.2</version> <!--x-release-please-version -->
 
     <properties>
         <!-- "-" is not allowed in automatic module names -->
@@ -35,20 +35,34 @@
         </developer>
     </developers>
 
+    <dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>libraries-bom</artifactId>
+            <version>26.83.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- GCP Secret Manager client -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-secretmanager</artifactId>
-            <version>2.57.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-parametermanager</artifactId>
         </dependency>
 
         <!-- JSON parsing for structured flag values -->
-        <dependency>
+        <!-- <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.21.1</version>
-        </dependency>
+        </dependency> -->
 
         <dependency>
             <groupId>org.slf4j</groupId>
