@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.14.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.3...dev.openfeature.contrib.providers.flagd-v0.14.0) (2026-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800))
+
+### 🐛 Bug Fixes
+
+* **flagd:** validate FLAGD_SYNC_PORT before parse to avoid kubelet service-link collision ([#1798](https://github.com/open-feature/java-sdk-contrib/issues/1798)) ([a8d72ee](https://github.com/open-feature/java-sdk-contrib/commit/a8d72ee1e59aa52722cac1a78c045ea6950b0005))
+* **security:** update dependency io.opentelemetry:opentelemetry-api to v1.62.0 [security] ([#1794](https://github.com/open-feature/java-sdk-contrib/issues/1794)) ([75ff112](https://github.com/open-feature/java-sdk-contrib/commit/75ff112f273b9798645f85ab3e7a91e587b7ca44))
+
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800)) ([d732c35](https://github.com/open-feature/java-sdk-contrib/commit/d732c355597f85cbd914107f4ff63e9ef73d677d))
+
 ## [0.13.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.2...dev.openfeature.contrib.providers.flagd-v0.13.3) (2026-05-11)
 
 
