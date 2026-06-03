@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.14.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.3...dev.openfeature.contrib.providers.flagd-v0.14.0) (2026-06-02)
+## [0.14.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.3...dev.openfeature.contrib.providers.flagd-v0.14.0) (2026-06-03)
 
 
 ### ⚠ BREAKING CHANGES
