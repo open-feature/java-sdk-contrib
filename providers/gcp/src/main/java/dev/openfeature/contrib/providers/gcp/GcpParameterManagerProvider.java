@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.providers.gcp;
 
+import java.util.Optional;
+
 import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.parametermanager.v1.ParameterManagerClient;
 import com.google.cloud.parametermanager.v1.ParameterVersionName;
@@ -131,17 +133,25 @@ public class GcpParameterManagerProvider implements FeatureProvider {
         T value = FlagValueConverter.convert(rawValue, targetType);
         return ProviderEvaluation.<T>builder()
                 .value(value)
-                .reason(Reason.CACHED.toString())
+                .reason(Reason.STATIC.toString())
                 .build();
     }
 
     private String fetchWithCache(String key) {
         String paramName = buildParameterName(key);
-        return cache.get(paramName).orElseGet(() -> {
-            String value = fetchFromGcp(paramName);
-            cache.put(paramName, value);
-            return value;
-        });
+        Optional<String> cached = cache.get(paramName);
+        if (cached.isPresent()) {
+            log.debug("Fetching from cache parameter '{}'", key);
+            return cached.get();
+        }
+        synchronized (this) {
+            return cache.get(paramName).orElseGet(() -> {
+                String value = fetchFromGcp(paramName);
+                cache.put(paramName, value);
+                return value;
+            });
+        }
+
     }
 
     /**
@@ -162,9 +172,10 @@ public class GcpParameterManagerProvider implements FeatureProvider {
      */
     private String fetchFromGcp(String parameterName) {
         try {
+            log.info("Fetching parameter from GCP name '{}'", parameterName);
             ParameterVersionName versionName = ParameterVersionName.of(
                     options.getProjectId(), options.getLocationId(), parameterName, options.getVersion());
-            log.debug("Fetching parameter '{}' from GCP", versionName);
+            log.info("Fetching parameter from GCP version {}", parameterName, versionName);
             RenderParameterVersionResponse response = client.renderParameterVersion(versionName);
             return response.getRenderedPayload().toStringUtf8();
         } catch (NotFoundException e) {
