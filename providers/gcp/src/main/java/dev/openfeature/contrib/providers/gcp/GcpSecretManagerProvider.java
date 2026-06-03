@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>Each feature flag is stored as an individual secret in GCP Secret Manager. The flag key
  * maps directly to the secret name (with an optional prefix configured via
- * {@link GcpProviderOptions#getNamePrefix()}).
+ * {@link GcpProviderOptions}'s {@code namePrefix}).
  *
  * <p>Flag values are read as UTF-8 strings from the secret payload and parsed to the requested
  * type. Supported raw value formats:
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  * </ul>
  *
  * <p>Results are cached in-process for the duration configured in
- * {@link GcpProviderOptions#getCacheExpiry()}.
+ * {@link GcpProviderOptions}'s {@code cacheExpiry}.
  *
  * <p>Example:
  * <pre>{@code
