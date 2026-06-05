@@ -54,22 +54,26 @@ abstract class AbstractGcpProvider<C> implements FeatureProvider {
     }
 
     @Override
-    public final ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
+    public final ProviderEvaluation<Boolean> getBooleanEvaluation(
+            String key, Boolean defaultValue, EvaluationContext ctx) {
         return evaluate(key, Boolean.class);
     }
 
     @Override
-    public final ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
+    public final ProviderEvaluation<String> getStringEvaluation(
+            String key, String defaultValue, EvaluationContext ctx) {
         return evaluate(key, String.class);
     }
 
     @Override
-    public final ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
+    public final ProviderEvaluation<Integer> getIntegerEvaluation(
+            String key, Integer defaultValue, EvaluationContext ctx) {
         return evaluate(key, Integer.class);
     }
 
     @Override
-    public final ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
+    public final ProviderEvaluation<Double> getDoubleEvaluation(
+            String key, Double defaultValue, EvaluationContext ctx) {
         return evaluate(key, Double.class);
     }
 
@@ -114,7 +118,10 @@ abstract class AbstractGcpProvider<C> implements FeatureProvider {
 
     // Subclasses must implement these
     protected abstract String getProviderName();
+
     protected abstract void createClient() throws Exception;
+
     protected abstract void closeClient() throws Exception;
+
     protected abstract String fetchFromGcp(String name);
 }

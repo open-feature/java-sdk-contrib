@@ -6,13 +6,9 @@ import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretVersionName;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
-import dev.openfeature.sdk.Metadata;
-import dev.openfeature.sdk.ProviderEvaluation;
-import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 /**

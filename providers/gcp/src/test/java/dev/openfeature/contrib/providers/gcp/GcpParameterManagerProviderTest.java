@@ -48,7 +48,8 @@ class GcpParameterManagerProviderTest extends AbstractGcpProviderTest {
 
     @Override
     protected void stubFetchError(String message) {
-        when(mockClient.renderParameterVersion(any(ParameterVersionName.class))).thenThrow(new RuntimeException(message));
+        when(mockClient.renderParameterVersion(any(ParameterVersionName.class)))
+                .thenThrow(new RuntimeException(message));
     }
 
     @Override
@@ -68,8 +69,6 @@ class GcpParameterManagerProviderTest extends AbstractGcpProviderTest {
 
     @Override
     protected GcpProviderOptions.GcpProviderOptionsBuilder newOptionsBuilder() {
-        return GcpProviderOptions.builder()
-                .projectId("test-project")
-                .locationId("europe-west1");
+        return GcpProviderOptions.builder().projectId("test-project").locationId("europe-west1");
     }
 }
