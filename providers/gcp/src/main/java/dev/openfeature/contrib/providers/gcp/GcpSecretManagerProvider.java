@@ -44,13 +44,9 @@ import lombok.extern.slf4j.Slf4j;
  * }</pre>
  */
 @Slf4j
-public class GcpSecretManagerProvider implements FeatureProvider {
+public class GcpSecretManagerProvider extends AbstractGcpProvider<SecretManagerServiceClient> {
 
     static final String PROVIDER_NAME = "GCP Secret Manager Provider";
-
-    private final GcpProviderOptions options;
-    private SecretManagerServiceClient client;
-    private FlagCache cache;
 
     /**
      * Creates a new provider using the given options. The GCP client is created lazily
@@ -59,115 +55,45 @@ public class GcpSecretManagerProvider implements FeatureProvider {
      * @param options provider configuration; must not be null
      */
     public GcpSecretManagerProvider(GcpProviderOptions options) {
-        this.options = options;
+        super(options);
     }
 
     /**
      * Package-private constructor allowing injection of a pre-built client for testing.
      */
     GcpSecretManagerProvider(GcpProviderOptions options, SecretManagerServiceClient client) {
-        this.options = options;
-        this.client = client;
+        super(options, client);
     }
 
     @Override
-    public Metadata getMetadata() {
-        return () -> PROVIDER_NAME;
+    protected String getProviderName() {
+        return PROVIDER_NAME;
+    }
+
+    @Override
+    protected void createClient() throws Exception {
+        this.client = SecretManagerClientFactory.create(options);
+    }
+
+    @Override
+    protected void closeClient() throws Exception {
+        this.client.close();
     }
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        options.validate();
-        if (client == null) {
-            client = SecretManagerClientFactory.create(options);
-        }
-        cache = new FlagCache(options.getCacheExpiry(), options.getCacheMaxSize());
-        log.info("GcpSecretManagerProvider initialized for project '{}'", options.getProjectId());
+        super.initialize(evaluationContext);
+        log.info("{} initialized via initialize()", getProviderName());
     }
 
     @Override
     public void shutdown() {
-        if (client != null) {
-            try {
-                client.close();
-            } catch (Exception e) {
-                log.warn("Error closing SecretManagerServiceClient", e);
-            }
-            client = null;
-        }
-        log.info("GcpSecretManagerProvider shut down");
+        super.shutdown();
+        log.info("{} shutdown via shutdown()", getProviderName());
     }
 
     @Override
-    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Boolean.class);
-    }
-
-    @Override
-    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return evaluate(key, String.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Integer.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Double.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Value.class);
-    }
-
-    // -------------------------------------------------------------------------
-    // Internal helpers
-    // -------------------------------------------------------------------------
-
-    private <T> ProviderEvaluation<T> evaluate(String key, Class<T> targetType) {
-        String rawValue = fetchWithCache(key);
-        T value = FlagValueConverter.convert(rawValue, targetType);
-        return ProviderEvaluation.<T>builder()
-                .value(value)
-                .reason(Reason.STATIC.toString())
-                .build();
-    }
-
-    private String fetchWithCache(String key) {
-        String secretName = buildSecretName(key);
-        Optional<String> cached = cache.get(secretName);
-        if (cached.isPresent()) {
-            return cached.get();
-        }
-        synchronized (this) {
-            return cache.get(secretName).orElseGet(() -> {
-                String value = fetchFromGcp(secretName);
-                cache.put(secretName, value);
-                return value;
-            });
-        }
-    }
-
-    /**
-     * Applies the configured prefix (if any) and returns the GCP secret name for the flag.
-     */
-    private String buildSecretName(String flagKey) {
-        String prefix = options.getNamePrefix();
-        return (prefix != null && !prefix.isEmpty()) ? prefix + flagKey : flagKey;
-    }
-
-    /**
-     * Accesses the configured version of the named secret from GCP Secret Manager.
-     *
-     * @param secretName the GCP secret name (without project path)
-     * @return the UTF-8 string value of the secret payload
-     * @throws FlagNotFoundError when the secret does not exist
-     * @throws GeneralError      for any other GCP API error
-     */
-    private String fetchFromGcp(String secretName) {
+    protected String fetchFromGcp(String secretName) {
         try {
             SecretVersionName versionName =
                     SecretVersionName.of(options.getProjectId(), secretName, options.getVersion());
