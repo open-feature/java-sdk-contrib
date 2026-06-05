@@ -42,7 +42,6 @@ public class GcpProviderOptions {
     @Builder.Default
     private final String version = "latest";
 
-    
     /**
      * Optional location required for ParameterManager, ignored by SecretManager
      */
