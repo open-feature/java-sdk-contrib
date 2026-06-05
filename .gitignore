@@ -6,6 +6,7 @@ build
 .idea
 specification.json
 target
+.flattened-pom.xml
 .DS_Store
 .cursor/
 
