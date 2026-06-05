@@ -45,13 +45,9 @@ import lombok.extern.slf4j.Slf4j;
  * }</pre>
  */
 @Slf4j
-public class GcpParameterManagerProvider implements FeatureProvider {
+public class GcpParameterManagerProvider extends AbstractGcpProvider<ParameterManagerClient> {
 
     static final String PROVIDER_NAME = "GCP Parameter Manager Provider";
-
-    private final GcpProviderOptions options;
-    private ParameterManagerClient client;
-    private FlagCache cache;
 
     /**
      * Creates a new provider using the given options. The GCP client is created lazily
@@ -60,122 +56,50 @@ public class GcpParameterManagerProvider implements FeatureProvider {
      * @param options provider configuration; must not be null
      */
     public GcpParameterManagerProvider(GcpProviderOptions options) {
-        this.options = options;
+        super(options);
     }
 
     /**
      * Package-private constructor allowing injection of a pre-built client for testing.
      */
     GcpParameterManagerProvider(GcpProviderOptions options, ParameterManagerClient client) {
-        this.options = options;
-        this.client = client;
+        super(options, client);
     }
 
     @Override
-    public Metadata getMetadata() {
-        return () -> PROVIDER_NAME;
+    protected String getProviderName() {
+        return PROVIDER_NAME;
+    }
+
+    @Override
+    protected void createClient() throws Exception {
+        this.client = ParameterManagerClientFactory.create(options);
+    }
+
+    @Override
+    protected void closeClient() throws Exception {
+        this.client.close();
     }
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        options.validate();
-        if (client == null) {
-            client = ParameterManagerClientFactory.create(options);
-        }
-        cache = new FlagCache(options.getCacheExpiry(), options.getCacheMaxSize());
-        log.info("GcpParameterManagerProvider initialized for project '{}'", options.getProjectId());
+        super.initialize(evaluationContext);
+        log.info("{} initialized via initialize()", getProviderName());
     }
 
     @Override
     public void shutdown() {
-        if (client != null) {
-            try {
-                client.close();
-            } catch (Exception e) {
-                log.warn("Error closing ParameterManagerClient", e);
-            }
-            client = null;
-        }
-        log.info("GcpParameterManagerProvider shut down");
+        super.shutdown();
+        log.info("{} shutdown via shutdown()", getProviderName());
     }
 
     @Override
-    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Boolean.class);
-    }
-
-    @Override
-    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return evaluate(key, String.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Integer.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Double.class);
-    }
-
-    @Override
-    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return evaluate(key, Value.class);
-    }
-
-    // -------------------------------------------------------------------------
-    // Internal helpers
-    // -------------------------------------------------------------------------
-
-    private <T> ProviderEvaluation<T> evaluate(String key, Class<T> targetType) {
-        String rawValue = fetchWithCache(key);
-        T value = FlagValueConverter.convert(rawValue, targetType);
-        return ProviderEvaluation.<T>builder()
-                .value(value)
-                .reason(Reason.STATIC.toString())
-                .build();
-    }
-
-    private String fetchWithCache(String key) {
-        String paramName = buildParameterName(key);
-        Optional<String> cached = cache.get(paramName);
-        if (cached.isPresent()) {
-            log.debug("Fetching from cache parameter '{}'", key);
-            return cached.get();
-        }
-        synchronized (this) {
-            return cache.get(paramName).orElseGet(() -> {
-                String value = fetchFromGcp(paramName);
-                cache.put(paramName, value);
-                return value;
-            });
-        }
-
-    }
-
-    /**
-     * Applies the configured prefix (if any) and returns the GCP parameter name for the flag.
-     */
-    private String buildParameterName(String flagKey) {
-        String prefix = options.getNamePrefix();
-        return (prefix != null && !prefix.isEmpty()) ? prefix + flagKey : flagKey;
-    }
-
-    /**
-     * Fetches the latest version of the named parameter from GCP Parameter Manager.
-     *
-     * @param parameterName the GCP parameter name (without project/location path)
-     * @return the rendered string value of the parameter
-     * @throws FlagNotFoundError when the parameter does not exist
-     * @throws GeneralError      for any other GCP API error
-     */
-    private String fetchFromGcp(String parameterName) {
+    protected String fetchFromGcp(String parameterName) {
         try {
             log.info("Fetching parameter from GCP name '{}'", parameterName);
             ParameterVersionName versionName = ParameterVersionName.of(
                     options.getProjectId(), options.getLocationId(), parameterName, options.getVersion());
-            log.info("Fetching parameter from GCP version {}", parameterName, versionName);
+            log.info("Fetching parameter from GCP version {}", parameterName);
             RenderParameterVersionResponse response = client.renderParameterVersion(versionName);
             return response.getRenderedPayload().toStringUtf8();
         } catch (NotFoundException e) {
