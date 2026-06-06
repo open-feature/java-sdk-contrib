@@ -32,9 +32,9 @@ for name in dark-mode banner-text max-cart-items discount-rate checkout-config; 
         if gcloud parametermanager parameters describe "${full_name}" --location=global --project="${PROJECT}" &>/dev/null 2>&1; then
             for v in $(gcloud parametermanager parameters versions list \
                 --parameter="${full_name}" --location=global \
-                --format="value(name.basename())"); do
+                --format="value(name.basename())" 2>/dev/null || true); do
             gcloud parametermanager parameters versions delete "$v" \
-                --parameter="${full_name}" --location=global --quiet
+                --parameter="${full_name}" --location=global --quiet || true
             done && \
 
             gcloud parametermanager parameters delete "${full_name}" \

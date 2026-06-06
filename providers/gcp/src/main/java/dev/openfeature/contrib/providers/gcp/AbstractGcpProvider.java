@@ -102,7 +102,7 @@ abstract class AbstractGcpProvider<C> implements FeatureProvider {
             log.debug("Fetching from cache name '{}'", key);
             return cached.get();
         }
-        synchronized (this) {
+        synchronized (cache) {
             return cache.get(name).orElseGet(() -> {
                 String value = fetchFromGcp(name);
                 cache.put(name, value);
