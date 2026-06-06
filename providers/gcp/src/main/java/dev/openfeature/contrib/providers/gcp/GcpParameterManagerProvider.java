@@ -91,10 +91,8 @@ public class GcpParameterManagerProvider extends AbstractGcpProvider<ParameterMa
     @Override
     protected String fetchFromGcp(String parameterName) {
         try {
-            log.info("Fetching parameter from GCP name '{}'", parameterName);
             ParameterVersionName versionName = ParameterVersionName.of(
                     options.getProjectId(), options.getLocationId(), parameterName, options.getVersion());
-            log.info("Fetching parameter from GCP version {}", parameterName);
             RenderParameterVersionResponse response = client.renderParameterVersion(versionName);
             return response.getRenderedPayload().toStringUtf8();
         } catch (NotFoundException e) {

@@ -45,7 +45,7 @@ public class GcpProviderOptions {
     /**
      * Optional location required for ParameterManager, ignored by SecretManager
      */
-    private final String locationId;
+    private final String locationId = "global";
 
     /**
      * How long a fetched secret value is retained in the in-memory cache before
