@@ -50,12 +50,12 @@ create_entry() {
     elif [[ "$BACKEND" == "parameter-manager" ]]; then
         # Create or update Parameter Manager parameter
         if gcloud parametermanager parameters describe "${full_name}" --location=global --project="${PROJECT}" &>/dev/null 2>&1; then
-            echo "  [EXISTS] ${full_name} — updating value"
-            gcloud parametermanager parameters update "${full_name}" \
-                --location=global \
+            echo "  [EXISTS] ${full_name} — create new version"
+            gcloud parametermanager parameters versions create VERSION_ID \
+                --parameter="${full_name}" \
                 --project="${PROJECT}" \
-                --data="${value}" \
-                --quiet || echo "  [WARN] Could not update parameter (may require gcloud alpha components)"
+                --location=global \
+                --payload-data="${value}"
         else
             gcloud parametermanager parameters create "${full_name}" \
                 --location=global \
