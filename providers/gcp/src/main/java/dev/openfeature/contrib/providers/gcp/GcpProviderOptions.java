@@ -45,6 +45,7 @@ public class GcpProviderOptions {
     /**
      * Optional location required for ParameterManager, ignored by SecretManager
      */
+    @Builder.Default
     private final String locationId = "global";
 
     /**
