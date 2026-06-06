@@ -43,7 +43,7 @@ public class GcpProviderOptions {
     private final String version = "latest";
 
     /**
-     * Optional location required for ParameterManager, ignored by SecretManager
+     * Optional location required for ParameterManager, ignored by SecretManager.
      */
     @Builder.Default
     private final String locationId = "global";
