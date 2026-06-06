@@ -33,14 +33,14 @@ for name in dark-mode banner-text max-cart-items discount-rate checkout-config; 
             for v in $(gcloud parametermanager parameters versions list \
                 --parameter="${full_name}" --location=global \
                 --format="value(name.basename())" 2>/dev/null || true); do
-            gcloud parametermanager parameters versions delete "$v" \
-                --parameter="${full_name}" --location=global --quiet || true
-            done && \
+                gcloud parametermanager parameters versions delete "$v" \
+                    --parameter="${full_name}" --location=global --quiet || true
+            done
 
             gcloud parametermanager parameters delete "${full_name}" \
                 --location=global \
                 --project="${PROJECT}" \
-                --quiet || echo "  [WARN] Could not delete parameter (may require gcloud alpha components)"
+                --quiet || echo "  [WARN] Could not delete parameter"
             echo "  [DELETED] ${full_name}"
         else
             echo "  [SKIP]    ${full_name} (not found)"
