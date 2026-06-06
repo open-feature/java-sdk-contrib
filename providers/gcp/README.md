@@ -38,10 +38,10 @@ boolean darkMode = OpenFeatureAPI.getInstance().getClient()
 ### GCP Parameter Manager
 ```java
 import dev.openfeature.contrib.providers.gcp.GcpParameterManagerProvider;
-import dev.openfeature.contrib.providers.gcp.GcpParameterManagerProviderOptions;
+import dev.openfeature.contrib.providers.gcp.GcpProviderOptions;
 import dev.openfeature.sdk.OpenFeatureAPI;
 
-GcpProviderOptions options = GcpParameterManagerProviderOptions.builder()
+GcpProviderOptions options = GcpProviderOptions.builder()
     .projectId("my-gcp-project")
     .build();
 
