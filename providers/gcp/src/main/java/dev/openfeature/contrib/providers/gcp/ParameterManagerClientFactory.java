@@ -16,7 +16,7 @@ final class ParameterManagerClientFactory {
     /**
      * Creates a new {@link ParameterManagerClient} using the provided options.
      *
-     * <p>When {@link GcpParameterManagerProviderOptions#getCredentials()} is non-null, those
+     * <p>When {@link GcpProviderOptions#getCredentials()} is non-null, those
      * credentials are used explicitly. Otherwise, the GCP client library falls back to
      * Application Default Credentials (ADC) automatically.
      *
