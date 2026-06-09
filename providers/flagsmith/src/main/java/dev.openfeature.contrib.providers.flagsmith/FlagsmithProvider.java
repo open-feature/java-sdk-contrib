@@ -180,19 +180,53 @@ public class FlagsmithProvider implements FeatureProvider {
      * @param expectedType the type we expect for this value
      * @param <T> the type we want to convert to
      * @return A converted object
+     * @throws TypeMismatchError if the value cannot be converted to the expected type
      */
+    @SuppressWarnings("unchecked")
     private <T> T convertValue(Object value, Class<?> expectedType) {
         boolean isPrimitive = expectedType == Boolean.class
                 || expectedType == String.class
                 || expectedType == Integer.class
                 || expectedType == Double.class;
-        T flagValue = isPrimitive ? (T) value : (T) objectToValue(value);
-
-        if (flagValue.getClass() != expectedType) {
-            throw new TypeMismatchError(
-                    "Flag value had an unexpected type " + flagValue.getClass() + ", expected " + expectedType + ".");
+        Object flagValue;
+        String message = "Flag value had an unexpected type (" + (value != null ? value.getClass() : "null")
+                + "), expected (" + expectedType + ").";
+        if (isPrimitive) {
+            if (expectedType == Double.class) {
+                if (value instanceof Double) {
+                    flagValue = value;
+                } else if (value instanceof String) {
+                    try {
+                        flagValue = Double.parseDouble((String) value);
+                    } catch (NumberFormatException e) {
+                        throw new TypeMismatchError("Flag value string could not be parsed as Double: " + value);
+                    }
+                } else {
+                    throw new TypeMismatchError(message);
+                }
+            } else if (expectedType == Integer.class) {
+                if (value instanceof Integer) {
+                    flagValue = value;
+                } else if (value instanceof String) {
+                    try {
+                        flagValue = Integer.parseInt((String) value);
+                    } catch (NumberFormatException e) {
+                        throw new TypeMismatchError("Flag value string could not be parsed as Integer: " + value);
+                    }
+                } else {
+                    throw new TypeMismatchError(message);
+                }
+            } else {
+                flagValue = value;
+            }
+        } else {
+            flagValue = objectToValue(value);
         }
-        return flagValue;
+
+        if (!expectedType.isInstance(flagValue)) {
+            throw new TypeMismatchError(message);
+        }
+        return (T) flagValue;
     }
 
     /**
