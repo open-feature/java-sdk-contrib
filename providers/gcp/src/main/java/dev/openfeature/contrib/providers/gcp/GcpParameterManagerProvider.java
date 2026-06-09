@@ -1,9 +1,9 @@
 package dev.openfeature.contrib.providers.gcp;
 
 import com.google.api.gax.rpc.NotFoundException;
-import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
-import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
-import com.google.cloud.secretmanager.v1.SecretVersionName;
+import com.google.cloud.parametermanager.v1.ParameterManagerClient;
+import com.google.cloud.parametermanager.v1.ParameterVersionName;
+import com.google.cloud.parametermanager.v1.RenderParameterVersionResponse;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Value;
@@ -12,14 +12,14 @@ import dev.openfeature.sdk.exceptions.GeneralError;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * OpenFeature {@link FeatureProvider} backed by Google Cloud Secret Manager.
+ * OpenFeature {@link FeatureProvider} backed by Google Cloud Parameter Manager.
  *
- * <p>Each feature flag is stored as an individual secret in GCP Secret Manager. The flag key
- * maps directly to the secret name (with an optional prefix configured via
+ * <p>Each feature flag is stored as an individual parameter in GCP Parameter Manager. The flag
+ * key maps directly to the parameter name (with an optional prefix configured via
  * {@code GcpProviderOptions#getNamePrefix()}).
  *
- * <p>Flag values are read as UTF-8 strings from the secret payload and parsed to the requested
- * type. Supported raw value formats:
+ * <p>Flag values are read as strings and parsed to the requested type. Supported raw value
+ * formats:
  * <ul>
  *   <li>Boolean: {@code "true"} / {@code "false"} (case-insensitive)</li>
  *   <li>Integer: numeric string, e.g. {@code "42"}</li>
@@ -33,16 +33,17 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>Example:
  * <pre>{@code
- * GcpSecretManagerProviderOptions opts = GcpSecretManagerProviderOptions.builder()
+ * GcpProviderOptions opts = GcpProviderOptions.builder()
  *     .projectId("my-gcp-project")
+ *     .locationId("global") // optional, defaults to "global"
  *     .build();
- * OpenFeatureAPI.getInstance().setProvider(new GcpSecretManagerProvider(opts));
+ * OpenFeatureAPI.getInstance().setProvider(new GcpParameterManagerProvider(opts));
  * }</pre>
  */
 @Slf4j
-public class GcpSecretManagerProvider extends AbstractGcpProvider<SecretManagerServiceClient> {
+public class GcpParameterManagerProvider extends AbstractGcpProvider<ParameterManagerClient> {
 
-    static final String PROVIDER_NAME = "GCP Secret Manager Provider";
+    static final String PROVIDER_NAME = "GCP Parameter Manager Provider";
 
     /**
      * Creates a new provider using the given options. The GCP client is created lazily
@@ -50,14 +51,14 @@ public class GcpSecretManagerProvider extends AbstractGcpProvider<SecretManagerS
      *
      * @param options provider configuration; must not be null
      */
-    public GcpSecretManagerProvider(GcpProviderOptions options) {
+    public GcpParameterManagerProvider(GcpProviderOptions options) {
         super(options);
     }
 
     /**
      * Package-private constructor allowing injection of a pre-built client for testing.
      */
-    GcpSecretManagerProvider(GcpProviderOptions options, SecretManagerServiceClient client) {
+    GcpParameterManagerProvider(GcpProviderOptions options, ParameterManagerClient client) {
         super(options, client);
     }
 
@@ -68,7 +69,7 @@ public class GcpSecretManagerProvider extends AbstractGcpProvider<SecretManagerS
 
     @Override
     protected void createClient() throws Exception {
-        this.client = SecretManagerClientFactory.create(options);
+        this.client = ParameterManagerClientFactory.create(options);
     }
 
     @Override
@@ -89,17 +90,16 @@ public class GcpSecretManagerProvider extends AbstractGcpProvider<SecretManagerS
     }
 
     @Override
-    protected String fetchFromGcp(String secretName) {
+    protected String fetchFromGcp(String parameterName) {
         try {
-            SecretVersionName versionName =
-                    SecretVersionName.of(options.getProjectId(), secretName, options.getVersion());
-            log.debug("Accessing secret '{}' from GCP", versionName);
-            AccessSecretVersionResponse response = client.accessSecretVersion(versionName);
-            return response.getPayload().getData().toStringUtf8();
+            ParameterVersionName versionName = ParameterVersionName.of(
+                    options.getProjectId(), options.getLocationId(), parameterName, options.getVersion());
+            RenderParameterVersionResponse response = client.renderParameterVersion(versionName);
+            return response.getRenderedPayload().toStringUtf8();
         } catch (NotFoundException e) {
-            throw new FlagNotFoundError("Secret not found: " + secretName);
+            throw new FlagNotFoundError("Parameter not found: " + parameterName);
         } catch (Exception e) {
-            throw new GeneralError("Error accessing secret '" + secretName + "': " + e.getMessage());
+            throw new GeneralError("Error fetching parameter '" + parameterName + "': " + e.getMessage(), e);
         }
     }
 }

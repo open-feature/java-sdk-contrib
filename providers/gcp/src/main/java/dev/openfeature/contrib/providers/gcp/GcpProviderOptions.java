@@ -10,9 +10,9 @@ import lombok.Getter;
  *
  * <p>Example usage:
  * <pre>{@code
- * GcpSecretManagerProviderOptions opts = GcpSecretManagerProviderOptions.builder()
+ * GcpProviderOptions opts = GcpProviderOptions.builder()
  *     .projectId("my-gcp-project")
- *     .secretVersion("latest")
+ *     .version("latest")
  *     .cacheExpiry(Duration.ofMinutes(2))
  *     .build();
  * }</pre>
@@ -41,6 +41,12 @@ public class GcpProviderOptions {
      */
     @Builder.Default
     private final String version = "latest";
+
+    /**
+     * Optional location required for ParameterManager, ignored by SecretManager.
+     */
+    @Builder.Default
+    private final String locationId = "global";
 
     /**
      * How long a fetched secret value is retained in the in-memory cache before
