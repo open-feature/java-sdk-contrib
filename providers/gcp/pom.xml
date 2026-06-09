@@ -15,7 +15,7 @@
 
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>gcp</artifactId>
-    <version>0.0.1</version> <!--x-release-please-version -->
+    <version>0.0.2</version> <!--x-release-please-version -->
 
     <properties>
         <!-- "-" is not allowed in automatic module names -->
