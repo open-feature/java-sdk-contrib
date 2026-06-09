@@ -143,7 +143,11 @@
       "versioning": "default",
       "extra-files": [
         "pom.xml",
-        "README.md"
+        "README.md",
+        {
+          "type": "generic",
+          "path": "/samples/gcp/pom.xml"
+        }
       ]
     },
     "hooks/open-telemetry": {
