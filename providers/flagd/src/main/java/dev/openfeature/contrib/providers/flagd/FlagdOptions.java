@@ -17,6 +17,7 @@ import java.util.function.Function;
 import jdk.jfr.Experimental;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -24,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 @Builder(toBuilder = true)
 @Getter
+@Slf4j
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class FlagdOptions {
 
@@ -237,6 +239,23 @@ public class FlagdOptions {
             fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR));
 
     /**
+     * !EXPERIMENTAL!
+     * Controls whether JsonLogic targeting rules are compiled into Java bytecode for improved
+     * evaluation performance.
+     * Requires the jdk.compiler module at runtime; falls back to interpreter mode if unavailable.
+     * In AUTO mode, the provider checks {@code javax.tools.ToolProvider.getSystemJavaCompiler() != null}
+     * at initialization to determine whether compilation is available.
+     * Compilation adds latency to the first evaluation of each rule (source generation, in-memory
+     * javac, class loading); subsequent evaluations are faster. This trade-off favors long-running
+     * services where rules are evaluated many times.
+     * Defaults to AUTO (compile if the compiler is available, otherwise use the interpreter).
+     * Only applicable in the in-process mode.
+     */
+    @Builder.Default
+    private CompileTargetingMode compileTargeting = Config.compileTargetingFromString(
+            fallBackToEnvOrDefault(Config.COMPILE_TARGETING_ENV_VAR_NAME, Config.DEFAULT_COMPILE_TARGETING));
+
+    /**
      * The evaluator to use for flag evaluations. Defaults to {@code new FlagdCore()}. Only applicable in the in-process
      * mode
      */
@@ -297,9 +316,44 @@ public class FlagdOptions {
                 String defaultPort = determineDefaultPortForResolver();
                 String fromPortEnv = fallBackToEnvOrDefault(Config.PORT_ENV_VAR_NAME, defaultPort);
 
-                String portValue = resolverType == Config.Resolver.IN_PROCESS
-                        ? fallBackToEnvOrDefault(Config.SYNC_PORT_ENV_VAR_NAME, fromPortEnv)
-                        : fromPortEnv;
+                String portValue = fromPortEnv;
+                if (resolverType == Config.Resolver.IN_PROCESS) {
+                    String syncPortValue = fallBackToEnvOrDefault(Config.SYNC_PORT_ENV_VAR_NAME, null);
+                    if (syncPortValue != null) {
+                        if (isValidPort(syncPortValue)) {
+                            portValue = syncPortValue;
+                        } else {
+                            // FLAGD_SYNC_PORT is unset by the user but populated with a non-numeric
+                            // value — most commonly Kubernetes service-link env injection from a
+                            // Service named `flagd-sync` in the pod's namespace, which produces
+                            // `FLAGD_SYNC_PORT=tcp://<clusterIP>:<port>`. Fall back to FLAGD_PORT
+                            // rather than failing at parse time.
+                            log.warn(
+                                    "Ignoring {} value '{}' (not a valid port); falling back to {} ('{}'). "
+                                            + "This commonly indicates Kubernetes service-link environment "
+                                            + "variable injection from a Service named 'flagd-sync' in the "
+                                            + "pod's namespace; set enableServiceLinks: false on the pod "
+                                            + "template or rename the Service to avoid the collision.",
+                                    Config.SYNC_PORT_ENV_VAR_NAME,
+                                    syncPortValue,
+                                    Config.PORT_ENV_VAR_NAME,
+                                    fromPortEnv);
+                        }
+                    }
+                }
+
+                if (!isValidPort(portValue)) {
+                    // Last-line-of-defence: FLAGD_PORT itself can be polluted by Kubernetes
+                    // service-link injection too if a Service named `flagd` exists in the
+                    // pod's namespace (FLAGD_PORT=tcp://<clusterIP>:8013), which would
+                    // affect RPC-mode consumers identically. Fall back to the resolver's
+                    // default port rather than throwing at parse time.
+                    log.warn(
+                            "Configured port value '{}' is not a valid port; falling back to default '{}'.",
+                            portValue,
+                            defaultPort);
+                    portValue = defaultPort;
+                }
 
                 port = Integer.parseInt(portValue);
             }
@@ -310,6 +364,18 @@ public class FlagdOptions {
                 return Config.DEFAULT_RPC_PORT;
             }
             return Config.DEFAULT_IN_PROCESS_PORT;
+        }
+    }
+
+    private static boolean isValidPort(String value) {
+        if (value == null) {
+            return false;
+        }
+        try {
+            int parsed = Integer.parseInt(value);
+            return parsed > 0 && parsed <= 65535;
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 }

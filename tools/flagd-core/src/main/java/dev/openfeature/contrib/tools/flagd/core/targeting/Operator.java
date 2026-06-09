@@ -22,10 +22,19 @@ public class Operator {
     private final JsonLogic jsonLogicHandler;
 
     /**
-     * Construct a targeting operator.
+     * Construct a targeting operator with compilation disabled.
      */
     public Operator() {
-        jsonLogicHandler = new JsonLogic();
+        this(false);
+    }
+
+    /**
+     * Construct a targeting operator.
+     *
+     * @param compileExpressions whether to compile JsonLogic expressions for better performance
+     */
+    public Operator(boolean compileExpressions) {
+        jsonLogicHandler = new JsonLogic(compileExpressions);
         jsonLogicHandler.addOperation(new Fractional());
         jsonLogicHandler.addOperation(new SemVer());
         jsonLogicHandler.addOperation(new StringComp(StringComp.Type.STARTS_WITH));

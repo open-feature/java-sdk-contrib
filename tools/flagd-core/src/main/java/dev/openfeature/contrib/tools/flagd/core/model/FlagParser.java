@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,7 +27,6 @@ public class FlagParser {
     private static final String FLAG_KEY = "flags";
     private static final String METADATA_KEY = "metadata";
     private static final String EVALUATOR_KEY = "$evaluators";
-    private static final String REPLACER_FORMAT = "\"\\$ref\":(\\s)*\"%s\"";
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static JsonSchema SCHEMA_VALIDATOR;
 
@@ -116,7 +114,6 @@ public class FlagParser {
 
     private static String transposeEvaluators(final String configuration) throws IOException {
         try (JsonParser parser = MAPPER.createParser(configuration)) {
-            final Map<String, Pattern> patternMap = new HashMap<>();
             final TreeNode treeNode = parser.readValueAsTree();
             final TreeNode evaluators = treeNode.get(EVALUATOR_KEY);
 
@@ -124,24 +121,16 @@ public class FlagParser {
                 return configuration;
             }
 
-            String replacedConfigurations = configuration;
+            // round-trip to normalize whitespace so we can use plain string matching
+            String replacedConfigurations = MAPPER.writeValueAsString(MAPPER.readTree(configuration));
             final Iterator<String> evalFields = evaluators.fieldNames();
 
             while (evalFields.hasNext()) {
                 final String evalName = evalFields.next();
-                // first replace outmost brackets
                 final String evaluator = evaluators.get(evalName).toString();
-                final String replacer = evaluator.substring(1, evaluator.length() - 1);
+                final String refPattern = "{\"$ref\":\"" + evalName + "\"}";
 
-                final String replacePattern = String.format(REPLACER_FORMAT, evalName);
-
-                // then derive pattern
-                final Pattern regReplace =
-                        patternMap.computeIfAbsent(replacePattern, s -> Pattern.compile(replacePattern));
-
-                // finally replace all references
-                replacedConfigurations =
-                        regReplace.matcher(replacedConfigurations).replaceAll(replacer);
+                replacedConfigurations = replacedConfigurations.replace(refPattern, evaluator);
             }
 
             return replacedConfigurations;

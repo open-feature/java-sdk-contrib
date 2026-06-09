@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.tools.flagd.core.targeting;
 
 import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,10 +46,22 @@ class SemVerTest {
 
     static Stream<Arguments> invalidInputs() {
         return Stream.of(
-                Arguments.of(Arrays.asList("1.2.3", "=", 1.2)),
-                Arguments.of(Arrays.asList("1.2", "=", "1.2.3")),
+                // invalid operator
                 Arguments.of(Arrays.asList("1.2.3", "*", "1.2.3")),
-                Arguments.of(Arrays.asList("1.2.3", "=", "1.2")));
+                // wrong argument count (too few)
+                Arguments.of(Arrays.asList("1.0.0", "=")),
+                // wrong argument count (too many)
+                Arguments.of(Arrays.asList("1.0.0", "=", "1.0.0", "extra")));
+    }
+
+    static Stream<Arguments> coercedInputs() {
+        return Stream.of(
+                // numeric third arg coerced to semver
+                Arguments.of(Arrays.asList("1.2.3", "=", 1.2), false),
+                // partial version coerced
+                Arguments.of(Arrays.asList("1.2", "=", "1.2.3"), false),
+                Arguments.of(Arrays.asList("1.2.3", "=", "1.2"), false),
+                Arguments.of(Arrays.asList("1.2.0", "=", "1.2"), true));
     }
 
     @ParameterizedTest
@@ -59,5 +72,18 @@ class SemVerTest {
 
         // then
         assertNull(semVer.evaluate(args, new Object(), "jsonPath"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("coercedInputs")
+    void testCoercedCases(List args, boolean expected) throws JsonLogicEvaluationException {
+        // given
+        final SemVer semVer = new SemVer();
+
+        // when
+        Object result = semVer.evaluate(args, new Object(), "jsonPath");
+
+        // then
+        assertEquals(expected, result);
     }
 }

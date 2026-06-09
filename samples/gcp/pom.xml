@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>dev.openfeature.contrib.samples</groupId>
+    <artifactId>gcp-sample</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>GCP OpenFeature Sample</name>
+    <description>
+        Runnable sample demonstrating the GCP OpenFeature provider.
+        Evaluates five feature flags (bool, string, int, double, object) stored as
+        GCP secrets against a real GCP project.
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Override with -DGCP_PROJECT_ID=my-project or set the env var -->
+        <GCP_PROJECT_ID>${env.GCP_PROJECT_ID}</GCP_PROJECT_ID>
+    </properties>
+
+    <dependencies>
+        <!-- GCP Secret Manager OpenFeature provider (install first: mvn install -DskipTests) -->
+        <dependency>
+            <groupId>dev.openfeature.contrib.providers</groupId>
+            <artifactId>gcp</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+
+        <!-- OpenFeature SDK (transitive from provider, declared explicitly for clarity) -->
+        <dependency>
+            <groupId>dev.openfeature</groupId>
+            <artifactId>sdk</artifactId>
+            <version>1.12.1</version>
+        </dependency>
+
+        <!-- Simple console logging (SLF4J binding) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.17</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass
+                    >dev.openfeature.contrib.samples.gcpsecretmanager.SecretManagerSampleApp</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>GCP_PROJECT_ID</key>
+                            <value>${GCP_PROJECT_ID}</value>
+                        </systemProperty>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
