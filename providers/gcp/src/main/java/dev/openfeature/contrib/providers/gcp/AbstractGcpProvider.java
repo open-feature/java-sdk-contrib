@@ -6,7 +6,11 @@ import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.GeneralError;
+
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -15,6 +19,7 @@ abstract class AbstractGcpProvider<C> implements FeatureProvider {
     protected final GcpProviderOptions options;
     protected C client;
     protected FlagCache cache;
+    private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     AbstractGcpProvider(GcpProviderOptions options) {
         this.options = options;
@@ -32,6 +37,11 @@ abstract class AbstractGcpProvider<C> implements FeatureProvider {
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
+        boolean initialized = isInitialized.getAndSet(true);
+        if (initialized) {
+            throw new GeneralError("already initialized");
+        }
+
         options.validate();
         if (client == null) {
             createClient();

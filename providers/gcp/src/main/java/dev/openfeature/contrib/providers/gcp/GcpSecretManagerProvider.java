@@ -99,7 +99,7 @@ public class GcpSecretManagerProvider extends AbstractGcpProvider<SecretManagerS
         } catch (NotFoundException e) {
             throw new FlagNotFoundError("Secret not found: " + secretName);
         } catch (Exception e) {
-            throw new GeneralError("Error accessing secret '" + secretName + "': " + e.getMessage());
+            throw new GeneralError("Error accessing secret '" + secretName + "': " + e.getMessage(), e);
         }
     }
 }
