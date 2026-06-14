@@ -84,7 +84,8 @@ abstract class AbstractGcpProviderTest {
         @Test
         @DisplayName("throws GeneralError when initialized twice")
         void doubleInitializationThrows() {
-            GcpProviderOptions opts = newOptionsBuilder().projectId("test-project").build();
+            GcpProviderOptions opts =
+                    newOptionsBuilder().projectId("test-project").build();
             FeatureProvider badProvider = createProvider(opts);
 
             assertThatCode(() -> badProvider.initialize(new ImmutableContext())).doesNotThrowAnyException();
