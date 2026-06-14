@@ -83,10 +83,10 @@ public class GcpProviderOptions {
      */
     public void validate() {
         if (projectId == null || projectId.trim().isEmpty()) {
-            throw new IllegalArgumentException("GcpSecretManagerProviderOptions: projectId must not be blank");
+            throw new IllegalArgumentException("GcpProviderOptions: projectId must not be blank");
         }
         if (version == null || version.trim().isEmpty()) {
-            throw new IllegalArgumentException("GcpSecretManagerProviderOptions: version must not be blank");
+            throw new IllegalArgumentException("GcpProviderOptions: version must not be blank");
         }
     }
 }

@@ -18,15 +18,16 @@ abstract class AbstractGcpProvider<C> implements FeatureProvider {
 
     protected final GcpProviderOptions options;
     protected C client;
-    protected FlagCache cache;
+    protected final FlagCache cache;
     private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     AbstractGcpProvider(GcpProviderOptions options) {
         this.options = options;
+        cache = new FlagCache(options.getCacheExpiry(), options.getCacheMaxSize());
     }
 
     AbstractGcpProvider(GcpProviderOptions options, C client) {
-        this.options = options;
+        this(options);
         this.client = client;
     }
 
@@ -41,12 +42,10 @@ abstract class AbstractGcpProvider<C> implements FeatureProvider {
         if (initialized) {
             throw new GeneralError("already initialized");
         }
-
         options.validate();
         if (client == null) {
             createClient();
         }
-        cache = new FlagCache(options.getCacheExpiry(), options.getCacheMaxSize());
         log.info("{} initialized for project '{}'", getProviderName(), options.getProjectId());
     }
 

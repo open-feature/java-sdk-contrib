@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gcp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.openfeature.sdk.FeatureProvider;
@@ -78,6 +79,18 @@ abstract class AbstractGcpProviderTest {
             FeatureProvider badProvider = createProvider(badOpts);
             assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext()))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("throws GeneralError when initialized twice")
+        void doubleInitializationThrows() {
+            GcpProviderOptions opts = newOptionsBuilder().projectId("test-project").build();
+            FeatureProvider badProvider = createProvider(opts);
+
+            assertThatCode(() -> badProvider.initialize(new ImmutableContext())).doesNotThrowAnyException();
+
+            assertThatThrownBy(() -> badProvider.initialize(new ImmutableContext()))
+                    .isInstanceOf(GeneralError.class);
         }
     }
 

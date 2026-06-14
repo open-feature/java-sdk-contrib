@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>Example:
  * <pre>{@code
- * GcpSecretManagerProviderOptions opts = GcpSecretManagerProviderOptions.builder()
+ * GcpProviderOptions opts = GcpProviderOptions.builder()
  *     .projectId("my-gcp-project")
  *     .build();
  * OpenFeatureAPI.getInstance().setProvider(new GcpSecretManagerProvider(opts));
