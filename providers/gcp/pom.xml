@@ -35,19 +35,40 @@
         </developer>
     </developers>
 
+    <dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>libraries-bom</artifactId>
+            <version>26.83.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson</groupId>
+            <artifactId>jackson-bom</artifactId>
+            <version>2.21.1</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- GCP Secret Manager client -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-secretmanager</artifactId>
-            <version>2.57.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-parametermanager</artifactId>
         </dependency>
 
         <!-- JSON parsing for structured flag values -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.21.1</version>
         </dependency>
 
         <dependency>

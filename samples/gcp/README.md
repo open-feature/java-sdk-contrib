@@ -1,9 +1,10 @@
 # GCP — OpenFeature Sample
 
-A runnable Java application demonstrating the [GCP Secret Manager OpenFeature provider](../../providers/gcp).
+A runnable Java application demonstrating the [GCP Secret Manager](../../providers/gcp) and
+[GCP Parameter Manager](../../providers/gcp) OpenFeature providers.
 
-It evaluates five feature flags (covering every supported type) that are stored as secrets in
-Google Cloud Secret Manager.
+It evaluates five feature flags (covering every supported type) that are stored with the
+`of-sample-` prefix in either Google Cloud Secret Manager or Google Cloud Parameter Manager.
 
 ## Feature Flags Used
 
@@ -57,25 +58,29 @@ mvn install -DskipTests -P '!deploy'
 
 This installs the provider JAR to your local Maven repository (`~/.m2`).
 
-## Step 4 — Create the feature-flag secrets
+## Step 4 — Create the feature-flag secrets or parameters
 
 ```bash
 cd samples/gcp
-bash setup.sh
+bash setup.sh                # Creates secrets (default: Secret Manager)
+# OR
+bash setup.sh parameter-manager   # Creates parameters in Parameter Manager
 ```
 
 You should see output like:
 
 ```
-Creating sample feature-flag secrets in project: my-gcp-project
+Creating sample feature-flag secret-manager in project: my-gcp-project
   [CREATED] of-sample-dark-mode
   [VERSION] of-sample-dark-mode → true
   [CREATED] of-sample-banner-text
   ...
-✓ All secrets created successfully.
+✓ All secret-manager entries created successfully.
 ```
 
 ## Step 5 — Run the sample
+
+By default the module runs the Secret Manager sample:
 
 ```bash
 mvn exec:java
@@ -86,6 +91,15 @@ The app reads `GCP_PROJECT_ID` from the environment. You can also pass it explic
 ```bash
 mvn exec:java -DGCP_PROJECT_ID=my-gcp-project
 ```
+
+### Run the Parameter Manager sample
+
+```bash
+mvn exec:java -Dexec.mainClass=dev.openfeature.contrib.samples.gcp.ParameterManagerSampleApp
+```
+
+This uses the same sample flag names and prefix. If you want to evaluate with Parameter Manager,
+create the sample parameters in your project under `of-sample-<flagKey>`.
 
 ### Expected output
 
@@ -124,7 +138,9 @@ Express checkout : true
 ## Step 6 — Clean up
 
 ```bash
-bash teardown.sh
+bash teardown.sh                # Deletes secrets (default)
+# OR
+bash teardown.sh parameter-manager   # Deletes Parameter Manager parameters
 ```
 
 ---
@@ -147,8 +163,9 @@ Re-run the sample to see the new value (cache expires after 30 seconds in this s
 | Error | Cause | Fix |
 |---|---|---|
 | `GCP_PROJECT_ID is not set` | Env var missing | `export GCP_PROJECT_ID=my-project` |
-| `FlagNotFoundError` | Secret doesn't exist | Run `setup.sh` first |
-| `PERMISSION_DENIED` | Missing IAM role | Grant `roles/secretmanager.secretAccessor` |
+| `FlagNotFoundError` | Secret/parameter doesn't exist | Run `setup.sh` first (or `setup.sh parameter-manager`) |
+| `PERMISSION_DENIED` | Missing IAM role | Grant `roles/secretmanager.secretAccessor` or `roles/secretmanager.parameterAccessor` |
 | `UNAUTHENTICATED` | No credentials | Run `gcloud auth application-default login` |
 | `secretmanager.googleapis.com is not enabled` | API disabled | Run Step 1 |
 | `Could not find artifact ...gcp` | Provider not installed | Run Step 3 |
+| `Invalid choice: 'parameter-manager'` | gcloud alpha components missing | Run `gcloud components install alpha` |
