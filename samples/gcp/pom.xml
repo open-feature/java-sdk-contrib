@@ -23,6 +23,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <exec.mainClass>dev.openfeature.contrib.samples.gcp.SecretManagerSampleApp</exec.mainClass>
         <!-- Override with -DGCP_PROJECT_ID=my-project or set the env var -->
         <GCP_PROJECT_ID>${env.GCP_PROJECT_ID}</GCP_PROJECT_ID>
     </properties>
@@ -32,7 +33,7 @@
         <dependency>
             <groupId>dev.openfeature.contrib.providers</groupId>
             <artifactId>gcp</artifactId>
-            <version>0.0.1</version>
+            <version>0.0.2</version> <!--x-release-please-version -->
         </dependency>
 
         <!-- OpenFeature SDK (transitive from provider, declared explicitly for clarity) -->
@@ -57,8 +58,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass
-                    >dev.openfeature.contrib.samples.gcpsecretmanager.SecretManagerSampleApp</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                     <systemProperties>
                         <systemProperty>
                             <key>GCP_PROJECT_ID</key>

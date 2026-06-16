@@ -1,38 +1,25 @@
 package dev.openfeature.contrib.samples.gcp;
 
-import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProvider;
+import dev.openfeature.contrib.providers.gcp.GcpParameterManagerProvider;
 import dev.openfeature.contrib.providers.gcp.GcpProviderOptions;
 import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
-import dev.openfeature.sdk.Value;
 import java.time.Duration;
 
 /**
- * Sample application demonstrating the GCP Secret Manager OpenFeature provider.
+ * Sample application demonstrating the GCP Parameter Manager OpenFeature provider.
  *
- * <p>This app evaluates five feature flags backed by GCP Secret Manager secrets:
- * <ul>
- *   <li>{@code of-sample-dark-mode} (boolean) — whether the dark UI theme is enabled</li>
- *   <li>{@code of-sample-banner-text} (string) — hero banner copy shown to users</li>
- *   <li>{@code of-sample-max-cart-items} (integer) — maximum items allowed in the cart</li>
- *   <li>{@code of-sample-discount-rate} (double) — discount multiplier (0.0 – 1.0)</li>
- *   <li>{@code of-sample-checkout-config} (object/JSON) — structured checkout settings</li>
- * </ul>
- *
- * <p>Run {@code setup.sh} first to create these secrets in your GCP project, then:
- * <pre>
- *   export GCP_PROJECT_ID=my-gcp-project
- *   mvn exec:java
- * </pre>
+ * <p>This app evaluates the same five feature flags as the Secret Manager sample, but reads
+ * values from GCP Parameter Manager parameters with names prefixed by {@code of-sample-}.
  */
-public class SecretManagerSampleApp extends AbstractGcpSampleApp {
+public class ParameterManagerSampleApp extends AbstractGcpSampleApp {
 
     public static void main(String[] args) throws Exception {
         String projectId = resolveProjectId(args);
 
         System.out.println("=======================================================");
-        System.out.println("  GCP Secret Manager — OpenFeature Sample");
+        System.out.println("  GCP Parameter Manager — OpenFeature Sample");
         System.out.println("=======================================================");
         System.out.println("Project : " + projectId);
         System.out.println("Prefix  : " + PREFIX);
@@ -40,12 +27,11 @@ public class SecretManagerSampleApp extends AbstractGcpSampleApp {
 
         GcpProviderOptions options = GcpProviderOptions.builder()
             .projectId(projectId)
-            .namePrefix(PREFIX) // secrets are named "of-sample-<flagKey>"
-            .version("latest")
+            .namePrefix(PREFIX)
             .cacheExpiry(Duration.ofSeconds(30))
             .build();
 
-        GcpSecretManagerProvider provider = new GcpSecretManagerProvider(options);
+        GcpParameterManagerProvider provider = new GcpParameterManagerProvider(options);
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
         api.setProviderAndWait(provider);
         Client client = api.getClient();
