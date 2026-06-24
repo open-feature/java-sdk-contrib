@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e.steps.resolver.file;
+package dev.openfeature.contrib.providers.flagd.e2e.resolver.file;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.e2e.State;

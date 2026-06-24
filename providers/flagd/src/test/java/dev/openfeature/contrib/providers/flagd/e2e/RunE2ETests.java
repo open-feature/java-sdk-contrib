@@ -47,10 +47,15 @@ public class RunE2ETests {
 
     private static final String STEPS = "dev.openfeature.contrib.providers.flagd.e2e.steps";
 
+    // Resolver setup hooks live in a SIBLING package of STEPS (not under it). Cucumber scans glue
+    // packages recursively, so if these lived under STEPS every engine would load all three
+    // @Before hooks and resolverType would be set non-deterministically by whichever ran last.
+    private static final String RESOLVERS = "dev.openfeature.contrib.providers.flagd.e2e.resolver";
+
     @TestFactory
     @Execution(ExecutionMode.CONCURRENT)
     Stream<DynamicNode> rpc() {
-        return resolverTests(STEPS + ".resolver.rpc", "rpc", "unixsocket", "deprecated");
+        return resolverTests(RESOLVERS + ".rpc", "rpc", "unixsocket", "fractional-v1", "deprecated");
     }
 
     @TestFactory
@@ -62,14 +67,15 @@ public class RunE2ETests {
         // upstream not yet ready), the throttle fires for retryBackoffMaxMs, and the retry arrives
         // after the waitForInitialization deadline. Tracked in flagd issue #1584 — once
         // getMetadata() is removed, these scenarios can be re-enabled.
-        return resolverTests(STEPS + ".resolver.inprocess", "in-process", "unixsocket", "targetURI", "deprecated");
+        return resolverTests(
+                RESOLVERS + ".inprocess", "in-process", "unixsocket", "targetURI", "fractional-v1", "deprecated");
     }
 
     @TestFactory
     @Execution(ExecutionMode.CONCURRENT)
     Stream<DynamicNode> file() {
         return resolverTests(
-                STEPS + ".resolver.file",
+                RESOLVERS + ".file",
                 "file",
                 "unixsocket",
                 "targetURI",
@@ -77,6 +83,7 @@ public class RunE2ETests {
                 "customCert",
                 "events",
                 "contextEnrichment",
+                "fractional-v1",
                 "deprecated");
     }
 
