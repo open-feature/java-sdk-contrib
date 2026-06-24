@@ -11,6 +11,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
+import org.testcontainers.DockerClientFactory;
 
 /**
  * A pool of pre-warmed {@link ContainerEntry} instances.
@@ -88,6 +89,11 @@ public class ContainerPool {
                 return;
             }
             log.info("Starting container pool of size {}...", POOL_SIZE);
+            // Resolve the Testcontainers Docker client once, single-threaded, before starting
+            // containers in parallel. Its DockerClientProviderStrategy is loaded via a non
+            // thread-safe ServiceLoader; concurrent first-time resolution throws
+            // ConcurrentModificationException, leaving containers unstarted.
+            DockerClientFactory.instance().client();
             ExecutorService executor = Executors.newFixedThreadPool(POOL_SIZE);
             try {
                 List<Future<ContainerEntry>> futures = new ArrayList<>();
