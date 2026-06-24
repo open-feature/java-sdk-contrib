@@ -6,7 +6,7 @@ import java.util.concurrent.BlockingQueue;
 public interface Storage {
     void init() throws Exception;
 
-    void shutdown() throws InterruptedException;
+    void shutdown();
 
     BlockingQueue<StorageStateChange> getStateQueue();
 }

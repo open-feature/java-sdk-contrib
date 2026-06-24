@@ -15,7 +15,9 @@ jobs:
           os: [ubuntu-latest]
           build:
               - java: 21
-                profile: codequality
+                # deploy profile is included to catch javadoc/SBOM/source-jar issues at PR time
+                # note this is the publish PROFILE, not PHASE
+                profile: codequality,deploy
               - java: 11
                 profile: java11
 

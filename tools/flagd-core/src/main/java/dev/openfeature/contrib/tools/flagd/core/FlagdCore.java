@@ -63,7 +63,7 @@ public class FlagdCore implements Evaluator {
      * Construct a FlagdCore instance.
      */
     public FlagdCore() {
-        this(false);
+        this(false, false);
     }
 
     /**
@@ -72,7 +72,17 @@ public class FlagdCore implements Evaluator {
      * @param throwIfInvalid whether to throw an exception if flag configuration is invalid
      */
     public FlagdCore(boolean throwIfInvalid) {
-        this.operator = new Operator();
+        this(throwIfInvalid, false);
+    }
+
+    /**
+     * Construct a FlagdCore instance.
+     *
+     * @param throwIfInvalid whether to throw an exception if flag configuration is invalid
+     * @param compileTargeting whether to compile targeting rules for better performance
+     */
+    public FlagdCore(boolean throwIfInvalid, boolean compileTargeting) {
+        this.operator = new Operator(compileTargeting);
         this.throwIfInvalid = throwIfInvalid;
     }
 
@@ -170,7 +180,7 @@ public class FlagdCore implements Evaluator {
         final ProviderEvaluation<Object> evaluation = resolve(Object.class, flagKey, defaultValue, ctx);
 
         return ProviderEvaluation.<Value>builder()
-                .value(Value.objectToValue(evaluation.getValue()))
+                .value(evaluation.getValue() != null ? Value.objectToValue(evaluation.getValue()) : null)
                 .variant(evaluation.getVariant())
                 .reason(evaluation.getReason())
                 .errorCode(evaluation.getErrorCode())
@@ -200,12 +210,12 @@ public class FlagdCore implements Evaluator {
                     .build();
         }
 
-        // state check
+        // state check (DISABLED flags default with reason = DEFAULT)
         if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
-                    .errorMessage("flag: " + key + " is disabled")
-                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, null))
+                    .value(defaultValue)
+                    .reason(Reason.DISABLED.toString())
+                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
                     .build();
         }
 
@@ -270,11 +280,14 @@ public class FlagdCore implements Evaluator {
 
     private static ImmutableMetadata getFlagMetadata(Map<String, Object> currentFlagSetMetadata, FeatureFlag flag) {
         ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
-        for (Map.Entry<String, Object> entry : currentFlagSetMetadata.entrySet()) {
-            addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
+
+        if (currentFlagSetMetadata != null) {
+            for (Map.Entry<String, Object> entry : currentFlagSetMetadata.entrySet()) {
+                addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
+            }
         }
 
-        if (flag != null) {
+        if (flag != null && flag.getMetadata() != null) {
             for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
                 addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
             }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.3...dev.openfeature.contrib.providers.flipt-v0.1.4) (2026-06-15)
+
+
+### 🐛 Bug Fixes
+
+* **flipt:** Fix FliptProvider to honor server default variant when match is false ([#1776](https://github.com/open-feature/java-sdk-contrib/issues/1776)) ([d9a20fc](https://github.com/open-feature/java-sdk-contrib/commit/d9a20fc894143cf59f2cad975da51dc180e494ba))
+* **security:** update dependency com.fasterxml.jackson.core:jackson-core to v2.21.1 [security] ([#1705](https://github.com/open-feature/java-sdk-contrib/issues/1705)) ([7760d09](https://github.com/open-feature/java-sdk-contrib/commit/7760d098b6c965c5a299e274ddf790e10b967738))
+
 ## [0.1.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.2...dev.openfeature.contrib.providers.flipt-v0.1.3) (2025-07-09)
 
 

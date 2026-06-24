@@ -36,15 +36,13 @@ public class ChannelConnector {
 
     /**
      * Shuts down the GRPC connection and cleans up associated resources.
-     *
-     * @throws InterruptedException if interrupted while waiting for termination
      */
-    public void shutdown() throws InterruptedException {
+    public void shutdown() {
         log.info("Shutting down GRPC connection.");
 
         if (!channel.isShutdown()) {
             channel.shutdownNow();
-            channel.awaitTermination(deadline, TimeUnit.MILLISECONDS);
+            ShutdownUtils.awaitTerminationQuietly(() -> channel.awaitTermination(deadline, TimeUnit.MILLISECONDS));
         }
     }
 }

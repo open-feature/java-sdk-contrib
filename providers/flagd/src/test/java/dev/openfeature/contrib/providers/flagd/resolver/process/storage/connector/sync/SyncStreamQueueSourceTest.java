@@ -176,7 +176,7 @@ class SyncStreamQueueSourceTest {
     }
 
     @Test
-    void syncInitError_DoesNotBusyWait() throws Exception {
+    void syncInitError_RetriesWithNonBlockingBackoff() throws Exception {
         // make sure we do not spin in a busy loop on immediately errors
 
         int maxBackoffMs = 1000;
@@ -201,7 +201,7 @@ class SyncStreamQueueSourceTest {
     }
 
     @Test
-    void asyncInitError_DoesNotBusyWait() throws Exception {
+    void asyncInitError_RetriesWithNonBlockingBackoff() throws Exception {
         // make sure we do not spin in a busy loop on async errors
 
         int maxBackoffMs = 1000;

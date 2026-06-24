@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.14.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.3...dev.openfeature.contrib.providers.flagd-v0.14.0) (2026-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800))
+
+### 🐛 Bug Fixes
+
+* **flagd:** validate FLAGD_SYNC_PORT before parse to avoid kubelet service-link collision ([#1798](https://github.com/open-feature/java-sdk-contrib/issues/1798)) ([a8d72ee](https://github.com/open-feature/java-sdk-contrib/commit/a8d72ee1e59aa52722cac1a78c045ea6950b0005))
+* **security:** update dependency io.opentelemetry:opentelemetry-api to v1.62.0 [security] ([#1794](https://github.com/open-feature/java-sdk-contrib/issues/1794)) ([75ff112](https://github.com/open-feature/java-sdk-contrib/commit/75ff112f273b9798645f85ab3e7a91e587b7ca44))
+
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800)) ([d732c35](https://github.com/open-feature/java-sdk-contrib/commit/d732c355597f85cbd914107f4ff63e9ef73d677d))
+
+## [0.13.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.2...dev.openfeature.contrib.providers.flagd-v0.13.3) (2026-05-11)
+
+
+### 🐛 Bug Fixes
+
+* tight loop in RPC mode event stream reconnect ([#1789](https://github.com/open-feature/java-sdk-contrib/issues/1789)) ([9a1f89b](https://github.com/open-feature/java-sdk-contrib/commit/9a1f89b319e70a61740b01b1ba488688e8e7fde7))
+
+
+### ✨ New Features
+
+* intelligent enum for rule pre-compilation  ([#1791](https://github.com/open-feature/java-sdk-contrib/issues/1791)) ([d79f27c](https://github.com/open-feature/java-sdk-contrib/commit/d79f27cb38c09cd82a5e807ed04f5e583195e75f))
+
+## [0.13.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.1...dev.openfeature.contrib.providers.flagd-v0.13.2) (2026-05-07)
+
+
+### ✨ New Features
+
+* switch to io.github.gzsombor json logic lib ([#1786](https://github.com/open-feature/java-sdk-contrib/issues/1786)) ([4f2c023](https://github.com/open-feature/java-sdk-contrib/commit/4f2c023a233f8a898b232cb18effd920a91dd64f))
+
+## [0.13.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.0...dev.openfeature.contrib.providers.flagd-v0.13.1) (2026-04-30)
+
+
+### 🐛 Bug Fixes
+
+* ignore redundant interrupted exceptions ([#1777](https://github.com/open-feature/java-sdk-contrib/issues/1777)) ([c51861e](https://github.com/open-feature/java-sdk-contrib/commit/c51861eb88ddc2d26feddcd1af77584380ce9a40))
+* various custom operator conformance fixes ([#1778](https://github.com/open-feature/java-sdk-contrib/issues/1778)) ([cced215](https://github.com/open-feature/java-sdk-contrib/commit/cced215af4ecbff010ae7bb4af82072224bc6eb0))
+
+
+### ✨ New Features
+
+* 1.0 flagd core transitive deps ([#1755](https://github.com/open-feature/java-sdk-contrib/issues/1755)) ([fec3753](https://github.com/open-feature/java-sdk-contrib/commit/fec3753c34785c4dc911441def6686ff666bcc08))
+
+## [0.13.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.12.0...dev.openfeature.contrib.providers.flagd-v0.13.0) (2026-04-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* fractional bucketing improvements ([#1740](https://github.com/open-feature/java-sdk-contrib/issues/1740))
+
+### ✨ New Features
+
+* fractional bucketing improvements ([#1740](https://github.com/open-feature/java-sdk-contrib/issues/1740)) ([0f0c440](https://github.com/open-feature/java-sdk-contrib/commit/0f0c44057c99840bb45c6e4f4d6dc135362f9329))
+* Make the Evaluator customizable ([#1733](https://github.com/open-feature/java-sdk-contrib/issues/1733)) ([f21d871](https://github.com/open-feature/java-sdk-contrib/commit/f21d871fa65a4dbfc2fd965859cfdd24f35c20ba))
+
 ## [0.12.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.11.20...dev.openfeature.contrib.providers.flagd-v0.12.0) (2026-03-11)
 
 

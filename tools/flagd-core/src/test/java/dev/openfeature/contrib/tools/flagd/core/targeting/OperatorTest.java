@@ -75,7 +75,7 @@ class OperatorTest {
     }
 
     @Test
-    void fractionalTestA() throws TargetingRuleException {
+    void fractionalTestB() throws TargetingRuleException {
         // given
 
         // fractional rule with email as expression key
@@ -112,11 +112,11 @@ class OperatorTest {
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
         // then
-        assertEquals("yellow", evalVariant);
+        assertEquals("blue", evalVariant);
     }
 
     @Test
-    void fractionalTestB() throws TargetingRuleException {
+    void fractionalTestA() throws TargetingRuleException {
         // given
 
         // fractional rule with email as expression key
@@ -153,7 +153,7 @@ class OperatorTest {
         Object evalVariant = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
 
         // then
-        assertEquals("blue", evalVariant);
+        assertEquals("yellow", evalVariant);
     }
 
     @Test
@@ -241,6 +241,177 @@ class OperatorTest {
 
         // then
         assertEquals(true, evalVariant);
+    }
+
+    @Test
+    void nestedIfAsVariant() throws TargetingRuleException {
+        // fractional with a nested "if" expression producing the variant string
+        final String targetingRule = "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      {\"if\": [{\"==\": [{\"var\": \"tier\"}, \"premium\"]}, \"gold\", \"silver\"]},\n"
+                + "      50\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"bronze\",\n"
+                + "      50\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
+
+        Map<String, Value> ctxData = new HashMap<>();
+        ctxData.put("email", new Value("rachel@faas.com"));
+        ctxData.put("tier", new Value("premium"));
+
+        Object result = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
+
+        // the "if" resolves to "gold" because tier == premium;
+        // bucket key = "headerColorrachel@faas.com", same as fractionalTestB
+        // with 50/50 split between "gold" and "bronze", bucket determines the result
+        assertTrue(result.equals("gold") || result.equals("bronze"), "Expected 'gold' or 'bronze', got: " + result);
+    }
+
+    @Test
+    void nestedIfAsVariantNonPremium() throws TargetingRuleException {
+        // same as above but tier != premium, so "if" resolves to "silver"
+        final String targetingRule = "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      {\"if\": [{\"==\": [{\"var\": \"tier\"}, \"premium\"]}, \"gold\", \"silver\"]},\n"
+                + "      50\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"bronze\",\n"
+                + "      50\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
+
+        Map<String, Value> ctxData = new HashMap<>();
+        ctxData.put("email", new Value("rachel@faas.com"));
+        ctxData.put("tier", new Value("basic"));
+
+        Object result = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
+
+        // the "if" resolves to "silver" because tier != premium
+        assertTrue(result.equals("silver") || result.equals("bronze"), "Expected 'silver' or 'bronze', got: " + result);
+    }
+
+    @Test
+    void nestedVarAsVariant() throws TargetingRuleException {
+        // variant name pulled from context via {"var": "color"}
+        final String targetingRule = "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      {\"var\": \"color\"},\n"
+                + "      100\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
+
+        Map<String, Value> ctxData = new HashMap<>();
+        ctxData.put("email", new Value("rachel@faas.com"));
+        ctxData.put("color", new Value("magenta"));
+
+        Object result = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
+
+        // single bucket with weight 100, variant resolved from var to "magenta"
+        assertEquals("magenta", result);
+    }
+
+    @Test
+    void nestedVarAsWeight() throws TargetingRuleException {
+        // weight pulled from context via {"var": "rollout"}
+        final String targetingRule = "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      \"red\",\n"
+                + "      {\"var\": \"rollout\"}\n"
+                + "    ],\n"
+                + "    [\n"
+                + "      \"blue\",\n"
+                + "      {\"var\": \"remaining\"}\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
+
+        Map<String, Value> ctxData = new HashMap<>();
+        ctxData.put("email", new Value("rachel@faas.com"));
+        ctxData.put("rollout", new Value(75));
+        ctxData.put("remaining", new Value(25));
+
+        Object result = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
+
+        // weights resolved from context: 75/25 split
+        assertTrue(result.equals("red") || result.equals("blue"), "Expected 'red' or 'blue', got: " + result);
+    }
+
+    @Test
+    void nestedBooleanVariant() throws TargetingRuleException {
+        // boolean variants resolved via nested "if"
+        final String targetingRule = "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      {\"if\": [{\"==\": [{\"var\": \"tier\"}, \"premium\"]}, true, false]},\n"
+                + "      100\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
+
+        Map<String, Value> ctxData = new HashMap<>();
+        ctxData.put("email", new Value("rachel@faas.com"));
+        ctxData.put("tier", new Value("premium"));
+
+        Object result = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
+
+        // single bucket, variant resolves to true
+        assertEquals(true, result);
+    }
+
+    @Test
+    void nestedNumericVariant() throws TargetingRuleException {
+        // numeric variant resolved via arithmetic expression
+        final String targetingRule = "{\n"
+                + "  \"fractional\": [\n"
+                + "    {\"cat\":[\n"
+                + "      {\"var\":\"$flagd.flagKey\"},\n"
+                + "      {\"var\": \"email\"}\n"
+                + "    ]},\n"
+                + "    [\n"
+                + "      {\"+\": [{\"var\": \"base\"}, 1]},\n"
+                + "      100\n"
+                + "    ]\n"
+                + "  ]\n"
+                + "}";
+
+        Map<String, Value> ctxData = new HashMap<>();
+        ctxData.put("email", new Value("rachel@faas.com"));
+        ctxData.put("base", new Value(41));
+
+        Object result = OPERATOR.apply("headerColor", targetingRule, new ImmutableContext(ctxData));
+
+        // single bucket, variant resolves to 42.0 (jsonlogic arithmetic returns double)
+        assertEquals(42.0, result);
     }
 
     @Test

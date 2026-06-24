@@ -91,7 +91,7 @@ public class FileQueueSource implements QueueSource {
     }
 
     /** Shutdown file connector. */
-    public void shutdown() throws InterruptedException {
+    public void shutdown() {
         shutdown = true;
     }
 }

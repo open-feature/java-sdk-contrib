@@ -21,6 +21,8 @@ public class Const {
     public static final long DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS = 2L * 60L * 1000L;
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
     public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
+    public static final int DEFAULT_WASM_EVALUATOR_POOL_SIZE =
+            Runtime.getRuntime().availableProcessors();
     // MAPPERS
     public static final ObjectMapper DESERIALIZE_OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
