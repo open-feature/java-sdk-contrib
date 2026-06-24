@@ -101,6 +101,12 @@ public class RunE2ETests {
                 .configurationParameter("cucumber.execution.parallel.config.strategy", "dynamic")
                 .configurationParameter("cucumber.execution.parallel.config.dynamic.factor", "1")
                 .configurationParameter("cucumber.execution.exclusive-resources.env-var.read-write", "ENV_VARS")
+                // Every scenario in this engine carries the include tag, so give them all a READ lock
+                // on ENV_VARS. @env-var scenarios also declare read-write (above) which escalates to an
+                // exclusive lock — so they run while no other scenario in this engine reads config,
+                // preventing a process-global env var (e.g. FLAGD_SYNC_PORT) from leaking into a
+                // concurrent config-default scenario.
+                .configurationParameter("cucumber.execution.exclusive-resources." + includeTag + ".read", "ENV_VARS")
                 .configurationParameter("cucumber.execution.exclusive-resources.grace.read-write", "CONTAINER_RESTART")
                 .build();
 
