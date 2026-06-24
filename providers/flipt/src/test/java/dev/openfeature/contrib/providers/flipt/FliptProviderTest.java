@@ -111,6 +111,25 @@ class FliptProviderTest {
     }
 
     @Test
+    void getStringVariantEvaluation_usesServerDefaultVariantWhenNoMatch() {
+        // Flipt returns match=false but still returns a variantKey (server default variant).
+        mockFliptAPI("/evaluate/v1/variant", "variant-default-nomatch.json", VARIANT_FLAG_NAME);
+
+        MutableContext evaluationContext = new MutableContext();
+        evaluationContext.setTargetingKey(TARGETING_KEY);
+
+        // SDK defaultValue should NOT be used in this case; server default variant should win.
+        ProviderEvaluation<String> evaluation =
+                fliptProvider.getStringEvaluation(VARIANT_FLAG_NAME, "sdk-fallback", evaluationContext);
+
+        assertEquals("server-default", evaluation.getValue());
+        assertEquals("server-default", evaluation.getVariant());
+
+        // Also verify the OpenFeature client path.
+        assertEquals("server-default", client.getStringValue(VARIANT_FLAG_NAME, "sdk-fallback", evaluationContext));
+    }
+
+    @Test
     void getIntegerEvaluation() {
         mockFliptAPI("/evaluate/v1/variant", "variant-int.json", INT_FLAG_NAME);
         MutableContext evaluationContext = new MutableContext();

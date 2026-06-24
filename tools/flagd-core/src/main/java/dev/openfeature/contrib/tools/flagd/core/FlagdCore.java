@@ -180,7 +180,7 @@ public class FlagdCore implements Evaluator {
         final ProviderEvaluation<Object> evaluation = resolve(Object.class, flagKey, defaultValue, ctx);
 
         return ProviderEvaluation.<Value>builder()
-                .value(Value.objectToValue(evaluation.getValue()))
+                .value(evaluation.getValue() != null ? Value.objectToValue(evaluation.getValue()) : null)
                 .variant(evaluation.getVariant())
                 .reason(evaluation.getReason())
                 .errorCode(evaluation.getErrorCode())
@@ -210,12 +210,12 @@ public class FlagdCore implements Evaluator {
                     .build();
         }
 
-        // state check
+        // state check (DISABLED flags default with reason = DEFAULT)
         if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
-                    .errorMessage("flag: " + key + " is disabled")
-                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, null))
+                    .value(defaultValue)
+                    .reason(Reason.DISABLED.toString())
+                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
                     .build();
         }
 

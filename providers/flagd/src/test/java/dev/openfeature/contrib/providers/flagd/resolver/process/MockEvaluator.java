@@ -76,7 +76,7 @@ public class MockEvaluator implements Evaluator {
     public ProviderEvaluation<Value> resolveObjectValue(String flagKey, Value defaultValue, EvaluationContext ctx) {
         final ProviderEvaluation<Object> evaluation = resolve(Object.class, flagKey, defaultValue, ctx);
         return ProviderEvaluation.<Value>builder()
-                .value(Value.objectToValue(evaluation.getValue()))
+                .value(evaluation.getValue() != null ? Value.objectToValue(evaluation.getValue()) : null)
                 .variant(evaluation.getVariant())
                 .reason(evaluation.getReason())
                 .errorCode(evaluation.getErrorCode())
@@ -101,8 +101,8 @@ public class MockEvaluator implements Evaluator {
         // state check
         if ("DISABLED".equals(flag.getState())) {
             return ProviderEvaluation.<T>builder()
-                    .errorMessage("flag: " + key + " is disabled")
-                    .errorCode(ErrorCode.FLAG_NOT_FOUND)
+                    .value(defaultValue)
+                    .reason(Reason.DISABLED.toString())
                     .flagMetadata(getFlagMetadata(flagSetMetadata, flag))
                     .build();
         }

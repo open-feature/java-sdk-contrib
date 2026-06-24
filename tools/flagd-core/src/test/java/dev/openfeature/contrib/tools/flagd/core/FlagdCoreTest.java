@@ -7,6 +7,7 @@ import dev.openfeature.contrib.tools.flagd.api.FlagStoreException;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -79,12 +80,24 @@ class FlagdCoreTest {
     }
 
     @Test
-    void resolveBooleanValue_disabledFlag_returnsError() {
+    void resolveBooleanValue_disabledFlag_returnsDisabledReasonWithDefault() {
         ProviderEvaluation<Boolean> result =
                 flagdCore.resolveBooleanValue("disabledFlag", false, new ImmutableContext());
 
-        assertThat(result.getErrorCode()).isNotNull();
-        assertThat(result.getErrorMessage()).contains("disabled");
+        assertThat(result.getErrorCode()).isNull();
+        assertThat(result.getValue()).isFalse();
+        assertThat(result.getVariant()).isNull();
+        assertThat(result.getReason()).isEqualTo(Reason.DISABLED.toString());
+    }
+
+    @Test
+    void resolveObjectValue_disabledFlag_returnsDisabledReasonWithDefault() {
+        ProviderEvaluation<Value> result = flagdCore.resolveObjectValue("disabledFlag", null, new ImmutableContext());
+
+        assertThat(result.getErrorCode()).isNull();
+        assertThat(result.getValue()).isNull();
+        assertThat(result.getVariant()).isNull();
+        assertThat(result.getReason()).isEqualTo(Reason.DISABLED.toString());
     }
 
     @Test

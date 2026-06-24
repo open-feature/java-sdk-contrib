@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.2.0...dev.openfeature.contrib.tools.flagdcore-v2.0.0) (2026-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800))
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800)) ([d732c35](https://github.com/open-feature/java-sdk-contrib/commit/d732c355597f85cbd914107f4ff63e9ef73d677d))
+
 ## [1.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v1.1.0...dev.openfeature.contrib.tools.flagdcore-v1.2.0) (2026-05-11)
 
 

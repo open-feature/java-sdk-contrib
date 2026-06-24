@@ -1,6 +1,8 @@
 # GCP Provider
 
-An OpenFeature provider that reads feature flags from Google Cloud. Currently supports [Google Cloud Secret Manager](https://cloud.google.com/secret-manager), purpose-built for secrets requiring versioning, rotation, and fine-grained IAM access control.
+An OpenFeature provider that reads feature flags from Google Cloud. Currently supports the following 
+1. [Google Cloud Secret Manager](https://cloud.google.com/secret-manager), purpose-built for secrets requiring versioning, rotation, and fine-grained IAM access control.
+2. [Google Cloud Parameter Manager](https://cloud.google.com/secret-manager/parameter-manager/docs/overview), the GCP-native equivalent of AWS SSM Parameter Store.
 
 ## Installation
 
@@ -9,13 +11,14 @@ An OpenFeature provider that reads feature flags from Google Cloud. Currently su
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>gcp</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
 
 ## Quick Start
 
+### GCP Secret Manager
 ```java
 import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProvider;
 import dev.openfeature.contrib.providers.gcp.GcpSecretManagerProviderOptions;
@@ -32,9 +35,26 @@ boolean darkMode = OpenFeatureAPI.getInstance().getClient()
     .getBooleanValue("enable-dark-mode", false);
 ```
 
+### GCP Parameter Manager
+```java
+import dev.openfeature.contrib.providers.gcp.GcpParameterManagerProvider;
+import dev.openfeature.contrib.providers.gcp.GcpProviderOptions;
+import dev.openfeature.sdk.OpenFeatureAPI;
+
+GcpProviderOptions options = GcpProviderOptions.builder()
+    .projectId("my-gcp-project")
+    .build();
+
+OpenFeatureAPI.getInstance().setProvider(new GcpParameterManagerProvider(options));
+
+// Evaluate a boolean flag stored as parameter "enable-dark-mode" with value "true"
+boolean darkMode = OpenFeatureAPI.getInstance().getClient()
+    .getBooleanValue("enable-dark-mode", false);
+```
+
 ## How It Works
 
-Each feature flag is stored as an individual **secret** in GCP Secret Manager. The flag key maps directly to the secret name (with an optional prefix). The `latest` version is accessed by default.
+Each feature flag is stored as an individual **secret** in GCP Secret Manager or **parameter** in GCP Parameter Manager. The flag key maps directly to the secret name (with an optional prefix). The `latest` version is accessed by default.
 
 Supported raw value formats:
 
@@ -78,7 +98,7 @@ GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builde
 
 ## Advanced Usage
 
-### Pinning to a specific secret version
+### Pinning to a specific version
 
 ```java
 GcpSecretManagerProviderOptions options = GcpSecretManagerProviderOptions.builder()
