@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.launcher.EngineFilter;
 import org.junit.platform.launcher.Launcher;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
@@ -113,6 +114,13 @@ public class RunE2ETests {
         Launcher launcher = LauncherFactory.create();
         TestPlan testPlan = launcher.discover(request);
 
+        // Guard against tag/selector drift silently dropping an entire resolver suite: a discovery
+        // that finds zero scenarios would otherwise report this factory as green.
+        if (testPlan.countTestIdentifiers(TestIdentifier::isTest) == 0) {
+            throw new IllegalStateException(
+                    "No scenarios discovered for resolver '" + includeTag + "' — check include/exclude tag filters");
+        }
+
         // Run the full Cucumber suite synchronously, capturing all lifecycle events.
         // Internal Cucumber scenario-parallelism (cucumber.execution.parallel.enabled) still applies.
         CucumberResultListener listener = new CucumberResultListener();
@@ -161,11 +169,27 @@ public class RunE2ETests {
             }));
         }
         Set<TestIdentifier> children = plan.getChildren(id);
-        if (children.isEmpty()) return Stream.empty();
         List<DynamicNode> childNodes = children.stream()
                 .flatMap(child -> buildNodes(plan, child, listener))
                 .collect(Collectors.toList());
-        if (childNodes.isEmpty()) return Stream.empty();
+        if (childNodes.isEmpty()) {
+            // A container (engine/feature) that failed or aborted before any scenario produced a
+            // node would otherwise vanish from the tree, hiding the real root cause. Materialize it
+            // as a failing node so the error stays visible in the IDE and CI output.
+            String uid = id.getUniqueId();
+            if (listener.hasResult(uid)
+                    && listener.getResult(uid).getStatus() == TestExecutionResult.Status.FAILED) {
+                return Stream.of(DynamicTest.dynamicTest(id.getDisplayName(), () -> {
+                    Throwable t = listener.getResult(uid)
+                            .getThrowable()
+                            .orElse(new AssertionError("Container failed: " + uid));
+                    if (t instanceof AssertionError) throw (AssertionError) t;
+                    if (t instanceof RuntimeException) throw (RuntimeException) t;
+                    throw new AssertionError(t);
+                }));
+            }
+            return Stream.empty();
+        }
         return Stream.of(DynamicContainer.dynamicContainer(id.getDisplayName(), childNodes.stream()));
     }
 }

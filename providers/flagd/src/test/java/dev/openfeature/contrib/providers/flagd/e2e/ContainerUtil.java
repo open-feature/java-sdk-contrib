@@ -66,5 +66,9 @@ public class ContainerUtil {
                 Thread.sleep(50);
             }
         }
+        // Surface the readiness failure here rather than letting setupProvider build a provider
+        // against a closed port and fail later with an opaque setProviderAndWait timeout.
+        throw new IllegalStateException(
+                "flagd gRPC port " + mappedPort + " did not accept connections within " + timeoutMs + "ms");
     }
 }

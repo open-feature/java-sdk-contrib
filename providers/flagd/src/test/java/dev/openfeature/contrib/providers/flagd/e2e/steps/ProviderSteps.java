@@ -173,6 +173,12 @@ public class ProviderSteps extends AbstractSteps {
                 while ((!flagFile.exists() || flagFile.length() == 0) && System.currentTimeMillis() < deadline) {
                     Thread.sleep(50);
                 }
+                // Only scenarios expecting a ready provider (wait) require the file. The
+                // "unavailable" scenario deliberately points at a missing file, so don't fail it.
+                if (wait && (!flagFile.exists() || flagFile.length() == 0)) {
+                    throw new IllegalStateException(
+                            "offline flag source file never became readable within 5000ms: " + filePath);
+                }
             }
         } else {
             // The launchpad polls /readyz before returning, but gRPC ports may lag slightly.

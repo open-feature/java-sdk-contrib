@@ -85,18 +85,19 @@ public class ContainerPool {
             return;
         }
         synchronized (ContainerPool.class) {
-            if (!initialized.compareAndSet(false, true)) {
+            if (initialized.get()) {
                 return;
             }
             log.info("Starting container pool of size {}...", POOL_SIZE);
-            // Resolve the Testcontainers Docker client once, single-threaded, before starting
-            // containers in parallel. Its DockerClientProviderStrategy is loaded via a non
-            // thread-safe ServiceLoader; concurrent first-time resolution throws
-            // ConcurrentModificationException, leaving containers unstarted.
-            DockerClientFactory.instance().client();
-            ExecutorService executor = Executors.newFixedThreadPool(POOL_SIZE);
+            ExecutorService executor = null;
+            List<Future<ContainerEntry>> futures = new ArrayList<>();
             try {
-                List<Future<ContainerEntry>> futures = new ArrayList<>();
+                // Resolve the Testcontainers Docker client once, single-threaded, before starting
+                // containers in parallel. Its DockerClientProviderStrategy is loaded via a non
+                // thread-safe ServiceLoader; concurrent first-time resolution throws
+                // ConcurrentModificationException, leaving containers unstarted.
+                DockerClientFactory.instance().client();
+                executor = Executors.newFixedThreadPool(POOL_SIZE);
                 for (int i = 0; i < POOL_SIZE; i++) {
                     futures.add(executor.submit(ContainerEntry::start));
                 }
@@ -105,22 +106,52 @@ public class ContainerPool {
                     pool.add(entry);
                     all.add(entry);
                 }
+                // Publish only after every container is up, so a failed startup leaves
+                // initialized=false and the next acquire() retries instead of blocking on an
+                // empty pool forever.
+                initialized.set(true);
             } catch (Exception e) {
-                all.forEach(entry -> {
-                    try {
-                        entry.stop();
-                    } catch (IOException suppressed) {
-                        e.addSuppressed(suppressed);
-                    }
-                });
+                stopInFlight(futures, e);
                 pool.clear();
                 all.clear();
-                initialized.set(false);
                 throw e;
             } finally {
-                executor.shutdown();
+                if (executor != null) {
+                    // shutdownNow interrupts container starts still running after a failure.
+                    executor.shutdownNow();
+                }
             }
             log.info("Container pool ready ({} containers).", POOL_SIZE);
+        }
+    }
+
+    /**
+     * Stop every container produced during a failed startup — both those already recorded in
+     * {@link #all} and any that an in-flight future completed after the failure — so a leaked
+     * container can't race the next initialization attempt. Cancels futures still running.
+     */
+    private static void stopInFlight(List<Future<ContainerEntry>> futures, Exception failure) {
+        all.forEach(entry -> stopQuietly(entry, failure));
+        for (Future<ContainerEntry> future : futures) {
+            if (future.cancel(true)) {
+                continue; // wasn't started yet — nothing to stop
+            }
+            try {
+                ContainerEntry entry = future.get();
+                if (!all.contains(entry)) {
+                    stopQuietly(entry, failure);
+                }
+            } catch (Exception ignored) {
+                // future failed or was interrupted; no container to stop
+            }
+        }
+    }
+
+    private static void stopQuietly(ContainerEntry entry, Exception failure) {
+        try {
+            entry.stop();
+        } catch (IOException suppressed) {
+            failure.addSuppressed(suppressed);
         }
     }
 
