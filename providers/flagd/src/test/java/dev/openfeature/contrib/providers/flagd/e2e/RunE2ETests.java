@@ -177,8 +177,7 @@ public class RunE2ETests {
             // node would otherwise vanish from the tree, hiding the real root cause. Materialize it
             // as a failing node so the error stays visible in the IDE and CI output.
             String uid = id.getUniqueId();
-            if (listener.hasResult(uid)
-                    && listener.getResult(uid).getStatus() == TestExecutionResult.Status.FAILED) {
+            if (listener.hasResult(uid) && listener.getResult(uid).getStatus() == TestExecutionResult.Status.FAILED) {
                 return Stream.of(DynamicTest.dynamicTest(id.getDisplayName(), () -> {
                     Throwable t = listener.getResult(uid)
                             .getThrowable()
