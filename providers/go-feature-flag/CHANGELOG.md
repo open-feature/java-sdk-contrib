@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.2...dev.openfeature.contrib.providers.go-feature-flag-v1.2.0) (2026-07-02)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Bump WASM module to 0.2.3 ([#1820](https://github.com/open-feature/java-sdk-contrib/issues/1820)) ([03e0eeb](https://github.com/open-feature/java-sdk-contrib/commit/03e0eeb501ea41e4aa4c19029da620dd3a0c007e))
+
 ## [1.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.1...dev.openfeature.contrib.providers.go-feature-flag-v1.1.2) (2026-04-25)
 
 
