@@ -1,5 +1,6 @@
 {
   "hooks/open-telemetry": "3.3.1",
+  "hooks/codereadiness": "0.1.0",
   "providers/flagd": "0.14.0",
   "providers/go-feature-flag": "1.1.2",
   "providers/flagsmith": "0.0.13",

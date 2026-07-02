@@ -32,6 +32,7 @@
         <module>tools/flagd-api</module>
         <module>tools/flagd-core</module>
         <module>hooks/open-telemetry</module>
+        <module>hooks/codereadiness</module>
         <module>tools/junit-openfeature</module>
         <module>providers/flagd</module>
         <module>providers/flagsmith</module>
