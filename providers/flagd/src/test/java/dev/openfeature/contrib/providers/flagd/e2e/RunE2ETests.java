@@ -1,0 +1,194 @@
+package dev.openfeature.contrib.providers.flagd.e2e;
+
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+import static io.cucumber.junit.platform.engine.Constants.OBJECT_FACTORY_PROPERTY_NAME;
+import static io.cucumber.junit.platform.engine.Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME;
+import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
+import static org.junit.platform.engine.discovery.DiscoverySelectors.selectDirectory;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.DynamicContainer;
+import org.junit.jupiter.api.DynamicNode;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.platform.engine.TestExecutionResult;
+import org.junit.platform.launcher.EngineFilter;
+import org.junit.platform.launcher.Launcher;
+import org.junit.platform.launcher.LauncherDiscoveryRequest;
+import org.junit.platform.launcher.TagFilter;
+import org.junit.platform.launcher.TestIdentifier;
+import org.junit.platform.launcher.TestPlan;
+import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
+import org.junit.platform.launcher.core.LauncherFactory;
+
+/**
+ * Runs all three resolver modes (RPC, in-process, file) concurrently via three
+ * {@code @TestFactory} methods. Each factory launches a full Cucumber engine run for its
+ * resolver, captures every scenario result via {@link CucumberResultListener}, then returns
+ * a {@code Stream<DynamicNode>} that mirrors the TestPlan hierarchy — giving IDEs a
+ * fully-expandable tree (Feature → Scenario) with accurate pass/fail/skip per scenario.
+ *
+ * <p>With {@code @Execution(CONCURRENT)} on each factory method and
+ * {@code junit.jupiter.execution.parallel.enabled=true} in {@code junit-platform.properties},
+ * all three Cucumber runs execute simultaneously, so wall-clock time ≈ max(RPC, IN_PROCESS, FILE).
+ *
+ * <p>Each factory method ({@link #rpc()}, {@link #inProcess()}, {@link #file()}) can also be
+ * run individually from an IDE for targeted single-resolver debugging.
+ *
+ * <p>Run via {@code -Pe2e} from the repo root:
+ * <pre>./mvnw -pl providers/flagd -Pe2e test</pre>
+ */
+public class RunE2ETests {
+
+    private static final String STEPS = "dev.openfeature.contrib.providers.flagd.e2e.steps";
+
+    // Resolver setup hooks live in a SIBLING package of STEPS (not under it). Cucumber scans glue
+    // packages recursively, so if these lived under STEPS every engine would load all three
+    // @Before hooks and resolverType would be set non-deterministically by whichever ran last.
+    private static final String RESOLVERS = "dev.openfeature.contrib.providers.flagd.e2e.resolver";
+
+    @TestFactory
+    @Execution(ExecutionMode.CONCURRENT)
+    Stream<DynamicNode> rpc() {
+        return resolverTests(RESOLVERS + ".rpc", "rpc", "unixsocket", "fractional-v1", "deprecated");
+    }
+
+    @TestFactory
+    @Execution(ExecutionMode.CONCURRENT)
+    Stream<DynamicNode> inProcess() {
+        // targetURI scenarios are excluded: the retryBackoffMaxMs that controls initial-connection
+        // throttle also controls post-disconnect reconnect backoff, so they cannot be tuned
+        // independently. Under parallel load the first getMetadata() call times out (envoy
+        // upstream not yet ready), the throttle fires for retryBackoffMaxMs, and the retry arrives
+        // after the waitForInitialization deadline. Tracked in flagd issue #1584 — once
+        // getMetadata() is removed, these scenarios can be re-enabled.
+        return resolverTests(
+                RESOLVERS + ".inprocess", "in-process", "unixsocket", "targetURI", "fractional-v1", "deprecated");
+    }
+
+    @TestFactory
+    @Execution(ExecutionMode.CONCURRENT)
+    Stream<DynamicNode> file() {
+        return resolverTests(
+                RESOLVERS + ".file",
+                "file",
+                "unixsocket",
+                "targetURI",
+                "reconnect",
+                "customCert",
+                "events",
+                "contextEnrichment",
+                "fractional-v1",
+                "deprecated");
+    }
+
+    private Stream<DynamicNode> resolverTests(String resolverGlue, String includeTag, String... excludeTags) {
+        LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
+                .selectors(selectDirectory("test-harness/gherkin"))
+                .filters(
+                        EngineFilter.includeEngines("cucumber"),
+                        TagFilter.includeTags(includeTag),
+                        TagFilter.excludeTags(excludeTags))
+                .configurationParameter(GLUE_PROPERTY_NAME, STEPS + "," + resolverGlue)
+                .configurationParameter(PLUGIN_PROPERTY_NAME, "summary")
+                .configurationParameter(OBJECT_FACTORY_PROPERTY_NAME, "io.cucumber.picocontainer.PicoFactory")
+                .configurationParameter(PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, "true")
+                .configurationParameter("cucumber.execution.parallel.config.strategy", "dynamic")
+                .configurationParameter("cucumber.execution.parallel.config.dynamic.factor", "1")
+                .configurationParameter("cucumber.execution.exclusive-resources.env-var.read-write", "ENV_VARS")
+                // Every scenario in this engine carries the include tag, so give them all a READ lock
+                // on ENV_VARS. @env-var scenarios also declare read-write (above) which escalates to an
+                // exclusive lock — so they run while no other scenario in this engine reads config,
+                // preventing a process-global env var (e.g. FLAGD_SYNC_PORT) from leaking into a
+                // concurrent config-default scenario.
+                .configurationParameter("cucumber.execution.exclusive-resources." + includeTag + ".read", "ENV_VARS")
+                .configurationParameter("cucumber.execution.exclusive-resources.grace.read-write", "CONTAINER_RESTART")
+                .build();
+
+        Launcher launcher = LauncherFactory.create();
+        TestPlan testPlan = launcher.discover(request);
+
+        // Guard against tag/selector drift silently dropping an entire resolver suite: a discovery
+        // that finds zero scenarios would otherwise report this factory as green.
+        if (testPlan.countTestIdentifiers(TestIdentifier::isTest) == 0) {
+            throw new IllegalStateException(
+                    "No scenarios discovered for resolver '" + includeTag + "' — check include/exclude tag filters");
+        }
+
+        // Run the full Cucumber suite synchronously, capturing all lifecycle events.
+        // Internal Cucumber scenario-parallelism (cucumber.execution.parallel.enabled) still applies.
+        CucumberResultListener listener = new CucumberResultListener();
+        launcher.execute(request, listener);
+
+        // Build a DynamicNode tree mirroring the discovered TestPlan (engine → feature → scenario).
+        return testPlan.getRoots().stream()
+                .flatMap(root -> testPlan.getChildren(root).stream())
+                .flatMap(node -> buildNodes(testPlan, node, listener));
+    }
+
+    private Stream<DynamicNode> buildNodes(TestPlan plan, TestIdentifier id, CucumberResultListener listener) {
+        if (id.isTest()) {
+            String uid = id.getUniqueId();
+            return Stream.of(DynamicTest.dynamicTest(id.getDisplayName(), () -> {
+                if (listener.wasSkipped(uid)) {
+                    Assumptions.assumeTrue(false, listener.getSkipReason(uid));
+                    return;
+                }
+                if (!listener.wasStarted(uid)) {
+                    Assumptions.assumeTrue(false, "Scenario was discovered but not executed");
+                    return;
+                }
+                if (!listener.hasResult(uid)) {
+                    throw new AssertionError("Scenario started but did not complete: " + uid);
+                }
+                switch (listener.getResult(uid).getStatus()) {
+                    case FAILED:
+                        Throwable t = listener.getResult(uid)
+                                .getThrowable()
+                                .orElse(new AssertionError("Test failed: " + uid));
+                        if (t instanceof AssertionError) throw (AssertionError) t;
+                        if (t instanceof RuntimeException) throw (RuntimeException) t;
+                        throw new AssertionError(t);
+                    case ABORTED:
+                        Assumptions.assumeTrue(
+                                false,
+                                listener.getResult(uid)
+                                        .getThrowable()
+                                        .map(Throwable::getMessage)
+                                        .orElse("aborted"));
+                        break;
+                    default:
+                        break;
+                }
+            }));
+        }
+        Set<TestIdentifier> children = plan.getChildren(id);
+        List<DynamicNode> childNodes = children.stream()
+                .flatMap(child -> buildNodes(plan, child, listener))
+                .collect(Collectors.toList());
+        if (childNodes.isEmpty()) {
+            // A container (engine/feature) that failed or aborted before any scenario produced a
+            // node would otherwise vanish from the tree, hiding the real root cause. Materialize it
+            // as a failing node so the error stays visible in the IDE and CI output.
+            String uid = id.getUniqueId();
+            if (listener.hasResult(uid) && listener.getResult(uid).getStatus() == TestExecutionResult.Status.FAILED) {
+                return Stream.of(DynamicTest.dynamicTest(id.getDisplayName(), () -> {
+                    Throwable t = listener.getResult(uid)
+                            .getThrowable()
+                            .orElse(new AssertionError("Container failed: " + uid));
+                    if (t instanceof AssertionError) throw (AssertionError) t;
+                    if (t instanceof RuntimeException) throw (RuntimeException) t;
+                    throw new AssertionError(t);
+                }));
+            }
+            return Stream.empty();
+        }
+        return Stream.of(DynamicContainer.dynamicContainer(id.getDisplayName(), childNodes.stream()));
+    }
+}
