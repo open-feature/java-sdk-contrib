@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.openfeature.contrib</groupId>
+        <artifactId>parent</artifactId>
+        <version>[1.0,2.0)</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>dev.openfeature.contrib.tools</groupId>
+    <artifactId>provider-tck</artifactId>
+    <version>0.0.1</version> <!--x-release-please-version -->
+
+    <properties>
+        <module-name>${groupId}.providertck</module-name>
+        <assertj.version>3.27.7</assertj.version>
+        <awaitility.version>4.3.0</awaitility.version>
+        <jackson-databind.version>2.22.1</jackson-databind.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <testcontainers.version>2.0.4</testcontainers.version>
+        <opentest4j.version>1.3.0</opentest4j.version>
+    </properties>
+
+    <name>provider-tck</name>
+    <description>
+        Language-agnostic conformance test suite (TCK) for OpenFeature providers.
+        Bundles the canonical Gherkin feature files, Cucumber step definitions and an
+        abstract JUnit Platform Suite base class that owns the full test lifecycle:
+        starting the vendor-supplied Docker Compose stack, discovering dynamically
+        mapped ports, driving the standardised control API and awaiting provider
+        events. Provider authors implement a single factory interface.
+    </description>
+    <url>https://openfeature.dev</url>
+
+    <developers>
+        <developer>
+            <id>aepfli</id>
+            <name>Simon Schrottner</name>
+            <organization>OpenFeature</organization>
+            <url>https://openfeature.dev/</url>
+        </developer>
+    </developers>
+
+    <!--
+        NOTE ON THE SOURCE OF TRUTH FOR THE SPEC ARTIFACTS
+        =================================================
+        Three of the resources in src/main/resources are NOT Java artifacts. They
+        are language-agnostic definitions of the provider contract, and every
+        language's TCK must agree on them byte for byte or "conformance" means
+        nothing:
+
+          features/            the canonical Gherkin — the test cases themselves
+          openapi/control-api.yaml   what a backend under test must expose
+          flags/canonical-flags.json the flag set those test cases assume
+
+        They currently live in this module and are packaged into the release JAR,
+        so consumers load them from the classpath and need no git submodule.
+
+        Long term all three belong in the OpenFeature *spec* repository
+        (open-feature/spec), with this module acting purely as their Java
+        delivery vehicle. The three travel together by necessity: a feature file
+        that evaluates `boolean-flag` is meaningless without the flag definition,
+        and a disconnect scenario is meaningless without the control endpoint
+        that produces the disconnect.
+
+        When that move happens the packaging mechanism does not change, only the
+        origin of the files. Wire it exactly like tools/flagd-api-testkit does
+        today:
+
+          1. git submodule add https://github.com/open-feature/spec.git spec
+          2. exec-maven-plugin @ initialize, running a git submodule update
+          3. maven-resources-plugin @ generate-resources -> copy
+             ${basedir}/spec/provider-tck/{gherkin,flags,openapi}/
+             into ${basedir}/src/main/resources/{features,flags,openapi}/
+
+        Consumers see no difference: @SelectClasspathResource("features") keeps
+        working and the JAR keeps shipping all three.
+    -->
+
+    <dependencies>
+        <!--
+            Everything below is deliberately `compile` scope. This artifact is a test
+            *library*: consumers put it on their test classpath and the abstract suite,
+            the SPI and the step definitions must all resolve from it. The OpenFeature
+            SDK itself is inherited from the parent POM as a `provided` version RANGE
+            ([1.21.0,1.99999)) — the TCK never pins an SDK version, so adopting it can
+            never force a provider to upgrade.
+        -->
+
+        <!-- Cucumber step definition annotations — compile scope so consumers can
+             discover the step classes from this JAR on the glue path -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
+        </dependency>
+
+        <!-- Cucumber JUnit Platform Engine — compile scope for the GLUE_PROPERTY_NAME /
+             OBJECT_FACTORY_PROPERTY_NAME constants used in AbstractProviderTckTest -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+        </dependency>
+
+        <!-- PicoContainer object factory — injects TckState into every step class -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- JUnit Platform Suite — compile scope so AbstractProviderTckTest can carry
+             @Suite/@IncludeEngines/@SelectClasspathResource/@ConfigurationParameter -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!--
+            opentest4j — TestAbortedException is how unsupported capabilities are
+            reported as SKIPPED rather than silently passing.
+        -->
+        <dependency>
+            <groupId>org.opentest4j</groupId>
+            <artifactId>opentest4j</artifactId>
+            <version>${opentest4j.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Assertions used inside step definitions -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Awaitility — event/state awaiting with provider-configurable timeouts -->
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${awaitility.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!--
+            Testcontainers — the base class owns the ComposeContainer lifecycle.
+            2.x is compiled with `options.release.set(8)`, so it links cleanly under
+            this repo's maven.compiler.release=11. Kept on the same major as the
+            flagd provider's existing e2e suite to avoid two Testcontainers versions
+            on one test classpath.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Jackson for Object-type flag value parsing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson-databind.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
