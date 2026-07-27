@@ -154,17 +154,11 @@ public class MyProviderTckTest extends AbstractProviderTckTest {
 }
 ```
 
-Plus one line at
-`src/test/resources/META-INF/services/dev.openfeature.contrib.tools.providertck.ProviderTckHarness`:
-
-```
-com.example.MyProviderTckTest
-```
-
-That is the whole adoption. The Compose lifecycle, port discovery, control API calls, provider
-registration, event awaiting and teardown all belong to the TCK. **If you find yourself adding
-test infrastructure to this class, that is a bug in the TCK — please open an issue rather than
-working around it.**
+That is the whole adoption — one file, no registration. The class is simultaneously the JUnit suite
+and the harness, and the TCK works out which suite is running from the JUnit test plan. The Compose
+lifecycle, port discovery, control API calls, provider registration, event awaiting and teardown all
+belong to the TCK. **If you find yourself adding test infrastructure to this class, that is a bug in
+the TCK — please open an issue rather than working around it.**
 
 `createUnavailableProvider()` should point at a closed port on localhost, not at your stack — the
 stack must stay up, and simulated outages belong to the control API. Give it a short connection
@@ -173,15 +167,46 @@ will not make it.
 
 #### Several provider modes
 
-Providers with more than one transport (remote evaluation vs. in-process, say) register one harness
-class per mode and select between them with a system property, typically one Surefire execution
-each:
+A provider with more than one transport writes **one class per mode and nothing else** — no
+registration, no system property, no build configuration. Each class is its own suite, each gets its
+own Compose stack, and they can share a base class:
 
-```
--Dopenfeature.tck.harness=MyProviderRpcTckTest
+```java
+abstract class AbstractMyProviderTckTest extends AbstractProviderTckTest {
+    protected abstract Mode mode();
+    // composeFile(), createProvider(), capabilities() ... shared here
+}
+
+public class MyProviderRemoteTckTest extends AbstractMyProviderTckTest {
+    @Override protected Mode mode() { return Mode.REMOTE; }
+}
+
+public class MyProviderInProcessTckTest extends AbstractMyProviderTckTest {
+    @Override protected Mode mode() { return Mode.IN_PROCESS; }
+}
 ```
 
-With a single registered harness the property is not needed.
+This is how flagd covers RPC and in-process — see
+[`AbstractFlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/AbstractFlagdTckTest.java).
+Abstract classes are not run, so an intermediate base is safe.
+
+Note that per-mode differences may include timing, not just wiring: flagd's in-process resolver
+syncs the whole ruleset before reporting ready, so it needs a longer initialisation deadline than
+its RPC mode. Give a connecting provider a generous deadline and an intentionally unreachable one a
+short deadline — the failure scenarios assert that failure is reported *promptly*.
+
+<details>
+<summary>Fallback: <code>ServiceLoader</code> registration</summary>
+
+Suite discovery relies on the JUnit Platform auto-registering `TckSuiteListener` (declared in this
+JAR's `META-INF/services/org.junit.platform.launcher.TestExecutionListener`), which Surefire, Gradle
+and IDEs all do by default. If your launcher disables listener auto-registration, register the
+harness explicitly instead at
+`src/test/resources/META-INF/services/dev.openfeature.contrib.tools.providertck.ProviderTckHarness`,
+and if you register more than one, select between them with
+`-Dopenfeature.tck.harness=MyProviderRemoteTckTest`.
+
+</details>
 
 ## Declaring capabilities
 
@@ -216,8 +241,8 @@ requires `TYPE_MISMATCH` when the requested type cannot be satisfied, and narrow
 loses information silently — the worst failure mode for a feature flag, because the application
 sees a plausible value and no error. It is a capability only so a provider with this defect can
 adopt the TCK today and see the gap reported explicitly. Not declaring it is an admission of a
-known bug. **The flagd provider currently does not declare it** — see
-[`FlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/FlagdTckTest.java).
+known bug. **The flagd provider currently does not declare it**, in either RPC or in-process mode —
+see [`AbstractFlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/AbstractFlagdTckTest.java).
 
 ## Tuning timeouts
 
@@ -312,7 +337,9 @@ consumers — the features stay on the classpath and stay inside the JAR.
   whether it holds a local copy of the ruleset. The `@caching` tag is reserved; no scenarios yet.
 - **Hooks.** Not covered.
 - **Flag metadata.** The flagd harness has metadata scenarios; they are not yet ported.
-- **Multi-suite JVMs.** `TckRuntime` is static, so one TCK suite may run per JVM fork at a time.
+- **Multi-suite JVMs.** `TckRuntime` is static, so TCK suites run one at a time within a JVM fork.
+  Several suites in one fork is fine — they run sequentially, each with its own Compose stack — but
+  they cannot run concurrently.
 - **Scenario coverage is a representative subset**, covering each architectural mechanism once
   rather than exhaustively.
 

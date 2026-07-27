@@ -118,6 +118,15 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- JUnit Platform Launcher — TckSuiteListener implements TestExecutionListener to
+             report which suite is executing, which is how a provider with several transports
+             gets one suite class per transport with no extra configuration -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
         <!--
             opentest4j — TestAbortedException is how unsupported capabilities are
             reported as SKIPPED rather than silently passing.
