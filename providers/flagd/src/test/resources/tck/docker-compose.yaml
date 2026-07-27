@@ -1,0 +1,15 @@
+# Backend stack for the OpenFeature Provider TCK, wrapping the unmodified flagd testbed image.
+#
+# The image already serves everything the TCK needs: flagd itself, and the "launchpad" control
+# API on 8080 whose endpoints this TCK's control API contract was derived from.
+#
+# Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers
+# them after startup — a pinned host port would make the suite unrunnable in parallel and would
+# collide with a developer's local flagd.
+services:
+  backend:
+    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    ports:
+      - 8013   # flagd RPC evaluation (gRPC)
+      - 8015   # flagd in-process sync (gRPC)
+      - 8080   # launchpad control API
