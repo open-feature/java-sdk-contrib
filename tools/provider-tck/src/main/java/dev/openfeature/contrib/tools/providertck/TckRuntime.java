@@ -5,6 +5,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -145,14 +146,30 @@ public final class TckRuntime {
         return compose;
     }
 
+    /**
+     * Finds the harness for the suite that is currently executing.
+     *
+     * <p>Primary mechanism: the executing suite class itself, reported by {@link TckSuiteListener}.
+     * A suite class implements {@link ProviderTckHarness}, so a provider with several transports
+     * writes one suite class per transport and needs no registration, no system property and no
+     * build configuration to keep them apart.
+     *
+     * <p>Fallback: {@link java.util.ServiceLoader}, for setups where the launcher does not
+     * auto-register listeners. That path cannot distinguish between several registered harnesses,
+     * so it accepts exactly one unless {@link #HARNESS_SELECTOR_PROPERTY} names which to use.
+     */
     private static ProviderTckHarness discoverHarness() {
+        Optional<Class<? extends ProviderTckHarness>> suite = TckSuiteListener.currentSuite();
+        if (suite.isPresent()) {
+            return instantiate(suite.get());
+        }
+
         List<ProviderTckHarness> found = new ArrayList<>();
         ServiceLoader.load(ProviderTckHarness.class).forEach(found::add);
 
         if (found.isEmpty()) {
-            throw new IllegalStateException("No ProviderTckHarness found. Extend AbstractProviderTckTest and register "
-                    + "the concrete class in src/test/resources/META-INF/services/"
-                    + ProviderTckHarness.class.getName());
+            throw new IllegalStateException("No ProviderTckHarness found. Write a test class extending "
+                    + "AbstractProviderTckTest; it is both the JUnit suite and the harness.");
         }
         if (found.size() == 1) {
             return found.get(0);
@@ -162,8 +179,9 @@ public final class TckRuntime {
         if (selector == null) {
             throw new IllegalStateException("Several ProviderTckHarness implementations are registered ("
                     + found.stream().map(h -> h.getClass().getSimpleName()).collect(Collectors.joining(", "))
-                    + "). Select one with -D" + HARNESS_SELECTOR_PROPERTY + "=<simple class name>, "
-                    + "typically via a separate Surefire execution per provider variant.");
+                    + ") and the executing suite could not be determined, which normally means the JUnit "
+                    + "Platform did not auto-register TckSuiteListener. Select one with -D"
+                    + HARNESS_SELECTOR_PROPERTY + "=<simple class name>.");
         }
         return found.stream()
                 .filter(h -> h.getClass().getSimpleName().equals(selector))
@@ -171,5 +189,16 @@ public final class TckRuntime {
                 .orElseThrow(() -> new IllegalStateException("No registered ProviderTckHarness named '" + selector
                         + "'. Registered: "
                         + found.stream().map(h -> h.getClass().getSimpleName()).collect(Collectors.joining(", "))));
+    }
+
+    private static ProviderTckHarness instantiate(Class<? extends ProviderTckHarness> suite) {
+        try {
+            return suite.getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(
+                    suite.getName() + " could not be instantiated. A TCK suite class needs a public no-argument "
+                            + "constructor, because the TCK creates one to read its configuration.",
+                    e);
+        }
     }
 }
