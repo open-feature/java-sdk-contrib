@@ -46,6 +46,8 @@ components:
     - toddbaert
   tools/flagd-http-connector:
     - liran2000
+  tools/provider-tck:
+    - aepfli
 
 ignored-authors:
   - renovate-bot

@@ -205,6 +205,17 @@
         "README.md"
       ]
     },
+    "tools/provider-tck": {
+      "package-name": "dev.openfeature.contrib.tools.providertck",
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": [
+        "pom.xml",
+        "README.md"
+      ]
+    },
     "tools/flagd-api-testkit": {
       "package-name": "dev.openfeature.contrib.tools.flagdapitestkit",
       "release-type": "simple",
