@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.2.0...dev.openfeature.contrib.providers.go-feature-flag-v1.2.1) (2026-07-24)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-core to v2.22.1 [security] ([#1828](https://github.com/open-feature/java-sdk-contrib/issues/1828)) ([df7b60a](https://github.com/open-feature/java-sdk-contrib/commit/df7b60a4deed2b654cb7933c8bf5bedd1fbc5c08))
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.1 [security] ([#1823](https://github.com/open-feature/java-sdk-contrib/issues/1823)) ([4f1ae9b](https://github.com/open-feature/java-sdk-contrib/commit/4f1ae9b5ac1bba9242aa3ff2ec5c43c94f7989fe))
+
+## [1.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.2...dev.openfeature.contrib.providers.go-feature-flag-v1.2.0) (2026-07-02)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Bump WASM module to 0.2.3 ([#1820](https://github.com/open-feature/java-sdk-contrib/issues/1820)) ([03e0eeb](https://github.com/open-feature/java-sdk-contrib/commit/03e0eeb501ea41e4aa4c19029da620dd3a0c007e))
+
 ## [1.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.1...dev.openfeature.contrib.providers.go-feature-flag-v1.1.2) (2026-04-25)
 
 
