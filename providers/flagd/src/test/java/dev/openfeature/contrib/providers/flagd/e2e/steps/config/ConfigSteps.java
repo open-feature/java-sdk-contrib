@@ -66,7 +66,7 @@ public class ConfigSteps extends AbstractSteps {
             return;
         }
 
-        Object converted = Utils.convert(value, type);
+        Object converted = ("null".equals(value) && "String".equals(type)) ? null : Utils.convert(value, type);
         Method method = Arrays.stream(state.builder.getClass().getMethods())
                 .filter(method1 -> method1.getName().equals(mapOptionNames(option)))
                 .findFirst()
@@ -87,7 +87,7 @@ public class ConfigSteps extends AbstractSteps {
 
     @Then("the option {string} of type {string} should have the value {string}")
     public void the_option_of_type_should_have_the_value(String option, String type, String value) throws Throwable {
-        Object convert = Utils.convert(value, type);
+        Object convert = ("null".equals(value) && "String".equals(type)) ? null : Utils.convert(value, type);
 
         if (IGNORED_FOR_NOW.contains(option)) {
             log.error("option '{}' is not supported", option);
