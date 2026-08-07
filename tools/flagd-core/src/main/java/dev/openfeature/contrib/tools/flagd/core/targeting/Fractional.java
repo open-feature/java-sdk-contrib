@@ -1,10 +1,16 @@
 package dev.openfeature.contrib.tools.flagd.core.targeting;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.upokecenter.cbor.CBORObject;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +38,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
         final Operator.FlagProperties properties = new Operator.FlagProperties(data);
 
-        final String bucketBy;
+        final Object bucketBy;
         final List<Object> distributions;
 
         // json-logic pre-evaluation flattens a single-entry fractional
@@ -42,34 +48,50 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 log.debug("Missing fallback targeting key");
                 return null;
             }
-            bucketBy = properties.getFlagKey() + properties.getTargetingKey();
+            bucketBy = java.util.Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
             distributions = List.of(arguments);
-        } else if (arguments.get(0) instanceof String) {
-            // first arg is a String, use for bucketing
-            bucketBy = (String) arguments.get(0);
+        } else if (arguments.get(0) instanceof String
+                || arguments.get(0) instanceof Boolean
+                || arguments.get(0) instanceof Number
+                || arguments.get(0) instanceof java.util.Map) {
+            // first arg is a primitive or Map, use for bucketing
+            bucketBy = arguments.get(0);
             distributions = arguments.subList(1, arguments.size());
         } else {
             // fallback to targeting key if present
             if (properties.getTargetingKey() == null) {
                 log.debug("Missing fallback targeting key");
+                if (arguments.size() == 2) {
+                    throw new dev.openfeature.sdk.exceptions.GeneralError("Missing fallback targeting key");
+                }
                 return null;
             }
-            bucketBy = properties.getFlagKey() + properties.getTargetingKey();
-            distributions = arguments;
+
+            bucketBy = java.util.Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
+
+            if (arguments.get(0) == null) {
+                // arguments.get(0) resolved to null, skip it in distributions
+                distributions = arguments.subList(1, arguments.size());
+            } else {
+                distributions = arguments;
+            }
         }
 
         final List<FractionProperty> propertyList = new ArrayList<>();
         long totalWeight = 0;
 
-        try {
-            for (Object dist : distributions) {
+        for (Object dist : distributions) {
+            try {
                 FractionProperty fractionProperty = new FractionProperty(dist, jsonPath);
                 propertyList.add(fractionProperty);
                 totalWeight += fractionProperty.getWeight();
+            } catch (JsonLogicException e) {
+                if ("Property is not an array".equals(e.getMessage())) {
+                    throw new io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException(
+                            "Error parsing fractional targeting rule: " + e.getMessage(), jsonPath);
+                }
+                return null;
             }
-        } catch (JsonLogicException e) {
-            log.debug("Error parsing fractional targeting rule", e);
-            return null;
         }
 
         if (totalWeight > MAX_WEIGHT) {
@@ -87,12 +109,20 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     private static Object distributeValue(
-            final String hashKey,
+            final Object hashKey,
             final List<FractionProperty> propertyList,
             final int totalWeight,
             final String jsonPath)
             throws JsonLogicEvaluationException {
-        byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes;
+        try {
+            JsonNode node = objectMapper.valueToTree(hashKey);
+            CBORObject dataItem = convertNode(node);
+            bytes = dataItem.EncodeToBytes();
+        } catch (Exception e) {
+            log.debug("Error converting hashKey to CBOR", e);
+            throw new JsonLogicEvaluationException("Error converting hashKey to CBOR", jsonPath);
+        }
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
         return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
     }
@@ -127,6 +157,67 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
         // this shall not be reached
         throw new JsonLogicEvaluationException("Unable to find a correct bucket for hash " + hash, jsonPath);
+    }
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static class CanonicalKeyComparator implements Comparator<String>, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public int compare(String k1, String k2) {
+            byte[] b1 = k1.getBytes(StandardCharsets.UTF_8);
+            byte[] b2 = k2.getBytes(StandardCharsets.UTF_8);
+            if (b1.length != b2.length) {
+                return Integer.compare(b1.length, b2.length);
+            }
+            for (int i = 0; i < b1.length; i++) {
+                int v1 = b1[i] & 0xFF;
+                int v2 = b2[i] & 0xFF;
+                if (v1 != v2) {
+                    return Integer.compare(v1, v2);
+                }
+            }
+            return 0;
+        }
+    }
+
+    private static final CanonicalKeyComparator KEY_COMPARATOR = new CanonicalKeyComparator();
+
+    private static CBORObject convertNode(JsonNode node) {
+        if (node.isNull()) {
+            return CBORObject.Null;
+        } else if (node.isBoolean()) {
+            return CBORObject.FromObject(node.asBoolean());
+        } else if (node.isTextual()) {
+            return CBORObject.FromObject(node.asText());
+        } else if (node.isNumber()) {
+            if (node.isIntegralNumber()) {
+                return CBORObject.FromObject(node.asLong());
+            } else {
+                double val = node.asDouble();
+                if (val == Math.floor(val) && val >= Long.MIN_VALUE && val <= Long.MAX_VALUE) {
+                    return CBORObject.FromObject((long) val);
+                }
+                return CBORObject.FromObject(val);
+            }
+        } else if (node.isArray()) {
+            CBORObject array = CBORObject.NewArray();
+            for (JsonNode item : node) {
+                array.Add(convertNode(item));
+            }
+            return array;
+        } else if (node.isObject()) {
+            CBORObject map = CBORObject.NewOrderedMap();
+            List<String> fieldNames = new ArrayList<>();
+            node.fieldNames().forEachRemaining(fieldNames::add);
+            Collections.sort(fieldNames, KEY_COMPARATOR);
+            for (String fieldName : fieldNames) {
+                map.Add(fieldName, convertNode(node.get(fieldName)));
+            }
+            return map;
+        }
+        throw new IllegalArgumentException("Unsupported node type: " + node.getNodeType());
     }
 
     @Getter
