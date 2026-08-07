@@ -59,9 +59,9 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             // fallback to targeting key if present
             if (properties.getTargetingKey() == null) {
                 log.debug("Missing fallback targeting key");
-                if (arguments.size() == 2) {
-                    throw new dev.openfeature.sdk.exceptions.GeneralError("Missing fallback targeting key");
-                }
+                // if (arguments.size() == 2) {
+                //     throw new dev.openfeature.sdk.exceptions.GeneralError("Missing fallback targeting key");
+                // }
                 return null;
             }
 
