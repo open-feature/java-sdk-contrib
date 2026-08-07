@@ -18,7 +18,6 @@ class FlagdProviderSyncResources {
     @Setter
     private volatile ProviderEvent previousEvent;
 
-    @Setter
     private volatile boolean isFatal;
 
     private volatile ProviderEventDetails fatalProviderEventDetails;
@@ -111,12 +110,22 @@ class FlagdProviderSyncResources {
      */
     public synchronized void shutdown() {
         isShutDown = true;
+        isInitialized = false;
         this.notifyAll();
     }
 
     public synchronized void fatalError(ProviderEventDetails providerEventDetails) {
         isFatal = true;
+        isInitialized = false;
         fatalProviderEventDetails = providerEventDetails;
+        this.notifyAll();
+    }
+
+    public synchronized void setFatal(boolean fatal) {
+        isFatal = fatal;
+        if (fatal) {
+            isInitialized = false;
+        }
         this.notifyAll();
     }
 }
