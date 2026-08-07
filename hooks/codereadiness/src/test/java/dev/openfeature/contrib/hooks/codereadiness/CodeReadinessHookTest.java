@@ -41,7 +41,8 @@ class CodeReadinessHookTest {
 
         assertThatThrownBy(() -> hook.after(hookContext, details, Collections.emptyMap()))
                 .isInstanceOf(GeneralError.class)
-                .hasMessage("current version: \"1.0.0\" required minimum version: \"1.2.0\" check failed");
+                .hasMessage(
+                        "current version: \"1.0.0\" required minimum version: \"1.2.0\" flag \"testFlag\" check failed");
     }
 
     @Test
@@ -199,7 +200,8 @@ class CodeReadinessHookTest {
 
         assertThatThrownBy(() -> hook.after(hookContext, details, Collections.emptyMap()))
                 .isInstanceOf(GeneralError.class)
-                .hasMessage("current version: \"10.0.0\" required minimum version: \"1.0.0\" check failed");
+                .hasMessage(
+                        "current version: \"10.0.0\" required minimum version: \"1.0.0\" flag \"testFlag\" check failed");
     }
 
     @Test
@@ -284,7 +286,7 @@ class CodeReadinessHookTest {
         FlagEvaluationDetails invalidDetails = createDetailsWithMetadata("minCodeVersion", "20");
         assertThatThrownBy(() -> hook.after(hookContext, invalidDetails, Collections.emptyMap()))
                 .isInstanceOf(GeneralError.class)
-                .hasMessage("current version: \"15\" required minimum version: \"20\" check failed");
+                .hasMessage("current version: \"15\" required minimum version: \"20\" flag \"testFlag\" check failed");
     }
 
     private FlagEvaluationDetails createDetailsWithMetadata(String key, Object value) {

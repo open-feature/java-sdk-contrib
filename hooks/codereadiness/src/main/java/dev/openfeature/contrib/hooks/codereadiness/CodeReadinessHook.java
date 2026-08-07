@@ -45,7 +45,9 @@ public final class CodeReadinessHook implements Hook {
         this.metadataMinVerKey =
                 Objects.requireNonNull(metadataMinVerKey, "codereadiness: metadataMinVerKey cannot be null");
         Objects.requireNonNull(comparator, "codereadiness: comparator cannot be null");
-        this.comparator = (VersionComparator<Object>) comparator;
+        @SuppressWarnings("unchecked")
+        VersionComparator<Object> typedComparator = (VersionComparator<Object>) comparator;
+        this.comparator = typedComparator;
         try {
             this.parsedCurrentVersion = this.comparator.parse(currentVersion);
         } catch (Exception err) {
@@ -99,8 +101,8 @@ public final class CodeReadinessHook implements Hook {
         }
         if (!isCodeReady) {
             throw new GeneralError(String.format(
-                    "current version: \"%s\" required minimum version: \"%s\" check failed",
-                    currentVersion, minCodeVersion));
+                    "current version: \"%s\" required minimum version: \"%s\" flag \"%s\" check failed",
+                    currentVersion, minCodeVersion, ctx.getFlagKey()));
         }
     }
 }
