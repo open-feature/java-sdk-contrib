@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.openfeature.contrib.hooks</groupId>
     <artifactId>code-readiness-hook</artifactId>
-    <version>0.1.0</version> <!--x-release-please-version -->
+    <version>0.1.1</version> <!--x-release-please-version -->
 
     <name>code-readiness-hook</name>
     <description>Code Readiness Hook</description>
