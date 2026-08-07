@@ -6,10 +6,8 @@ import com.upokecenter.cbor.CBORObject;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import lombok.Getter;
@@ -108,6 +106,8 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         return distributeValue(bucketBy, propertyList, (int) totalWeight, jsonPath);
     }
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private static Object distributeValue(
             final Object hashKey,
             final List<FractionProperty> propertyList,
@@ -116,7 +116,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             throws JsonLogicEvaluationException {
         byte[] bytes;
         try {
-            JsonNode node = objectMapper.valueToTree(hashKey);
+            JsonNode node = OBJECT_MAPPER.valueToTree(hashKey);
             CBORObject dataItem = convertNode(node);
             bytes = dataItem.EncodeToBytes();
         } catch (Exception e) {
@@ -159,36 +159,27 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         throw new JsonLogicEvaluationException("Unable to find a correct bucket for hash " + hash, jsonPath);
     }
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
-    private static class CanonicalKeyComparator implements Comparator<String>, Serializable {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public int compare(String k1, String k2) {
-            byte[] b1 = k1.getBytes(StandardCharsets.UTF_8);
-            byte[] b2 = k2.getBytes(StandardCharsets.UTF_8);
-            if (b1.length != b2.length) {
-                return Integer.compare(b1.length, b2.length);
-            }
-            for (int i = 0; i < b1.length; i++) {
-                int v1 = b1[i] & 0xFF;
-                int v2 = b2[i] & 0xFF;
-                if (v1 != v2) {
-                    return Integer.compare(v1, v2);
-                }
-            }
-            return 0;
+    private static final Comparator<String> KEY_COMPARATOR = (k1, k2) -> {
+        byte[] b1 = k1.getBytes(StandardCharsets.UTF_8);
+        byte[] b2 = k2.getBytes(StandardCharsets.UTF_8);
+        if (b1.length != b2.length) {
+            return Integer.compare(b1.length, b2.length);
         }
-    }
-
-    private static final CanonicalKeyComparator KEY_COMPARATOR = new CanonicalKeyComparator();
+        for (int i = 0; i < b1.length; i++) {
+            int v1 = b1[i] & 0xFF;
+            int v2 = b2[i] & 0xFF;
+            if (v1 != v2) {
+                return Integer.compare(v1, v2);
+            }
+        }
+        return 0;
+    };
 
     private static CBORObject convertNode(JsonNode node) {
         if (node.isNull()) {
             return CBORObject.Null;
         } else if (node.isBoolean()) {
-            return CBORObject.FromObject(node.asBoolean());
+            return node.asBoolean() ? CBORObject.True : CBORObject.False;
         } else if (node.isTextual()) {
             return CBORObject.FromObject(node.asText());
         } else if (node.isNumber()) {
@@ -204,16 +195,18 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         } else if (node.isArray()) {
             CBORObject array = CBORObject.NewArray();
             for (JsonNode item : node) {
-                array.Add(convertNode(item));
+                CBORObject child = convertNode(item);
+                array.Add(child);
             }
             return array;
         } else if (node.isObject()) {
             CBORObject map = CBORObject.NewOrderedMap();
             List<String> fieldNames = new ArrayList<>();
             node.fieldNames().forEachRemaining(fieldNames::add);
-            Collections.sort(fieldNames, KEY_COMPARATOR);
+            fieldNames.sort(KEY_COMPARATOR);
             for (String fieldName : fieldNames) {
-                map.Add(fieldName, convertNode(node.get(fieldName)));
+                CBORObject child = convertNode(node.get(fieldName));
+                map.Add(fieldName, child);
             }
             return map;
         }
