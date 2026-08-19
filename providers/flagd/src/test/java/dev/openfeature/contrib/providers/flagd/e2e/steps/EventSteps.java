@@ -26,8 +26,8 @@ public class EventSteps extends AbstractSteps {
         state.client.on(mapEventType(eventType), eventDetails -> {
             log.info("{} event tracked", eventType);
             Event event = new Event(eventType, eventDetails);
-            state.assertedEvents.add(event);
             state.allEvents.add(event);
+            state.assertedEvents.add(event);
         });
     }
 
