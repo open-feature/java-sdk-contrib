@@ -53,8 +53,8 @@ public class ChannelBuilder {
                                         Collections.singletonMap("service", "flagd.evaluation.v2.Service")));
                         put("retryPolicy", new HashMap() {
                             {
-                                // 1 + 2 + 4
-                                put("maxAttempts", 3.0); // types used here are important, need to be doubles
+                                // total attempts = initial + 3 retries (backoff 1s, 2s, 4s)
+                                put("maxAttempts", 4.0); // types used here are important, need to be doubles
                                 put("initialBackoff", "1s");
                                 put(
                                         "maxBackoff",

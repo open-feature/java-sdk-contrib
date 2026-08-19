@@ -21,7 +21,10 @@ public class State {
     /** The container borrowed from {@link ContainerPool} for this scenario. */
     public ContainerEntry containerEntry;
 
-    public ConcurrentLinkedQueue<Event> events = new ConcurrentLinkedQueue<>();
+    // events not yet consumed by a positive assertion; drained as they are matched
+    public ConcurrentLinkedQueue<Event> assertedEvents = new ConcurrentLinkedQueue<>();
+    // complete log of every event emitted, used for "never fired" assertions
+    public ConcurrentLinkedQueue<Event> allEvents = new ConcurrentLinkedQueue<>();
     public Optional<Event> lastEvent;
     public FlagSteps.Flag flag;
     public MutableContext context = new MutableContext();

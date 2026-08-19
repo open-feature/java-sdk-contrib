@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.providers.flagd.e2e.State;
@@ -24,7 +25,9 @@ public class EventSteps extends AbstractSteps {
     public void a_stale_event_handler(String eventType) {
         state.client.on(mapEventType(eventType), eventDetails -> {
             log.info("{} event tracked", eventType);
-            state.events.add(new Event(eventType, eventDetails));
+            Event event = new Event(eventType, eventDetails);
+            state.assertedEvents.add(event);
+            state.allEvents.add(event);
         });
     }
 
@@ -53,20 +56,29 @@ public class EventSteps extends AbstractSteps {
         eventHandlerShouldBeExecutedWithin(eventType, EVENT_TIMEOUT_MS);
     }
 
+    @Then("the {} event handler should not have been executed")
+    public void eventHandlerShouldNotHaveBeenExecuted(String eventType) {
+        // checks the full log, not assertedEvents: preceding positive
+        // assertions may have drained an intervening event of this type
+        assertThat(state.allEvents.stream().anyMatch(event -> event.type.equals(eventType)))
+                .as("no %s event should have fired", eventType)
+                .isFalse();
+    }
+
     @Then("the {} event handler should have been executed within {int}ms")
     public void eventHandlerShouldBeExecutedWithin(String eventType, int ms) {
         log.info("waiting for eventtype: {}", eventType);
         await().alias("waiting for eventtype " + eventType)
                 .atMost(ms, MILLISECONDS)
                 .pollInterval(10, MILLISECONDS)
-                .until(() -> state.events.stream().anyMatch(event -> event.type.equals(eventType)));
+                .until(() -> state.assertedEvents.stream().anyMatch(event -> event.type.equals(eventType)));
         // Drain all events up to and including the first match. This ensures that
         // older events (e.g. a READY from before a disconnect) cannot satisfy a
         // later assertion that expects a *new* event of the same type, while still
         // preserving events that arrived *after* the match for subsequent steps.
         Event matched = null;
-        while (!state.events.isEmpty()) {
-            Event head = state.events.poll();
+        while (!state.assertedEvents.isEmpty()) {
+            Event head = state.assertedEvents.poll();
             if (head != null && head.type.equals(eventType)) {
                 matched = head;
                 break;
