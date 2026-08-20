@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.4...dev.openfeature.contrib.providers.flipt-v0.1.5) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-core to v2.22.1 [security] ([#1828](https://github.com/open-feature/java-sdk-contrib/issues/1828)) ([df7b60a](https://github.com/open-feature/java-sdk-contrib/commit/df7b60a4deed2b654cb7933c8bf5bedd1fbc5c08))
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.1 [security] ([#1823](https://github.com/open-feature/java-sdk-contrib/issues/1823)) ([4f1ae9b](https://github.com/open-feature/java-sdk-contrib/commit/4f1ae9b5ac1bba9242aa3ff2ec5c43c94f7989fe))
+
 ## [0.1.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flipt-v0.1.3...dev.openfeature.contrib.providers.flipt-v0.1.4) (2026-06-15)
 
 
