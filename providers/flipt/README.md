@@ -10,7 +10,7 @@
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flipt</artifactId>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
 </dependency>
 ```
 
