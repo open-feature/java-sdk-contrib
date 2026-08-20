@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapitestkit-v0.2.1...dev.openfeature.contrib.tools.flagdapitestkit-v0.3.0) (2026-08-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800))
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.1 [security] ([#1823](https://github.com/open-feature/java-sdk-contrib/issues/1823)) ([4f1ae9b](https://github.com/open-feature/java-sdk-contrib/commit/4f1ae9b5ac1bba9242aa3ff2ec5c43c94f7989fe))
+* various custom operator conformance fixes ([#1778](https://github.com/open-feature/java-sdk-contrib/issues/1778)) ([cced215](https://github.com/open-feature/java-sdk-contrib/commit/cced215af4ecbff010ae7bb4af82072224bc6eb0))
+
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#1800](https://github.com/open-feature/java-sdk-contrib/issues/1800)) ([d732c35](https://github.com/open-feature/java-sdk-contrib/commit/d732c355597f85cbd914107f4ff63e9ef73d677d))
+
 ## [0.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapitestkit-v0.2.0...dev.openfeature.contrib.tools.flagdapitestkit-v0.2.1) (2026-04-01)
 
 
