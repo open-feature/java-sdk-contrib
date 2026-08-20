@@ -36,6 +36,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     "events",
     "contextEnrichment",
     "fractional-v1",
+    "fractional-v3",
     "deprecated"
 })
 @Testcontainers

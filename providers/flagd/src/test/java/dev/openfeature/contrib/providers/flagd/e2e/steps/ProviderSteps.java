@@ -72,9 +72,9 @@ public class ProviderSteps extends AbstractSteps {
         state.builder
                 .deadline(1000)
                 .keepAlive(0)
-                .retryGracePeriod(2)
+                .retryGracePeriod(5)
                 .retryBackoffMs(500)
-                .retryBackoffMaxMs(2000);
+                .retryBackoffMaxMs(500);
         boolean wait = true;
 
         switch (providerType) {

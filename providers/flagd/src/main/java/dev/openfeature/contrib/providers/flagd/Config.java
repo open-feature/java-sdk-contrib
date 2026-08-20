@@ -17,9 +17,9 @@ public final class Config {
     static final String DEFAULT_HOST = "localhost";
 
     static final int DEFAULT_DEADLINE = 500;
-    static final int DEFAULT_MAX_RETRY_BACKOFF_MS = 12000;
+    static final int DEFAULT_MAX_RETRY_BACKOFF_MS = 5000;
     static final int DEFAULT_STREAM_DEADLINE_MS = 10 * 60 * 1000;
-    static final int DEFAULT_STREAM_RETRY_GRACE_PERIOD = 5;
+    static final int DEFAULT_STREAM_RETRY_GRACE_PERIOD = 10;
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
     static final int DEFAULT_OFFLINE_POLL_MS = 5000;
     static final long DEFAULT_KEEP_ALIVE = 0;
