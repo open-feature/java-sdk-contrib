@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.0...dev.openfeature.contrib.providers.flagd-v0.14.1) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* correct grace-period/max-retry-backoff defaults to prevent log spam ([#1835](https://github.com/open-feature/java-sdk-contrib/issues/1835)) ([8bdfead](https://github.com/open-feature/java-sdk-contrib/commit/8bdfead6582fa8ab1ba2518eac7f2f555845b55e))
+
 ## [0.14.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.13.3...dev.openfeature.contrib.providers.flagd-v0.14.0) (2026-06-02)
 
 
