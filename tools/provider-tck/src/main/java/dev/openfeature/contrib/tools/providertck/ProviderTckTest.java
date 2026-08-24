@@ -13,27 +13,38 @@ import org.junit.platform.suite.api.Suite;
  * infrastructure at all. The canonical feature files are packaged inside this JAR and selected from
  * the classpath, so consumers need no git submodule of their own.
  *
- * <p>To adopt the TCK, extend this class, implement the four abstract methods of
- * {@link ProviderTckHarness}, and register the concrete class in
- * {@code src/test/resources/META-INF/services/dev.openfeature.contrib.tools.providertck.ProviderTckHarness}.
+ * <h2>Which base class to extend</h2>
+ *
+ * <p>This one is lifecycle-agnostic: it starts nothing and knows nothing about how the backend is
+ * reached. Extend it directly when your provider has <strong>no backend</strong> — an in-memory,
+ * environment-variable or file-based provider — and supply an in-process {@link BackendControl}.
+ *
+ * <p>When your provider talks to an external backend, extend {@link ContainerizedProviderTckTest}
+ * instead. It adds the Compose stack lifecycle, port discovery and {@link HttpBackendControl}, and
+ * the HTTP control API in {@code openapi/control-api.yaml} remains the normative contract for that
+ * conformance claim. In-process control is for backend-less providers only; an external backend
+ * driven through a custom in-JVM {@code BackendControl} bypasses that contract and proves nothing.
+ *
+ * <h2>Serial execution</h2>
  *
  * <p>Scenarios run <strong>serially</strong>, and this class enforces that rather than merely
- * asking for it. Control API state — which flags are seeded, whether the backend is reachable — is
- * global to the Compose stack, so concurrent scenarios corrupt each other: one scenario's
- * {@code /start} restarts the backend underneath another's disconnect assertion. The failure looks
- * like a flaky provider rather than a broken test, which makes it expensive to diagnose.
+ * asking for it. Backend state — which flags are seeded, whether the backend is reachable — is
+ * global to the suite, so concurrent scenarios corrupt each other: one scenario's reconnect
+ * restarts the backend underneath another's disconnect assertion. The failure looks like a flaky
+ * provider rather than a broken test, which makes it expensive to diagnose.
  *
  * <p>The suite therefore pins {@code cucumber.execution.parallel.enabled=false} here, where it
  * overrides any {@code junit-platform.properties} the consuming module happens to ship. Several
  * providers already enable Cucumber parallelism for their own suites, and inheriting that setting
  * silently breaks the TCK.
  *
- * <p>Note this class carries no lifecycle code. The Compose stack, the control API client, provider
- * registration and event awaiting are all owned by the step definitions in
- * {@code dev.openfeature.contrib.tools.providertck.steps}, which reach the harness through
- * {@link TckRuntime}.
+ * <p>Note this class carries no lifecycle code of its own. Provider registration, event awaiting
+ * and backend manipulation are owned by the step definitions in
+ * {@code dev.openfeature.contrib.tools.providertck.steps}, which reach the harness and its
+ * {@link BackendControl} through {@link TckRuntime}.
  *
  * @see ProviderTckHarness
+ * @see ContainerizedProviderTckTest
  */
 @Suite
 @IncludeEngines("cucumber")
@@ -43,4 +54,4 @@ import org.junit.platform.suite.api.Suite;
 @ConfigurationParameter(key = Constants.EXECUTION_MODE_FEATURE_PROPERTY_NAME, value = "same_thread")
 @ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.tools.providertck.steps")
 @ConfigurationParameter(key = Constants.OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
-public abstract class AbstractProviderTckTest implements ProviderTckHarness {}
+public abstract class ProviderTckTest implements ProviderTckHarness {}
