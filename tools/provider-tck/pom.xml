@@ -45,39 +45,32 @@
     </developers>
 
     <!--
-        NOTE ON THE SOURCE OF TRUTH FOR THE SPEC ARTIFACTS
-        =================================================
-        Three of the resources in src/main/resources are NOT Java artifacts. They
-        are language-agnostic definitions of the provider contract, and every
-        language's TCK must agree on them byte for byte or "conformance" means
-        nothing:
+        SOURCE OF TRUTH FOR THE SPEC ARTIFACTS
+        ======================================
+        Three of the resources under src/main/resources are NOT Java artifacts.
+        They are language-agnostic definitions of the provider contract, and
+        every language's TCK must agree on them byte for byte or "conformance"
+        means nothing:
 
-          features/            the canonical Gherkin — the test cases themselves
-          openapi/control-api.yaml   what a backend under test must expose
+          features/                  the canonical Gherkin — the test cases
           flags/canonical-flags.json the flag set those test cases assume
+          openapi/control-api.yaml   what a backend under test must expose
 
-        They currently live in this module and are packaged into the release JAR,
-        so consumers load them from the classpath and need no git submodule.
+        They live in the OpenFeature spec repository, as Appendix F
+        (specification/assets/provider-tck/), and are copied in from the `spec`
+        git submodule at build time — see the two plugins below. The three
+        travel together by necessity: a feature file that evaluates
+        `boolean-flag` is meaningless without the flag definition, and a
+        disconnect scenario is meaningless without the control endpoint that
+        produces the disconnect.
 
-        Long term all three belong in the OpenFeature *spec* repository
-        (open-feature/spec), with this module acting purely as their Java
-        delivery vehicle. The three travel together by necessity: a feature file
-        that evaluates `boolean-flag` is meaningless without the flag definition,
-        and a disconnect scenario is meaningless without the control endpoint
-        that produces the disconnect.
+        DO NOT EDIT THE COPIES under src/main/resources. They are generated and
+        git-ignored; changes belong in open-feature/spec and arrive here by
+        bumping the submodule.
 
-        When that move happens the packaging mechanism does not change, only the
-        origin of the files. Wire it exactly like tools/flagd-api-testkit does
-        today:
-
-          1. git submodule add https://github.com/open-feature/spec.git spec
-          2. exec-maven-plugin @ initialize, running a git submodule update
-          3. maven-resources-plugin @ generate-resources -> copy
-             ${basedir}/spec/provider-tck/{gherkin,flags,openapi}/
-             into ${basedir}/src/main/resources/{features,flags,openapi}/
-
-        Consumers see no difference: @SelectClasspathResource("features") keeps
-        working and the JAR keeps shipping all three.
+        Consumers are unaffected: the copies are packaged into the release JAR,
+        @SelectClasspathResource("features") keeps working, and nobody needs a
+        submodule of their own.
     -->
 
     <dependencies>
@@ -198,5 +191,103 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                Phase 1 – keep the spec submodule up to date. Registered with:
+                git submodule add https://github.com/open-feature/spec.git tools/provider-tck/spec
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>update-spec-submodule</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>git</executable>
+                            <arguments>
+                                <argument>submodule</argument>
+                                <argument>update</argument>
+                                <argument>--init</argument>
+                                <argument>spec</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Phase 2 – copy the three spec artifacts into src/main/resources so
+                they are packaged into the release JAR. Consumers load them from the
+                classpath and need no submodule.
+            -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-provider-tck-gherkin</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/src/main/resources/features/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/spec/specification/assets/provider-tck/gherkin/</directory>
+                                    <includes>
+                                        <include>**/*.feature</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-provider-tck-flags</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/src/main/resources/flags/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/spec/specification/assets/provider-tck/flags/</directory>
+                                    <includes>
+                                        <include>**/*.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-provider-tck-openapi</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/src/main/resources/openapi/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/spec/specification/assets/provider-tck/openapi/</directory>
+                                    <includes>
+                                        <include>**/*.yaml</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

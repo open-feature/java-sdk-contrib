@@ -16,3 +16,6 @@
 [submodule "tools/flagd-api-testkit/test-harness"]
 	path = tools/flagd-api-testkit/test-harness
 	url = https://github.com/open-feature/test-harness.git
+[submodule "tools/provider-tck/spec"]
+	path = tools/provider-tck/spec
+	url = https://github.com/open-feature/spec.git
