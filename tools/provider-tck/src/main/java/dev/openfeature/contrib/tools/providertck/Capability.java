@@ -29,6 +29,21 @@ import java.util.Optional;
  * {@link #declarable()}, or {@link #declarableExcept} for "everything except", rather than
  * {@code EnumSet.allOf} or {@code EnumSet.complementOf}: both of the latter sweep up every reserved
  * tag on the way past, which is how a report comes to claim a capability nobody examined.
+ *
+ * <h2>The connection-dependent capabilities</h2>
+ *
+ * <p>{@link #STALE} and {@link #UNAVAILABLE_INIT} are the two that require a backend the provider
+ * can be cut off from. They are what a harness leaves undeclared when its {@link BackendControl}
+ * has no connection to control — an in-memory, environment-variable or file-based provider, where
+ * the backend is a data structure in the same JVM. Every step that would call
+ * {@link BackendControl#disconnect()}, {@link BackendControl#reconnect()} or
+ * {@link ProviderTckHarness#createUnavailableProvider()} lives in a scenario carrying one of these
+ * two tags, so undeclaring them skips those scenarios before an unsupported operation can be
+ * reached.
+ *
+ * <p>Getting that pairing wrong surfaces as an {@link UnsupportedOperationException} rather than a
+ * skip, which is deliberate: it means a capability was declared that the harness cannot back up,
+ * and that is a test-configuration bug.
  */
 public enum Capability {
 

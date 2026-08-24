@@ -9,6 +9,42 @@ on:
       - main
 
 jobs:
+  # Fast canary for the Provider TCK: runs the full applicable conformance suite against the
+  # SDK's InMemoryProvider with no Docker, no Compose stack and no network. It finishes in
+  # seconds, so a broken step definition, a mis-wired capability gate or a regression in the
+  # shared harness is reported long before the containerised provider suites in `main` get
+  # there — and it points at the TCK rather than at whichever provider noticed first.
+  #
+  # Deliberately not a gate on `main`: the two run in parallel so a green run is not delayed.
+  # The same suite also runs inside `main` as part of the reactor build; this job exists to
+  # report it fast and in isolation.
+  provider-tck:
+    name: Provider TCK (no Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        # No submodules: this module's feature files, flags and control-API spec are in-repo.
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache local Maven repository
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}21-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}21-maven-
+
+      - name: Verify the TCK against the in-memory provider
+        # No `e2e` profile and no Docker: the in-memory suite is not gated behind either.
+        run: mvn --batch-mode --activate-profiles codequality -pl tools/provider-tck -am clean verify
+
   main:
     strategy:
         matrix:

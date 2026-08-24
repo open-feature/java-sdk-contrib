@@ -6,9 +6,10 @@ import java.time.Duration;
  * The single seam between the TCK's step definitions and whatever manipulates the backend.
  *
  * <p>Step definitions never talk to a backend directly. They talk to this interface, which is why
- * the same Gherkin can run unchanged against any backend an implementation can drive —
- * a containerised one over HTTP ({@link HttpBackendControl}) being the first. Nothing below this
- * line knows about ports, containers or transports.
+ * the same Gherkin runs unchanged against a containerised backend driven over HTTP
+ * ({@link HttpBackendControl}) and against a provider manipulated in-process
+ * ({@link InProcessBackendControl}). Nothing below this line knows about ports, containers or
+ * transports.
  *
  * <h2>Which implementation is right for your provider</h2>
  *
@@ -23,9 +24,9 @@ import java.time.Duration;
  * static hook inside the provider. It will pass, and it will prove nothing, because the thing it
  * exercised is not the thing the contract describes.
  *
- * <p>An in-JVM implementation is legitimate only for providers that have <em>no</em> backend to
- * contract with: in-memory, environment-variable and file-based providers, where "the backend" is a
- * data structure in the same JVM.
+ * <p>In-process control exists for providers that have <em>no</em> backend to contract with:
+ * in-memory, environment-variable and file-based providers, where "the backend" is a data structure
+ * in the same JVM. See {@link InProcessBackendControl}.
  *
  * <h2>Operations a backend may not support</h2>
  *
