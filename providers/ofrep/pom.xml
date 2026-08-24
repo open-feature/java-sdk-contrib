@@ -17,6 +17,11 @@
     <description>OFREP Provider</description>
     <url>https://openfeature.dev</url>
 
+    <properties>
+        <!-- Match any provider-tck version locally; CI resolves it from the reactor -->
+        <provider-tck.version>[0.0.1,)</provider-tck.version>
+    </properties>
+
     <developers>
 		<developer>
 			<id>Rahul-Baradol</id>
@@ -79,6 +84,18 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
             <version>4.12.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            OpenFeature Provider TCK. Brings its own Gherkin, step definitions, Testcontainers
+            Compose lifecycle and JUnit Platform suite configuration; OfrepTckTest is the whole
+            adoption. Version range so a local reactor build matches whatever is checked out.
+        -->
+        <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>provider-tck</artifactId>
+            <version>${provider-tck.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
