@@ -4,7 +4,7 @@ import org.testcontainers.containers.ComposeContainer;
 
 /**
  * Addresses of the running backend stack, handed to
- * {@link ProviderTckHarness#createProvider(BackendEndpoint)}.
+ * {@link ContainerizedProviderTckTest#createProvider(BackendEndpoint)}.
  *
  * <p>This type exists because external ports are only known <em>after</em> the Compose stack has
  * started. Compose stacks under test must not pin host ports — Docker assigns them dynamically, so
@@ -53,7 +53,7 @@ public final class BackendEndpoint {
      * backend service.
      *
      * @param internalPort the container-internal port, as declared by
-     *     {@link ProviderTckHarness#backendPorts()}
+     *     {@link ContainerizedProviderTckTest#backendPorts()}
      * @return the host port the service is reachable on
      */
     public int port(int internalPort) {
@@ -64,7 +64,7 @@ public final class BackendEndpoint {
      * Resolves the dynamically mapped host port for a container-internal port on a named service.
      *
      * <p>Use this for multi-service stacks — a proxy, an edge service, a sidecar. The service and
-     * port must have been declared via {@link ProviderTckHarness#additionalExposedPorts()},
+     * port must have been declared via {@link ContainerizedProviderTckTest#additionalExposedPorts()},
      * otherwise Testcontainers has not exposed it and this call fails.
      *
      * @param service the Compose service name
