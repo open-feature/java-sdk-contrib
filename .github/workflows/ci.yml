@@ -25,7 +25,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        # No submodules: this module's feature files, flags and control-API spec are in-repo.
+        with:
+          # The feature files, canonical flag set and control-API document are copied in from
+          # the open-feature/spec submodule at generate-resources; without it there is no suite.
+          submodules: recursive
 
       - name: Set up JDK 21
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5
