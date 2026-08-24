@@ -97,6 +97,10 @@ abstract class AbstractFlagdTckTest extends AbstractProviderTckTest {
      * <p>Declared here rather than per mode because both resolvers behave identically, which places
      * the defect in the shared provider layer rather than in either transport. Every other
      * capability, including the full non-numeric type-mismatch matrix, holds in both modes.
+     *
+     * <p>That includes {@link Capability#LIFECYCLE}, and legitimately so: flagd reaches its backend
+     * during initialisation in both modes — an RPC round trip, or a full ruleset sync — so the
+     * lifecycle scenarios assert something real here rather than passing vacuously.
      */
     @Override
     public Set<Capability> capabilities() {
