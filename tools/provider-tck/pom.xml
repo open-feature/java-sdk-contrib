@@ -25,11 +25,13 @@
     <name>provider-tck</name>
     <description>
         Language-agnostic conformance test suite (TCK) for OpenFeature providers.
-        Bundles the canonical Gherkin feature files, Cucumber step definitions and an
-        abstract JUnit Platform Suite base class that owns the full test lifecycle:
-        starting the vendor-supplied Docker Compose stack, discovering dynamically
-        mapped ports, driving the standardised control API and awaiting provider
-        events. Provider authors implement a single factory interface.
+        Bundles the canonical Gherkin feature files, Cucumber step definitions and
+        abstract JUnit Platform Suite base classes that own the full test lifecycle.
+        Providers with an external backend extend ContainerizedProviderTckTest, which
+        starts the vendor-supplied Docker Compose stack, discovers dynamically mapped
+        ports and drives the standardised HTTP control API. Providers with no backend
+        extend ProviderTckTest and supply in-process backend control. Provider authors
+        implement a small factory interface either way.
     </description>
     <url>https://openfeature.dev</url>
 
@@ -97,7 +99,7 @@
         </dependency>
 
         <!-- Cucumber JUnit Platform Engine — compile scope for the GLUE_PROPERTY_NAME /
-             OBJECT_FACTORY_PROPERTY_NAME constants used in AbstractProviderTckTest -->
+             OBJECT_FACTORY_PROPERTY_NAME constants used in ProviderTckTest -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
@@ -110,7 +112,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- JUnit Platform Suite — compile scope so AbstractProviderTckTest can carry
+        <!-- JUnit Platform Suite — compile scope so ProviderTckTest can carry
              @Suite/@IncludeEngines/@SelectClasspathResource/@ConfigurationParameter -->
         <dependency>
             <groupId>org.junit.platform</groupId>
