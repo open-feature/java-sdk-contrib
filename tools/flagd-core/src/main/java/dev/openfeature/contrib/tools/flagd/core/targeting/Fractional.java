@@ -20,6 +20,7 @@ import org.apache.commons.codec.digest.MurmurHash3;
 @Slf4j
 class Fractional implements PreEvaluatedArgumentsExpression {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     static final int MAX_WEIGHT = Integer.MAX_VALUE;
 
     @Override
@@ -59,9 +60,6 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             // fallback to targeting key if present
             if (properties.getTargetingKey() == null) {
                 log.debug("Missing fallback targeting key");
-                // if (arguments.size() == 2) {
-                //     throw new dev.openfeature.sdk.exceptions.GeneralError("Missing fallback targeting key");
-                // }
                 return null;
             }
 
@@ -85,7 +83,7 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 totalWeight += fractionProperty.getWeight();
             } catch (JsonLogicException e) {
                 if ("Property is not an array".equals(e.getMessage())) {
-                    throw new io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException(
+                    throw new JsonLogicEvaluationException(
                             "Error parsing fractional targeting rule: " + e.getMessage(), jsonPath);
                 }
                 return null;
@@ -105,8 +103,6 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         // find distribution
         return distributeValue(bucketBy, propertyList, (int) totalWeight, jsonPath);
     }
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static Object distributeValue(
             final Object hashKey,
