@@ -463,19 +463,36 @@ Three steps are new:
 | `When the resolved value is remembered` / `Then the resolved details value should have changed` | the control API only requires that `/change` changes `changing-flag`'s value, not which value it changes to; asserting a delta keeps the scenario vendor-neutral |
 | `Then no exception should have been thrown` | makes the "never throws" half of the error contract explicit rather than implicit in a step failure |
 
-## Where these artifacts should live
+## Where these artifacts come from
 
-The feature files, the control API spec and the canonical flag set are **not Java artifacts**. They
-are language-agnostic definitions of the provider contract that every language's TCK must agree on
-byte for byte, and that backend vendors implement in whatever language their testbed is written in.
+The feature files, the canonical flag set and the control API document are **not Java artifacts**.
+They are language-agnostic definitions of the provider contract that every language's TCK must agree
+on byte for byte, and that backend vendors implement in whatever language their testbed is written
+in.
 
-They belong in the OpenFeature [spec repository](https://github.com/open-feature/spec), with this
-module as their Java delivery vehicle. The three travel together by necessity: a feature file that
-evaluates `boolean-flag` is meaningless without the flag definition, and a disconnect scenario is
-meaningless without the endpoint that produces the disconnect.
+They live in the OpenFeature [spec repository](https://github.com/open-feature/spec) as
+[Appendix F: Provider Conformance](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md),
+under `specification/assets/provider-tck/`. This module is their Java delivery vehicle: the `spec`
+git submodule is updated at `initialize`, the three directories are copied into
+`src/main/resources/` at `generate-resources`, and from there they are packaged into the release
+JAR. Consumers see no difference — the features stay on the classpath and need no submodule of their
+own.
 
-They live here for now only because the PoC had to start somewhere. Moving them changes nothing for
-consumers — the features stay on the classpath and stay inside the JAR.
+The three travel together by necessity: a feature file that evaluates `boolean-flag` is meaningless
+without the flag definition, and a disconnect scenario is meaningless without the control endpoint
+that produces the disconnect.
+
+> **Do not edit `src/main/resources/features/`, `flags/` or `openapi/`.** They are generated and
+> git-ignored. Changes belong in `open-feature/spec` and arrive here by bumping the submodule.
+
+Building this module therefore needs the submodule:
+
+```bash
+git submodule update --init tools/provider-tck/spec
+```
+
+Maven does this itself at `initialize`, so a plain `mvn verify` works from a fresh clone; the
+explicit command is only useful when working offline or inspecting the sources by hand.
 
 ## Known gaps
 
