@@ -217,6 +217,7 @@ green on scenarios it did not run is worse than no suite at all.
 
 | Capability | Tag | Meaning |
 |---|---|---|
+| `LIFECYCLE` | `@lifecycle` | performs an initialisation that reaches its backend, with an observable outcome |
 | `EVENTS` | `@events` | emits lifecycle events at all |
 | `STALE` | `@stale` | enters `STALE` and emits `PROVIDER_STALE` on backend loss |
 | `CONFIGURATION_CHANGE` | `@configuration-change` | detects config changes, emits `PROVIDER_CONFIGURATION_CHANGED` |
@@ -235,6 +236,16 @@ public Set<Capability> capabilities() {
     return EnumSet.complementOf(EnumSet.of(Capability.STALE, Capability.CACHING));
 }
 ```
+
+A note on `LIFECYCLE` vs `EVENTS`: they look like the same thing and are not. `EVENTS` says the
+provider emits events; `LIFECYCLE` says there is a real initialisation behind them. The SDK's
+`FeatureProviderStateManager` emits `PROVIDER_READY`/`PROVIDER_ERROR` around `initialize` for *any*
+provider, `EventProvider` or not — so a provider that does no initialisation of its own reaches
+`READY` exactly as `NoOpProvider` would, and gating the readiness scenario on `EVENTS` would pass it
+vacuously. Conversely a stateless provider such as OFREP genuinely initialises against a backend
+while emitting no events of its own, and would have been excluded. Declare `LIFECYCLE` only if
+initialisation actually talks to the backend; a provider with nothing to reach — an in-memory
+provider, or a facade over other providers — should not declare it however many events it emits.
 
 A note on `STRICT_NUMERIC_TYPING`: unlike the others it is not an optional feature. The spec
 requires `TYPE_MISMATCH` when the requested type cannot be satisfied, and narrowing `0.5` to `0`
