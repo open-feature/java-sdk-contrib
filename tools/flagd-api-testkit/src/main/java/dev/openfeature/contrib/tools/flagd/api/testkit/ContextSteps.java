@@ -46,7 +46,7 @@ public class ContextSteps {
             map.put(key, Value.objectToValue(EvaluatorUtils.convert(value, type)));
         }
         state.context = new MutableContext(state.context.getTargetingKey(), map);
-    }
+        }
 
     /** Sets the targeting key on the evaluation context. */
     @Given("a context containing a targeting key with value {string}")
