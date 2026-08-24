@@ -220,7 +220,8 @@ class FlagdProviderSyncResourcesCTest {
         try (var interleavings = new AllInterleavings("concurrent initialize() and fatal() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.fatalError(null));
+                        () -> flagdProviderSyncResources.initialize(),
+                        () -> flagdProviderSyncResources.fatalError(null));
                 Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
                 Assertions.assertTrue(flagdProviderSyncResources.isFatal());
             }
