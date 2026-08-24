@@ -182,6 +182,20 @@
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+
+        <!--
+            Test scope only, for this module's own self-test. InMemoryProviderTckTest runs the
+            full applicable suite against the SDK's InMemoryProvider with no container and no
+            network, and InProcessBackendControlTest pins the behaviour the Gherkin cannot
+            assert about itself. The SDK itself is inherited from the parent POM as `provided`,
+            which puts it on the test classpath already.
+        -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <!-- version managed by junit-bom in parent -->
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
