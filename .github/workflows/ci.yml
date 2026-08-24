@@ -10,10 +10,11 @@ on:
 
 jobs:
   # Fast canary for the Provider TCK: runs the full applicable conformance suite against the
-  # SDK's InMemoryProvider with no Docker, no Compose stack and no network. It finishes in
-  # seconds, so a broken step definition, a mis-wired capability gate or a regression in the
-  # shared harness is reported long before the containerised provider suites in `main` get
-  # there — and it points at the TCK rather than at whichever provider noticed first.
+  # SDK's InMemoryProvider, and again against MultiProvider wrapping one of them, with no
+  # Docker, no Compose stack and no network. It finishes in seconds, so a broken step
+  # definition, a mis-wired capability gate or a regression in the shared harness is reported
+  # long before the containerised provider suites in `main` get there — and it points at the
+  # TCK rather than at whichever provider noticed first.
   #
   # Deliberately not a gate on `main`: the two run in parallel so a green run is not delayed.
   # The same suite also runs inside `main` as part of the reactor build; this job exists to
