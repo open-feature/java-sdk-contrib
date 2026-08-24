@@ -23,7 +23,8 @@ contract" is an unverified claim. This is the shared suite that makes it checkab
 ```
 <!-- x-release-please-end-version -->
 
-Requires Java 11+, JUnit 5, and a working Docker daemon.
+Requires Java 11+ and JUnit 5. A working Docker daemon is needed only for providers with an
+external backend — see [Which base class to extend](#which-base-class-to-extend).
 
 ### OpenFeature SDK compatibility
 
@@ -55,8 +56,94 @@ uses only long-stable API — `OpenFeatureAPI`, `Client`, typed evaluation, `Pro
 - the provider↔backend wire protocol. How you talk to your backend is your business.
 - SDK behaviour. That belongs to the SDK's own test suite.
 
+## Which base class to extend
+
+Two, and the choice is made by one question: **does your provider talk to something outside the
+JVM?**
+
+| | Extend | Backend control | You supply |
+|---|---|---|---|
+| Provider has an external backend | `ContainerizedProviderTckTest` | `HttpBackendControl`, over the HTTP control API | a Compose stack, a control API, a test class |
+| Provider has no backend — in-memory, environment variables, a local file | `ProviderTckTest` | an in-process `BackendControl` | a test class |
+
+`ContainerizedProviderTckTest` is the normal case and everything in [Adopting it](#adopting-it)
+below describes it. It extends `ProviderTckTest` and adds the Compose lifecycle, port discovery and
+control API client on top.
+
+### In-process control is for backend-less providers only
+
+Step definitions never touch a backend directly. They go through one interface, `BackendControl`,
+which is what lets the same Gherkin run against a container over HTTP and against an in-memory
+provider manipulated in the same JVM.
+
+That seam is not an invitation to skip the control API. **If your provider has an external backend,
+use `HttpBackendControl` via `ContainerizedProviderTckTest`.** The control API described in
+[`openapi/control-api.yaml`](src/main/resources/openapi/control-api.yaml) is the normative contract
+for those providers, and it is the whole basis of a portable conformance claim: another language's
+TCK drives the same endpoints against the same stack and must get the same answers.
+
+A custom in-JVM `BackendControl` that reaches an external backend through a side channel — a
+test-only admin client, a shared database handle, a static hook inside the provider — bypasses that
+contract. It will pass, and it will prove nothing, because the path it exercised is not the path the
+contract describes.
+
+In-process control exists for providers that have **nothing to contract with**, where "the backend"
+is a data structure in the same JVM. For those, flag operations are map updates and a configuration
+change is the provider's own update mechanism emitting its own event.
+
+### Adopting it without a backend
+
+`InProcessBackendControl` implements this for the SDK's `InMemoryProvider`, seeded with the
+canonical flag set. The entire adoption is three methods:
+
+```java
+public class MyProviderTckTest extends ProviderTckTest {
+
+    private final InProcessBackendControl control = new InProcessBackendControl();
+
+    @Override
+    public BackendControl backendControl() {
+        return control;
+    }
+
+    @Override
+    public FeatureProvider createProvider() {
+        return control.createProvider();
+    }
+
+    @Override
+    public Set<Capability> capabilities() {
+        return EnumSet.of(
+                Capability.EVENTS,
+                Capability.CONFIGURATION_CHANGE,
+                Capability.OBJECT,
+                Capability.STRICT_NUMERIC_TYPING);
+    }
+}
+```
+
+One object backs both factory methods because in-process the flag store and the provider are the
+same thing: `changeFlag()` has to reach the live provider instance to emit an event from it.
+
+**Connection control does not apply**, and the capability declaration is where you say so rather
+than stubbing it out. An in-memory provider has no connection to lose, so
+`InProcessBackendControl` leaves `disconnect()`, `reconnect()` and `disconnectFor()` unimplemented —
+they throw. Leaving `STALE` and `UNAVAILABLE_INIT` out of `capabilities()` is what keeps that
+honest: the scenarios needing them are skipped before any step can reach an unsupported operation.
+
+Get that pairing wrong — declare `STALE` against a control that cannot disconnect — and you get an
+`UnsupportedOperationException` naming the fix, not a silent pass. That is deliberate. A
+`BackendControl` may throw `UnsupportedOperationException` for operations it does not support, and
+reaching one from a scenario that actually ran is a **test-configuration bug**, never a skip.
+
+The TCK's own self-test is exactly this class: see
+[`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/InMemoryProviderTckTest.java),
+which runs the full applicable suite against `InMemoryProvider` with no Docker in well under a
+second. It doubles as the reference adoption and as the Docker-free CI canary.
+
 ## Adopting it
 
+This section describes a provider with an external backend — the common case.
 Four things to implement, then two small files.
 
 ### 1. A Docker Compose stack
@@ -130,7 +217,7 @@ Two details are load-bearing:
 ### 4. The test class
 
 ```java
-public class MyProviderTckTest extends AbstractProviderTckTest {
+public class MyProviderTckTest extends ContainerizedProviderTckTest {
 
     @Override
     public File composeFile() {
@@ -172,7 +259,7 @@ registration, no system property, no build configuration. Each class is its own 
 own Compose stack, and they can share a base class:
 
 ```java
-abstract class AbstractMyProviderTckTest extends AbstractProviderTckTest {
+abstract class AbstractMyProviderTckTest extends ContainerizedProviderTckTest {
     protected abstract Mode mode();
     // composeFile(), createProvider(), capabilities() ... shared here
 }
@@ -218,16 +305,22 @@ green on scenarios it did not run is worse than no suite at all.
 | Capability | Tag | Meaning |
 |---|---|---|
 | `EVENTS` | `@events` | emits lifecycle events at all |
-| `STALE` | `@stale` | enters `STALE` and emits `PROVIDER_STALE` on backend loss |
+| `STALE` | `@stale` | enters `STALE` and emits `PROVIDER_STALE` on backend loss — *needs connection control* |
 | `CONFIGURATION_CHANGE` | `@configuration-change` | detects config changes, emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `OBJECT` | `@object` | supports structured flag values |
-| `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend |
+| `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend — *needs connection control* |
 | `STRICT_NUMERIC_TYPING` | `@strict-numeric-typing` | does not coerce between integer and float |
 | `TARGETING` | `@targeting` | reserved, no scenarios yet |
 | `CACHING` | `@caching` | reserved, no scenarios yet |
 
 The default is every capability. **Narrow it, do not widen it**: start from the default, run the
 suite, and remove only what your provider genuinely cannot do.
+
+`STALE` and `UNAVAILABLE_INIT` are the two that need a backend the provider can be cut off from.
+They are what a backend-less provider leaves undeclared — see
+[In-process control is for backend-less providers only](#in-process-control-is-for-backend-less-providers-only).
+Declaring one against a `BackendControl` that cannot simulate an outage fails the scenario with an
+`UnsupportedOperationException` naming the fix, rather than passing it.
 
 ```java
 @Override
@@ -254,8 +347,8 @@ needs most of a poll interval. Every await timeout is therefore overridable.
 |---|---|---|
 | `eventTimeout()` | 12s | waiting for a provider event |
 | `readyTimeout()` | 30s | waiting for a provider to reach a lifecycle state |
-| `startupTimeout()` | 60s | bringing the Compose stack up |
-| `settleTime()` | 50ms | pause after a control API call |
+| `startupTimeout()` | 60s | bringing the Compose stack up (`ContainerizedProviderTckTest` only) |
+| `settleTime()` | 50ms | pause after a control API call (`ContainerizedProviderTckTest` only) |
 
 ```java
 @Override
@@ -273,6 +366,9 @@ use the explicit `within {int}ms` step, which always wins.
 ```bash
 mvn test -Dtest=MyProviderTckTest
 ```
+
+A suite extending `ProviderTckTest` with in-process control needs no Docker and no network. A suite
+extending `ContainerizedProviderTckTest` needs a working Docker daemon for its Compose stack.
 
 Scenarios run **serially** and the suite enforces this, overriding any
 `cucumber.execution.parallel.enabled=true` in your module's `junit-platform.properties`. Control API
@@ -335,6 +431,12 @@ consumers — the features stay on the classpath and stay inside the JAR.
   `@targeting` tag is reserved for context-passthrough scenarios once the gap above is closed.
 - **Caching.** Whether a stale provider keeps serving last-known values during an outage depends on
   whether it holds a local copy of the ruleset. The `@caching` tag is reserved; no scenarios yet.
+- **Setting and removing individual flags.** `BackendControl` exposes `prepareScenario()` and
+  `changeFlag()` — reset to the canonical baseline, and mutate `changing-flag` — because those are
+  what the Gherkin needs and what the control API defines. Finer-grained `setFlag(key, value)` /
+  `removeFlag(key)` operations would need control API endpoints that do not exist yet, so adding
+  them to the interface would produce methods `HttpBackendControl` could not implement. They belong
+  to a control API revision, not to the Java seam.
 - **Hooks.** Not covered.
 - **Flag metadata.** The flagd harness has metadata scenarios; they are not yet ported.
 - **Multi-suite JVMs.** `TckRuntime` is static, so TCK suites run one at a time within a JVM fork.

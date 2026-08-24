@@ -62,7 +62,7 @@ public final class TckRuntime {
                 throw new IllegalStateException(harness.getClass().getName()
                         + ".backendControl() returned null. Every harness must supply the seam through "
                         + "which the TCK manipulates the backend — HttpBackendControl for an external "
-                        + "backend, an in-process implementation for a provider that has none.");
+                        + "backend, InProcessBackendControl for a provider that has none.");
             }
             log.info("Backend control: {}", control.description());
             instance = new TckRuntime(harness, control);
