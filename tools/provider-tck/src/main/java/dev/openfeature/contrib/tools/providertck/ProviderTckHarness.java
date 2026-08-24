@@ -31,7 +31,7 @@ import java.util.Set;
  * <pre>{@code
  * public class MyProviderTckTest extends ProviderTckTest {
  *
- *     private final MyInProcessControl control = new MyInProcessControl();
+ *     private final InProcessBackendControl control = new InProcessBackendControl();
  *
  *     @Override
  *     public BackendControl backendControl() {
