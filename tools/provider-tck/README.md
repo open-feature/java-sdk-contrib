@@ -335,6 +335,27 @@ Note that `capabilities` summarises the *optional* contract only. Scenarios carr
 tag are mandatory and roll up into nothing, so a provider can fail one while every capability reads
 `passed`. Read `scenarios` to decide whether a provider conforms.
 
+### What identifies a scenario
+
+A scenario entry is identified by `feature`, `name` **and** `example` together. The first two are not
+enough: every row of a Scenario Outline shares one name, and the type-mismatch matrix in
+`errors.feature` is eleven rows. `example` is the row's parameters keyed by its Examples column
+header, verbatim as strings — Gherkin has no types, so `"1"` stays a string.
+
+```console
+$ jq '.scenarios[] | select(.feature == "errors") | .example' reports/flagd-rpc.json
+{
+  "key": "string-flag",
+  "requested": "Boolean",
+  "default": "false"
+}
+...
+```
+
+It is absent for a scenario that did not come from an outline, and present for every row that did —
+including a row skipped for an undeclared capability, since eleven skips sharing a name are exactly
+as ambiguous as eleven failures.
+
 ### What identifies a report
 
 `provider.name` is what the provider reports through its own metadata, not the suite name. The suite

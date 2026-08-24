@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.EventPublisher;
+import io.cucumber.plugin.event.Location;
 import io.cucumber.plugin.event.Result;
 import io.cucumber.plugin.event.Status;
 import io.cucumber.plugin.event.TestCase;
 import io.cucumber.plugin.event.TestCaseFinished;
 import io.cucumber.plugin.event.TestRunFinished;
+import io.cucumber.plugin.event.TestSourceRead;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -50,6 +52,12 @@ import org.slf4j.LoggerFactory;
  * the capability-skip signal did not reach the after-hook and every skipped scenario was recorded
  * twice.
  *
+ * <p><strong>What identifies an entry.</strong> Feature and name are not enough: every row of a
+ * Scenario Outline shares one name, and the type-mismatch matrix in {@code errors.feature} is eleven
+ * rows. Each entry therefore also carries the Examples row it came from, resolved by
+ * {@link ScenarioExamples}, so a consumer can tell which row failed rather than keeping whichever it
+ * saw last.
+ *
  * @see <a href="https://github.com/open-feature/spec/issues/424">open-feature/spec#424</a>
  */
 public final class ConformanceReportPlugin implements ConcurrentEventListener {
@@ -72,6 +80,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
     private static final String LANGUAGE = "java";
 
     private final List<ScenarioRecord> records = Collections.synchronizedList(new ArrayList<>());
+    private final ScenarioExamples examples = new ScenarioExamples();
     private final Supplier<String> reportDir;
     private final Supplier<Optional<TckRunMetadata>> metadata;
 
@@ -87,6 +96,10 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
 
     @Override
     public void setEventPublisher(EventPublisher publisher) {
+        // Cucumber publishes the feature's own text before any scenario in it runs, which is where
+        // the Examples tables come from. Reading it here rather than resolving the feature file
+        // again keeps the report reading exactly the source the runner executed.
+        publisher.registerHandlerFor(TestSourceRead.class, read -> examples.read(read.getUri(), read.getSource()));
         publisher.registerHandlerFor(TestCaseFinished.class, this::onTestCaseFinished);
         // The end-of-run event carries the run's own result, which the report has no use for: what
         // matters is the outcome of each scenario, which TestCaseFinished has already delivered.
@@ -116,6 +129,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         records.add(new ScenarioRecord(
                 featureName(testCase),
                 testCase.getName(),
+                exampleOf(testCase),
                 Collections.unmodifiableList(new ArrayList<>(testCase.getTags())),
                 result.getStatus(),
                 messageOf(result),
@@ -204,6 +218,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         return new ConformanceReport.ScenarioResult(
                 record.feature,
                 record.name,
+                record.example,
                 record.tags.isEmpty() ? null : record.tags,
                 outcome,
                 reason,
@@ -319,6 +334,18 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         return message == null || message.trim().isEmpty() ? error.toString() : message.trim();
     }
 
+    /**
+     * Returns the Examples row a test case came from, or {@code null} when it came from none.
+     *
+     * <p>Applies to every outcome, not only to failures. A row skipped for an undeclared capability
+     * is exactly as ambiguous as one that failed: eleven skips sharing a name say nothing about
+     * which eleven.
+     */
+    private Map<String, String> exampleOf(TestCase testCase) {
+        Location location = testCase.getLocation();
+        return location == null ? null : examples.rowAt(testCase.getUri(), location.getLine());
+    }
+
     /** Turns {@code classpath:features/errors.feature} into {@code errors}. */
     private static String featureName(TestCase testCase) {
         String uri = testCase.getUri().toString();
@@ -332,15 +359,23 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
     private static final class ScenarioRecord {
         private final String feature;
         private final String name;
+        private final Map<String, String> example;
         private final List<String> tags;
         private final Status status;
         private final String message;
         private final double durationMs;
 
         ScenarioRecord(
-                String feature, String name, List<String> tags, Status status, String message, double durationMs) {
+                String feature,
+                String name,
+                Map<String, String> example,
+                List<String> tags,
+                Status status,
+                String message,
+                double durationMs) {
             this.feature = feature;
             this.name = name;
+            this.example = example;
             this.tags = tags;
             this.status = status;
             this.message = message;

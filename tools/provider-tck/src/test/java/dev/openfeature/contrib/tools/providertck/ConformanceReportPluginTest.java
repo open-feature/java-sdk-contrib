@@ -14,6 +14,7 @@ import io.cucumber.plugin.event.Status;
 import io.cucumber.plugin.event.TestCase;
 import io.cucumber.plugin.event.TestCaseFinished;
 import io.cucumber.plugin.event.TestRunFinished;
+import io.cucumber.plugin.event.TestSourceRead;
 import io.cucumber.plugin.event.TestStep;
 import java.io.IOException;
 import java.net.URI;
@@ -26,6 +27,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +55,52 @@ class ConformanceReportPluginTest {
     private static final Set<Capability> DECLARED = EnumSet.of(Capability.OBJECT, Capability.EVENTS);
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static final URI IDENTITY_URI = URI.create("classpath:features/identity.feature");
+
+    /**
+     * A feature whose shape is the one the report has to cope with: an outline whose rows share a
+     * name across two Examples tables, a plain scenario alongside it, and an outline gated on a
+     * capability so that a skipped row can be checked as well as a passing one.
+     *
+     * <p>Line numbers are looked up from this text rather than written down, so editing it cannot
+     * silently make a test assert about the wrong row.
+     */
+    private static final String IDENTITY_FEATURE = String.join(
+            "\n",
+            "Feature: Report identity",
+            "",
+            "  Scenario: An unknown flag key returns the code default",
+            "    Given nothing in particular",
+            "",
+            "  Scenario Outline: Requesting the wrong type returns the code default",
+            "    Given a <requested>-flag with key \"<key>\" and a default value \"<default>\"",
+            "",
+            "    Examples: a string flag requested as something else",
+            "      | key         | requested | default |",
+            "      | string-flag | Boolean   | false   |",
+            "      | string-flag | Integer   | 1       |",
+            "",
+            "    Examples: a boolean flag requested as something else",
+            "      | key          | requested | default  |",
+            "      | boolean-flag | String    | fallback |",
+            "",
+            "  Scenario Outline: A gated outline",
+            "    Given nothing in particular",
+            "",
+            "    @stale",
+            "    Examples: gated by a tag on this block alone",
+            "      | mode |",
+            "      | one  |",
+            "",
+            "    Examples: not gated",
+            "      | mode |",
+            "      | two  |",
+            "");
+
+    private static final String OUTLINE = "Requesting the wrong type returns the code default";
+
+    private static final String GATED_OUTLINE = "A gated outline";
 
     @Test
     @DisplayName("every scenario appears exactly once, and a skipped one is never called passed")
@@ -181,10 +230,138 @@ class ConformanceReportPluginTest {
         assertThat(ReportNames.fileNameOf("../escape")).isEqualTo("escape.json");
     }
 
+    @Test
+    @DisplayName("each row of a Scenario Outline carries the Examples row it came from")
+    void outlineRowsCarryTheirExample(@TempDir Path dir) throws IOException {
+        JsonNode report = run(dir, identityScenarios());
+
+        List<JsonNode> rows = scenariosNamed(report, OUTLINE);
+        assertThat(rows)
+                .as("three rows ran, so three entries are expected, all under the one outline name")
+                .hasSize(3);
+
+        assertThat(rows)
+                .extracting(row -> MAPPER.convertValue(row.get("example"), Map.class))
+                .containsExactly(
+                        exampleOf("key", "string-flag", "requested", "Boolean", "default", "false"),
+                        exampleOf("key", "string-flag", "requested", "Integer", "default", "1"),
+                        exampleOf("key", "boolean-flag", "requested", "String", "default", "fallback"));
+    }
+
+    @Test
+    @DisplayName("cell contents are reported verbatim as strings, because Gherkin has no types")
+    void cellsAreNotCoerced(@TempDir Path dir) throws IOException {
+        JsonNode example =
+                scenariosNamed(run(dir, identityScenarios()), OUTLINE).get(1).get("example");
+
+        assertThat(example.get("default").isTextual())
+                .as("\"1\" is what the table said; a report that turns it into a number says something else")
+                .isTrue();
+        assertThat(example.get("default").asText()).isEqualTo("1");
+    }
+
+    @Test
+    @DisplayName("a scenario that is not an outline row carries no example")
+    void aPlainScenarioCarriesNoExample(@TempDir Path dir) throws IOException {
+        JsonNode plain = scenarioNamed(run(dir, identityScenarios()), "An unknown flag key returns the code default");
+
+        assertThat(plain.has("example"))
+                .as("the field is omitted rather than emitted empty; the schema requires at least one property")
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("a row skipped for an undeclared capability still says which row it was")
+    void aSkippedOutlineRowCarriesItsExample(@TempDir Path dir) throws IOException {
+        List<JsonNode> rows = scenariosNamed(run(dir, identityScenarios()), GATED_OUTLINE);
+
+        // Gherkin allows a tag on an individual Examples block, so two rows of one outline can
+        // differ in whether the capability gate stops them. Both rows must appear, and each must
+        // say which row it was: a skip that took its sibling with it would be invisible in the
+        // totals, and a skip that cannot name its row is as ambiguous as a failure that cannot.
+        assertThat(rows).hasSize(2);
+        assertThat(rows).extracting(row -> row.get("outcome").asText()).containsExactly("not-declared", "passed");
+        assertThat(rows)
+                .extracting(row -> MAPPER.convertValue(row.get("example"), Map.class))
+                .containsExactly(exampleOf("mode", "one"), exampleOf("mode", "two"));
+    }
+
+    @Test
+    @DisplayName("feature, name and example together identify a scenario uniquely")
+    void scenariosAreUniquelyIdentified(@TempDir Path dir) throws IOException {
+        JsonNode report = run(dir, identityScenarios());
+
+        // Compared as tuples rather than as joined strings, so no separator can make two
+        // distinct entries look alike or one entry look like two.
+        List<List<String>> identities = new ArrayList<>();
+        List<List<String>> namesOnly = new ArrayList<>();
+        for (JsonNode scenario : report.get("scenarios")) {
+            String feature = scenario.get("feature").asText();
+            String name = scenario.get("name").asText();
+            String example = scenario.has("example") ? scenario.get("example").toString() : "";
+            namesOnly.add(Arrays.asList(feature, name));
+            identities.add(Arrays.asList(feature, name, example));
+        }
+
+        assertThat(new HashSet<>(namesOnly))
+                .as("the premise of this test: feature and name alone are not unique in this report")
+                .hasSizeLessThan(namesOnly.size());
+        assertThat(identities)
+                .as("a consumer keying on feature, name and example must not lose an entry")
+                .doesNotHaveDuplicates();
+    }
+
     /** A suite whose name the default configuration derivation has to cope with. */
     private static final class MyProviderRpcTckTest {}
 
-    private JsonNode run(Path dir, List<TestCaseFinished> events) throws IOException {
+    /**
+     * The events the identity tests work from: the feature source Cucumber would publish, then one
+     * test case per compiled pickle, each located on the line it came from.
+     */
+    private static List<Event> identityScenarios() {
+        return Arrays.asList(
+                new TestSourceRead(Instant.now(), IDENTITY_URI, IDENTITY_FEATURE),
+                finished(
+                        identity("An unknown flag key returns the code default", "  Scenario: An unknown flag"),
+                        Status.PASSED,
+                        null),
+                finished(identity(OUTLINE, "| string-flag | Boolean"), Status.PASSED, null),
+                finished(
+                        identity(OUTLINE, "| string-flag | Integer"),
+                        Status.FAILED,
+                        new AssertionError("resolved 1 with no error code")),
+                finished(identity(OUTLINE, "| boolean-flag | String"), Status.PASSED, null),
+                finished(
+                        identity(GATED_OUTLINE, "| one  |", "@stale"),
+                        Status.SKIPPED,
+                        new TestAbortedException("Skipped: provider does not declare capability STALE")),
+                finished(identity(GATED_OUTLINE, "| two  |"), Status.PASSED, null));
+    }
+
+    private static TestCase identity(String name, String marker, String... tags) {
+        return new FakeTestCase(IDENTITY_URI, name, Arrays.asList(tags), lineOf(marker));
+    }
+
+    /** Finds the 1-based line the given text sits on, so no test hard-codes a line number. */
+    private static int lineOf(String marker) {
+        String[] lines = IDENTITY_FEATURE.split("\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].contains(marker)) {
+                return i + 1;
+            }
+        }
+        throw new AssertionError("no line of the test feature contains " + marker);
+    }
+
+    private static Map<String, String> exampleOf(String... keysAndValues) {
+        Map<String, String> example = new LinkedHashMap<>();
+        for (int i = 0; i < keysAndValues.length; i += 2) {
+            example.put(keysAndValues[i], keysAndValues[i + 1]);
+        }
+        return example;
+    }
+
+    private JsonNode run(Path dir, List<? extends Event> events) throws IOException {
         FakeEventPublisher publisher = new FakeEventPublisher();
         new ConformanceReportPlugin(dir::toString, () -> Optional.of(metadata())).setEventPublisher(publisher);
         events.forEach(publisher::emit);
@@ -228,7 +405,7 @@ class ConformanceReportPluginTest {
     }
 
     private static TestCase scenario(String feature, String name, String... tags) {
-        return new FakeTestCase(URI.create("classpath:features/" + feature + ".feature"), name, Arrays.asList(tags));
+        return new FakeTestCase(URI.create("classpath:features/" + feature + ".feature"), name, Arrays.asList(tags), 1);
     }
 
     private static JsonNode scenarioNamed(JsonNode report, String name) {
@@ -238,6 +415,16 @@ class ConformanceReportPluginTest {
             }
         }
         throw new AssertionError("no scenario named " + name + " in the report");
+    }
+
+    private static List<JsonNode> scenariosNamed(JsonNode report, String name) {
+        List<JsonNode> matching = new ArrayList<>();
+        for (JsonNode scenario : report.get("scenarios")) {
+            if (name.equals(scenario.get("name").asText())) {
+                matching.add(scenario);
+            }
+        }
+        return matching;
     }
 
     /** Collects the plugin's handlers so a test can drive them directly. */
@@ -269,21 +456,28 @@ class ConformanceReportPluginTest {
         private final URI uri;
         private final String name;
         private final List<String> tags;
+        private final int line;
 
-        FakeTestCase(URI uri, String name, List<String> tags) {
+        FakeTestCase(URI uri, String name, List<String> tags, int line) {
             this.uri = uri;
             this.name = name;
             this.tags = tags;
+            this.line = line;
         }
 
         @Override
         public Integer getLine() {
-            return 1;
+            return line;
         }
 
+        /**
+         * The pickle's location, which for an outline-derived test case is the Examples row rather
+         * than the {@code Scenario Outline} line. That is what Cucumber reports, and it is the only
+         * thing tying a compiled pickle back to the table it came from.
+         */
         @Override
         public Location getLocation() {
-            return new Location(1, 1);
+            return new Location(line, 1);
         }
 
         @Override
@@ -298,7 +492,7 @@ class ConformanceReportPluginTest {
 
         @Override
         public String getScenarioDesignation() {
-            return uri + ":1";
+            return uri + ":" + line;
         }
 
         @Override

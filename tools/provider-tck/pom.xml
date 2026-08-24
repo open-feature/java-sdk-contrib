@@ -132,6 +132,29 @@
             <artifactId>cucumber-junit-platform-engine</artifactId>
         </dependency>
 
+        <!--
+            Gherkin parser and message types — already on the classpath as transitive
+            dependencies of cucumber-core, and declared here because ConformanceReportPlugin
+            compiles against them directly.
+
+            The conformance report identifies a scenario by the Examples row it came from, and a
+            compiled Cucumber pickle no longer knows which row that was. Re-parsing the feature
+            source Cucumber publishes is the reliable way back to it. Both versions are managed by
+            cucumber-bom in the parent POM, so this cannot drift from the parser Cucumber itself
+            uses — which it must not, or the report would describe a different document than the
+            one that ran.
+        -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>gherkin</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>messages</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
+        </dependency>
+
         <!-- PicoContainer object factory — injects TckState into every step class -->
         <dependency>
             <groupId>io.cucumber</groupId>

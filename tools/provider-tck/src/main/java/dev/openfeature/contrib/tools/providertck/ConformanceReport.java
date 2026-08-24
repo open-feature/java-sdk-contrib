@@ -192,6 +192,20 @@ public final class ConformanceReport {
         /** The scenario name as written in the feature file. */
         public final String name;
 
+        /**
+         * The Examples row this entry came from, keyed by column header, or {@code null} for a
+         * scenario that did not come from a Scenario Outline.
+         *
+         * <p>Part of the entry's identity rather than decoration. Every row of an outline shares one
+         * name, so eleven rows of the type-mismatch matrix produce eleven entries with the same
+         * feature and name; without the parameters a report cannot say which of them failed.
+         *
+         * <p>Values are the cell contents verbatim, as strings. Gherkin has no types, so
+         * {@code "1"} stays the string {@code 1} — coercing it would make the report say something
+         * the table did not.
+         */
+        public final Map<String, String> example;
+
         /** The scenario's Gherkin tags, including any inherited from the feature. */
         public final List<String> tags;
 
@@ -205,9 +219,16 @@ public final class ConformanceReport {
         public final double durationMs;
 
         ScenarioResult(
-                String feature, String name, List<String> tags, Outcome outcome, String reason, double duration) {
+                String feature,
+                String name,
+                Map<String, String> example,
+                List<String> tags,
+                Outcome outcome,
+                String reason,
+                double duration) {
             this.feature = feature;
             this.name = name;
+            this.example = example;
             this.tags = tags;
             this.outcome = outcome;
             this.reason = reason;
