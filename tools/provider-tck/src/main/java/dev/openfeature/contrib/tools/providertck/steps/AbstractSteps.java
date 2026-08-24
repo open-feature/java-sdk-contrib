@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.providertck.steps;
 
+import dev.openfeature.contrib.tools.providertck.BackendControl;
 import dev.openfeature.contrib.tools.providertck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.providertck.TckRuntime;
 import dev.openfeature.contrib.tools.providertck.TckState;
@@ -7,8 +8,13 @@ import dev.openfeature.contrib.tools.providertck.TckState;
 /**
  * Base for the TCK step definition classes.
  *
- * <p>Holds the PicoContainer-injected scenario state and gives subclasses convenience access to the
- * suite-scoped runtime.
+ * <p>Holds the PicoContainer-injected scenario state and gives subclasses the only two collaborators
+ * a step is allowed to reach: the provider author's harness, and the {@link BackendControl} that
+ * manipulates the backend.
+ *
+ * <p>Deliberately no accessor for the runtime itself. Steps must not know whether the backend is a
+ * container reached over HTTP or a map in this JVM — that is exactly what {@link BackendControl}
+ * exists to hide, and it is what lets the same Gherkin run in both modes.
  */
 public abstract class AbstractSteps {
 
@@ -20,20 +26,20 @@ public abstract class AbstractSteps {
     }
 
     /**
-     * Returns the suite-scoped runtime that owns the Compose stack and control API.
-     *
-     * @return the running TCK runtime
-     */
-    protected TckRuntime runtime() {
-        return TckRuntime.get();
-    }
-
-    /**
      * Returns the provider author's harness.
      *
      * @return the discovered harness
      */
     protected ProviderTckHarness harness() {
         return TckRuntime.get().harness();
+    }
+
+    /**
+     * Returns the seam through which the backend is manipulated.
+     *
+     * @return the backend control for this suite
+     */
+    protected BackendControl backend() {
+        return TckRuntime.get().backendControl();
     }
 }

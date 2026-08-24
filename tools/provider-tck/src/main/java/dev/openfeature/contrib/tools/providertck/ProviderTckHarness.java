@@ -1,96 +1,85 @@
 package dev.openfeature.contrib.tools.providertck;
 
 import dev.openfeature.sdk.FeatureProvider;
-import java.io.File;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
- * The complete contract a provider author implements to run the OpenFeature Provider TCK.
+ * The lifecycle-agnostic contract a provider author implements to run the OpenFeature Provider TCK.
  *
- * <p>Four methods have no default and must be supplied. Everything else is a convention with a
- * working default. If you find yourself needing to add lifecycle code, container handling or event
- * plumbing to your implementation, that is a bug in the TCK's base class rather than something to
- * work around here.
+ * <p>Two methods have no default: what provider to test, and what manipulates the backend it reads
+ * from. Everything else is a convention with a working default. Nothing here mentions containers,
+ * ports or HTTP — that belongs to {@link ContainerizedProviderTckTest}, which implements this
+ * interface in terms of a Compose stack.
  *
- * <p>Implementations are discovered through {@link java.util.ServiceLoader}. Extend
- * {@link AbstractProviderTckTest} — which implements this interface and carries all the Cucumber
- * configuration — and register the concrete class in
- * {@code META-INF/services/dev.openfeature.contrib.tools.providertck.ProviderTckHarness}.
+ * <p>Which base class to extend:
  *
- * <p>Example — the entire adoption for a provider:
+ * <ul>
+ *   <li>Your provider talks to an external backend — extend {@link ContainerizedProviderTckTest}.
+ *       It brings the Compose lifecycle, port discovery and {@link HttpBackendControl}, and the
+ *       HTTP control API stays the normative contract for your conformance claim.
+ *   <li>Your provider has no backend (in-memory, environment variables, a local file) — extend
+ *       {@link ProviderTckTest} directly and supply an in-process {@link BackendControl}.
+ * </ul>
+ *
+ * <p>Implementations are discovered through the executing JUnit suite, and through
+ * {@link java.util.ServiceLoader} as a fallback. Extend one of the two base classes — each is both
+ * the JUnit suite and the harness — and no registration is needed.
+ *
+ * <p>Example — the entire adoption for a backend-less provider:
  *
  * <pre>{@code
- * public class MyProviderTckTest extends AbstractProviderTckTest {
+ * public class MyProviderTckTest extends ProviderTckTest {
+ *
+ *     private final MyInProcessControl control = new MyInProcessControl();
  *
  *     @Override
- *     public File composeFile() {
- *         return new File("src/test/resources/tck/docker-compose.yaml");
+ *     public BackendControl backendControl() {
+ *         return control;
  *     }
  *
  *     @Override
- *     public List<Integer> backendPorts() {
- *         return Collections.singletonList(8013);
+ *     public FeatureProvider createProvider() {
+ *         return control.createProvider();
  *     }
  *
  *     @Override
- *     public FeatureProvider createProvider(BackendEndpoint endpoint) {
- *         return new MyProvider(endpoint.host(), endpoint.port(8013));
- *     }
- *
- *     @Override
- *     public FeatureProvider createUnavailableProvider() {
- *         return new MyProvider("localhost", 9999);
+ *     public Set<Capability> capabilities() {
+ *         return EnumSet.of(Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT);
  *     }
  * }
  * }</pre>
+ *
+ * @see ProviderTckTest
+ * @see ContainerizedProviderTckTest
  */
 public interface ProviderTckHarness {
 
     /**
-     * Returns the Docker Compose file describing the backend stack under test.
+     * Creates the provider under test, configured against a backend that is already running and
+     * seeded with the canonical flag set.
      *
-     * <p>The path is resolved relative to the Maven module directory, so
-     * {@code new File("src/test/resources/tck/docker-compose.yaml")} is the idiomatic form.
+     * <p>Called once per scenario. This is a factory rather than a field because a provider cannot
+     * always be configured before the suite starts — a Compose stack's host ports do not exist
+     * until it is up — and because each scenario gets its own provider instance.
      *
-     * <p>The stack is started once before the first scenario and stopped after the last one. It is
-     * never restarted in between — see {@link #createProvider(BackendEndpoint)} and the
-     * no-container-restart invariant documented in {@code openapi/control-api.yaml}. The stack must
-     * not pin host ports.
-     *
-     * @return the Compose file describing the backend stack
-     */
-    File composeFile();
-
-    /**
-     * Returns the container-internal ports on {@link #backendService()} that the provider connects
-     * to, so Testcontainers can expose and map them.
-     *
-     * <p>The control API port from {@link #controlPort()} is exposed automatically and does not
-     * need to be listed here.
-     *
-     * @return container-internal ports the provider connects to
-     */
-    List<Integer> backendPorts();
-
-    /**
-     * Creates the provider under test, configured against the running backend.
-     *
-     * <p>Called after the Compose stack is up and the control API has seeded the canonical flag
-     * set. The endpoint carries the dynamically mapped host ports, which is why this is a factory
-     * rather than a field: the ports do not exist until the stack has started.
-     *
-     * <p>The TCK owns the provider lifecycle from here — it registers the provider with the
+     * <p>The TCK owns the provider lifecycle from here: it registers the provider with the
      * OpenFeature API under a scenario-scoped domain, waits for it to become ready, and shuts it
      * down afterwards. Do not call {@code setProvider} or {@code initialize} yourself.
      *
-     * @param endpoint host and mapped ports of the running backend stack
      * @return a configured, uninitialised provider
      */
-    FeatureProvider createProvider(BackendEndpoint endpoint);
+    FeatureProvider createProvider();
+
+    /**
+     * Returns the seam through which the TCK manipulates the backend.
+     *
+     * <p>Called after {@link #startSuite()}, so an implementation may build it there and return the
+     * same instance on every call. It must not be {@code null}.
+     *
+     * @return the backend control for this suite
+     */
+    BackendControl backendControl();
 
     /**
      * Creates a provider pointed at a backend that does not exist.
@@ -99,15 +88,26 @@ public interface ProviderTckHarness {
      * reach its backend settles into {@code ERROR} and emits {@code PROVIDER_ERROR} rather than
      * hanging or throwing out of {@code setProvider}.
      *
-     * <p>Point this at a closed port on localhost. Do not point it at the Compose stack — the stack
-     * must stay up and reachable, and simulated outages belong to the control API.
+     * <p>Point this at a closed port on localhost. Do not point it at the backend under test — that
+     * must stay up and reachable, and simulated outages belong to {@link BackendControl}.
      *
      * <p>Configure a short connection deadline. The scenario allows a bounded time for the error
      * event to arrive, and a provider with a 30-second connect timeout will not make it.
      *
+     * <p>Defaults to throwing, because a provider with no backend has no way to be unreachable.
+     * Such a harness leaves {@link Capability#UNAVAILABLE_INIT} undeclared and the scenarios that
+     * would call this are reported as skipped, so the default is never reached. Reaching it means a
+     * capability was declared that the harness cannot back up.
+     *
      * @return a configured provider that cannot reach a backend
      */
-    FeatureProvider createUnavailableProvider();
+    default FeatureProvider createUnavailableProvider() {
+        throw new UnsupportedOperationException(getClass().getName() + " does not implement "
+                + "createUnavailableProvider(). This is a test-configuration bug rather than a provider "
+                + "defect: an @unavailable scenario ran, so the harness declared "
+                + "Capability.UNAVAILABLE_INIT without supplying a provider that cannot reach its "
+                + "backend. Remove that capability, or implement this method.");
+    }
 
     /**
      * Declares which optional parts of the provider contract this provider supports.
@@ -131,53 +131,27 @@ public interface ProviderTckHarness {
     }
 
     /**
-     * Returns the Compose service name that hosts the control API and the backend the provider
-     * connects to.
+     * Prepares whatever must exist before the first scenario — a container stack, a temporary
+     * directory, a local server.
      *
-     * @return the Compose service name, {@code backend} by default
+     * <p>Called once, before any scenario, and always paired with {@link #stopSuite()}. Defaults to
+     * doing nothing, which is right for a harness whose backend is a data structure in this JVM.
+     *
+     * <p>{@link #backendControl()} is called immediately afterwards, so this is where to build it
+     * if it needs something that only exists once the suite has started.
      */
-    default String backendService() {
-        return "backend";
+    default void startSuite() {
+        // Nothing to start by default.
     }
 
     /**
-     * Returns the container-internal port the control API listens on.
+     * Releases whatever {@link #startSuite()} created.
      *
-     * @return the control API port, {@code 8080} by default
+     * <p>Called once, after the last scenario, and also if suite startup fails partway through, so
+     * it must tolerate being called when startup did not complete.
      */
-    default int controlPort() {
-        return 8080;
-    }
-
-    /**
-     * Returns extra services and container-internal ports to expose, for stacks that contain more
-     * than the backend service.
-     *
-     * <p>Keys are Compose service names, values are container-internal ports. Resolve the mapped
-     * ports with {@link BackendEndpoint#port(String, int)}.
-     *
-     * @return additional services and ports to expose, empty by default
-     */
-    default Map<String, List<Integer>> additionalExposedPorts() {
-        return Collections.emptyMap();
-    }
-
-    /**
-     * Returns the control API configuration name used to seed the canonical flag set.
-     *
-     * @return the configuration name passed to {@code POST /start}, {@code default} by default
-     */
-    default String defaultConfig() {
-        return "default";
-    }
-
-    /**
-     * Returns how long to wait for the Compose stack to become reachable.
-     *
-     * @return the stack startup timeout, 60 seconds by default
-     */
-    default Duration startupTimeout() {
-        return Duration.ofSeconds(60);
+    default void stopSuite() {
+        // Nothing to stop by default.
     }
 
     /**
@@ -189,8 +163,8 @@ public interface ProviderTckHarness {
      * interval before it notices. Set this to comfortably exceed your worst-case detection latency,
      * or the suite will report timeouts that are really just impatience.
      *
-     * <p>Individual scenarios can tighten this with the explicit
-     * {@code within {int}ms} step, which always wins over this value.
+     * <p>Individual scenarios can tighten this with the explicit {@code within {int}ms} step, which
+     * always wins over this value.
      *
      * @return the default event await timeout, 12 seconds by default
      */
@@ -205,18 +179,5 @@ public interface ProviderTckHarness {
      */
     default Duration readyTimeout() {
         return Duration.ofSeconds(30);
-    }
-
-    /**
-     * Returns how long to pause after a control API call before continuing.
-     *
-     * <p>Covers the gap between the control API acknowledging a command and the backend actually
-     * having acted on it. Raise it if you see flakiness immediately after
-     * {@code the flag was modified} or a provider setup step.
-     *
-     * @return the settle time, 50 milliseconds by default
-     */
-    default Duration settleTime() {
-        return Duration.ofMillis(50);
     }
 }
