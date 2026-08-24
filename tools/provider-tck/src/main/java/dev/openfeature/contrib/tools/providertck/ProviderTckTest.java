@@ -17,7 +17,8 @@ import org.junit.platform.suite.api.Suite;
  *
  * <p>This one is lifecycle-agnostic: it starts nothing and knows nothing about how the backend is
  * reached. Extend it directly when your provider has <strong>no backend</strong> — an in-memory,
- * environment-variable or file-based provider — and supply an in-process {@link BackendControl}.
+ * environment-variable or file-based provider — and supply an in-process {@link BackendControl}
+ * such as {@link InProcessBackendControl}.
  *
  * <p>When your provider talks to an external backend, extend {@link ContainerizedProviderTckTest}
  * instead. It adds the Compose stack lifecycle, port discovery and {@link HttpBackendControl}, and
