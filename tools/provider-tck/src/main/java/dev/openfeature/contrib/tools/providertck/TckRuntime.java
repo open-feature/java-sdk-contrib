@@ -1,37 +1,31 @@
 package dev.openfeature.contrib.tools.providertck;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.ComposeContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 /**
- * Suite-scoped runtime: discovers the provider's harness, owns the Compose stack, and exposes the
- * control API client to the step definitions.
+ * Suite-scoped runtime: discovers the provider's harness, drives its suite lifecycle, and exposes
+ * its {@link BackendControl} to the step definitions.
  *
- * <p>The Compose stack is started <strong>once</strong>, before the first scenario, and stopped
- * after the last one. It is never stopped or restarted in between. Testcontainers cannot reliably
- * preserve dynamically mapped host ports across a container restart, so a restart would silently
- * invalidate every provider already pointed at the old port. Backend unavailability is therefore
- * always simulated inside the running stack through the control API. See the normative statement of
- * this invariant in {@code openapi/control-api.yaml}.
+ * <p>This class knows nothing about containers, ports or transports. Whatever must exist before the
+ * first scenario is created by {@link ProviderTckHarness#startSuite()} and released by
+ * {@link ProviderTckHarness#stopSuite()} — a Compose stack for
+ * {@link ContainerizedProviderTckTest}, nothing at all for a harness whose backend is a data
+ * structure in this JVM.
+ *
+ * <p>The lifecycle runs <strong>once</strong>: started before the first scenario, stopped after the
+ * last one, never cycled in between. Scenario isolation is achieved through
+ * {@link BackendControl#prepareScenario()} instead.
  *
  * <p>State is static because Cucumber's {@code @BeforeAll} / {@code @AfterAll} hooks are static and
- * the stack must outlive individual scenarios. Consequently only one TCK suite may run per JVM fork
- * at a time.
+ * the runtime must outlive individual scenarios. Consequently only one TCK suite may run per JVM
+ * fork at a time.
  */
-@SuppressFBWarnings(
-        value = "EI_EXPOSE_REP",
-        justification = "The harness and control API client are shared collaborators by design; "
-                + "step definitions must act on the same instances the suite started")
 public final class TckRuntime {
 
     private static final Logger log = LoggerFactory.getLogger(TckRuntime.class);
@@ -42,46 +36,57 @@ public final class TckRuntime {
     private static TckRuntime instance;
 
     private final ProviderTckHarness harness;
-    private final ComposeContainer compose;
-    private final ControlApiClient controlApi;
-    private final BackendEndpoint endpoint;
+    private final BackendControl backendControl;
 
-    private TckRuntime(ProviderTckHarness harness, ComposeContainer compose) {
+    private TckRuntime(ProviderTckHarness harness, BackendControl backendControl) {
         this.harness = harness;
-        this.compose = compose;
-        this.endpoint = new BackendEndpoint(compose, harness.backendService());
-        String baseUrl = "http://" + compose.getServiceHost(harness.backendService(), null) + ":"
-                + compose.getServicePort(harness.backendService(), harness.controlPort());
-        this.controlApi = new ControlApiClient(baseUrl, harness.settleTime());
+        this.backendControl = backendControl;
     }
 
     /**
-     * Starts the Compose stack if it is not already running, and returns the shared runtime.
+     * Starts the suite lifecycle if it is not already running, and returns the shared runtime.
      *
      * @return the suite-scoped runtime
      */
     public static synchronized TckRuntime startIfNeeded() {
-        if (instance == null) {
-            ProviderTckHarness harness = discoverHarness();
-            log.info("Provider TCK harness: {}", harness.getClass().getName());
-            // Checked before the Compose stack goes up, rather than only where the declaration
-            // reaches the report: an adopter should not wait for Docker to be told about a
-            // one-line mistake in capabilities().
-            Capability.requireDeclarable(harness.capabilities());
-            instance = new TckRuntime(harness, startCompose(harness));
-            instance.controlApi.awaitReady(harness.startupTimeout());
-            log.info("Control API ready at {}", instance.controlApi.baseUrl());
+        if (instance != null) {
+            return instance;
+        }
+        ProviderTckHarness harness = discoverHarness();
+        log.info("Provider TCK harness: {}", harness.getClass().getName());
+
+        // Checked before the suite lifecycle starts, rather than only where the declaration
+        // reaches the report: an adopter should not wait for Docker to be told about a
+        // one-line mistake in capabilities().
+        Capability.requireDeclarable(harness.capabilities());
+
+        harness.startSuite();
+        try {
+            BackendControl control = harness.backendControl();
+            if (control == null) {
+                throw new IllegalStateException(harness.getClass().getName()
+                        + ".backendControl() returned null. Every harness must supply the seam through "
+                        + "which the TCK manipulates the backend — HttpBackendControl for an external "
+                        + "backend, an in-process implementation for a provider that has none.");
+            }
+            log.info("Backend control: {}", control.description());
+            instance = new TckRuntime(harness, control);
+        } catch (RuntimeException e) {
+            // startSuite() may have allocated a container stack before this failed.
+            harness.stopSuite();
+            throw e;
         }
         return instance;
     }
 
     /**
-     * Stops the Compose stack and releases the shared runtime.
+     * Runs the harness's suite teardown and releases the shared runtime.
      */
     public static synchronized void stop() {
         if (instance != null) {
-            instance.compose.stop();
+            ProviderTckHarness harness = instance.harness;
             instance = null;
+            harness.stopSuite();
         }
     }
 
@@ -89,7 +94,7 @@ public final class TckRuntime {
      * Returns the running runtime.
      *
      * @return the suite-scoped runtime
-     * @throws IllegalStateException if the stack has not been started
+     * @throws IllegalStateException if the suite has not been started
      */
     public static synchronized TckRuntime get() {
         if (instance == null) {
@@ -108,46 +113,12 @@ public final class TckRuntime {
     }
 
     /**
-     * Returns the client for the backend's control API.
+     * Returns the seam through which the TCK manipulates the backend.
      *
-     * @return the control API client
+     * @return the backend control for this suite
      */
-    public ControlApiClient controlApi() {
-        return controlApi;
-    }
-
-    /**
-     * Returns the host and mapped ports of the running stack.
-     *
-     * @return the backend endpoint
-     */
-    public BackendEndpoint endpoint() {
-        return endpoint;
-    }
-
-    private static ComposeContainer startCompose(ProviderTckHarness harness) {
-        File composeFile = harness.composeFile();
-        if (!composeFile.isFile()) {
-            throw new IllegalStateException("Compose file not found: " + composeFile.getAbsolutePath()
-                    + ". ProviderTckHarness.composeFile() is resolved relative to the module directory.");
-        }
-        ComposeContainer compose = new ComposeContainer(composeFile);
-
-        compose.withExposedService(harness.backendService(), harness.controlPort(), Wait.forListeningPort());
-        for (Integer port : harness.backendPorts()) {
-            compose.withExposedService(harness.backendService(), port, Wait.forListeningPort());
-        }
-        for (Map.Entry<String, List<Integer>> service :
-                harness.additionalExposedPorts().entrySet()) {
-            for (Integer port : service.getValue()) {
-                compose.withExposedService(service.getKey(), port, Wait.forListeningPort());
-            }
-        }
-        compose.withStartupTimeout(harness.startupTimeout());
-
-        log.info("Starting Compose stack {} (started once per suite, never restarted)", composeFile.getAbsolutePath());
-        compose.start();
-        return compose;
+    public BackendControl backendControl() {
+        return backendControl;
     }
 
     /**
@@ -173,7 +144,8 @@ public final class TckRuntime {
 
         if (found.isEmpty()) {
             throw new IllegalStateException("No ProviderTckHarness found. Write a test class extending "
-                    + "AbstractProviderTckTest; it is both the JUnit suite and the harness.");
+                    + "ContainerizedProviderTckTest (external backend) or ProviderTckTest (no backend); "
+                    + "it is both the JUnit suite and the harness.");
         }
         if (found.size() == 1) {
             return found.get(0);
