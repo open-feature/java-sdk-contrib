@@ -3,9 +3,9 @@ package dev.openfeature.contrib.providers.flagd.e2e;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
-import dev.openfeature.contrib.tools.providertck.AbstractProviderTckTest;
 import dev.openfeature.contrib.tools.providertck.BackendEndpoint;
 import dev.openfeature.contrib.tools.providertck.Capability;
+import dev.openfeature.contrib.tools.providertck.ContainerizedProviderTckTest;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Collections;
@@ -24,7 +24,7 @@ import java.util.Set;
  * one is running from the JUnit test plan, so adding a mode needs no registration or build
  * configuration.
  */
-abstract class AbstractFlagdTckTest extends AbstractProviderTckTest {
+abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
 
     /**
      * A port nothing listens on, for the initialisation-failure scenarios.

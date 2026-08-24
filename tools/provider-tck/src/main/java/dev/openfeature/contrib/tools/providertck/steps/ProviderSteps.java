@@ -19,6 +19,7 @@ import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -27,8 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Lifecycle and control API steps: bringing the Compose stack up, gating scenarios on declared
+ * Lifecycle and backend-control steps: bringing the suite up, gating scenarios on declared
  * capabilities, creating and registering the provider under test, and simulating backend outages.
+ *
+ * <p>Every step that touches the backend goes through {@link #backend()}. Nothing here knows whether
+ * that is a container driven over HTTP or an in-memory provider manipulated directly, which is what
+ * lets one set of feature files cover both.
  *
  * <p>Step vocabulary is inherited from the flagd test harness so that existing feature files port
  * with a near-zero diff. The only change is dropping the word {@code flagd} from the provider setup
@@ -43,7 +48,7 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     /**
-     * Starts the Compose stack once, before the first scenario.
+     * Runs the harness's suite startup once, before the first scenario.
      */
     @BeforeAll
     public static void beforeAll() {
@@ -51,7 +56,7 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     /**
-     * Stops the Compose stack after the last scenario.
+     * Runs the harness's suite teardown after the last scenario.
      */
     @AfterAll
     public static void afterAll() {
@@ -65,6 +70,11 @@ public class ProviderSteps extends AbstractSteps {
      * JUnit Platform. That distinction is the whole point: a provider that does not support
      * configuration-change events should see those scenarios visibly excluded, never silently
      * green.
+     *
+     * <p>This is also how a backend with no connection to lose stays honest. A harness whose
+     * {@link dev.openfeature.contrib.tools.providertck.BackendControl} cannot simulate an outage
+     * leaves {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT} undeclared, and the
+     * scenarios needing them are skipped here — before any step can reach an unsupported operation.
      *
      * @param scenario the scenario about to run
      */
@@ -81,19 +91,18 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     /**
-     * Restores the backend to a running, freshly seeded state before each scenario.
+     * Restores the backend to the state every scenario starts from.
      *
-     * <p>Scenario isolation is achieved here, through the control API, and never by restarting
-     * containers — see the no-container-restart invariant in {@code openapi/control-api.yaml}.
+     * <p>Scenario isolation is achieved here and nowhere else — never by restarting containers, and
+     * never by relying on scenarios happening not to interfere.
      */
     @Before(order = 10)
     public void prepareBackend() {
-        ProviderTckHarness harness = harness();
-        runtime().controlApi().prepareScenario(harness.defaultConfig());
+        backend().prepareScenario();
     }
 
     /**
-     * Tears the provider down without disturbing the Compose stack.
+     * Tears the provider down without disturbing the backend.
      *
      * <p>Replaces the domain's provider with a {@link NoOpProvider} through the SDK lifecycle rather
      * than calling {@code shutdown()} directly, because only the former makes the SDK detach the
@@ -111,10 +120,10 @@ public class ProviderSteps extends AbstractSteps {
      * Creates the provider under test and registers it under a scenario-scoped domain.
      *
      * <p>Two provider flavours are recognised. A {@code stable} provider is built by the harness
-     * against the running stack and registered with {@code setProviderAndWait}, so the step does not
-     * return until the provider is ready. An {@code unavailable} provider points at a dead backend
-     * and is registered with {@code setProvider}, deliberately without waiting — the scenario's
-     * whole point is that readiness never arrives.
+     * against the running backend and registered with {@code setProviderAndWait}, so the step does
+     * not return until the provider is ready. An {@code unavailable} provider points at a dead
+     * backend and is registered with {@code setProvider}, deliberately without waiting — the
+     * scenario's whole point is that readiness never arrives.
      *
      * @param flavour either {@code stable} or {@code unavailable}
      */
@@ -126,7 +135,7 @@ public class ProviderSteps extends AbstractSteps {
 
         switch (flavour) {
             case "stable":
-                provider = harness.createProvider(runtime().endpoint());
+                provider = harness.createProvider();
                 waitForReady = true;
                 break;
             case "unavailable":
@@ -161,7 +170,7 @@ public class ProviderSteps extends AbstractSteps {
      */
     @When("the connection is lost")
     public void theConnectionIsLost() {
-        runtime().controlApi().stop();
+        backend().disconnect();
     }
 
     /**
@@ -171,7 +180,7 @@ public class ProviderSteps extends AbstractSteps {
      */
     @When("the connection is lost for {int}s")
     public void theConnectionIsLostFor(int seconds) {
-        runtime().controlApi().restart(seconds);
+        backend().disconnectFor(Duration.ofSeconds(seconds));
     }
 
     /**
@@ -184,7 +193,7 @@ public class ProviderSteps extends AbstractSteps {
      */
     @When("the connection is restored")
     public void theConnectionIsRestored() {
-        runtime().controlApi().start(harness().defaultConfig());
+        backend().reconnect();
     }
 
     /**
@@ -192,7 +201,7 @@ public class ProviderSteps extends AbstractSteps {
      */
     @When("the flag was modified")
     public void theFlagWasModified() {
-        runtime().controlApi().change();
+        backend().changeFlag();
     }
 
     /**
