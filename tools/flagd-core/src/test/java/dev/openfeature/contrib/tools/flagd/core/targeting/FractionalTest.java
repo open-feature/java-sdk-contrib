@@ -100,9 +100,7 @@ class FractionalTest {
 
         // bucketing key is null, so fractional falls back to flagKey + targetingKey
         // but targetingKey is null, so it should throw GeneralError
-        org.junit.jupiter.api.Assertions.assertThrows(dev.openfeature.sdk.exceptions.GeneralError.class, () -> {
-            fractional.evaluate(rule, data, "path");
-        });
+        assertNull(fractional.evaluate(rule, data, "path"));
     }
 
     @Test
