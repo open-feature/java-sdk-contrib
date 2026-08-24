@@ -184,11 +184,12 @@
         </dependency>
 
         <!--
-            Test scope only, for this module's own self-test. InMemoryProviderTckTest runs the
-            full applicable suite against the SDK's InMemoryProvider with no container and no
-            network, and InProcessBackendControlTest pins the behaviour the Gherkin cannot
-            assert about itself. The SDK itself is inherited from the parent POM as `provided`,
-            which puts it on the test classpath already.
+            Test scope only, for this module's own self-tests. InMemoryProviderTckTest and
+            MultiProviderTckTest run the full applicable suite against the SDK's InMemoryProvider
+            and against MultiProvider wrapping one, with no container and no network;
+            InProcessBackendControlTest pins the behaviour the Gherkin cannot assert about
+            itself. The SDK is inherited from the parent POM as `provided`, which puts it on the
+            test classpath already.
         -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
