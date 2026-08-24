@@ -335,6 +335,20 @@ Note that `capabilities` summarises the *optional* contract only. Scenarios carr
 tag are mandatory and roll up into nothing, so a provider can fail one while every capability reads
 `passed`. Read `scenarios` to decide whether a provider conforms.
 
+A capability you declare that **no scenario actually exercised** is left out of `capabilities`
+entirely rather than reported as `passed`. Reporting a green result for a claim nothing examined is
+the vacuous pass the capability vocabulary exists to eliminate, so the suite says nothing instead.
+That happens two ways:
+
+- Nothing in the suite carries the tag. `@targeting` and `@caching` are reserved — they are in the
+  vocabulary so it stays aligned with the flagd test harness, but no scenario carries them yet.
+- Every scenario carrying it was skipped for a *different* capability you did not declare. Both
+  scenarios in `events.feature` carry `@events` plus one of `@stale` or `@configuration-change`, so
+  declaring `@events` on its own runs neither, and a run that ran neither has demonstrated nothing
+  about `@events`.
+
+Exercising is therefore counted by execution, not by tag presence.
+
 ### What identifies a scenario
 
 A scenario entry is identified by `feature`, `name` **and** `example` together. The first two are not

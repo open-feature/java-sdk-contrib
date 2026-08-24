@@ -142,7 +142,8 @@ class ConformanceReportPluginTest {
             JsonNode result = capabilities.get(capability.tag());
             assertThat(result)
                     .as(
-                            "capability %s is missing; an absent one cannot be told apart from a forgotten one",
+                            "capability %s is missing; a capability is left out only when it is declared and "
+                                    + "no scenario exercises it, which is not the case here",
                             capability.tag())
                     .isNotNull();
 
@@ -152,6 +153,9 @@ class ConformanceReportPluginTest {
             } else if (capability == Capability.EVENTS) {
                 // The failing scenario carries @events, so the capability cannot read as passed.
                 assertThat(state).isEqualTo("failed");
+                assertThat(result.get("reason").asText())
+                        .as("someone comparing providers wants to know how much failed before opening the detail")
+                        .contains("1 of 1");
             } else {
                 assertThat(state).isEqualTo("passed");
             }
@@ -311,6 +315,54 @@ class ConformanceReportPluginTest {
                 .doesNotHaveDuplicates();
     }
 
+    @Test
+    @DisplayName("a declared capability no scenario exercises is omitted rather than called passed")
+    void anUnexercisedCapabilityIsOmitted(@TempDir Path dir) throws IOException {
+        Set<Capability> declared = EnumSet.of(Capability.OBJECT, Capability.TARGETING);
+        JsonNode capabilities = run(dir, declared, defaultScenarios()).get("capabilities");
+
+        assertThat(capabilities.has(Capability.TARGETING.tag()))
+                .as(
+                        "%s is declared and no scenario carries it; the suite asked no question, so it has "
+                                + "no answer, and a green result there is a pass nothing examined",
+                        Capability.TARGETING.tag())
+                .isFalse();
+
+        assertThat(capabilities.get(Capability.OBJECT.tag()).get("state").asText())
+                .as("the omission must be specific, not a general failure to report capabilities")
+                .isEqualTo("passed");
+    }
+
+    @Test
+    @DisplayName("a declared capability whose every scenario was skipped is omitted too")
+    void aCapabilityWhoseScenariosAllSkippedIsOmitted(@TempDir Path dir) throws IOException {
+        // @events is declared; @stale is not. Every scenario in events.feature carries both — the
+        // feature is tagged @events and each scenario adds @stale or @configuration-change — so
+        // declaring @events alone runs none of them. Counting a capability as exercised because a
+        // scenario carried its tag would report @events as passed here, which is the same vacuous
+        // pass as a reserved capability arriving by a different route.
+        Set<Capability> declared = EnumSet.of(Capability.OBJECT, Capability.EVENTS);
+        List<TestCaseFinished> scenarios = Arrays.asList(
+                finished(scenario("evaluation", "an object scenario", "@object"), Status.PASSED, null),
+                finished(
+                        scenario("events", "a stale scenario", "@events", "@stale"),
+                        Status.SKIPPED,
+                        new TestAbortedException("Skipped: provider does not declare capability STALE")));
+
+        JsonNode capabilities = run(dir, declared, scenarios).get("capabilities");
+
+        assertThat(capabilities.has(Capability.EVENTS.tag()))
+                .as(
+                        "%s was declared and no scenario carrying it ran, so nothing was demonstrated",
+                        Capability.EVENTS.tag())
+                .isFalse();
+        assertThat(capabilities.get(Capability.OBJECT.tag()).get("state").asText())
+                .isEqualTo("passed");
+        assertThat(capabilities.get(Capability.STALE.tag()).get("state").asText())
+                .as("the undeclared capability is still reported, with the reason it was not")
+                .isEqualTo("not-declared");
+    }
+
     /** A suite whose name the default configuration derivation has to cope with. */
     private static final class MyProviderRpcTckTest {}
 
@@ -362,8 +414,12 @@ class ConformanceReportPluginTest {
     }
 
     private JsonNode run(Path dir, List<? extends Event> events) throws IOException {
+        return run(dir, DECLARED, events);
+    }
+
+    private JsonNode run(Path dir, Set<Capability> declared, List<? extends Event> events) throws IOException {
         FakeEventPublisher publisher = new FakeEventPublisher();
-        new ConformanceReportPlugin(dir::toString, () -> Optional.of(metadata())).setEventPublisher(publisher);
+        new ConformanceReportPlugin(dir::toString, () -> Optional.of(metadata(declared))).setEventPublisher(publisher);
         events.forEach(publisher::emit);
         publisher.emit(new TestRunFinished(Instant.now(), new Result(Status.FAILED, Duration.ZERO, null)));
 
@@ -373,7 +429,11 @@ class ConformanceReportPluginTest {
     }
 
     private static TckRunMetadata metadata() {
-        TckRunMetadata metadata = new TckRunMetadata("my-provider-rpc", DECLARED, "a test double", "http");
+        return metadata(DECLARED);
+    }
+
+    private static TckRunMetadata metadata(Set<Capability> declared) {
+        TckRunMetadata metadata = new TckRunMetadata("my-provider-rpc", declared, "a test double", "http");
         metadata.recordProviderName("My Provider");
         return metadata;
     }

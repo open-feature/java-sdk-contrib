@@ -179,8 +179,12 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         // not pass.
         Map<Capability, Integer> failed = new EnumMap<>(Capability.class);
 
+        // And only a capability some scenario carries can be said to have been tested at all. A
+        // capability nothing in the suite exercises has no outcome to report — see capabilitiesOf.
+        Map<Capability, Integer> exercised = new EnumMap<>(Capability.class);
+
         for (ScenarioRecord record : observed) {
-            scenarios.add(resolve(record, declared, failed));
+            scenarios.add(resolve(record, declared, exercised, failed));
         }
 
         return new ConformanceReport(
@@ -192,12 +196,15 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
                         TckBuildInfo.specRevision(),
                         TckBuildInfo.assetsTree()),
                 backendOf(run),
-                capabilitiesOf(declared, failed),
+                capabilitiesOf(declared, exercised, failed),
                 Collections.unmodifiableList(scenarios));
     }
 
     private static ConformanceReport.ScenarioResult resolve(
-            ScenarioRecord record, Set<Capability> declared, Map<Capability, Integer> failed) {
+            ScenarioRecord record,
+            Set<Capability> declared,
+            Map<Capability, Integer> exercised,
+            Map<Capability, Integer> failed) {
         Outcome outcome;
         String reason;
 
@@ -210,8 +217,20 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         } else {
             outcome = Outcome.FAILED;
             reason = record.message == null ? "the scenario was reported as " + record.status : record.message;
+        }
+
+        // A scenario counts towards its capabilities only if it actually ran. Carrying the tag is
+        // not the same as exercising the capability: a scenario can carry two, and be skipped for
+        // the one this provider did not declare. Every scenario in events.feature is like that —
+        // the feature carries @events and each scenario adds @stale or @configuration-change — so
+        // counting by tag presence would report @events as passed for a provider that declared it
+        // and ran neither scenario.
+        if (outcome == Outcome.PASSED || outcome == Outcome.FAILED) {
             for (Capability capability : gatingCapabilities(record.tags)) {
-                failed.merge(capability, 1, Integer::sum);
+                exercised.merge(capability, 1, Integer::sum);
+                if (outcome == Outcome.FAILED) {
+                    failed.merge(capability, 1, Integer::sum);
+                }
             }
         }
 
@@ -257,9 +276,21 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
      * scenario with no capability tag is mandatory and rolls up into nothing here, so a provider can
      * fail one while every entry below reads {@code passed}. The per-scenario list is what a
      * consumer has to read to decide whether a provider conforms.
+     *
+     * <p><strong>A capability nothing exercised is left out.</strong> {@code @targeting} is
+     * reserved: it is in the tag vocabulary but no scenario carries it, because asserting that an
+     * evaluation context reached the backend needs an echo operation the control API does not have.
+     * A provider declaring it used to get {@code passed} for a claim nothing had examined — the
+     * vacuous pass the capability vocabulary exists to eliminate, arriving through the report rather
+     * than through the suite. The same pass arrives by a second route when every scenario carrying a
+     * declared capability was skipped for a <em>different</em> capability the provider did not
+     * declare, which is why exercising is counted by execution and not by tag presence.
+     *
+     * <p>Omitting is preferred to inventing a fifth outcome: the four in the schema describe what
+     * the provider did, and "nothing asked this of the provider" is a fact about the run.
      */
     private static Map<String, ConformanceReport.CapabilityResult> capabilitiesOf(
-            Set<Capability> declared, Map<Capability, Integer> failed) {
+            Set<Capability> declared, Map<Capability, Integer> exercised, Map<Capability, Integer> failed) {
         Map<String, ConformanceReport.CapabilityResult> results = new LinkedHashMap<>();
         for (Capability capability : Capability.values()) {
             ConformanceReport.CapabilityResult result;
@@ -268,11 +299,17 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
                         Outcome.NOT_DECLARED,
                         "not declared by this provider's configuration; the " + capability.tag()
                                 + " scenarios were skipped and did not contribute to this result");
+            } else if (!exercised.containsKey(capability)) {
+                // Declared, but no scenario carrying it ran — either nothing in the suite gates on
+                // it, or everything that does was skipped for some other capability this provider
+                // did not declare. Either way nothing was demonstrated, so there is nothing to
+                // report: a consumer sees the tag is absent rather than a pass it cannot rely on.
+                continue;
             } else if (failed.containsKey(capability)) {
                 int count = failed.get(capability);
                 result = new ConformanceReport.CapabilityResult(
                         Outcome.FAILED,
-                        count + (count == 1 ? " scenario" : " scenarios") + " carrying " + capability.tag()
+                        count + " of " + exercised.get(capability) + " scenarios carrying " + capability.tag()
                                 + " failed; the per-scenario results say which, and why");
             } else {
                 result = new ConformanceReport.CapabilityResult(Outcome.PASSED, null);
