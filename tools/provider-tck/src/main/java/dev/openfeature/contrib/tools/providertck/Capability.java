@@ -20,6 +20,32 @@ import java.util.Optional;
  */
 public enum Capability {
 
+    /**
+     * Provider performs an initialisation that reaches its backend, with an observable outcome.
+     *
+     * <p>Gates the lifecycle scenarios: reaching {@code READY} against a healthy backend, and
+     * settling into {@code ERROR} — promptly, rather than blocking forever or throwing out of
+     * provider registration — against one that cannot be reached.
+     *
+     * <p><strong>Why this is not {@link #EVENTS}.</strong> Gating these scenarios on {@code EVENTS}
+     * is wrong in both directions. Too strict, because a stateless provider that emits no events of
+     * its own — OFREP, for instance — still initialises against a backend and still owes the
+     * contract; it simply cannot declare {@code EVENTS}. Too lax, because a provider that declares
+     * {@code EVENTS} passes the readiness scenario <em>vacuously</em>:
+     * {@code dev.openfeature.sdk.FeatureProviderStateManager} emits {@code PROVIDER_READY} and
+     * {@code PROVIDER_ERROR} around {@code initialize} for <em>any</em> provider, whether or not it
+     * is an {@code EventProvider}. A provider with no initialisation of its own therefore reaches
+     * {@code READY} exactly as {@code NoOpProvider} would, and the scenario goes green having
+     * demonstrated nothing about the provider.
+     *
+     * <p>So {@code EVENTS} asserts that the provider emits events; {@code LIFECYCLE} asserts that
+     * there is a real initialisation behind the event whose outcome the events describe. Declare it
+     * only if initialisation actually talks to the backend. A provider with nothing to reach — one
+     * backed by an in-memory map, or a facade over other providers — should <strong>not</strong>
+     * declare it, however many events it emits.
+     */
+    LIFECYCLE("@lifecycle"),
+
     /** Provider emits lifecycle events at all ({@code PROVIDER_READY}, {@code PROVIDER_ERROR}). */
     EVENTS("@events"),
 
