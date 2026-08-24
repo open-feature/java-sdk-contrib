@@ -136,10 +136,30 @@ Get that pairing wrong — declare `STALE` against a control that cannot disconn
 `BackendControl` may throw `UnsupportedOperationException` for operations it does not support, and
 reaching one from a scenario that actually ran is a **test-configuration bug**, never a skip.
 
-The TCK's own self-test is exactly this class: see
-[`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/InMemoryProviderTckTest.java),
-which runs the full applicable suite against `InMemoryProvider` with no Docker in well under a
-second. It doubles as the reference adoption and as the Docker-free CI canary.
+### The TCK's own self-tests
+
+Two suites in this module are exactly the class above, and both run with no Docker in well under a
+second. They are the reference adoption, and they are the fast CI canary.
+
+[`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/InMemoryProviderTckTest.java)
+runs the full applicable suite against the SDK's `InMemoryProvider` — 26 passed, 3 skipped by
+capability.
+
+[`MultiProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/MultiProviderTckTest.java)
+runs it against `MultiProvider` wrapping **one** `InMemoryProvider`. A provider that delegates is
+still a provider, and delegation is where the contract is easiest to drop: a variant that does not
+survive the hop, a reason rewritten, an error code flattened, an event that never arrives. With a
+single child the correct answer is precisely what the in-memory suite already asserts, so any
+difference between the two suites is attributable to `MultiProvider` and nothing else.
+
+That suite has already paid for itself. It does **not** declare `CONFIGURATION_CHANGE`, because
+`MultiProvider` extends `EventProvider` but never subscribes to its children — a child's
+`PROVIDER_CONFIGURATION_CHANGED`, `PROVIDER_ERROR` and `PROVIDER_STALE` are all swallowed. Wrapping
+a provider in a multi-provider silently costs you those events, with nothing in the API to hint at
+it. That is a known SDK gap,
+[open-feature/java-sdk#1882](https://github.com/open-feature/java-sdk/issues/1882) (gap 1, High),
+which the suite reproduced from the outside — the gap was originally found by hand-comparing
+implementations against the js-sdk reference. Everything else survives delegation unchanged.
 
 ## Adopting it
 
