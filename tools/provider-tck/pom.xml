@@ -14,6 +14,35 @@
 
     <properties>
         <module-name>${groupId}.providertck</module-name>
+
+        <!--
+            THE CONFORMANCE ARTIFACTS THIS BUILD CARRIES
+            ============================================
+            A conformance report has to say which questions were asked, not only what the answers
+            were, so it records the open-feature/spec commit the packaged Gherkin, flag set and
+            control API came from, plus the git tree ID of that directory. Both are filtered into
+            src/main/resources-filtered/.../provider-tck-build.properties and packaged in the JAR,
+            because the repository they came from is not.
+
+            They are pinned here rather than read from git at build time for one reason: unlike the
+            Go TCK, this module has no spec submodule. The artifacts under src/main/resources are
+            vendored copies — see the NOTE below on where they should live — so there is nothing for
+            the build to interrogate. When the submodule arrives, these two values are generated
+            from it instead and nothing else changes; the properties file keeps its name and the
+            report keeps its shape.
+
+            Both are checkable rather than merely asserted, which is what makes a hand-maintained
+            pin tolerable in the meantime. From a checkout of open-feature/spec:
+
+              git rev-parse <revision>
+              git rev-parse <revision>:specification/assets/provider-tck
+              diff -r <spec>/specification/assets/provider-tck/gherkin src/main/resources/features
+
+            Verified byte for byte against dfa16586 at the time of writing.
+        -->
+        <provider-tck.spec.revision>dfa16586d91ca020ef1b3b82a7c972d833ff8f29</provider-tck.spec.revision>
+        <provider-tck.spec.assets-tree>904aa7d5fd7a856a4f92ace24355bd1987143abc</provider-tck.spec.assets-tree>
+
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.1</jackson-databind.version>
@@ -181,5 +210,24 @@
             <version>${slf4j.version}</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <!--
+            The conformance artifacts are copied verbatim; only the generated build-info properties
+            are filtered. Filtering the feature files would be a portability hazard rather than a
+            convenience: a scenario is a byte-for-byte shared definition across four languages, and
+            a stray ${...} in one would silently make this language's copy different.
+        -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources-filtered</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+    </build>
 
 </project>

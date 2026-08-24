@@ -126,6 +126,23 @@ public interface ProviderTckHarness {
     }
 
     /**
+     * Returns the name of the provider configuration this suite exercises.
+     *
+     * <p>Used to name the conformance report — {@code <dir>/<configuration>.json} — and reported in
+     * it as the provider's configuration rather than its identity. The identity is what the provider
+     * says through its own metadata; this is which of its modes was tested, and a provider with two
+     * materially different modes produces two reports that are not interchangeable.
+     *
+     * <p>Derived from the suite class name by default: {@code FlagdInProcessTckTest} becomes
+     * {@code flagd-in-process}. Override it when that does not read well.
+     *
+     * @return a short name for this configuration
+     */
+    default String configuration() {
+        return ReportNames.configurationOf(getClass());
+    }
+
+    /**
      * Returns the Compose service name that hosts the control API and the backend the provider
      * connects to.
      *

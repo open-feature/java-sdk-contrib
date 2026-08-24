@@ -57,6 +57,19 @@ public final class ControlApiClient {
     }
 
     /**
+     * Returns how the backend was driven, for the conformance report.
+     *
+     * <p>{@code http} is the normative control API and the only one this TCK implements. The schema
+     * also allows {@code in-process}, a narrow allowance for providers with no backend at all; a
+     * report claiming it for a provider that has one should be treated with suspicion.
+     *
+     * @return the control API kind, always {@code http}
+     */
+    public String controlApi() {
+        return "http";
+    }
+
+    /**
      * Starts the backend with a named configuration, seeding flag state to that configuration's
      * baseline.
      *

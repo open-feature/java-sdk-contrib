@@ -33,12 +33,19 @@ import org.junit.platform.suite.api.Suite;
  * {@code dev.openfeature.contrib.tools.providertck.steps}, which reach the harness through
  * {@link TckRuntime}.
  *
+ * <p>The suite also carries {@link ConformanceReportPlugin}, so an adopter needs no configuration to
+ * publish a machine-readable conformance report: setting {@code PROVIDER_TCK_REPORT_DIR} on a run is
+ * enough, and leaving it unset writes nothing.
+ *
  * @see ProviderTckHarness
+ * @see ConformanceReportPlugin
  */
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
-@ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = "summary")
+@ConfigurationParameter(
+        key = Constants.PLUGIN_PROPERTY_NAME,
+        value = "summary," + "dev.openfeature.contrib.tools.providertck.ConformanceReportPlugin")
 @ConfigurationParameter(key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, value = "false")
 @ConfigurationParameter(key = Constants.EXECUTION_MODE_FEATURE_PROPERTY_NAME, value = "same_thread")
 @ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.tools.providertck.steps")

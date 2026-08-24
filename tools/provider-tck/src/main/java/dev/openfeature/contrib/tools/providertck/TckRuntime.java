@@ -41,10 +41,19 @@ public final class TckRuntime {
 
     private static TckRuntime instance;
 
+    /**
+     * What the most recent suite was, kept after {@link #stop()} for the conformance report.
+     *
+     * <p>Cucumber emits the end-of-run event that writes the report <em>after</em> {@code @AfterAll}
+     * has stopped the runtime, so the report would otherwise have nothing left to describe.
+     */
+    private static volatile TckRunMetadata lastRunMetadata;
+
     private final ProviderTckHarness harness;
     private final ComposeContainer compose;
     private final ControlApiClient controlApi;
     private final BackendEndpoint endpoint;
+    private final TckRunMetadata metadata;
 
     private TckRuntime(ProviderTckHarness harness, ComposeContainer compose) {
         this.harness = harness;
@@ -53,6 +62,12 @@ public final class TckRuntime {
         String baseUrl = "http://" + compose.getServiceHost(harness.backendService(), null) + ":"
                 + compose.getServicePort(harness.backendService(), harness.controlPort());
         this.controlApi = new ControlApiClient(baseUrl, harness.settleTime());
+        this.metadata = new TckRunMetadata(
+                harness.configuration(),
+                harness.capabilities(),
+                "Docker Compose stack " + harness.composeFile().getName() + ", service " + harness.backendService(),
+                controlApi.controlApi());
+        lastRunMetadata = this.metadata;
     }
 
     /**
@@ -119,6 +134,27 @@ public final class TckRuntime {
      */
     public BackendEndpoint endpoint() {
         return endpoint;
+    }
+
+    /**
+     * Records what the provider under test calls itself.
+     *
+     * <p>A conformance report identifies the provider by its own metadata name rather than by the
+     * suite's, and only a scenario that has built one can say what that is.
+     *
+     * @param name the provider's metadata name
+     */
+    public void recordProviderName(String name) {
+        metadata.recordProviderName(name);
+    }
+
+    /**
+     * Returns what was observed about the most recent suite, for the conformance report.
+     *
+     * @return the metadata of the last suite to start, or empty if none has
+     */
+    static Optional<TckRunMetadata> lastRunMetadata() {
+        return Optional.ofNullable(lastRunMetadata);
     }
 
     private static ComposeContainer startCompose(ProviderTckHarness harness) {

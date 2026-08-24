@@ -295,6 +295,69 @@ documented.
 The Compose stack starts once per suite and is never restarted. Scenario isolation comes from the
 control API.
 
+## Conformance reports
+
+Set `PROVIDER_TCK_REPORT_DIR` and each suite writes a machine-readable report of its run to
+`<dir>/<configuration>.json`, conforming to the [report schema][report-schema] in the specification.
+
+```console
+$ PROVIDER_TCK_REPORT_DIR=./reports mvn test -Dtest='Flagd*TckTest'
+$ jq '.scenarios | group_by(.outcome) | map({(.[0].outcome): length}) | add' reports/flagd-rpc.json
+{
+  "passed": 28,
+  "not-declared": 1
+}
+```
+
+`-Dprovider.tck.report.dir=...` does the same thing and is often easier to pass through Maven. The
+environment variable is the portable spelling — every language's TCK reads it, so one cross-language
+CI job can set one thing.
+
+It is an environment variable rather than a method on `ProviderTckHarness` so that emitting a report
+is a property of the run and not of the code: CI sets it, a developer running the suite locally does
+not, and no adopter changes a line to publish one. Unset means no report, which is not an error.
+Several suites in one JVM each write their own file, so flagd's two resolvers do not collide.
+
+### What the report is for
+
+The per-scenario list is the load-bearing part. This suite promises that a scenario skipped for an
+undeclared capability is reported as skipped with the reason and *never* as passed — and a promise is
+not a check. The report records the outcome of every scenario individually, so a consumer can verify
+the rule instead of trusting a runner's headline number. Go's runner counts capability-gated skips in
+its **passed** tally, which is exactly the failure mode this makes impossible to hide; Cucumber
+reports skips correctly, and the report is what proves it rather than assuming it.
+
+Every scenario appears exactly once, whatever happened to it. A report that quietly omitted the
+scenarios it did not run would satisfy every rule above and still mislead, because a reader would
+have no way to know how many questions went unasked.
+
+Note that `capabilities` summarises the *optional* contract only. Scenarios carrying no capability
+tag are mandatory and roll up into nothing, so a provider can fail one while every capability reads
+`passed`. Read `scenarios` to decide whether a provider conforms.
+
+### What identifies a report
+
+`provider.name` is what the provider reports through its own metadata, not the suite name. The suite
+name is chosen to read well in a failure message — `flagd-rpc` — which makes it the *configuration*,
+and it is reported as such. One provider with two materially different modes produces two reports
+that are not interchangeable. It is derived from the suite class name (`FlagdInProcessTckTest` →
+`flagd-in-process`) and can be overridden with `ProviderTckHarness.configuration()`.
+
+`tck.specRevision` and `tck.assetsTree` identify the conformance artifacts that were executed, and
+are baked into the JAR at build time from the properties in this module's POM — the artifacts travel
+in the JAR, the repository they came from does not. They are pinned by hand for now because, unlike
+the Go TCK, this module has no spec submodule to read them from; the artifacts under
+`src/main/resources` are vendored copies. See [Where these artifacts should live](#where-these-artifacts-should-live).
+Both are checkable rather than merely asserted:
+`git rev-parse <specRevision>:specification/assets/provider-tck` must reproduce the tree, and the
+tree must match the files in this module.
+
+`sdk.version` is read from the classpath rather than declared, because the TCK depends on an SDK
+version *range* so that adopting it can never force an upgrade — what a consumer actually ran against
+is only knowable at runtime.
+
+[report-schema]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/report/conformance-report.schema.json
+
 ## Relationship to the flagd test harness
 
 The step vocabulary is inherited from the
