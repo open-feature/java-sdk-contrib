@@ -15,14 +15,19 @@ public final class Utils {
     private Utils() {}
 
     public static Object convert(String value, String type) throws ClassNotFoundException, IOException {
-        if (Objects.equals(value, "null")) return null;
+        if ("Null".equals(type)) return null;
+        if (Objects.equals(value, "null") && !"String".equals(type)) return null;
         switch (type) {
             case "Boolean":
                 return Boolean.parseBoolean(value);
             case "String":
                 return value;
             case "Integer":
-                return Integer.parseInt(value);
+                try {
+                    return Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    return Long.parseLong(value);
+                }
             case "Float":
                 return Double.parseDouble(value);
             case "Long":
