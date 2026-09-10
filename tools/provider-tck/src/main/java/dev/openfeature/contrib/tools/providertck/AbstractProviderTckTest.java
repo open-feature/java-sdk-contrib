@@ -37,6 +37,13 @@ import org.junit.platform.suite.api.Suite;
  * publish a machine-readable conformance report: setting {@code PROVIDER_TCK_REPORT_DIR} on a run is
  * enough, and leaving it unset writes nothing.
  *
+ * <p>That plugin is registered here rather than as Cucumber's built-in {@code message:<path>} plugin
+ * for one reason: a {@code @ConfigurationParameter} value is a compile-time constant, so the
+ * built-in plugin's output path cannot be derived from the report directory the run asked for, and
+ * two suites in one module — flagd's two resolvers — would write to the same file. The plugin
+ * delegates to Cucumber's own message formatter for the stream itself, so the results are the same
+ * bytes {@code message:<path>} would have produced, at a path this suite can choose.
+ *
  * @see ProviderTckHarness
  * @see ConformanceReportPlugin
  */

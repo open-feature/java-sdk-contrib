@@ -3,15 +3,11 @@ package dev.openfeature.contrib.tools.providertck;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.cucumber.core.plugin.MessageFormatter;
+import io.cucumber.messages.types.Envelope;
 import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.EventPublisher;
-import io.cucumber.plugin.event.Location;
-import io.cucumber.plugin.event.Result;
-import io.cucumber.plugin.event.Status;
-import io.cucumber.plugin.event.TestCase;
-import io.cucumber.plugin.event.TestCaseFinished;
-import io.cucumber.plugin.event.TestRunFinished;
-import io.cucumber.plugin.event.TestSourceRead;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -19,13 +15,11 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -37,26 +31,33 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Registered automatically by {@link AbstractProviderTckTest}, so an adopter changes nothing to
  * get one. It is opt-in per <em>run</em>: set {@value #REPORT_DIR_ENV} (or the
- * {@value #REPORT_DIR_PROPERTY} system property) and each suite writes
- * {@code <dir>/<configuration>.json}. Emitting a report is a property of the run rather than of the
- * code — CI asks for one, a developer running the suite locally does not — and unset means no
- * report, which is not an error. Several suites in one JVM each write their own file, so flagd's two
- * resolvers do not collide.
+ * {@value #REPORT_DIR_PROPERTY} system property) and each suite writes two files,
+ * {@code <dir>/<configuration>.json} and {@code <dir>/<configuration>.ndjson}. Emitting a report is
+ * a property of the run rather than of the code — CI asks for one, a developer running the suite
+ * locally does not — and unset means no report, which is not an error. Several suites in one JVM each
+ * write their own pair of files, so flagd's two resolvers do not collide.
  *
- * <p><strong>Why the per-scenario list is the load-bearing part.</strong> Appendix F requires that a
- * scenario skipped for an undeclared capability is reported as skipped with the reason and never as
- * passed. This plugin makes that checkable by a consumer rather than dependent on the runner's
- * summary being trustworthy: it records the outcome of every scenario, exactly once, straight from
- * Cucumber's own {@code TestCaseFinished} event. One event in, one entry out — there is no path by
- * which a skip is also counted as a pass, which is precisely the bug the Go TCK had to fix, where
- * the capability-skip signal did not reach the after-hook and every skipped scenario was recorded
- * twice.
+ * <p><strong>The results are not a format this project defines.</strong> The {@code .ndjson} file is
+ * a <a href="https://github.com/cucumber/messages">Cucumber Messages</a> stream, produced by
+ * Cucumber's own {@link MessageFormatter} — the same class the built-in {@code message:<path>} plugin
+ * instantiates, so the bytes are what {@code --plugin message:...} would have written. It already
+ * carries everything a per-scenario report would have had to invent: the outcome of every scenario,
+ * its tags including any on an individual {@code Examples} block, an exact Scenario Outline row
+ * identity through pickle AST node ids, and the {@code source} of every feature that executed.
  *
- * <p><strong>What identifies an entry.</strong> Feature and name are not enough: every row of a
- * Scenario Outline shares one name, and the type-mismatch matrix in {@code errors.feature} is eleven
- * rows. Each entry therefore also carries the Examples row it came from, resolved by
- * {@link ScenarioExamples}, so a consumer can tell which row failed rather than keeping whichever it
- * saw last.
+ * <p>The {@code .json} file is the envelope, and it exists because a Messages stream cannot say what
+ * it was a test <em>of</em>. No standard format identifies the provider, the SDK it was driven
+ * through, the TCK build, or — most importantly — the capability set the provider declared. That
+ * declaration is an input to reading the results rather than a summary of them: the stream says a
+ * scenario was skipped, and only the declaration says whether that is because the provider declines
+ * the capability it needed.
+ *
+ * <p><strong>Why the stream is buffered rather than streamed to the file.</strong> The file name is
+ * derived from the provider configuration, which is not known when Cucumber wires plugins up — the
+ * suite reports it once its runtime has started, which is after the first messages have already been
+ * emitted. Buffering keeps one file per suite correctly named, and has the side benefit that
+ * {@code results.digest} is computed over exactly the bytes that were written. The stream for this
+ * suite is well under a megabyte.
  *
  * @see <a href="https://github.com/open-feature/spec/issues/424">open-feature/spec#424</a>
  */
@@ -75,12 +76,16 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
      */
     public static final String REPORT_DIR_PROPERTY = "provider.tck.report.dir";
 
+    /** Extension of the envelope, which is what a consumer reads first. */
+    static final String ENVELOPE_EXTENSION = ".json";
+
+    /** Extension of the Cucumber Messages stream the envelope points at. */
+    static final String RESULTS_EXTENSION = ".ndjson";
+
     private static final Logger log = LoggerFactory.getLogger(ConformanceReportPlugin.class);
 
     private static final String LANGUAGE = "java";
 
-    private final List<ScenarioRecord> records = Collections.synchronizedList(new ArrayList<>());
-    private final ScenarioExamples examples = new ScenarioExamples();
     private final Supplier<String> reportDir;
     private final Supplier<Optional<TckRunMetadata>> metadata;
 
@@ -96,14 +101,25 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
 
     @Override
     public void setEventPublisher(EventPublisher publisher) {
-        // Cucumber publishes the feature's own text before any scenario in it runs, which is where
-        // the Examples tables come from. Reading it here rather than resolving the feature file
-        // again keeps the report reading exactly the source the runner executed.
-        publisher.registerHandlerFor(TestSourceRead.class, read -> examples.read(read.getUri(), read.getSource()));
-        publisher.registerHandlerFor(TestCaseFinished.class, this::onTestCaseFinished);
-        // The end-of-run event carries the run's own result, which the report has no use for: what
-        // matters is the outcome of each scenario, which TestCaseFinished has already delivered.
-        publisher.registerHandlerFor(TestRunFinished.class, finished -> writeReport());
+        String dir = reportDir.get();
+        if (dir == null) {
+            // Nothing asked for a report, so nothing is collected either. Registering the message
+            // formatter regardless would buffer a stream for every local test run.
+            return;
+        }
+
+        ByteArrayOutputStream results = new ByteArrayOutputStream();
+        new MessageFormatter(results).setEventPublisher(publisher);
+
+        // Registered *after* the formatter, and deliberately so. Cucumber invokes the handlers for
+        // one event type in registration order, and the formatter closes its writer when it sees
+        // the run-finished message; going second is what guarantees the buffer is complete and
+        // flushed before the digest is taken over it.
+        publisher.registerHandlerFor(Envelope.class, envelope -> {
+            if (envelope.getTestRunFinished().isPresent()) {
+                write(dir, results.toByteArray());
+            }
+        });
     }
 
     /**
@@ -123,200 +139,40 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         return null;
     }
 
-    private void onTestCaseFinished(TestCaseFinished event) {
-        TestCase testCase = event.getTestCase();
-        Result result = event.getResult();
-        records.add(new ScenarioRecord(
-                featureName(testCase),
-                testCase.getName(),
-                exampleOf(testCase),
-                Collections.unmodifiableList(new ArrayList<>(testCase.getTags())),
-                result.getStatus(),
-                messageOf(result),
-                result.getDuration().toNanos() / 1_000_000.0));
-    }
-
-    private void writeReport() {
-        String dir = reportDir.get();
-        if (dir == null) {
-            return;
-        }
-
-        Optional<TckRunMetadata> run = metadata.get();
-        if (!run.isPresent()) {
-            // Nothing observed the suite, which means it never got as far as starting the runtime.
-            // The run has failed for some other reason by now; adding a report with an invented
-            // provider name on top of that would only mislead.
-            log.error(
-                    "{} is set but no TCK suite ran, so there is nothing to report on. "
-                            + "This normally means the suite failed before its backend stack started.",
-                    REPORT_DIR_ENV);
-            return;
-        }
-
-        write(build(run.get()), dir, run.get().configuration());
-    }
-
     /**
-     * Assembles the report from what the run observed.
+     * Assembles the envelope for what the run observed.
      *
      * @param run what the runtime recorded about this suite
-     * @return the report, ready to serialise
+     * @param location where the results stream sits, relative to the envelope
+     * @param digest digest over the results stream
+     * @return the envelope, ready to serialise
      */
-    ConformanceReport build(TckRunMetadata run) {
-        List<ScenarioRecord> observed;
-        synchronized (records) {
-            observed = new ArrayList<>(records);
-        }
-        observed.sort(Comparator.comparing((ScenarioRecord r) -> r.feature).thenComparing(r -> r.name));
-
-        Set<Capability> declared = run.capabilities();
-        List<ConformanceReport.ScenarioResult> scenarios = new ArrayList<>(observed.size());
-
-        // Only a capability that something actually gated on can be said to have failed, so this
-        // counts the failures as the scenarios are converted rather than guessing afterwards. The
-        // count goes into the capability's reason, which the schema requires for anything that did
-        // not pass.
-        Map<Capability, Integer> failed = new EnumMap<>(Capability.class);
-
-        // And only a capability some scenario carries can be said to have been tested at all. A
-        // capability nothing in the suite exercises has no outcome to report — see capabilitiesOf.
-        Map<Capability, Integer> exercised = new EnumMap<>(Capability.class);
-
-        for (ScenarioRecord record : observed) {
-            scenarios.add(resolve(record, declared, exercised, failed));
-        }
-
+    ConformanceReport build(TckRunMetadata run, String location, String digest) {
         return new ConformanceReport(
                 new ConformanceReport.Provider(run.providerName(), LANGUAGE, run.configuration()),
                 new ConformanceReport.Sdk(TckBuildInfo.SDK_NAME, TckBuildInfo.sdkVersion()),
                 new ConformanceReport.Tck(
-                        TckBuildInfo.IMPLEMENTATION,
-                        TckBuildInfo.tckVersion(),
-                        TckBuildInfo.specRevision(),
-                        TckBuildInfo.assetsTree()),
+                        TckBuildInfo.IMPLEMENTATION, TckBuildInfo.tckVersion(), TckBuildInfo.specRevision()),
                 backendOf(run),
-                capabilitiesOf(declared, exercised, failed),
-                Collections.unmodifiableList(scenarios));
-    }
-
-    private static ConformanceReport.ScenarioResult resolve(
-            ScenarioRecord record,
-            Set<Capability> declared,
-            Map<Capability, Integer> exercised,
-            Map<Capability, Integer> failed) {
-        Outcome outcome;
-        String reason;
-
-        if (record.status == Status.PASSED) {
-            outcome = Outcome.PASSED;
-            reason = null;
-        } else if (record.status == Status.SKIPPED) {
-            outcome = Outcome.NOT_DECLARED;
-            reason = skipReason(record, declared);
-        } else {
-            outcome = Outcome.FAILED;
-            reason = record.message == null ? "the scenario was reported as " + record.status : record.message;
-        }
-
-        // A scenario counts towards its capabilities only if it actually ran. Carrying the tag is
-        // not the same as exercising the capability: a scenario can carry two, and be skipped for
-        // the one this provider did not declare. Every scenario in events.feature is like that —
-        // the feature carries @events and each scenario adds @stale or @configuration-change — so
-        // counting by tag presence would report @events as passed for a provider that declared it
-        // and ran neither scenario.
-        if (outcome == Outcome.PASSED || outcome == Outcome.FAILED) {
-            for (Capability capability : gatingCapabilities(record.tags)) {
-                exercised.merge(capability, 1, Integer::sum);
-                if (outcome == Outcome.FAILED) {
-                    failed.merge(capability, 1, Integer::sum);
-                }
-            }
-        }
-
-        return new ConformanceReport.ScenarioResult(
-                record.feature,
-                record.name,
-                record.example,
-                record.tags.isEmpty() ? null : record.tags,
-                outcome,
-                reason,
-                record.durationMs);
+                new ConformanceReport.Declaration(declaredTags(run.capabilities())),
+                new ConformanceReport.Results(ConformanceReport.Results.CUCUMBER_MESSAGES, location, digest),
+                run.knownDeviations().isEmpty() ? null : run.knownDeviations());
     }
 
     /**
-     * Explains a skip, preferring the capability the scenario needed over whatever was thrown.
+     * Lists the declared capabilities as Gherkin tags, in the order the vocabulary declares them.
      *
-     * <p>Deriving the capability from the scenario's own tags rather than from the abort message
-     * keeps the two from drifting apart, and gives a consistent sentence across every language's
-     * TCK. The thrown message is the fallback, for a scenario skipped by something other than the
-     * capability gate.
+     * <p>Ordered by the enum rather than by the set so that two runs of the same configuration
+     * produce byte-identical declarations, which is what makes the envelopes diffable.
      */
-    private static String skipReason(ScenarioRecord record, Set<Capability> declared) {
-        for (Capability capability : gatingCapabilities(record.tags)) {
-            if (!declared.contains(capability)) {
-                return "requires capability " + capability.tag() + ", which this provider does not declare";
-            }
-        }
-        return record.message == null ? "the scenario was skipped" : record.message;
-    }
-
-    private static List<Capability> gatingCapabilities(List<String> tags) {
-        List<Capability> gating = new ArrayList<>(tags.size());
-        for (String tag : tags) {
-            Capability.fromTag(tag).ifPresent(gating::add);
-        }
-        return gating;
-    }
-
-    /**
-     * Summarises each capability, with the reason the schema requires for anything but a pass.
-     *
-     * <p>This object covers the optional contract only, and is not a verdict on the provider: a
-     * scenario with no capability tag is mandatory and rolls up into nothing here, so a provider can
-     * fail one while every entry below reads {@code passed}. The per-scenario list is what a
-     * consumer has to read to decide whether a provider conforms.
-     *
-     * <p><strong>A capability nothing exercised is left out.</strong> {@code @targeting} is
-     * reserved: it is in the tag vocabulary but no scenario carries it, because asserting that an
-     * evaluation context reached the backend needs an echo operation the control API does not have.
-     * A provider declaring it used to get {@code passed} for a claim nothing had examined — the
-     * vacuous pass the capability vocabulary exists to eliminate, arriving through the report rather
-     * than through the suite. The same pass arrives by a second route when every scenario carrying a
-     * declared capability was skipped for a <em>different</em> capability the provider did not
-     * declare, which is why exercising is counted by execution and not by tag presence.
-     *
-     * <p>Omitting is preferred to inventing a fifth outcome: the four in the schema describe what
-     * the provider did, and "nothing asked this of the provider" is a fact about the run.
-     */
-    private static Map<String, ConformanceReport.CapabilityResult> capabilitiesOf(
-            Set<Capability> declared, Map<Capability, Integer> exercised, Map<Capability, Integer> failed) {
-        Map<String, ConformanceReport.CapabilityResult> results = new LinkedHashMap<>();
+    private static List<String> declaredTags(Set<Capability> declared) {
+        List<String> tags = new ArrayList<>(declared.size());
         for (Capability capability : Capability.values()) {
-            ConformanceReport.CapabilityResult result;
-            if (!declared.contains(capability)) {
-                result = new ConformanceReport.CapabilityResult(
-                        Outcome.NOT_DECLARED,
-                        "not declared by this provider's configuration; the " + capability.tag()
-                                + " scenarios were skipped and did not contribute to this result");
-            } else if (!exercised.containsKey(capability)) {
-                // Declared, but no scenario carrying it ran — either nothing in the suite gates on
-                // it, or everything that does was skipped for some other capability this provider
-                // did not declare. Either way nothing was demonstrated, so there is nothing to
-                // report: a consumer sees the tag is absent rather than a pass it cannot rely on.
-                continue;
-            } else if (failed.containsKey(capability)) {
-                int count = failed.get(capability);
-                result = new ConformanceReport.CapabilityResult(
-                        Outcome.FAILED,
-                        count + " of " + exercised.get(capability) + " scenarios carrying " + capability.tag()
-                                + " failed; the per-scenario results say which, and why");
-            } else {
-                result = new ConformanceReport.CapabilityResult(Outcome.PASSED, null);
+            if (declared.contains(capability)) {
+                tags.add(capability.tag());
             }
-            results.put(capability.tag(), result);
         }
-        return Collections.unmodifiableMap(results);
+        return Collections.unmodifiableList(tags);
     }
 
     private static ConformanceReport.Backend backendOf(TckRunMetadata run) {
@@ -330,8 +186,22 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
     @SuppressFBWarnings(
             value = "PATH_TRAVERSAL_IN",
             justification = "The directory is supplied by whoever started the test run, which is the "
-                    + "whole point of the setting; the file name within it is sanitised by ReportNames")
-    private void write(ConformanceReport report, String dir, String configuration) {
+                    + "whole point of the setting; the file names within it are sanitised by ReportNames")
+    private void write(String dir, byte[] results) {
+        Optional<TckRunMetadata> observed = metadata.get();
+        if (!observed.isPresent()) {
+            // Nothing observed the suite, which means it never got as far as starting the runtime.
+            // The run has failed for some other reason by now; adding a report with an invented
+            // provider name on top of that would only mislead.
+            log.error(
+                    "{} is set but no TCK suite ran, so there is nothing to report on. "
+                            + "This normally means the suite failed before its backend stack started.",
+                    REPORT_DIR_ENV);
+            return;
+        }
+
+        TckRunMetadata run = observed.get();
+        String configuration = run.configuration();
         Path directory;
         try {
             directory = Paths.get(dir);
@@ -339,11 +209,18 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
             throw new IllegalStateException(
                     "provider-tck [" + configuration + "]: " + REPORT_DIR_ENV + " is not a usable path: " + dir, e);
         }
-        Path path = directory.resolve(ReportNames.fileNameOf(configuration));
+
+        String base = ReportNames.baseNameOf(configuration);
+        String location = base + RESULTS_EXTENSION;
+        Path resultsPath = directory.resolve(location);
+        Path envelopePath = directory.resolve(base + ENVELOPE_EXTENSION);
 
         String json;
         try {
-            json = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(report) + "\n";
+            json = new ObjectMapper()
+                            .writerWithDefaultPrettyPrinter()
+                            .writeValueAsString(build(run, location, digestOf(results)))
+                    + "\n";
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(
                     "provider-tck [" + configuration + "]: could not encode the conformance report", e);
@@ -351,72 +228,38 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
 
         // A failure to write is raised rather than logged and swallowed. CI that asked for a report
         // and silently did not get one is how a publishing pipeline serves a stale result forever.
+        // The results go first: an envelope naming a stream that is not there is worse than neither.
         try {
             Files.createDirectories(directory);
-            Files.write(path, json.getBytes(StandardCharsets.UTF_8));
+            Files.write(resultsPath, results);
+            Files.write(envelopePath, json.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new UncheckedIOException(
-                    "provider-tck [" + configuration + "]: could not write the conformance report to " + path, e);
+                    "provider-tck [" + configuration + "]: could not write the conformance report to " + directory, e);
         }
 
-        log.info("provider-tck [{}]: conformance report written to {}", configuration, path);
+        log.info(
+                "provider-tck [{}]: conformance report written to {}, results to {}",
+                configuration,
+                envelopePath,
+                resultsPath);
     }
 
-    private static String messageOf(Result result) {
-        Throwable error = result.getError();
-        if (error == null) {
-            return null;
+    /** Digests the results stream in the {@code sha256:<hex>} form the schema asks for. */
+    private static String digestOf(byte[] results) {
+        MessageDigest sha256;
+        try {
+            sha256 = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 is required of every Java platform, so this cannot happen on a working JVM.
+            throw new IllegalStateException("SHA-256 is not available", e);
         }
-        String message = error.getMessage();
-        return message == null || message.trim().isEmpty() ? error.toString() : message.trim();
-    }
-
-    /**
-     * Returns the Examples row a test case came from, or {@code null} when it came from none.
-     *
-     * <p>Applies to every outcome, not only to failures. A row skipped for an undeclared capability
-     * is exactly as ambiguous as one that failed: eleven skips sharing a name say nothing about
-     * which eleven.
-     */
-    private Map<String, String> exampleOf(TestCase testCase) {
-        Location location = testCase.getLocation();
-        return location == null ? null : examples.rowAt(testCase.getUri(), location.getLine());
-    }
-
-    /** Turns {@code classpath:features/errors.feature} into {@code errors}. */
-    private static String featureName(TestCase testCase) {
-        String uri = testCase.getUri().toString();
-        int lastSlash = uri.lastIndexOf('/');
-        String base = lastSlash < 0 ? uri : uri.substring(lastSlash + 1);
-        int extension = base.lastIndexOf('.');
-        return extension <= 0 ? base : base.substring(0, extension);
-    }
-
-    /** One scenario as Cucumber reported it, before it is interpreted against declared capabilities. */
-    private static final class ScenarioRecord {
-        private final String feature;
-        private final String name;
-        private final Map<String, String> example;
-        private final List<String> tags;
-        private final Status status;
-        private final String message;
-        private final double durationMs;
-
-        ScenarioRecord(
-                String feature,
-                String name,
-                Map<String, String> example,
-                List<String> tags,
-                Status status,
-                String message,
-                double durationMs) {
-            this.feature = feature;
-            this.name = name;
-            this.example = example;
-            this.tags = tags;
-            this.status = status;
-            this.message = message;
-            this.durationMs = durationMs;
+        byte[] digest = sha256.digest(results);
+        StringBuilder hex = new StringBuilder(7 + digest.length * 2);
+        hex.append("sha256:");
+        for (byte b : digest) {
+            hex.append(Character.forDigit((b >> 4) & 0xf, 16)).append(Character.forDigit(b & 0xf, 16));
         }
+        return hex.toString();
     }
 }

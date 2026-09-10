@@ -6,7 +6,7 @@ import java.util.Locale;
  * Derives the names a conformance report is identified and filed under.
  *
  * <p>Kept apart from the report itself so that both the default
- * {@link ProviderTckHarness#configuration()} and the file the plugin writes agree on one derivation.
+ * {@link ProviderTckHarness#configuration()} and the files the plugin writes agree on one derivation.
  */
 final class ReportNames {
 
@@ -44,16 +44,20 @@ final class ReportNames {
     }
 
     /**
-     * Turns a configuration name into the file the report is written to.
+     * Turns a configuration name into the base name both of a run's files share.
+     *
+     * <p>A run writes an envelope and a results stream, and they are matched by name — the envelope's
+     * {@code results.location} is this base name plus the stream's extension — so one derivation
+     * produces both.
      *
      * <p>Configuration names are chosen to read well in a failure message rather than to be
      * path-safe, so anything that is not obviously safe becomes a hyphen. Without this a
      * configuration named {@code flagd/rpc} would silently write outside the directory it was given.
      *
      * @param configuration the configuration name
-     * @return a file name ending in {@code .json}
+     * @return a file name stem, with no extension
      */
-    static String fileNameOf(String configuration) {
+    static String baseNameOf(String configuration) {
         StringBuilder safe = new StringBuilder(configuration.length());
         for (int i = 0; i < configuration.length(); i++) {
             char c = configuration.charAt(i);
@@ -66,7 +70,7 @@ final class ReportNames {
             safe.append(allowed ? c : '-');
         }
         String trimmed = trim(safe.toString());
-        return (trimmed.isEmpty() ? FALLBACK : trimmed) + ".json";
+        return trimmed.isEmpty() ? FALLBACK : trimmed;
     }
 
     private static String trim(String value) {

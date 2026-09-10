@@ -1,7 +1,9 @@
 package dev.openfeature.contrib.tools.providertck;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,16 +25,23 @@ final class TckRunMetadata {
     private final Set<Capability> capabilities;
     private final String backendDescription;
     private final String controlApi;
+    private final List<KnownDeviation> knownDeviations;
 
     private volatile String providerName;
 
-    TckRunMetadata(String configuration, Set<Capability> capabilities, String backendDescription, String controlApi) {
+    TckRunMetadata(
+            String configuration,
+            Set<Capability> capabilities,
+            String backendDescription,
+            String controlApi,
+            List<KnownDeviation> knownDeviations) {
         this.configuration = configuration;
         this.capabilities = capabilities.isEmpty()
                 ? Collections.emptySet()
                 : Collections.unmodifiableSet(EnumSet.copyOf(capabilities));
         this.backendDescription = backendDescription;
         this.controlApi = controlApi;
+        this.knownDeviations = Collections.unmodifiableList(new ArrayList<>(knownDeviations));
     }
 
     /** Returns the suite name, which is the provider configuration under test. */
@@ -53,6 +62,11 @@ final class TckRunMetadata {
     /** Returns how the backend was driven, or empty when there is no control API. */
     Optional<String> controlApi() {
         return Optional.ofNullable(controlApi);
+    }
+
+    /** Returns the deviations the provider author acknowledged, empty when there are none. */
+    List<KnownDeviation> knownDeviations() {
+        return knownDeviations;
     }
 
     /**

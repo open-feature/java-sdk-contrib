@@ -255,6 +255,26 @@ adopt the TCK today and see the gap reported explicitly. Not declaring it is an 
 known bug. **The flagd provider currently does not declare it**, in either RPC or in-process mode —
 see [`AbstractFlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/AbstractFlagdTckTest.java).
 
+### Saying that a withheld capability is a defect
+
+Narrowing `capabilities()` reads the same way in the results whether you did it to describe a
+limitation or to work around a bug: the scenarios are skipped either way, and nothing in the run can
+tell the two apart. Declare a `KnownDeviation` when it is the latter.
+
+```java
+@Override
+public List<KnownDeviation> knownDeviations() {
+    return List.of(KnownDeviation.tracked(
+            Capability.STRICT_NUMERIC_TYPING,
+            "https://github.com/open-feature/java-sdk-contrib/issues/1234",
+            "float-flag through the integer API returns 0 with no error code"));
+}
+```
+
+Use `KnownDeviation.untracked(...)` when there is no issue to point at yet. That is still worth
+reporting — naming the defect is what separates it from a choice — but an issue link is better.
+Empty is the default, and it is silence rather than a claim of having none.
+
 ## Tuning timeouts
 
 How fast a provider notices a backend change differs by orders of magnitude between transports: a
@@ -297,16 +317,14 @@ control API.
 
 ## Conformance reports
 
-Set `PROVIDER_TCK_REPORT_DIR` and each suite writes a machine-readable report of its run to
-`<dir>/<configuration>.json`, conforming to the [report schema][report-schema] in the specification.
+Set `PROVIDER_TCK_REPORT_DIR` and each suite writes two files: an envelope conforming to the
+[report schema][report-schema] in the specification, and the run's results as a
+[Cucumber Messages][messages] stream.
 
 ```console
 $ PROVIDER_TCK_REPORT_DIR=./reports mvn test -Dtest='Flagd*TckTest'
-$ jq '.scenarios | group_by(.outcome) | map({(.[0].outcome): length}) | add' reports/flagd-rpc.json
-{
-  "passed": 28,
-  "not-declared": 1
-}
+$ ls reports/
+flagd-in-process.json  flagd-in-process.ndjson  flagd-rpc.json  flagd-rpc.ndjson
 ```
 
 `-Dprovider.tck.report.dir=...` does the same thing and is often easier to pass through Maven. The
@@ -316,82 +334,109 @@ CI job can set one thing.
 It is an environment variable rather than a method on `ProviderTckHarness` so that emitting a report
 is a property of the run and not of the code: CI sets it, a developer running the suite locally does
 not, and no adopter changes a line to publish one. Unset means no report, which is not an error.
-Several suites in one JVM each write their own file, so flagd's two resolvers do not collide.
+Several suites in one JVM each write their own pair, so flagd's two resolvers do not collide.
 
-### What the report is for
+### The results are not a format this project defines
 
-The per-scenario list is the load-bearing part. This suite promises that a scenario skipped for an
-undeclared capability is reported as skipped with the reason and *never* as passed — and a promise is
-not a check. The report records the outcome of every scenario individually, so a consumer can verify
-the rule instead of trusting a runner's headline number. Go's runner counts capability-gated skips in
-its **passed** tally, which is exactly the failure mode this makes impossible to hide; Cucumber
-reports skips correctly, and the report is what proves it rather than assuming it.
+The `.ndjson` is a Cucumber Messages stream, produced by Cucumber's own `MessageFormatter` — the
+same class the built-in `message:<path>` plugin instantiates, so the bytes are what
+`--plugin message:...` would have written. It already carries everything a per-scenario report would
+have had to invent: the outcome of every scenario, its tags including any set on an individual
+`Examples` block, an exact Scenario Outline row identity, and the source of every feature that ran.
 
-Every scenario appears exactly once, whatever happened to it. A report that quietly omitted the
-scenarios it did not run would satisfy every rule above and still mislead, because a reader would
-have no way to know how many questions went unasked.
+The plugin exists rather than the built-in one because a `@ConfigurationParameter` value is a
+compile-time constant, so the built-in plugin's path cannot be derived from the directory the run
+asked for — and flagd's two suites would write to the same file.
 
-Note that `capabilities` summarises the *optional* contract only. Scenarios carrying no capability
-tag are mandatory and roll up into nothing, so a provider can fail one while every capability reads
-`passed`. Read `scenarios` to decide whether a provider conforms.
+Reading it needs no special tooling, but it does need one thing understood: **a scenario's outcome
+is the most severe result among its steps**, hooks included. `testCaseFinished` carries no status of
+its own. That is what makes a capability-gated skip truthful, because the aborted `@Before` hook
+contributes a `SKIPPED` result that outranks every step it stopped from running.
 
-A capability you declare that **no scenario actually exercised** is left out of `capabilities`
-entirely rather than reported as `passed`. Reporting a green result for a claim nothing examined is
-the vacuous pass the capability vocabulary exists to eliminate, so the suite says nothing instead.
-That happens two ways:
+```console
+$ jq -c 'select(.testStepFinished) | .testStepFinished
+         | {c: .testCaseStartedId, s: .testStepResult.status}' reports/flagd-rpc.ndjson \
+    | jq -s 'group_by(.c) | map({s: (map(.s) | if any(. == "FAILED") then "FAILED"
+                                              elif any(. == "SKIPPED") then "SKIPPED"
+                                              else "PASSED" end)})
+             | group_by(.s) | map({(.[0].s): length}) | add'
+{
+  "PASSED": 28,
+  "SKIPPED": 1
+}
+```
 
-- Nothing in the suite carries the tag. `@targeting` and `@caching` are reserved — they are in the
-  vocabulary so it stays aligned with the flagd test harness, but no scenario carries them yet.
-- Every scenario carrying it was skipped for a *different* capability you did not declare. Both
-  scenarios in `events.feature` carry `@events` plus one of `@stale` or `@configuration-change`, so
-  declaring `@events` on its own runs neither, and a run that ran neither has demonstrated nothing
-  about `@events`.
-
-Exercising is therefore counted by execution, not by tag presence.
+The [`cucumber-query`](https://github.com/cucumber/messages/tree/main/java) helpers do this properly
+and in several languages; the above is only to show that the fact is in the file.
 
 ### What identifies a scenario
 
-A scenario entry is identified by `feature`, `name` **and** `example` together. The first two are not
-enough: every row of a Scenario Outline shares one name, and the type-mismatch matrix in
-`errors.feature` is eleven rows. `example` is the row's parameters keyed by its Examples column
-header, verbatim as strings — Gherkin has no types, so `"1"` stays a string.
+`pickle.astNodeIds`. For a scenario compiled from a Scenario Outline it is
+`[scenario id, table row id]`, and the second entry resolves in the `gherkinDocument` message to the
+`Examples` row the scenario was built from. Feature and name are not enough — the type-mismatch
+matrix in `errors.feature` is eleven rows sharing one name — and this is exact rather than derived:
 
 ```console
-$ jq '.scenarios[] | select(.feature == "errors") | .example' reports/flagd-rpc.json
-{
-  "key": "string-flag",
-  "requested": "Boolean",
-  "default": "false"
-}
-...
+$ jq -c 'select(.pickle) | .pickle
+         | select(.name == "Requesting the wrong type returns the code default")
+         | {id, row: .astNodeIds[1]}' reports/flagd-rpc.ndjson | head -3
+{"id":"6c8debd2-...","row":"ab8b4a4b-..."}
+{"id":"a7c76b0a-...","row":"63d6d6c8-..."}
+{"id":"fecd333d-...","row":"bbd7f5ee-..."}
 ```
 
-It is absent for a scenario that did not come from an outline, and present for every row that did —
-including a row skipped for an undeclared capability, since eleven skips sharing a name are exactly
-as ambiguous as eleven failures.
+An earlier version of this module reverse-engineered the same fact by re-parsing the feature source
+and matching a pickle's reported line number against the Examples tables. The stream states it
+outright, which is the whole argument for a standard format over one we maintain.
 
-### What identifies a report
+### What the envelope is for
 
-`provider.name` is what the provider reports through its own metadata, not the suite name. The suite
-name is chosen to read well in a failure message — `flagd-rpc` — which makes it the *configuration*,
-and it is reported as such. One provider with two materially different modes produces two reports
-that are not interchangeable. It is derived from the suite class name (`FlagdInProcessTckTest` →
-`flagd-in-process`) and can be overridden with `ProviderTckHarness.configuration()`.
+A Messages stream cannot say what it was a test *of*. The envelope carries the four things no
+standard results format identifies:
 
-`tck.specRevision` and `tck.assetsTree` identify the conformance artifacts that were executed, and
-are baked into the JAR at build time from the properties in this module's POM — the artifacts travel
-in the JAR, the repository they came from does not. They are pinned by hand for now because, unlike
-the Go TCK, this module has no spec submodule to read them from; the artifacts under
-`src/main/resources` are vendored copies. See [Where these artifacts should live](#where-these-artifacts-should-live).
-Both are checkable rather than merely asserted:
-`git rev-parse <specRevision>:specification/assets/provider-tck` must reproduce the tree, and the
-tree must match the files in this module.
+- **`provider`** — what the provider calls itself through its own metadata, not the suite name. The
+  suite name is chosen to read well in a failure message (`flagd-rpc`), which makes it the
+  *configuration*, and it is reported as such. One provider with two materially different modes
+  produces two reports that are not interchangeable. Derived from the suite class name
+  (`FlagdInProcessTckTest` → `flagd-in-process`); override `ProviderTckHarness.configuration()`.
+- **`sdk`** — read from the classpath rather than declared, because the TCK depends on an SDK version
+  *range* so that adopting it can never force an upgrade. What a consumer actually ran against is
+  only knowable at runtime.
+- **`tck`** — which implementation asked the questions, and `specRevision`, the open-feature/spec
+  commit the packaged artifacts came from. Baked into the JAR at build time from this module's POM:
+  the artifacts travel in the JAR, the repository they came from does not. The executed Gherkin no
+  longer rests on that pin alone — the stream carries the `source` of every feature, so it can be
+  diffed against the revision — but the pin is what identifies the two artifacts the stream does not
+  carry, `flags/canonical-flags.json` and `openapi/control-api.yaml`.
+- **`declaration`** — the capability set the provider claims. This is an **input** to reading the
+  results, not a summary of them, which is why it cannot be derived from the stream. The stream says
+  a scenario was skipped; only the declaration says whether that is because the provider declines the
+  capability it needed. Given the declaration and a scenario's tags — both present — the reason for
+  each skip follows, so it does not have to be transported per scenario.
 
-`sdk.version` is read from the classpath rather than declared, because the TCK depends on an SDK
-version *range* so that adopting it can never force an upgrade — what a consumer actually ran against
-is only knowable at runtime.
+`knownDeviations` is the one thing neither the stream nor the declaration can express: whether a
+withheld capability is a limitation or a bug. See
+[Saying that a withheld capability is a defect](#saying-that-a-withheld-capability-is-a-defect).
+
+`results.digest` covers the `.ndjson`, so a consumer that fetched the two separately can tell that
+what it has is what the envelope describes.
+
+### What the report is for
+
+This suite promises that a scenario skipped for an undeclared capability is reported as skipped with
+the reason and *never* as passed — and a promise is not a check. The stream records every scenario
+individually, so a consumer can verify the rule instead of trusting a runner's headline number. Go's
+runner counts capability-gated skips in its **passed** tally, which is exactly the failure mode this
+makes impossible to hide.
+
+Every scenario appears exactly once, whatever happened to it. A report that quietly omitted the
+scenarios it did not run would satisfy every rule above and still mislead, because a reader would
+have no way to know how many questions went unasked. `ConformanceReportPluginTest` runs a fixture
+suite through the real Cucumber engine and asserts both properties over the emitted stream.
 
 [report-schema]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/report/conformance-report.schema.json
+[messages]: https://github.com/cucumber/messages
+
 
 ## Relationship to the flagd test harness
 

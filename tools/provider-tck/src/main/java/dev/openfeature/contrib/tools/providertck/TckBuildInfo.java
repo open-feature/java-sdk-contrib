@@ -54,17 +54,6 @@ final class TckBuildInfo {
     }
 
     /**
-     * Returns the git tree ID of the conformance artifacts, or {@code null} when it is not recorded.
-     *
-     * <p>Null rather than {@code unknown} because the schema constrains this field to forty hex
-     * characters, so an unknown value has to be omitted rather than described.
-     */
-    static String assetsTree() {
-        String tree = BUILD.getProperty("spec.assetsTree", "").trim();
-        return tree.matches("[0-9a-f]{40}") ? tree : null;
-    }
-
-    /**
      * Returns the OpenFeature SDK version that was actually on the classpath.
      *
      * <p>Read rather than declared. The TCK depends on an SDK version range so that adopting it can

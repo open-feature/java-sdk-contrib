@@ -3,7 +3,7 @@ package dev.openfeature.contrib.tools.providertck.steps;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
 
-import dev.openfeature.contrib.tools.providertck.Capability;
+import dev.openfeature.contrib.tools.providertck.CapabilityGate;
 import dev.openfeature.contrib.tools.providertck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.providertck.TckRuntime;
 import dev.openfeature.contrib.tools.providertck.TckState;
@@ -19,10 +19,7 @@ import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,14 +67,7 @@ public class ProviderSteps extends AbstractSteps {
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        Set<Capability> supported = harness().capabilities();
-        for (String tag : scenario.getSourceTagNames()) {
-            Optional<Capability> capability = Capability.fromTag(tag);
-            if (capability.isPresent() && !supported.contains(capability.get())) {
-                throw new TestAbortedException("Skipped: provider does not declare capability "
-                        + capability.get().name() + " (tag " + tag + "). Declared capabilities: " + supported);
-            }
-        }
+        CapabilityGate.requireDeclared(scenario.getSourceTagNames(), harness().capabilities());
     }
 
     /**

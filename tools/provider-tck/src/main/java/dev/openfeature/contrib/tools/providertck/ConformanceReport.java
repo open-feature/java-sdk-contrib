@@ -2,15 +2,21 @@ package dev.openfeature.contrib.tools.providertck;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
-import java.util.Map;
 
 /**
- * One run of the conformance suite against one provider in one configuration.
+ * The envelope of one conformance run: what was tested, what the provider claims, and where the
+ * results are.
+ *
+ * <p>This document deliberately carries <strong>no</strong> per-scenario outcomes. The results
+ * themselves are a standard format — a Cucumber Messages stream, referenced by {@link Results} —
+ * because per-scenario outcomes, tags, Scenario Outline row identity and the executed feature source
+ * are all already specified there. Defining them a second time here would create a format to
+ * maintain and version and two places for the same fact to disagree.
  *
  * <p>The field names and nesting are fixed by the report schema in the OpenFeature specification
- * repository. This class is deliberately a transcription of that schema rather than a shape that
- * would be convenient in Java, because the point of the format is that every language's TCK emits
- * the same document.
+ * repository. This class is a transcription of that schema rather than a shape that would be
+ * convenient in Java, because the point of the format is that every language's TCK emits the same
+ * document.
  *
  * <p>Fields left {@code null} are omitted from the JSON. The schema sets
  * {@code additionalProperties: false} throughout, so an unexpected field is a validation failure
@@ -44,26 +50,31 @@ public final class ConformanceReport {
     /** What the provider was pointed at. */
     public final Backend backend;
 
-    /** Per-capability outcome, keyed by Gherkin tag including the leading at-sign. */
-    public final Map<String, CapabilityResult> capabilities;
+    /** The capability set this provider claims. */
+    public final Declaration declaration;
 
-    /** Per-scenario outcome, one entry per scenario in the suite. */
-    public final List<ScenarioResult> scenarios;
+    /** Where the executed results live, and in what format. */
+    public final Results results;
+
+    /** Deviations the provider acknowledges, or {@code null} to say nothing. */
+    public final List<KnownDeviation> knownDeviations;
 
     ConformanceReport(
             Provider provider,
             Sdk sdk,
             Tck tck,
             Backend backend,
-            Map<String, CapabilityResult> capabilities,
-            List<ScenarioResult> scenarios) {
+            Declaration declaration,
+            Results results,
+            List<KnownDeviation> knownDeviations) {
         this.schemaVersion = SCHEMA_VERSION;
         this.provider = provider;
         this.sdk = sdk;
         this.tck = tck;
         this.backend = backend;
-        this.capabilities = capabilities;
-        this.scenarios = scenarios;
+        this.declaration = declaration;
+        this.results = results;
+        this.knownDeviations = knownDeviations;
     }
 
     /** Identifies the provider under test. */
@@ -124,24 +135,20 @@ public final class ConformanceReport {
         /** The version of that implementation. */
         public final String version;
 
-        /** The open-feature/spec commit the executed artifacts came from. */
+        /**
+         * The open-feature/spec commit the executed artifacts came from.
+         *
+         * <p>The executed Gherkin no longer has to be taken on trust: the results stream carries the
+         * {@code source} of every feature it ran, so a consumer can diff what executed against what
+         * this revision contains. The revision still identifies the two artifacts the stream does
+         * <em>not</em> carry — the canonical flag set and the control API definition.
+         */
         public final String specRevision;
 
-        /**
-         * The git tree object ID of {@code specification/assets/provider-tck} at that revision.
-         *
-         * <p>Carried alongside the commit because it identifies the artifacts rather than the
-         * commit: it is unchanged by unrelated edits elsewhere in the specification, and
-         * {@code git rev-parse <specRevision>:specification/assets/provider-tck} must reproduce it,
-         * so a revision recorded wrongly does not go unnoticed.
-         */
-        public final String assetsTree;
-
-        Tck(String implementation, String version, String specRevision, String assetsTree) {
+        Tck(String implementation, String version, String specRevision) {
             this.implementation = implementation;
             this.version = version;
             this.specRevision = specRevision;
-            this.assetsTree = assetsTree;
         }
     }
 
@@ -166,73 +173,53 @@ public final class ConformanceReport {
         }
     }
 
-    /** The outcome of one capability, with the reason it is not simply {@code passed}. */
+    /** The capability set this provider claims, as the Gherkin tags that gate them. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static final class CapabilityResult {
+    public static final class Declaration {
 
-        /** The capability's outcome across every scenario that gates on it. */
-        public final Outcome state;
+        /**
+         * Capabilities the provider declares, including the leading at-sign.
+         *
+         * <p>An <strong>input</strong> to reading the results rather than a summary of them, which is
+         * why it cannot be derived from the results payload and has to be stated here. A skipped
+         * scenario in the stream says the question was not put to this provider; only the declaration
+         * says whether that is because the provider declines the capability. Given the declaration
+         * and a scenario's tags — both of which the stream carries — the reason for a skip follows
+         * without being transported per scenario.
+         */
+        public final List<String> declared;
 
-        /** Why, in a form someone reading a comparison page can use. */
-        public final String reason;
-
-        CapabilityResult(Outcome state, String reason) {
-            this.state = state;
-            this.reason = reason;
+        Declaration(List<String> declared) {
+            this.declared = declared;
         }
     }
 
-    /** The outcome of one scenario. */
+    /** Where the executed results live, and in what format. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static final class ScenarioResult {
+    public static final class Results {
 
-        /** The feature file the scenario came from, without extension. */
-        public final String feature;
+        /** The ndjson protocol at {@code https://github.com/cucumber/messages}. */
+        public static final String CUCUMBER_MESSAGES = "cucumber-messages";
 
-        /** The scenario name as written in the feature file. */
-        public final String name;
+        /** The results format, always {@link #CUCUMBER_MESSAGES} here. */
+        public final String format;
 
         /**
-         * The Examples row this entry came from, keyed by column header, or {@code null} for a
-         * scenario that did not come from a Scenario Outline.
+         * Where to fetch the results: a path relative to this document.
          *
-         * <p>Part of the entry's identity rather than decoration. Every row of an outline shares one
-         * name, so eleven rows of the type-mismatch matrix produce eleven entries with the same
-         * feature and name; without the parameters a report cannot say which of them failed.
-         *
-         * <p>Values are the cell contents verbatim, as strings. Gherkin has no types, so
-         * {@code "1"} stays the string {@code 1} — coercing it would make the report say something
-         * the table did not.
+         * <p>Referenced rather than inlined because a Messages stream carries the feature sources and
+         * so is far larger than this envelope, and because a consumer deciding whether it cares about
+         * a report should not have to fetch the whole run to find out.
          */
-        public final Map<String, String> example;
+        public final String location;
 
-        /** The scenario's Gherkin tags, including any inherited from the feature. */
-        public final List<String> tags;
+        /** Digest over the results payload as {@code sha256:<hex>}. */
+        public final String digest;
 
-        /** What happened. */
-        public final Outcome outcome;
-
-        /** For a skip, why it was skipped; for a failure, what failed. */
-        public final String reason;
-
-        /** How long the scenario took. */
-        public final double durationMs;
-
-        ScenarioResult(
-                String feature,
-                String name,
-                Map<String, String> example,
-                List<String> tags,
-                Outcome outcome,
-                String reason,
-                double duration) {
-            this.feature = feature;
-            this.name = name;
-            this.example = example;
-            this.tags = tags;
-            this.outcome = outcome;
-            this.reason = reason;
-            this.durationMs = duration;
+        Results(String format, String location, String digest) {
+            this.format = format;
+            this.location = location;
+            this.digest = digest;
         }
     }
 }

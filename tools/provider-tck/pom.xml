@@ -20,28 +20,31 @@
             ============================================
             A conformance report has to say which questions were asked, not only what the answers
             were, so it records the open-feature/spec commit the packaged Gherkin, flag set and
-            control API came from, plus the git tree ID of that directory. Both are filtered into
+            control API came from. It is filtered into
             src/main/resources-filtered/.../provider-tck-build.properties and packaged in the JAR,
-            because the repository they came from is not.
+            because the repository it came from is not.
 
-            They are pinned here rather than read from git at build time for one reason: unlike the
-            Go TCK, this module has no spec submodule. The artifacts under src/main/resources are
+            The executed Gherkin no longer rests on this pin alone: the results stream carries the
+            `source` of every feature that ran, so a consumer can diff what executed against what
+            this revision contains. The pin is what identifies the two artifacts the stream does not
+            carry — flags/canonical-flags.json and openapi/control-api.yaml.
+
+            It is pinned here rather than read from git at build time for one reason: unlike the Go
+            TCK, this module has no spec submodule. The artifacts under src/main/resources are
             vendored copies — see the NOTE below on where they should live — so there is nothing for
-            the build to interrogate. When the submodule arrives, these two values are generated
-            from it instead and nothing else changes; the properties file keeps its name and the
-            report keeps its shape.
+            the build to interrogate. When the submodule arrives, this value is generated from it
+            instead and nothing else changes; the properties file keeps its name and the report keeps
+            its shape.
 
-            Both are checkable rather than merely asserted, which is what makes a hand-maintained
-            pin tolerable in the meantime. From a checkout of open-feature/spec:
+            Checkable rather than merely asserted, which is what makes a hand-maintained pin
+            tolerable in the meantime. From a checkout of open-feature/spec:
 
               git rev-parse <revision>
-              git rev-parse <revision>:specification/assets/provider-tck
               diff -r <spec>/specification/assets/provider-tck/gherkin src/main/resources/features
 
             Verified byte for byte against dfa16586 at the time of writing.
         -->
         <provider-tck.spec.revision>dfa16586d91ca020ef1b3b82a7c972d833ff8f29</provider-tck.spec.revision>
-        <provider-tck.spec.assets-tree>904aa7d5fd7a856a4f92ace24355bd1987143abc</provider-tck.spec.assets-tree>
 
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
@@ -133,20 +136,20 @@
         </dependency>
 
         <!--
-            Gherkin parser and message types — already on the classpath as transitive
-            dependencies of cucumber-core, and declared here because ConformanceReportPlugin
-            compiles against them directly.
+            Cucumber core and the message types — already on the classpath as transitive
+            dependencies of cucumber-junit-platform-engine, and declared here because
+            ConformanceReportPlugin compiles against them directly.
 
-            The conformance report identifies a scenario by the Examples row it came from, and a
-            compiled Cucumber pickle no longer knows which row that was. Re-parsing the feature
-            source Cucumber publishes is the reliable way back to it. Both versions are managed by
-            cucumber-bom in the parent POM, so this cannot drift from the parser Cucumber itself
-            uses — which it must not, or the report would describe a different document than the
-            one that ran.
+            The conformance report carries its results as a Cucumber Messages stream and produces
+            that stream with io.cucumber.core.plugin.MessageFormatter, which is the same class the
+            built-in `message:<path>` plugin instantiates. Cucumber's own formatter rather than one
+            of ours, so the results cannot drift from what the built-in message plugin writes; only
+            the output path differs, because a plugin configured through an annotation cannot have a
+            path derived from the run. Versions are managed by cucumber-bom in the parent POM.
         -->
         <dependency>
             <groupId>io.cucumber</groupId>
-            <artifactId>gherkin</artifactId>
+            <artifactId>cucumber-core</artifactId>
             <!-- version managed by cucumber-bom in parent -->
         </dependency>
         <dependency>

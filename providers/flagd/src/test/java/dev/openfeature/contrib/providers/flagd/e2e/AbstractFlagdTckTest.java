@@ -6,6 +6,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.tools.providertck.AbstractProviderTckTest;
 import dev.openfeature.contrib.tools.providertck.BackendEndpoint;
 import dev.openfeature.contrib.tools.providertck.Capability;
+import dev.openfeature.contrib.tools.providertck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Collections;
@@ -105,6 +106,31 @@ abstract class AbstractFlagdTckTest extends AbstractProviderTckTest {
     @Override
     public Set<Capability> capabilities() {
         return EnumSet.complementOf(EnumSet.of(Capability.STRICT_NUMERIC_TYPING));
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The withheld {@link Capability#STRICT_NUMERIC_TYPING} is a defect, not a limitation, and
+     * the report has to say so. In the results stream the two are indistinguishable: the scenario is
+     * skipped either way, and the declaration explains only <em>that</em> the capability was not
+     * claimed, never whether flagd chose not to claim it. A consumer comparing providers would
+     * otherwise read this exactly as it reads a provider with no streaming transport declining
+     * {@code @configuration-change}, which is a decision rather than a bug.
+     *
+     * <p>Recorded as untracked because there is no issue for it yet; it was found by this suite and
+     * has not been filed. That is still worth reporting: naming the defect is what distinguishes it
+     * from a choice, and the schema makes the issue link optional for precisely this case. Move it
+     * to {@link KnownDeviation#tracked} once it is filed, and delete it once it is fixed.
+     */
+    @Override
+    public List<KnownDeviation> knownDeviations() {
+        return Collections.singletonList(KnownDeviation.untracked(
+                Capability.STRICT_NUMERIC_TYPING,
+                "Evaluating float-flag (0.5) through the integer API returns 0 with no error code, "
+                        + "rather than TYPE_MISMATCH with the code default: the value is silently "
+                        + "narrowed. Both resolvers behave identically, which places the defect in the "
+                        + "shared provider layer rather than in either transport."));
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {
