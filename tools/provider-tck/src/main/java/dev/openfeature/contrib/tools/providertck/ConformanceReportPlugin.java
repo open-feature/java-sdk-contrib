@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.tools.providertck;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cucumber.core.plugin.MessageFormatter;
@@ -147,7 +148,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
      * @param digest digest over the results stream
      * @return the envelope, ready to serialise
      */
-    ConformanceReport build(TckRunMetadata run, String location, String digest) {
+    ConformanceReport build(TckRunMetadata run, String location, String digest, String formatVersion) {
         return new ConformanceReport(
                 new ConformanceReport.Provider(run.providerName(), LANGUAGE, run.configuration()),
                 new ConformanceReport.Sdk(TckBuildInfo.SDK_NAME, TckBuildInfo.sdkVersion()),
@@ -155,7 +156,8 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
                         TckBuildInfo.IMPLEMENTATION, TckBuildInfo.tckVersion(), TckBuildInfo.specRevision()),
                 backendOf(run),
                 new ConformanceReport.Declaration(declaredTags(run.capabilities())),
-                new ConformanceReport.Results(ConformanceReport.Results.CUCUMBER_MESSAGES, location, digest),
+                new ConformanceReport.Results(
+                        ConformanceReport.Results.CUCUMBER_MESSAGES, formatVersion, location, digest),
                 run.knownDeviations().isEmpty() ? null : run.knownDeviations());
     }
 
@@ -181,6 +183,35 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         return description == null && controlApi == null
                 ? null
                 : new ConformanceReport.Backend(description, controlApi);
+    }
+
+    /**
+     * Reads the Messages release out of the stream's own {@code meta} message.
+     *
+     * <p>Taken from the stream rather than from a constant or the {@code io.cucumber:messages}
+     * artifact version, because the envelope and the stream disagreeing about which release produced
+     * them would be worse than either being absent. {@code meta} is the first envelope cucumber
+     * writes, so only the first line is parsed.
+     *
+     * @param results the buffered results stream
+     * @return the protocol version, or {@code null} when the stream carries none
+     */
+    private static String protocolVersionOf(byte[] results) {
+        String stream = new String(results, StandardCharsets.UTF_8);
+        int newline = stream.indexOf('\n');
+        String first = newline < 0 ? stream : stream.substring(0, newline);
+        if (first.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            JsonNode version = new ObjectMapper().readTree(first).path("meta").path("protocolVersion");
+            return version.isTextual() ? version.asText() : null;
+        } catch (JsonProcessingException e) {
+            // A stream whose first line will not parse is a bug worth surfacing, but not here:
+            // omitting an optional field is better than failing a run that otherwise succeeded.
+            log.warn("provider-tck: could not read the Messages protocol version from the stream", e);
+            return null;
+        }
     }
 
     @SuppressFBWarnings(
@@ -219,7 +250,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         try {
             json = new ObjectMapper()
                             .writerWithDefaultPrettyPrinter()
-                            .writeValueAsString(build(run, location, digestOf(results)))
+                            .writeValueAsString(build(run, location, digestOf(results), protocolVersionOf(results)))
                     + "\n";
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(

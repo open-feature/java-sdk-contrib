@@ -205,6 +205,24 @@ public final class ConformanceReport {
         public final String format;
 
         /**
+         * The Cucumber Messages release the stream was produced against.
+         *
+         * <p>Messages is versioned and the four TCK implementations pin different releases -- this
+         * one takes whatever cucumber-jvm bundles, while the Go TCK builds against v21 and the
+         * Python one against 34.2.0 -- so a consumer holding two reports cannot assume one schema
+         * validates both.
+         *
+         * <p>Guessing is worse than not validating. A later schema accepts messages this producer
+         * could not have emitted, and an earlier one rejects messages that are perfectly valid, so a
+         * check against the wrong version reports a result that has nothing to do with the stream.
+         *
+         * <p>Read back out of the stream's own {@code meta.protocolVersion} rather than from a
+         * constant or the artifact version, so the envelope and the stream cannot disagree about
+         * which release produced it.
+         */
+        public final String formatVersion;
+
+        /**
          * Where to fetch the results: a path relative to this document.
          *
          * <p>Referenced rather than inlined because a Messages stream carries the feature sources and
@@ -216,8 +234,9 @@ public final class ConformanceReport {
         /** Digest over the results payload as {@code sha256:<hex>}. */
         public final String digest;
 
-        Results(String format, String location, String digest) {
+        Results(String format, String formatVersion, String location, String digest) {
             this.format = format;
+            this.formatVersion = formatVersion;
             this.location = location;
             this.digest = digest;
         }
