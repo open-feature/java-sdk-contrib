@@ -188,11 +188,16 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * exact-instance check is what makes the {@code @object} mismatch matrix work, and the
      * structured happy path passes through {@code resolve(Object.class, ...)}, which every non-null
      * value satisfies, and is converted with {@code Value.objectToValue} (Resolver.java:125-136).
-     * And {@link Capability#LARGE_INTEGERS} is absent without being named here:
-     * {@link Capability#declarableExcept} leaves out the not-applicable and reserved tags on its
-     * own, which is why it is used instead of {@code EnumSet.complementOf} — the complement would
-     * claim {@code @large-integers}, {@code @targeting} and {@code @caching} on the way past, and
-     * the suite refuses such a declaration at startup.
+     * And {@link Capability#LARGE_INTEGERS} is withheld, as every Java provider withholds it, for a
+     * reason that is not about OFREP at all: the tag asks for 2^53 − 1 and
+     * {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for it. The limit is
+     * the SDK's, it is recorded once in Appendix F rather than in each run, and the scenario is
+     * skipped for an undeclared capability like any other. It is named here for the same reason
+     * {@code REINITIALIZATION} is — {@link Capability#declarableExcept} would otherwise claim it.
+     *
+     * <p>{@code declarableExcept} rather than {@code EnumSet.complementOf}, which would also claim
+     * {@code @targeting} and {@code @caching} on the way past; the suite refuses such a declaration
+     * at startup.
      */
     @Override
     public Set<Capability> capabilities() {
@@ -203,6 +208,7 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
                 Capability.STALE,
                 Capability.CONFIGURATION_CHANGE,
                 Capability.UNAVAILABLE_INIT,
-                Capability.NUMERIC_COERCION);
+                Capability.NUMERIC_COERCION,
+                Capability.LARGE_INTEGERS);
     }
 }
