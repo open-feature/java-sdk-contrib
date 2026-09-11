@@ -109,7 +109,9 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Everything declarable except {@link Capability#NUMERIC_COERCION}. Evaluating
+     * <p>Everything declarable except {@link Capability#NUMERIC_COERCION} and
+     * {@link Capability#REINITIALIZATION}. The two omissions are different in kind: the first is a
+     * defect and is declared as one below, the second is a choice the specification offers. Evaluating
      * {@code float-flag} (0.5) through the integer API returns {@code 0} with <em>no</em> error code
      * rather than {@code TYPE_MISMATCH} with the code default — the value is silently truncated.
      * Coercion as such is permitted, and the capability says so: the rule is that a lossless
@@ -122,7 +124,37 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      *
      * <p>That includes {@link Capability#LIFECYCLE}, and legitimately so: flagd reaches its backend
      * during initialisation in both modes — an RPC round trip, or a full ruleset sync — so the
-     * lifecycle scenarios assert something real here rather than passing vacuously.
+     * lifecycle scenarios assert something real here rather than passing vacuously. Worth stating
+     * because the Go and JavaScript flagd providers withhold it; Java declaring it is what made that
+     * divergence visible, and the other two are being changed to match rather than the reverse.
+     *
+     * <p><strong>{@link Capability#REINITIALIZATION} is withheld, and that is a fact about the
+     * provider rather than a defect in it.</strong> {@code shutdown()} sets the sync resources' own
+     * {@code isShutDown} flag and never clears {@code isInitialized}
+     * (FlagdProvider.java:136-155, FlagdProviderSyncResources.java:27-28, 112-115), so a later
+     * {@code initialize()} returns at its first check without rebuilding anything
+     * (FlagdProvider.java:121-125): the resolver is shut down, the RPC channel was
+     * {@code shutdownNow()}'d, the retry scheduler is terminated and {@code errorExecutor} is a
+     * {@code final} field nothing re-creates. A shut-down flagd provider is terminally shut down.
+     *
+     * <p>Requirement 2.5.2 says a provider <em>SHOULD</em> revert to its uninitialized state after
+     * shutdown, and its supporting text says <em>"some providers MAY allow reinitialization from
+     * this state"</em> — so reuse is permitted, not required, and declining it is one of the options
+     * the requirement offers. An earlier version of this file recorded it as a {@code KnownDeviation}
+     * against {@code @lifecycle}, which was wrong twice over: the scenario was mandatory only because
+     * the spec's assets had not yet gated it, and the entry asserted a defect against a provider
+     * behaving within the requirement. Withholding the tag is the whole of what is owed here; the
+     * one scenario it gates is reported as skipped with this reason on every run.
+     *
+     * <p>{@link Capability#STALE} is declared for both resolvers, and the declaration is examined
+     * rather than inherited. {@code PROVIDER_STALE} is emitted from {@code FlagdProvider.onError}
+     * (FlagdProvider.java:258-264), which the shared {@code onProviderEvent} switch reaches on
+     * {@code PROVIDER_ERROR} from either resolver (FlagdProvider.java:197, 236), before the grace
+     * period turns it into {@code PROVIDER_ERROR} — so the emit sits in the provider layer, not in a
+     * transport, and the scenario "Losing the backend makes the provider stale, regaining it makes
+     * it ready again" passes in RPC mode as well as in-process. Worth stating because Go's flagd
+     * provider withholds the tag for its RPC resolver; on this evidence that is a difference between
+     * the two implementations, not a property of the transport.
      *
      * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
      * this used to be. The complement of one capability is every other <em>enum constant</em>,
@@ -135,7 +167,7 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return Capability.declarableExcept(Capability.NUMERIC_COERCION);
+        return Capability.declarableExcept(Capability.NUMERIC_COERCION, Capability.REINITIALIZATION);
     }
 
     /**
