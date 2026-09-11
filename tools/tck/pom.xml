@@ -14,6 +14,33 @@
 
     <properties>
         <module-name>${groupId}.tck</module-name>
+
+        <!--
+            THE CONFORMANCE ARTIFACTS THIS BUILD CARRIES
+            ============================================
+            A conformance report has to say which questions were asked, not only what the answers
+            were, so it records the open-feature/spec commit the packaged Gherkin, flag set and
+            control API came from. It is filtered into
+            src/main/resources-filtered/.../provider-tck-build.properties and packaged in the JAR,
+            because the repository it came from is not.
+
+            The executed Gherkin no longer rests on this pin alone: the results stream carries the
+            `source` of every feature that ran, so a consumer can diff what executed against what
+            this revision contains. The pin is what identifies the two artifacts the stream does not
+            carry — flags/canonical-flags.json and openapi/control-api.yaml.
+
+            This must equal the `spec` submodule's pinned commit, which is where the artifacts
+            actually come from — the copies under src/main/resources are produced from it at
+            generate-resources and are gitignored. Checkable in one command, from this directory:
+
+              git -C spec rev-parse HEAD
+
+            A property rather than a value read from git during the build because Maven has no way
+            to capture a command's output into a property without another plugin, and the submodule
+            pin already moves only by deliberate commit. Update both together; a mismatch means a
+            report names a revision that did not produce its scenarios.
+        -->
+        <provider-tck.spec.revision>0bedacc22489697ccfbe1f5f4c5ae7649a5be457</provider-tck.spec.revision>
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.1</jackson-databind.version>
@@ -96,6 +123,29 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
+        </dependency>
+
+        <!--
+            Cucumber core and the message types — already on the classpath as transitive
+            dependencies of cucumber-junit-platform-engine, and declared here because
+            ConformanceReportPlugin compiles against them directly.
+
+            The conformance report carries its results as a Cucumber Messages stream and produces
+            that stream with io.cucumber.core.plugin.MessageFormatter, which is the same class the
+            built-in `message:<path>` plugin instantiates. Cucumber's own formatter rather than one
+            of ours, so the results cannot drift from what the built-in message plugin writes; only
+            the output path differs, because a plugin configured through an annotation cannot have a
+            path derived from the run. Versions are managed by cucumber-bom in the parent POM.
+        -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-core</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>messages</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
         </dependency>
 
         <!-- PicoContainer object factory — injects TckState into every step class -->
@@ -206,6 +256,23 @@
     </dependencies>
 
     <build>
+        <!--
+            The conformance artifacts are copied verbatim; only the generated build-info properties
+            are filtered. Filtering the feature files would be a portability hazard rather than a
+            convenience: a scenario is a byte-for-byte shared definition across four languages, and
+            a stray ${...} in one would silently make this language's copy different.
+        -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources-filtered</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
         <plugins>
             <!--
                 Phase 1 – keep the spec submodule up to date. Registered with:

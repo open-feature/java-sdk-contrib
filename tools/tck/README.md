@@ -788,6 +788,128 @@ documented.
 The Compose stack starts once per suite and is never restarted. Scenario isolation comes from the
 control API.
 
+## Conformance reports
+
+Set `PROVIDER_TCK_REPORT_DIR` and each suite writes two files: an envelope conforming to the
+[report schema][report-schema] in the specification, and the run's results as a
+[Cucumber Messages][messages] stream.
+
+```console
+$ PROVIDER_TCK_REPORT_DIR=./reports mvn test -Dtest='Flagd*TckTest'
+$ ls reports/
+flagd-in-process.json  flagd-in-process.ndjson  flagd-rpc.json  flagd-rpc.ndjson
+```
+
+`-Dprovider.tck.report.dir=...` does the same thing and is often easier to pass through Maven. The
+environment variable is the portable spelling — every language's TCK reads it, so one cross-language
+CI job can set one thing.
+
+It is an environment variable rather than a method on `ProviderTckHarness` so that emitting a report
+is a property of the run and not of the code: CI sets it, a developer running the suite locally does
+not, and no adopter changes a line to publish one. Unset means no report, which is not an error.
+Several suites in one JVM each write their own pair, so flagd's two resolvers do not collide.
+
+### The results are not a format this project defines
+
+The `.ndjson` is a Cucumber Messages stream, produced by Cucumber's own `MessageFormatter` — the
+same class the built-in `message:<path>` plugin instantiates, so the bytes are what
+`--plugin message:...` would have written. It already carries everything a per-scenario report would
+have had to invent: the outcome of every scenario, its tags including any set on an individual
+`Examples` block, an exact Scenario Outline row identity, and the source of every feature that ran.
+
+The plugin exists rather than the built-in one because a `@ConfigurationParameter` value is a
+compile-time constant, so the built-in plugin's path cannot be derived from the directory the run
+asked for — and flagd's two suites would write to the same file.
+
+Reading it needs no special tooling, but it does need one thing understood: **a scenario's outcome
+is the most severe result among its steps**, hooks included. `testCaseFinished` carries no status of
+its own. That is what makes a capability-gated skip truthful, because the aborted `@Before` hook
+contributes a `SKIPPED` result that outranks every step it stopped from running.
+
+```console
+$ jq -c 'select(.testStepFinished) | .testStepFinished
+         | {c: .testCaseStartedId, s: .testStepResult.status}' reports/flagd-rpc.ndjson \
+    | jq -s 'group_by(.c) | map({s: (map(.s) | if any(. == "FAILED") then "FAILED"
+                                              elif any(. == "SKIPPED") then "SKIPPED"
+                                              else "PASSED" end)})
+             | group_by(.s) | map({(.[0].s): length}) | add'
+{
+  "PASSED": 28,
+  "SKIPPED": 1
+}
+```
+
+The [`cucumber-query`](https://github.com/cucumber/messages/tree/main/java) helpers do this properly
+and in several languages; the above is only to show that the fact is in the file.
+
+### What identifies a scenario
+
+`pickle.astNodeIds`. For a scenario compiled from a Scenario Outline it is
+`[scenario id, table row id]`, and the second entry resolves in the `gherkinDocument` message to the
+`Examples` row the scenario was built from. Feature and name are not enough — the type-mismatch
+matrix in `errors.feature` is eleven rows sharing one name — and this is exact rather than derived:
+
+```console
+$ jq -c 'select(.pickle) | .pickle
+         | select(.name == "Requesting the wrong type returns the code default")
+         | {id, row: .astNodeIds[1]}' reports/flagd-rpc.ndjson | head -3
+{"id":"6c8debd2-...","row":"ab8b4a4b-..."}
+{"id":"a7c76b0a-...","row":"63d6d6c8-..."}
+{"id":"fecd333d-...","row":"bbd7f5ee-..."}
+```
+
+An earlier version of this module reverse-engineered the same fact by re-parsing the feature source
+and matching a pickle's reported line number against the Examples tables. The stream states it
+outright, which is the whole argument for a standard format over one we maintain.
+
+### What the envelope is for
+
+A Messages stream cannot say what it was a test *of*. The envelope carries the four things no
+standard results format identifies:
+
+- **`provider`** — what the provider calls itself through its own metadata, not the suite name. The
+  suite name is chosen to read well in a failure message (`flagd-rpc`), which makes it the
+  *configuration*, and it is reported as such. One provider with two materially different modes
+  produces two reports that are not interchangeable. Derived from the suite class name
+  (`FlagdInProcessTckTest` → `flagd-in-process`); override `ProviderTckHarness.configuration()`.
+- **`sdk`** — read from the classpath rather than declared, because the TCK depends on an SDK version
+  *range* so that adopting it can never force an upgrade. What a consumer actually ran against is
+  only knowable at runtime.
+- **`tck`** — which implementation asked the questions, and `specRevision`, the open-feature/spec
+  commit the packaged artifacts came from. Baked into the JAR at build time from this module's POM:
+  the artifacts travel in the JAR, the repository they came from does not. The executed Gherkin no
+  longer rests on that pin alone — the stream carries the `source` of every feature, so it can be
+  diffed against the revision — but the pin is what identifies the two artifacts the stream does not
+  carry, `flags/canonical-flags.json` and `openapi/control-api.yaml`.
+- **`declaration`** — the capability set the provider claims. This is an **input** to reading the
+  results, not a summary of them, which is why it cannot be derived from the stream. The stream says
+  a scenario was skipped; only the declaration says whether that is because the provider declines the
+  capability it needed. Given the declaration and a scenario's tags — both present — the reason for
+  each skip follows, so it does not have to be transported per scenario.
+
+`knownDeviations` is the one thing neither the stream nor the declaration can express: whether a
+withheld capability is a limitation or a bug. See
+[Saying that a withheld capability is a defect](#saying-that-a-withheld-capability-is-a-defect).
+
+`results.digest` covers the `.ndjson`, so a consumer that fetched the two separately can tell that
+what it has is what the envelope describes.
+
+### What the report is for
+
+This suite promises that a scenario skipped for an undeclared capability is reported as skipped with
+the reason and *never* as passed — and a promise is not a check. The stream records every scenario
+individually, so a consumer can verify the rule instead of trusting a runner's headline number. Go's
+runner counts capability-gated skips in its **passed** tally, which is exactly the failure mode this
+makes impossible to hide.
+
+Every scenario appears exactly once, whatever happened to it. A report that quietly omitted the
+scenarios it did not run would satisfy every rule above and still mislead, because a reader would
+have no way to know how many questions went unasked. `ConformanceReportPluginTest` runs a fixture
+suite through the real Cucumber engine and asserts both properties over the emitted stream.
+
+[report-schema]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/report/conformance-report.schema.json
+[messages]: https://github.com/cucumber/messages
+
 ## Relationship to the flagd test harness
 
 The step vocabulary is inherited from the

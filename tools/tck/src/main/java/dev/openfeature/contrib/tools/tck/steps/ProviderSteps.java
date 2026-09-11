@@ -157,11 +157,13 @@ public class ProviderSteps extends AbstractSteps {
         state.provider = provider;
         state.domain = domain;
         state.client = api.getClient(domain);
-        log.info(
-                "Registered {} provider {} under domain {}",
-                flavour,
-                provider.getMetadata().getName(),
-                domain);
+
+        // A conformance report identifies the provider by what it calls itself, not by the suite
+        // name, and this is the only place that knows it.
+        String providerName = provider.getMetadata().getName();
+        TckRuntime.get().recordProviderName(providerName);
+
+        log.info("Registered {} provider {} under domain {}", flavour, providerName, domain);
     }
 
     /**
