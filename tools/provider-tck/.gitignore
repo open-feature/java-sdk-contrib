@@ -2,6 +2,6 @@
 # Do not edit these files directly — they are the language-agnostic definition of the
 # provider contract and live in open-feature/spec, under
 # specification/assets/provider-tck/ (Appendix F).
-src/main/resources/features/
+src/main/resources/gherkin/
 src/main/resources/flags/
 src/main/resources/openapi/
