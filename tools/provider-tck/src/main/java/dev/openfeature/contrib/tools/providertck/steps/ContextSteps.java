@@ -9,10 +9,17 @@ import io.cucumber.java.en.Given;
  *
  * <p>Step vocabulary is inherited verbatim from the flagd test harness.
  *
- * <p>Note the TCK cannot currently assert that the context <em>reached</em> the backend intact.
- * Doing so needs an echo operation on the control API — something like
- * {@code GET /last-evaluation} returning the request the backend last received — which the control
- * API does not yet define. Context passthrough is therefore a known gap rather than a covered case.
+ * <p>The context accumulated here is passed to every evaluation — {@code FlagSteps} hands
+ * {@code state.context} to the typed accessor it dispatches on — so the {@code @targeting}
+ * scenarios observe passthrough of the targeting key directly: {@code targeting-key-flag} resolves
+ * to a different value for a matching context, so a provider that drops the context is caught by
+ * the resolved value itself.
+ *
+ * <p>What is still not asserted is that the <em>whole</em> context reached the backend intact. A
+ * provider that forwards the targeting key and silently discards every other attribute passes.
+ * Closing that needs either an echo operation on the control API — something like
+ * {@code GET /last-evaluation} returning the request the backend last received — or a canonical flag
+ * whose rule keys on a custom attribute. That remains a known gap.
  */
 public class ContextSteps extends AbstractSteps {
 
