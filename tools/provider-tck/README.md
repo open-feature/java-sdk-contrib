@@ -40,13 +40,17 @@ uses only long-stable API — `OpenFeatureAPI`, `Client`, typed evaluation, `Pro
 
 **In scope — the provider contract:**
 
-- mapping backend responses onto typed resolution details (value, variant, reason, error code)
-- keeping the integer and float types distinct
+- mapping backend responses onto typed resolution details (value, variant, reason, error code), with
+  no error message on a success path
+- keeping the integer and float types distinct; that `false`, `0` and `""` are values, not absences;
+  integer precision to 2^31 − 1
 - error handling: type mismatch and unknown flag return the code default, report the right error
   code, and never throw
-- lifecycle: reaching `READY`, and settling into `ERROR` against an unreachable backend
+- lifecycle: reaching `READY`, settling into `ERROR` against an unreachable backend, and a shutdown
+  that can be repeated, returns promptly when the backend is gone, and is undone by initialising again
 - events: `PROVIDER_READY`, `PROVIDER_ERROR`, `PROVIDER_STALE`, `PROVIDER_CONFIGURATION_CHANGED`
 - that a signalled configuration change is actually applied on re-evaluation
+- that the provider identifies itself by a non-empty metadata name
 
 **Out of scope — not the provider's contract:**
 
@@ -113,11 +117,7 @@ public class MyProviderTckTest extends ProviderTckTest {
 
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(
-                Capability.EVENTS,
-                Capability.CONFIGURATION_CHANGE,
-                Capability.OBJECT,
-                Capability.NUMERIC_COERCION);
+        return EnumSet.of(Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT);
     }
 }
 ```
@@ -142,8 +142,13 @@ Two suites in this module are exactly the class above, and both run with no Dock
 second. They are the reference adoption, and they are the fast CI canary.
 
 [`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/InMemoryProviderTckTest.java)
-runs the full applicable suite against the SDK's `InMemoryProvider` — 26 passed, 3 skipped by
-capability.
+runs the full applicable suite against the SDK's `InMemoryProvider` — of the 40 scenarios (outline
+rows counted individually), 29 pass and 11 are skipped by capability: the six `@lifecycle` ones, the
+`@stale` one, the three `@numeric-coercion` ones and the `@large-integers` one. It does not declare
+`NUMERIC_COERCION`, because `InMemoryProvider` keeps the two numeric types strictly apart in both
+directions — it refuses `10.0` as an integer and `10` as a float exactly as it refuses `0.5` — and the
+tag requires the lossless direction too. That is a choice the SDK's reference provider is entitled to,
+not a defect; see the class javadoc.
 
 [`MultiProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/MultiProviderTckTest.java)
 runs it against `MultiProvider` wrapping **one** `InMemoryProvider`. A provider that delegates is
@@ -229,10 +234,16 @@ It is expressed in the flagd flag-definition format because that is the only wid
 vendor-neutral format today — the format is not what matters, the keys, types, variants and
 resolved values are. Seed them however your backend seeds flags.
 
-Two details are load-bearing:
+Four details are load-bearing:
 
 - **`missing-flag` must not exist.** Its absence is what the `FLAG_NOT_FOUND` scenario tests.
 - **No flag has targeting rules.** Every scenario expects reason `STATIC`.
+- **`false-flag`, `zero-flag` and `empty-string-flag` resolve to `false`, `0` and `""` on purpose.**
+  A seeding step that treats them as unset and drops them turns the falsy-value scenarios into
+  `FLAG_NOT_FOUND` failures that look like provider defects.
+- **`integral-float-flag` is a float and `huge-integer-flag` is an integer.** Seeding `10.0` as `10`
+  makes the lossless-coercion scenario pass without coercing anything; seeding `9007199254740991`
+  through a float rounds it.
 
 ### 4. The test class
 
@@ -384,7 +395,8 @@ green on scenarios it did not run is worse than no suite at all.
 | `CONFIGURATION_CHANGE` | `@configuration-change` | detects config changes, emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `OBJECT` | `@object` | supports structured flag values |
 | `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend — *needs connection control* |
-| `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
+| `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` — both directions tested |
+| `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; **not applicable in Java, not declarable** — the SDK's integer accessor is a 32-bit `Integer`, so the scenario is skipped with that reason on every run |
 | `TARGETING` | `@targeting` | reserved, **not declarable** — no scenarios yet |
 | `CACHING` | `@caching` | reserved, **not declarable** — no scenarios yet |
 
@@ -425,26 +437,27 @@ while emitting no events of its own, and would have been excluded. Declare `LIFE
 initialisation actually talks to the backend; a provider with nothing to reach — an in-memory
 provider, or a facade over other providers — should not declare it however many events it emits.
 
-A note on `NUMERIC_COERCION`: unlike the others it is not an optional feature. The rule is that
-coercion between integer and float is permitted **when it is lossless** and must fail with
-`TYPE_MISMATCH` **when it is not** — `10.0` requested as an integer must succeed, `0.5` must not.
-Narrowing `0.5` to `0` loses information silently, which is the worst failure mode for a feature
-flag, because the application sees a plausible value and no error. It is a capability only so a
-provider with this defect can adopt the TCK today and see the gap reported explicitly. Not
-declaring it is an admission of a known bug. **The flagd provider currently does not declare it**,
-in either RPC or in-process mode — see
+A note on `NUMERIC_COERCION`: the rule it tests is **borrowed, not normative**. Coercion between
+integer and float is permitted **when it is lossless** and must fail with `TYPE_MISMATCH` **when it
+is not** — `10.0` requested as an integer must succeed, `10` requested as a float must succeed, and
+`0.5` requested as an integer must not. All three have scenarios and a provider declaring the tag
+must satisfy all three; rejecting every float passes the lossy one and fails the other two. The rule
+comes from flagd's [numeric coercion
+ADR](https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md);
+the specification has a single numeric type and says nothing about a value that does not fit the
+accessor it was asked through ([spec#430](https://github.com/open-feature/spec/issues/430)), so a
+provider that behaves differently is not violating it. It is still worth saying which kind of
+difference it is: narrowing `0.5` to `0` with no error code hands an application a plausible value and
+no signal, which is a defect to declare as a `KnownDeviation`, whereas keeping the two types strictly
+apart — what `InMemoryProvider` does — is a choice. **The flagd provider does not declare it**, in
+either mode, for the first reason — see
 [flagd#1996](https://github.com/open-feature/flagd/issues/1996).
 
-Two things the tag does not cover, both open in Appendix F rather than fixed here:
-
-- **The lossless case has no scenario.** Only the lossy half is tested, because the canonical flag
-  set contains no integral float to ask the other half of, and adding one changes the flag set for
-  every language at once. A provider that wrongly rejects `10.0` as an integer declares this
-  capability and passes.
-- **Accessor width is unmodelled.** The [numeric coercion
-  ADR](https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md)
-  distinguishes a 64-bit integer accessor from a 32-bit one — flagd's own testbed tags the latter
-  `@int32-bounded` — and neither Appendix F nor this suite has anything equivalent.
+A note on `LARGE_INTEGERS`: accessor width is a property of the SDK, not of the provider, and Java's
+is 32 bits — `Client.getIntegerDetails` takes and returns an `Integer`. The tag is therefore neither
+declarable nor declared here, and its one scenario is reported as skipped with that reason on every
+Java run, whatever the provider could do. Declaring it fails the run, as declaring a reserved tag
+does. The 32-bit precision scenario (`large-integer-flag`, 2^31 − 1) is untagged and always runs.
 
 ### Saying that a withheld capability is a defect
 
@@ -546,13 +559,17 @@ Everything else is unchanged: `a <type>-flag with key ... and a default value ..
 `the connection is lost[ for <n>s]`, `the flag was modified`,
 `the flag should be part of the event payload`, `the client should be in <state> state`.
 
-Three steps are new:
+The steps the TCK added:
 
 | Step | Why it was added |
 |---|---|
 | `When the connection is restored` | the flagd harness only has the self-healing `lost for {int}s` form, which cannot express "assert stale, *then* reconnect" — the reconnect races the assertion |
 | `When the resolved value is remembered` / `Then the resolved details value should have changed` | the control API only requires that `/change` changes `changing-flag`'s value, not which value it changes to; asserting a delta keeps the scenario vendor-neutral |
-| `Then no exception should have been thrown` | makes the "never throws" half of the error contract explicit rather than implicit in a step failure |
+| `Then no exception should have been thrown` | makes the "never throws" half of the error contract explicit rather than implicit in a step failure; also covers a repeated `shutdown()` and an `initialize()` after it |
+| `Then the error message should be empty` | a value *and* an error message are two contradictory signals (requirement 2.3.2); asserted on every success path |
+| `Then the provider metadata name should not be empty` | a conformance report keyed on the provider's name cannot be attributed if the name is empty (requirement 2.1.1) |
+| `When the provider is shut down` / `When the provider is initialized again` | call the provider's own `shutdown()` and `initialize()` directly, not through the SDK — replacing the provider would test the SDK's bookkeeping, which Appendix B covers; the SDK is not told, so the next evaluation through the same client reaches the re-initialised provider |
+| `Then the shutdown should have completed within {int}ms` | a shutdown that waits for a graceful close of a connection that will never answer hangs the host application's own shutdown |
 
 ## Where these artifacts come from
 
@@ -597,13 +614,6 @@ explicit command is only useful when working offline or inspecting the sources b
 - **Caching.** Whether a stale provider keeps serving last-known values during an outage depends on
   whether it holds a local copy of the ruleset. The `@caching` tag is reserved; no scenarios yet,
   and so not declarable.
-- **Lossless numeric coercion.** `@numeric-coercion` tests only the lossy half of its rule. The
-  canonical flag set holds no integral float, so there is nothing to ask "must `10.0` resolve as an
-  integer?" of, and a provider that wrongly answers no still passes. Closing it means adding a flag
-  to the canonical set, which changes it for every language at once.
-- **Integer accessor width.** flagd's numeric coercion ADR distinguishes a 64-bit integer accessor
-  from a 32-bit one, and tags the latter `@int32-bounded` in its own testbed. Neither this suite nor
-  Appendix F models width at all, and it is a real source of cross-language disagreement.
 - **Setting and removing individual flags.** `BackendControl` exposes `prepareScenario()` and
   `changeFlag()` — reset to the canonical baseline, and mutate `changing-flag` — because those are
   what the Gherkin needs and what the control API defines. Finer-grained `setFlag(key, value)` /

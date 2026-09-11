@@ -47,10 +47,20 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Four capabilities, and each omission is a fact about {@link InMemoryProvider} rather than a
+     * <p>Three capabilities, and each omission is a fact about {@link InMemoryProvider} rather than a
      * convenience:
      *
      * <ul>
+     *   <li>{@link Capability#NUMERIC_COERCION} — omitted. {@link InMemoryProvider} keeps the two
+     *       numeric types strictly apart in both directions: a variant satisfies a request only if
+     *       it is an instance of the requested type. That passes the lossy half of the rule — 0.5
+     *       requested as an integer is {@code TYPE_MISMATCH} — and fails the lossless half, because
+     *       {@code integral-float-flag} (10.0) requested as an integer and {@code integer-flag} (10)
+     *       requested as a float are refused just the same, and the tag requires all three. The
+     *       rule is borrowed from flagd's ADR rather than from the specification, so strict typing
+     *       is a choice the SDK's reference provider is entitled to, not a defect to declare; the
+     *       capability is withheld and the three scenarios are skipped with that reason. Declare it
+     *       again if the SDK ever adopts the coercion rule.
      *   <li>{@link Capability#LIFECYCLE} — omitted. Initialisation reaches no backend here, so the
      *       readiness scenario would pass without demonstrating anything, which is exactly what that
      *       capability exists to distinguish.
@@ -64,15 +74,12 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      *       {@link ProviderTckHarness#createUnavailableProvider()} is left at its throwing default.
      *   <li>{@link Capability#TARGETING} and {@link Capability#CACHING} — omitted because no
      *       scenario carries their tags yet. Nothing is skipped by leaving them out today.
+     *   <li>{@link Capability#LARGE_INTEGERS} — not declarable by any Java provider, this one
+     *       included; its scenario is skipped with the SDK's 32-bit accessor as the reason.
      * </ul>
-     *
-     * <p>{@link Capability#NUMERIC_COERCION} <em>is</em> declared, and that is worth stating
-     * plainly: {@link InMemoryProvider} refuses to narrow {@code float-flag} (0.5) to an integer and
-     * reports {@code TYPE_MISMATCH} instead. It is the reference behaviour the capability describes.
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(
-                Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT, Capability.NUMERIC_COERCION);
+        return EnumSet.of(Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT);
     }
 }
