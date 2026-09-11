@@ -78,6 +78,17 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
+     * <p>Always {@link BackendControl#CONTROL_API_HTTP}: this is the normative control API, and a
+     * run conducted through it is the portable kind of conformance claim.
+     */
+    @Override
+    public String controlApi() {
+        return CONTROL_API_HTTP;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
      * <p>Prefers {@code POST /reset} when the backend is already running, because restoring the
      * baseline without an availability blip means the previous scenario teardown cannot leak a
      * spurious lifecycle event into the next scenario. When the previous scenario left the backend
