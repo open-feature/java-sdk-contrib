@@ -301,7 +301,13 @@ class ConformanceReportPluginTest {
                         Capability.CONFIGURATION_CHANGE.tag(),
                         Capability.OBJECT.tag(),
                         Capability.UNAVAILABLE_INIT.tag(),
-                        Capability.NUMERIC_COERCION.tag());
+                        Capability.NUMERIC_COERCION.tag(),
+                        // @large-integers gates a scenario and is an ordinary declarable capability.
+                        // No Java provider holds it, because the SDK's integer accessor is 32 bits,
+                        // but that is a fact about the SDK recorded in Appendix F rather than a
+                        // second kind of declaration, so the maximal claim includes it and a real
+                        // harness withholds it.
+                        Capability.LARGE_INTEGERS.tag());
     }
 
     @Test
