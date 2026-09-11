@@ -78,8 +78,10 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      *       {@link ProviderTckHarness#createUnavailableProvider()} is left at its throwing default.
      *   <li>{@link Capability#TARGETING} and {@link Capability#CACHING} — omitted because no
      *       scenario carries their tags yet. Nothing is skipped by leaving them out today.
-     *   <li>{@link Capability#LARGE_INTEGERS} — not declarable by any Java provider, this one
-     *       included; its scenario is skipped with the SDK's 32-bit accessor as the reason.
+     *   <li>{@link Capability#LARGE_INTEGERS} — omitted, as every Java provider omits it. The tag
+     *       asks for 2^53 − 1 and {@code Client.getIntegerDetails} is a 32-bit {@link Integer}, so
+     *       the limit is the SDK's rather than this provider's; Appendix F is where that is
+     *       recorded, and here it is simply undeclared and its scenario skipped.
      * </ul>
      */
     @Override

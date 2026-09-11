@@ -417,7 +417,7 @@ green on scenarios it did not run is worse than no suite at all.
 | `OBJECT` | `@object` | supports structured flag values |
 | `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend — *needs connection control* |
 | `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` — both directions tested |
-| `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; **not applicable in Java, not declarable** — the SDK's integer accessor is a 32-bit `Integer`, so the scenario is skipped with that reason on every run |
+| `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; **every Java provider withholds it** — the SDK's integer accessor is a 32-bit `Integer`, so the limit is the language's, not the provider's |
 | `TARGETING` | `@targeting` | reserved, **not declarable** — no scenarios yet |
 | `CACHING` | `@caching` | reserved, **not declarable** — no scenarios yet |
 
@@ -497,10 +497,22 @@ either mode, for the first reason — see
 [flagd#1996](https://github.com/open-feature/flagd/issues/1996).
 
 A note on `LARGE_INTEGERS`: accessor width is a property of the SDK, not of the provider, and Java's
-is 32 bits — `Client.getIntegerDetails` takes and returns an `Integer`. The tag is therefore neither
-declarable nor declared here, and its one scenario is reported as skipped with that reason on every
-Java run, whatever the provider could do. Declaring it fails the run, as declaring a reserved tag
-does. The 32-bit precision scenario (`large-integer-flag`, 2^31 − 1) is untagged and always runs.
+is 32 bits — `Client.getIntegerDetails` takes and returns an `Integer`, which has no room for
+2^53 − 1. So **every Java provider withholds this tag**, and its one scenario is reported as skipped
+for an undeclared capability like any other. Put it in your `declarableExcept(...)` list:
+
+```java
+return Capability.declarableExcept(Capability.LARGE_INTEGERS, /* whatever else */);
+```
+
+That the impossibility is the language's rather than the provider's is recorded once, in
+[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md),
+rather than restated in every run: a report has one skip status, carrying its reason, and the
+scenario's own tags say what was being asked. Withholding the tag therefore needs no
+`KnownDeviation` — it is not a defect. Declaring it is not refused either; the scenario runs and
+fails when `TckValues` cannot fit `9007199254740991` into an `Integer`, which is a louder answer than
+a rejected declaration. The 32-bit precision scenario (`large-integer-flag`, 2^31 − 1) is untagged and
+always runs.
 
 ### Saying that a withheld capability is a defect
 
