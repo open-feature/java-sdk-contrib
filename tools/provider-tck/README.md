@@ -293,9 +293,8 @@ public class MyProviderInProcessTckTest extends AbstractMyProviderTckTest {
 }
 ```
 
-This is how flagd covers RPC and in-process — see
-[`AbstractFlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/AbstractFlagdTckTest.java).
-Abstract classes are not run, so an intermediate base is safe.
+This is how the flagd provider covers RPC and in-process. Abstract classes are not run, so an
+intermediate base is safe.
 
 Note that per-mode differences may include timing, not just wiring: flagd's in-process resolver
 syncs the whole ruleset before reporting ready, so it needs a longer initialisation deadline than
@@ -434,8 +433,7 @@ flag, because the application sees a plausible value and no error. It is a capab
 provider with this defect can adopt the TCK today and see the gap reported explicitly. Not
 declaring it is an admission of a known bug. **The flagd provider currently does not declare it**,
 in either RPC or in-process mode — see
-[`AbstractFlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/AbstractFlagdTckTest.java)
-and [flagd#1996](https://github.com/open-feature/flagd/issues/1996).
+[flagd#1996](https://github.com/open-feature/flagd/issues/1996).
 
 Two things the tag does not cover, both open in Appendix F rather than fixed here:
 
