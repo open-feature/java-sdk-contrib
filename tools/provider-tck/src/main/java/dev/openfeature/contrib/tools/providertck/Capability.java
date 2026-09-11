@@ -78,6 +78,41 @@ public enum Capability {
      */
     LIFECYCLE("@lifecycle"),
 
+    /**
+     * Provider can be initialised again after {@code shutdown} and serves flags afterwards.
+     *
+     * <p>Gates exactly one scenario, "A provider that was shut down can be initialized again", and
+     * it is gated because the specification <strong>permits</strong> reuse rather than requiring it.
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md">Requirement
+     * 2.5.2</a> says a provider <em>SHOULD</em> revert to its uninitialized state after
+     * {@code shutdown}, and its supporting text adds that <em>"some providers MAY allow
+     * reinitialization from this state"</em>. A provider that releases its client on shutdown and
+     * declines to start again is taking an option the specification offers it, so withholding this
+     * capability is a choice and needs no {@link KnownDeviation}.
+     *
+     * <p><strong>Why this is not {@link #LIFECYCLE}.</strong> The scenario was originally untagged
+     * — and therefore mandatory — on the reading that reverting to the uninitialized state is
+     * observable as exactly one thing, being initialisable again. That inference does not hold, and
+     * the cost of it was concrete: run against the flagd provider, whose
+     * {@code FlagdProviderSyncResources} keeps {@code isInitialized} and {@code isShutDown} as
+     * separate flags and refuses {@code initialize()} when either is set, the scenario failed and
+     * was one step from being filed as a defect against a provider doing nothing wrong. A false
+     * failure is the mirror image of a vacuous pass.
+     *
+     * <p>What the tag buys is the other direction. A provider that <em>does</em> offer reuse has
+     * somewhere to be held to it, because "shutdown() releases the client and initialize() returns
+     * early because an initialised flag was never cleared" is easy to write and leaves the provider
+     * evaluating against a closed connection rather than failing outright. Reverting the state is
+     * not separately observable — a provider that reverts but refuses reuse presents exactly as one
+     * that did neither — so a gated reuse scenario is the only assertion the requirement admits.
+     *
+     * <p>Declaring {@code LIFECYCLE} and withholding this one is the expected combination for a
+     * provider whose initialisation reaches a backend it does not reopen. The scenario carries both
+     * tags, so a provider that declares neither sees it skipped for {@code @lifecycle} and loses
+     * nothing by the second omission.
+     */
+    REINITIALIZATION("@reinitialization"),
+
     /** Provider emits lifecycle events at all ({@code PROVIDER_READY}, {@code PROVIDER_ERROR}). */
     EVENTS("@events"),
 
