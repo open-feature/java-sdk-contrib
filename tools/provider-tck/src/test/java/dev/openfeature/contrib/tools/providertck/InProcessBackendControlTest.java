@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import dev.openfeature.sdk.providers.memory.InMemoryProvider;
 import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
@@ -94,6 +95,34 @@ class InProcessBackendControlTest {
         // that scenario green for the wrong reason.
         assertThatThrownBy(() -> provider.getStringEvaluation("missing-flag", "fallback", new ImmutableContext()))
                 .hasMessageContaining("missing-flag");
+    }
+
+    @Test
+    @DisplayName("the canonical flag set keeps the values and types the scenarios depend on")
+    void canonicalFlagsKeepTheirValuesAndTypes() throws Exception {
+        InMemoryProvider provider = new InProcessBackendControl().createProvider();
+        provider.initialize(new ImmutableContext());
+        ImmutableContext context = new ImmutableContext();
+
+        // Seeded as the integer 10, the lossless-coercion scenario would pass without coercing.
+        assertThat(provider.getDoubleEvaluation("integral-float-flag", 0.1, context).getValue())
+                .as("integral-float-flag is a Double")
+                .isEqualTo(10.0);
+        // Which is also why the self-tests withhold NUMERIC_COERCION: the SDK's provider keeps the
+        // two numeric types strictly apart and refuses the lossless direction along with the lossy one.
+        assertThatThrownBy(() -> provider.getIntegerEvaluation("integral-float-flag", 1, context))
+                .isInstanceOf(TypeMismatchError.class);
+
+        assertThat(provider.getIntegerEvaluation("large-integer-flag", 1, context).getValue())
+                .isEqualTo(2147483647);
+
+        // Values, not absences: each default differs from what the flag resolves to.
+        assertThat(provider.getBooleanEvaluation("false-flag", true, context).getValue())
+                .isFalse();
+        assertThat(provider.getIntegerEvaluation("zero-flag", 1, context).getValue())
+                .isZero();
+        assertThat(provider.getStringEvaluation("empty-string-flag", "fallback", context).getValue())
+                .isEmpty();
     }
 
     private static String resolveChangingFlag(InMemoryProvider provider) {
