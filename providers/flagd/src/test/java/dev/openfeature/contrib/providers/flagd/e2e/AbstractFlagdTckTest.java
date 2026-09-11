@@ -6,6 +6,7 @@ import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.tools.providertck.BackendEndpoint;
 import dev.openfeature.contrib.tools.providertck.Capability;
 import dev.openfeature.contrib.tools.providertck.ContainerizedProviderTckTest;
+import dev.openfeature.contrib.tools.providertck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Collections;
@@ -105,12 +106,42 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      *
      * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
      * this used to be. The complement of one capability is every other <em>enum constant</em>,
-     * including {@code @targeting} and {@code @caching} — reserved tags no scenario carries — so a
-     * report emitted from here claimed two capabilities nothing had examined.
+     * including {@code @targeting} and {@code @caching} — reserved tags no scenario carries — so
+     * declaring the complement claimed two capabilities nothing had examined.
      */
     @Override
     public Set<Capability> capabilities() {
         return Capability.declarableExcept(Capability.NUMERIC_COERCION);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The withheld {@link Capability#NUMERIC_COERCION} is a defect, not a limitation, and
+     * something has to say so. In the results the two are indistinguishable: the scenario is skipped
+     * either way, and the declaration explains only <em>that</em> the capability was not claimed,
+     * never whether flagd chose not to claim it. A consumer comparing providers would otherwise read
+     * this exactly as it reads a provider with no streaming transport declining
+     * {@code @configuration-change}, which is a decision rather than a bug.
+     *
+     * <p>Tracked against flagd's numeric coercion ADR, which is where the rule this deviates from is
+     * settled: coercion is permitted when it is lossless and must fail with {@code TYPE_MISMATCH}
+     * only when information would be lost. The summary says which half is broken, because "flagd
+     * coerces numbers" on its own reads as a description of intended behaviour. Delete the entry —
+     * and the {@code capabilities()} override above — once the lossy case reports
+     * {@code TYPE_MISMATCH}.
+     */
+    @Override
+    public List<KnownDeviation> knownDeviations() {
+        return Collections.singletonList(KnownDeviation.tracked(
+                Capability.NUMERIC_COERCION,
+                "https://github.com/open-feature/flagd/issues/1996",
+                "The lossy half of the coercion rule is not enforced: evaluating float-flag (0.5) "
+                        + "through the integer API returns 0 with no error code, rather than "
+                        + "TYPE_MISMATCH with the code default, so the fractional part is discarded "
+                        + "silently. Lossless coercion is permitted and is not the defect. Both "
+                        + "resolvers behave identically, which places it in the shared provider layer "
+                        + "rather than in either transport."));
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {
