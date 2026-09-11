@@ -1,7 +1,11 @@
 # Backend stack for the OpenFeature Provider TCK, wrapping the unmodified flagd testbed image.
 #
-# The image already serves everything the TCK needs: flagd itself, and the "launchpad" control
-# API on 8080 whose endpoints this TCK's control API contract was derived from.
+# The image serves flagd itself and the "launchpad" control API on 8080, whose endpoints this
+# TCK's control API contract was derived from. It does not yet serve the whole canonical flag
+# set: v3.8.0 has none of large-integer-flag, huge-integer-flag or integral-float-flag. Only
+# large-integer-flag is reached by a scenario that runs here -- the other two sit behind
+# @large-integers and @numeric-coercion, which this provider does not declare -- so one untagged
+# scenario fails FLAG_NOT_FOUND until open-feature/flagd-testbed#392 lands. Bump the tag then.
 #
 # Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers
 # them after startup — a pinned host port would make the suite unrunnable in parallel and would
