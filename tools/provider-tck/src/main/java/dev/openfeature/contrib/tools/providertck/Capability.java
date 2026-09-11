@@ -62,7 +62,14 @@ public enum Capability {
     UNAVAILABLE_INIT("@unavailable"),
 
     /**
-     * Provider keeps the integer and float types distinct instead of coercing between them.
+     * Provider coerces between the integer and float types only when the coercion is lossless.
+     *
+     * <p>The rule is <strong>lossless coercion is permitted; lossy coercion must fail with
+     * {@code TYPE_MISMATCH}</strong>. An integral float such as {@code 10.0} requested as an integer
+     * must succeed, because nothing is lost by answering it; {@code 0.5} requested as an integer must
+     * not, because narrowing it to {@code 0} discards the fractional part. The distinction is flagd's
+     * <a href="https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md">numeric
+     * coercion ADR</a>, and this capability is named after it.
      *
      * <p>Unlike the other entries here this is <strong>not</strong> an optional spec feature. The
      * specification requires a provider to report {@code TYPE_MISMATCH} when the requested type
@@ -74,8 +81,14 @@ public enum Capability {
      * see the gap reported as an explicit skip, rather than being unable to adopt at all. Not
      * declaring it is an admission of a known bug, not a design choice. Declare it as soon as the
      * provider is fixed.
+     *
+     * <p><strong>Only the lossy half is tested.</strong> The canonical flag set contains no integral
+     * float, so there is nothing to ask the lossless half of, and a provider that wrongly rejects
+     * {@code 10.0} as an integer declares this and passes. Closing that gap means adding a flag to
+     * the canonical set, which changes it for every language at once; Appendix F records it as open
+     * rather than pretending it is covered.
      */
-    STRICT_NUMERIC_TYPING("@strict-numeric-typing"),
+    NUMERIC_COERCION("@numeric-coercion"),
 
     /**
      * Provider supports targeting rules driven by evaluation context.

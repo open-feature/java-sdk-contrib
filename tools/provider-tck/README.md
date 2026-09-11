@@ -223,7 +223,7 @@ green on scenarios it did not run is worse than no suite at all.
 | `CONFIGURATION_CHANGE` | `@configuration-change` | detects config changes, emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `OBJECT` | `@object` | supports structured flag values |
 | `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend |
-| `STRICT_NUMERIC_TYPING` | `@strict-numeric-typing` | does not coerce between integer and float |
+| `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
 | `TARGETING` | `@targeting` | reserved, no scenarios yet |
 | `CACHING` | `@caching` | reserved, no scenarios yet |
 
@@ -247,13 +247,27 @@ while emitting no events of its own, and would have been excluded. Declare `LIFE
 initialisation actually talks to the backend; a provider with nothing to reach — an in-memory
 provider, or a facade over other providers — should not declare it however many events it emits.
 
-A note on `STRICT_NUMERIC_TYPING`: unlike the others it is not an optional feature. The spec
-requires `TYPE_MISMATCH` when the requested type cannot be satisfied, and narrowing `0.5` to `0`
-loses information silently — the worst failure mode for a feature flag, because the application
-sees a plausible value and no error. It is a capability only so a provider with this defect can
-adopt the TCK today and see the gap reported explicitly. Not declaring it is an admission of a
-known bug. **The flagd provider currently does not declare it**, in either RPC or in-process mode —
-see [`AbstractFlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/AbstractFlagdTckTest.java).
+A note on `NUMERIC_COERCION`: unlike the others it is not an optional feature. The rule is that
+coercion between integer and float is permitted **when it is lossless** and must fail with
+`TYPE_MISMATCH` **when it is not** — `10.0` requested as an integer must succeed, `0.5` must not.
+Narrowing `0.5` to `0` loses information silently, which is the worst failure mode for a feature
+flag, because the application sees a plausible value and no error. It is a capability only so a
+provider with this defect can adopt the TCK today and see the gap reported explicitly. Not
+declaring it is an admission of a known bug. **The flagd provider currently does not declare it**,
+in either RPC or in-process mode — see
+[`AbstractFlagdTckTest`](../../providers/flagd/src/test/java/dev/openfeature/contrib/providers/flagd/e2e/AbstractFlagdTckTest.java)
+and [flagd#1996](https://github.com/open-feature/flagd/issues/1996).
+
+Two things the tag does not cover, both open in Appendix F rather than fixed here:
+
+- **The lossless case has no scenario.** Only the lossy half is tested, because the canonical flag
+  set contains no integral float to ask the other half of, and adding one changes the flag set for
+  every language at once. A provider that wrongly rejects `10.0` as an integer declares this
+  capability and passes.
+- **Accessor width is unmodelled.** The [numeric coercion
+  ADR](https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md)
+  distinguishes a 64-bit integer accessor from a 32-bit one — flagd's own testbed tags the latter
+  `@int32-bounded` — and neither Appendix F nor this suite has anything equivalent.
 
 ### Saying that a withheld capability is a defect
 
@@ -265,7 +279,7 @@ tell the two apart. Declare a `KnownDeviation` when it is the latter.
 @Override
 public List<KnownDeviation> knownDeviations() {
     return List.of(KnownDeviation.tracked(
-            Capability.STRICT_NUMERIC_TYPING,
+            Capability.NUMERIC_COERCION,
             "https://github.com/open-feature/java-sdk-contrib/issues/1234",
             "float-flag through the integer API returns 0 with no error code"));
 }
@@ -489,6 +503,13 @@ consumers — the features stay on the classpath and stay inside the JAR.
   `@targeting` tag is reserved for context-passthrough scenarios once the gap above is closed.
 - **Caching.** Whether a stale provider keeps serving last-known values during an outage depends on
   whether it holds a local copy of the ruleset. The `@caching` tag is reserved; no scenarios yet.
+- **Lossless numeric coercion.** `@numeric-coercion` tests only the lossy half of its rule. The
+  canonical flag set holds no integral float, so there is nothing to ask "must `10.0` resolve as an
+  integer?" of, and a provider that wrongly answers no still passes. Closing it means adding a flag
+  to the canonical set, which changes it for every language at once.
+- **Integer accessor width.** flagd's numeric coercion ADR distinguishes a 64-bit integer accessor
+  from a 32-bit one, and tags the latter `@int32-bounded` in its own testbed. Neither this suite nor
+  Appendix F models width at all, and it is a real source of cross-language disagreement.
 - **Hooks.** Not covered.
 - **Flag metadata.** The flagd harness has metadata scenarios; they are not yet ported.
 - **Multi-suite JVMs.** `TckRuntime` is static, so TCK suites run one at a time within a JVM fork.

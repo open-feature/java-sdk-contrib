@@ -279,7 +279,7 @@ class ConformanceReportPluginTest {
         JsonNode deviations = envelope.get("knownDeviations");
 
         assertThat(deviations).hasSize(1);
-        assertThat(deviations.get(0).get("capability").asText()).isEqualTo(Capability.STRICT_NUMERIC_TYPING.tag());
+        assertThat(deviations.get(0).get("capability").asText()).isEqualTo(Capability.NUMERIC_COERCION.tag());
         assertThat(deviations.get(0).get("summary").asText()).isNotEmpty();
         assertThat(deviations.get(0).has("issue"))
                 .as("the fixture's deviation is untracked, and the field is omitted rather than empty")
@@ -366,7 +366,7 @@ class ConformanceReportPluginTest {
                 "a test double",
                 "http",
                 Collections.singletonList(KnownDeviation.untracked(
-                        Capability.STRICT_NUMERIC_TYPING, "the fixture provider narrows a float to an integer")));
+                        Capability.NUMERIC_COERCION, "the fixture provider narrows a float to an integer")));
         metadata.recordProviderName("My Provider");
         return metadata;
     }

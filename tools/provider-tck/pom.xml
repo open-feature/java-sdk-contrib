@@ -42,9 +42,10 @@
               git rev-parse <revision>
               diff -r <spec>/specification/assets/provider-tck/gherkin src/main/resources/features
 
-            Verified byte for byte against dfa16586 at the time of writing.
+            Verified byte for byte against dc4d7ae8 at the time of writing, modulo line endings:
+            this repository is checked out with core.autocrlf on Windows.
         -->
-        <provider-tck.spec.revision>dfa16586d91ca020ef1b3b82a7c972d833ff8f29</provider-tck.spec.revision>
+        <provider-tck.spec.revision>dc4d7ae8df1c664f82a4adf46cd43812980c0da3</provider-tck.spec.revision>
 
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>

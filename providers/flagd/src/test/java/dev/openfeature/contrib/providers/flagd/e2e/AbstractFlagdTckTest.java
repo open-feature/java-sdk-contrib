@@ -90,10 +90,12 @@ abstract class AbstractFlagdTckTest extends AbstractProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Everything except {@link Capability#STRICT_NUMERIC_TYPING}. Evaluating {@code float-flag}
+     * <p>Everything except {@link Capability#NUMERIC_COERCION}. Evaluating {@code float-flag}
      * (0.5) through the integer API returns {@code 0} with <em>no</em> error code rather than
-     * {@code TYPE_MISMATCH} with the code default — the value is silently truncated. That is a
-     * defect to fix, not a design choice; this override should be deleted once it is.
+     * {@code TYPE_MISMATCH} with the code default — the value is silently truncated. Coercion as
+     * such is permitted, and the capability says so: the rule is that a lossless coercion must
+     * succeed and a lossy one must fail. It is the lossy case being accepted that is a defect to
+     * fix, not a design choice; this override should be deleted once it is.
      *
      * <p>Declared here rather than per mode because both resolvers behave identically, which places
      * the defect in the shared provider layer rather than in either transport. Every other
@@ -105,32 +107,37 @@ abstract class AbstractFlagdTckTest extends AbstractProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.complementOf(EnumSet.of(Capability.STRICT_NUMERIC_TYPING));
+        return EnumSet.complementOf(EnumSet.of(Capability.NUMERIC_COERCION));
     }
 
     /**
      * {@inheritDoc}
      *
-     * <p>The withheld {@link Capability#STRICT_NUMERIC_TYPING} is a defect, not a limitation, and
+     * <p>The withheld {@link Capability#NUMERIC_COERCION} is a defect, not a limitation, and
      * the report has to say so. In the results stream the two are indistinguishable: the scenario is
      * skipped either way, and the declaration explains only <em>that</em> the capability was not
      * claimed, never whether flagd chose not to claim it. A consumer comparing providers would
      * otherwise read this exactly as it reads a provider with no streaming transport declining
      * {@code @configuration-change}, which is a decision rather than a bug.
      *
-     * <p>Recorded as untracked because there is no issue for it yet; it was found by this suite and
-     * has not been filed. That is still worth reporting: naming the defect is what distinguishes it
-     * from a choice, and the schema makes the issue link optional for precisely this case. Move it
-     * to {@link KnownDeviation#tracked} once it is filed, and delete it once it is fixed.
+     * <p>Tracked against flagd's numeric coercion ADR, which is where the rule this deviates from is
+     * settled: coercion is permitted when it is lossless and must fail with {@code TYPE_MISMATCH}
+     * only when information would be lost. The summary says which half is broken, because "flagd
+     * coerces numbers" on its own reads as a description of intended behaviour. Delete the entry —
+     * and the {@code capabilities()} override above — once the lossy case reports
+     * {@code TYPE_MISMATCH}.
      */
     @Override
     public List<KnownDeviation> knownDeviations() {
-        return Collections.singletonList(KnownDeviation.untracked(
-                Capability.STRICT_NUMERIC_TYPING,
-                "Evaluating float-flag (0.5) through the integer API returns 0 with no error code, "
-                        + "rather than TYPE_MISMATCH with the code default: the value is silently "
-                        + "narrowed. Both resolvers behave identically, which places the defect in the "
-                        + "shared provider layer rather than in either transport."));
+        return Collections.singletonList(KnownDeviation.tracked(
+                Capability.NUMERIC_COERCION,
+                "https://github.com/open-feature/flagd/issues/1996",
+                "The lossy half of the coercion rule is not enforced: evaluating float-flag (0.5) "
+                        + "through the integer API returns 0 with no error code, rather than "
+                        + "TYPE_MISMATCH with the code default, so the fractional part is discarded "
+                        + "silently. Lossless coercion is permitted and is not the defect. Both "
+                        + "resolvers behave identically, which places it in the shared provider layer "
+                        + "rather than in either transport."));
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {

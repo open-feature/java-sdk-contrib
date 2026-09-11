@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *
  * <p>Distinct from an undeclared capability, which is a <em>choice</em>. A provider that does not
  * declare {@code @configuration-change} has no streaming transport and is not pretending otherwise;
- * a provider that does not declare {@code @strict-numeric-typing} has a bug. Both look identical in
+ * a provider that does not declare {@code @numeric-coercion} has a bug. Both look identical in
  * the results stream — scenarios skipped, reason recoverable from the declaration — so the
  * difference has to be stated, or a consumer cannot tell a design decision from a defect.
  *
