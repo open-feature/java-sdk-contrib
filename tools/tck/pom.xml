@@ -40,7 +40,7 @@
             pin already moves only by deliberate commit. Update both together; a mismatch means a
             report names a revision that did not produce its scenarios.
         -->
-        <provider-tck.spec.revision>0bedacc22489697ccfbe1f5f4c5ae7649a5be457</provider-tck.spec.revision>
+        <provider-tck.spec.revision>fc99d5ace4da472a5fea0595fa4db8034bbbc769</provider-tck.spec.revision>
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.1</jackson-databind.version>
