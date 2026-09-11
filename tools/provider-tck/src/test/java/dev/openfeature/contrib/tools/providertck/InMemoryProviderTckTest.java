@@ -64,6 +64,10 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      *   <li>{@link Capability#LIFECYCLE} — omitted. Initialisation reaches no backend here, so the
      *       readiness scenario would pass without demonstrating anything, which is exactly what that
      *       capability exists to distinguish.
+     *   <li>{@link Capability#REINITIALIZATION} — omitted, and nothing turns on it here: the
+     *       scenario it gates carries {@code @lifecycle} as well, so it is already skipped for the
+     *       omission above. Named anyway, because {@link Capability#declarable()} would have claimed
+     *       it and this suite never examined it.
      *   <li>{@link Capability#STALE} — omitted. There is no connection to lose, so the provider can
      *       never go {@code STALE}. {@link InProcessBackendControl} leaves
      *       {@link BackendControl#disconnect()} unimplemented for the same reason, and this omission

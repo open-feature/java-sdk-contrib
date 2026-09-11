@@ -143,8 +143,9 @@ second. They are the reference adoption, and they are the fast CI canary.
 
 [`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/InMemoryProviderTckTest.java)
 runs the full applicable suite against the SDK's `InMemoryProvider` — of the 40 scenarios (outline
-rows counted individually), 29 pass and 11 are skipped by capability: the six `@lifecycle` ones, the
-`@stale` one, the three `@numeric-coercion` ones and the `@large-integers` one. It does not declare
+rows counted individually), 29 pass and 11 are skipped by capability: the six `@lifecycle` ones — one
+of which also carries `@reinitialization`, and is skipped for the first of the two — the `@stale`
+one, the three `@numeric-coercion` ones and the `@large-integers` one. It does not declare
 `NUMERIC_COERCION`, because `InMemoryProvider` keeps the two numeric types strictly apart in both
 directions — it refuses `10.0` as an integer and `10` as a float exactly as it refuses `0.5` — and the
 tag requires the lossless direction too. That is a choice the SDK's reference provider is entitled to,
@@ -392,6 +393,7 @@ green on scenarios it did not run is worse than no suite at all.
 | Capability | Tag | Meaning |
 |---|---|---|
 | `LIFECYCLE` | `@lifecycle` | performs an initialisation that reaches its backend, with an observable outcome |
+| `REINITIALIZATION` | `@reinitialization` | can be initialised again after `shutdown` — [Requirement 2.5.2](https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md) *permits* this rather than requiring it |
 | `EVENTS` | `@events` | emits lifecycle events at all |
 | `STALE` | `@stale` | enters `STALE` and emits `PROVIDER_STALE` on backend loss — *needs connection control* |
 | `CONFIGURATION_CHANGE` | `@configuration-change` | detects config changes, emits `PROVIDER_CONFIGURATION_CHANGED` |
@@ -438,6 +440,28 @@ vacuously. Conversely a stateless provider such as OFREP genuinely initialises a
 while emitting no events of its own, and would have been excluded. Declare `LIFECYCLE` only if
 initialisation actually talks to the backend; a provider with nothing to reach — an in-memory
 provider, or a facade over other providers — should not declare it however many events it emits.
+
+A note on `REINITIALIZATION`, which is separate from `LIFECYCLE` for a different reason and is worth
+reading before you withhold anything else.
+[Requirement 2.5.2](https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md)
+says a provider **SHOULD** revert to its uninitialized state after `shutdown`, and its supporting
+text adds that *"some providers **may** allow reinitialization from this state"*. Reuse is
+**permitted, not required**: a provider that releases its client on shutdown and refuses to be
+started again is exercising a choice the specification offers it, so withholding the tag needs no
+`KnownDeviation`. The scenario it gates was originally untagged, and therefore mandatory, on the
+reading that reverting to the uninitialized state is observable as exactly one thing — being
+initialisable again. That inference does not hold, and it cost something: run against the flagd
+provider, which keeps `isInitialized` and `isShutDown` as separate flags and refuses `initialize()`
+when either is set, the scenario failed and was one step from being filed as a defect against a
+provider doing nothing wrong. **A false failure is the mirror image of a vacuous pass.** The tag
+still earns its keep in the other direction, for the providers that do offer reuse: releasing the
+client on shutdown while leaving an initialised flag set is easy to write, and it leaves the provider
+evaluating against a closed connection rather than failing outright.
+
+The general rule behind that, which is worth more than the tag: **never withhold a capability, or
+record a deviation, because a scenario failed — first find the numbered requirement and check
+whether the specification asks for that behaviour at all.** Three rules in this suite have now been
+found asserted more strongly than the spec states them.
 
 A note on `NUMERIC_COERCION`: the rule it tests is **borrowed, not normative**. Coercion between
 integer and float is permitted **when it is lossless** and must fail with `TYPE_MISMATCH` **when it

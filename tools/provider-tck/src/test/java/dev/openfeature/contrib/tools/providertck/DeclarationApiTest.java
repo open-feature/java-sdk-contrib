@@ -79,6 +79,34 @@ class DeclarationApiTest {
     }
 
     @Test
+    @DisplayName("reinitialisation is a declarable choice, and withholding it skips only its own scenario")
+    void reinitialisationIsADeclarableChoice() {
+        // Requirement 2.5.2 permits reuse after shutdown rather than requiring it, so a provider
+        // that refuses it withholds the tag instead of recording a deviation. That makes it an
+        // ordinary declarable capability: neither reserved nor not-applicable.
+        assertThat(Capability.fromTag("@reinitialization")).contains(Capability.REINITIALIZATION);
+        assertThat(Capability.REINITIALIZATION.reserved()).isFalse();
+        assertThat(Capability.REINITIALIZATION.notApplicable()).isFalse();
+        assertThat(Capability.declarable()).contains(Capability.REINITIALIZATION);
+
+        // The scenario carries @lifecycle too. A provider that initialises against a backend it
+        // does not reopen declares the first and withholds the second, and only the one scenario
+        // is skipped -- the rest of the lifecycle set still runs.
+        Set<Capability> reachesBackendButNoReuse = EnumSet.of(Capability.LIFECYCLE);
+        CapabilityGate.requireDeclared(Arrays.asList("@lifecycle"), reachesBackendButNoReuse);
+
+        TestAbortedException aborted = catchThrowableOfType(
+                () -> CapabilityGate.requireDeclared(
+                        Arrays.asList("@lifecycle", "@reinitialization"), reachesBackendButNoReuse),
+                TestAbortedException.class);
+        assertThat(aborted).isNotNull();
+        assertThat(aborted)
+                .hasMessageContaining("REINITIALIZATION")
+                .hasMessageContaining("@reinitialization")
+                .hasMessageContaining("does not declare");
+    }
+
+    @Test
     @DisplayName("the gate skips an undeclared capability and lets an untagged scenario run")
     void theGateSkipsUndeclaredCapabilities() {
         Set<Capability> declared = EnumSet.of(Capability.EVENTS);
