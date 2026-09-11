@@ -238,9 +238,11 @@ Four details are load-bearing:
 
 - **`missing-flag` must not exist.** Its absence is what the `FLAG_NOT_FOUND` scenario tests.
 - **No flag has targeting rules.** Every scenario expects reason `STATIC`.
-- **`false-flag`, `zero-flag` and `empty-string-flag` resolve to `false`, `0` and `""` on purpose.**
-  A seeding step that treats them as unset and drops them turns the falsy-value scenarios into
-  `FLAG_NOT_FOUND` failures that look like provider defects.
+- **`boolean-zero-flag`, `integer-zero-flag` and `string-zero-flag` resolve to `false`, `0` and
+  `""` on purpose.** A seeding step that treats them as unset and drops them turns the falsy-value
+  scenarios into `FLAG_NOT_FOUND` failures that look like provider defects. These names, and their
+  `zero`/`non-zero` variants, are the ones Appendix B's SDK suite already uses, so a backend that
+  serves that flag set already serves these.
 - **`integral-float-flag` is a float and `huge-integer-flag` is an integer.** Seeding `10.0` as `10`
   makes the lossless-coercion scenario pass without coercing anything; seeding `9007199254740991`
   through a float rounds it.
