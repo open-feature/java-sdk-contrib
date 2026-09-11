@@ -43,8 +43,10 @@ public final class TckValues {
                     throw new IllegalArgumentException(
                             "'" + value + "' is not an Integer the Java SDK can ask for: "
                                     + "Client.getIntegerDetails takes a 32-bit Integer. A scenario needing more than "
-                                    + "2^31 - 1 must carry @large-integers, which is not applicable in Java and is "
-                                    + "skipped before any value is converted.",
+                                    + "2^31 - 1 carries @large-integers, which a Java provider leaves undeclared "
+                                    + "because the accessor is the limit rather than the provider — see Appendix F. "
+                                    + "Reaching this means the capability was declared: remove it with "
+                                    + "Capability.declarableExcept(Capability.LARGE_INTEGERS).",
                             e);
                 }
             case "Float":
