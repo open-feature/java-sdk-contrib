@@ -28,8 +28,14 @@ public final class ProviderTck {
      * <p>Reserved for the conformance suite. A feature file an adopter adds here does not extend the
      * canonical set, and one that collides with a canonical file name silently replaces it — see
      * {@link #EXTENSIONS}.
+     *
+     * <p>Named for the directory the assets have in Appendix F rather than for Cucumber's habit of
+     * calling them features. Appendix F identifies a canonical feature by its path relative to the
+     * asset directory — {@code gherkin/errors.feature} — and a consumer joining results from several
+     * languages keys on that path, so the directory a runner reports has to be this one. Cucumber's
+     * {@code classpath:} scheme in front of it is the runner's and is compared past, not stripped.
      */
-    public static final String FEATURES = "features";
+    public static final String FEATURES = "gherkin";
 
     /**
      * Classpath directory an adopter puts their own feature files in.
@@ -37,17 +43,21 @@ public final class ProviderTck {
      * <p>Deliberately not a subdirectory of {@link #FEATURES}, and deliberately a different name.
      * The same directory name in two classpath roots is scanned additively, but the same directory
      * <em>and</em> file name is not: one root wins and the other file is never read, with no warning.
-     * An adopter who dropped {@code features/errors.feature} beside ours would therefore replace a
+     * An adopter who dropped {@code gherkin/errors.feature} beside ours would therefore replace a
      * canonical file with their own and watch the suite go green having run theirs — the worst
-     * outcome available to a conformance suite. A separate directory makes that collision impossible
-     * to reach by accident.
+     * outcome available to a conformance suite. Two distinct directories, {@code gherkin/} and
+     * {@code extensions/}, make that collision impossible to reach by accident.
+     *
+     * <p>{@code extensions/} is also the prefix Appendix F reserves for exactly this, so the path a
+     * runner reports for an adopter's scenario is one any consumer can tell apart from a canonical
+     * one without knowing anything about this implementation.
      *
      * <p>Shipped in this JAR containing only a README, because
      * {@link org.junit.platform.suite.api.SelectClasspathResource} on a resource that exists nowhere
      * on the classpath is a discovery error rather than an empty selection. Cucumber ignores files
      * that are not {@code .feature}, so the README costs nothing.
      */
-    public static final String EXTENSIONS = "tck-extensions";
+    public static final String EXTENSIONS = "extensions";
 
     /** Package holding the canonical step definitions. */
     public static final String GLUE = "dev.openfeature.contrib.tools.providertck.steps";

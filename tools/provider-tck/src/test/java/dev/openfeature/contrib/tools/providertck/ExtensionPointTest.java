@@ -25,7 +25,7 @@ import org.junit.platform.suite.api.ConfigurationParameter;
  * <p>What that promise decomposes into, and what each test here checks:
  *
  * <ul>
- *   <li>a feature file under {@code tck-extensions/} on the adopter's test classpath is discovered by
+ *   <li>a feature file under {@code extensions/} on the adopter's test classpath is discovered by
  *       the suite, into the same Cucumber engine as the canonical set — which is what "the same
  *       backend lifecycle phase" means, since {@code @BeforeAll} is scoped to exactly that;
  *   <li>a step class in {@code openfeature.tck.extensions} is resolved from the glue path;
