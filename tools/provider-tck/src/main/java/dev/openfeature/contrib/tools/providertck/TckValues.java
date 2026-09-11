@@ -37,7 +37,14 @@ public final class TckValues {
             case "String":
                 return value;
             case "Integer":
-                return Integer.parseInt(value);
+                try {
+                    return Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("'" + value + "' is not an Integer the Java SDK can ask for: "
+                            + "Client.getIntegerDetails takes a 32-bit Integer. A scenario needing more than "
+                            + "2^31 - 1 must carry @large-integers, which is not applicable in Java and is "
+                            + "skipped before any value is converted.", e);
+                }
             case "Float":
                 return Double.parseDouble(value);
             case "Object":

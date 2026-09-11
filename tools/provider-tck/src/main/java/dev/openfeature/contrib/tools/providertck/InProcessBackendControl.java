@@ -146,11 +146,20 @@ public final class InProcessBackendControl implements BackendControl {
     /**
      * Builds the canonical flag set as {@link InMemoryProvider} flags.
      *
-     * <p>Mirrors {@code flags/canonical-flags.json} entry for entry. The two load-bearing details
-     * from that file hold here too: {@code missing-flag} is absent, which is what the
-     * {@code FLAG_NOT_FOUND} scenario tests, and no flag carries a
-     * {@link dev.openfeature.sdk.providers.memory.ContextEvaluator}, so every evaluation reports
-     * reason {@code STATIC} as the feature files expect.
+     * <p>Mirrors {@code flags/canonical-flags.json} entry for entry. The load-bearing details from
+     * that file hold here too:
+     *
+     * <ul>
+     *   <li>{@code missing-flag} is absent, which is what the {@code FLAG_NOT_FOUND} scenario tests;
+     *   <li>no flag carries a {@link dev.openfeature.sdk.providers.memory.ContextEvaluator}, so
+     *       every evaluation reports reason {@code STATIC} as the feature files expect;
+     *   <li>{@code false-flag}, {@code zero-flag} and {@code empty-string-flag} resolve to
+     *       {@code false}, {@code 0} and {@code ""} — values, not absences;
+     *   <li>{@code integral-float-flag} is a {@link Double} holding {@code 10.0}, never the
+     *       {@link Integer} {@code 10}, or the lossless-coercion scenario would pass without
+     *       anything being coerced; {@code huge-integer-flag} is a {@link Long}, because
+     *       2^53 − 1 does not fit an {@link Integer}.
+     * </ul>
      *
      * @return the canonical flag set
      */
@@ -187,6 +196,63 @@ public final class InProcessBackendControl implements BackendControl {
                         .variant("tenth", 0.1)
                         .variant("half", 0.5)
                         .defaultVariant("half")
+                        .build());
+
+        // 2^31 - 1: the largest value every language's integer accessor can ask for, and one a
+        // float32 round trip does not keep.
+        flags.put(
+                "large-integer-flag",
+                Flag.<Integer>builder()
+                        .variant("one", 1)
+                        .variant("max-int32", 2147483647)
+                        .defaultVariant("max-int32")
+                        .build());
+
+        // 2^53 - 1, which does not fit an Integer and so is a Long. Only asked for under
+        // @large-integers, which is not applicable in Java, so no scenario reaches it; it is here
+        // so that the set mirrors the JSON entry for entry, seeded as an integer and not rounded.
+        flags.put(
+                "huge-integer-flag",
+                Flag.<Long>builder()
+                        .variant("one", 1L)
+                        .variant("max-safe", 9007199254740991L)
+                        .defaultVariant("max-safe")
+                        .build());
+
+        // A float with no fractional part, for the lossless half of @numeric-coercion. The literal
+        // 10.0 is a double, so the variant is a Double and stays one.
+        flags.put(
+                "integral-float-flag",
+                Flag.<Double>builder()
+                        .variant("tenth", 0.1)
+                        .variant("ten", 10.0)
+                        .defaultVariant("ten")
+                        .build());
+
+        // The three falsy values. Each scenario's default differs from the resolved value, so a
+        // provider that treats false, 0 or "" as "nothing came back" is caught.
+        flags.put(
+                "false-flag",
+                Flag.<Boolean>builder()
+                        .variant("on", true)
+                        .variant("off", false)
+                        .defaultVariant("off")
+                        .build());
+
+        flags.put(
+                "zero-flag",
+                Flag.<Integer>builder()
+                        .variant("one", 1)
+                        .variant("zero", 0)
+                        .defaultVariant("zero")
+                        .build());
+
+        flags.put(
+                "empty-string-flag",
+                Flag.<String>builder()
+                        .variant("greeting", "hi")
+                        .variant("empty", "")
+                        .defaultVariant("empty")
                         .build());
 
         flags.put(
