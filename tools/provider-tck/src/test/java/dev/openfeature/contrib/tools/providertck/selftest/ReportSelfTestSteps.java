@@ -20,7 +20,7 @@ import java.util.Set;
  */
 public class ReportSelfTestSteps {
 
-    private static volatile Set<Capability> declared = EnumSet.allOf(Capability.class);
+    private static volatile Set<Capability> declared = Capability.declarable();
 
     /**
      * Sets the capabilities the fixture provider declares, for the run that is about to start.

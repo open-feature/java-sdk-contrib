@@ -4,7 +4,6 @@ import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -116,13 +115,19 @@ public interface ProviderTckHarness {
      * <p>Scenarios tagged with a capability that is not in this set are reported as
      * <strong>skipped</strong>. They are never silently passed.
      *
-     * <p>Defaults to every capability. Narrow it rather than widening it: start from the default,
-     * run the suite, and remove only what your provider genuinely cannot do.
+     * <p>Defaults to every {@linkplain Capability#declarable() declarable} capability. Narrow it
+     * rather than widening it: start from the default, run the suite, and remove only what your
+     * provider genuinely cannot do — {@link Capability#declarableExcept} is the idiomatic way to say
+     * "everything except".
+     *
+     * <p>Do not build the set with {@code EnumSet.allOf} or {@code EnumSet.complementOf}. Both
+     * include the {@linkplain Capability#reserved() reserved} capabilities, which no scenario
+     * carries, and declaring one of those fails the run.
      *
      * @return the capabilities this provider supports
      */
     default Set<Capability> capabilities() {
-        return EnumSet.allOf(Capability.class);
+        return Capability.declarable();
     }
 
     /**

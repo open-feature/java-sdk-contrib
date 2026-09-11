@@ -1,6 +1,10 @@
 package dev.openfeature.contrib.tools.providertck;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -17,6 +21,14 @@ import java.util.Optional;
  * never as passed. Silently green scenarios would make a conformance suite worthless.
  *
  * <p>Scenarios with no capability tag are considered mandatory and always run.
+ *
+ * <p>Some entries are {@linkplain #reserved() reserved}: they exist in the vocabulary so that every
+ * language's TCK spells the same property the same way, but no scenario carries their tag yet. A
+ * reserved capability <strong>must not be declared</strong> — there is nothing for it to gate, so
+ * declaring it cannot produce a skip and cannot be contradicted by any result. Declare
+ * {@link #declarable()}, or {@link #declarableExcept} for "everything except", rather than
+ * {@code EnumSet.allOf} or {@code EnumSet.complementOf}: both of the latter sweep up every reserved
+ * tag on the way past, which is how a report comes to claim a capability nobody examined.
  */
 public enum Capability {
 
@@ -93,24 +105,30 @@ public enum Capability {
     /**
      * Provider supports targeting rules driven by evaluation context.
      *
-     * <p>Reserved. No scenario in the current suite carries this tag — targeting is backend
-     * evaluation logic, which the TCK deliberately does not test. It exists so the tag vocabulary
-     * stays aligned with the flagd test harness and so context-passthrough scenarios have a home
-     * once the control API grows an echo endpoint.
+     * <p>{@linkplain #reserved() Reserved}. No scenario in the current suite carries this tag —
+     * targeting is backend evaluation logic, which the TCK deliberately does not test. It exists so
+     * the tag vocabulary stays aligned with the flagd test harness and so context-passthrough
+     * scenarios have a home once the control API grows an echo endpoint.
      */
-    TARGETING("@targeting"),
+    TARGETING("@targeting", true),
 
     /**
      * Provider caches evaluation results and invalidates them on configuration change.
      *
-     * <p>Reserved; no scenario carries this tag yet.
+     * <p>{@linkplain #reserved() Reserved}; no scenario carries this tag yet.
      */
-    CACHING("@caching");
+    CACHING("@caching", true);
 
     private final String tag;
+    private final boolean reserved;
 
     Capability(String tag) {
+        this(tag, false);
+    }
+
+    Capability(String tag, boolean reserved) {
         this.tag = tag;
+        this.reserved = reserved;
     }
 
     /**
@@ -123,6 +141,20 @@ public enum Capability {
     }
 
     /**
+     * Returns whether this capability is reserved, and so must not be declared.
+     *
+     * <p>Reserved means the tag is part of the shared vocabulary but no scenario in the suite
+     * carries it. Such a capability cannot gate anything: it produces no skip, so it plays no part
+     * in reading the results, and listing it in a report invites a reader to believe it was verified
+     * when nothing examined it.
+     *
+     * @return {@code true} if no scenario carries this capability's tag
+     */
+    public boolean reserved() {
+        return reserved;
+    }
+
+    /**
      * Looks up the capability gated by a Gherkin tag.
      *
      * @param tag a Gherkin tag including the leading {@code @}
@@ -130,5 +162,67 @@ public enum Capability {
      */
     public static Optional<Capability> fromTag(String tag) {
         return Arrays.stream(values()).filter(c -> c.tag.equals(tag)).findFirst();
+    }
+
+    /**
+     * Returns every capability that may be declared, which is every capability some scenario gates.
+     *
+     * <p>This, not {@code EnumSet.allOf(Capability.class)}, is what "everything" means for a
+     * declaration.
+     *
+     * @return the declarable capabilities, as a fresh mutable set
+     */
+    public static EnumSet<Capability> declarable() {
+        EnumSet<Capability> declarable = EnumSet.allOf(Capability.class);
+        declarable.removeIf(Capability::reserved);
+        return declarable;
+    }
+
+    /**
+     * Returns every declarable capability except the given ones.
+     *
+     * <p>The counterpart to {@code EnumSet.complementOf}, and the reason it exists: a provider
+     * saying "everything except the one thing I cannot do" wants everything <em>declarable</em>
+     * except that thing, whereas {@code complementOf} hands back the reserved tags as well.
+     *
+     * @param excluded capabilities to withhold; reserved capabilities are absent regardless
+     * @return the declarable capabilities minus {@code excluded}, as a fresh mutable set
+     */
+    public static EnumSet<Capability> declarableExcept(Capability... excluded) {
+        EnumSet<Capability> declared = declarable();
+        for (Capability capability : excluded) {
+            declared.remove(capability);
+        }
+        return declared;
+    }
+
+    /**
+     * Rejects a declaration that names a reserved capability.
+     *
+     * <p>Fails the run rather than warning and dropping it. The declaration is the one part of a
+     * conformance report that no result can check — everything else in it was observed, this is
+     * asserted by the provider author — so a claim that cannot possibly be true is worth stopping
+     * for. There is nothing to lose by refusing, either: no scenario carries a reserved tag, so no
+     * coverage depends on the claim, and the fix is to call {@link #declarable()} or
+     * {@link #declarableExcept}.
+     *
+     * @param declared the capabilities a harness declares
+     * @throws IllegalArgumentException if any of them is reserved
+     */
+    public static void requireDeclarable(Collection<Capability> declared) {
+        List<String> reservedTags = new ArrayList<>();
+        for (Capability capability : declared) {
+            if (capability.reserved()) {
+                reservedTags.add(capability.name() + " (" + capability.tag() + ")");
+            }
+        }
+        if (!reservedTags.isEmpty()) {
+            throw new IllegalArgumentException("capabilities() declares reserved " + reservedTags
+                    + ", which no scenario in the suite carries. A reserved capability cannot be "
+                    + "verified or contradicted by any result, so it must not be declared. Use "
+                    + "Capability.declarable(), or Capability.declarableExcept(...) for "
+                    + "\"everything except\" — EnumSet.allOf and EnumSet.complementOf pick reserved "
+                    + "capabilities up on the way past.");
+        }
     }
 }

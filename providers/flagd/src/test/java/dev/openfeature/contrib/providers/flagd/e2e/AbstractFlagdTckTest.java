@@ -10,7 +10,6 @@ import dev.openfeature.contrib.tools.providertck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -90,12 +89,12 @@ abstract class AbstractFlagdTckTest extends AbstractProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Everything except {@link Capability#NUMERIC_COERCION}. Evaluating {@code float-flag}
-     * (0.5) through the integer API returns {@code 0} with <em>no</em> error code rather than
-     * {@code TYPE_MISMATCH} with the code default — the value is silently truncated. Coercion as
-     * such is permitted, and the capability says so: the rule is that a lossless coercion must
-     * succeed and a lossy one must fail. It is the lossy case being accepted that is a defect to
-     * fix, not a design choice; this override should be deleted once it is.
+     * <p>Everything declarable except {@link Capability#NUMERIC_COERCION}. Evaluating
+     * {@code float-flag} (0.5) through the integer API returns {@code 0} with <em>no</em> error code
+     * rather than {@code TYPE_MISMATCH} with the code default — the value is silently truncated.
+     * Coercion as such is permitted, and the capability says so: the rule is that a lossless
+     * coercion must succeed and a lossy one must fail. It is the lossy case being accepted that is a
+     * defect to fix, not a design choice; this override should be deleted once it is.
      *
      * <p>Declared here rather than per mode because both resolvers behave identically, which places
      * the defect in the shared provider layer rather than in either transport. Every other
@@ -104,10 +103,15 @@ abstract class AbstractFlagdTckTest extends AbstractProviderTckTest {
      * <p>That includes {@link Capability#LIFECYCLE}, and legitimately so: flagd reaches its backend
      * during initialisation in both modes — an RPC round trip, or a full ruleset sync — so the
      * lifecycle scenarios assert something real here rather than passing vacuously.
+     *
+     * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
+     * this used to be. The complement of one capability is every other <em>enum constant</em>,
+     * including {@code @targeting} and {@code @caching} — reserved tags no scenario carries — so a
+     * report emitted from here claimed two capabilities nothing had examined.
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.complementOf(EnumSet.of(Capability.NUMERIC_COERCION));
+        return Capability.declarableExcept(Capability.NUMERIC_COERCION);
     }
 
     /**

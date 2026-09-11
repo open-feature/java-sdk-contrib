@@ -224,18 +224,29 @@ green on scenarios it did not run is worse than no suite at all.
 | `OBJECT` | `@object` | supports structured flag values |
 | `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend |
 | `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
-| `TARGETING` | `@targeting` | reserved, no scenarios yet |
-| `CACHING` | `@caching` | reserved, no scenarios yet |
+| `TARGETING` | `@targeting` | reserved, **not declarable** — no scenarios yet |
+| `CACHING` | `@caching` | reserved, **not declarable** — no scenarios yet |
 
-The default is every capability. **Narrow it, do not widen it**: start from the default, run the
-suite, and remove only what your provider genuinely cannot do.
+The default is every *declarable* capability. **Narrow it, do not widen it**: start from the
+default, run the suite, and remove only what your provider genuinely cannot do.
 
 ```java
 @Override
 public Set<Capability> capabilities() {
-    return EnumSet.complementOf(EnumSet.of(Capability.STALE, Capability.CACHING));
+    return Capability.declarableExcept(Capability.STALE);
 }
 ```
+
+The reserved entries are part of the vocabulary so that every language's TCK spells the same
+property the same way, but no scenario carries their tag — so declaring one cannot produce a skip,
+cannot be contradicted by any result, and tells a reader a capability was verified when nothing
+examined it. Declaring one **fails the run**, with a message naming the tag.
+
+That is a rule about an accident rather than about intent: `EnumSet.complementOf(EnumSet.of(X))`
+reads as "everything except X" and in fact means "every other enum constant", reserved tags
+included. The flagd suite said exactly that and published `"declared": [..., "@targeting",
+"@caching"]` for two capabilities nobody had claimed. `Capability.declarable()` and
+`Capability.declarableExcept(...)` are the forms that mean what the first one looks like.
 
 A note on `LIFECYCLE` vs `EVENTS`: they look like the same thing and are not. `EVENTS` says the
 provider emits events; `LIFECYCLE` says there is a real initialisation behind them. The SDK's
@@ -500,9 +511,11 @@ consumers — the features stay on the classpath and stay inside the JAR.
   like `GET /last-evaluation` returning the request the backend last received. Until then, a
   provider that silently drops the context passes.
 - **Targeting and bucketing.** Out of scope by design: that is backend evaluation logic. The
-  `@targeting` tag is reserved for context-passthrough scenarios once the gap above is closed.
+  `@targeting` tag is reserved for context-passthrough scenarios once the gap above is closed, and
+  is not declarable until they exist.
 - **Caching.** Whether a stale provider keeps serving last-known values during an outage depends on
-  whether it holds a local copy of the ruleset. The `@caching` tag is reserved; no scenarios yet.
+  whether it holds a local copy of the ruleset. The `@caching` tag is reserved; no scenarios yet,
+  and so not declarable.
 - **Lossless numeric coercion.** `@numeric-coercion` tests only the lossy half of its rule. The
   canonical flag set holds no integral float, so there is nothing to ask "must `10.0` resolve as an
   integer?" of, and a provider that wrongly answers no still passes. Closing it means adding a flag

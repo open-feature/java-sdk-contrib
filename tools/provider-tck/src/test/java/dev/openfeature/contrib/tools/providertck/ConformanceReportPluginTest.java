@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.tools.providertck;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -274,6 +275,62 @@ class ConformanceReportPluginTest {
     }
 
     @Test
+    @DisplayName("a reserved capability cannot reach the declaration, even when everything is claimed")
+    void aReservedCapabilityCannotReachTheDeclaration() {
+        // The provider that claims the most is the case that used to break the rule: "everything"
+        // spelt EnumSet.allOf, or "everything except X" spelt EnumSet.complementOf, collected the
+        // reserved tags along the way and published a claim about two capabilities no scenario
+        // examines. So this asks the maximal declaration for its report.
+        JsonNode declared = MAPPER.valueToTree(report(Capability.declarable()))
+                .get("declaration")
+                .get("declared");
+
+        List<String> tags = new ArrayList<>();
+        declared.forEach(tag -> tags.add(tag.asText()));
+
+        assertThat(tags)
+                .as("a reserved tag gates nothing, so declaring it is a claim nothing can contradict")
+                .doesNotContain(Capability.TARGETING.tag(), Capability.CACHING.tag());
+        assertThat(tags)
+                .as("and every capability some scenario does gate is still there")
+                .containsExactly(
+                        Capability.LIFECYCLE.tag(),
+                        Capability.EVENTS.tag(),
+                        Capability.STALE.tag(),
+                        Capability.CONFIGURATION_CHANGE.tag(),
+                        Capability.OBJECT.tag(),
+                        Capability.UNAVAILABLE_INIT.tag(),
+                        Capability.NUMERIC_COERCION.tag());
+    }
+
+    @Test
+    @DisplayName("naming a reserved capability fails the run rather than being dropped quietly")
+    void namingAReservedCapabilityFailsTheRun() {
+        // Chosen over a warning: the declaration is the one part of the report no result can check,
+        // and a report is read long after the log it would have been warned in has gone. Nothing is
+        // lost by refusing, because no scenario carries the tag.
+        Set<Capability> overclaimed = EnumSet.of(Capability.OBJECT, Capability.TARGETING);
+
+        assertThatThrownBy(() -> metadata(overclaimed))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(Capability.TARGETING.tag())
+                .hasMessageContaining("declarableExcept");
+    }
+
+    @Test
+    @DisplayName("\"everything except X\" means everything declarable except X")
+    void declarableExceptYieldsOnlyDeclarableCapabilities() {
+        assertThat(Capability.declarableExcept(Capability.STALE))
+                .doesNotContain(Capability.STALE, Capability.TARGETING, Capability.CACHING)
+                .contains(Capability.OBJECT, Capability.NUMERIC_COERCION);
+
+        // The counterpart it replaces, and why it had to be replaced.
+        assertThat(EnumSet.complementOf(EnumSet.of(Capability.STALE)))
+                .as("complementOf is the complement of the enum, not of the declarable vocabulary")
+                .contains(Capability.TARGETING, Capability.CACHING);
+    }
+
+    @Test
     @DisplayName("a withheld capability that is a defect is reported as a deviation")
     void aDefectIsReportedAsADeviation() {
         JsonNode deviations = envelope.get("knownDeviations");
@@ -357,6 +414,12 @@ class ConformanceReportPluginTest {
             }
             TckRuntime.recordRun(null);
         }
+    }
+
+    /** Builds the envelope a run with this declaration would emit, without running one. */
+    private static ConformanceReport report(Set<Capability> declared) {
+        return new ConformanceReportPlugin(() -> null, Optional::empty)
+                .build(metadata(declared), CONFIGURATION + ".ndjson", "sha256:0", "26.1.0");
     }
 
     private static TckRunMetadata metadata(Set<Capability> declared) {

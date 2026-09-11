@@ -18,6 +18,10 @@ import java.util.Set;
  *
  * <p>So the runtime fills this in as it goes and keeps it after {@link TckRuntime#stop()}, and the
  * report plugin reads it at the end.
+ *
+ * <p>It is also the one place every path to a report passes through, which makes it where the
+ * declaration is checked: a {@linkplain Capability#reserved() reserved} capability is rejected here
+ * rather than being carried into a document that would then claim it.
  */
 final class TckRunMetadata {
 
@@ -35,6 +39,7 @@ final class TckRunMetadata {
             String backendDescription,
             String controlApi,
             List<KnownDeviation> knownDeviations) {
+        Capability.requireDeclarable(capabilities);
         this.configuration = configuration;
         this.capabilities = capabilities.isEmpty()
                 ? Collections.emptySet()

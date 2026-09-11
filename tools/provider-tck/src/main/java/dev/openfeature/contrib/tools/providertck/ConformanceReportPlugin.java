@@ -166,11 +166,17 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
      *
      * <p>Ordered by the enum rather than by the set so that two runs of the same configuration
      * produce byte-identical declarations, which is what makes the envelopes diffable.
+     *
+     * <p>{@linkplain Capability#reserved() Reserved} capabilities are skipped. A declaration that
+     * names one is already rejected where it enters the run, in {@link TckRunMetadata}, so this is
+     * not the thing that tells the adopter; it is what makes "no reserved tag in the emitted
+     * declaration" a property of the code that writes the document rather than a consequence of a
+     * check somewhere upstream of it.
      */
     private static List<String> declaredTags(Set<Capability> declared) {
         List<String> tags = new ArrayList<>(declared.size());
         for (Capability capability : Capability.values()) {
-            if (declared.contains(capability)) {
+            if (!capability.reserved() && declared.contains(capability)) {
                 tags.add(capability.tag());
             }
         }
