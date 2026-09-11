@@ -148,6 +148,32 @@
             <!-- version managed by cucumber-bom in parent -->
         </dependency>
 
+        <!--
+            Gherkin — CanonicalScenarios compiles this artifact's own feature files to work out what
+            the canonical scenario set is, so that CanonicalScenarioGuard can tell whether a run
+            discovered all of it. Cucumber's own parser rather than a hand-rolled one, because
+            "which scenarios does this file contain" has to mean exactly what it means to the runner.
+            Already on the classpath transitively through cucumber-core; declared because we compile
+            against it. Version managed by cucumber-bom in the parent POM.
+        -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>gherkin</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!--
+            JUnit Jupiter API — CanonicalScenarioGuard is a Jupiter test that the suite selects, so
+            that a reduced canonical set fails the build the way any other failing test does. A
+            listener cannot do it: the JUnit Platform catches and logs whatever a TestExecutionListener
+            throws, which is precisely a silent pass.
+        -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- PicoContainer object factory — injects TckState into every step class -->
         <dependency>
             <groupId>io.cucumber</groupId>

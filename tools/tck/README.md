@@ -788,6 +788,38 @@ documented.
 The Compose stack starts once per suite and is never restarted. Scenario isolation comes from the
 control API.
 
+## The canonical set cannot be reduced
+
+Extending the suite is safe by convention. Shrinking it is what a conformance suite has to prevent,
+because a run that asks twenty-seven of the twenty-nine questions and reports success is
+indistinguishable, in every artifact it produces, from one that asked all twenty-nine.
+
+`CanonicalScenarioGuard` is an ordinary JUnit test that the suite selects, and it fails the build if
+this run is set up to execute less than the canonical set:
+
+- a feature file added to `gherkin/`, or shadowing a canonical one — the selected scenarios no
+  longer match what this artifact ships, which it reads from its own JAR rather than through the
+  classpath
+- `cucumber.filter.tags` or `cucumber.filter.name` — Cucumber applies these by skipping scenarios at
+  execution, so the run is filtered however the plan looks
+- selectors or glue overridden in your `junit-platform.properties`
+
+It checks the setup rather than counting afterwards: both the discovered plan and the run's filter
+configuration are settled before the first scenario, so the check needs no backend and takes no
+measurable time. Where its result appears in the run depends on the order the JUnit Platform executes
+the suite's two engines in, which is not specified. Extension scenarios are ignored: the check is
+defined over `gherkin/` alone.
+
+Narrowing a run legitimately is what `capabilities()` is for — those scenarios are reported as
+skipped with a reason, which a filtered scenario is not. To filter anyway while debugging, set
+`-Dprovider.tck.partial=true` (or `PROVIDER_TCK_PARTIAL`). The guard then reports itself as
+**skipped** rather than passed, so the run states that its canonical set was not verified.
+
+What the guard does not establish is that the canonical files contain what they should — a
+replacement placing its scenarios on the same lines would satisfy it. That is covered better
+elsewhere: the results stream carries the `source` of every feature that executed, and
+`tck.specRevision` says which revision it should match.
+
 ## Conformance reports
 
 Set `PROVIDER_TCK_REPORT_DIR` and each suite writes two files: an envelope conforming to the
