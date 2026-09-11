@@ -42,33 +42,35 @@ class DeclarationApiTest {
     }
 
     @Test
-    @DisplayName("a capability the Java SDK cannot satisfy is not declarable, and is skipped with that reason")
-    void notApplicableCapabilitiesAreNotDeclarable() {
-        assertThat(Capability.LARGE_INTEGERS.notApplicable()).isTrue();
-        assertThat(Capability.LARGE_INTEGERS.notApplicableReason())
-                .as("the reason names the SDK's accessor, which is the limit, rather than the provider")
-                .hasValueSatisfying(reason -> assertThat(reason).contains("32-bit"));
+    @DisplayName("a capability a language cannot hold is an ordinary one, withheld and skipped like any other")
+    void aCapabilityTheLanguageCannotHoldIsWithheldRatherThanSetApart() {
+        // @large-integers asks for 2^53 - 1 and the Java SDK's accessor is a 32-bit Integer, so no
+        // Java provider can hold it. That is a property of the SDK, recorded once in Appendix F,
+        // and not a second kind of declaration: there is one skip and it carries its reason.
         assertThat(Capability.LARGE_INTEGERS.reserved())
-                .as("not applicable is distinct from reserved: a scenario does carry the tag")
+                .as("a scenario does carry the tag, so there is something to gate")
                 .isFalse();
+        assertThat(Capability.declarable())
+                .as("it is an ordinary declarable capability; a harness withholds it rather than being forbidden it")
+                .contains(Capability.LARGE_INTEGERS);
+        assertThat(Capability.declarableExcept(Capability.LARGE_INTEGERS))
+                .as("declarableExcept is how a Java harness says so")
+                .doesNotContain(Capability.LARGE_INTEGERS);
 
-        assertThat(Capability.declarable()).doesNotContain(Capability.LARGE_INTEGERS);
-        assertThat(Capability.declarableExcept(Capability.STALE)).doesNotContain(Capability.LARGE_INTEGERS);
+        // Declaring it is not refused. The guard exists for a claim no result can contradict, and
+        // this is not one: the scenario runs and fails, which says more than a rejected declaration.
+        Capability.requireDeclarable(EnumSet.of(Capability.EVENTS, Capability.LARGE_INTEGERS));
 
-        assertThatThrownBy(() -> Capability.requireDeclarable(EnumSet.of(Capability.EVENTS, Capability.LARGE_INTEGERS)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("LARGE_INTEGERS")
-                .hasMessageContaining("no Java provider can satisfy");
-
-        // Skipped whatever is declared, and the skip blames the SDK rather than the provider.
+        // Withheld, it is skipped exactly as any undeclared capability is.
         TestAbortedException aborted = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(Arrays.asList("@large-integers"), Capability.declarable()),
+                () -> CapabilityGate.requireDeclared(
+                        Arrays.asList("@large-integers"), Capability.declarableExcept(Capability.LARGE_INTEGERS)),
                 TestAbortedException.class);
         assertThat(aborted).isNotNull();
         assertThat(aborted)
-                .hasMessageContaining("not applicable")
-                .hasMessageContaining("32-bit")
-                .hasMessageNotContaining("does not declare");
+                .hasMessageContaining("LARGE_INTEGERS")
+                .hasMessageContaining("@large-integers")
+                .hasMessageContaining("does not declare");
     }
 
     @Test
@@ -83,10 +85,9 @@ class DeclarationApiTest {
     void reinitialisationIsADeclarableChoice() {
         // Requirement 2.5.2 permits reuse after shutdown rather than requiring it, so a provider
         // that refuses it withholds the tag instead of recording a deviation. That makes it an
-        // ordinary declarable capability: neither reserved nor not-applicable.
+        // ordinary declarable capability rather than a reserved one.
         assertThat(Capability.fromTag("@reinitialization")).contains(Capability.REINITIALIZATION);
         assertThat(Capability.REINITIALIZATION.reserved()).isFalse();
-        assertThat(Capability.REINITIALIZATION.notApplicable()).isFalse();
         assertThat(Capability.declarable()).contains(Capability.REINITIALIZATION);
 
         // The scenario carries @lifecycle too. A provider that initialises against a backend it
