@@ -448,6 +448,44 @@ Two things the tag does not cover, both open in Appendix F rather than fixed her
   distinguishes a 64-bit integer accessor from a 32-bit one — flagd's own testbed tags the latter
   `@int32-bounded` — and neither Appendix F nor this suite has anything equivalent.
 
+### Saying that a withheld capability is a defect
+
+Narrowing `capabilities()` reads the same way in the results whether you did it to describe a
+limitation or to work around a bug: the scenarios are skipped either way, and nothing in the run can
+tell the two apart. Declare a `KnownDeviation` when it is the latter.
+
+```java
+@Override
+public List<KnownDeviation> knownDeviations() {
+    return List.of(KnownDeviation.tracked(
+            Capability.NUMERIC_COERCION,
+            "https://github.com/open-feature/java-sdk-contrib/issues/1234",
+            "float-flag through the integer API returns 0 with no error code"));
+}
+```
+
+Use `KnownDeviation.untracked(...)` when there is no issue to point at yet. That is still worth
+declaring — naming the defect is what separates it from a choice — but an issue link is better.
+Empty is the default, and it is silence rather than a claim of having none.
+
+### Naming the configuration under test
+
+`configuration()` is the provider's *configuration*, not its identity: which of its modes this suite
+exercised. A provider with two materially different modes — flagd's RPC and in-process resolvers —
+runs two suites whose results are not interchangeable, and the name is what keeps them apart.
+
+It defaults to the suite class name, hyphenated and with the JUnit suffix dropped, so
+`FlagdInProcessTckTest` becomes `flagd-in-process`. Override it when that does not read well.
+
+### How the backend was driven
+
+`BackendControl.controlApi()` says which of the two contracts a run was conducted under: `http`, the
+normative control API, or `in-process`, the narrow allowance for a provider with no backend at all.
+`HttpBackendControl` answers `http` and everything else defaults to `in-process`, so a custom
+`BackendControl` states it rather than leaving a reader to guess. A claim of `in-process` for a
+provider that does have a backend should be treated with suspicion — see [In-process control is for
+backend-less providers only](#in-process-control-is-for-backend-less-providers-only).
+
 ## Tuning timeouts
 
 How fast a provider notices a backend change differs by orders of magnitude between transports: a
