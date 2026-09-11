@@ -35,12 +35,41 @@ public final class TckRuntime {
 
     private static TckRuntime instance;
 
+    /**
+     * What the most recent suite was, kept after {@link #stop()} for the conformance report.
+     *
+     * <p>Cucumber emits the end-of-run event that writes the report <em>after</em> {@code @AfterAll}
+     * has stopped the runtime, so the report would otherwise have nothing left to describe.
+     */
+    private static volatile TckRunMetadata lastRunMetadata;
+
     private final ProviderTckHarness harness;
     private final BackendControl backendControl;
+    private final TckRunMetadata metadata;
 
     private TckRuntime(ProviderTckHarness harness, BackendControl backendControl) {
         this.harness = harness;
         this.backendControl = backendControl;
+        this.metadata = new TckRunMetadata(
+                harness.configuration(),
+                harness.capabilities(),
+                backendControl.description(),
+                backendControl.controlApi(),
+                harness.knownDeviations());
+        recordRun(this.metadata);
+    }
+
+    /**
+     * Records what the current run is, for the conformance report to describe afterwards.
+     *
+     * <p>A method rather than a field assignment because it is also the seam the report tests use:
+     * they drive a real Cucumber run to check what the results stream says, and that needs a run to
+     * describe without needing a backend to describe it.
+     *
+     * @param metadata what the run is, or {@code null} to forget the last one
+     */
+    static void recordRun(TckRunMetadata metadata) {
+        lastRunMetadata = metadata;
     }
 
     /**
@@ -119,6 +148,27 @@ public final class TckRuntime {
      */
     public BackendControl backendControl() {
         return backendControl;
+    }
+
+    /**
+     * Records what the provider under test calls itself.
+     *
+     * <p>A conformance report identifies the provider by its own metadata name rather than by the
+     * suite's, and only a scenario that has built one can say what that is.
+     *
+     * @param name the provider's metadata name
+     */
+    public void recordProviderName(String name) {
+        metadata.recordProviderName(name);
+    }
+
+    /**
+     * Returns what was observed about the most recent suite, for the conformance report.
+     *
+     * @return the metadata of the last suite to start, or empty if none has
+     */
+    static Optional<TckRunMetadata> lastRunMetadata() {
+        return Optional.ofNullable(lastRunMetadata);
     }
 
     /**
