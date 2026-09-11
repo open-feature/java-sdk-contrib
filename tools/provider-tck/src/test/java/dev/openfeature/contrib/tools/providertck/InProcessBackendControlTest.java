@@ -119,11 +119,13 @@ class InProcessBackendControlTest {
                 .isEqualTo(2147483647);
 
         // Values, not absences: each default differs from what the flag resolves to.
-        assertThat(provider.getBooleanEvaluation("false-flag", true, context).getValue())
+        assertThat(provider.getBooleanEvaluation("boolean-zero-flag", true, context)
+                        .getValue())
                 .isFalse();
-        assertThat(provider.getIntegerEvaluation("zero-flag", 1, context).getValue())
+        assertThat(provider.getIntegerEvaluation("integer-zero-flag", 1, context)
+                        .getValue())
                 .isZero();
-        assertThat(provider.getStringEvaluation("empty-string-flag", "fallback", context)
+        assertThat(provider.getStringEvaluation("string-zero-flag", "fallback", context)
                         .getValue())
                 .isEmpty();
     }
