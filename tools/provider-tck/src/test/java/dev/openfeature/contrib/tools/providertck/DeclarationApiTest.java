@@ -42,6 +42,36 @@ class DeclarationApiTest {
     }
 
     @Test
+    @DisplayName("a capability the Java SDK cannot satisfy is not declarable, and is skipped with that reason")
+    void notApplicableCapabilitiesAreNotDeclarable() {
+        assertThat(Capability.LARGE_INTEGERS.notApplicable()).isTrue();
+        assertThat(Capability.LARGE_INTEGERS.notApplicableReason())
+                .as("the reason names the SDK's accessor, which is the limit, rather than the provider")
+                .hasValueSatisfying(reason -> assertThat(reason).contains("32-bit"));
+        assertThat(Capability.LARGE_INTEGERS.reserved())
+                .as("not applicable is distinct from reserved: a scenario does carry the tag")
+                .isFalse();
+
+        assertThat(Capability.declarable()).doesNotContain(Capability.LARGE_INTEGERS);
+        assertThat(Capability.declarableExcept(Capability.STALE)).doesNotContain(Capability.LARGE_INTEGERS);
+
+        assertThatThrownBy(() -> Capability.requireDeclarable(EnumSet.of(Capability.EVENTS, Capability.LARGE_INTEGERS)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("LARGE_INTEGERS")
+                .hasMessageContaining("no Java provider can satisfy");
+
+        // Skipped whatever is declared, and the skip blames the SDK rather than the provider.
+        TestAbortedException aborted = catchThrowableOfType(
+                () -> CapabilityGate.requireDeclared(Arrays.asList("@large-integers"), Capability.declarable()),
+                TestAbortedException.class);
+        assertThat(aborted).isNotNull();
+        assertThat(aborted)
+                .hasMessageContaining("not applicable")
+                .hasMessageContaining("32-bit")
+                .hasMessageNotContaining("does not declare");
+    }
+
+    @Test
     @DisplayName("a tag maps back to the capability it gates")
     void tagsMapBackToCapabilities() {
         assertThat(Capability.fromTag("@numeric-coercion")).contains(Capability.NUMERIC_COERCION);

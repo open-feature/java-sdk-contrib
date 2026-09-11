@@ -124,7 +124,8 @@ public interface ProviderTckHarness {
      *
      * <p>Do not build the set with {@code EnumSet.allOf} or {@code EnumSet.complementOf}. Both
      * include the {@linkplain Capability#reserved() reserved} capabilities, which no scenario
-     * carries, and declaring one of those fails the run.
+     * carries, and the {@linkplain Capability#notApplicable() not applicable} one, which no Java
+     * provider can have; declaring either fails the run.
      *
      * @return the capabilities this provider supports
      */

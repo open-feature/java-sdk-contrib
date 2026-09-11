@@ -8,9 +8,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *
  * <p>Distinct from an undeclared capability, which is a <em>choice</em>. A provider that does not
  * declare {@code @configuration-change} has no streaming transport and is not pretending otherwise;
- * a provider that does not declare {@code @numeric-coercion} has a bug. Both look identical in
- * the results — scenarios skipped, reason recoverable from the declaration — so the difference has
- * to be stated, or a consumer cannot tell a design decision from a defect.
+ * a provider that does not declare {@code @numeric-coercion} because it narrows {@code 0.5} to
+ * {@code 0} with no error code has a bug. Both look identical in the results — scenarios skipped,
+ * reason recoverable from the declaration — so the difference has to be stated, or a consumer
+ * cannot tell a design decision from a defect.
  *
  * <p>Declared by the provider author through {@link ProviderTckHarness#knownDeviations()}, which is
  * the only place that knows the difference. The TCK cannot infer it: from the outside, a capability
