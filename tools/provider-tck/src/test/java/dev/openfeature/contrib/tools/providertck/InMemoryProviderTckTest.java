@@ -47,7 +47,9 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Three capabilities, and each omission is a fact about {@link InMemoryProvider} rather than a
+     * <p>Four capabilities. {@link Capability#VARIANTS} is the one that is not obvious:
+     * {@link InMemoryProvider} does name the variant it served, so the gated variant outline runs
+     * and passes here. Each omission below is a fact about {@link InMemoryProvider} rather than a
      * convenience:
      *
      * <ul>
@@ -76,8 +78,13 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      *   <li>{@link Capability#UNAVAILABLE_INIT} — omitted. Initialisation cannot fail when there is
      *       nothing to connect to, so
      *       {@link ProviderTckHarness#createUnavailableProvider()} is left at its throwing default.
-     *   <li>{@link Capability#TARGETING} and {@link Capability#CACHING} — omitted because no
-     *       scenario carries their tags yet. Nothing is skipped by leaving them out today.
+     *   <li>{@link Capability#TARGETING} — omitted. {@link InMemoryProvider} evaluates no rules: it
+     *       reads a flag's {@code variants} and {@code defaultVariant} and returns the default one,
+     *       so the {@code targeting} member of {@code targeting-key-flag} is inert here and a
+     *       matching context resolves {@code miss} like any other. The three scenarios are skipped
+     *       with that reason rather than failed, which is what the tag is for.
+     *   <li>{@link Capability#CACHING} — reserved, so not declarable and nothing is skipped by
+     *       leaving it out.
      *   <li>{@link Capability#LARGE_INTEGERS} — omitted, as every Java provider omits it. The tag
      *       asks for 2^53 − 1 and {@code Client.getIntegerDetails} is a 32-bit {@link Integer}, so
      *       the limit is the SDK's rather than this provider's; Appendix F is where that is
@@ -86,6 +93,6 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT);
+        return EnumSet.of(Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT, Capability.VARIANTS);
     }
 }

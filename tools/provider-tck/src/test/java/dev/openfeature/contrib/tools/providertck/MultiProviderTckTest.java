@@ -68,14 +68,16 @@ public class MultiProviderTckTest extends ProviderTckTest {
      *
      * <p>Everything else holds. Values, variants, reasons, the full type-mismatch matrix,
      * {@code FLAG_NOT_FOUND}, falsy values, 32-bit integer precision and structured values all
-     * survive the delegation hop unchanged. {@link Capability#LIFECYCLE} and
-     * {@link Capability#NUMERIC_COERCION} are omitted for the same reasons as in
-     * {@link InMemoryProviderTckTest}: nothing here reaches a backend during initialisation, and the
-     * child refuses the lossless coercions the tag now requires — a facade cannot declare what its
-     * only child does not have.
+     * survive the delegation hop unchanged — {@link Capability#VARIANTS} is declared for exactly
+     * that reason, and a variant lost in delegation is one of the likelier ways a facade breaks the
+     * contract. {@link Capability#LIFECYCLE} and {@link Capability#NUMERIC_COERCION} are omitted for
+     * the same reasons as in {@link InMemoryProviderTckTest}: nothing here reaches a backend during
+     * initialisation, and the child refuses the lossless coercions the tag now requires — a facade
+     * cannot declare what its only child does not have. {@link Capability#TARGETING} is omitted for
+     * the same reason again: the child evaluates no rules, so there is no targeting to delegate.
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.EVENTS, Capability.OBJECT);
+        return EnumSet.of(Capability.EVENTS, Capability.OBJECT, Capability.VARIANTS);
     }
 }

@@ -28,17 +28,57 @@ class DeclarationApiTest {
     void reservedCapabilitiesAreNotDeclarable() {
         assertThat(Capability.declarable())
                 .as("declarable() is every capability some scenario gates")
-                .doesNotContain(Capability.TARGETING, Capability.CACHING)
+                .doesNotContain(Capability.CACHING)
                 .contains(Capability.EVENTS, Capability.OBJECT);
 
         assertThat(Capability.declarableExcept(Capability.STALE))
-                .doesNotContain(Capability.STALE, Capability.TARGETING)
+                .doesNotContain(Capability.STALE, Capability.CACHING)
                 .contains(Capability.EVENTS);
 
         assertThatThrownBy(() -> Capability.requireDeclarable(EnumSet.allOf(Capability.class)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("TARGETING")
+                .hasMessageContaining("CACHING")
                 .hasMessageContaining("declares reserved");
+    }
+
+    @Test
+    @DisplayName("targeting is a declarable capability, not a reserved one")
+    void targetingIsDeclarable() {
+        // It was reserved while no scenario carried the tag. targeting-key-flag's three scenarios
+        // carry it now, so it gates something and the claim can be contradicted by a result --
+        // which is the whole test for whether a capability may be declared.
+        assertThat(Capability.fromTag("@targeting")).contains(Capability.TARGETING);
+        assertThat(Capability.TARGETING.reserved()).isFalse();
+        assertThat(Capability.declarable()).contains(Capability.TARGETING);
+        Capability.requireDeclarable(EnumSet.of(Capability.TARGETING));
+
+        // And the "declare everything" shortcut still excludes @caching, which is now the only
+        // reserved tag. That is the accident the shortcut exists to prevent, not a general one.
+        assertThat(Capability.CACHING.reserved()).isTrue();
+        assertThat(Capability.declarable()).doesNotContain(Capability.CACHING);
+        assertThat(Capability.declarableExcept(Capability.TARGETING))
+                .doesNotContain(Capability.TARGETING, Capability.CACHING);
+    }
+
+    @Test
+    @DisplayName("variants is declarable, because 2.2.4 is a SHOULD and the field is optional")
+    void variantsIsADeclarableChoice() {
+        // Requirement 2.2.4 says a provider SHOULD populate the variant, and types.md types the
+        // field optional, so a backend with no variant concept withholds the tag rather than
+        // recording a deviation against a MUST that does not exist.
+        assertThat(Capability.fromTag("@variants")).contains(Capability.VARIANTS);
+        assertThat(Capability.VARIANTS.reserved()).isFalse();
+        assertThat(Capability.declarable()).contains(Capability.VARIANTS);
+
+        TestAbortedException aborted = catchThrowableOfType(
+                () -> CapabilityGate.requireDeclared(
+                        Arrays.asList("@variants"), Capability.declarableExcept(Capability.VARIANTS)),
+                TestAbortedException.class);
+        assertThat(aborted).isNotNull();
+        assertThat(aborted)
+                .hasMessageContaining("VARIANTS")
+                .hasMessageContaining("@variants")
+                .hasMessageContaining("does not declare");
     }
 
     @Test
