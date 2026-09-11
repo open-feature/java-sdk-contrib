@@ -23,6 +23,26 @@ import java.util.Set;
  * <p>Each concrete subclass is its own JUnit suite and its own TCK harness; the TCK works out which
  * one is running from the JUnit test plan, so adding a mode needs no registration or build
  * configuration.
+ *
+ * <p><strong>The testbed does not yet serve the whole canonical flag set.</strong> Three of the
+ * flags the suite's assets added are absent from {@code flagd-testbed} v3.8.0:
+ * {@code large-integer-flag}, {@code huge-integer-flag} and {@code integral-float-flag}. Only the
+ * first is reached — {@code huge-integer-flag} is asked for solely under {@code @large-integers},
+ * which is not applicable in Java, and {@code integral-float-flag} solely under
+ * {@code @numeric-coercion}, which is withheld below — so exactly one untagged scenario, the 32-bit
+ * precision one, fails with {@code FLAG_NOT_FOUND} in both modes until
+ * open-feature/flagd-testbed#392 lands and the tag here is bumped.
+ *
+ * <p>The three falsy flags used to fail the same way and no longer do. The testbed's
+ * {@code zero-flags.json} already served {@code boolean-zero-flag}, {@code integer-zero-flag} and
+ * {@code string-zero-flag} with {@code zero}/{@code non-zero} variants, while the canonical set
+ * called them {@code false-flag}, {@code zero-flag} and {@code empty-string-flag}; spec ba002ce8
+ * renamed the canonical flags to the testbed's names rather than the other way round, so those
+ * three scenarios now resolve against flags that were always there.
+ *
+ * <p>A missing flag is a gap in the stack, not in the provider, so it is recorded here rather than
+ * declared as a {@link KnownDeviation}: a deviation says the provider is wrong, and the provider was
+ * never given the flag to get wrong.
  */
 abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
 
@@ -107,7 +127,11 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
      * this used to be. The complement of one capability is every other <em>enum constant</em>,
      * including {@code @targeting} and {@code @caching} — reserved tags no scenario carries — so
-     * declaring the complement claimed two capabilities nothing had examined.
+     * declaring the complement claimed two capabilities nothing had examined. It would now also
+     * claim {@link Capability#LARGE_INTEGERS}, which no Java provider can have — the SDK's integer
+     * accessor is a 32-bit {@code Integer} — and the suite refuses such a declaration at startup.
+     * {@code declarableExcept} leaves the not-applicable tag out on its own, and its one scenario is
+     * reported as skipped with that reason on every run.
      */
     @Override
     public Set<Capability> capabilities() {
