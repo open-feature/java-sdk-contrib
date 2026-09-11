@@ -4,7 +4,6 @@ import dev.openfeature.sdk.Client;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.MutableContext;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -15,9 +14,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * <p>One instance per scenario. Anything that must survive across scenarios — the Compose stack,
  * the control API client, the discovered harness — lives in {@link TckRuntime} instead.
  */
-@SuppressFBWarnings(
-        value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
-        justification = "Intentional mutable state sharing required by Cucumber PicoContainer DI")
 public class TckState {
 
     /** Client bound to the domain the provider under test is registered under. */
