@@ -64,6 +64,10 @@ public final class TckRuntime {
         if (instance == null) {
             ProviderTckHarness harness = discoverHarness();
             log.info("Provider TCK harness: {}", harness.getClass().getName());
+            // Checked before the Compose stack goes up, rather than only where the declaration
+            // reaches the report: an adopter should not wait for Docker to be told about a
+            // one-line mistake in capabilities().
+            Capability.requireDeclarable(harness.capabilities());
             instance = new TckRuntime(harness, startCompose(harness));
             instance.controlApi.awaitReady(harness.startupTimeout());
             log.info("Control API ready at {}", instance.controlApi.baseUrl());
