@@ -45,6 +45,12 @@ import java.time.Duration;
  */
 public interface BackendControl {
 
+    /** The normative control API: a real backend driven over the HTTP control endpoints. */
+    String CONTROL_API_HTTP = "http";
+
+    /** Control of a provider with no backend, exercised inside this JVM. */
+    String CONTROL_API_IN_PROCESS = "in-process";
+
     /**
      * Brings the backend to the state every scenario starts from: reachable, with flag state at the
      * baseline of the canonical flag set.
@@ -100,6 +106,26 @@ public interface BackendControl {
      */
     default String description() {
         return getClass().getSimpleName();
+    }
+
+    /**
+     * Returns how the backend is driven, as one of the two kinds the provider contract recognises.
+     *
+     * <p>{@code http} is the normative control API: the backend is a real one and it is driven over
+     * the endpoints in {@code openapi/control-api.yaml}, which is what makes a conformance claim
+     * portable between languages. {@code in-process} is the narrow allowance for a provider with no
+     * backend at all, where "the backend" is a data structure in this JVM — a claim of
+     * {@code in-process} for a provider that does have a backend should be treated with suspicion.
+     *
+     * <p>Part of the declaration vocabulary rather than of any one consumer of it: it says which of
+     * the two contracts a run was conducted under, which anyone reading the result needs whether or
+     * not a machine-readable report is being produced. A custom {@code BackendControl} states it
+     * here and nothing downstream has to guess.
+     *
+     * @return {@link #CONTROL_API_HTTP} or {@link #CONTROL_API_IN_PROCESS}
+     */
+    default String controlApi() {
+        return CONTROL_API_IN_PROCESS;
     }
 
     /**

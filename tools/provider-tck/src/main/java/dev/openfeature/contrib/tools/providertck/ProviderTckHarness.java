@@ -2,6 +2,8 @@ package dev.openfeature.contrib.tools.providertck;
 
 import dev.openfeature.sdk.FeatureProvider;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -128,6 +130,42 @@ public interface ProviderTckHarness {
      */
     default Set<Capability> capabilities() {
         return Capability.declarable();
+    }
+
+    /**
+     * Declares gaps this provider is known to have against parts of the contract the specification
+     * does not treat as optional.
+     *
+     * <p>Declared so that a consumer can tell a design decision from a defect. Withholding a
+     * capability and having a bug look identical in the results — scenarios skipped, either way —
+     * and the TCK cannot tell them apart from the outside. Only the provider author can, so only
+     * the provider author can say.
+     *
+     * <p>Empty by default, which is silence rather than a claim. Declare an entry when you have
+     * narrowed {@link #capabilities()} to work around a defect rather than to describe a limitation,
+     * and delete it when the defect is fixed.
+     *
+     * @return the deviations this provider acknowledges, empty by default
+     */
+    default List<KnownDeviation> knownDeviations() {
+        return Collections.emptyList();
+    }
+
+    /**
+     * Returns the name of the provider configuration this suite exercises.
+     *
+     * <p>The provider's configuration rather than its identity. The identity is what the provider
+     * says through its own metadata; this is which of its modes was tested, and a provider with two
+     * materially different modes — flagd's RPC and in-process resolvers, say — produces two runs
+     * that are not interchangeable and must not be labelled the same.
+     *
+     * <p>Derived from the suite class name by default: {@code FlagdInProcessTckTest} becomes
+     * {@code flagd-in-process}. Override it when that does not read well.
+     *
+     * @return a short name for this configuration
+     */
+    default String configuration() {
+        return ReportNames.configurationOf(getClass());
     }
 
     /**
