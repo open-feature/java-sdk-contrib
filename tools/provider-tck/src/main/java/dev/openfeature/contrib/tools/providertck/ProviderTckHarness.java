@@ -122,10 +122,13 @@ public interface ProviderTckHarness {
      * provider genuinely cannot do — {@link Capability#declarableExcept} is the idiomatic way to say
      * "everything except".
      *
+     * <p>{@link Capability#LARGE_INTEGERS} is one every Java provider removes. It asks for 2^53 − 1,
+     * and {@code Client.getIntegerDetails} is a 32-bit {@link Integer} with no room for it, so the
+     * limit is the SDK's rather than any provider's — see Appendix F, where that is recorded.
+     *
      * <p>Do not build the set with {@code EnumSet.allOf} or {@code EnumSet.complementOf}. Both
      * include the {@linkplain Capability#reserved() reserved} capabilities, which no scenario
-     * carries, and the {@linkplain Capability#notApplicable() not applicable} one, which no Java
-     * provider can have; declaring either fails the run.
+     * carries; declaring one fails the run.
      *
      * @return the capabilities this provider supports
      */
