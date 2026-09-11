@@ -67,12 +67,15 @@ public class MultiProviderTckTest extends ProviderTckTest {
      * on a provider that cannot satisfy it.
      *
      * <p>Everything else holds. Values, variants, reasons, the full type-mismatch matrix,
-     * {@code FLAG_NOT_FOUND}, structured values and numeric coercion all survive the delegation hop
-     * unchanged. {@link Capability#LIFECYCLE} is omitted for the same reason as in
-     * {@link InMemoryProviderTckTest}: nothing here reaches a backend during initialisation.
+     * {@code FLAG_NOT_FOUND}, falsy values, 32-bit integer precision and structured values all
+     * survive the delegation hop unchanged. {@link Capability#LIFECYCLE} and
+     * {@link Capability#NUMERIC_COERCION} are omitted for the same reasons as in
+     * {@link InMemoryProviderTckTest}: nothing here reaches a backend during initialisation, and the
+     * child refuses the lossless coercions the tag now requires — a facade cannot declare what its
+     * only child does not have.
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.EVENTS, Capability.OBJECT, Capability.NUMERIC_COERCION);
+        return EnumSet.of(Capability.EVENTS, Capability.OBJECT);
     }
 }
