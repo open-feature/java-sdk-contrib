@@ -20,16 +20,23 @@ import java.util.Set;
  * testbed image and its launchpad control API unchanged — see
  * {@code src/test/resources/tck/docker-compose.yaml}.
  *
- * <p><strong>The testbed does not yet serve the whole canonical flag set.</strong> The suite's
- * assets added six flags — {@code large-integer-flag}, {@code huge-integer-flag},
- * {@code integral-float-flag}, {@code false-flag}, {@code zero-flag} and
- * {@code empty-string-flag} — and {@code flagd-testbed} v3.8.0 serves none of them (its
- * {@code zero-flags.json} keys are {@code integer-zero-flag} and so on, not the canonical names).
- * Until open-feature/flagd-testbed is updated, the four untagged scenarios that read them — the
- * three falsy-value rows and the 32-bit precision scenario — fail with {@code FLAG_NOT_FOUND}.
- * That is a gap in the stack, not in the provider, so it is recorded here rather than declared as
- * a {@code KnownDeviation}: a deviation says the provider is wrong, and the provider was never
- * given the flag to get wrong.
+ * <p><strong>The testbed does not yet serve the whole canonical flag set.</strong> Three flags the
+ * suite's assets added are absent from {@code flagd-testbed} v3.8.0: {@code large-integer-flag},
+ * {@code huge-integer-flag} and {@code integral-float-flag}. Only the first is reached —
+ * {@code huge-integer-flag} is asked for solely under {@code @large-integers}, which is not
+ * applicable in Java, and {@code integral-float-flag} solely under {@code @numeric-coercion}, which
+ * is withheld below — so exactly one untagged scenario, the 32-bit precision one, fails with
+ * {@code FLAG_NOT_FOUND} until open-feature/flagd-testbed#392 lands.
+ *
+ * <p>The three falsy flags used to fail the same way and no longer do. The testbed's
+ * {@code zero-flags.json} already served {@code boolean-zero-flag}, {@code integer-zero-flag} and
+ * {@code string-zero-flag} with {@code zero}/{@code non-zero} variants, while the canonical set
+ * called them {@code false-flag}, {@code zero-flag} and {@code empty-string-flag}; spec ba002ce8
+ * renamed the canonical flags to the testbed's names rather than the other way round.
+ *
+ * <p>A missing flag is a gap in the stack, not in the provider, so it is recorded here rather than
+ * declared as a {@code KnownDeviation}: a deviation says the provider is wrong, and the provider was
+ * never given the flag to get wrong.
  */
 public class OfrepTckTest extends ContainerizedProviderTckTest {
 
@@ -126,16 +133,49 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * (OfrepResponse.java:16, OfrepApi.java:109), which maps a JSON integer to {@link Integer} and
      * a JSON fraction to {@link Double}, and {@code handleResolved} then admits the value only on
      * an exact {@code type.isInstance(responseValue)} check, otherwise returning
-     * {@code TYPE_MISMATCH} with the code default (Resolver.java:183-191). That satisfies the lossy
-     * half of the rule — {@code float-flag} (0.5) requested as an integer is rejected rather than
-     * truncated to {@code 0} — but the tag also requires the lossless half, and there the same
-     * check refuses: {@code integer-flag} (10) requested as a float arrives as an {@code Integer},
-     * which {@code Double.class.isInstance} rejects, so "an integer requested as a float is widened
-     * without loss" cannot pass. Nothing in the provider widens or narrows a number. Strict typing
-     * in both directions is a choice the TCK lets a provider make — the SDK's own
-     * {@code InMemoryProvider} makes it — not a defect, so there is no {@code KnownDeviation} to go
-     * with it. This is read from the source rather than from a run; a run that shows the widening
-     * scenario passing means the deserialiser changed, and the declaration should follow it.
+     * {@code TYPE_MISMATCH} with the code default (Resolver.java:183-191). There is no integral
+     * check and no round trip anywhere in that path — nothing in the provider widens or narrows a
+     * number.
+     *
+     * <p>The tag's rule is that lossless coercion must succeed and lossy coercion must return
+     * {@code TYPE_MISMATCH}, and the three scenarios carrying it test all three cases; a provider
+     * declaring the tag must pass all three. This provider passes one. The lossy case is right for
+     * the wrong reason — {@code float-flag} (0.5) requested as an integer is rejected rather than
+     * truncated to {@code 0}, because it is a {@link Double} and not because 0.5 is fractional —
+     * and both lossless cases fail on the same exact-instance check. {@code integer-flag} (10)
+     * requested as a float arrives as an {@code Integer}, which {@code Double.class.isInstance}
+     * rejects, so "an integer requested as a float is widened without loss" cannot pass;
+     * {@code integral-float-flag} (10.0) requested as an integer arrives as a {@link Double},
+     * which {@code Integer.class.isInstance} rejects, so "an integral float requested as an
+     * integer is coerced without loss" cannot pass either. Declaring the tag would turn two of its
+     * three scenarios red.
+     *
+     * <p>No {@code KnownDeviation} accompanies it, and that is deliberate rather than silence.
+     * Appendix F is explicit that {@code @numeric-coercion} is the one capability the specification
+     * does not define: OpenFeature has a single {@code number} type, the rule this tag is tested
+     * against is borrowed from flagd's numeric-coercion ADR, and <em>"a provider that behaves
+     * differently is not violating the specification"</em>. The appendix says so having retracted
+     * an earlier draft that called non-declaration "an admission of a known bug". Strict typing in
+     * both directions is therefore a legitimate choice — the SDK's own {@code InMemoryProvider}
+     * makes it — and a deviation entry would assert a defect the spec says is not one. That is the
+     * opposite mistake from a vacuous declaration, but a mistake in the same currency.
+     *
+     * <p>Go's OFREP provider declares the tag, and that is not an inconsistency to reconcile away:
+     * it coerces through an integral check and this one does not, so the two declarations describe
+     * two implementations rather than one protocol. OFREP being JSON is what makes the difference
+     * possible — one wire number type, so integer-ness is the provider's decision, not the
+     * payload's. Declaring the tag here to match Go would also run the
+     * {@code integral-float-flag} scenario, which the testbed cannot serve, so it would fail twice
+     * over: once for the provider and once for the stack.
+     *
+     * <p>All of that is read from the source, because a withheld tag means the scenarios are
+     * skipped and a run cannot confirm it; the three are reported as skipped with this reason on
+     * every run, which is the observable that the declaration is being honoured rather than the
+     * behaviour behind it. {@code OfrepProviderTest} asserts the exact-instance check itself, but
+     * only across Boolean and String (OfrepProviderTest.java:71, 338-339) — no unit test pins the
+     * numeric pair, which is why the reasoning above cites {@code handleResolved} directly. A run in
+     * which either lossless scenario passes means {@code handleResolved} or the deserialiser
+     * changed, and this declaration should follow it.
      *
      * <p>Two things this leaves in place. {@link Capability#OBJECT} is declared: the same
      * exact-instance check is what makes the {@code @object} mismatch matrix work, and the
