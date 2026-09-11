@@ -22,8 +22,10 @@ import java.util.Optional;
  *
  * <p>Scenarios with no capability tag are considered mandatory and always run.
  *
- * <p>Some entries are {@linkplain #reserved() reserved}: they exist in the vocabulary so that every
- * language's TCK spells the same property the same way, but no scenario carries their tag yet. A
+ * <p>An entry may be {@linkplain #reserved() reserved}: it exists in the vocabulary so that every
+ * language's TCK spells the same property the same way, but no scenario carries its tag yet.
+ * {@link #CACHING} is the only one left — {@link #TARGETING} was reserved until the
+ * {@code targeting-key-flag} scenarios arrived, and is an ordinary declarable capability now. A
  * reserved capability <strong>must not be declared</strong> — there is nothing for it to gate, so
  * declaring it cannot produce a skip and cannot be contradicted by any result. Declare
  * {@link #declarable()}, or {@link #declarableExcept} for "everything except", rather than
@@ -128,6 +130,31 @@ public enum Capability {
     /** Provider supports structured (object) flag values. */
     OBJECT("@object"),
 
+    /**
+     * Provider names the variant it resolved.
+     *
+     * <p>Gated, because a variant is optional rather than required.
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/types.md">{@code types.md}</a>
+     * declares the field <em>"variant (string, optional)"</em>, and
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md">Requirement
+     * 2.2.4</a> is a {@code SHOULD}: in normal execution a provider <em>"SHOULD populate the
+     * resolution details structure's variant field"</em>. The same section adds that the value
+     * <em>"might only be meaningful in the context of the flag management system associated with
+     * the provider"</em>.
+     *
+     * <p>Some backends have no variant concept for a plain flag at all. Their evaluation response
+     * carries no such key, so the provider never receives one and no amount of seeding can produce
+     * one. Asserting a variant in every evaluation scenario failed such a backend ten times over for
+     * something that is not a defect and that no provider author can fix — and left nothing to
+     * record as a {@link KnownDeviation}, because there was no capability to hang one on.
+     *
+     * <p>A provider whose backend names its variants declares this and the {@code @variants}
+     * scenario outline runs. One whose backend does not leaves it undeclared, and those rows are
+     * skipped with that reason rather than passed. Either way the value and reason assertions are
+     * unaffected: they are untagged, and Requirement 2.2.3 makes the value a {@code MUST}.
+     */
+    VARIANTS("@variants"),
+
     /** Provider reports an error state rather than hanging when initialised against a dead backend. */
     UNAVAILABLE_INIT("@unavailable"),
 
@@ -186,14 +213,29 @@ public enum Capability {
     LARGE_INTEGERS("@large-integers"),
 
     /**
-     * Provider supports targeting rules driven by evaluation context.
+     * Provider resolves a flag differently for a matching evaluation context.
      *
-     * <p>{@linkplain #reserved() Reserved}. No scenario in the current suite carries this tag —
-     * targeting is backend evaluation logic, which the TCK deliberately does not test. It exists so
-     * the tag vocabulary stays aligned with the flagd test harness and so context-passthrough
-     * scenarios have a home once the control API grows an echo endpoint.
+     * <p>Gates the three {@code targeting-key-flag} scenarios: a matching targeting key resolves
+     * {@code hit}, a non-matching one resolves {@code miss}, and no context at all resolves
+     * {@code miss} without erroring.
+     *
+     * <p>This is what makes context passthrough observable. Every other flag in the canonical set
+     * resolves the same way whatever the context, so a provider that drops the context entirely
+     * passes them all; here a matching context resolves to a different value, so dropping it is
+     * caught by the resolved value itself rather than needing an echo endpoint on the control API.
+     *
+     * <p>The flag's rule is specified by behaviour rather than by syntax — resolve {@code hit} when
+     * the targeting key is exactly {@code 5c3d8535-f81a-4478-a6d3-afaa4d51199e}, {@code miss}
+     * otherwise — so a backend expresses it however it expresses targeting. A provider whose backend
+     * has no targeting at all, or whose harness seeds a flag set that cannot carry a rule, leaves
+     * this undeclared and the three scenarios are skipped with that reason.
+     *
+     * <p>What is still <em>not</em> covered is that the whole context arrives intact: a provider
+     * that forwards the targeting key and silently discards every other attribute declares this and
+     * passes. That gap needs either an echo operation on the control API or a second flag keyed on a
+     * custom attribute.
      */
-    TARGETING("@targeting", true),
+    TARGETING("@targeting"),
 
     /**
      * Provider caches evaluation results and invalidates them on configuration change.
