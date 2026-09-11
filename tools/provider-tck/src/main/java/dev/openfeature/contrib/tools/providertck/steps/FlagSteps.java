@@ -87,7 +87,8 @@ public class FlagSteps extends AbstractSteps {
             }
         } catch (RuntimeException e) {
             log.warn("Evaluation of '{}' threw, which violates the SDK contract", flag.key(), e);
-            state.evaluationException = e;
+            state.thrown = e;
+            state.thrownBy = "evaluation of '" + flag.key() + "'";
         }
     }
 
@@ -219,19 +220,38 @@ public class FlagSteps extends AbstractSteps {
     }
 
     /**
-     * Asserts that the evaluation returned normally.
+     * Asserts that no error message accompanies the evaluation.
+     *
+     * <p>Requirement 2.3.2: a provider that reports a value <em>and</em> an error message is sending
+     * two contradictory signals, and an application reading the message believes the wrong one.
+     * Every success path asserts this alongside the empty error code.
+     */
+    @Then("the error message should be empty")
+    public void theErrorMessageShouldBeEmpty() {
+        requireEvaluation();
+        assertThat(state.evaluation.getErrorMessage())
+                .as("error message of a successful evaluation of '%s'", state.flag.key())
+                .isNullOrEmpty();
+    }
+
+    /**
+     * Asserts that every call the scenario made on the provider returned normally.
      *
      * <p>Added by the TCK. The spec requires typed evaluation to absorb every error into the
      * returned details, so an error scenario must prove both halves: the right error code, and no
-     * exception escaping to the caller.
+     * exception escaping to the caller. The lifecycle scenarios reuse it for a repeated
+     * {@code shutdown()} and for {@code initialize()} against a reachable backend, which record into
+     * the same slot as an evaluation does.
      */
     @Then("no exception should have been thrown")
     public void noExceptionShouldHaveBeenThrown() {
-        assertThat(state.evaluationException)
+        assertThat(state.thrown)
                 .withFailMessage(
-                        "Evaluation threw %s, but typed evaluation must never throw — "
-                                + "errors belong in the resolution details.",
-                        state.evaluationException)
+                        "%s threw %s, but the scenario expected it to return normally: typed evaluation "
+                                + "must never throw (errors belong in the resolution details), a repeated "
+                                + "shutdown must have no further effect, and initialisation against a "
+                                + "reachable backend must succeed.",
+                        state.thrownBy, state.thrown)
                 .isNull();
     }
 
@@ -249,7 +269,7 @@ public class FlagSteps extends AbstractSteps {
         if (state.evaluation == null) {
             throw new AssertionError("No evaluation has been performed. "
                     + "Did the scenario forget 'When the flag was evaluated with details'?"
-                    + (state.evaluationException == null ? "" : " Evaluation threw: " + state.evaluationException));
+                    + (state.thrown == null ? "" : " " + state.thrownBy + " threw: " + state.thrown));
         }
     }
 }
