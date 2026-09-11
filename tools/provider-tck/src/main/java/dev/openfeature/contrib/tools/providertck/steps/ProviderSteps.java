@@ -219,7 +219,10 @@ public class ProviderSteps extends AbstractSteps {
         try {
             provider.initialize(state.context);
         } catch (Exception e) {
-            log.warn("initialize() of provider {} threw after shutdown", provider.getMetadata().getName(), e);
+            log.warn(
+                    "initialize() of provider {} threw after shutdown",
+                    provider.getMetadata().getName(),
+                    e);
             state.thrown = e;
             state.thrownBy = "initialize()";
         }

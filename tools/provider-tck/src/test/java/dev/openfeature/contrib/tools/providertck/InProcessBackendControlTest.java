@@ -105,7 +105,8 @@ class InProcessBackendControlTest {
         ImmutableContext context = new ImmutableContext();
 
         // Seeded as the integer 10, the lossless-coercion scenario would pass without coercing.
-        assertThat(provider.getDoubleEvaluation("integral-float-flag", 0.1, context).getValue())
+        assertThat(provider.getDoubleEvaluation("integral-float-flag", 0.1, context)
+                        .getValue())
                 .as("integral-float-flag is a Double")
                 .isEqualTo(10.0);
         // Which is also why the self-tests withhold NUMERIC_COERCION: the SDK's provider keeps the
@@ -113,7 +114,8 @@ class InProcessBackendControlTest {
         assertThatThrownBy(() -> provider.getIntegerEvaluation("integral-float-flag", 1, context))
                 .isInstanceOf(TypeMismatchError.class);
 
-        assertThat(provider.getIntegerEvaluation("large-integer-flag", 1, context).getValue())
+        assertThat(provider.getIntegerEvaluation("large-integer-flag", 1, context)
+                        .getValue())
                 .isEqualTo(2147483647);
 
         // Values, not absences: each default differs from what the flag resolves to.
@@ -121,7 +123,8 @@ class InProcessBackendControlTest {
                 .isFalse();
         assertThat(provider.getIntegerEvaluation("zero-flag", 1, context).getValue())
                 .isZero();
-        assertThat(provider.getStringEvaluation("empty-string-flag", "fallback", context).getValue())
+        assertThat(provider.getStringEvaluation("empty-string-flag", "fallback", context)
+                        .getValue())
                 .isEmpty();
     }
 
