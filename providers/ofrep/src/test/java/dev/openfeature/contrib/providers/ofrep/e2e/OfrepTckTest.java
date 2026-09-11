@@ -88,7 +88,7 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Five capabilities are withheld for the same root cause: {@code OfrepProvider} is a bare
+     * <p>Six capabilities are withheld for the same root cause: {@code OfrepProvider} is a bare
      * {@link dev.openfeature.sdk.FeatureProvider} (OfrepProvider.java:19) with no lifecycle of its
      * own. It holds no state, opens no stream, runs no poll loop and does not override
      * {@code initialize()} — every evaluation is a fresh, independent HTTP POST
@@ -101,11 +101,18 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      *       (OfrepProvider.java:38-68), and the interface default {@code initialize()} does
      *       nothing, so the {@code PROVIDER_READY} a client sees is the SDK's, and the readiness
      *       scenario would pass exactly as it does for {@code NoOpProvider}. The tag gates the
-     *       shutdown scenarios too — shutting down twice, initialising again after a shutdown, and
-     *       shutting down promptly against a dead backend — and the second of those is one this
-     *       provider could not pass honestly either: {@code shutdown()} terminates the executor the
-     *       HTTP client runs on (OfrepProvider.java:91-108) and, with no {@code initialize()},
-     *       nothing ever recreates it. All of them are skipped rather than passed vacuously.
+     *       shutdown scenarios too — shutting down twice, and shutting down promptly against a dead
+     *       backend — and they are skipped rather than passed vacuously.
+     *   <li><b>{@link Capability#REINITIALIZATION}</b> — omitted, and independently of the omission
+     *       above. {@code shutdown()} terminates the executor the HTTP client runs on
+     *       (OfrepProvider.java:90-108) and, with no {@code initialize()} of its own, nothing ever
+     *       recreates it, so a shut-down {@code OfrepProvider} cannot be started again. Requirement
+     *       2.5.2 permits exactly that — a provider <em>SHOULD</em> revert to its uninitialized
+     *       state and <em>"some providers MAY allow reinitialization from this state"</em> — so this
+     *       is a choice the specification offers and not a defect to declare. It is named here
+     *       rather than left to the {@code @lifecycle} skip because
+     *       {@link Capability#declarableExcept} would otherwise have claimed it, and a claim nothing
+     *       examined is exactly what the declaration exists to prevent.
      *   <li><b>{@link Capability#EVENTS}</b> — the class declares {@code implements FeatureProvider},
      *       not {@code extends EventProvider} (OfrepProvider.java:19), so it has no {@code emit*}
      *       method available and calls none. The whole file contains no reference to
@@ -191,6 +198,7 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
     public Set<Capability> capabilities() {
         return Capability.declarableExcept(
                 Capability.LIFECYCLE,
+                Capability.REINITIALIZATION,
                 Capability.EVENTS,
                 Capability.STALE,
                 Capability.CONFIGURATION_CHANGE,
