@@ -41,8 +41,9 @@ public final class CapabilityGate {
             }
             Optional<String> notApplicable = capability.get().notApplicableReason();
             if (notApplicable.isPresent()) {
-                throw new TestAbortedException("Skipped: capability " + capability.get().name() + " (tag " + tag
-                        + ") is not applicable to a Java provider — " + notApplicable.get() + ".");
+                throw new TestAbortedException(
+                        "Skipped: capability " + capability.get().name() + " (tag " + tag
+                                + ") is not applicable to a Java provider — " + notApplicable.get() + ".");
             }
             if (!declared.contains(capability.get())) {
                 throw new TestAbortedException("Skipped: provider does not declare capability "
