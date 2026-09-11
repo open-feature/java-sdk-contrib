@@ -3,6 +3,7 @@ package dev.openfeature.contrib.tools.tck;
 import io.cucumber.junit.platform.engine.Constants;
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
@@ -51,11 +52,14 @@ import org.junit.platform.suite.api.Suite;
  * @see ProviderTckHarness
  * @see ContainerizedProviderTckTest
  * @see ProviderTck
+ * @see ConformanceReportPlugin
+ * @see CanonicalScenarioGuard
  */
 @Suite
-@IncludeEngines("cucumber")
+@IncludeEngines({"cucumber", "junit-jupiter"})
 @SelectClasspathResource(ProviderTck.FEATURES)
 @SelectClasspathResource(ProviderTck.EXTENSIONS)
+@SelectClasses(CanonicalScenarioGuard.class)
 @ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = ProviderTck.PLUGINS)
 @ConfigurationParameter(
         key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME,
