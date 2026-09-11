@@ -4,7 +4,12 @@
 # backend that speaks OFREP and exposes the control API will do. flagd serves the OFREP HTTP API
 # on 8016 alongside its own gRPC surfaces, and the testbed image already ships the "launchpad"
 # control API on 8080 — the same stack the flagd provider's TCK suite uses, seeded with the same
-# canonical flag set. No new image, no new control API.
+# flag set. No new image, no new control API.
+#
+# That flag set is not yet the whole canonical one: v3.8.0 has none of large-integer-flag,
+# huge-integer-flag, integral-float-flag, false-flag, zero-flag or empty-string-flag, so the
+# untagged scenarios that read them fail FLAG_NOT_FOUND until open-feature/flagd-testbed catches
+# up. Bump the tag here once it does.
 #
 # Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers
 # them after startup — a pinned host port would make the suite unrunnable in parallel and would
