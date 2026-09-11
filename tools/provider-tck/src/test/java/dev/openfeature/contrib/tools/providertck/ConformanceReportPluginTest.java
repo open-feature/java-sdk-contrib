@@ -402,9 +402,10 @@ class ConformanceReportPluginTest {
                                     ReportSelfTestSteps.class.getPackage().getName())
                             .configurationParameter(
                                     Constants.PLUGIN_PROPERTY_NAME, ConformanceReportPlugin.class.getName())
-                            .configurationParameter(Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, "false")
                             .configurationParameter(
-                                    Constants.OBJECT_FACTORY_PROPERTY_NAME, "io.cucumber.picocontainer.PicoFactory")
+                                    Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME,
+                                    ProviderTck.PARALLEL_EXECUTION_ENABLED)
+                            .configurationParameter(Constants.OBJECT_FACTORY_PROPERTY_NAME, ProviderTck.OBJECT_FACTORY)
                             .build());
         } finally {
             if (previous == null) {

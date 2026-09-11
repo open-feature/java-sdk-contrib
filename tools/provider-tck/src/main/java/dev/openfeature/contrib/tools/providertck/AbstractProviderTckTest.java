@@ -44,17 +44,48 @@ import org.junit.platform.suite.api.Suite;
  * delegates to Cucumber's own message formatter for the stream itself, so the results are the same
  * bytes {@code message:<path>} would have produced, at a path this suite can choose.
  *
+ * <p><strong>Adding your own scenarios.</strong> A provider with features of its own — flagd's
+ * {@code fractional} targeting, a vendor's proprietary evaluation mode — puts feature files in
+ * {@code src/test/resources/tck-extensions/} and step definitions in the package
+ * {@code openfeature.tck.extensions}, and writes no annotations. Both are selected here, so the
+ * extra scenarios run inside this suite: same Compose stack, same {@code @BeforeAll}, same control
+ * API, same conformance report. The alternative — a second suite of one's own — is a second backend
+ * lifecycle to start and a second set of runner configuration to keep in step with this one.
+ *
+ * <p>The extension directory is <em>not</em> {@code features/} and is not a subdirectory of it, for
+ * a measured reason. Two classpath roots that contain the same directory are scanned additively, but
+ * two that contain the same directory <em>and</em> the same file name are not: one wins silently and
+ * the other file is never read. An adopter who put {@code features/errors.feature} in their test
+ * resources would replace a canonical feature with their own and see the suite pass — a conformance
+ * suite reporting success for questions it never asked. A distinct directory name removes the
+ * collision rather than documenting it.
+ *
+ * <p>The directory is shipped inside this JAR holding nothing but a README, because
+ * {@link SelectClasspathResource} on a resource that exists on no classpath root is a discovery
+ * error, not an empty selection. An adopter who adds nothing therefore still resolves it. The
+ * extension glue package costs nothing when unused either: Cucumber tolerates a glue package that
+ * does not exist.
+ *
+ * <p>Every value these annotations carry is named in {@link ProviderTck}. An adopter who does write a
+ * {@code @ConfigurationParameter} of their own composes from those constants —
+ * {@code ProviderTck.ALL_GLUE + ",com.vendor.steps"} — rather than restating this configuration as a
+ * string literal that nothing would keep in step.
+ *
  * @see ProviderTckHarness
+ * @see ProviderTck
  * @see ConformanceReportPlugin
  */
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
+@SelectClasspathResource(ProviderTck.FEATURES)
+@SelectClasspathResource(ProviderTck.EXTENSIONS)
+@ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = ProviderTck.PLUGINS)
 @ConfigurationParameter(
-        key = Constants.PLUGIN_PROPERTY_NAME,
-        value = "summary," + "dev.openfeature.contrib.tools.providertck.ConformanceReportPlugin")
-@ConfigurationParameter(key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, value = "false")
-@ConfigurationParameter(key = Constants.EXECUTION_MODE_FEATURE_PROPERTY_NAME, value = "same_thread")
-@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.tools.providertck.steps")
-@ConfigurationParameter(key = Constants.OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
+        key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME,
+        value = ProviderTck.PARALLEL_EXECUTION_ENABLED)
+@ConfigurationParameter(
+        key = Constants.EXECUTION_MODE_FEATURE_PROPERTY_NAME,
+        value = ProviderTck.FEATURE_EXECUTION_MODE)
+@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = ProviderTck.ALL_GLUE)
+@ConfigurationParameter(key = Constants.OBJECT_FACTORY_PROPERTY_NAME, value = ProviderTck.OBJECT_FACTORY)
 public abstract class AbstractProviderTckTest implements ProviderTckHarness {}
