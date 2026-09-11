@@ -1,13 +1,9 @@
 package dev.openfeature.contrib.tools.providertck;
 
-import dev.openfeature.sdk.MutableStructure;
-import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.providers.memory.Flag;
 import dev.openfeature.sdk.providers.memory.InMemoryProvider;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -58,26 +54,37 @@ import java.util.Map;
  */
 public final class InProcessBackendControl implements BackendControl {
 
-    /** The flag {@link #changeFlag()} mutates, as defined by {@code flags/canonical-flags.json}. */
+    /**
+     * The flag {@link #changeFlag()} mutates, as named by the control API and by the canonical flag
+     * definition.
+     *
+     * <p>The key is the one thing about this flag that is not read out of the definition, because
+     * {@code POST /change} in {@code openapi/control-api.yaml} names it too: the two have to agree,
+     * and a key discovered from the file could not be checked against the contract that uses it. Its
+     * variants are read, and {@link #changingFlag} rebuilds it from them.
+     */
     private static final String CHANGING_FLAG = "changing-flag";
-
-    private static final String CHANGING_BASELINE = "foo";
-    private static final String CHANGING_CHANGED = "bar";
 
     /**
      * The canonical flag set, never mutated after construction.
      *
-     * <p>Scenario isolation depends on that: {@link InMemoryProvider} copies the map it is given,
-     * and {@code updateFlag} writes only to the provider's copy, so every provider handed out by
-     * {@link #createProvider()} starts from an untouched baseline.
+     * <p>Decoded from the packaged {@code flags/canonical-flags.json} rather than restated here —
+     * see {@link CanonicalFlags} for why a transcription is the failure mode this guards against.
+     *
+     * <p>Scenario isolation depends on the map not being mutated: {@link InMemoryProvider} copies the
+     * map it is given, and {@code updateFlag} writes only to the provider's copy, so every provider
+     * handed out by {@link #createProvider()} starts from an untouched baseline.
      */
-    private final Map<String, Flag<?>> baseline = canonicalFlags();
+    private final Map<String, Flag<?>> baseline = CanonicalFlags.flagSet();
+
+    /** {@code changing-flag} as the definition ships it, the source of its variants. */
+    private final Flag<?> changingBaseline = requireChangingFlag();
 
     /** The provider serving the current scenario, or {@code null} between scenarios. */
     private InMemoryProvider current;
 
     /** Which variant {@code changing-flag} currently resolves to. */
-    private String changingVariant = CHANGING_BASELINE;
+    private String changingVariant = changingBaseline.getDefaultVariant();
 
     /**
      * Creates the provider for the scenario about to run, seeded with the canonical flag set.
@@ -93,7 +100,7 @@ public final class InProcessBackendControl implements BackendControl {
                     + "the flag store and the provider are one object, and changeFlag() must reach "
                     + "the same instance the TCK registered in order to emit an event from it")
     public InMemoryProvider createProvider() {
-        changingVariant = CHANGING_BASELINE;
+        changingVariant = changingBaseline.getDefaultVariant();
         current = new InMemoryProvider(new HashMap<>(baseline));
         return current;
     }
@@ -130,8 +137,44 @@ public final class InProcessBackendControl implements BackendControl {
      */
     @Override
     public void changeFlag() {
-        changingVariant = CHANGING_CHANGED.equals(changingVariant) ? CHANGING_BASELINE : CHANGING_CHANGED;
+        changingVariant = otherVariant(changingVariant);
         requireProvider().updateFlag(CHANGING_FLAG, changingFlag(changingVariant));
+    }
+
+    /**
+     * Returns a variant of {@code changing-flag} other than the given one.
+     *
+     * <p>Read out of the definition rather than named here, so that renaming either variant in the
+     * spec cannot leave this switching between a name the file no longer defines and one it does.
+     */
+    private String otherVariant(String resolved) {
+        for (String variant : changingBaseline.getVariants().keySet()) {
+            if (!variant.equals(resolved)) {
+                return variant;
+            }
+        }
+        throw new IllegalStateException("The canonical definition of '" + CHANGING_FLAG + "' has only the variant '"
+                + resolved + "'. changeFlag() has to switch to a different one, so the flag needs at least two.");
+    }
+
+    /** Rebuilds {@code changing-flag} with a different variant as the one it resolves to. */
+    private Flag<?> changingFlag(String defaultVariant) {
+        return Flag.builder()
+                .variants(changingBaseline.getVariants())
+                .defaultVariant(defaultVariant)
+                .disabled(changingBaseline.isDisabled())
+                .build();
+    }
+
+    /** The canonical definition of {@code changing-flag}, which the suite cannot do without. */
+    private Flag<?> requireChangingFlag() {
+        Flag<?> flag = baseline.get(CHANGING_FLAG);
+        if (flag == null) {
+            throw new IllegalStateException("The canonical flag definition " + CanonicalFlags.RESOURCE
+                    + " does not define '" + CHANGING_FLAG + "', which is the flag POST /change mutates and the "
+                    + "@configuration-change scenarios evaluate.");
+        }
+        return flag;
     }
 
     private InMemoryProvider requireProvider() {
@@ -141,152 +184,5 @@ public final class InProcessBackendControl implements BackendControl {
                     + "'Given a stable provider' — before any step that changes flag state.");
         }
         return current;
-    }
-
-    /**
-     * Builds the canonical flag set as {@link InMemoryProvider} flags.
-     *
-     * <p>Mirrors {@code flags/canonical-flags.json} entry for entry. The load-bearing details from
-     * that file hold here too:
-     *
-     * <ul>
-     *   <li>{@code missing-flag} is absent, which is what the {@code FLAG_NOT_FOUND} scenario tests;
-     *   <li>no flag carries a {@link dev.openfeature.sdk.providers.memory.ContextEvaluator}, so
-     *       every evaluation reports reason {@code STATIC} as the feature files expect;
-     *   <li>{@code boolean-zero-flag}, {@code integer-zero-flag} and {@code string-zero-flag}
-     *       resolve to {@code false}, {@code 0} and {@code ""} — values, not absences;
-     *   <li>{@code integral-float-flag} is a {@link Double} holding {@code 10.0}, never the
-     *       {@link Integer} {@code 10}, or the lossless-coercion scenario would pass without
-     *       anything being coerced; {@code huge-integer-flag} is a {@link Long}, because
-     *       2^53 − 1 does not fit an {@link Integer}.
-     * </ul>
-     *
-     * @return the canonical flag set
-     */
-    private static Map<String, Flag<?>> canonicalFlags() {
-        Map<String, Flag<?>> flags = new LinkedHashMap<>();
-
-        flags.put(
-                "boolean-flag",
-                Flag.<Boolean>builder()
-                        .variant("on", true)
-                        .variant("off", false)
-                        .defaultVariant("on")
-                        .build());
-
-        flags.put(
-                "string-flag",
-                Flag.<String>builder()
-                        .variant("greeting", "hi")
-                        .variant("parting", "bye")
-                        .defaultVariant("greeting")
-                        .build());
-
-        flags.put(
-                "integer-flag",
-                Flag.<Integer>builder()
-                        .variant("one", 1)
-                        .variant("ten", 10)
-                        .defaultVariant("ten")
-                        .build());
-
-        flags.put(
-                "float-flag",
-                Flag.<Double>builder()
-                        .variant("tenth", 0.1)
-                        .variant("half", 0.5)
-                        .defaultVariant("half")
-                        .build());
-
-        // 2^31 - 1: the largest value every language's integer accessor can ask for, and one a
-        // float32 round trip does not keep.
-        flags.put(
-                "large-integer-flag",
-                Flag.<Integer>builder()
-                        .variant("one", 1)
-                        .variant("max-int32", 2147483647)
-                        .defaultVariant("max-int32")
-                        .build());
-
-        // 2^53 - 1, which does not fit an Integer and so is a Long. Only asked for under
-        // @large-integers, which is not applicable in Java, so no scenario reaches it; it is here
-        // so that the set mirrors the JSON entry for entry, seeded as an integer and not rounded.
-        flags.put(
-                "huge-integer-flag",
-                Flag.<Long>builder()
-                        .variant("one", 1L)
-                        .variant("max-safe", 9007199254740991L)
-                        .defaultVariant("max-safe")
-                        .build());
-
-        // A float with no fractional part, for the lossless half of @numeric-coercion. The literal
-        // 10.0 is a double, so the variant is a Double and stays one.
-        flags.put(
-                "integral-float-flag",
-                Flag.<Double>builder()
-                        .variant("tenth", 0.1)
-                        .variant("ten", 10.0)
-                        .defaultVariant("ten")
-                        .build());
-
-        // The three falsy values. Each scenario's default differs from the resolved value, so a
-        // provider that treats false, 0 or "" as "nothing came back" is caught.
-        flags.put(
-                "boolean-zero-flag",
-                Flag.<Boolean>builder()
-                        .variant("zero", false)
-                        .variant("non-zero", true)
-                        .defaultVariant("zero")
-                        .build());
-
-        flags.put(
-                "integer-zero-flag",
-                Flag.<Integer>builder()
-                        .variant("zero", 0)
-                        .variant("non-zero", 1)
-                        .defaultVariant("zero")
-                        .build());
-
-        flags.put(
-                "string-zero-flag",
-                Flag.<String>builder()
-                        .variant("zero", "")
-                        .variant("non-zero", "str")
-                        .defaultVariant("zero")
-                        .build());
-
-        flags.put(
-                "object-flag",
-                Flag.<Value>builder()
-                        .variant("empty", new Value(new MutableStructure()))
-                        .variant(
-                                "template",
-                                new Value(new MutableStructure()
-                                        .add("showImages", true)
-                                        .add("title", "Check out these pics!")
-                                        .add("imagesPerPage", 100)))
-                        .defaultVariant("template")
-                        .build());
-
-        // A string flag, evaluated as a boolean by the TYPE_MISMATCH scenario.
-        flags.put(
-                "wrong-flag",
-                Flag.<String>builder()
-                        .variant("one", "uno")
-                        .variant("two", "dos")
-                        .defaultVariant("one")
-                        .build());
-
-        flags.put(CHANGING_FLAG, changingFlag(CHANGING_BASELINE));
-
-        return Collections.unmodifiableMap(flags);
-    }
-
-    private static Flag<String> changingFlag(String defaultVariant) {
-        return Flag.<String>builder()
-                .variant(CHANGING_BASELINE, CHANGING_BASELINE)
-                .variant(CHANGING_CHANGED, CHANGING_CHANGED)
-                .defaultVariant(defaultVariant)
-                .build();
     }
 }

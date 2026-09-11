@@ -248,6 +248,15 @@ Four details are load-bearing:
   makes the lossless-coercion scenario pass without coercing anything; seeding `9007199254740991`
   through a float rounds it.
 
+Read the file rather than retyping it. `$comment` members are documentation and may be ignored
+wherever they appear; everything else is the contract. This is what
+[`InProcessBackendControl`](src/main/java/dev/openfeature/contrib/tools/providertck/InProcessBackendControl.java)
+does — it decodes the packaged copy through
+[`CanonicalFlags`](src/main/java/dev/openfeature/contrib/tools/providertck/CanonicalFlags.java)
+rather than restating the set in Java, because a second copy inside the TCK drifts from the spec the
+same way an adopter's would, and when it does the in-memory self-tests go green against the wrong
+baseline.
+
 ### 4. The test class
 
 ```java
