@@ -27,9 +27,9 @@ import java.util.Set;
  * <p><strong>The testbed does not yet serve the whole canonical flag set.</strong> Three of the
  * flags the suite's assets added are absent from {@code flagd-testbed} v3.8.0:
  * {@code large-integer-flag}, {@code huge-integer-flag} and {@code integral-float-flag}. Only the
- * first is reached — {@code huge-integer-flag} is asked for solely under {@code @large-integers},
- * which is not applicable in Java, and {@code integral-float-flag} solely under
- * {@code @numeric-coercion}, which is withheld below — so exactly one untagged scenario, the 32-bit
+ * first is reached — {@code huge-integer-flag} is asked for solely under {@code @large-integers} and
+ * {@code integral-float-flag} solely under {@code @numeric-coercion}, both withheld below — so
+ * exactly one untagged scenario, the 32-bit
  * precision one, fails with {@code FLAG_NOT_FOUND} in both modes until
  * open-feature/flagd-testbed#392 lands and the tag here is bumped.
  *
@@ -156,18 +156,23 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * provider withholds the tag for its RPC resolver; on this evidence that is a difference between
      * the two implementations, not a property of the transport.
      *
+     * <p>{@link Capability#LARGE_INTEGERS} is withheld, as it is by every Java provider. It asks for
+     * 2^53 − 1 and {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for it,
+     * so the limit is the SDK's rather than flagd's — Appendix F is where that is recorded, and it is
+     * not a {@link dev.openfeature.contrib.tools.providertck.KnownDeviation}, because flagd is not at
+     * fault for a value the accessor cannot carry. Its one scenario is reported as skipped for an
+     * undeclared capability, like any other.
+     *
      * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
      * this used to be. The complement of one capability is every other <em>enum constant</em>,
      * including {@code @targeting} and {@code @caching} — reserved tags no scenario carries — so
-     * declaring the complement claimed two capabilities nothing had examined. It would now also
-     * claim {@link Capability#LARGE_INTEGERS}, which no Java provider can have — the SDK's integer
-     * accessor is a 32-bit {@code Integer} — and the suite refuses such a declaration at startup.
-     * {@code declarableExcept} leaves the not-applicable tag out on its own, and its one scenario is
-     * reported as skipped with that reason on every run.
+     * declaring the complement claimed two capabilities nothing had examined, and the suite refuses
+     * such a declaration at startup.
      */
     @Override
     public Set<Capability> capabilities() {
-        return Capability.declarableExcept(Capability.NUMERIC_COERCION, Capability.REINITIALIZATION);
+        return Capability.declarableExcept(
+                Capability.NUMERIC_COERCION, Capability.REINITIALIZATION, Capability.LARGE_INTEGERS);
     }
 
     /**
