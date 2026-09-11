@@ -5,6 +5,7 @@ import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.MutableContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -48,13 +49,29 @@ public class TckState {
     public Object rememberedValue;
 
     /**
-     * Any exception thrown out of the most recent evaluation call.
+     * Any exception thrown out of the most recent call the scenario made on the provider, with
+     * {@link #thrownBy} naming the call.
      *
-     * <p>The SDK contract is that typed evaluation never throws — errors surface as an error code
-     * and the code default. The evaluation step records rather than propagates, so a scenario can
-     * assert this explicitly instead of a thrown exception merely showing up as a step failure.
+     * <p>Evaluation, shutdown and re-initialisation all record here rather than propagate. The SDK
+     * contract is that typed evaluation never throws — errors surface as an error code and the code
+     * default — and the lifecycle scenarios make the same demand of a repeated {@code shutdown()}
+     * and of an {@code initialize()} against a reachable backend. One slot, asserted by one step,
+     * {@code no exception should have been thrown}, so a scenario states the expectation explicitly
+     * instead of a thrown exception merely showing up as a step failure.
      */
-    public RuntimeException evaluationException;
+    public Exception thrown;
+
+    /** The call {@link #thrown} came out of, for the failure message; {@code null} when none did. */
+    public String thrownBy;
+
+    /**
+     * How long the most recent direct {@code shutdown()} call took, or {@code null} before one was
+     * made in this scenario.
+     *
+     * <p>Recorded so a scenario can assert that shutdown against a backend that will never answer
+     * returns promptly instead of blocking on a graceful close.
+     */
+    public Duration shutdownDuration;
 
     /** Events observed by handlers registered in this scenario. */
     public final ConcurrentLinkedQueue<ProviderEventRecord> events = new ConcurrentLinkedQueue<>();
