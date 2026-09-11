@@ -3,6 +3,7 @@ package dev.openfeature.contrib.tools.providertck;
 import io.cucumber.junit.platform.engine.Constants;
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
@@ -66,6 +67,13 @@ import org.junit.platform.suite.api.Suite;
  * extension glue package costs nothing when unused either: Cucumber tolerates a glue package that
  * does not exist.
  *
+ * <p>One JUnit Jupiter test runs alongside the scenarios: {@link CanonicalScenarioGuard}, which
+ * fails a suite whose canonical set has been reduced — by a tag filter, a selector override, or a
+ * feature file shadowing a canonical one. It is why {@code junit-jupiter} is in the engine list. It
+ * inspects the discovered test plan and the run's filter configuration, both of which are settled
+ * before the first scenario, so it costs nothing and does not depend on the order the engines happen
+ * to run in.
+ *
  * <p>Every value these annotations carry is named in {@link ProviderTck}. An adopter who does write a
  * {@code @ConfigurationParameter} of their own composes from those constants —
  * {@code ProviderTck.ALL_GLUE + ",com.vendor.steps"} — rather than restating this configuration as a
@@ -74,11 +82,13 @@ import org.junit.platform.suite.api.Suite;
  * @see ProviderTckHarness
  * @see ProviderTck
  * @see ConformanceReportPlugin
+ * @see CanonicalScenarioGuard
  */
 @Suite
-@IncludeEngines("cucumber")
+@IncludeEngines({"cucumber", "junit-jupiter"})
 @SelectClasspathResource(ProviderTck.FEATURES)
 @SelectClasspathResource(ProviderTck.EXTENSIONS)
+@SelectClasses(CanonicalScenarioGuard.class)
 @ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = ProviderTck.PLUGINS)
 @ConfigurationParameter(
         key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME,
