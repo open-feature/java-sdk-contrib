@@ -145,9 +145,10 @@ public final class RpcResolver implements Resolver {
             return;
         }
         this.retryScheduler.shutdownNow();
+        // shut the channel down before awaiting
+        this.connector.shutdown();
         ShutdownUtils.awaitTerminationQuietly(
                 () -> retryScheduler.awaitTermination(options.getDeadline(), TimeUnit.MILLISECONDS));
-        this.connector.shutdown();
     }
 
     @Override
