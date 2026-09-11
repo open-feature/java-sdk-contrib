@@ -73,9 +73,6 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
     @Override
     public Set<Capability> capabilities() {
         return EnumSet.of(
-                Capability.EVENTS,
-                Capability.CONFIGURATION_CHANGE,
-                Capability.OBJECT,
-                Capability.NUMERIC_COERCION);
+                Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT, Capability.NUMERIC_COERCION);
     }
 }
