@@ -62,7 +62,13 @@ public class TckSuiteListener implements TestExecutionListener {
         return Optional.ofNullable(current);
     }
 
-    private static Optional<Class<? extends ProviderTckHarness>> harnessClassOf(TestIdentifier testIdentifier) {
+    /**
+     * Returns the TCK suite class a test identifier stands for, if it is one.
+     *
+     * @param testIdentifier the identifier to inspect
+     * @return the concrete suite class, or empty when the identifier is not a TCK suite
+     */
+    static Optional<Class<? extends ProviderTckHarness>> harnessClassOf(TestIdentifier testIdentifier) {
         return testIdentifier
                 .getSource()
                 .filter(ClassSource.class::isInstance)
