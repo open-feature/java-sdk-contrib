@@ -52,7 +52,7 @@
         every language's TCK must agree on them byte for byte or "conformance"
         means nothing:
 
-          features/                  the canonical Gherkin — the test cases
+          gherkin/                   the canonical Gherkin — the test cases
           flags/canonical-flags.json the flag set those test cases assume
           openapi/control-api.yaml   what a backend under test must expose
 
@@ -69,7 +69,7 @@
         bumping the submodule.
 
         Consumers are unaffected: the copies are packaged into the release JAR,
-        @SelectClasspathResource("features") keeps working, and nobody needs a
+        @SelectClasspathResource("gherkin") keeps working, and nobody needs a
         submodule of their own.
     -->
 
@@ -238,7 +238,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${basedir}/src/main/resources/features/</outputDirectory>
+                            <outputDirectory>${basedir}/src/main/resources/gherkin/</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${basedir}/spec/specification/assets/provider-tck/gherkin/</directory>
