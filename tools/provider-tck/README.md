@@ -40,8 +40,9 @@ uses only long-stable API — `OpenFeatureAPI`, `Client`, typed evaluation, `Pro
 
 **In scope — the provider contract:**
 
-- mapping backend responses onto typed resolution details (value, variant, reason, error code), with
-  no error message on a success path
+- mapping backend responses onto typed resolution details (value, reason, error code), with no error
+  message on a success path — and the variant where the backend names one, which is gated on
+  `@variants` because Requirement 2.2.4 is a `SHOULD` and `types.md` types the field optional
 - keeping the integer and float types distinct; that `false`, `0` and `""` are values, not absences;
   integer precision to 2^31 − 1
 - error handling: type mismatch and unknown flag return the code default, report the right error
@@ -51,12 +52,16 @@ uses only long-stable API — `OpenFeatureAPI`, `Client`, typed evaluation, `Pro
 - events: `PROVIDER_READY`, `PROVIDER_ERROR`, `PROVIDER_STALE`, `PROVIDER_CONFIGURATION_CHANGED`
 - that a signalled configuration change is actually applied on re-evaluation
 - that the provider identifies itself by a non-empty metadata name
+- that supplying an evaluation context does not disturb an untargeted resolution, and — gated on
+  `@targeting` — that a matching context resolves the targeted variant
 
 **Out of scope — not the provider's contract:**
 
-- backend evaluation logic, targeting and bucketing correctness. Every flag in the canonical set
-  resolves to its default variant with no targeting, so what is under test is the provider's
-  mapping of a response, not the backend's decision.
+- backend evaluation logic, bucketing and rule-language correctness. Every flag in the canonical set
+  except `targeting-key-flag` resolves to its default variant whatever the context, so what is under
+  test is the provider's mapping of a response, not the backend's decision. That one carries the one
+  rule, and it is there to prove the context reached the backend rather than to test how the backend
+  evaluated it.
 - the provider↔backend wire protocol. How you talk to your backend is your business.
 - SDK behaviour. That belongs to the SDK's own test suite.
 
@@ -142,10 +147,14 @@ Two suites in this module are exactly the class above, and both run with no Dock
 second. They are the reference adoption, and they are the fast CI canary.
 
 [`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/InMemoryProviderTckTest.java)
-runs the full applicable suite against the SDK's `InMemoryProvider` — of the 40 scenarios (outline
-rows counted individually), 29 pass and 11 are skipped by capability: the six `@lifecycle` ones — one
+runs the full applicable suite against the SDK's `InMemoryProvider` — of the 52 scenarios (outline
+rows counted individually), 38 pass and 14 are skipped by capability: the six `@lifecycle` ones — one
 of which also carries `@reinitialization`, and is skipped for the first of the two — the `@stale`
-one, the three `@numeric-coercion` ones and the `@large-integers` one. It does not declare
+one, the three `@numeric-coercion` ones, the `@large-integers` one and the three `@targeting` ones.
+It declares `VARIANTS`, because `InMemoryProvider` does name the variant it served, so the gated
+variant outline runs rather than being skipped. It does not declare `TARGETING`: the provider reads a
+flag's `variants` and `defaultVariant` and evaluates no rules, so `targeting-key-flag`'s `targeting`
+member is inert and a matching context resolves `miss` like any other. It does not declare
 `NUMERIC_COERCION`, because `InMemoryProvider` keeps the two numeric types strictly apart in both
 directions — it refuses `10.0` as an integer and `10` as a float exactly as it refuses `0.5` — and the
 tag requires the lossless direction too. That is a choice the SDK's reference provider is entitled to,
@@ -238,7 +247,13 @@ resolved values are. Seed them however your backend seeds flags.
 Four details are load-bearing:
 
 - **`missing-flag` must not exist.** Its absence is what the `FLAG_NOT_FOUND` scenario tests.
-- **No flag has targeting rules.** Every scenario expects reason `STATIC`.
+- **Only `targeting-key-flag` has a targeting rule.** Every other flag resolves to its default
+  variant whatever the evaluation context, which is what lets the untargeted scenarios expect reason
+  `STATIC`; seeding targeting onto any other flag breaks them. Its rule is specified by behaviour —
+  resolve `hit` when the targeting key is exactly `5c3d8535-f81a-4478-a6d3-afaa4d51199e`, `miss`
+  otherwise — so express it however your backend expresses targeting. The flag, its variants and the
+  uuid are flagd-testbed's own, so a backend serving that harness already serves this one. A backend
+  that cannot carry a rule leaves `TARGETING` undeclared and the three scenarios are skipped.
 - **`boolean-zero-flag`, `integer-zero-flag` and `string-zero-flag` resolve to `false`, `0` and
   `""` on purpose.** A seeding step that treats them as unset and drops them turns the falsy-value
   scenarios into `FLAG_NOT_FOUND` failures that look like provider defects. These names, and their
@@ -415,10 +430,11 @@ green on scenarios it did not run is worse than no suite at all.
 | `STALE` | `@stale` | enters `STALE` and emits `PROVIDER_STALE` on backend loss — *needs connection control* |
 | `CONFIGURATION_CHANGE` | `@configuration-change` | detects config changes, emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `OBJECT` | `@object` | supports structured flag values |
+| `VARIANTS` | `@variants` | names the variant it resolved — [Requirement 2.2.4](https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md) is a `SHOULD` and `types.md` types the field optional, so a backend with no variant concept withholds it |
 | `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend — *needs connection control* |
 | `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` — both directions tested |
 | `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; **every Java provider withholds it** — the SDK's integer accessor is a 32-bit `Integer`, so the limit is the language's, not the provider's |
-| `TARGETING` | `@targeting` | reserved, **not declarable** — no scenarios yet |
+| `TARGETING` | `@targeting` | resolves `targeting-key-flag` differently for a matching evaluation context — *needs a backend that evaluates rules* |
 | `CACHING` | `@caching` | reserved, **not declarable** — no scenarios yet |
 
 The default is every *declarable* capability. **Narrow it, do not widen it**: start from the
@@ -437,16 +453,19 @@ public Set<Capability> capabilities() {
 }
 ```
 
-The reserved entries are part of the vocabulary so that every language's TCK spells the same
-property the same way, but no scenario carries their tag — so declaring one cannot produce a skip,
-cannot be contradicted by any result, and tells a reader a capability was verified when nothing
-examined it. Declaring one **fails the run**, with a message naming the tag.
+A reserved entry is part of the vocabulary so that every language's TCK spells the same property the
+same way, but no scenario carries its tag — so declaring it cannot produce a skip, cannot be
+contradicted by any result, and tells a reader a capability was verified when nothing examined it.
+Declaring one **fails the run**, with a message naming the tag. `CACHING` is the only reserved entry
+left: `TARGETING` was reserved until `targeting-key-flag`'s three scenarios arrived, and is an
+ordinary declarable capability now.
 
 That is a rule about an accident rather than about intent: `EnumSet.complementOf(EnumSet.of(X))`
 reads as "everything except X" and in fact means "every other enum constant", reserved tags
 included. The flagd suite said exactly that and published `"declared": [..., "@targeting",
-"@caching"]` for two capabilities nobody had claimed. `Capability.declarable()` and
-`Capability.declarableExcept(...)` are the forms that mean what the first one looks like.
+"@caching"]` for two capabilities nobody had claimed — back when both were reserved.
+`Capability.declarable()` and `Capability.declarableExcept(...)` are the forms that mean what the
+first one looks like, and they still exclude `@caching`.
 
 A note on `LIFECYCLE` vs `EVENTS`: they look like the same thing and are not. `EVENTS` says the
 provider emits events; `LIFECYCLE` says there is a real initialisation behind them. The SDK's
@@ -659,13 +678,17 @@ explicit command is only useful when working offline or inspecting the sources b
 
 ## Known gaps
 
-- **Evaluation context passthrough.** The TCK builds evaluation contexts but cannot assert the
-  context *reached* the backend intact. That needs an echo operation on the control API — something
-  like `GET /last-evaluation` returning the request the backend last received. Until then, a
-  provider that silently drops the context passes.
-- **Targeting and bucketing.** Out of scope by design: that is backend evaluation logic. The
-  `@targeting` tag is reserved for context-passthrough scenarios once the gap above is closed, and
-  is not declarable until they exist.
+- **Evaluation context passthrough, beyond the targeting key.** `targeting-key-flag` resolves
+  differently for a matching context, so a provider that drops the context is caught by the resolved
+  value itself — that is what the `@targeting` scenarios do, and no echo operation is needed for it.
+  What is still unverified is that the *whole* context arrives intact: a provider that forwards the
+  targeting key and silently discards every other attribute passes. Closing that needs either an
+  echo operation on the control API — something like `GET /last-evaluation` returning the request the
+  backend last received — or a canonical flag whose rule keys on a custom attribute.
+- **Targeting and bucketing correctness.** Out of scope by design: that is backend evaluation logic.
+  `targeting-key-flag` carries the one rule in the canonical set, and it is there to prove the
+  context reached the backend rather than to test how the backend evaluated it — which is why its
+  rule is stated as behaviour and not as a syntax.
 - **Caching.** Whether a stale provider keeps serving last-known values during an outage depends on
   whether it holds a local copy of the ruleset. The `@caching` tag is reserved; no scenarios yet,
   and so not declarable.
