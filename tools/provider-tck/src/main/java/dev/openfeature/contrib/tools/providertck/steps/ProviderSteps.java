@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.tools.providertck.steps;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.providertck.Capability;
@@ -9,6 +10,7 @@ import dev.openfeature.contrib.tools.providertck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.providertck.TckRuntime;
 import dev.openfeature.contrib.tools.providertck.TckState;
 import dev.openfeature.sdk.FeatureProvider;
+import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.NoOpProvider;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderState;
@@ -27,7 +29,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Lifecycle and backend-control steps: bringing the suite up, gating scenarios on declared
- * capabilities, creating and registering the provider under test, and simulating backend outages.
+ * capabilities, creating and registering the provider under test, shutting it down and initialising
+ * it again, and simulating backend outages.
  *
  * <p>Every step that touches the backend goes through {@link #backend()}. Nothing here knows whether
  * that is a container driven over HTTP or an in-memory provider manipulated directly, which is what
@@ -157,6 +160,94 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     /**
+     * Asserts that the provider under test identifies itself by name.
+     *
+     * <p>Requirement 2.1.1. Too small to test, until a conformance report keyed on the provider's
+     * metadata name turned an empty name into a report nobody can attribute.
+     */
+    @Then("the provider metadata name should not be empty")
+    public void theProviderMetadataNameShouldNotBeEmpty() {
+        Metadata metadata = requireProvider().getMetadata();
+        assertThat(metadata).as("provider metadata").isNotNull();
+        assertThat(metadata.getName()).as("provider metadata name").isNotBlank();
+    }
+
+    /**
+     * Shuts the provider under test down by calling its own {@code shutdown()} directly.
+     *
+     * <p>Directly, and not by replacing it through the SDK. {@code setProvider} would shut the old
+     * provider down too, but wrapping that in a scenario tests the SDK's bookkeeping as much as the
+     * provider's, and Appendix B already covers the SDK. The provider stays registered and the SDK is
+     * not told, which is what lets {@code the provider is initialized again} be observed through the
+     * same client afterwards.
+     *
+     * <p>Timed, because one scenario asserts that shutdown against a backend that will never answer
+     * returns at all rather than blocking on a graceful close. Exceptions are recorded rather than
+     * propagated, exactly as an evaluation's are, so that {@code no exception should have been
+     * thrown} covers the double-shutdown case explicitly.
+     */
+    @When("the provider is shut down")
+    public void theProviderIsShutDown() {
+        FeatureProvider provider = requireProvider();
+        long started = System.nanoTime();
+        try {
+            provider.shutdown();
+        } catch (RuntimeException e) {
+            log.warn("shutdown() of provider {} threw", provider.getMetadata().getName(), e);
+            state.thrown = e;
+            state.thrownBy = "shutdown()";
+        } finally {
+            state.shutdownDuration = Duration.ofNanos(System.nanoTime() - started);
+        }
+    }
+
+    /**
+     * Initialises the provider under test again by calling its own {@code initialize()} directly.
+     *
+     * <p>Requirement 2.5.2: after shutdown the provider reverts to its uninitialised state, which is
+     * observable as exactly one thing — it can be initialised again and then serves flags. The SDK
+     * still holds the provider as {@code READY}, because it was never told about the shutdown, so
+     * the evaluation that follows this step reaches the re-initialised provider through the
+     * scenario's client with nothing in between.
+     *
+     * <p>The scenario's evaluation context is passed, which is empty unless a context step added to
+     * it. Exceptions are recorded rather than propagated, the same way an evaluation's are.
+     */
+    @When("the provider is initialized again")
+    public void theProviderIsInitializedAgain() {
+        FeatureProvider provider = requireProvider();
+        try {
+            provider.initialize(state.context);
+        } catch (Exception e) {
+            log.warn("initialize() of provider {} threw after shutdown", provider.getMetadata().getName(), e);
+            state.thrown = e;
+            state.thrownBy = "initialize()";
+        }
+    }
+
+    /**
+     * Asserts that the most recent {@code the provider is shut down} returned within a bound.
+     *
+     * <p>A shutdown that waits for a graceful close of a connection that will never answer hangs the
+     * host application's own shutdown. The bound in the feature file is generous; what is asserted
+     * is that shutdown returns at all rather than blocking on the backend.
+     *
+     * @param milliseconds the bound
+     */
+    @Then("the shutdown should have completed within {int}ms")
+    public void theShutdownShouldHaveCompletedWithin(int milliseconds) {
+        assertThat(state.shutdownDuration)
+                .as("a shutdown was recorded; did the scenario forget 'When the provider is shut down'?")
+                .isNotNull();
+        assertThat(state.shutdownDuration.toMillis())
+                .withFailMessage(
+                        "shutdown() took %dms, over the %dms bound. A shutdown must not block on a backend "
+                                + "that will never answer; release what initialisation acquired and return.",
+                        state.shutdownDuration.toMillis(), milliseconds)
+                .isLessThanOrEqualTo(milliseconds);
+    }
+
+    /**
      * Makes the backend unreachable for the rest of the scenario.
      */
     @When("the connection is lost")
@@ -212,5 +303,13 @@ public class ProviderSteps extends AbstractSteps {
                 .atMost(harness().readyTimeout().toMillis(), MILLISECONDS)
                 .pollInterval(10, MILLISECONDS)
                 .until(() -> state.client.getProviderState() == target);
+    }
+
+    private FeatureProvider requireProvider() {
+        if (state.provider == null) {
+            throw new AssertionError("No provider has been created. "
+                    + "Did the scenario forget 'Given a stable provider' or 'Given a unavailable provider'?");
+        }
+        return state.provider;
     }
 }
