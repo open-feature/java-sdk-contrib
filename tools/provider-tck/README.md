@@ -334,7 +334,7 @@ A provider with features of its own — flagd's `fractional` targeting, a vendor
 evaluation mode — extends the suite rather than maintaining a second one. Two files, no annotations:
 
 ```
-src/test/resources/tck-extensions/fractional.feature
+src/test/resources/extensions/fractional.feature
 src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openfeature.tck.extensions
 ```
 
@@ -348,13 +348,21 @@ is specific to your provider.
 The alternative — your own Cucumber runner — is a second backend lifecycle to start and a second copy
 of this suite's configuration to keep in step with it.
 
-**Why `tck-extensions/` and not `features/`.** Two classpath roots holding the same directory are
+**Why `extensions/` and not `gherkin/`.** Two classpath roots holding the same directory are
 scanned additively; two holding the same directory *and* the same file name are not — one wins
-silently and the other file is never read. A `features/errors.feature` in your test resources would
-therefore *replace* the canonical file, and the suite would report success having run yours. The
-extension directory has a different name so that collision cannot be reached by accident. `features/`
-is the canonical set and belongs to the specification; extensions are yours. If a scenario is
-portable across providers, send it to the TCK rather than keeping it as an extension.
+silently and the other file is never read. A `gherkin/errors.feature` in your test resources would
+therefore *replace* the canonical file, and the suite would report success having run yours.
+`gherkin/` and `extensions/` being two distinct directories means that collision cannot be reached
+by accident. `gherkin/` is the canonical set and belongs to the specification; extensions are yours.
+If a scenario is portable across providers, send it to the TCK rather than keeping it as an
+extension.
+
+Both names are Appendix F's. It identifies a canonical feature by its path relative to the spec's
+asset directory — `gherkin/errors.feature` — and reserves the prefix `extensions/` for an adopter's
+own, so the URIs a run reports (`classpath:gherkin/errors.feature`,
+`classpath:extensions/fractional.feature`) partition the same way here as in every other language's
+TCK. Comparison is on the path after the URI scheme; the `classpath:` prefix is this runner's and is
+not part of the identity.
 
 The directory is shipped in this JAR containing only a README, because a classpath resource selector
 naming a resource that exists on no classpath root is a hard discovery error rather than an empty
@@ -372,8 +380,8 @@ package either — Cucumber tolerates a glue package that does not exist.
 
 | Constant | Value |
 |---|---|
-| `ProviderTck.FEATURES` | `features` — the canonical set, reserved |
-| `ProviderTck.EXTENSIONS` | `tck-extensions` — where yours go |
+| `ProviderTck.FEATURES` | `gherkin` — the canonical set, reserved |
+| `ProviderTck.EXTENSIONS` | `extensions` — where yours go |
 | `ProviderTck.GLUE` | the canonical step definitions package |
 | `ProviderTck.EXTENSION_GLUE` | `openfeature.tck.extensions` |
 | `ProviderTck.ALL_GLUE` | both, comma-separated — what the suite runs with |
@@ -616,7 +624,7 @@ The three travel together by necessity: a feature file that evaluates `boolean-f
 without the flag definition, and a disconnect scenario is meaningless without the control endpoint
 that produces the disconnect.
 
-> **Do not edit `src/main/resources/features/`, `flags/` or `openapi/`.** They are generated and
+> **Do not edit `src/main/resources/gherkin/`, `flags/` or `openapi/`.** They are generated and
 > git-ignored. Changes belong in `open-feature/spec` and arrive here by bumping the submodule.
 
 Building this module therefore needs the submodule:
