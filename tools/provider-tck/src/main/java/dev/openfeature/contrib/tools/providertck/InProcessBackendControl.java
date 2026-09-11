@@ -153,8 +153,8 @@ public final class InProcessBackendControl implements BackendControl {
      *   <li>{@code missing-flag} is absent, which is what the {@code FLAG_NOT_FOUND} scenario tests;
      *   <li>no flag carries a {@link dev.openfeature.sdk.providers.memory.ContextEvaluator}, so
      *       every evaluation reports reason {@code STATIC} as the feature files expect;
-     *   <li>{@code false-flag}, {@code zero-flag} and {@code empty-string-flag} resolve to
-     *       {@code false}, {@code 0} and {@code ""} — values, not absences;
+     *   <li>{@code boolean-zero-flag}, {@code integer-zero-flag} and {@code string-zero-flag}
+     *       resolve to {@code false}, {@code 0} and {@code ""} — values, not absences;
      *   <li>{@code integral-float-flag} is a {@link Double} holding {@code 10.0}, never the
      *       {@link Integer} {@code 10}, or the lossless-coercion scenario would pass without
      *       anything being coerced; {@code huge-integer-flag} is a {@link Long}, because
@@ -232,27 +232,27 @@ public final class InProcessBackendControl implements BackendControl {
         // The three falsy values. Each scenario's default differs from the resolved value, so a
         // provider that treats false, 0 or "" as "nothing came back" is caught.
         flags.put(
-                "false-flag",
+                "boolean-zero-flag",
                 Flag.<Boolean>builder()
-                        .variant("on", true)
-                        .variant("off", false)
-                        .defaultVariant("off")
-                        .build());
-
-        flags.put(
-                "zero-flag",
-                Flag.<Integer>builder()
-                        .variant("one", 1)
-                        .variant("zero", 0)
+                        .variant("zero", false)
+                        .variant("non-zero", true)
                         .defaultVariant("zero")
                         .build());
 
         flags.put(
-                "empty-string-flag",
+                "integer-zero-flag",
+                Flag.<Integer>builder()
+                        .variant("zero", 0)
+                        .variant("non-zero", 1)
+                        .defaultVariant("zero")
+                        .build());
+
+        flags.put(
+                "string-zero-flag",
                 Flag.<String>builder()
-                        .variant("greeting", "hi")
-                        .variant("empty", "")
-                        .defaultVariant("empty")
+                        .variant("zero", "")
+                        .variant("non-zero", "str")
+                        .defaultVariant("zero")
                         .build());
 
         flags.put(
