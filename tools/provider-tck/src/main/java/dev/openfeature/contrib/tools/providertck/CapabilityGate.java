@@ -22,28 +22,27 @@ public final class CapabilityGate {
     private CapabilityGate() {}
 
     /**
-     * Aborts the running scenario if any of its tags gates a capability that was not declared, or
-     * one that is {@linkplain Capability#notApplicable() not applicable} in Java.
+     * Aborts the running scenario if any of its tags gates a capability that was not declared.
      *
      * <p>Tags that gate nothing are ignored, so a scenario with no capability tag is mandatory and
-     * always runs. A not-applicable capability is checked before the declaration, and its skip
-     * names the SDK rather than the provider: the provider did not decline it, the language did.
+     * always runs.
+     *
+     * <p>One skip, carrying its reason, is the whole mechanism. A capability that cannot hold in a
+     * language at all — {@link Capability#LARGE_INTEGERS} on the Java SDK's 32-bit integer accessor
+     * — is undeclared like any other the provider does not offer, and is skipped the same way.
+     * Separating the two would ask a reader to learn a second vocabulary to be told what the
+     * declaration and the scenario's own tags already say; where the impossibility is the
+     * language's, Appendix F records it once instead.
      *
      * @param tags the scenario's Gherkin tags, including the leading at-sign
      * @param declared the capabilities the provider declares
-     * @throws TestAbortedException if a tag gates an undeclared or a not-applicable capability
+     * @throws TestAbortedException if a tag gates an undeclared capability
      */
     public static void requireDeclared(Collection<String> tags, Set<Capability> declared) {
         for (String tag : tags) {
             Optional<Capability> capability = Capability.fromTag(tag);
             if (!capability.isPresent()) {
                 continue;
-            }
-            Optional<String> notApplicable = capability.get().notApplicableReason();
-            if (notApplicable.isPresent()) {
-                throw new TestAbortedException(
-                        "Skipped: capability " + capability.get().name() + " (tag " + tag
-                                + ") is not applicable to a Java provider — " + notApplicable.get() + ".");
             }
             if (!declared.contains(capability.get())) {
                 throw new TestAbortedException("Skipped: provider does not declare capability "
