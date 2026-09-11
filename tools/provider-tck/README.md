@@ -315,6 +315,61 @@ and if you register more than one, select between them with
 
 </details>
 
+## Adding your own scenarios
+
+A provider with features of its own — flagd's `fractional` targeting, a vendor's proprietary
+evaluation mode — extends the suite rather than maintaining a second one. Two files, no annotations:
+
+```
+src/test/resources/tck-extensions/fractional.feature
+src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openfeature.tck.extensions
+```
+
+That is the whole extension point. Both are already selected by `ProviderTckTest`, so your scenarios
+run **inside** the suite: same backend lifecycle, same `@BeforeAll`, same `BackendControl`. Step
+classes may take `TckState` as a constructor argument exactly as the canonical steps do, and reach
+the backend control and the backend endpoint through `TckRuntime.get()`. Canonical steps are on the
+glue path too, so an extension scenario can open with `Given a stable provider` and go on to whatever
+is specific to your provider.
+
+The alternative — your own Cucumber runner — is a second backend lifecycle to start and a second copy
+of this suite's configuration to keep in step with it.
+
+**Why `tck-extensions/` and not `features/`.** Two classpath roots holding the same directory are
+scanned additively; two holding the same directory *and* the same file name are not — one wins
+silently and the other file is never read. A `features/errors.feature` in your test resources would
+therefore *replace* the canonical file, and the suite would report success having run yours. The
+extension directory has a different name so that collision cannot be reached by accident. `features/`
+is the canonical set and belongs to the specification; extensions are yours. If a scenario is
+portable across providers, send it to the TCK rather than keeping it as an extension.
+
+The directory is shipped in this JAR containing only a README, because a classpath resource selector
+naming a resource that exists on no classpath root is a hard discovery error rather than an empty
+selection. An adopter who extends nothing therefore still resolves it, and pays nothing for the glue
+package either — Cucumber tolerates a glue package that does not exist.
+
+### The suite's configuration as constants
+
+`ProviderTck` names every value the suite's annotations carry, so that an adopter who does write a
+`@ConfigurationParameter` composes rather than copies:
+
+```java
+@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = ProviderTck.ALL_GLUE + ",com.vendor.steps")
+```
+
+| Constant | Value |
+|---|---|
+| `ProviderTck.FEATURES` | `features` — the canonical set, reserved |
+| `ProviderTck.EXTENSIONS` | `tck-extensions` — where yours go |
+| `ProviderTck.GLUE` | the canonical step definitions package |
+| `ProviderTck.EXTENSION_GLUE` | `openfeature.tck.extensions` |
+| `ProviderTck.ALL_GLUE` | both, comma-separated — what the suite runs with |
+| `ProviderTck.PLUGINS`, `PARALLEL_EXECUTION_ENABLED`, `FEATURE_EXECUTION_MODE`, `OBJECT_FACTORY` | the rest of the Cucumber configuration |
+
+An annotation value has to be a compile-time constant, so a method call would not compile there;
+constant concatenation does. If you add a glue package this way, keep `ProviderTck.GLUE` in the
+value — dropping it makes every canonical step undefined.
+
 ## Declaring capabilities
 
 Not every provider implements every optional part of the spec. Scenarios that exercise an optional
