@@ -201,13 +201,19 @@ services:
       - 5000   # whatever your provider connects to
 ```
 
-Conventions the TCK relies on — all overridable:
+The whole compose contract, which is the same eight concepts with the same defaults in every
+language's TCK:
 
-| Convention | Default | Override |
-|---|---|---|
-| Service hosting the control API and backend | `backend` | `backendService()` |
-| Container-internal control API port | `8080` | `controlPort()` |
-| Extra services/ports to expose | none | `additionalExposedPorts()` |
+| Concept | Required | Default | Java |
+|---|---|---|---|
+| Compose file | yes | — | `File composeFile()` — resolved relative to the Maven module directory |
+| Backend service | no | `backend` | `String backendService()` — the service hosting both the control API and the backend |
+| Backend ports | yes | — | `List<Integer> backendPorts()` — container-internal ports the *provider* connects to. Do not list the control port; it is exposed automatically |
+| Control port | no | `8080` | `int controlPort()` |
+| Additional ports | no | none | `Map<String, List<Integer>> additionalPorts()` — extra service → ports, resolved through the endpoint by service name |
+| Config | no | `default` | `String defaultConfig()` — the configuration name passed to `POST /start` |
+| Startup timeout | no | 60s | `Duration startupTimeout()` — the stack and its control API becoming reachable |
+| Endpoint | — | — | `BackendEndpoint` — `host()` and `port(internalPort)`, optionally qualified by service |
 
 **Never pin host ports.** External ports are mapped dynamically and discovered after startup —
 that is why the provider comes from a factory rather than a constant. Pinned ports make the suite
