@@ -542,11 +542,27 @@ fails when `TckValues` cannot fit `9007199254740991` into an `Integer`, which is
 a rejected declaration. The 32-bit precision scenario (`large-integer-flag`, 2^31 − 1) is untagged and
 always runs.
 
-### Saying that a withheld capability is a defect
+### Saying that a gap is a defect
 
-Narrowing `capabilities()` reads the same way in the results whether you did it to describe a
-limitation or to work around a bug: the scenarios are skipped either way, and nothing in the run can
-tell the two apart. Declare a `KnownDeviation` when it is the latter.
+A `knownDeviations` entry says one thing: **this provider fails to do something it is required to
+do.** The requirement has to be a numbered `MUST`, or a rule the implementation bound itself to
+elsewhere — flagd's numeric-coercion ADR, say. Where the specification *permits* the choice,
+withholding the capability **is** the honest report, and a deviation entry would assert a defect
+that does not exist.
+
+It is legitimate in two shapes, and a run's results already tell them apart:
+
+1. **The capability is declared, the scenario runs, and it fails.** *Prefer this.* The failure stays
+   visible and the deviation says it is known and why, so a reader sees both the assertion that
+   broke and your account of it.
+2. **The capability is withheld, and its scenarios skip.** Legitimate only when the provider cannot
+   attempt the behaviour at all — there is no connection to lose, no structured value to return — so
+   running the scenario would establish nothing. The deviation explains the absence, so a reader can
+   tell a defect from a design decision.
+
+Withdrawing a capability *in order to* turn a failing scenario into a skip is the failure mode this
+field exists to prevent. If the provider attempts the behaviour and gets it wrong, declare the
+capability, let the scenario fail, and record the deviation beside the failure.
 
 ```java
 @Override
@@ -558,9 +574,13 @@ public List<KnownDeviation> knownDeviations() {
 }
 ```
 
-Use `KnownDeviation.untracked(...)` when there is no issue to point at yet. That is still worth
-declaring — naming the defect is what separates it from a choice — but an issue link is better.
-Empty is the default, and it is silence rather than a claim of having none.
+`summary` is **required**: an entry with no summary records that something is wrong without saying
+what, which is worth less than the bare skip or failure it accompanies. `issue` is **optional** —
+use `KnownDeviation.untracked(...)` when there is nothing to point at yet. That is still worth
+declaring, because naming the defect is what separates it from a choice, but an issue link is
+better. The capability may be `null`, when the gap is against a mandatory, ungated scenario; it may
+not be a [reserved](#declaring-capabilities) one, since no scenario carries the tag and so there is
+nothing to deviate from. Empty is the default, and it is silence rather than a claim of having none.
 
 ### Naming the configuration under test
 
