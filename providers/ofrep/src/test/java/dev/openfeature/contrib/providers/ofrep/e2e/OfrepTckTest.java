@@ -2,10 +2,10 @@ package dev.openfeature.contrib.providers.ofrep.e2e;
 
 import dev.openfeature.contrib.providers.ofrep.OfrepProvider;
 import dev.openfeature.contrib.providers.ofrep.OfrepProviderOptions;
-import dev.openfeature.contrib.tools.providertck.BackendEndpoint;
-import dev.openfeature.contrib.tools.providertck.Capability;
-import dev.openfeature.contrib.tools.providertck.ContainerizedProviderTckTest;
-import dev.openfeature.contrib.tools.providertck.KnownDeviation;
+import dev.openfeature.contrib.tools.tck.BackendEndpoint;
+import dev.openfeature.contrib.tools.tck.Capability;
+import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
+import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.time.Duration;
@@ -245,7 +245,7 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * accompanies it, and then discards both.
      *
      * <p>It is therefore recorded as a
-     * {@link dev.openfeature.contrib.tools.providertck.KnownDeviation} rather than left as a bare
+     * {@link dev.openfeature.contrib.tools.tck.KnownDeviation} rather than left as a bare
      * omission — see {@link #knownDeviations()}. That is the opposite call from
      * {@code @numeric-coercion} above, and the difference is where the rule lives: numeric coercion
      * is a rule Appendix F borrowed from flagd's ADR and that no specification states, whereas
