@@ -54,14 +54,19 @@ uses only long-stable API — `OpenFeatureAPI`, `Client`, typed evaluation, `Pro
 - that the provider identifies itself by a non-empty metadata name
 - that supplying an evaluation context does not disturb an untargeted resolution, and — gated on
   `@targeting` — that a matching context resolves the targeted variant
+- gated on `@disabled-flags`, that a flag disabled in the management system resolves to the code
+  default rather than to its configured value, and without an error. Gated because the answer depends
+  on where the substitution happens: a provider that evaluates locally holds the caller's default and
+  can return it, one whose backend decides never sends it and cannot
 
 **Out of scope — not the provider's contract:**
 
-- backend evaluation logic, bucketing and rule-language correctness. Every flag in the canonical set
-  except `targeting-key-flag` resolves to its default variant whatever the context, so what is under
-  test is the provider's mapping of a response, not the backend's decision. That one carries the one
-  rule, and it is there to prove the context reached the backend rather than to test how the backend
-  evaluated it.
+- backend evaluation logic, bucketing and rule-language correctness. Every enabled flag in the
+  canonical set except `targeting-key-flag` resolves to its default variant whatever the context, so
+  what is under test is the provider's mapping of a response, not the backend's decision. That one
+  carries the one rule, and it is there to prove the context reached the backend rather than to test
+  how the backend evaluated it. The four `disabled-*` flags are the only ones whose state is not
+  `ENABLED`; they resolve to nothing at all.
 - the provider↔backend wire protocol. How you talk to your backend is your business.
 - SDK behaviour. That belongs to the SDK's own test suite.
 
@@ -147,15 +152,18 @@ Two suites in this module are exactly the class above, and both run with no Dock
 second. They are the reference adoption, and they are the fast CI canary.
 
 [`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/providertck/InMemoryProviderTckTest.java)
-runs the full applicable suite against the SDK's `InMemoryProvider` — of the 52 scenarios (outline
-rows counted individually), 38 pass and 14 are skipped by capability: the six `@lifecycle` ones — one
+runs the full applicable suite against the SDK's `InMemoryProvider` — of the 56 scenarios (outline
+rows counted individually), 42 pass and 14 are skipped by capability: the six `@lifecycle` ones — one
 of which also carries `@reinitialization`, and is skipped for the first of the two — the `@stale`
 one, the three `@numeric-coercion` ones, the `@large-integers` one and the three `@targeting` ones.
 It declares `VARIANTS`, because `InMemoryProvider` does name the variant it served, so the gated
-variant outline runs rather than being skipped. It does not declare `TARGETING`: the provider reads a
-flag's `variants` and `defaultVariant` and evaluates no rules, so `targeting-key-flag`'s `targeting`
-member is inert and a matching context resolves `miss` like any other. It does not declare
-`NUMERIC_COERCION`, because `InMemoryProvider` keeps the two numeric types strictly apart in both
+variant outline runs rather than being skipped. It declares `DISABLED_FLAGS` too, on the same kind of
+evidence: the provider honours a flag's state, so the four `disabled-*` flags resolve to nothing, the
+caller's default stands in with no error code, and all four rows of that outline pass. It does not
+declare `TARGETING`: the provider reads a flag's `variants` and `defaultVariant` and evaluates no
+rules, so `targeting-key-flag`'s `targeting` member is inert and a matching context resolves `miss`
+like any other. It does not declare `NUMERIC_COERCION`, because `InMemoryProvider` keeps the two
+numeric types strictly apart in both
 directions — it refuses `10.0` as an integer and `10` as a float exactly as it refuses `0.5` — and the
 tag requires the lossless direction too. That is a choice the SDK's reference provider is entitled to,
 not a defect; see the class javadoc.
@@ -431,6 +439,7 @@ green on scenarios it did not run is worse than no suite at all.
 | `CONFIGURATION_CHANGE` | `@configuration-change` | detects config changes, emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `OBJECT` | `@object` | supports structured flag values |
 | `VARIANTS` | `@variants` | names the variant it resolved — [Requirement 2.2.4](https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md) is a `SHOULD` and `types.md` types the field optional, so a backend with no variant concept withholds it |
+| `DISABLED_FLAGS` | `@disabled-flags` | resolves a flag disabled in the management system to the code default — *needs the substitution to happen where the caller's default is, so a provider whose backend decides cannot hold it* |
 | `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend — *needs connection control* |
 | `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` — both directions tested |
 | `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; **every Java provider withholds it** — the SDK's integer accessor is a 32-bit `Integer`, so the limit is the language's, not the provider's |
