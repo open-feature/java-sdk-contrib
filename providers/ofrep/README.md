@@ -89,8 +89,20 @@ speaks it. The suite reuses the unmodified `flagd-testbed` image and its launchp
 repository's convention for a Docker-dependent suite, fed to Surefire by the parent POM; the parent
 defines no default, so each module that wants the gate declares it. This module did not, which meant
 `mvn verify` started a Compose stack and the suite ran — and failed — in every job that touched
-`providers/ofrep`. The exclusion is the fix, and this paragraph is the other half of it: an
-exclusion nobody writes down is indistinguishable from an oversight.
+`providers/ofrep`. That is the second of the two mistakes
+[Appendix F: Running the suite in CI](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
+names, and the appendix has the reasoning for the whole policy; the exclusion is the fix and this
+paragraph is the other half of it.
+
+This module has no profile that touches the property, so both spellings resolve the same way —
+checked rather than read, because that is the appendix's other warning:
+
+```bash
+mvn -Pe2e -pl providers/ofrep help:evaluate -Dexpression=testExclusions -DforceStdout
+```
+
+The exclusion is Surefire's and not the compiler's, so the suite still builds against the harness in
+every job.
 
 The consequence is that **no CI job runs the suite**, so a maintainer runs it by hand before merging
 a change to the provider's resolution or error behaviour, and quotes the result in the pull request.
