@@ -18,5 +18,5 @@
 	path = tools/flagd-api-testkit/test-harness
 	url = https://github.com/open-feature/test-harness.git
 	branch = v3.10.4
-[submodule "tools/provider-tck/spec"]
-	path = tools/provider-tck/spec
+[submodule "tools/tck/spec"]
+	path = tools/tck/spec
