@@ -26,8 +26,8 @@ import java.util.Map;
  *
  * <h2>Connection control</h2>
  *
- * <p>{@link #disconnect()}, {@link #reconnect()} and {@link #disconnectFor} are not implemented, so
- * they inherit the interface defaults and throw. An in-memory provider has no connection to lose,
+ * <p>{@link #disconnect()} and {@link #reconnect()} are not implemented, so they inherit the
+ * interface defaults and throw. An in-memory provider has no connection to lose,
  * and pretending otherwise with a no-op would report {@code @stale} scenarios as passed. The
  * harness instead leaves {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT}
  * undeclared, and those scenarios are reported as skipped.
@@ -108,6 +108,18 @@ public final class InProcessBackendControl implements BackendControl {
     @Override
     public String description() {
         return "in-process control of " + InMemoryProvider.class.getSimpleName();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Always {@link ControlApi#IN_PROCESS}, which is what this class exists for: there is no
+     * backend to drive over the normative HTTP endpoints, because "the backend" is a map in this
+     * JVM.
+     */
+    @Override
+    public ControlApi controlApi() {
+        return ControlApi.IN_PROCESS;
     }
 
     /**

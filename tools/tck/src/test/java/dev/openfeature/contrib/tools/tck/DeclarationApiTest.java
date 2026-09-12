@@ -192,14 +192,24 @@ class DeclarationApiTest {
     }
 
     @Test
-    @DisplayName("a backend says which of the two control contracts drove it")
-    void backendsSayHowTheyWereDriven() {
+    @DisplayName("a backend says which of the two control contracts drove it, and cannot stay silent")
+    void backendsSayHowTheyWereDriven() throws NoSuchMethodException {
         assertThat(new InProcessBackendControl().controlApi())
                 .as("a provider with no backend is controlled in-process, the narrow allowance")
-                .isEqualTo(BackendControl.CONTROL_API_IN_PROCESS);
+                .isEqualTo(ControlApi.IN_PROCESS);
 
-        assertThat(BackendControl.CONTROL_API_HTTP).isEqualTo("http");
-        assertThat(BackendControl.CONTROL_API_IN_PROCESS).isEqualTo("in-process");
+        assertThat(ControlApi.HTTP.wireValue()).isEqualTo("http");
+        assertThat(ControlApi.IN_PROCESS.wireValue()).isEqualTo("in-process");
+
+        // Closed on purpose: the report schema's enum has exactly these two members, and there is
+        // no third case an unanswered value would legitimately cover.
+        assertThat(ControlApi.values()).containsExactly(ControlApi.HTTP, ControlApi.IN_PROCESS);
+
+        // Required on purpose: a default here would answer a question only the author of a custom
+        // control can answer, so the compiler has to ask for it.
+        assertThat(BackendControl.class.getMethod("controlApi").isDefault())
+                .as("controlApi() must be abstract, so that a custom control states it")
+                .isFalse();
     }
 
     /** A suite that names its configuration rather than taking the derived name. */

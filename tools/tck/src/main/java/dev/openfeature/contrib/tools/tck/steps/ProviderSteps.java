@@ -263,22 +263,13 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     /**
-     * Makes the backend unreachable for a bounded period, then brings it back.
-     *
-     * @param seconds how long the backend stays unreachable
-     */
-    @When("the connection is lost for {int}s")
-    public void theConnectionIsLostFor(int seconds) {
-        backend().disconnectFor(Duration.ofSeconds(seconds));
-    }
-
-    /**
      * Brings the backend back after {@code the connection is lost}.
      *
-     * <p>Added by the TCK. The flagd harness only has the self-healing
+     * <p>Added by the TCK. The flagd harness only has a self-healing
      * {@code the connection is lost for {int}s} form, which cannot express "assert the provider is
      * stale, and only then reconnect" — the reconnect races the assertion. Splitting the outage
-     * into an explicit start and end makes the stale-then-ready transition deterministic.
+     * into an explicit start and end makes the stale-then-ready transition deterministic, and it is
+     * why no shipped scenario reaches {@code POST /restart} and why this suite binds no step to it.
      */
     @When("the connection is restored")
     public void theConnectionIsRestored() {

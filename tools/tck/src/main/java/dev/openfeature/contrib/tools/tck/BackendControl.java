@@ -1,7 +1,5 @@
 package dev.openfeature.contrib.tools.tck;
 
-import java.time.Duration;
-
 /**
  * The single seam between the TCK's step definitions and whatever manipulates the backend.
  *
@@ -33,8 +31,11 @@ import java.time.Duration;
  * <p>{@link #prepareScenario()} and {@link #changeFlag()} are mandatory: a backend that cannot reset
  * itself or change a flag cannot run the suite at all.
  *
- * <p>The three connection operations are not. A provider with nothing to disconnect from leaves
- * them at their defaults, which throw {@link UnsupportedOperationException}. That exception is a
+ * <p>{@link #controlApi()} is mandatory too, and has deliberately no default — see {@link ControlApi}
+ * for why silence there is not a neutral answer.
+ *
+ * <p>The two connection operations are not mandatory. A provider with nothing to disconnect from
+ * leaves them at their defaults, which throw {@link UnsupportedOperationException}. That exception is a
  * <strong>test-configuration bug, never a skip</strong> — the scenarios that need connection
  * control are gated behind {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT}, so
  * reaching one of these defaults means a capability was declared that the backend cannot back up.
@@ -44,12 +45,6 @@ import java.time.Duration;
  * @see ProviderTckTest
  */
 public interface BackendControl {
-
-    /** The normative control API: a real backend driven over the HTTP control endpoints. */
-    String CONTROL_API_HTTP = "http";
-
-    /** Control of a provider with no backend, exercised inside this JVM. */
-    String CONTROL_API_IN_PROCESS = "in-process";
 
     /**
      * Brings the backend to the state every scenario starts from: reachable, with flag state at the
@@ -89,16 +84,6 @@ public interface BackendControl {
     }
 
     /**
-     * Makes the backend unreachable for a bounded period, after which it comes back on its own.
-     *
-     * @param outage how long the backend stays unreachable
-     * @throws UnsupportedOperationException if this backend has no connection to lose
-     */
-    default void disconnectFor(Duration outage) {
-        throw unsupported("disconnectFor");
-    }
-
-    /**
      * Returns a short description of what is being controlled, for startup logging and for the
      * failure messages of unsupported operations.
      *
@@ -111,22 +96,27 @@ public interface BackendControl {
     /**
      * Returns how the backend is driven, as one of the two kinds the provider contract recognises.
      *
-     * <p>{@code http} is the normative control API: the backend is a real one and it is driven over
-     * the endpoints in {@code openapi/control-api.yaml}, which is what makes a conformance claim
-     * portable between languages. {@code in-process} is the narrow allowance for a provider with no
-     * backend at all, where "the backend" is a data structure in this JVM — a claim of
-     * {@code in-process} for a provider that does have a backend should be treated with suspicion.
+     * <p>{@link ControlApi#HTTP} is the normative control API: the backend is a real one and it is
+     * driven over the endpoints in {@code openapi/control-api.yaml}, which is what makes a
+     * conformance claim portable between languages. {@link ControlApi#IN_PROCESS} is the narrow
+     * allowance for a provider with no backend at all, where "the backend" is a data structure in
+     * this JVM — a claim of {@code in-process} for a provider that does have a backend should be
+     * treated with suspicion.
      *
      * <p>Part of the declaration vocabulary rather than of any one consumer of it: it says which of
      * the two contracts a run was conducted under, which anyone reading the result needs whether or
      * not a machine-readable report is being produced. A custom {@code BackendControl} states it
      * here and nothing downstream has to guess.
      *
-     * @return {@link #CONTROL_API_HTTP} or {@link #CONTROL_API_IN_PROCESS}
+     * <p><strong>Required, with no default.</strong> Both implementations the TCK ships answer it
+     * already, and an adopter with a real backend writes no control at all — the HTTP one comes with
+     * {@link ContainerizedProviderTckTest}. The only person who implements this interface by hand is
+     * the one writing a custom control, which is precisely the case where the value cannot be
+     * inferred. An unanswered value would not be "no claim made"; it would be an unfalsifiable one.
+     *
+     * @return which of the two control contracts this run is conducted under
      */
-    default String controlApi() {
-        return CONTROL_API_IN_PROCESS;
-    }
+    ControlApi controlApi();
 
     /**
      * Builds the exception the connection-control defaults throw.
