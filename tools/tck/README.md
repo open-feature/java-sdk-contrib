@@ -545,6 +545,18 @@ Declaring one **fails the run**, with a message naming the tag. `CACHING` is the
 left: `TARGETING` was reserved until `targeting-key-flag`'s three scenarios arrived, and is an
 ordinary declarable capability now.
 
+The other direction fails the run too, and it is the one an adopter will meet first. A reservation
+expires the day the specification writes the scenarios it was held open for, and if this package has
+not followed, the two rules meet in the worst possible place: the new scenario is skipped for a
+capability nobody is permitted to declare — a question put and silently withdrawn, which
+[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md)
+calls the unclaimable capability. The report is well-formed and the run is
+green, so nothing else would notice. So a scenario carrying a reserved tag **fails**, naming the tag
+and saying that the reserved flag on that constant is now the only thing to change. The check reads
+Cucumber's parsed tags rather than the feature files as text, which matters more than it sounds:
+`gherkin/events.feature` names `@caching` inside a `#` comment explaining what is deliberately not
+covered yet, so a text scan would fail every adoption on the day it shipped.
+
 That is a rule about an accident rather than about intent: `EnumSet.complementOf(EnumSet.of(X))`
 reads as "everything except X" and in fact means "every other enum constant", reserved tags
 included. The flagd suite said exactly that and published `"declared": [..., "@targeting",
