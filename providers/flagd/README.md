@@ -358,3 +358,38 @@ FlagdOptions options = FlagdOptions.builder()
       .resolverType(Config.Resolver.IN_PROCESS)
       .build();
 ```
+
+## Provider conformance (TCK)
+
+This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md), once per resolver:
+`FlagdRpcTckTest` and `FlagdInProcessTckTest`, both over the shared
+`AbstractFlagdTckTest`. Read that class before changing either — it records which capabilities are
+declared, which are withheld and why, and every known deviation, each against measured behaviour
+rather than assumption.
+
+**The two suites are Docker-gated and excluded from the default build.** They live under
+`src/test/java/.../e2e/`, which `<testExclusions>**/e2e/*.java</testExclusions>` keeps out of
+`mvn verify`, so a machine or CI job without a Docker daemon is never asked to start a Compose
+stack. That is a deliberate policy and not an omission: a default build that needs Docker fails in a
+way that reads as a broken provider rather than as a missing prerequisite.
+
+The consequence is that **no CI job runs them**, so a maintainer runs them by hand before merging a
+change that touches the provider's resolution, event or lifecycle behaviour, and quotes the result in
+the pull request. A scheduled or path-filtered workflow was considered and declined: a suite whose
+red is diagnosed by whoever happens to read the notification is worse than one whose red is
+diagnosed by the person who caused it.
+
+```bash
+# both resolvers
+mvn -pl providers/flagd -am -DtestExclusions= -Dtest='Flagd*TckTest' \
+    -Dsurefire.failIfNoSpecifiedTests=false test
+
+# one resolver
+mvn -pl providers/flagd -am -DtestExclusions= -Dtest=FlagdInProcessTckTest \
+    -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+Both suites are currently **expected to fail**, and the expected failures are enumerated in
+`AbstractFlagdTckTest`: three come from flags that the pinned `flagd-testbed` image does not serve
+(open-feature/flagd-testbed#392) and one is the real numeric-coercion defect, declared and left
+visible rather than skipped (open-feature/flagd#1996). Anything else is a regression.
