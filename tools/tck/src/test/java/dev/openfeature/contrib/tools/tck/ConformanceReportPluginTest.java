@@ -304,6 +304,12 @@ class ConformanceReportPluginTest {
                         // and types.md types the field optional, so a backend with no variant
                         // concept withholds it and those rows are skipped with that reason.
                         Capability.VARIANTS.tag(),
+                        // @disabled-flags gates the four-row outline that asks what a flag disabled
+                        // in the management system resolves to. Gated because the answer follows
+                        // from where the substitution happens rather than from provider quality: a
+                        // provider that evaluates locally can return the caller's default, one whose
+                        // backend decides never sent it. The maximal claim includes it.
+                        Capability.DISABLED_FLAGS.tag(),
                         Capability.UNAVAILABLE_INIT.tag(),
                         Capability.NUMERIC_COERCION.tag(),
                         // @large-integers gates a scenario and is an ordinary declarable capability.
