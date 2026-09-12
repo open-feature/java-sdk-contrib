@@ -5,6 +5,7 @@ import dev.openfeature.contrib.providers.ofrep.OfrepProviderOptions;
 import dev.openfeature.contrib.tools.providertck.BackendEndpoint;
 import dev.openfeature.contrib.tools.providertck.Capability;
 import dev.openfeature.contrib.tools.providertck.ContainerizedProviderTckTest;
+import dev.openfeature.contrib.tools.providertck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.time.Duration;
@@ -206,6 +207,53 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * {@code targeting-key-flag} scenarios are the only ones in the canonical set that would notice a
      * context dropped on the way out. All three pass.
      *
+     * <p><b>{@link Capability#DISABLED_FLAGS}</b> is withheld, and unlike every other withheld tag
+     * above it was <em>measured</em>. Declared, all four rows of its outline fail, and they fail on
+     * the error code rather than on the value: the run reported 56 scenarios, 38 passing, 12 skipped
+     * and 6 failed, the two extra failures beyond the testbed pair above being
+     * {@code expected: null but was: FLAG_NOT_FOUND} on each of the four rows. The value assertion
+     * passes, because the provider returns the caller's default on an error — right answer, wrong
+     * reason.
+     *
+     * <p>What the backend actually answers is worth writing down, because the shape of the gap is not
+     * what one would guess. flagd's OFREP endpoint does not 404 a disabled flag: it answers
+     * {@code 200} with {@code {"key":"disabled-boolean-flag","reason":"DISABLED","metadata":{}}} and
+     * <em>no</em> {@code value} member, where an enabled flag comes back as
+     * {@code {"value":true,"key":"boolean-flag","reason":"STATIC","variant":"on","metadata":{}}}
+     * (probed directly against the pinned v3.8.0 image on port 8016). {@code handleResolved} reaches
+     * its {@code responseValue == null} branch and returns the code default with
+     * {@code FLAG_NOT_FOUND} and "No value returned for flag", discarding the {@code reason} it
+     * parsed one field earlier (Resolver.java:169-181, OfrepResponse.java:19).
+     *
+     * <p><strong>That response is well-formed OFREP, and it says what to do.</strong> The obvious
+     * reading of this failure — the caller's default never leaves the process, so a provider whose
+     * backend decides cannot hold the tag — does not survive the protocol. OFREP's
+     * {@code evaluationSuccess} requires only {@code key} and {@code reason}; {@code value} is
+     * <em>not</em> required, because one of the member schemas a success may be is
+     * {@code codeDefaultFlag}, described as <em>"A flag evaluation that defers to the code default
+     * value ... This schema has no value property. The provider must use the code default value when
+     * processing this response."</em> {@code DISABLED} is in the {@code reason} enum alongside
+     * {@code STATIC}. flagd is answering in exactly that shape, and the answer means what the
+     * scenario asserts.
+     *
+     * <p>So this is a provider gap rather than an architectural limit, and it is wider than the four
+     * rows that found it: <em>every</em> {@code codeDefaultFlag} response is reported to the
+     * application as {@code FLAG_NOT_FOUND}, so an application checking the error code sees a failure
+     * on an evaluation that succeeded. The capability is gated because the answer can depend on
+     * architecture, and a provider that only ever received a value would have a real case — but this
+     * provider receives a response that is explicit about deferring, parses the {@code reason} that
+     * accompanies it, and then discards both.
+     *
+     * <p>It is therefore recorded as a
+     * {@link dev.openfeature.contrib.tools.providertck.KnownDeviation} rather than left as a bare
+     * omission — see {@link #knownDeviations()}. That is the opposite call from
+     * {@code @numeric-coercion} above, and the difference is where the rule lives: numeric coercion
+     * is a rule Appendix F borrowed from flagd's ADR and that no specification states, whereas
+     * {@code codeDefaultFlag} is a {@code MUST} in the protocol this provider implements. Withholding
+     * the tag keeps the four rows honest — skipped, not passed — and the deviation is what says the
+     * omission is a bug rather than a choice. Delete both once {@code handleResolved} honours a
+     * value-less success.
+     *
      * <p>{@code declarableExcept} rather than {@code EnumSet.complementOf}, which would also claim
      * {@code @caching} on the way past; the suite refuses such a declaration at startup. It claimed
      * {@code @targeting} the same way until that tag gated something — the reserved set shrinks as
@@ -219,8 +267,43 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
                 Capability.EVENTS,
                 Capability.STALE,
                 Capability.CONFIGURATION_CHANGE,
+                Capability.DISABLED_FLAGS,
                 Capability.UNAVAILABLE_INIT,
                 Capability.NUMERIC_COERCION,
                 Capability.LARGE_INTEGERS);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>One entry, for the withheld {@link Capability#DISABLED_FLAGS}, and it is the only omission
+     * in {@link #capabilities()} that is a defect rather than a fact about the provider's shape.
+     * Every other withheld tag describes something {@code OfrepProvider} has no machinery for — no
+     * initialisation, no events, no state between calls — or a rule no specification states. This one
+     * describes a response the provider receives, understands well enough to parse, and then answers
+     * wrongly.
+     *
+     * <p>Untracked, because there is no issue to point at yet. Naming it anyway is the whole point of
+     * the mechanism: in the results a capability withheld by choice and one withheld because it is
+     * broken are the same absence, and only the provider author can say which happened.
+     *
+     * <p>The summary names the response shape rather than the scenario, because the scenario is only
+     * where it was noticed. {@code codeDefaultFlag} is not specific to disabled flags — any backend
+     * deferring to the code default for any reason gets the same {@code FLAG_NOT_FOUND} — so a reader
+     * comparing providers needs the general statement, not the one outline that caught it.
+     */
+    @Override
+    public List<KnownDeviation> knownDeviations() {
+        return Collections.singletonList(KnownDeviation.untracked(
+                Capability.DISABLED_FLAGS,
+                "A value-less OFREP evaluation success is reported to the application as "
+                        + "FLAG_NOT_FOUND. OFREP's evaluationSuccess requires only key and reason; a "
+                        + "success matching codeDefaultFlag carries no value and means the provider "
+                        + "MUST use the code default. handleResolved treats a null value as an "
+                        + "absent flag instead (Resolver.java:174-181), discarding the reason it "
+                        + "parsed, so the value returned is right and the error code is not. Found "
+                        + "by the four @disabled-flags rows -- flagd answers a DISABLED flag with "
+                        + "200, reason DISABLED and no value -- but it affects every codeDefaultFlag "
+                        + "response, not only disabled flags."));
     }
 }
