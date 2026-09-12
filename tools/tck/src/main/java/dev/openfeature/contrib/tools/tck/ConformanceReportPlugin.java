@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
 public final class ConformanceReportPlugin implements ConcurrentEventListener {
 
     /** Environment variable naming the directory reports are written to. */
-    public static final String REPORT_DIR_ENV = "PROVIDER_TCK_REPORT_DIR";
+    public static final String REPORT_DIR_ENV = "TCK_REPORT_DIR";
 
     /**
      * System property naming the directory reports are written to, taking precedence over the
@@ -75,7 +75,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
      * Gradle invocation is usually parameterised. The environment variable is the portable spelling
      * and is what every other language's TCK reads, so a cross-language CI job can set one thing.
      */
-    public static final String REPORT_DIR_PROPERTY = "provider.tck.report.dir";
+    public static final String REPORT_DIR_PROPERTY = "tck.report.dir";
 
     /** Extension of the envelope, which is what a consumer reads first. */
     static final String ENVELOPE_EXTENSION = ".json";
