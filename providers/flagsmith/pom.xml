@@ -31,19 +31,21 @@
     </properties>
 
     <dependencies>
-        <!-- Jackson alignment, test scope only.
-             provider-tck brings jackson-databind 2.22.1, while flagsmith-java-client 7.4.3 pins
+        <!-- Jackson alignment.
+             tools/tck brings jackson-databind 2.22.1, while flagsmith-java-client 7.4.3 pins
              jackson-annotations and jackson-core at 2.15.2. Maven's nearest-wins then assembles
              databind 2.22 against annotations 2.15, and the Flagsmith client's ObjectMapper dies
              with ClassNotFoundException on com.fasterxml.jackson.annotation.JsonSerializeAs.
 
              The provider's own 35 tests pass without the TCK on the classpath, so this is a
-             conflict the TCK introduces rather than a defect in the provider — worth reporting
-             upstream, since any provider whose client pins older Jackson will hit it.
+             conflict the TCK introduces rather than a defect in the provider. Still present after
+             the TCK moved testcontainers to provided/optional, so it wants its own fix upstream:
+             shade Jackson, or stop exporting a hard databind version.
 
-             Aligned DOWN to the client's 2.15.2 rather than up: jackson-annotations has no 2.22.1
-             release at all (it tracks its own version line), so aligning upward needs the Jackson
-             BOM, and the TCK does not appear to need anything newer. -->
+             Aligned DOWN to the client's 2.15.2 rather than up, because jackson-annotations has no
+             2.22.1 release at all (it tracks its own version line), so aligning upward needs the
+             Jackson BOM. Compile scope, not test: the provider's own main source imports
+             com.fasterxml.jackson.databind. -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -51,7 +53,7 @@
         </dependency>
         <dependency>
             <groupId>dev.openfeature.contrib.tools</groupId>
-            <artifactId>provider-tck</artifactId>
+            <artifactId>tck</artifactId>
             <version>${provider-tck.version}</version>
             <scope>test</scope>
         </dependency>
