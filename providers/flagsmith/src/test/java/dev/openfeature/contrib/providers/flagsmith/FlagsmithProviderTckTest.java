@@ -1,9 +1,9 @@
 package dev.openfeature.contrib.providers.flagsmith;
 
-import dev.openfeature.contrib.tools.providertck.BackendEndpoint;
-import dev.openfeature.contrib.tools.providertck.Capability;
-import dev.openfeature.contrib.tools.providertck.ContainerizedProviderTckTest;
-import dev.openfeature.contrib.tools.providertck.KnownDeviation;
+import dev.openfeature.contrib.tools.tck.BackendEndpoint;
+import dev.openfeature.contrib.tools.tck.Capability;
+import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
+import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Arrays;
