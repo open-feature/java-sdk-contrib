@@ -197,6 +197,16 @@ class CanonicalScenarioGuardTest {
                 .contains(CanonicalScenarioGuard.PARTIAL_PROPERTY);
     }
 
+    @Test
+    @DisplayName("the partial-run escape hatch carries no PROVIDER_ prefix either")
+    void thePartialKnobIsSpelledWithoutThePrefix() {
+        // Literals on purpose: every TCK knob an adopter or a CI job sets is spelled TCK_*, and one
+        // of them keeping the old PROVIDER_TCK_* prefix is the half-rename that makes the set
+        // unguessable.
+        assertThat(CanonicalScenarioGuard.PARTIAL_ENV).isEqualTo("TCK_PARTIAL");
+        assertThat(CanonicalScenarioGuard.PARTIAL_PROPERTY).isEqualTo("tck.partial");
+    }
+
     /** Discovers the real suite configuration, without executing anything. */
     private static org.junit.platform.launcher.TestPlan discoverFixtureSuite() {
         return LauncherFactory.create()

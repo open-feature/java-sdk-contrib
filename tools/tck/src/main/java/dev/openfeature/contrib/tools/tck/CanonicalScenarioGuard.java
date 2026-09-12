@@ -77,10 +77,10 @@ public final class CanonicalScenarioGuard {
      * made that impossible would be switched off permanently instead of temporarily. It produces a
      * skip rather than a pass, so the run says out loud that its canonical set was not verified.
      */
-    public static final String PARTIAL_PROPERTY = "provider.tck.partial";
+    public static final String PARTIAL_PROPERTY = "tck.partial";
 
     /** Environment variable equivalent of {@link #PARTIAL_PROPERTY}. */
-    public static final String PARTIAL_ENV = "PROVIDER_TCK_PARTIAL";
+    public static final String PARTIAL_ENV = "TCK_PARTIAL";
 
     /** Cucumber configuration keys that stop a discovered scenario from running. */
     private static final String[] FILTER_KEYS = {
