@@ -10,7 +10,10 @@
 # none. Both fail until open-feature/flagd-testbed#392 lands. Bump the tag then.
 #
 # targeting-key-flag is served, which is why @targeting needs no bump: its three scenarios pass
-# on this image in both modes.
+# on this image in both modes. The same goes for the four disabled-* flags behind
+# @disabled-flags: they are this image's own, from its flags/disabled-flags.json, which the
+# launchpad combines into the served set -- the canonical definition took the testbed's names and
+# values rather than inventing its own.
 #
 # Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers
 # them after startup — a pinned host port would make the suite unrunnable in parallel and would
