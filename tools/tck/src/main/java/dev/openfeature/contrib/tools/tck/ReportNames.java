@@ -43,4 +43,46 @@ final class ReportNames {
                 .toLowerCase(Locale.ROOT);
         return hyphenated.isEmpty() ? FALLBACK : hyphenated;
     }
+
+    /**
+     * Turns a configuration name into the base name both of a run's files share.
+     *
+     * <p>A run writes an envelope and a results stream, and they are matched by name — the envelope's
+     * {@code results.location} is this base name plus the stream's extension — so one derivation
+     * produces both.
+     *
+     * <p>Configuration names are chosen to read well in a failure message rather than to be
+     * path-safe, so anything that is not obviously safe becomes a hyphen. Without this a
+     * configuration named {@code flagd/rpc} would silently write outside the directory it was given.
+     *
+     * @param configuration the configuration name
+     * @return a file name stem, with no extension
+     */
+    static String baseNameOf(String configuration) {
+        StringBuilder safe = new StringBuilder(configuration.length());
+        for (int i = 0; i < configuration.length(); i++) {
+            char c = configuration.charAt(i);
+            boolean allowed = (c >= 'a' && c <= 'z')
+                    || (c >= 'A' && c <= 'Z')
+                    || (c >= '0' && c <= '9')
+                    || c == '-'
+                    || c == '_'
+                    || c == '.';
+            safe.append(allowed ? c : '-');
+        }
+        String trimmed = trim(safe.toString());
+        return trimmed.isEmpty() ? FALLBACK : trimmed;
+    }
+
+    private static String trim(String value) {
+        int start = 0;
+        int end = value.length();
+        while (start < end && (value.charAt(start) == '-' || value.charAt(start) == '.')) {
+            start++;
+        }
+        while (end > start && (value.charAt(end - 1) == '-' || value.charAt(end - 1) == '.')) {
+            end--;
+        }
+        return value.substring(start, end);
+    }
 }

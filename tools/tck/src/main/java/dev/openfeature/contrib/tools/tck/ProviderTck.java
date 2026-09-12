@@ -84,11 +84,10 @@ public final class ProviderTck {
     /**
      * The Cucumber plugins the suite registers.
      *
-     * <p>Just Cucumber's own summary. The suite runs the scenarios and reports them through JUnit;
-     * turning a run into a machine-readable conformance report is a separate concern that registers
-     * its own plugin here.
+     * <p>Spelled out rather than derived from {@code ConformanceReportPlugin.class.getName()},
+     * which is not a compile-time constant and so cannot appear in an annotation value.
      */
-    public static final String PLUGINS = "summary";
+    public static final String PLUGINS = "summary,dev.openfeature.contrib.tools.tck.ConformanceReportPlugin";
 
     /**
      * Whether scenarios may run in parallel: never.

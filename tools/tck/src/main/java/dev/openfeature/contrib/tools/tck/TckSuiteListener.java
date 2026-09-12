@@ -6,6 +6,7 @@ import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.support.descriptor.ClassSource;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
+import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,21 @@ public class TckSuiteListener implements TestExecutionListener {
     private static final Logger log = LoggerFactory.getLogger(TckSuiteListener.class);
 
     private static volatile Class<? extends ProviderTckHarness> current;
+
+    /**
+     * Records what each TCK suite in the plan is about to run, for {@link CanonicalScenarioGuard}.
+     *
+     * <p>Read from the plan before any of it executes, which is as early as the selected scenarios
+     * can be known: selectors and glue are resolved by then, so a canonical file that was shadowed,
+     * replaced or added to is already visible. The guard needs nothing from the run itself and no
+     * backend.
+     *
+     * @param testPlan the plan about to be executed
+     */
+    @Override
+    public void testPlanExecutionStarted(TestPlan testPlan) {
+        CanonicalScenarioGuard.observe(testPlan);
+    }
 
     @Override
     public void executionStarted(TestIdentifier testIdentifier) {
