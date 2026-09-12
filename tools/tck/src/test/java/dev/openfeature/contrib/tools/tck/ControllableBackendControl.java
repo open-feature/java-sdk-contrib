@@ -73,6 +73,17 @@ final class ControllableBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
+     * <p>{@link ControlApi#IN_PROCESS}: there is no backend beyond a map in this JVM, which is the
+     * whole point of this double. Stated rather than defaulted, like every other control.
+     */
+    @Override
+    public ControlApi controlApi() {
+        return ControlApi.IN_PROCESS;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
      * <p>Drops the reference to the previous scenario's provider. The baseline map is never mutated,
      * so the {@link #createProvider()} call that follows starts from an untouched copy of it.
      */
