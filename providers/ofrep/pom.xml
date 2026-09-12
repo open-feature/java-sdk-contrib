@@ -18,8 +18,8 @@
     <url>https://openfeature.dev</url>
 
     <properties>
-        <!-- Match any provider-tck version locally; CI resolves it from the reactor -->
-        <provider-tck.version>[0.0.1,)</provider-tck.version>
+        <!-- Match any tck version locally; CI resolves it from the reactor -->
+        <tck.version>[0.1.0,)</tck.version>
     </properties>
 
     <developers>
@@ -94,8 +94,8 @@
         -->
         <dependency>
             <groupId>dev.openfeature.contrib.tools</groupId>
-            <artifactId>provider-tck</artifactId>
-            <version>${provider-tck.version}</version>
+            <artifactId>tck</artifactId>
+            <version>${tck.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
