@@ -30,7 +30,7 @@ public final class HttpBackendControl implements BackendControl {
 
     private final HttpClient http;
     private final String baseUrl;
-    private final String defaultConfig;
+    private final String backendConfiguration;
 
     /**
      * Tri-state cache of whether the backend implements the optional {@code /reset} operation.
@@ -39,9 +39,8 @@ public final class HttpBackendControl implements BackendControl {
     private Boolean resetSupported;
 
     /**
-     * Whether the backend was last known to be unreachable. Conservative: {@link #disconnectFor}
-     * sets it even though the backend comes back on its own, because a scenario may end before it
-     * does.
+     * Whether the backend was last known to be unreachable, so that the next
+     * {@link #prepareScenario()} knows whether {@code /reset} alone can restore the baseline.
      */
     private boolean backendStopped;
 
@@ -49,18 +48,24 @@ public final class HttpBackendControl implements BackendControl {
      * Creates a control client for a running backend.
      *
      * <p>There is no post-command settle, deliberately. A control call returns when the backend has
-     * acted, because that is what the control API promises: {@code POST /start} blocks until the
-     * flags are evaluable. A fixed pause after every command would cover that window whether or not
-     * the promise is kept, which is the difference between a suite that can detect a control API
-     * regression and one that hides it. If a step after a control call is racy, the defect is in the
-     * backend's control API and belongs in its issue tracker.
+     * acted, because that is what the control API promises: {@code /start}, {@code /change} and
+     * {@code /reset} all block until the new state is actually being served. A fixed pause after
+     * every command would cover that window whether or not the promise is kept, which is the
+     * difference between a suite that can detect a control API regression and one that hides it. If
+     * a step after a control call is racy, the defect is in the backend's control API and belongs in
+     * its issue tracker.
+     *
+     * <p>The promise is about the <em>backend</em>. How long the provider under test takes to notice
+     * is a property of its transport and is what {@code eventTimeout()} bounds; conflating the two
+     * makes the provider's detection latency unmeasurable, because the clock would start before
+     * there is anything to detect.
      *
      * @param baseUrl the control API base URL, without a trailing slash
-     * @param defaultConfig the configuration name defining the canonical baseline
+     * @param backendConfiguration the backend configuration name defining the canonical baseline
      */
-    HttpBackendControl(String baseUrl, String defaultConfig) {
+    HttpBackendControl(String baseUrl, String backendConfiguration) {
         this.baseUrl = baseUrl;
-        this.defaultConfig = defaultConfig;
+        this.backendConfiguration = backendConfiguration;
         this.http =
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     }
@@ -82,12 +87,12 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Always {@link BackendControl#CONTROL_API_HTTP}: this is the normative control API, and a
-     * run conducted through it is the portable kind of conformance claim.
+     * <p>Always {@link ControlApi#HTTP}: this is the normative control API, and a run conducted
+     * through it is the portable kind of conformance claim.
      */
     @Override
-    public String controlApi() {
-        return CONTROL_API_HTTP;
+    public ControlApi controlApi() {
+        return ControlApi.HTTP;
     }
 
     /**
@@ -141,20 +146,6 @@ public final class HttpBackendControl implements BackendControl {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Issues {@code POST /restart?seconds=...}. Flag state is preserved across the outage, so a
-     * provider observes an availability change and not a configuration change. The control API
-     * takes whole seconds, so a sub-second outage is rounded up to one second.
-     */
-    @Override
-    public void disconnectFor(Duration outage) {
-        int seconds = (int) Math.max(1, Math.ceil(outage.toMillis() / 1000.0));
-        post("/restart?seconds=" + seconds);
-        backendStopped = true;
-    }
-
-    /**
      * Waits until the control API accepts commands.
      *
      * <p>Probes the optional {@code GET /healthz}. A {@code 404} is a conformant answer meaning
@@ -190,11 +181,11 @@ public final class HttpBackendControl implements BackendControl {
     }
 
     /**
-     * Starts the backend with the default configuration, seeding flag state to that configuration
-     * baseline.
+     * Starts the backend with the configured backend configuration, seeding flag state to that
+     * configuration's baseline.
      */
     private void start() {
-        post("/start?config=" + defaultConfig);
+        post("/start?config=" + backendConfiguration);
         backendStopped = false;
     }
 
@@ -219,7 +210,7 @@ public final class HttpBackendControl implements BackendControl {
                                 + "falling back to POST /start?config={} for scenario isolation.",
                         baseUrl,
                         response.statusCode(),
-                        defaultConfig);
+                        backendConfiguration);
             }
             resetSupported = false;
             start();
