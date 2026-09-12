@@ -40,7 +40,7 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
 
     @Override
     public File composeFile() {
-        return new File("src/test/resources/flagsmith-testbed-compose.yaml");
+        return new File("src/test/resources/tck/docker-compose.yaml");
     }
 
     @Override
