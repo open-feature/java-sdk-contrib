@@ -195,9 +195,21 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * skipped for an undeclared capability like any other. It is named here for the same reason
      * {@code REINITIALIZATION} is — {@link Capability#declarableExcept} would otherwise claim it.
      *
+     * <p>{@link Capability#VARIANTS} and {@link Capability#TARGETING} are declared, and unlike the
+     * withheld tags above both are confirmed by a run rather than read from the source. The OFREP
+     * response carries {@code variant} alongside {@code value} and {@code reason}, and the provider
+     * passes it through, so seven of the {@code @variants} outline's eight rows pass; the eighth asks
+     * for {@code large-integer-flag}'s {@code max-int32} and gets no variant because testbed v3.8.0
+     * does not serve that flag — the gap already noted next to the image tag, not a second defect.
+     * {@code @targeting} matters more here than the capability's name suggests: the provider sends the
+     * evaluation context in the request body and the backend evaluates the rule, so the three
+     * {@code targeting-key-flag} scenarios are the only ones in the canonical set that would notice a
+     * context dropped on the way out. All three pass.
+     *
      * <p>{@code declarableExcept} rather than {@code EnumSet.complementOf}, which would also claim
-     * {@code @targeting} and {@code @caching} on the way past; the suite refuses such a declaration
-     * at startup.
+     * {@code @caching} on the way past; the suite refuses such a declaration at startup. It claimed
+     * {@code @targeting} the same way until that tag gated something — the reserved set shrinks as
+     * the vocabulary fills up, which is an argument for the form of the call rather than against it.
      */
     @Override
     public Set<Capability> capabilities() {
