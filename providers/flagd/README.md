@@ -358,3 +358,54 @@ FlagdOptions options = FlagdOptions.builder()
       .resolverType(Config.Resolver.IN_PROCESS)
       .build();
 ```
+
+## Provider conformance (TCK)
+
+This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md), once per resolver:
+`FlagdRpcTckTest` and `FlagdInProcessTckTest`, both over the shared
+`AbstractFlagdTckTest`. Read that class before changing either — it records which capabilities are
+declared, which are withheld and why, and every known deviation, each against measured behaviour
+rather than assumption.
+
+**The two suites are Docker-gated and excluded from the default build.** They live under
+`src/test/java/.../e2e/`, which `<testExclusions>**/e2e/*.java</testExclusions>` in this module's
+POM keeps out of `mvn verify`. Why an adoption suite is excluded rather than gating is written down
+once for all four languages in
+[Appendix F: Running the suite in CI](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci);
+this section is only what that means in this module.
+
+**The `e2e` profile narrows that exclusion rather than clearing it**, to `**/e2e/*TckTest.java`.
+The profile exists for the legacy `Run*Test` suites over the `test-harness` submodule, and
+`ci.yml`'s `main` job activates it on every push — so a profile that cleared the exclusion outright,
+which is what this one used to do, ran the TCK suites in CI on a runner that does have a Docker
+daemon. They are expected to fail, so every unrelated pull request went red for a reason that had
+nothing to do with it. That is the first of the two mistakes the appendix names, found here by
+resolving the property rather than reading the POM:
+
+```bash
+mvn -Pe2e -pl providers/flagd help:evaluate -Dexpression=testExclusions -DforceStdout
+```
+
+Narrowing keeps the legacy suites running exactly as before and the TCK suites out. The exclusion is
+Surefire's, not the compiler's, so both suites still build against the harness in every job.
+
+The consequence is that **no CI job runs them**, so a maintainer runs them by hand before merging a
+change that touches the provider's resolution, event or lifecycle behaviour, and quotes the result in
+the pull request. A scheduled or path-filtered workflow was considered and declined: a suite whose
+red is diagnosed by whoever happens to read the notification is worse than one whose red is
+diagnosed by the person who caused it.
+
+```bash
+# both resolvers
+mvn -pl providers/flagd -am -DtestExclusions= -Dtest='Flagd*TckTest' \
+    -Dsurefire.failIfNoSpecifiedTests=false test
+
+# one resolver
+mvn -pl providers/flagd -am -DtestExclusions= -Dtest=FlagdInProcessTckTest \
+    -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+Both suites are currently **expected to fail**, and the expected failures are enumerated in
+`AbstractFlagdTckTest`: three come from flags that the pinned `flagd-testbed` image does not serve
+(open-feature/flagd-testbed#392) and one is the real numeric-coercion defect, declared and left
+visible rather than skipped (open-feature/flagd#1996). Anything else is a regression.
