@@ -21,7 +21,7 @@
             A conformance report has to say which questions were asked, not only what the answers
             were, so it records the open-feature/spec commit the packaged Gherkin, flag set and
             control API came from. It is filtered into
-            src/main/resources-filtered/.../provider-tck-build.properties and packaged in the JAR,
+            src/main/resources-filtered/.../tck-build.properties and packaged in the JAR,
             because the repository it came from is not.
 
             The executed Gherkin no longer rests on this pin alone: the results stream carries the
@@ -40,7 +40,7 @@
             pin already moves only by deliberate commit. Update both together; a mismatch means a
             report names a revision that did not produce its scenarios.
         -->
-        <provider-tck.spec.revision>009afe0617947121dcbebe4b66e0cc0c5cc4ada8</provider-tck.spec.revision>
+        <tck.spec.revision>009afe0617947121dcbebe4b66e0cc0c5cc4ada8</tck.spec.revision>
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.1</jackson-databind.version>

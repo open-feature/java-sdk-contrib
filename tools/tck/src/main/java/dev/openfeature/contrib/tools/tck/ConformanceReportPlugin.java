@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.tools.providertck;
+package dev.openfeature.contrib.tools.tck;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -215,7 +215,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         } catch (JsonProcessingException e) {
             // A stream whose first line will not parse is a bug worth surfacing, but not here:
             // omitting an optional field is better than failing a run that otherwise succeeded.
-            log.warn("provider-tck: could not read the Messages protocol version from the stream", e);
+            log.warn("tck: could not read the Messages protocol version from the stream", e);
             return null;
         }
     }
@@ -244,7 +244,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
             directory = Paths.get(dir);
         } catch (InvalidPathException e) {
             throw new IllegalStateException(
-                    "provider-tck [" + configuration + "]: " + REPORT_DIR_ENV + " is not a usable path: " + dir, e);
+                    "tck [" + configuration + "]: " + REPORT_DIR_ENV + " is not a usable path: " + dir, e);
         }
 
         String base = ReportNames.baseNameOf(configuration);
@@ -259,8 +259,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
                             .writeValueAsString(build(run, location, digestOf(results), protocolVersionOf(results)))
                     + "\n";
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException(
-                    "provider-tck [" + configuration + "]: could not encode the conformance report", e);
+            throw new IllegalStateException("tck [" + configuration + "]: could not encode the conformance report", e);
         }
 
         // A failure to write is raised rather than logged and swallowed. CI that asked for a report
@@ -272,14 +271,10 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
             Files.write(envelopePath, json.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new UncheckedIOException(
-                    "provider-tck [" + configuration + "]: could not write the conformance report to " + directory, e);
+                    "tck [" + configuration + "]: could not write the conformance report to " + directory, e);
         }
 
-        log.info(
-                "provider-tck [{}]: conformance report written to {}, results to {}",
-                configuration,
-                envelopePath,
-                resultsPath);
+        log.info("tck [{}]: conformance report written to {}, results to {}", configuration, envelopePath, resultsPath);
     }
 
     /** Digests the results stream in the {@code sha256:<hex>} form the schema asks for. */

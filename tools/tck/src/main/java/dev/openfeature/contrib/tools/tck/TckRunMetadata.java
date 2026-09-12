@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.tools.providertck;
+package dev.openfeature.contrib.tools.tck;
 
 import java.util.ArrayList;
 import java.util.Collections;
