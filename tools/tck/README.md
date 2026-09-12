@@ -791,8 +791,8 @@ control API.
 ## The canonical set cannot be reduced
 
 Extending the suite is safe by convention. Shrinking it is what a conformance suite has to prevent,
-because a run that asks fifty of the fifty-two questions and reports success is indistinguishable, in
-every artifact it produces, from one that asked all fifty-two.
+because a run that asks fifty-four of the fifty-six questions and reports success is
+indistinguishable, in every artifact it produces, from one that asked all fifty-six.
 
 `CanonicalScenarioGuard` is an ordinary JUnit test that the suite selects, and it fails the build if
 this run is set up to execute less than the canonical set:
