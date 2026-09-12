@@ -263,8 +263,20 @@
             <!-- this profile handles running the flagd e2e tests -->
             <id>e2e</id>
             <properties>
-                <!-- run the e2e tests by clearing the exclusions -->
-                <testExclusions/>
+                <!--
+                    Run the legacy flagd e2e suites (Run*Test, over the test-harness submodule) by
+                    narrowing the exclusions rather than clearing them, so the Provider TCK suites
+                    stay out.
+
+                    Clearing them would run FlagdRpcTckTest and FlagdInProcessTckTest in CI, because
+                    ci.yml's `main` job activates this profile (it passes `e2e` alongside the matrix
+                    profile) and a GitHub runner does have a Docker daemon. That is not what we
+                    want: those two suites are expected to fail on flags the pinned flagd-testbed
+                    image does not serve plus one recorded provider defect, so running them in the
+                    default build would make every unrelated pull request red. They are run by hand
+                    before merge instead. See providers/flagd/README.md.
+                -->
+                <testExclusions>**/e2e/*TckTest.java</testExclusions>
             </properties>
             <build>
                 <plugins>
