@@ -64,7 +64,7 @@ public final class BackendEndpoint {
      * Resolves the dynamically mapped host port for a container-internal port on a named service.
      *
      * <p>Use this for multi-service stacks — a proxy, an edge service, a sidecar. The service and
-     * port must have been declared via {@link ContainerizedProviderTckTest#additionalExposedPorts()},
+     * port must have been declared via {@link ContainerizedProviderTckTest#additionalPorts()},
      * otherwise Testcontainers has not exposed it and this call fails.
      *
      * @param service the Compose service name

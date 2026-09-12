@@ -161,7 +161,7 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
      *
      * @return additional services and ports to expose, empty by default
      */
-    public Map<String, List<Integer>> additionalExposedPorts() {
+    public Map<String, List<Integer>> additionalPorts() {
         return Collections.emptyMap();
     }
 
@@ -250,7 +250,7 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
         for (Integer port : backendPorts()) {
             stack.withExposedService(backendService(), port, Wait.forListeningPort());
         }
-        for (Map.Entry<String, List<Integer>> service : additionalExposedPorts().entrySet()) {
+        for (Map.Entry<String, List<Integer>> service : additionalPorts().entrySet()) {
             for (Integer port : service.getValue()) {
                 stack.withExposedService(service.getKey(), port, Wait.forListeningPort());
             }
