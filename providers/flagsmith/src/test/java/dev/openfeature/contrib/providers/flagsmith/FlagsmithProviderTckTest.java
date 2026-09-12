@@ -96,6 +96,9 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      * rather than an oversight: Java's integer accessor is a 32-bit {@code Integer}, so 2^53-1
      * cannot be asked for at all. This is the same reason Java withholds it for flagd.
      *
+     * <p>{@code DISABLED_FLAGS} is declared. Flagsmith's native model is {@code enabled} plus a
+     * value, so the canonical set's four disabled-* flags map straight onto it.
+     *
      * <p>The lifecycle and event capabilities are withheld pending the run. Go's provider
      * implements no {@code StateHandler} whatsoever; whether Java's does is the first thing this
      * run answers, and declaring them afterwards is the correct follow-up. Withholding a capability
@@ -103,7 +106,7 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.OBJECT, Capability.TARGETING);
+        return EnumSet.of(Capability.OBJECT, Capability.TARGETING, Capability.DISABLED_FLAGS);
     }
 
     @Override
