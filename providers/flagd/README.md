@@ -373,6 +373,14 @@ rather than assumption.
 stack. That is a deliberate policy and not an omission: a default build that needs Docker fails in a
 way that reads as a broken provider rather than as a missing prerequisite.
 
+**The `e2e` profile narrows that exclusion rather than clearing it**, to
+`**/e2e/*TckTest.java`. This is the part that is easy to get wrong, so it is worth stating: the
+`e2e` profile exists for the legacy `Run*Test` suites over the `test-harness` submodule, and
+`ci.yml`'s `main` job activates it on every push. A profile that cleared the exclusion outright
+would therefore run the TCK suites in CI, on a runner that does have a Docker daemon — and they are
+expected to fail, so every unrelated pull request would go red for a reason that has nothing to do
+with it. Narrowing keeps the legacy suites running exactly as before and the TCK suites out.
+
 The consequence is that **no CI job runs them**, so a maintainer runs them by hand before merging a
 change that touches the provider's resolution, event or lifecycle behaviour, and quotes the result in
 the pull request. A scheduled or path-filtered workflow was considered and declined: a suite whose
