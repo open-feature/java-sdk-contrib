@@ -163,11 +163,23 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * fault for a value the accessor cannot carry. Its one scenario is reported as skipped for an
      * undeclared capability, like any other.
      *
+     * <p>{@link Capability#VARIANTS} and {@link Capability#TARGETING} are both declared, and both on
+     * evidence rather than by inheriting the "everything except" default. flagd names the variant it
+     * served in every resolution, so seven of the {@code @variants} outline's eight rows pass in both
+     * modes; the eighth asks for {@code large-integer-flag}'s {@code max-int32} and is answered with
+     * no variant because testbed v3.8.0 does not serve that flag at all — the same gap that fails the
+     * untagged precision scenario, recorded next to the image tag in the Compose file rather than
+     * here. {@code @targeting} is the newer claim and the cheaper one to check: its three scenarios
+     * resolve {@code targeting-key-flag} through flagd's own rule evaluation and all three pass in
+     * both modes on the image already pinned, so nothing about it needed a testbed bump.
+     *
      * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
      * this used to be. The complement of one capability is every other <em>enum constant</em>,
-     * including {@code @targeting} and {@code @caching} — reserved tags no scenario carries — so
-     * declaring the complement claimed two capabilities nothing had examined, and the suite refuses
-     * such a declaration at startup.
+     * including {@code @caching} — a reserved tag no scenario carries — so declaring the complement
+     * claimed a capability nothing had examined, and the suite refuses such a declaration at startup.
+     * It swept up {@code @targeting} the same way until that tag gated something, which is the point:
+     * the hazard shrinks as the vocabulary fills up and never disappears, so the form of the call is
+     * what protects the declaration, not the current size of the reserved set.
      */
     @Override
     public Set<Capability> capabilities() {
