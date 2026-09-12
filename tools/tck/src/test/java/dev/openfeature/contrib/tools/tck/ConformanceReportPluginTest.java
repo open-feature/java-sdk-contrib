@@ -279,7 +279,7 @@ class ConformanceReportPluginTest {
     void aReservedCapabilityCannotReachTheDeclaration() {
         // The provider that claims the most is the case that used to break the rule: "everything"
         // spelt EnumSet.allOf, or "everything except X" spelt EnumSet.complementOf, collected the
-        // reserved tags along the way and published a claim about two capabilities no scenario
+        // reserved tags along the way and published a claim about capabilities no scenario
         // examines. So this asks the maximal declaration for its report.
         JsonNode declared = MAPPER.valueToTree(report(Capability.declarable()))
                 .get("declaration")
@@ -290,7 +290,7 @@ class ConformanceReportPluginTest {
 
         assertThat(tags)
                 .as("a reserved tag gates nothing, so declaring it is a claim nothing can contradict")
-                .doesNotContain(Capability.TARGETING.tag(), Capability.CACHING.tag());
+                .doesNotContain(Capability.CACHING.tag());
         assertThat(tags)
                 .as("and every capability some scenario does gate is still there")
                 .containsExactly(
@@ -300,6 +300,10 @@ class ConformanceReportPluginTest {
                         Capability.STALE.tag(),
                         Capability.CONFIGURATION_CHANGE.tag(),
                         Capability.OBJECT.tag(),
+                        // @variants gates the one outline that asserts a variant. 2.2.4 is a SHOULD
+                        // and types.md types the field optional, so a backend with no variant
+                        // concept withholds it and those rows are skipped with that reason.
+                        Capability.VARIANTS.tag(),
                         Capability.UNAVAILABLE_INIT.tag(),
                         Capability.NUMERIC_COERCION.tag(),
                         // @large-integers gates a scenario and is an ordinary declarable capability.
@@ -307,7 +311,10 @@ class ConformanceReportPluginTest {
                         // but that is a fact about the SDK recorded in Appendix F rather than a
                         // second kind of declaration, so the maximal claim includes it and a real
                         // harness withholds it.
-                        Capability.LARGE_INTEGERS.tag());
+                        Capability.LARGE_INTEGERS.tag(),
+                        // @targeting was reserved until targeting-key-flag's three scenarios
+                        // arrived. It gates something now, so the maximal claim includes it.
+                        Capability.TARGETING.tag());
     }
 
     @Test
@@ -316,11 +323,11 @@ class ConformanceReportPluginTest {
         // Chosen over a warning: the declaration is the one part of the report no result can check,
         // and a report is read long after the log it would have been warned in has gone. Nothing is
         // lost by refusing, because no scenario carries the tag.
-        Set<Capability> overclaimed = EnumSet.of(Capability.OBJECT, Capability.TARGETING);
+        Set<Capability> overclaimed = EnumSet.of(Capability.OBJECT, Capability.CACHING);
 
         assertThatThrownBy(() -> metadata(overclaimed))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining(Capability.TARGETING.tag())
+                .hasMessageContaining(Capability.CACHING.tag())
                 .hasMessageContaining("declarableExcept");
     }
 
@@ -328,13 +335,13 @@ class ConformanceReportPluginTest {
     @DisplayName("\"everything except X\" means everything declarable except X")
     void declarableExceptYieldsOnlyDeclarableCapabilities() {
         assertThat(Capability.declarableExcept(Capability.STALE))
-                .doesNotContain(Capability.STALE, Capability.TARGETING, Capability.CACHING)
-                .contains(Capability.OBJECT, Capability.NUMERIC_COERCION);
+                .doesNotContain(Capability.STALE, Capability.CACHING)
+                .contains(Capability.OBJECT, Capability.NUMERIC_COERCION, Capability.TARGETING);
 
         // The counterpart it replaces, and why it had to be replaced.
         assertThat(EnumSet.complementOf(EnumSet.of(Capability.STALE)))
                 .as("complementOf is the complement of the enum, not of the declarable vocabulary")
-                .contains(Capability.TARGETING, Capability.CACHING);
+                .contains(Capability.CACHING);
     }
 
     @Test
