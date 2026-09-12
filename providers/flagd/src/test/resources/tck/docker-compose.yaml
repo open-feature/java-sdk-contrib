@@ -3,9 +3,14 @@
 # The image serves flagd itself and the "launchpad" control API on 8080, whose endpoints this
 # TCK's control API contract was derived from. It does not yet serve the whole canonical flag
 # set: v3.8.0 has none of large-integer-flag, huge-integer-flag or integral-float-flag. Only
-# large-integer-flag is reached by a scenario that runs here -- the other two sit behind
-# @large-integers and @numeric-coercion, which this provider does not declare -- so one untagged
-# scenario fails FLAG_NOT_FOUND until open-feature/flagd-testbed#392 lands. Bump the tag then.
+# large-integer-flag is reached by scenarios that run here -- the other two sit behind
+# @large-integers and @numeric-coercion, which this provider does not declare -- and it is
+# reached twice: the untagged precision scenario, which gets the code default instead of
+# 2147483647, and the @variants row that asks for its "max-int32" variant and is answered with
+# none. Both fail until open-feature/flagd-testbed#392 lands. Bump the tag then.
+#
+# targeting-key-flag is served, which is why @targeting needs no bump: its three scenarios pass
+# on this image in both modes.
 #
 # Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers
 # them after startup — a pinned host port would make the suite unrunnable in parallel and would
