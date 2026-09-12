@@ -26,9 +26,9 @@ import org.junit.platform.launcher.TestPlan;
  * Fails a suite that is set up to run less than the whole canonical scenario set.
  *
  * <p>Everything else in this module makes the canonical set easy to extend safely. Nothing makes it
- * hard to shrink, and shrinking it is the failure that matters: a run that asks twenty-seven of the
- * twenty-nine questions and reports success is indistinguishable, in every artifact it produces, from
- * one that asked all twenty-nine. The known ways to get there are a feature file dropped into
+ * hard to shrink, and shrinking it is the failure that matters: a run that asks fifty of the fifty-two
+ * questions and reports success is indistinguishable, in every artifact it produces, from one that
+ * asked all fifty-two. The known ways to get there are a feature file dropped into
  * {@code gherkin/}, a {@code cucumber.filter.tags} or {@code cucumber.filter.name} expression, and
  * selectors or glue overridden in a consuming module's {@code junit-platform.properties}.
  *
