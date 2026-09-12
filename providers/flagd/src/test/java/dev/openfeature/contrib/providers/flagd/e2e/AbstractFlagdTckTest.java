@@ -26,12 +26,24 @@ import java.util.Set;
  *
  * <p><strong>The testbed does not yet serve the whole canonical flag set.</strong> Three of the
  * flags the suite's assets added are absent from {@code flagd-testbed} v3.8.0:
- * {@code large-integer-flag}, {@code huge-integer-flag} and {@code integral-float-flag}. Only the
- * first is reached — {@code huge-integer-flag} is asked for solely under {@code @large-integers} and
- * {@code integral-float-flag} solely under {@code @numeric-coercion}, both withheld below — so
- * exactly one untagged scenario, the 32-bit
- * precision one, fails with {@code FLAG_NOT_FOUND} in both modes until
- * open-feature/flagd-testbed#392 lands and the tag here is bumped.
+ * {@code large-integer-flag}, {@code huge-integer-flag} and {@code integral-float-flag}. Two of the
+ * three are reached — {@code huge-integer-flag} is asked for solely under {@code @large-integers},
+ * which is withheld below for a reason of its own — so three scenarios fail with
+ * {@code FLAG_NOT_FOUND} in both modes until open-feature/flagd-testbed#392 lands and the tag here
+ * is bumped:
+ *
+ * <ul>
+ *   <li>the untagged 32-bit precision scenario, which gets the code default instead of
+ *       {@code 2147483647};
+ *   <li>the {@code @variants} row asking for {@code large-integer-flag}'s {@code max-int32}, which
+ *       is answered with no variant;
+ *   <li>the {@code @numeric-coercion} scenario "An integral float requested as an integer is coerced
+ *       without loss", which asks for {@code integral-float-flag}.
+ * </ul>
+ *
+ * <p>The third of those is new here, and it is the cost of declaring {@code @numeric-coercion}
+ * rather than withholding it — see {@link #knownDeviations()}, which explains why paying it is the
+ * honest report.
  *
  * <p>The three falsy flags used to fail the same way and no longer do. The testbed's
  * {@code zero-flags.json} already served {@code boolean-zero-flag}, {@code integer-zero-flag} and
@@ -64,15 +76,29 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * <p>At 5000 the first two in-process scenarios failed <em>reproducibly</em> on a slower host
      * with {@code Initialization timeout exceeded; did not complete within the 10000 ms deadline}
      * out of {@code FlagdProviderSyncResources.waitForInitialization}, on both flagd-testbed v3.8.0
-     * and v3.10.1; at 15000 the suite is clean apart from the two testbed gaps described above. The
-     * first scenario pays for a cold container as well as for the sync, which is why it is the first
-     * two rather than all of them.
+     * and v3.10.1. Raising it to 15000 cleared that. The first scenario pays for a cold container as
+     * well as for the sync, which is why it was the first two rather than all of them.
      *
      * <p>Worth being explicit that this is <strong>not</strong> a post-command settle in disguise.
      * A pause after the control call was tried at 50ms and at 3000ms and fixed nothing — the wait
      * this covers is the provider's own initialisation, which is bounded here where the scenario can
      * see it, rather than slept through where it cannot. {@link #UNAVAILABLE_DEADLINE_MS} stays
      * short so the promptness assertions still mean something.
+     *
+     * <p><strong>Not fully solved, and the bound is not the thing to keep raising.</strong> On a
+     * loaded Docker-in-WSL host the <em>first</em> scenario of {@code errors.feature} still errors in
+     * in-process mode, with the same message against the doubled 30000 ms deadline after some 53
+     * seconds of wall clock. Measured three times in a row, and — importantly — it reproduces with
+     * {@code @numeric-coercion} withheld exactly as it does with it declared, so it is not a
+     * consequence of what this suite declares. RPC mode never shows it.
+     *
+     * <p>That shape is stack-side readiness rather than provider slowness: a small ruleset does not
+     * take thirty seconds to sync, and only the mode that has to establish a sync stream and receive
+     * the whole ruleset after the first {@code POST /start} is affected. It is the class of defect
+     * open-feature/flagd-testbed#394 exists to close — a control endpoint returning before the
+     * backend is serving — and the TCK's own rule applies: a suite that sleeps instead of holding the
+     * control API to its promise stops being able to detect when the promise breaks. So the bound
+     * stays at 15000 and this is recorded rather than covered.
      */
     private static final int CONNECTED_DEADLINE_MS = 15000;
 
@@ -122,18 +148,28 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Everything declarable except {@link Capability#NUMERIC_COERCION} and
-     * {@link Capability#REINITIALIZATION}. The two omissions are different in kind: the first is a
-     * defect and is declared as one below, the second is a choice the specification offers. Evaluating
-     * {@code float-flag} (0.5) through the integer API returns {@code 0} with <em>no</em> error code
-     * rather than {@code TYPE_MISMATCH} with the code default — the value is silently truncated.
-     * Coercion as such is permitted, and the capability says so: the rule is that a lossless
-     * coercion must succeed and a lossy one must fail. It is the lossy case being accepted that is a
-     * defect to fix, not a design choice; this override should be deleted once it is.
+     * <p>Everything declarable except {@link Capability#REINITIALIZATION} and
+     * {@link Capability#LARGE_INTEGERS}, both of which are facts about the provider or the SDK
+     * rather than defects, and both explained below.
      *
-     * <p>Declared here rather than per mode because both resolvers behave identically, which places
-     * the defect in the shared provider layer rather than in either transport. Every other
-     * capability, including the full non-numeric type-mismatch matrix, holds in both modes.
+     * <p><strong>{@link Capability#NUMERIC_COERCION} is declared even though one of its scenarios
+     * fails</strong>, and that is deliberate — see {@link #knownDeviations()} for the reasoning.
+     * Evaluating {@code float-flag} (0.5) through the integer API returns {@code 0} with <em>no</em>
+     * error code rather than {@code TYPE_MISMATCH} with the code default, so the fractional part is
+     * discarded silently. Coercion as such is permitted, and the capability says so: the rule is
+     * that a lossless coercion must succeed and a lossy one must fail. It is the lossy case being
+     * accepted that is a defect to fix.
+     *
+     * <p>Measured rather than assumed, in both modes: of the tag's three scenarios, "An integer
+     * requested as a float is widened without loss" <em>passes</em> — which is the fact that settles
+     * the shape of the report, because a provider that performs the coercion and gets one direction
+     * wrong is not a provider that declines to coerce. The lossy scenario fails, and the remaining
+     * lossless one fails only because {@code integral-float-flag} is absent from the pinned testbed
+     * image.
+     *
+     * <p>flagd's numeric behaviour is identical across both resolvers, which places the defect in
+     * the shared provider layer rather than in either transport. Every other capability, including
+     * the full non-numeric type-mismatch matrix, holds in both modes.
      *
      * <p>That includes {@link Capability#LIFECYCLE}, and legitimately so: flagd reaches its backend
      * during initialisation in both modes — an RPC round trip, or a full ruleset sync — so the
@@ -188,9 +224,11 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      *
      * <p>{@link Capability#DISABLED_FLAGS} is declared, and measured rather than assumed. Both
      * resolvers substitute the caller's default for a flag whose state is {@code DISABLED} and report
-     * no error code, so all four rows of that outline pass in both modes — 56 scenarios, 49 passing,
-     * five skipped for the withheld tags above and the two testbed failures already described.
-     * Nothing needed bumping for it either: {@code disabled-boolean-flag},
+     * no error code, so all four rows of that outline pass in both modes. Measured on the pinned
+     * image: RPC is 56 scenarios, 50 passing, two skipped for the withheld tags above and four
+     * failing — the one real defect plus the three testbed gaps already described. In-process is the
+     * same four failures plus the cold-start initialisation error recorded on
+     * {@link #CONNECTED_DEADLINE_MS}, so 49 passing. Nothing needed bumping for it either: {@code disabled-boolean-flag},
      * {@code disabled-string-flag}, {@code disabled-integer-flag} and {@code disabled-float-flag}
      * are flagd-testbed's own, from {@code flags/disabled-flags.json}, which the image already
      * carries at the v3.8.0 pinned below and which the launchpad combines into the set it serves. The
@@ -214,26 +252,35 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return Capability.declarableExcept(
-                Capability.NUMERIC_COERCION, Capability.REINITIALIZATION, Capability.LARGE_INTEGERS);
+        return Capability.declarableExcept(Capability.REINITIALIZATION, Capability.LARGE_INTEGERS);
     }
 
     /**
      * {@inheritDoc}
      *
-     * <p>The withheld {@link Capability#NUMERIC_COERCION} is a defect, not a limitation, and
-     * something has to say so. In the results the two are indistinguishable: the scenario is skipped
-     * either way, and the declaration explains only <em>that</em> the capability was not claimed,
-     * never whether flagd chose not to claim it. A consumer comparing providers would otherwise read
-     * this exactly as it reads a provider with no streaming transport declining
-     * {@code @configuration-change}, which is a decision rather than a bug.
+     * <p>One entry, for {@link Capability#NUMERIC_COERCION}, and it takes the <strong>declared and
+     * failing</strong> shape rather than the withheld-and-skipped one. That is the shape the TCK's
+     * guidance prefers, and the reason it prefers it is exactly this case: flagd <em>does</em>
+     * attempt the coercion — the widening scenario passes — and gets the narrowing direction wrong,
+     * so withdrawing the capability would turn a real failure into a skip, which is the failure mode
+     * the field exists to prevent. The failure stays visible in the results and this entry says it is
+     * known and why.
+     *
+     * <p>An earlier version of this file withheld the tag instead, on the argument that the
+     * capability requires all three of its scenarios and one of them asks for
+     * {@code integral-float-flag}, which the pinned testbed image does not serve — so declaring it
+     * buys one honest failure and one that is the stack's fault. That cost is real and it is
+     * accepted, for two reasons. It is not a new kind of cost: this branch already carries two
+     * failures caused by the same missing flags and records them plainly rather than hiding them
+     * behind a withheld capability. And the alternative is worse, because a skip cannot distinguish
+     * "flagd declines to coerce" from "flagd coerces and gets it wrong", and only the second is true.
      *
      * <p>Tracked against flagd's numeric coercion ADR, which is where the rule this deviates from is
      * settled: coercion is permitted when it is lossless and must fail with {@code TYPE_MISMATCH}
      * only when information would be lost. The summary says which half is broken, because "flagd
-     * coerces numbers" on its own reads as a description of intended behaviour. Delete the entry —
-     * and the {@code capabilities()} override above — once the lossy case reports
-     * {@code TYPE_MISMATCH}.
+     * coerces numbers" on its own reads as a description of intended behaviour. Delete the entry once
+     * the lossy case reports {@code TYPE_MISMATCH}; the capability needs no change then, which is
+     * another small argument for this shape.
      */
     @Override
     public List<KnownDeviation> knownDeviations() {
@@ -243,9 +290,14 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
                 "The lossy half of the coercion rule is not enforced: evaluating float-flag (0.5) "
                         + "through the integer API returns 0 with no error code, rather than "
                         + "TYPE_MISMATCH with the code default, so the fractional part is discarded "
-                        + "silently. Lossless coercion is permitted and is not the defect. Both "
-                        + "resolvers behave identically, which places it in the shared provider layer "
-                        + "rather than in either transport."));
+                        + "silently. Lossless coercion is permitted and is not the defect -- flagd "
+                        + "does widen an integer to a float correctly, which is why the capability is "
+                        + "declared and the scenario left to fail rather than the capability "
+                        + "withheld. Both resolvers behave identically, which places it in the shared "
+                        + "provider layer rather than in either transport. The tag's third scenario "
+                        + "also fails, but for an unrelated reason that is not flagd's: "
+                        + "integral-float-flag is absent from the pinned flagd-testbed image, "
+                        + "open-feature/flagd-testbed#392."));
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {
