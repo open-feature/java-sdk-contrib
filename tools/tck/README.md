@@ -896,7 +896,7 @@ outright, which is the whole argument for a standard format over one we maintain
 
 ### What the envelope is for
 
-A Messages stream cannot say what it was a test *of*. The envelope carries the four things no
+A Messages stream cannot say what it was a test *of*. The envelope carries the five things no
 standard results format identifies:
 
 - **`provider`** — what the provider calls itself through its own metadata, not the suite name. The
@@ -913,6 +913,12 @@ standard results format identifies:
   longer rests on that pin alone — the stream carries the `source` of every feature, so it can be
   diffed against the revision — but the pin is what identifies the two artifacts the stream does not
   carry, `flags/canonical-flags.json` and `openapi/control-api.yaml`.
+- **`backend`** — what the provider was pointed at, and `controlApi`, which of the two control
+  contracts drove it. Always present, both of them: the same scenarios passing over the HTTP control
+  API and passing through in-process manipulation of a provider that *does* have a backend are not
+  the same claim, and this is the only field that separates them, so an omission would be an
+  unfalsifiable claim rather than no claim at all. See [How the backend was
+  driven](#how-the-backend-was-driven).
 - **`declaration`** — the capability set the provider claims. This is an **input** to reading the
   results, not a summary of them, which is why it cannot be derived from the stream. The stream says
   a scenario was skipped; only the declaration says whether that is because the provider declines the

@@ -252,6 +252,9 @@ class ConformanceReportPluginTest {
         assertThat(envelope.get("sdk").get("version").asText()).isNotEmpty();
         assertThat(envelope.get("tck").get("implementation").asText()).isEqualTo("java-sdk-contrib/tools/tck");
         assertThat(envelope.get("tck").get("specRevision").asText()).hasSizeGreaterThanOrEqualTo(7);
+        // backend is in the schema's top-level required array and controlApi in backend's, so both
+        // are asserted as present rather than as present-if-set.
+        assertThat(envelope.has("backend")).isTrue();
         assertThat(envelope.get("backend").get("controlApi").asText()).isEqualTo("http");
 
         // The schema sets additionalProperties: false throughout, so anything the results payload
@@ -447,7 +450,7 @@ class ConformanceReportPluginTest {
                 CONFIGURATION,
                 declared,
                 "a test double",
-                "http",
+                ControlApi.HTTP,
                 Collections.singletonList(KnownDeviation.untracked(
                         Capability.NUMERIC_COERCION, "the fixture provider narrows a float to an integer")));
         metadata.recordProviderName("My Provider");
