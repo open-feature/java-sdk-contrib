@@ -28,6 +28,13 @@ import java.util.Set;
  * it: that one stays the <em>reference adoption</em> for a provider with no backend, written against
  * the published {@link InProcessBackendControl} and the SDK's own provider, and it is the thing an
  * adopter copies.
+ *
+ * <p>If you are porting this shape to another language, the one non-obvious constraint is that
+ * {@link ControllableProvider} <strong>composes</strong> the SDK's in-memory provider instead of
+ * extending it: seeding a subclass's flags during {@code initialize()} means calling
+ * {@code updateFlags}, which emits {@code PROVIDER_CONFIGURATION_CHANGED}, so every initialisation
+ * would fire a spurious configuration-change event at the very scenarios that assert which events
+ * occur. That class's javadoc has the full reasoning and the emission it avoids.
  */
 public class ControllableProviderTckTest extends ProviderTckTest {
 

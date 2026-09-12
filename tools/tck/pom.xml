@@ -191,9 +191,11 @@
             against the SDK's InMemoryProvider, against MultiProvider wrapping one, and against a
             provider with a real initialisation (the last being the only one of the three that
             covers the @lifecycle scenarios), all with no container and no network;
-            InProcessBackendControlTest pins the behaviour the Gherkin cannot assert about
-            itself. The SDK is inherited from the parent POM as `provided`, which puts it on the
-            test classpath already.
+            InProcessBackendControlTest and HttpBackendControlTest pin the behaviour the Gherkin
+            cannot assert about itself, the latter against a control API stubbed with the JDK's own
+            com.sun.net.httpserver.HttpServer so the normative HTTP request sequence is covered
+            without Docker. The SDK is inherited from the parent POM as `provided`, which puts it on
+            the test classpath already.
         -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
