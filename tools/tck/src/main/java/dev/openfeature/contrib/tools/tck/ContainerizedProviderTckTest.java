@@ -166,11 +166,17 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     }
 
     /**
-     * Returns the control API configuration name used to seed the canonical flag set.
+     * Returns the name of the <em>backend</em> configuration used to seed the canonical flag set.
      *
-     * @return the configuration name passed to {@code POST /start}, {@code default} by default
+     * <p>Not to be confused with {@link ProviderTckHarness#configuration()}, which names the mode of
+     * the <em>provider</em> under test — flagd's RPC resolver versus its in-process one — and is what
+     * a conformance report's {@code provider.configuration} carries. This one is a name the backend
+     * understands, passed through to {@code POST /start?config=...}.
+     *
+     * @return the backend configuration name passed to {@code POST /start}, {@code default} by
+     *     default
      */
-    public String defaultConfig() {
+    public String backendConfiguration() {
         return "default";
     }
 
@@ -203,7 +209,7 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
         compose = startCompose();
         endpoint = new BackendEndpoint(compose, backendService());
         control = new HttpBackendControl(
-                "http://" + endpoint.host() + ":" + endpoint.port(controlPort()), defaultConfig());
+                "http://" + endpoint.host() + ":" + endpoint.port(controlPort()), backendConfiguration());
         control.awaitReady(startupTimeout());
         log.info("Control API ready at {}", control.baseUrl());
     }
