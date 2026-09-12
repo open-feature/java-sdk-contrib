@@ -205,8 +205,8 @@
         "README.md"
       ]
     },
-    "tools/provider-tck": {
-      "package-name": "dev.openfeature.contrib.tools.providertck",
+    "tools/tck": {
+      "package-name": "dev.openfeature.contrib.tools.tck",
       "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,

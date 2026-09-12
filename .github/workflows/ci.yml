@@ -26,7 +26,7 @@ jobs:
   # Deliberately not a gate on `main`: the two run in parallel so a green run is not delayed.
   # The same suite also runs inside `main` as part of the reactor build; this job exists to
   # report it fast and in isolation.
-  provider-tck:
+  tck:
     name: Provider TCK (no Docker)
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +54,7 @@ jobs:
 
       - name: Verify the TCK against the in-memory provider
         # No `e2e` profile and no Docker: the in-memory suite is not gated behind either.
-        run: mvn --batch-mode --activate-profiles codequality -pl tools/provider-tck -am clean verify
+        run: mvn --batch-mode --activate-profiles codequality -pl tools/tck -am clean verify
 
   main:
     strategy:
