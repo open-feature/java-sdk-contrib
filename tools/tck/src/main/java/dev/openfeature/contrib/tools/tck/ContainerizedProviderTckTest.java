@@ -183,19 +183,6 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
         return Duration.ofSeconds(60);
     }
 
-    /**
-     * Returns how long to pause after a control API call before continuing.
-     *
-     * <p>Covers the gap between the control API acknowledging a command and the backend actually
-     * having acted on it. Raise it if you see flakiness immediately after
-     * {@code the flag was modified} or a provider setup step.
-     *
-     * @return the settle time, 50 milliseconds by default
-     */
-    public Duration settleTime() {
-        return Duration.ofMillis(50);
-    }
-
     // ---------------------------------------------------------------------------------------
     // The lifecycle-agnostic contract, implemented in terms of the Compose stack
     // ---------------------------------------------------------------------------------------
@@ -205,13 +192,18 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
      *
      * <p>Starts the Compose stack, resolves the control API's mapped port and waits for it to
      * accept commands.
+     *
+     * <p>The await here is the only timing allowance the suite makes, and it is a readiness check
+     * against the control API itself rather than a guess at how long a backend takes: it probes
+     * until the control API answers, bounded by {@link #startupTimeout()}. Nothing sleeps after a
+     * control command — see {@link HttpBackendControl}.
      */
     @Override
     public final void startSuite() {
         compose = startCompose();
         endpoint = new BackendEndpoint(compose, backendService());
         control = new HttpBackendControl(
-                "http://" + endpoint.host() + ":" + endpoint.port(controlPort()), defaultConfig(), settleTime());
+                "http://" + endpoint.host() + ":" + endpoint.port(controlPort()), defaultConfig());
         control.awaitReady(startupTimeout());
         log.info("Control API ready at {}", control.baseUrl());
     }

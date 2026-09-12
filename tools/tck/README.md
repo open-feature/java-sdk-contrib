@@ -590,8 +590,7 @@ needs most of a poll interval. Every await timeout is therefore overridable.
 |---|---|---|
 | `eventTimeout()` | 12s | waiting for a provider event |
 | `readyTimeout()` | 30s | waiting for a provider to reach a lifecycle state |
-| `startupTimeout()` | 60s | bringing the Compose stack up (`ContainerizedProviderTckTest` only) |
-| `settleTime()` | 50ms | pause after a control API call (`ContainerizedProviderTckTest` only) |
+| `startupTimeout()` | 60s | bringing the Compose stack up, and its control API becoming reachable (`ContainerizedProviderTckTest` only) |
 
 ```java
 @Override
@@ -603,6 +602,14 @@ public Duration eventTimeout() {
 Set `eventTimeout()` to comfortably exceed your worst-case detection latency, or the suite reports
 timeouts that are really just impatience. Scenarios that assert promptness as part of their point
 use the explicit `within {int}ms` step, which always wins.
+
+Every entry in that table is a **bound on an await**, and there is deliberately no entry that is a
+**pause**. Nothing sleeps after a control API call: a control call returns when the backend has
+acted, because that is what the control API promises — `POST /start` blocks until the flags are
+evaluable. A fixed pause would cover that window whether or not the promise is kept, which is the
+difference between a suite that can detect a control API regression and one that hides it. If a
+step after a control call is racy on your stack, the defect is in the backend's control API and it
+belongs in that backend's issue tracker; raising a pause in four languages is not the fix.
 
 ## Running it
 
