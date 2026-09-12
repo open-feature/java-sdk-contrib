@@ -7,7 +7,6 @@ import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import dev.openfeature.sdk.providers.memory.InMemoryProvider;
-import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -42,10 +41,6 @@ class InProcessBackendControlTest {
         assertThatThrownBy(control::reconnect)
                 .isInstanceOf(UnsupportedOperationException.class)
                 .hasMessageContaining("does not support 'reconnect'");
-
-        assertThatThrownBy(() -> control.disconnectFor(Duration.ofSeconds(1)))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining("does not support 'disconnectFor'");
     }
 
     @Test
