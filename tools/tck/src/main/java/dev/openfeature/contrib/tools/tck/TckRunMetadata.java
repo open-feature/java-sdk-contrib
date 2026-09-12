@@ -28,7 +28,7 @@ final class TckRunMetadata {
     private final String configuration;
     private final Set<Capability> capabilities;
     private final String backendDescription;
-    private final String controlApi;
+    private final ControlApi controlApi;
     private final List<KnownDeviation> knownDeviations;
 
     private volatile String providerName;
@@ -37,7 +37,7 @@ final class TckRunMetadata {
             String configuration,
             Set<Capability> capabilities,
             String backendDescription,
-            String controlApi,
+            ControlApi controlApi,
             List<KnownDeviation> knownDeviations) {
         Capability.requireDeclarable(capabilities);
         this.configuration = configuration;
@@ -64,9 +64,14 @@ final class TckRunMetadata {
         return Optional.ofNullable(backendDescription);
     }
 
-    /** Returns how the backend was driven, or empty when there is no control API. */
-    Optional<String> controlApi() {
-        return Optional.ofNullable(controlApi);
+    /**
+     * Returns how the backend was driven.
+     *
+     * <p>Never absent. {@link BackendControl#controlApi()} is required and closed, so there is
+     * nothing here to be optional about — see {@link ControlApi}.
+     */
+    ControlApi controlApi() {
+        return controlApi;
     }
 
     /** Returns the deviations the provider author acknowledged, empty when there are none. */

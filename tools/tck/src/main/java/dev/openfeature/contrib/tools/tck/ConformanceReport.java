@@ -47,7 +47,14 @@ public final class ConformanceReport {
     /** What asked the questions, and which questions. */
     public final Tck tck;
 
-    /** What the provider was pointed at. */
+    /**
+     * What the provider was pointed at.
+     *
+     * <p>Always present: {@code backend} is in the schema's top-level {@code required} array. An
+     * earlier revision described it as "omitted for a provider with no backend", which contradicted
+     * the {@code controlApi} enum whose {@code in-process} member exists for exactly that provider —
+     * so the one value most worth knowing could never legally appear.
+     */
     public final Backend backend;
 
     /** The capability set this provider claims. */
@@ -164,10 +171,16 @@ public final class ConformanceReport {
          *
          * <p>{@code in-process} is the narrow allowance made for providers with no backend; a report
          * claiming it for a provider that has one should be treated with suspicion.
+         *
+         * <p>Always written, because there is no third case an absent value would cover: every
+         * {@link BackendControl} is either driving a real backend over the control API or
+         * manipulating an in-process one, so an omission would be an unfalsifiable claim rather than
+         * no claim at all. {@link ControlApi} is closed for the same reason the schema's enum is, and
+         * serialises to the two values it names.
          */
-        public final String controlApi;
+        public final ControlApi controlApi;
 
-        Backend(String description, String controlApi) {
+        Backend(String description, ControlApi controlApi) {
             this.description = description;
             this.controlApi = controlApi;
         }
