@@ -1,0 +1,32 @@
+# Backend stack for the OpenFeature Provider TCK, wrapping the unmodified flagd testbed image.
+#
+# OFREP is a vendor-neutral protocol, so the TCK does not need an OFREP-specific testbed: any
+# backend that speaks OFREP and exposes the control API will do. flagd serves the OFREP HTTP API
+# on 8016 alongside its own gRPC surfaces, and the testbed image already ships the "launchpad"
+# control API on 8080 — the same stack the flagd provider's TCK suite uses, seeded with the same
+# flag set. No new image, no new control API.
+#
+# That flag set is not yet the whole canonical one: v3.8.0 has none of large-integer-flag,
+# huge-integer-flag or integral-float-flag. Only large-integer-flag is reached by scenarios that
+# run here -- the other two sit behind @large-integers and @numeric-coercion, neither of which
+# this provider declares -- and it is reached twice: the untagged precision scenario, which gets
+# the code default instead of 2147483647, and the @variants row that asks for its "max-int32"
+# variant and is answered with none. Both fail until open-feature/flagd-testbed#392 lands. Bump
+# the tag then.
+#
+# targeting-key-flag is served, which is why @targeting needs no bump: its three scenarios pass
+# on this image. The four disabled-* flags behind @disabled-flags are served too, from this
+# image's own flags/disabled-flags.json -- so the four failures that tag produced here are the
+# provider's and not the stack's, and the tag is withheld in OfrepTckTest with the reason. flagd
+# answers a disabled flag with 200, reason DISABLED and no value, which is what OFREP calls a
+# codeDefaultFlag; nothing is missing from this image.
+#
+# Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers
+# them after startup — a pinned host port would make the suite unrunnable in parallel and would
+# collide with a developer's local flagd.
+services:
+  backend:
+    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    ports:
+      - 8016   # flagd OFREP evaluation (HTTP)
+      - 8080   # launchpad control API

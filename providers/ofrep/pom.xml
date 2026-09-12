@@ -17,6 +17,20 @@
     <description>OFREP Provider</description>
     <url>https://openfeature.dev</url>
 
+    <properties>
+        <!-- Match any tck version locally; CI resolves it from the reactor -->
+        <tck.version>[0.1.0,)</tck.version>
+        <testcontainers.version>2.0.4</testcontainers.version>
+        <!--
+            OfrepTckTest needs a Docker daemon for its Compose stack, so it is excluded from the
+            default build exactly as providers/flagd excludes its own TCK suites. The parent POM
+            feeds this property to Surefire's <excludes>; it defines no default, so a module that
+            wants the gate declares it, and one that forgets silently runs a Docker-dependent suite
+            in every job. See providers/ofrep/README.md for the policy and how to run the suite.
+        -->
+        <testExclusions>**/e2e/*.java</testExclusions>
+    </properties>
+
     <developers>
 		<developer>
 			<id>Rahul-Baradol</id>
@@ -79,6 +93,32 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
             <version>4.12.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            OpenFeature Provider TCK. Brings its own Gherkin, step definitions, Compose lifecycle
+            and JUnit Platform suite configuration; OfrepTckTest is the whole adoption. Version
+            range so a local reactor build matches whatever is checked out.
+        -->
+        <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>tck</artifactId>
+            <version>${tck.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Testcontainers, declared here rather than inherited. The TCK compiles against it for
+            ContainerizedProviderTckTest's Compose lifecycle but declares it provided/optional, so
+            that the majority of adopters - which have no backend and never load that class - do not
+            resolve it. A containerised adopter such as this one therefore brings its own, which also
+            means it chooses its own major.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
