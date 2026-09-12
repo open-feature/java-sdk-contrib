@@ -173,6 +173,24 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * resolve {@code targeting-key-flag} through flagd's own rule evaluation and all three pass in
      * both modes on the image already pinned, so nothing about it needed a testbed bump.
      *
+     * <p>{@link Capability#DISABLED_FLAGS} is declared, and measured rather than assumed. Both
+     * resolvers substitute the caller's default for a flag whose state is {@code DISABLED} and report
+     * no error code, so all four rows of that outline pass in both modes — 56 scenarios, 49 passing,
+     * five skipped for the withheld tags above and the two testbed failures already described.
+     * Nothing needed bumping for it either: {@code disabled-boolean-flag},
+     * {@code disabled-string-flag}, {@code disabled-integer-flag} and {@code disabled-float-flag}
+     * are flagd-testbed's own, from {@code flags/disabled-flags.json}, which the image already
+     * carries at the v3.8.0 pinned below and which the launchpad combines into the set it serves. The
+     * canonical definition took the testbed's names and values rather than inventing its own, exactly
+     * as it did for the falsy flags.
+     *
+     * <p>That the capability holds here is worth stating rather than assuming, because the tag is
+     * gated on architecture rather than on quality and flagd sits on the right side of that line
+     * twice over: the in-process resolver evaluates the ruleset locally, and the RPC resolver still
+     * decides locally what to do with a response that carries no value. A provider whose backend
+     * decides — one speaking OFREP — cannot hold it at all, which is the comparison the tag exists to
+     * make legible.
+     *
      * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
      * this used to be. The complement of one capability is every other <em>enum constant</em>,
      * including {@code @caching} — a reserved tag no scenario carries — so declaring the complement
