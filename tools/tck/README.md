@@ -226,6 +226,19 @@ it. That is a known SDK gap,
 which the suite reproduced from the outside — the gap was originally found by hand-comparing
 implementations against the js-sdk reference. Everything else survives delegation unchanged.
 
+Two more tests are not suites at all, because what they guard is invisible from inside a scenario.
+[`InProcessBackendControlTest`](src/test/java/dev/openfeature/contrib/tools/tck/InProcessBackendControlTest.java)
+calls the unsupported operations directly, so a connection operation that quietly did nothing cannot
+pass as a skip.
+[`HttpBackendControlTest`](src/test/java/dev/openfeature/contrib/tools/tck/HttpBackendControlTest.java)
+stubs the control API with the JDK's own `com.sun.net.httpserver.HttpServer` — no Docker, nothing off
+loopback — and asserts the request sequence in order: that `/reset` is preferred and `/start` is the
+fallback, that an unimplemented `/reset` is probed **once per suite** and the answer cached, and that
+the scenario after a `disconnect()` uses `/start` rather than `/reset`. All three are normative in
+`openapi/control-api.yaml`, all three are decided in code no scenario can observe, and a control that
+got any of them wrong would let scenarios run against the previous one's backend state and report the
+results as conformance.
+
 ## Adopting it
 
 This section describes a provider with an external backend — the common case.
@@ -718,9 +731,15 @@ extending `ContainerizedProviderTckTest` needs a working Docker daemon for its C
 
 ### Containerised suites are excluded from the default build, on purpose
 
-A `ContainerizedProviderTckTest` subclass must be **excluded from the module's default test run**,
-and the adopting module says so in its own POM. This repository's convention is the
-`testExclusions` property the parent POM feeds to Surefire:
+**Why** an adoption suite is excluded rather than gating, and the two mistakes that exclusion
+invites, are written down once for all four languages in
+[Appendix F: Running the suite in CI](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci).
+Read that first. What follows is only the Maven mechanism, which is this repository's and not the
+appendix's business.
+
+A `ContainerizedProviderTckTest` subclass is **excluded from the module's default test run**, and
+the adopting module says so in its own POM. This repository's convention is the `testExclusions`
+property the parent POM feeds to Surefire:
 
 ```xml
 <properties>
@@ -728,29 +747,24 @@ and the adopting module says so in its own POM. This repository's convention is 
 </properties>
 ```
 
-This is a decision, not an omission. A default build that needs Docker fails on any machine or CI
-job without a daemon, and the failure reads as a broken provider rather than a missing prerequisite.
-The suites are instead **run locally by a maintainer before merge**, and a PR adopting the TCK is
-expected to quote the result. Adding a scheduled or path-filtered workflow to run them was
-considered and declined: a suite whose red is diagnosed by whoever happens to read the notification
-is worse than one whose red is diagnosed by the person who caused it.
+The parent POM defines no default for it, so a module that wants the gate must declare the property
+itself. It is a **Surefire** exclusion, not a compiler one: the suite still compiles against the
+harness in every build, which is what keeps an adoption from rotting unnoticed.
 
-**Check what your profiles do to that property.** This is the part that is easy to get wrong. If
-your module has a profile that *clears* `testExclusions` in order to run some other Docker suite —
-`<testExclusions/>` — and a CI job activates that profile, the TCK suite runs there too. In this
-repository `ci.yml`'s `main` job activates `e2e` on every push, so `providers/flagd` narrows its
-`e2e` profile to `**/e2e/*TckTest.java` instead of clearing it: the module's legacy suites keep
-running and the TCK suites stay out. Resolve the property rather than reading the POM:
+**Then resolve the property under every profile your CI activates** — do not read the POM, which is
+the mistake the appendix names first. Here, `ci.yml`'s `main` job activates `e2e` on every push, and
+`providers/flagd` has an `e2e` profile for its legacy `Run*Test` suites; that profile therefore
+narrows the exclusion to `**/e2e/*TckTest.java` rather than clearing it to `<testExclusions/>`, so
+the legacy suites keep running and the TCK suites stay out. Both halves of the appendix's warning
+happened in this repository — one adoption never declared the property, the other had a profile
+putting it back — and both were found by running this, not by reading:
 
 ```bash
 mvn -Pe2e -pl providers/<your-provider> help:evaluate -Dexpression=testExclusions -DforceStdout
 ```
 
-Write the exclusion down where the adopter can find it. An exclusion nobody records is
-indistinguishable from an oversight, and both halves of that went wrong here: one of the two
-adoptions in this repository ran a Docker-dependent suite in its default build because it never
-declared the property, and the other was reported as excluded from every job when a profile was
-quietly putting it back.
+The single documented command that runs a suite deliberately, per the appendix, is the one in each
+adoption's own README: `-DtestExclusions=` on the command line overrides the property for one run.
 
 Scenarios run **serially** and the suite enforces this, overriding any
 `cucumber.execution.parallel.enabled=true` in your module's `junit-platform.properties`. Control API
