@@ -47,10 +47,14 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Four capabilities. {@link Capability#VARIANTS} is the one that is not obvious:
+     * <p>Five capabilities, two of which are not obvious. {@link Capability#VARIANTS} holds because
      * {@link InMemoryProvider} does name the variant it served, so the gated variant outline runs
-     * and passes here. Each omission below is a fact about {@link InMemoryProvider} rather than a
-     * convenience:
+     * and passes here. {@link Capability#DISABLED_FLAGS} holds because it honours a flag's state: the
+     * four {@code disabled-*} flags resolve to nothing and the caller's default stands in, with no
+     * error code, so all four rows of that outline pass. That is not a given for an in-memory
+     * provider — the capability is gated precisely because whether the substitution can happen at all
+     * depends on where it happens — and it was measured rather than assumed. Each omission below is a
+     * fact about {@link InMemoryProvider} rather than a convenience:
      *
      * <ul>
      *   <li>{@link Capability#NUMERIC_COERCION} — omitted. {@link InMemoryProvider} keeps the two
@@ -93,6 +97,11 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT, Capability.VARIANTS);
+        return EnumSet.of(
+                Capability.EVENTS,
+                Capability.CONFIGURATION_CHANGE,
+                Capability.OBJECT,
+                Capability.VARIANTS,
+                Capability.DISABLED_FLAGS);
     }
 }

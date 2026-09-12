@@ -70,7 +70,12 @@ public class MultiProviderTckTest extends ProviderTckTest {
      * {@code FLAG_NOT_FOUND}, falsy values, 32-bit integer precision and structured values all
      * survive the delegation hop unchanged — {@link Capability#VARIANTS} is declared for exactly
      * that reason, and a variant lost in delegation is one of the likelier ways a facade breaks the
-     * contract. {@link Capability#LIFECYCLE} and {@link Capability#NUMERIC_COERCION} are omitted for
+     * contract. {@link Capability#DISABLED_FLAGS} is declared on the same evidence and is the more
+     * interesting of the two: a disabled flag resolves to nothing, so the child hands back the
+     * caller's default and a facade that substituted a default of its own, or that read the absence
+     * as an error, would be caught on the value. All four rows pass, so the substitution survives the
+     * hop exactly as the child performs it. {@link Capability#LIFECYCLE} and
+     * {@link Capability#NUMERIC_COERCION} are omitted for
      * the same reasons as in {@link InMemoryProviderTckTest}: nothing here reaches a backend during
      * initialisation, and the child refuses the lossless coercions the tag now requires — a facade
      * cannot declare what its only child does not have. {@link Capability#TARGETING} is omitted for
@@ -78,6 +83,6 @@ public class MultiProviderTckTest extends ProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.EVENTS, Capability.OBJECT, Capability.VARIANTS);
+        return EnumSet.of(Capability.EVENTS, Capability.OBJECT, Capability.VARIANTS, Capability.DISABLED_FLAGS);
     }
 }
