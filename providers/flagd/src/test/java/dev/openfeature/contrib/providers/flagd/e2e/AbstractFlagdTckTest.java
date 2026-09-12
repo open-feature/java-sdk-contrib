@@ -3,10 +3,10 @@ package dev.openfeature.contrib.providers.flagd.e2e;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
-import dev.openfeature.contrib.tools.providertck.BackendEndpoint;
-import dev.openfeature.contrib.tools.providertck.Capability;
-import dev.openfeature.contrib.tools.providertck.ContainerizedProviderTckTest;
-import dev.openfeature.contrib.tools.providertck.KnownDeviation;
+import dev.openfeature.contrib.tools.tck.BackendEndpoint;
+import dev.openfeature.contrib.tools.tck.Capability;
+import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
+import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Collections;
@@ -159,7 +159,7 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * <p>{@link Capability#LARGE_INTEGERS} is withheld, as it is by every Java provider. It asks for
      * 2^53 − 1 and {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for it,
      * so the limit is the SDK's rather than flagd's — Appendix F is where that is recorded, and it is
-     * not a {@link dev.openfeature.contrib.tools.providertck.KnownDeviation}, because flagd is not at
+     * not a {@link dev.openfeature.contrib.tools.tck.KnownDeviation}, because flagd is not at
      * fault for a value the accessor cannot carry. Its one scenario is reported as skipped for an
      * undeclared capability, like any other.
      *
