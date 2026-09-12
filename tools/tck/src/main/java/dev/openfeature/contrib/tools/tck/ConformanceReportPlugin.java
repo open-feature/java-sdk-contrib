@@ -183,12 +183,15 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         return Collections.unmodifiableList(tags);
     }
 
+    /**
+     * Assembles the {@code backend} block, which is always emitted.
+     *
+     * <p>The schema requires it at the top level, and {@code controlApi} within it, so there is no
+     * conditional emission left here: a control that could not say how it drove the backend would
+     * have failed to compile.
+     */
     private static ConformanceReport.Backend backendOf(TckRunMetadata run) {
-        String description = run.backendDescription().orElse(null);
-        String controlApi = run.controlApi().orElse(null);
-        return description == null && controlApi == null
-                ? null
-                : new ConformanceReport.Backend(description, controlApi);
+        return new ConformanceReport.Backend(run.backendDescription().orElse(null), run.controlApi());
     }
 
     /**
