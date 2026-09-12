@@ -77,6 +77,11 @@ public class ProviderSteps extends AbstractSteps {
      * leaves {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT} undeclared, and the
      * scenarios needing them are skipped here — before any step can reach an unsupported operation.
      *
+     * <p>The one tag that is <em>failed</em> rather than skipped is a
+     * {@linkplain Capability#reserved() reserved} one, which cannot be declared and so could only
+     * ever produce a skip nobody is able to clear. See
+     * {@link CapabilityGate#requireNoExpiredReservation}.
+     *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
