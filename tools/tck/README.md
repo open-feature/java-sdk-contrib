@@ -148,8 +148,8 @@ reaching one from a scenario that actually ran is a **test-configuration bug**, 
 
 ### The TCK's own self-tests
 
-Two suites in this module are exactly the class above, and both run with no Docker in well under a
-second. They are the reference adoption, and they are the fast CI canary.
+Three suites in this module are exactly the class above, and all three run with no Docker in well
+under a second. They are the reference adoption, and they are the fast CI canary.
 
 [`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/tck/InMemoryProviderTckTest.java)
 runs the full applicable suite against the SDK's `InMemoryProvider` — of the 56 scenarios (outline
@@ -167,6 +167,28 @@ numeric types strictly apart in both
 directions — it refuses `10.0` as an integer and `10` as a float exactly as it refuses `0.5` — and the
 tag requires the lossless direction too. That is a choice the SDK's reference provider is entitled to,
 not a defect; see the class javadoc.
+
+[`ControllableProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/tck/ControllableProviderTckTest.java)
+runs it against a provider with a **real initialisation**, and it is the only Docker-free cover the
+`@lifecycle` feature has. `InMemoryProvider` cannot provide it: its constructor is handed the whole
+flag set, so `initialize()` records a state and `shutdown()` releases nothing observable, and
+running those scenarios against it would establish nothing — which is exactly why the suite above
+withholds `LIFECYCLE`. The consequence was that shutdown, double shutdown, shutdown against a dead
+backend and initialise-again had coverage only inside a containerised provider suite, where a break
+in them reads as a provider defect rather than a TCK one. `ControllableProvider` acquires its flag
+store at `initialize()` time from a store that may refuse it, so it declares `LIFECYCLE`,
+`REINITIALIZATION` and `UNAVAILABLE_INIT` and all six `@lifecycle` scenarios run. Of the 14 the
+in-memory suite skips, only 8 remain: the three `@numeric-coercion`, the three `@targeting`, the
+`@large-integers` one and the `@stale` one — `@stale` because an in-JVM store can refuse an
+initialisation but cannot take a connection away from a running provider and hand it back, so
+`disconnect()` stays at its throwing default. That is the one capability still without Docker-free
+coverage.
+
+The in-JVM store is not a licence for a provider that does have a backend to test itself this way;
+see [In-process control is for backend-less providers
+only](#in-process-control-is-for-backend-less-providers-only). `InMemoryProviderTckTest` stays the
+reference adoption an adopter copies, because it is written against the published
+`InProcessBackendControl` and the SDK's own provider.
 
 [`MultiProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/tck/MultiProviderTckTest.java)
 runs it against `MultiProvider` wrapping **one** `InMemoryProvider`. A provider that delegates is
