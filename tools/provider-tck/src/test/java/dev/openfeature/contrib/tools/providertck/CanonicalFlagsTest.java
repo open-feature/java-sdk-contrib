@@ -31,8 +31,11 @@ import org.junit.jupiter.api.Test;
  *
  * <p>The comparison is deliberately not a value table written out here. A table is another
  * transcription, drifts the same way, and a test that compares two copies of the same mistake passes.
- * Every expectation comes out of the file instead: the keys it defines, and for each the value of the
- * variant it says the flag resolves to.
+ * Every expectation comes out of the file instead: the keys it defines, and for each the state it is
+ * in and the value of the variant it says the flag resolves to. The state matters as much as the
+ * value now that the set contains four {@code disabled-*} flags, which resolve to nothing at all —
+ * a decoder that ignored {@code state} would serve their configured values and look correct against
+ * a variant table.
  *
  * <p>The values are read back through an {@link InMemoryProvider} rather than off the decoded map,
  * because the provider matches a variant against the type of the accessor it was asked through. That
@@ -85,13 +88,14 @@ class CanonicalFlagsTest {
     }
 
     @Test
-    @DisplayName("every flag resolves to the value of the variant the packaged definition names")
+    @DisplayName("every flag resolves as its packaged state and default variant say it should")
     void everyFlagResolvesToItsPackagedDefaultVariant() throws Exception {
         InMemoryProvider provider = new InProcessBackendControl().createProvider();
         provider.initialize(new ImmutableContext());
         ImmutableContext context = new ImmutableContext();
 
         List<String> checked = new ArrayList<>();
+        List<String> disabled = new ArrayList<>();
         for (Map.Entry<String, JsonNode> entry : packaged.entrySet()) {
             String key = entry.getKey();
             String defaultVariant = entry.getValue().path("defaultVariant").asText(null);
@@ -104,13 +108,27 @@ class CanonicalFlagsTest {
                     .as("%s resolves to variant '%s', which the definition does not define", key, defaultVariant)
                     .isFalse();
 
-            assertResolves(provider, context, key, defaultVariant, expected);
+            String state = entry.getValue().path("state").asText(null);
+            assertThat(state)
+                    .as("%s names no state, so the definition itself is broken", key)
+                    .isIn("ENABLED", "DISABLED");
+
+            boolean enabled = "ENABLED".equals(state);
+            assertResolves(provider, context, key, defaultVariant, expected, enabled);
             checked.add(key);
+            if (!enabled) {
+                disabled.add(key);
+            }
         }
 
         assertThat(checked)
                 .as("the loop must actually have run over the packaged flags")
                 .hasSameSizeAs(packaged.keySet());
+
+        assertThat(disabled)
+                .as("the disabled half of the assertion has to have been exercised, or a decoder that "
+                        + "dropped the state would pass here unnoticed")
+                .isNotEmpty();
     }
 
     /**
@@ -121,35 +139,50 @@ class CanonicalFlagsTest {
      * the accessor is deliberately never the expected value: {@code boolean-zero-flag} resolves to
      * {@code false} and {@code string-zero-flag} to {@code ""}, and a comparison whose fallback
      * happened to equal the answer would pass on a flag that had gone missing.
+     *
+     * <p>That property is also what lets one dispatch serve both states. A flag the definition marks
+     * {@code DISABLED} resolves to nothing at all — the caller's default stands in — so the expected
+     * answer is precisely the fallback this already had to pick to be distinct, and {@code enabled}
+     * only chooses which of the two the resolution must equal. The four {@code disabled-*} flags are
+     * the whole reason the parameter exists: a decoder that dropped {@code state} on the floor would
+     * make them serve their configured values, and <em>that</em> is what fails here rather than
+     * later, in a scenario, against a provider that did nothing wrong.
      */
     private static void assertResolves(
-            InMemoryProvider provider, ImmutableContext context, String key, String variant, JsonNode expected) {
+            InMemoryProvider provider,
+            ImmutableContext context,
+            String key,
+            String variant,
+            JsonNode expected,
+            boolean enabled) {
 
-        String where = key + " variant '" + variant + "'";
+        String where = key + " variant '" + variant + "'" + (enabled ? "" : ", disabled so the default stands in");
         switch (expected.getNodeType()) {
             case BOOLEAN:
                 boolean bool = expected.booleanValue();
                 assertThat(provider.getBooleanEvaluation(key, !bool, context).getValue())
                         .as(where)
-                        .isEqualTo(bool);
+                        .isEqualTo(enabled ? bool : !bool);
                 break;
             case STRING:
                 String string = expected.textValue();
-                assertThat(provider.getStringEvaluation(key, string + "-fallback", context)
+                String stringFallback = string + "-fallback";
+                assertThat(provider.getStringEvaluation(key, stringFallback, context)
                                 .getValue())
                         .as(where)
-                        .isEqualTo(string);
+                        .isEqualTo(enabled ? string : stringFallback);
                 break;
             case NUMBER:
-                assertNumberResolves(provider, context, key, where, expected);
+                assertNumberResolves(provider, context, key, where, expected, enabled);
                 break;
             case OBJECT:
             case ARRAY:
                 Value structure = Value.objectToValue(MAPPER.convertValue(expected, Object.class));
-                assertThat(provider.getObjectEvaluation(key, new Value("fallback"), context)
+                Value objectFallback = new Value("fallback");
+                assertThat(provider.getObjectEvaluation(key, objectFallback, context)
                                 .getValue())
                         .as(where)
-                        .isEqualTo(structure);
+                        .isEqualTo(enabled ? structure : objectFallback);
                 break;
             default:
                 fail("%s is a %s, which is not a flag value", where, expected.getNodeType());
@@ -165,25 +198,34 @@ class CanonicalFlagsTest {
      * refuses a variant of the other type, so this is where a decoder that widened or narrowed a
      * number fails. 2^53 − 1 has no room in an {@link Integer} and goes through the long accessor,
      * which is also the reason a Java provider leaves {@code @large-integers} undeclared.
+     *
+     * <p>The accessor is still chosen by the literal for a disabled flag, so a {@code disabled-*}
+     * flag whose type was mangled by the decoder is caught the same way: the answer is then neither
+     * the configured value nor the fallback.
      */
     private static void assertNumberResolves(
-            InMemoryProvider provider, ImmutableContext context, String key, String where, JsonNode expected) {
+            InMemoryProvider provider,
+            ImmutableContext context,
+            String key,
+            String where,
+            JsonNode expected,
+            boolean enabled) {
 
         if (!expected.isIntegralNumber()) {
             double value = expected.doubleValue();
             assertThat(provider.getDoubleEvaluation(key, value + 1, context).getValue())
                     .as(where)
-                    .isEqualTo(value);
+                    .isEqualTo(enabled ? value : value + 1);
         } else if (expected.canConvertToInt()) {
             int value = expected.intValue();
             assertThat(provider.getIntegerEvaluation(key, value + 1, context).getValue())
                     .as(where)
-                    .isEqualTo(value);
+                    .isEqualTo(enabled ? value : value + 1);
         } else {
             long value = expected.longValue();
             assertThat(provider.getLongEvaluation(key, value + 1, context).getValue())
                     .as(where)
-                    .isEqualTo(value);
+                    .isEqualTo(enabled ? value : value + 1);
         }
     }
 }
