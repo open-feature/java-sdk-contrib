@@ -206,10 +206,13 @@ public enum Capability {
      * specification says what a provider owes a value that does not fit the accessor it was asked
      * through — that is <a href="https://github.com/open-feature/spec/issues/430">open-feature/spec#430</a>.
      * A provider that behaves differently is not violating the specification, and a report must
-     * not be read as saying it is. Withholding the capability is still worth a word: narrowing
-     * {@code 0.5} to {@code 0} with no error code hands an application a plausible value and no
-     * signal, so a provider that does that should say whether it is a choice or a tracked defect,
-     * and {@link KnownDeviation} is where the second is said.
+     * not be read as saying it is. The difference is still worth a word: narrowing {@code 0.5} to
+     * {@code 0} with no error code hands an application a plausible value and no signal, so a
+     * provider that does that should say whether it is a choice or a defect, and
+     * {@link KnownDeviation} is where the second is said. Note which shape that takes — such a
+     * provider <em>does</em> attempt the coercion and gets it wrong, so the honest report is to
+     * declare the tag, let the lossy scenario fail, and record the deviation beside the failure
+     * rather than withholding the tag to turn the failure into a skip.
      *
      * <p><strong>Both halves are tested.</strong> The lossy half asks for {@code float-flag} (0.5)
      * as an integer and expects {@code TYPE_MISMATCH}; the lossless half asks for
