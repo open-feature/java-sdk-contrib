@@ -78,8 +78,15 @@ public enum Capability {
      * <p>So {@code EVENTS} asserts that the provider emits events; {@code LIFECYCLE} asserts that
      * there is a real initialisation behind the event whose outcome the events describe. Declare it
      * only if initialisation actually talks to the backend. A provider with nothing to reach — one
-     * backed by an in-memory map, or a facade over other providers — should <strong>not</strong>
-     * declare it, however many events it emits.
+     * handed its whole flag set by its constructor, or a facade over other providers — should
+     * <strong>not</strong> declare it, however many events it emits.
+     *
+     * <p>The test is whether initialisation <em>acquires</em> something it did not already hold and
+     * can be refused, not whether the thing acquired is across a socket. The TCK's own
+     * {@code ControllableProviderTckTest} declares this against a store in the same JVM, because
+     * that store is read at {@code initialize()} time and can decline — so {@code READY} is the
+     * outcome of the call rather than a state the SDK manufactured. The SDK's
+     * {@code InMemoryProvider} cannot, which is why {@code InMemoryProviderTckTest} withholds it.
      */
     LIFECYCLE("@lifecycle"),
 
