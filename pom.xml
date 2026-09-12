@@ -28,7 +28,7 @@
     </licenses>
 
     <modules>
-        <module>tools/provider-tck</module>
+        <module>tools/tck</module>
         <module>tools/flagd-api-testkit</module>
         <module>tools/flagd-api</module>
         <module>tools/flagd-core</module>
