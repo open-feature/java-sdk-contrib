@@ -31,7 +31,6 @@ public final class HttpBackendControl implements BackendControl {
     private final HttpClient http;
     private final String baseUrl;
     private final String defaultConfig;
-    private final Duration settleTime;
 
     /**
      * Tri-state cache of whether the backend implements the optional {@code /reset} operation.
@@ -49,14 +48,19 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * Creates a control client for a running backend.
      *
+     * <p>There is no post-command settle, deliberately. A control call returns when the backend has
+     * acted, because that is what the control API promises: {@code POST /start} blocks until the
+     * flags are evaluable. A fixed pause after every command would cover that window whether or not
+     * the promise is kept, which is the difference between a suite that can detect a control API
+     * regression and one that hides it. If a step after a control call is racy, the defect is in the
+     * backend's control API and belongs in its issue tracker.
+     *
      * @param baseUrl the control API base URL, without a trailing slash
      * @param defaultConfig the configuration name defining the canonical baseline
-     * @param settleTime how long to pause after a command before continuing
      */
-    HttpBackendControl(String baseUrl, String defaultConfig, Duration settleTime) {
+    HttpBackendControl(String baseUrl, String defaultConfig) {
         this.baseUrl = baseUrl;
         this.defaultConfig = defaultConfig;
-        this.settleTime = settleTime;
         this.http =
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     }
@@ -223,12 +227,10 @@ public final class HttpBackendControl implements BackendControl {
         }
         expectSuccess("/reset", response);
         resetSupported = true;
-        settle();
     }
 
     private void post(String path) {
         expectSuccess(path, send(path));
-        settle();
     }
 
     private HttpResponse<Void> send(String path) {
@@ -254,16 +256,13 @@ public final class HttpBackendControl implements BackendControl {
         }
     }
 
-    private void settle() {
-        sleep(settleTime);
-    }
-
+    /** Pauses between two readiness probes. The only sleep left here, and it is a poll interval. */
     private static void sleep(Duration duration) {
         try {
             Thread.sleep(duration.toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("interrupted while waiting for the backend to settle", e);
+            throw new IllegalStateException("interrupted while waiting for the control API to become ready", e);
         }
     }
 }
