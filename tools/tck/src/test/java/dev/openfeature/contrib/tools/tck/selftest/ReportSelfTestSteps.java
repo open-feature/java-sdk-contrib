@@ -1,7 +1,7 @@
-package dev.openfeature.contrib.tools.providertck.selftest;
+package dev.openfeature.contrib.tools.tck.selftest;
 
-import dev.openfeature.contrib.tools.providertck.Capability;
-import dev.openfeature.contrib.tools.providertck.CapabilityGate;
+import dev.openfeature.contrib.tools.tck.Capability;
+import dev.openfeature.contrib.tools.tck.CapabilityGate;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Given;
