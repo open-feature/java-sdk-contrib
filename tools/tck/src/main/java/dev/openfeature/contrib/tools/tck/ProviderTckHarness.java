@@ -140,14 +140,19 @@ public interface ProviderTckHarness {
      * Declares gaps this provider is known to have against parts of the contract the specification
      * does not treat as optional.
      *
-     * <p>Declared so that a consumer can tell a design decision from a defect. Withholding a
-     * capability and having a bug look identical in the results — scenarios skipped, either way —
-     * and the TCK cannot tell them apart from the outside. Only the provider author can, so only
-     * the provider author can say.
+     * <p>Declared so that a consumer can tell a design decision from a defect. The TCK cannot tell
+     * them apart from the outside: a capability the provider chose not to offer and one it cannot
+     * honour are the same absence, and a failing scenario says nothing about whether its author
+     * already knows. Only the provider author can, so only the provider author can say.
      *
-     * <p>Empty by default, which is silence rather than a claim. Declare an entry when you have
-     * narrowed {@link #capabilities()} to work around a defect rather than to describe a limitation,
-     * and delete it when the defect is fixed.
+     * <p>Empty by default, which is silence rather than a claim.
+     *
+     * <p>An entry is legitimate in two shapes, and the first is preferred: <strong>declare the
+     * capability, let the scenario fail, and record the deviation beside the failure.</strong>
+     * Withholding the capability so that its scenarios skip is for the case where the provider
+     * cannot attempt the behaviour at all — withdrawing one <em>in order to</em> turn a failure into
+     * a skip is the failure mode this method exists to prevent. See {@link KnownDeviation} for the
+     * full rule, including what counts as a requirement to deviate from.
      *
      * @return the deviations this provider acknowledges, empty by default
      */

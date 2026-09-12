@@ -164,8 +164,8 @@ class DeclarationApiTest {
     }
 
     @Test
-    @DisplayName("a deviation records the capability it withholds, tracked or not")
-    void deviationsRecordTheCapabilityTheyWithhold() {
+    @DisplayName("a deviation records the capability the gap is about, tracked or not")
+    void deviationsRecordTheCapabilityTheGapIsAbout() {
         KnownDeviation tracked = KnownDeviation.tracked(
                 Capability.NUMERIC_COERCION, "https://example.invalid/1234", "0.5 as an integer returns 0");
         assertThat(tracked.capability).isEqualTo("@numeric-coercion");
