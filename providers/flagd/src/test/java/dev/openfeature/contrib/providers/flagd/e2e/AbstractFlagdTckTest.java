@@ -57,11 +57,24 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
     /**
      * gRPC deadline for a provider that is expected to connect.
      *
-     * <p>Generous on purpose. flagd derives its initialisation deadline from this value, and the
-     * in-process resolver must sync the entire ruleset before it reports ready — which intermittently
-     * takes longer than a deadline tuned for a single RPC round trip.
+     * <p>Generous on purpose, and measured. flagd derives its initialisation deadline from this
+     * value — doubling it — and the in-process resolver must sync the entire ruleset before it
+     * reports ready, which takes longer than a deadline tuned for a single RPC round trip.
+     *
+     * <p>At 5000 the first two in-process scenarios failed <em>reproducibly</em> on a slower host
+     * with {@code Initialization timeout exceeded; did not complete within the 10000 ms deadline}
+     * out of {@code FlagdProviderSyncResources.waitForInitialization}, on both flagd-testbed v3.8.0
+     * and v3.10.1; at 15000 the suite is clean apart from the two testbed gaps described above. The
+     * first scenario pays for a cold container as well as for the sync, which is why it is the first
+     * two rather than all of them.
+     *
+     * <p>Worth being explicit that this is <strong>not</strong> a post-command settle in disguise.
+     * A pause after the control call was tried at 50ms and at 3000ms and fixed nothing — the wait
+     * this covers is the provider's own initialisation, which is bounded here where the scenario can
+     * see it, rather than slept through where it cannot. {@link #UNAVAILABLE_DEADLINE_MS} stays
+     * short so the promptness assertions still mean something.
      */
-    private static final int CONNECTED_DEADLINE_MS = 5000;
+    private static final int CONNECTED_DEADLINE_MS = 15000;
 
     /**
      * gRPC deadline for a provider pointed at a dead port.
