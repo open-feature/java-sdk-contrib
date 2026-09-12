@@ -155,6 +155,39 @@ public enum Capability {
      */
     VARIANTS("@variants"),
 
+    /**
+     * Provider resolves a flag disabled in the management system to the caller's default value.
+     *
+     * <p>Gates one Scenario Outline, four rows: {@code disabled-boolean-flag},
+     * {@code disabled-string-flag}, {@code disabled-integer-flag} and {@code disabled-float-flag},
+     * each asked for with a default that differs from the value the flag is configured with. A
+     * provider that ignores the state serves the configured value and is caught on the value alone.
+     *
+     * <p><strong>Gated because the answer is a property of architecture rather than of quality.</strong>
+     * Where the substitution happens decides whether it can happen at all. A provider that evaluates
+     * locally — flagd's RPC and in-process resolvers, an in-memory provider — holds the caller's
+     * default in its own hands and can return it. A provider whose backend decides, one speaking
+     * OFREP for instance, cannot: the default never leaves the process, so the server has nothing to
+     * echo back and the provider has nothing to substitute. The same flag cannot behave the same way
+     * across those two designs, and neither of them is wrong, so withholding this needs no
+     * {@link KnownDeviation}.
+     *
+     * <p>Nothing in the specification says what a provider owes a disabled flag.
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/01-flag-evaluation.md">Requirement
+     * 1.4.7</a> is about the SDK propagating whatever reason arrived, and
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md">Requirement
+     * 2.2.5</a> only lists {@code DISABLED} among the reason strings a provider <em>may</em> use. So
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
+     * F</a> states the behaviour, as it does for {@link #NUMERIC_COERCION}, and gates it.
+     *
+     * <p><strong>The value is asserted, not the reason.</strong> The value rests on Requirement
+     * 2.2.3, a {@code MUST}; pinning reason {@code DISABLED} would rest on 2.2.5, a {@code SHOULD}
+     * that explicitly permits "some other string". No variant is asserted either — a disabled flag
+     * resolved no variant, so there is none to name, and this capability and {@link #VARIANTS}
+     * deliberately do not compose.
+     */
+    DISABLED_FLAGS("@disabled-flags"),
+
     /** Provider reports an error state rather than hanging when initialised against a dead backend. */
     UNAVAILABLE_INIT("@unavailable"),
 
