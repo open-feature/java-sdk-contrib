@@ -390,6 +390,17 @@ class ConformanceReportPluginTest {
     }
 
     @Test
+    @DisplayName("the report-directory knob is spelled the way the other three languages spell it")
+    void theReportDirectoryKnobIsSpelledPortably() {
+        // Asserted as literals rather than through the constants, because the point is the name a
+        // cross-language CI job sets, not that the code is self-consistent. Go, Python and
+        // JavaScript read TCK_REPORT_DIR; one job exporting one variable has to drive all four, so
+        // a rename here is a breaking change to something no compiler checks.
+        assertThat(ConformanceReportPlugin.REPORT_DIR_ENV).isEqualTo("TCK_REPORT_DIR");
+        assertThat(ConformanceReportPlugin.REPORT_DIR_PROPERTY).isEqualTo("tck.report.dir");
+    }
+
+    @Test
     @DisplayName("both files are named after the configuration, safely")
     void theFilesAreNamedAfterTheConfiguration() {
         assertThat(ReportNames.configurationOf(MyProviderRpcTckTest.class)).isEqualTo(CONFIGURATION);
