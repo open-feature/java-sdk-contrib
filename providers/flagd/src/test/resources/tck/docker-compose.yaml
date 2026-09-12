@@ -2,12 +2,19 @@
 #
 # The image serves flagd itself and the "launchpad" control API on 8080, whose endpoints this
 # TCK's control API contract was derived from. It does not yet serve the whole canonical flag
-# set: v3.8.0 has none of large-integer-flag, huge-integer-flag or integral-float-flag. Only
-# large-integer-flag is reached by scenarios that run here -- the other two sit behind
-# @large-integers and @numeric-coercion, which this provider does not declare -- and it is
-# reached twice: the untagged precision scenario, which gets the code default instead of
-# 2147483647, and the @variants row that asks for its "max-int32" variant and is answered with
-# none. Both fail until open-feature/flagd-testbed#392 lands. Bump the tag then.
+# set: v3.8.0 has none of large-integer-flag, huge-integer-flag or integral-float-flag. Two of
+# the three are reached by scenarios that run here -- huge-integer-flag sits behind
+# @large-integers, which this provider does not declare -- and between them they fail three
+# scenarios, all until open-feature/flagd-testbed#392 lands. Bump the tag then.
+#
+#   * large-integer-flag: the untagged precision scenario, which gets the code default instead
+#     of 2147483647, and the @variants row asking for its "max-int32" variant, answered with
+#     none.
+#   * integral-float-flag: the @numeric-coercion scenario "An integral float requested as an
+#     integer is coerced without loss". This provider declares @numeric-coercion because flagd
+#     does coerce and gets the lossy direction wrong, so the tag's failure is worth seeing --
+#     see AbstractFlagdTckTest.knownDeviations(). This third failure is the price of that, and
+#     it is the same missing-flag problem as the two above rather than a new one.
 #
 # targeting-key-flag is served, which is why @targeting needs no bump: its three scenarios pass
 # on this image in both modes. The same goes for the four disabled-* flags behind
