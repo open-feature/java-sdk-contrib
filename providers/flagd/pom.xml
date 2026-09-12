@@ -22,8 +22,8 @@
         <com.vmlens.version>1.2.28</com.vmlens.version>
         <!-- Transitive flagd-core version -->
         <flagd-core.version>[2.0.0,3.0.0)</flagd-core.version>
-        <!-- Match any provider-tck version locally; CI resolves it from the reactor -->
-        <provider-tck.version>[0.0.1,)</provider-tck.version>
+        <!-- Match any tck version locally; CI resolves it from the reactor -->
+        <tck.version>[0.1.0,)</tck.version>
     </properties>
 
     <name>flagd</name>
@@ -107,8 +107,8 @@
         -->
         <dependency>
             <groupId>dev.openfeature.contrib.tools</groupId>
-            <artifactId>provider-tck</artifactId>
-            <version>${provider-tck.version}</version>
+            <artifactId>tck</artifactId>
+            <version>${tck.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
