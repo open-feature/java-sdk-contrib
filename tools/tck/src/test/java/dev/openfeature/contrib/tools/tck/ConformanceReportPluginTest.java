@@ -1,11 +1,11 @@
-package dev.openfeature.contrib.tools.providertck;
+package dev.openfeature.contrib.tools.tck;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.openfeature.contrib.tools.providertck.selftest.ReportSelfTestSteps;
+import dev.openfeature.contrib.tools.tck.selftest.ReportSelfTestSteps;
 import io.cucumber.junit.platform.engine.Constants;
 import io.cucumber.plugin.event.EventHandler;
 import io.cucumber.plugin.event.EventPublisher;
@@ -250,7 +250,7 @@ class ConformanceReportPluginTest {
         assertThat(envelope.get("provider").get("configuration").asText()).isEqualTo(CONFIGURATION);
         assertThat(envelope.get("sdk").get("name").asText()).isEqualTo("dev.openfeature:sdk");
         assertThat(envelope.get("sdk").get("version").asText()).isNotEmpty();
-        assertThat(envelope.get("tck").get("implementation").asText()).isEqualTo("java-sdk-contrib/tools/provider-tck");
+        assertThat(envelope.get("tck").get("implementation").asText()).isEqualTo("java-sdk-contrib/tools/tck");
         assertThat(envelope.get("tck").get("specRevision").asText()).hasSizeGreaterThanOrEqualTo(7);
         assertThat(envelope.get("backend").get("controlApi").asText()).isEqualTo("http");
 

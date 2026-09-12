@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.tools.providertck;
+package dev.openfeature.contrib.tools.tck;
 
 import io.cucumber.junit.platform.engine.Constants;
 import java.util.ArrayList;

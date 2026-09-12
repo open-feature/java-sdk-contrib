@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.tools.providertck;
+package dev.openfeature.contrib.tools.tck;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cucumber.gherkin.GherkinParser;
@@ -89,7 +89,7 @@ final class CanonicalScenarios {
         CodeSource codeSource = ProviderTck.class.getProtectionDomain().getCodeSource();
         URL location = codeSource == null ? null : codeSource.getLocation();
         if (location == null) {
-            throw new IllegalStateException("The provider-tck code source is not visible to this JVM, so the "
+            throw new IllegalStateException("The tck code source is not visible to this JVM, so the "
                     + "canonical scenario set cannot be established. Set -D" + CanonicalScenarioGuard.PARTIAL_PROPERTY
                     + "=true to run without the canonical-set check, understanding that the run is then not a "
                     + "conformance run.");
@@ -100,7 +100,7 @@ final class CanonicalScenarios {
             path = Paths.get(location.toURI());
         } catch (URISyntaxException | IllegalArgumentException e) {
             throw new IllegalStateException(
-                    "The provider-tck code source " + location + " is not a file, so the "
+                    "The tck code source " + location + " is not a file, so the "
                             + "canonical scenario set cannot be established.",
                     e);
         }
@@ -118,7 +118,7 @@ final class CanonicalScenarios {
 
         if (refs.isEmpty()) {
             throw new IllegalStateException("No canonical scenarios found in " + ProviderTck.FEATURES + "/ of the "
-                    + "provider-tck artifact at " + path + ". The artifact is not intact.");
+                    + "tck artifact at " + path + ". The artifact is not intact.");
         }
         return refs;
     }
