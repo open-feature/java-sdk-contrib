@@ -368,18 +368,26 @@ declared, which are withheld and why, and every known deviation, each against me
 rather than assumption.
 
 **The two suites are Docker-gated and excluded from the default build.** They live under
-`src/test/java/.../e2e/`, which `<testExclusions>**/e2e/*.java</testExclusions>` keeps out of
-`mvn verify`, so a machine or CI job without a Docker daemon is never asked to start a Compose
-stack. That is a deliberate policy and not an omission: a default build that needs Docker fails in a
-way that reads as a broken provider rather than as a missing prerequisite.
+`src/test/java/.../e2e/`, which `<testExclusions>**/e2e/*.java</testExclusions>` in this module's
+POM keeps out of `mvn verify`. Why an adoption suite is excluded rather than gating is written down
+once for all four languages in
+[Appendix F: Running the suite in CI](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci);
+this section is only what that means in this module.
 
-**The `e2e` profile narrows that exclusion rather than clearing it**, to
-`**/e2e/*TckTest.java`. This is the part that is easy to get wrong, so it is worth stating: the
-`e2e` profile exists for the legacy `Run*Test` suites over the `test-harness` submodule, and
-`ci.yml`'s `main` job activates it on every push. A profile that cleared the exclusion outright
-would therefore run the TCK suites in CI, on a runner that does have a Docker daemon — and they are
-expected to fail, so every unrelated pull request would go red for a reason that has nothing to do
-with it. Narrowing keeps the legacy suites running exactly as before and the TCK suites out.
+**The `e2e` profile narrows that exclusion rather than clearing it**, to `**/e2e/*TckTest.java`.
+The profile exists for the legacy `Run*Test` suites over the `test-harness` submodule, and
+`ci.yml`'s `main` job activates it on every push — so a profile that cleared the exclusion outright,
+which is what this one used to do, ran the TCK suites in CI on a runner that does have a Docker
+daemon. They are expected to fail, so every unrelated pull request went red for a reason that had
+nothing to do with it. That is the first of the two mistakes the appendix names, found here by
+resolving the property rather than reading the POM:
+
+```bash
+mvn -Pe2e -pl providers/flagd help:evaluate -Dexpression=testExclusions -DforceStdout
+```
+
+Narrowing keeps the legacy suites running exactly as before and the TCK suites out. The exclusion is
+Surefire's, not the compiler's, so both suites still build against the harness in every job.
 
 The consequence is that **no CI job runs them**, so a maintainer runs them by hand before merging a
 change that touches the provider's resolution, event or lifecycle behaviour, and quotes the result in
