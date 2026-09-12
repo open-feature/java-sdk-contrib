@@ -812,7 +812,7 @@ defined over `gherkin/` alone.
 
 Narrowing a run legitimately is what `capabilities()` is for — those scenarios are reported as
 skipped with a reason, which a filtered scenario is not. To filter anyway while debugging, set
-`-Dprovider.tck.partial=true` (or `PROVIDER_TCK_PARTIAL`). The guard then reports itself as
+`-Dtck.partial=true` (or `TCK_PARTIAL`). The guard then reports itself as
 **skipped** rather than passed, so the run states that its canonical set was not verified.
 
 What the guard does not establish is that the canonical files contain what they should — a
@@ -822,17 +822,17 @@ elsewhere: the results stream carries the `source` of every feature that execute
 
 ## Conformance reports
 
-Set `PROVIDER_TCK_REPORT_DIR` and each suite writes two files: an envelope conforming to the
+Set `TCK_REPORT_DIR` and each suite writes two files: an envelope conforming to the
 [report schema][report-schema] in the specification, and the run's results as a
 [Cucumber Messages][messages] stream.
 
 ```console
-$ PROVIDER_TCK_REPORT_DIR=./reports mvn test -Dtest='Flagd*TckTest'
+$ TCK_REPORT_DIR=./reports mvn test -Dtest='Flagd*TckTest'
 $ ls reports/
 flagd-in-process.json  flagd-in-process.ndjson  flagd-rpc.json  flagd-rpc.ndjson
 ```
 
-`-Dprovider.tck.report.dir=...` does the same thing and is often easier to pass through Maven. The
+`-Dtck.report.dir=...` does the same thing and is often easier to pass through Maven. The
 environment variable is the portable spelling — every language's TCK reads it, so one cross-language
 CI job can set one thing.
 
