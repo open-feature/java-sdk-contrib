@@ -22,23 +22,38 @@ import java.util.Optional;
  *
  * <p>Scenarios with no capability tag are considered mandatory and always run.
  *
- * <p>An entry may be {@linkplain #reserved() reserved}: it exists in the vocabulary so that every
- * language's TCK spells the same property the same way, but no scenario carries its tag yet.
- * {@link #CACHING} is the only one left — {@link #TARGETING} was reserved until the
- * {@code targeting-key-flag} scenarios arrived, and is an ordinary declarable capability now. A
- * reserved capability <strong>must not be declared</strong> — there is nothing for it to gate, so
- * declaring it cannot produce a skip and cannot be contradicted by any result. Declare
- * {@link #declarable()}, or {@link #declarableExcept} for "everything except", rather than
- * {@code EnumSet.allOf} or {@code EnumSet.complementOf}: both of the latter sweep up every reserved
- * tag on the way past, which is how a report comes to claim a capability nobody examined.
+ * <h2>Two kinds of capability nobody may declare</h2>
  *
- * <p>Some capabilities cannot hold in a language at all, as opposed to not holding for a particular
- * provider: {@link #LARGE_INTEGERS} asks for a value the Java SDK's 32-bit integer accessor has no
- * room for. That is a property of the SDK, true of every provider written against it, and
+ * <p>Most entries here are an ordinary choice: declare it if your provider does it, leave it out if
+ * it does not, and the results say which. Two are not a choice at all, and both are refused by
+ * {@link #requireDeclarable} rather than left to an adopter to remember. They are refused for
+ * different reasons, they are said differently, and they must not be confused with each other —
+ * a reader who sees a capability missing from a report has to be able to tell <em>"this provider
+ * declined"</em> from <em>"no provider in this language can be asked"</em>, because only the first
+ * says anything about the provider.
+ *
+ * <p>An entry may be {@linkplain #reserved() reserved}: it exists in the vocabulary so that every
+ * language's TCK spells the same property the same way, but <strong>no scenario anywhere carries
+ * its tag yet</strong>. {@link #CACHING} is the only one left — {@link #TARGETING} was reserved
+ * until the {@code targeting-key-flag} scenarios arrived, and is an ordinary declarable capability
+ * now. A reservation is global and temporary: every language has it, and it expires the moment the
+ * specification writes the scenarios.
+ *
+ * <p>An entry may instead be {@linkplain #inexpressible() inexpressible}: <strong>the scenarios
+ * exist and are asked in other languages</strong>, but this SDK cannot put the question. {@link
+ * #LARGE_INTEGERS} is the only one — {@code Client.getIntegerDetails} takes and returns a 32-bit
+ * {@link Integer}, so 2^53 − 1 cannot be asked for by any Java provider whatever its backend serves.
+ * That is one language's and permanent: it lasts until the SDK grows a wider accessor, and no
+ * provider author can do anything about it. Refusing it centrally is what stops every Java adopter
+ * having to know a fact about Java and act on it, and stops a single wrong one putting a claim in a
+ * report that no scenario could have verified.
  * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
- * F</a> is where it is recorded — once, rather than restated in every run. Here it is an ordinary
- * capability that a Java provider leaves undeclared, and its scenario is reported as skipped like
- * any other undeclared one.
+ * F</a> states the rule.
+ *
+ * <p>Declare {@link #declarable()}, or {@link #declarableExcept} for "everything except", rather
+ * than {@code EnumSet.allOf} or {@code EnumSet.complementOf}: both of the latter sweep up the
+ * reserved and inexpressible tags on the way past, which is how a report comes to claim a capability
+ * nobody examined.
  *
  * <h2>The connection-dependent capabilities</h2>
  *
@@ -239,26 +254,34 @@ public enum Capability {
     /**
      * Provider resolves integers up to 2^53 − 1 exactly.
      *
-     * <p><strong>A Java provider leaves this undeclared.</strong> Whether the value can be asked for
-     * at all is a property of the SDK's integer accessor rather than of the provider:
-     * {@code Client.getIntegerDetails} takes and returns a 32-bit {@link Integer}, so a Java
-     * provider has nowhere to put {@code 9007199254740991} however faithfully its backend serves it.
-     * Go's accessor is {@code int64} and JavaScript's number reaches 2^53 − 1 exactly, so their
-     * suites declare it and run the scenario.
+     * <p><strong>{@linkplain #inexpressible() Inexpressible} in Java, so no Java provider may
+     * declare it and {@link #requireDeclarable} refuses one that tries.</strong> Whether the value
+     * can be asked for at all is a property of the SDK's integer accessor rather than of any
+     * provider: {@code Client.getIntegerDetails} takes and returns a 32-bit {@link Integer}, so a
+     * Java provider has nowhere to put {@code 9007199254740991} however faithfully its backend
+     * serves it. Go's accessor is {@code int64} and JavaScript's number reaches 2^53 − 1 exactly, so
+     * their suites declare it and run the scenario.
      *
-     * <p>That the limit is the language's is recorded in
+     * <p><strong>This is not a reservation.</strong> The scenario exists, is asked, and passes
+     * elsewhere; what is missing is a way to ask it here, and that will be missing until the Java
+     * SDK grows a wider accessor. So the scenario is skipped, with a reason that says the SDK cannot
+     * ask the question rather than that the provider declined — {@link CapabilityGate} keeps the two
+     * apart, because only the second describes the provider under test.
+     *
+     * <p>Withholding it needs no {@link KnownDeviation}, and there is no longer anything for an
+     * adopter to withhold: the refusal is here, once, instead of in each adoption's
+     * {@code capabilities()} with a comment restating this paragraph.
      * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
-     * F</a> rather than in each run, so this is an ordinary declarable capability and withholding it
-     * needs no {@link KnownDeviation}: the scenario is skipped for an undeclared capability, as it
-     * would be in any language whose accessor was too narrow. Declaring it on a Java provider does
-     * not fail the run — the value is simply unaskable and the scenario fails when
-     * {@link TckValues} cannot convert it, which says the same thing louder.
+     * F</a> states the rule that puts it here.
      *
      * <p>The 32-bit precision scenario — {@code large-integer-flag}, 2^31 − 1 — is untagged and
      * always runs. What a provider owes a value that does not fit the requested accessor is the
      * open question in <a href="https://github.com/open-feature/spec/issues/430">open-feature/spec#430</a>.
      */
-    LARGE_INTEGERS("@large-integers"),
+    LARGE_INTEGERS(
+            "@large-integers",
+            "Client.getIntegerDetails takes and returns a 32-bit Integer, so 9007199254740991 cannot be "
+                    + "asked for by any Java provider, however faithfully its backend serves it"),
 
     /**
      * Provider resolves a flag differently for a matching evaluation context.
@@ -365,14 +388,24 @@ public enum Capability {
 
     private final String tag;
     private final boolean reserved;
+    private final String inexpressibleBecause;
 
     Capability(String tag) {
-        this(tag, false);
+        this.tag = tag;
+        this.reserved = false;
+        this.inexpressibleBecause = null;
     }
 
     Capability(String tag, boolean reserved) {
         this.tag = tag;
         this.reserved = reserved;
+        this.inexpressibleBecause = null;
+    }
+
+    Capability(String tag, String inexpressibleBecause) {
+        this.tag = tag;
+        this.reserved = false;
+        this.inexpressibleBecause = inexpressibleBecause;
     }
 
     /**
@@ -399,6 +432,38 @@ public enum Capability {
     }
 
     /**
+     * Returns whether this capability is one the Java SDK cannot express, and so must not be
+     * declared by any provider written against it.
+     *
+     * <p>The opposite case to {@link #reserved()}, and kept apart from it deliberately. A reserved
+     * capability has no scenarios in any language and its reservation expires when the specification
+     * writes them. An inexpressible one has scenarios that run and pass in other languages; what is
+     * missing is a way to put the question through this SDK's API, and that lasts until the SDK
+     * changes. Both are refused by {@link #requireDeclarable}, with different messages, and their
+     * scenarios are skipped with different reasons.
+     *
+     * <p>It is the implementation that refuses it, rather than each adopter remembering to withhold
+     * it. A property of the language is then recorded once, where it is true, instead of in every
+     * suite that adopts the TCK — and an adopter cannot get it wrong in the one direction that
+     * matters, which is claiming a capability no scenario could have verified.
+     *
+     * @return {@code true} if no provider written against this SDK can be asked this capability's
+     *     scenarios
+     */
+    public boolean inexpressible() {
+        return inexpressibleBecause != null;
+    }
+
+    /**
+     * Returns why this SDK cannot express this capability, for the messages that have to say so.
+     *
+     * @return the reason, or {@code null} if this capability is expressible
+     */
+    String inexpressibleBecause() {
+        return inexpressibleBecause;
+    }
+
+    /**
      * Looks up the capability gated by a Gherkin tag.
      *
      * @param tag a Gherkin tag including the leading {@code @}
@@ -409,20 +474,22 @@ public enum Capability {
     }
 
     /**
-     * Returns every capability that may be declared: every capability some scenario gates.
+     * Returns every capability a provider written against this SDK may declare.
      *
      * <p>This, not {@code EnumSet.allOf(Capability.class)}, is what "everything" means for a
-     * declaration. {@linkplain #reserved() Reserved} capabilities are left out.
+     * declaration. {@linkplain #reserved() Reserved} capabilities are left out because no scenario
+     * carries their tag; {@linkplain #inexpressible() inexpressible} ones because this SDK cannot
+     * ask what they ask, so no Java provider could be held to them.
      *
-     * <p>It is not a set any Java provider should declare unchanged. {@link #LARGE_INTEGERS} is in
-     * it — it is a real capability, gating a real scenario — and the Java SDK's integer accessor has
-     * no room for what it asks for, so withhold it with {@link #declarableExcept}.
+     * <p>It is a set a Java provider may declare unchanged, and the default. Narrow it only for
+     * things <em>this</em> provider cannot do — what no provider in this language can do has already
+     * been taken out.
      *
      * @return the declarable capabilities, as a fresh mutable set
      */
     public static EnumSet<Capability> declarable() {
         EnumSet<Capability> declarable = EnumSet.allOf(Capability.class);
-        declarable.removeIf(Capability::reserved);
+        declarable.removeIf(capability -> capability.reserved() || capability.inexpressible());
         return declarable;
     }
 
@@ -431,9 +498,15 @@ public enum Capability {
      *
      * <p>The counterpart to {@code EnumSet.complementOf}, and the reason it exists: a provider
      * saying "everything except the one thing I cannot do" wants everything <em>declarable</em>
-     * except that thing, whereas {@code complementOf} hands back the reserved tags as well.
+     * except that thing, whereas {@code complementOf} hands back the reserved and inexpressible tags
+     * as well.
      *
-     * @param excluded capabilities to withhold; reserved capabilities are absent regardless
+     * <p>What belongs in {@code excluded} is a fact about <em>this provider</em>. A fact about Java
+     * does not: {@link #LARGE_INTEGERS} is already absent, and naming it here is harmless but says
+     * nothing, because no Java provider could have declared it.
+     *
+     * @param excluded capabilities to withhold; reserved and inexpressible capabilities are absent
+     *     regardless
      * @return the declarable capabilities minus {@code excluded}, as a fresh mutable set
      */
     public static EnumSet<Capability> declarableExcept(Capability... excluded) {
@@ -445,27 +518,39 @@ public enum Capability {
     }
 
     /**
-     * Rejects a declaration that names a reserved capability.
+     * Rejects a declaration that claims something no result could check.
      *
      * <p>Fails the run rather than warning and dropping it. The declaration is the one part of a
      * conformance report that no result can check — everything else in it was observed, this is
      * asserted by the provider author — so a claim that cannot possibly be true is worth stopping
-     * for. There is nothing to lose by refusing, either: no scenario carries a reserved tag, so no
-     * coverage depends on the claim, and the fix is to call {@link #declarable()} or
+     * for. There is nothing to lose by refusing, either: in neither case below does any coverage
+     * depend on the claim, and the fix is to call {@link #declarable()} or
      * {@link #declarableExcept}.
      *
-     * <p>Only reserved capabilities are refused. A capability whose scenario the provider cannot
-     * satisfy is not a claim that cannot be checked — it is one the results contradict, which is
-     * what a conformance run is for.
+     * <p><strong>Two claims are refused, for different reasons, and they are reported separately.</strong>
+     * A {@linkplain #reserved() reserved} capability has no scenarios in any language; an
+     * {@linkplain #inexpressible() inexpressible} one has scenarios that pass in other languages and
+     * no way to ask them here. Collapsing them into one message would tell an adopter the two facts
+     * are the same fact, and they behave differently: the first expires when the specification
+     * writes the scenarios, the second when the SDK changes. Both lists are gathered before either
+     * is thrown, so a declaration that gets both wrong hears about both.
+     *
+     * <p>Nothing else is refused. A capability whose scenario the provider cannot satisfy is not a
+     * claim that cannot be checked — it is one the results contradict, which is what a conformance
+     * run is for.
      *
      * @param declared the capabilities a harness declares
-     * @throws IllegalArgumentException if any of them is reserved
+     * @throws IllegalArgumentException if any of them is reserved or inexpressible
      */
     public static void requireDeclarable(Collection<Capability> declared) {
         List<String> reservedTags = new ArrayList<>();
+        List<String> inexpressibleTags = new ArrayList<>();
         for (Capability capability : declared) {
             if (capability.reserved()) {
                 reservedTags.add(capability.name() + " (" + capability.tag() + ")");
+            } else if (capability.inexpressible()) {
+                inexpressibleTags.add(
+                        capability.name() + " (" + capability.tag() + "): " + capability.inexpressibleBecause());
             }
         }
         if (!reservedTags.isEmpty()) {
@@ -475,6 +560,16 @@ public enum Capability {
                     + "Capability.declarable(), or Capability.declarableExcept(...) for "
                     + "\"everything except\" — EnumSet.allOf and EnumSet.complementOf pick reserved "
                     + "capabilities up on the way past.");
+        }
+        if (!inexpressibleTags.isEmpty()) {
+            throw new IllegalArgumentException("capabilities() declares " + inexpressibleTags
+                    + ", which the Java SDK cannot express. This is not a reserved capability: the "
+                    + "scenarios exist and are asked in languages whose API is wide enough, so they "
+                    + "say nothing about your provider and everything about the SDK it is written "
+                    + "against. No Java provider can satisfy them until the SDK changes, so none may "
+                    + "claim them — and you do not have to know that: Capability.declarable() "
+                    + "already leaves them out, and their scenarios are skipped with a reason that "
+                    + "names the SDK rather than your provider. Remove them from capabilities().");
         }
     }
 }

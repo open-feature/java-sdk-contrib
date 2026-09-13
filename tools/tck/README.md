@@ -175,7 +175,8 @@ under a second. They are the reference adoption, and they are the fast CI canary
 runs the full applicable suite against the SDK's `InMemoryProvider` — of the 65 scenarios (outline
 rows counted individually), 49 pass and 16 are skipped by capability: the six `@lifecycle` ones — one
 of which also carries `@reinitialization`, and is skipped for the first of the two — the `@stale`
-one, the three `@numeric-coercion` ones, the `@large-integers` one and the five `@targeting` ones
+one, the three `@numeric-coercion` ones, the `@large-integers` one — which no Java provider can
+declare, so that skip is the SDK's rather than this suite's — and the five `@targeting` ones
 (three in `evaluation.feature`, two more in `reason.feature`).
 It declares `VARIANTS`, because `InMemoryProvider` does name the variant it served, so the gated
 variant outline runs rather than being skipped. It declares `DISABLED_FLAGS` too, on the same kind of
@@ -524,13 +525,25 @@ green on scenarios it did not run is worse than no suite at all.
 | `DISABLED_FLAGS` | `@disabled-flags` | resolves a flag disabled in the management system to the code default — *needs the substitution to happen where the caller's default is, so a provider whose backend decides cannot hold it* |
 | `UNAVAILABLE_INIT` | `@unavailable` | reports an error state instead of hanging on a dead backend — *needs connection control* |
 | `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` — both directions tested |
-| `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; **every Java provider withholds it** — the SDK's integer accessor is a 32-bit `Integer`, so the limit is the language's, not the provider's |
+| `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly — **not declarable in Java**, because `Client.getIntegerDetails` is a 32-bit `Integer` and no Java provider can be asked the question |
 | `TARGETING` | `@targeting` | resolves `targeting-key-flag` differently for a matching evaluation context — *needs a backend that evaluates rules* |
 | `STANDARD_REASONS` | `@standard-reasons` | reports the standard resolution reasons, with the meanings [Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md) gives them — a claim, not an exemption |
 | `CACHING` | `@caching` | reserved, **not declarable** — no scenarios yet |
 
 The default is every *declarable* capability. **Narrow it, do not widen it**: start from the
 default, run the suite, and remove only what your provider genuinely cannot do.
+
+Two rows above are not yours to decide and are refused if you name them, with different messages
+because they are different facts:
+
+- **`CACHING` is reserved.** No scenario in any language carries the tag yet. The reservation
+  expires the moment the specification writes them, and then it becomes an ordinary capability —
+  `TARGETING` was reserved until `targeting-key-flag` arrived.
+- **`LARGE_INTEGERS` is inexpressible in Java.** The scenario exists, and Go and JavaScript run it
+  and pass. What is missing is a way to ask for 2^53 − 1 through `Client.getIntegerDetails`, and
+  that lasts until the SDK grows a wider accessor. Its scenario is skipped with a reason that names
+  the SDK, so a reader of the report can tell *"this provider declined"* from *"no Java provider can
+  be asked"* — only the first says anything about the provider.
 
 `STALE` and `UNAVAILABLE_INIT` are the two that need a backend the provider can be cut off from.
 They are what a backend-less provider leaves undeclared — see
@@ -564,17 +577,22 @@ Cucumber's parsed tags rather than the feature files as text, which matters more
 `gherkin/events.feature` names `@caching` inside a `#` comment explaining what is deliberately not
 covered yet, so a text scan would fail every adoption on the day it shipped.
 
-There is a third direction, and it is this module's own build that has to catch it: a capability that
-is **declarable and gates nothing**. That is the same vacuous claim as a declared reserved tag —
-nothing can produce a skip, no result can contradict it, and a report tells its reader a capability
-was examined when nothing examined it. Its realistic cause is a build accident rather than a design
-mistake: the canonical assets are copied out of the `spec` submodule, and the submodule's gitlink and
-its working tree move by different commands, so a rebase followed by a build can overwrite the new
-assets with the old ones. The result is internally consistent — the old feature files agree with each
-other — so **counting scenarios does not catch it**. `CanonicalTagCoverageTest` asserts that every
-declarable capability's tag is carried by at least one canonical scenario, and that no reserved one
-is; it parses the packaged Gherkin for the same reason the runtime check does. If you re-pin the
-submodule, run `git submodule update` before building, and let that test tell you if you forgot.
+There is a third direction, and it is this module's own build that has to catch it: a capability the
+suite says has scenarios that **gates nothing**. Declarable, that is the same vacuous claim as a
+declared reserved tag — nothing can produce a skip, no result can contradict it, and a report tells
+its reader a capability was examined when nothing examined it. Its realistic cause is a build
+accident rather than a design mistake: the canonical assets are copied out of the `spec` submodule,
+and the submodule's gitlink and its working tree move by different commands, so a rebase followed by
+a build can package the previous pin's assets. The result is internally consistent — the old feature
+files agree with each other, and with the old flag set — so **counting scenarios does not catch it**.
+`CanonicalTagCoverageTest` asserts that every capability this suite does not call reserved is carried
+by at least one canonical scenario, and that no reserved one is; it parses the packaged Gherkin for
+the same reason the runtime check does. It is over every unreserved capability rather than every
+declarable one on purpose, because `@large-integers` having scenarios is exactly what distinguishes
+it from a reservation.
+
+That catches one symptom of a stale checkout. [Stale assets](#stale-assets) is how the build catches
+the rest.
 
 That is a rule about an accident rather than about intent: `EnumSet.complementOf(EnumSet.of(X))`
 reads as "everything except X" and in fact means "every other enum constant", reserved tags
@@ -631,23 +649,33 @@ apart — what `InMemoryProvider` does — is a choice. **The flagd provider doe
 either mode, for the first reason — see
 [flagd#1996](https://github.com/open-feature/flagd/issues/1996).
 
-A note on `LARGE_INTEGERS`: accessor width is a property of the SDK, not of the provider, and Java's
-is 32 bits — `Client.getIntegerDetails` takes and returns an `Integer`, which has no room for
-2^53 − 1. So **every Java provider withholds this tag**, and its one scenario is reported as skipped
-for an undeclared capability like any other. Put it in your `declarableExcept(...)` list:
+A note on `LARGE_INTEGERS`, which **you do not have to know anything about**: accessor width is a
+property of the SDK rather than of the provider, and Java's is 32 bits — `Client.getIntegerDetails`
+takes and returns an `Integer`, which has no room for 2^53 − 1. So no Java provider can be asked the
+question, now or ever, until the SDK grows a wider accessor.
+
+That used to be documentation, and every Java adopter was expected to act on it by naming the
+capability in `declarableExcept(...)`. It is refused here instead:
 
 ```java
-return Capability.declarableExcept(Capability.LARGE_INTEGERS, /* whatever else */);
+// Capability.declarable() does not contain it, and this fails with a message naming the accessor
+return EnumSet.of(Capability.EVENTS, Capability.LARGE_INTEGERS);
 ```
 
-That the impossibility is the language's rather than the provider's is recorded once, in
-[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md),
-rather than restated in every run: a report has one skip status, carrying its reason, and the
-scenario's own tags say what was being asked. Withholding the tag therefore needs no
-`KnownDeviation` — it is not a defect. Declaring it is not refused either; the scenario runs and
-fails when `TckValues` cannot fit `9007199254740991` into an `Integer`, which is a louder answer than
-a rejected declaration. The 32-bit precision scenario (`large-integer-flag`, 2^31 − 1) is untagged and
-always runs.
+Two suites in this module and both adoptions in this repository each withheld it by hand, each with
+its own comment restating the paragraph above. That is a fact about Java remembered in four places,
+and one of them being wrong would put a claim in a report that no scenario could have verified —
+which is exactly what the reserved-capability rules exist to prevent, reached by another route.
+[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md)
+states the rule: *a capability the language's SDK cannot express is refused by the implementation,
+not left to adopters.*
+
+**It is not a reservation, and the two must not be read as the same thing.** `@caching` has no
+scenarios anywhere and expires when the specification writes some; `@large-integers` has scenarios
+that run and pass in Go and JavaScript. So its scenario is skipped with a reason that names the SDK
+and says the provider had no say, rather than the ordinary *"provider does not declare"*. Neither
+needs a `KnownDeviation` — neither is a defect. The 32-bit precision scenario
+(`large-integer-flag`, 2^31 − 1) is untagged and always runs.
 
 A note on `STANDARD_REASONS`, which is **a claim rather than an exemption** and is the one capability
 whose absence costs a provider nothing.
