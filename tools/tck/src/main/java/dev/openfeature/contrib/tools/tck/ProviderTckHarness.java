@@ -31,7 +31,7 @@ import java.util.Set;
  * <p>Example — the entire adoption for a backend-less provider:
  *
  * <pre>{@code
- * public class MyProviderTckTest extends ProviderTckTest {
+ * public class MyProviderTest extends ProviderTckTest {
  *
  *     private final InProcessBackendControl control = new InProcessBackendControl();
  *
@@ -202,8 +202,10 @@ public interface ProviderTckHarness {
      * materially different modes — flagd's RPC and in-process resolvers, say — produces two runs
      * that are not interchangeable and must not be labelled the same.
      *
-     * <p>Derived from the suite class name by default: {@code FlagdInProcessTckTest} becomes
-     * {@code flagd-in-process}. Override it when that does not read well.
+     * <p>Derived from the suite class name by default: {@code MyProviderInProcessTest} becomes
+     * {@code my-provider-in-process}. Override it when that does not read well, and check it when
+     * the suite lives in a package that already names the provider — {@code InProcessTest} derives
+     * {@code in-process}, which does not say whose.
      *
      * @return a short name for this configuration
      */
