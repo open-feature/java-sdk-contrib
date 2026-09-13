@@ -8,8 +8,9 @@
 #
 # That flag set is not yet the whole canonical one: v3.8.0 has none of large-integer-flag,
 # huge-integer-flag or integral-float-flag. Only large-integer-flag is reached by scenarios that
-# run here -- the other two sit behind @large-integers and @numeric-coercion, neither of which
-# this provider declares -- and it is reached twice: the untagged precision scenario, which gets
+# run here -- the other two sit behind @numeric-coercion, which this provider withholds, and
+# @large-integers, which no Java provider can be asked because Client.getIntegerDetails is a
+# 32-bit Integer -- and it is reached twice: the untagged precision scenario, which gets
 # the code default instead of 2147483647, and the @variants row that asks for its "max-int32"
 # variant and is answered with none. Both fail until open-feature/flagd-testbed#392 lands. Bump
 # the tag then.
