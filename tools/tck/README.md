@@ -471,6 +471,15 @@ standard results format identifies:
   capability it needed. Given the declaration and a scenario's tags — both present — the reason for
   each skip follows, so it does not have to be transported per scenario.
 
+  **One skip does not follow from it, and that one is why the reason travels anyway.** A capability
+  this SDK cannot express is absent from every Java declaration, and absent for a reason that says
+  nothing about the provider — `@large-integers` is not there because `Client.getIntegerDetails` is
+  32 bits, not because anyone declined it. A reader who inferred *"the provider declined"* from that
+  absence would be reading a decision into something no Java provider was ever offered. The gate's
+  reason is carried on the hook result that produced the skip, and its wording is deliberately unlike
+  an undeclared capability's, so the two are distinguishable in the results themselves. See
+  [Declaring capabilities](#declaring-capabilities).
+
 `knownDeviations` is the one thing neither the stream nor the declaration can express: whether a
 withheld capability is a limitation or a bug. See
 [Saying that a withheld capability is a defect](#saying-that-a-withheld-capability-is-a-defect).
