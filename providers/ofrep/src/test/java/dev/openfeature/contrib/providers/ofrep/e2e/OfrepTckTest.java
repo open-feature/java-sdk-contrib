@@ -192,8 +192,19 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * two implementations rather than one protocol. OFREP being JSON is what makes the difference
      * possible — one wire number type, so integer-ness is the provider's decision, not the
      * payload's. Declaring the tag here to match Go would also run the
-     * {@code integral-float-flag} scenario, which the testbed cannot serve, so it would fail twice
-     * over: once for the provider and once for the stack.
+     * {@code integral-float-flag} scenario, which the testbed cannot serve — a note about what such
+     * a run would look like, and deliberately <em>not</em> a reason. Appendix F's declaring rules
+     * have since said why it cannot be one: a scenario that fails because the backend cannot serve
+     * its fixture is not a provider defect, so the gap is no argument for withholding anything. The
+     * reason is the paragraph above and only that paragraph.
+     *
+     * <p>Nor does the appendix's scenario-level rule reach this omission, which is worth saying
+     * because it reads at first as though it should. That rule — once a provider is attempting a
+     * capability, declare it when at least one scenario gating it can be put to the provider — is
+     * about whether a question is <em>askable</em>, and all three of these are. What comes first is
+     * whether an answer is owed, and no requirement says this one is: the provider does not coerce,
+     * the specification permits that, and withholding is the honest report. Taking the second rule
+     * without the first would manufacture two failures out of a permitted choice.
      *
      * <p>All of that is read from the source, because a withheld tag means the scenarios are
      * skipped and a run cannot confirm it; the three are reported as skipped with this reason on
@@ -291,6 +302,19 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * the tag keeps the four rows honest — skipped, not passed — and the deviation is what says the
      * omission is a bug rather than a choice. Delete both once {@code handleResolved} honours a
      * value-less success.
+     *
+     * <p><strong>This is the one declaration on this branch that the settled guidance would shape
+     * differently, and it is recorded here rather than quietly left.</strong>
+     * {@link dev.openfeature.contrib.tools.tck.KnownDeviation} prefers the declared-and-failing shape
+     * and confines the withheld-and-skipped one to a provider that cannot attempt the behaviour at
+     * all. This provider does attempt it: it receives the {@code codeDefaultFlag} response, parses
+     * the {@code reason} that accompanies it, and then answers with the wrong error code — measured,
+     * four rows, failing on the code and not on the value. By that reading the honest report is to
+     * declare {@code @disabled-flags}, let the four rows fail, and keep this same deviation beside
+     * them, exactly as the flagd adoption does for {@code @numeric-coercion}. The flip is a change of
+     * results rather than of prose, so it is not made in the documentation pass that noticed it; it
+     * costs four failures in place of four skips and nothing else, and the deviation's text needs no
+     * change when it happens.
      *
      * <p>{@code declarableExcept} rather than {@code EnumSet.complementOf}, which would also claim
      * {@code @caching} on the way past; the suite refuses such a declaration at startup. It claimed
