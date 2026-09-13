@@ -15,7 +15,7 @@
 #   * integral-float-flag: the @numeric-coercion scenario "An integral float requested as an
 #     integer is coerced without loss". This provider declares @numeric-coercion because flagd
 #     does coerce and gets the lossy direction wrong, so the tag's failure is worth seeing --
-#     see AbstractFlagdTckTest.knownDeviations(). This third failure is the price of that, and
+#     see AbstractResolverTest.knownDeviations(). This third failure is the price of that, and
 #     it is the same missing-flag problem as the two above rather than a new one.
 #
 # targeting-key-flag is served, which is why @targeting needs no bump: its three scenarios pass
