@@ -325,6 +325,50 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <!--
+                This profile runs the Provider TCK conformance suites, and nothing else:
+
+                    mvn -Ptck -pl providers/flagd -am test
+
+                It is a step of its own rather than a corner of the `e2e` profile above because
+                of what a red build says. `-Pe2e` red means the provider's own end-to-end suites
+                regressed; `-Ptck` red means conformance failed — and a conformance run carries
+                failures by design, wherever AbstractFlagdTckTest declares a knownDeviation.
+                Sharing one signal between "you broke something" and "this is the known state"
+                ends with somebody silencing the informative half. See Appendix F, "Running the
+                suite in CI".
+
+                Nothing activates this profile in CI, deliberately, for the reason the `e2e`
+                profile's comment gives: these suites are expected to fail today. They are run by
+                hand before merge. See providers/flagd/README.md.
+            -->
+            <id>tck</id>
+            <properties>
+                <!--
+                    The include below is what selects the suites, so the default e2e exclusion
+                    has nothing left to do and is cleared. Clearing it is safe *here* and not in
+                    the `e2e` profile precisely because this profile also narrows the includes:
+                    the legacy Run*Test suites stay out.
+                -->
+                <testExclusions></testExclusions>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <!-- FlagdRpcTckTest and FlagdInProcessTckTest; the abstract
+                                     parent they share is not run by Surefire. -->
+                                <include>**/e2e/*TckTest.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
 </project>
