@@ -35,7 +35,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
  * <p>Example — the entire adoption for a provider with one transport:
  *
  * <pre>{@code
- * public class MyProviderTckTest extends ContainerizedProviderTckTest {
+ * public class MyProviderTest extends ContainerizedProviderTckTest {
  *
  *     @Override
  *     public File composeFile() {

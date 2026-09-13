@@ -131,7 +131,7 @@ change is the provider's own update mechanism emitting its own event.
 canonical flag set. The entire adoption is three methods:
 
 ```java
-public class MyProviderTckTest extends ProviderTckTest {
+public class MyProviderTest extends ProviderTckTest {
 
     private final InProcessBackendControl control = new InProcessBackendControl();
 
@@ -385,7 +385,7 @@ baseline.
 ### 4. The test class
 
 ```java
-public class MyProviderTckTest extends ContainerizedProviderTckTest {
+public class MyProviderTest extends ContainerizedProviderTckTest {
 
     @Override
     public File composeFile() {
@@ -427,16 +427,16 @@ registration, no system property, no build configuration. Each class is its own 
 own Compose stack, and they can share a base class:
 
 ```java
-abstract class AbstractMyProviderTckTest extends ContainerizedProviderTckTest {
+abstract class AbstractMyProviderTest extends ContainerizedProviderTckTest {
     protected abstract Mode mode();
     // composeFile(), createProvider(), capabilities() ... shared here
 }
 
-public class MyProviderRemoteTckTest extends AbstractMyProviderTckTest {
+public class RemoteTest extends AbstractMyProviderTest {
     @Override protected Mode mode() { return Mode.REMOTE; }
 }
 
-public class MyProviderInProcessTckTest extends AbstractMyProviderTckTest {
+public class InProcessTest extends AbstractMyProviderTest {
     @Override protected Mode mode() { return Mode.IN_PROCESS; }
 }
 ```
@@ -458,7 +458,7 @@ and IDEs all do by default. If your launcher disables listener auto-registration
 harness explicitly instead at
 `src/test/resources/META-INF/services/dev.openfeature.contrib.tools.tck.ProviderTckHarness`,
 and if you register more than one, select between them with
-`-Dopenfeature.tck.harness=MyProviderRemoteTckTest`.
+`-Dopenfeature.tck.harness=RemoteTest`.
 
 </details>
 
@@ -832,7 +832,12 @@ exercised. A provider with two materially different modes — flagd's RPC and in
 runs two suites whose results are not interchangeable, and the name is what keeps them apart.
 
 It defaults to the suite class name, hyphenated and with the JUnit suffix dropped, so
-`FlagdInProcessTckTest` becomes `flagd-in-process`. Override it when that does not read well.
+`MyProviderInProcessTest` becomes `my-provider-in-process`. Override it when that does not read
+well — and **check it if your suite lives in a package that already names the provider**, which is
+the layout below recommends. A suite called `InProcessTest` in `...providers/flagd/tck/` derives
+`in-process`, which says nothing about whose in-process mode it was to anyone reading the report
+away from this repository. flagd's two suites therefore state `flagd-rpc` and `flagd-in-process`
+outright. The derivation reads a class name; a report is read by someone who has neither.
 
 ### How the backend was driven
 
@@ -890,11 +895,36 @@ belongs in that backend's issue tracker; raising a pause in four languages is no
 ## Running it
 
 ```bash
-mvn test -Dtest=MyProviderTckTest
+mvn -Ptck -pl providers/<your-provider> test
 ```
 
 A suite extending `ProviderTckTest` with in-process control needs no Docker and no network. A suite
 extending `ContainerizedProviderTckTest` needs a working Docker daemon for its Compose stack.
+
+### Put the adoption in a directory of its own
+
+**A `tck` package beside your module's other test packages, not inside one of them.** In
+`providers/flagd` that is `src/test/java/dev/openfeature/contrib/providers/flagd/tck/`, a sibling of
+the `e2e` package rather than a corner of it.
+
+Two reasons, and the second is the one the rest of this section rests on.
+
+A conformance suite and an end-to-end suite mean different things by failure. An e2e suite tests
+your provider against your own harness and is expected green; a conformance suite tests it against
+the OpenFeature provider contract and fails scenarios *by design*, wherever a `knownDeviation` is
+declared. Filing one under the other says they are the same kind of result, which is the conflation
+the separate step below exists to undo.
+
+And selection stops being a naming convention. Every selector — the exclusion, the profile that
+runs the suite, the profile that must not — then names a directory, and a file is in it or it is
+not. Selecting by filename works right up until somebody adds a suite whose name does not fit the
+pattern, and nothing tells them.
+
+Once the directory selects, names that repeated it are saying the same thing twice, so drop that
+part: `FlagdRpcTckTest` in package `...flagd.tck` is `RpcTest`, and the fully-qualified name still
+carries everything. **Keep the `*Test` suffix** — Surefire's default includes need it, which is a
+different thing from the selector being removed. And check `configuration()` when you do: see
+[Naming the configuration under test](#naming-the-configuration-under-test).
 
 ### Containerised suites are excluded from the default build, on purpose
 
@@ -910,21 +940,24 @@ property the parent POM feeds to Surefire:
 
 ```xml
 <properties>
-  <testExclusions>**/e2e/*.java</testExclusions>
+  <testExclusions>**/tck/*.java</testExclusions>
 </properties>
 ```
 
 The parent POM defines no default for it, so a module that wants the gate must declare the property
 itself. It is a **Surefire** exclusion, not a compiler one: the suite still compiles against the
-harness in every build, which is what keeps an adoption from rotting unnoticed.
+harness in every build, which is what keeps an adoption from rotting unnoticed. A module with more
+than one Docker-dependent package lists them all — `providers/flagd` has its legacy `e2e` suites as
+well, so its property reads `**/e2e/*.java,**/tck/*.java`.
 
 **Then resolve the property under every profile your CI activates** — do not read the POM, which is
 the mistake the appendix names first. Here, `ci.yml`'s `main` job activates `e2e` on every push, and
 `providers/flagd` has an `e2e` profile for its legacy `Run*Test` suites; that profile therefore
-narrows the exclusion to `**/e2e/*TckTest.java` rather than clearing it to `<testExclusions/>`, so
-the legacy suites keep running and the TCK suites stay out. Both halves of the appendix's warning
-happened in this repository — one adoption never declared the property, the other had a profile
-putting it back — and both were found by running this, not by reading:
+drops only `**/e2e/*.java` from the exclusion and leaves `**/tck/*.java` in it, rather than clearing
+it to `<testExclusions/>`, so the legacy suites keep running and the TCK suites stay out. Both
+halves of the appendix's warning happened in this repository — one adoption never declared the
+property, the other had a profile putting it back — and both were found by running this, not by
+reading:
 
 ```bash
 mvn -Pe2e -pl providers/<your-provider> help:evaluate -Dexpression=testExclusions -DforceStdout
@@ -941,7 +974,7 @@ way:
 <profile>
   <id>tck</id>
   <properties>
-    <!-- the include below selects the suite, so the exclusion has nothing left to do -->
+    <!-- drop this directory from the exclusion; the include below does the selecting -->
     <testExclusions></testExclusions>
   </properties>
   <build>
@@ -951,7 +984,7 @@ way:
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <includes>
-            <include>**/e2e/*TckTest.java</include>
+            <include>**/tck/*.java</include>
           </includes>
         </configuration>
       </plugin>
@@ -960,9 +993,12 @@ way:
 </profile>
 ```
 
-Clearing the exclusion and narrowing the includes **in the same profile** is what makes it a
-conformance step rather than a wider one. Clearing alone re-enables every Docker-dependent suite the
-module has; narrowing alone leaves the exclusion in force and runs nothing.
+Dropping the directory from the exclusion and narrowing the includes to it **in the same profile**
+is what makes this a conformance step rather than a wider one. Dropping alone runs the module's unit
+tests alongside the suites; narrowing alone leaves the exclusion in force and runs nothing. A module
+with a second excluded package keeps that half of the property — `providers/flagd`'s `tck` profile
+sets `**/e2e/*.java`, the exact mirror of what its `e2e` profile sets — so the two steps stay
+disjoint whichever one is activated.
 
 ```bash
 # once, if this module is not in your local repository yet
