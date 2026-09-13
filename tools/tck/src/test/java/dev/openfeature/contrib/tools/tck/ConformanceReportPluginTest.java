@@ -323,7 +323,13 @@ class ConformanceReportPluginTest {
                         Capability.LARGE_INTEGERS.tag(),
                         // @targeting was reserved until targeting-key-flag's three scenarios
                         // arrived. It gates something now, so the maximal claim includes it.
-                        Capability.TARGETING.tag());
+                        Capability.TARGETING.tag(),
+                        // @standard-reasons gates reason.feature in its entirety. It is a claim
+                        // rather than an exemption -- 2.2.5 lets a provider report "some other
+                        // string", so a provider that does not declare it is not thereby deficient
+                        // -- but it is an ordinary declarable capability all the same, and the
+                        // maximal claim includes it.
+                        Capability.STANDARD_REASONS.tag());
     }
 
     @Test
