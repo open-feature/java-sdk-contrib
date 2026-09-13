@@ -42,11 +42,12 @@ public final class TckValues {
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException(
                             "'" + value + "' is not an Integer the Java SDK can ask for: "
-                                    + "Client.getIntegerDetails takes a 32-bit Integer. A scenario needing more than "
-                                    + "2^31 - 1 carries @large-integers, which a Java provider leaves undeclared "
-                                    + "because the accessor is the limit rather than the provider — see Appendix F. "
-                                    + "Reaching this means the capability was declared: remove it with "
-                                    + "Capability.declarableExcept(Capability.LARGE_INTEGERS).",
+                                    + "Client.getIntegerDetails takes a 32-bit Integer. The canonical scenario "
+                                    + "that needs more than 2^31 - 1 carries @large-integers, and cannot reach "
+                                    + "here: Capability.LARGE_INTEGERS is inexpressible in Java, so no provider "
+                                    + "can declare it and CapabilityGate skips the scenario. Reaching this means "
+                                    + "an extension feature file of your own asked for a value outside the "
+                                    + "accessor's range, which the Java SDK has no way to request.",
                             e);
                 }
             case "Float":

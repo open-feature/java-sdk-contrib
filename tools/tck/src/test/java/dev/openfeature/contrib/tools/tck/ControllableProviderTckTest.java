@@ -101,11 +101,13 @@ public class ControllableProviderTckTest extends ProviderTckTest {
      *       capability still without Docker-free coverage.
      *   <li>{@link Capability#TARGETING} — the delegate evaluates no rules, so
      *       {@code targeting-key-flag} resolves its {@code miss} variant whatever the context.
-     *   <li>{@link Capability#LARGE_INTEGERS} — omitted, as every Java provider omits it: the limit
-     *       is {@code Client.getIntegerDetails}'s 32 bits rather than this provider's.
      *   <li>{@link Capability#CACHING} — reserved, so not declarable, and nothing is skipped by
      *       leaving it out.
      * </ul>
+     *
+     * <p>{@link Capability#LARGE_INTEGERS} is absent from both lists because it is not a decision
+     * this suite takes: it is {@linkplain Capability#inexpressible() inexpressible} in Java and
+     * refused centrally.
      */
     @Override
     public Set<Capability> capabilities() {

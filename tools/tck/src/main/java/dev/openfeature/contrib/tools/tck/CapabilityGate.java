@@ -22,6 +22,11 @@ import org.opentest4j.TestAbortedException;
  * <p>The second rule here is the mirror of the first and fails rather than skips: a tag this
  * implementation still calls {@linkplain Capability#reserved() reserved} must never reach a
  * scenario. See {@link #requireNoExpiredReservation}.
+ *
+ * <p>The third produces a skip like the first but for a reason that has nothing to do with the
+ * provider: a capability this SDK {@linkplain Capability#inexpressible() cannot express}. Its skip
+ * reason is deliberately different from an undeclared capability's, because a report's reader has
+ * to be able to tell them apart.
  */
 public final class CapabilityGate {
 
@@ -40,29 +45,40 @@ public final class CapabilityGate {
      * <p>Tags that gate nothing are ignored, so a scenario with no capability tag is mandatory and
      * always runs.
      *
-     * <p>One skip, carrying its reason, is the whole mechanism. A capability that cannot hold in a
-     * language at all — {@link Capability#LARGE_INTEGERS} on the Java SDK's 32-bit integer accessor
-     * — is undeclared like any other the provider does not offer, and is skipped the same way.
-     * Separating the two would ask a reader to learn a second vocabulary to be told what the
-     * declaration and the scenario's own tags already say; where the impossibility is the
-     * language's, Appendix F records it once instead.
+     * <p><strong>Two skips, and they do not say the same thing.</strong> The ordinary one is a
+     * capability the provider did not declare, and it names the provider. The other is a capability
+     * this SDK {@linkplain Capability#inexpressible() cannot express} — {@link
+     * Capability#LARGE_INTEGERS} on the Java SDK's 32-bit integer accessor — where the provider had
+     * no say: no Java provider can be asked that scenario, and {@link Capability#requireDeclarable}
+     * refuses a declaration that pretends otherwise. Reporting both as "the provider does not
+     * declare it" would read as a decision the provider took, and a reader of the report would
+     * believe it. So the reason names the SDK instead, and is checked before the declaration, which
+     * makes it the reason every time rather than only when the provider happens to have withheld it.
      *
      * @param tags the scenario's Gherkin tags, including the leading at-sign
      * @param declared the capabilities the provider declares
      * @throws IllegalStateException if a tag names a reserved capability
-     * @throws TestAbortedException if a tag gates an undeclared capability
+     * @throws TestAbortedException if a tag gates an inexpressible or an undeclared capability
      */
     public static void requireDeclared(Collection<String> tags, Set<Capability> declared) {
         requireNoExpiredReservation(tags);
 
         for (String tag : tags) {
-            Optional<Capability> capability = Capability.fromTag(tag);
-            if (!capability.isPresent()) {
+            Optional<Capability> found = Capability.fromTag(tag);
+            if (!found.isPresent()) {
                 continue;
             }
-            if (!declared.contains(capability.get())) {
-                throw new TestAbortedException("Skipped: provider does not declare capability "
-                        + capability.get().name() + " (tag " + tag + "). Declared capabilities: " + declared);
+            Capability capability = found.get();
+            if (capability.inexpressible()) {
+                throw new TestAbortedException("Skipped: the Java SDK cannot express capability "
+                        + capability.name() + " (tag " + tag + ") — " + capability.inexpressibleBecause()
+                        + ". This scenario exists and is asked in languages whose API is wide enough, so "
+                        + "this is not a reservation and not the provider under test declining: no Java "
+                        + "provider can be asked it, and none may declare it.");
+            }
+            if (!declared.contains(capability)) {
+                throw new TestAbortedException("Skipped: provider does not declare capability " + capability.name()
+                        + " (tag " + tag + "). Declared capabilities: " + declared);
             }
         }
     }
@@ -72,7 +88,10 @@ public final class CapabilityGate {
      *
      * <p>This is the expiry check on {@link Capability#reserved()}, and it is the other half of
      * {@link Capability#requireDeclarable}. That one refuses a <em>declaration</em> naming a reserved
-     * capability; this one refuses a <em>scenario</em> carrying its tag. A reservation is a name held
+     * capability; this one refuses a <em>scenario</em> carrying its tag. There is no equivalent for
+     * an {@linkplain Capability#inexpressible() inexpressible} capability and there could not be: a
+     * scenario carrying its tag is exactly what is expected, since the scenarios are what the other
+     * languages run. A reservation is a name held
      * open for scenarios that do not exist yet and is only ever temporary — the specification writes
      * them, the tag starts gating something, and the capability becomes declarable. Until this
      * implementation follows, the two halves meet in the worst possible place: the scenario is
