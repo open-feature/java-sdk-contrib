@@ -38,6 +38,25 @@ import java.util.Set;
  * <p>A missing flag is a gap in the stack, not in the provider, so it is recorded here rather than
  * declared as a {@code KnownDeviation}: a deviation says the provider is wrong, and the provider was
  * never given the flag to get wrong.
+ *
+ * <p><strong>A clean run is 65 scenarios, 46 passing, 17 skipped and those 2 failing.</strong>
+ *
+ * <p><strong>The suite is intermittently flaky, and the flakiness is the backend's.</strong> Roughly
+ * half of the runs measured carry one or two <em>additional</em> failures on top of those two, and
+ * they all have the same shape: an evaluation that should have resolved comes back as the code
+ * default, or as {@code FLAG_NOT_FOUND} where {@code TYPE_MISMATCH} was expected, or with reason
+ * {@code ERROR} where a resolution was expected. Which scenario is hit moves from run to run —
+ * {@code errors.feature}, {@code evaluation.feature} and {@code reason.feature} have each been the
+ * victim — so it is not a property of any assertion.
+ *
+ * <p>It is not new with the reason scenarios, and that was checked rather than assumed: five runs at
+ * this revision and three at {@code ccdb8879} before it, with the old pin producing a run of seven
+ * failures and a run of two from the same tree. It is the flagd-testbed readiness window that
+ * open-feature/flagd-testbed#394 exists to close — a control endpoint returning before the backend
+ * serves the new state — reaching a provider that holds nothing between calls, so every evaluation
+ * races the stack afresh. <strong>Do not add a settle after control calls to cover it</strong>: a
+ * suite that sleeps instead of holding the control API to its promise stops being able to detect
+ * when the promise breaks, which is the whole argument of that issue.
  */
 public class OfrepTckTest extends ContainerizedProviderTckTest {
 
@@ -207,9 +226,26 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * {@code targeting-key-flag} scenarios are the only ones in the canonical set that would notice a
      * context dropped on the way out. All three pass.
      *
+     * <p>{@link Capability#STANDARD_REASONS} is declared, and it arrived by the
+     * {@code declarableExcept} default rather than by a decision, so it was measured before being
+     * written down. Eight of {@code reason.feature}'s nine scenarios run and pass: {@code STATIC} for
+     * the four rule-less flags, {@code ERROR} beside {@code FLAG_NOT_FOUND} and
+     * {@code TYPE_MISMATCH}, and — because {@code @targeting} is declared here — {@code
+     * TARGETING_MATCH} and {@code DEFAULT} either side of {@code targeting-key-flag}'s rule. The
+     * ninth carries {@code @disabled-flags} as well and is skipped for that omission, which is the
+     * right outcome and not a second report of the same gap: what is wrong with this provider's
+     * handling of a disabled flag is already said once, below and in {@link #knownDeviations()}, and
+     * a reason it never reaches is not more evidence of it.
+     *
+     * <p>Worth noting what the declaration does <em>not</em> claim. The reason for a disabled flag is
+     * the one standard reason this provider is not held to, so the tag here means "the standard
+     * vocabulary, over the responses this provider actually completes". A consumer reading the report
+     * sees the withheld {@code @disabled-flags} beside it and can tell which scenario went unasked.
+     *
      * <p><b>{@link Capability#DISABLED_FLAGS}</b> is withheld, and unlike every other withheld tag
      * above it was <em>measured</em>. Declared, all four rows of its outline fail, and they fail on
-     * the error code rather than on the value: the run reported 56 scenarios, 38 passing, 12 skipped
+     * the error code rather than on the value: the run — at spec revision {@code ccdb8879}, when the
+     * suite was 56 scenarios rather than 65 — reported 38 passing, 12 skipped
      * and 6 failed, the two extra failures beyond the testbed pair above being
      * {@code expected: null but was: FLAG_NOT_FOUND} on each of the four rows. The value assertion
      * passes, because the provider returns the caller's default on an error — right answer, wrong
