@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.ofrep.e2e;
+package dev.openfeature.contrib.providers.ofrep.tck;
 
 import dev.openfeature.contrib.providers.ofrep.OfrepProvider;
 import dev.openfeature.contrib.providers.ofrep.OfrepProviderOptions;
@@ -58,7 +58,7 @@ import java.util.Set;
  * suite that sleeps instead of holding the control API to its promise stops being able to detect
  * when the promise breaks, which is the whole argument of that issue.
  */
-public class OfrepTckTest extends ContainerizedProviderTckTest {
+public class OfrepTest extends ContainerizedProviderTckTest {
 
     /** The container-internal port flagd serves the OFREP HTTP API on. */
     private static final int OFREP_PORT = 8016;
