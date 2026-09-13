@@ -234,12 +234,16 @@ public enum Capability {
      * through — that is <a href="https://github.com/open-feature/spec/issues/430">open-feature/spec#430</a>.
      * A provider that behaves differently is not violating the specification, and a report must
      * not be read as saying it is. The difference is still worth a word: narrowing {@code 0.5} to
-     * {@code 0} with no error code hands an application a plausible value and no signal, so a
-     * provider that does that should say whether it is a choice or a defect, and
-     * {@link KnownDeviation} is where the second is said. Note which shape that takes — such a
-     * provider <em>does</em> attempt the coercion and gets it wrong, so the honest report is to
-     * declare the tag, let the lossy scenario fail, and record the deviation beside the failure
-     * rather than withholding the tag to turn the failure into a skip.
+     * {@code 0} with no error code hands an application a plausible value and no signal, and that is
+     * a defect rather than a choice.
+     *
+     * <p><strong>A provider in that position declares the tag.</strong> It <em>does</em> attempt the
+     * coercion and gets one direction wrong, which is precisely what a skip cannot express, so the
+     * honest report is to declare, let the lossy scenario fail, and record a {@link KnownDeviation}
+     * beside the failure. Withholding is for a provider that <em>cannot attempt</em> the behaviour
+     * at all — one whose SDK has a single numeric type, or one that keeps the two types strictly
+     * apart in both directions as {@code InMemoryProvider} does, where the distinction does not
+     * exist to get wrong. That is the choice half of the same rule, and it needs no deviation.
      *
      * <p><strong>Both halves are tested.</strong> The lossy half asks for {@code float-flag} (0.5)
      * as an integer and expects {@code TYPE_MISMATCH}; the lossless half asks for
@@ -273,6 +277,18 @@ public enum Capability {
      * {@code capabilities()} with a comment restating this paragraph.
      * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
      * F</a> states the rule that puts it here.
+     *
+     * <p><strong>It is also not the same kind of decision as a capability withheld because a backend
+     * cannot serve a scenario's flag</strong>, and the two are now formally different. Appendix F's
+     * declaring rule — once a provider is attempting a capability, declare it when at least one
+     * scenario gating it can actually be put to the provider, and withhold only when none can — is
+     * answered per <em>scenario</em>, with a backend in
+     * view, and a capability withheld on those grounds is <em>temporary</em>: it needs a note saying
+     * why, and it is revisited when the backend gains the fixture. The appendix illustrates that
+     * rule with this very tag, because the reference backend serves no flag for its one scenario.
+     * In Java the question never reaches a backend. The accessor cannot carry {@code 2^53 − 1}
+     * however the backend is provisioned, so no Java suite gets as far as that rule for this tag,
+     * and no fixture arriving anywhere would change the answer. Only a wider SDK accessor would.
      *
      * <p>The 32-bit precision scenario — {@code large-integer-flag}, 2^31 − 1 — is untagged and
      * always runs. What a provider owes a value that does not fit the requested accessor is the

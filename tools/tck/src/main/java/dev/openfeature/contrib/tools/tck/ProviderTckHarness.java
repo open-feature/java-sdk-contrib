@@ -122,6 +122,37 @@ public interface ProviderTckHarness {
      * provider genuinely cannot do — {@link Capability#declarableExcept} is the idiomatic way to say
      * "everything except".
      *
+     * <p><strong>Once your provider is attempting a capability, the unit of that decision is the
+     * scenario, not the tag.</strong>
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
+     * F</a> states it as: declare a capability when at least one scenario gating it can actually be
+     * put to your provider, and withhold it only when none can. A tag with three scenarios whose
+     * backend cannot serve the flag one of them asks for still has two answers to give, and
+     * withholding it hides both to avoid one failure.
+     *
+     * <p><strong>The opening clause is a condition, not throat-clearing.</strong> This rule decides
+     * whether the question can be <em>asked</em>; whether your provider owes an answer is the earlier
+     * question, and {@link KnownDeviation} is where that one is settled. Where the specification
+     * permits declining — {@code @numeric-coercion} rests on no requirement, so a provider may
+     * simply not coerce — withholding is the honest report however askable its scenarios are, and
+     * applying this rule there manufactures a failure out of a permitted choice. The self-tests in
+     * this module withhold that tag on exactly those grounds.
+     *
+     * <p>Two consequences follow from the rule itself, and they are easy to get wrong in opposite
+     * directions:
+     *
+     * <ul>
+     *   <li>A scenario that fails because the backend cannot serve its fixture is <strong>not</strong>
+     *       a provider defect. Say so in the {@link KnownDeviation#summary} beside it, or the report
+     *       accuses your provider of the stack's gap.
+     *   <li>A capability withheld for a backend gap is <strong>temporary</strong> in a way one
+     *       withheld by choice is not. Note why it is withheld and what would change the answer, or
+     *       it outlives its reason and no later reader can tell that it should have been revisited.
+     * </ul>
+     *
+     * <p>This does not reach {@link Capability#LARGE_INTEGERS}, which is refused here for a reason
+     * upstream of any backend — see that constant.
+     *
      * <p>Remove only what <em>your</em> provider cannot do. What no Java provider can do is already
      * gone: {@link Capability#LARGE_INTEGERS} asks for 2^53 − 1 and {@code Client.getIntegerDetails}
      * is a 32-bit {@link Integer} with no room for it, so it is
