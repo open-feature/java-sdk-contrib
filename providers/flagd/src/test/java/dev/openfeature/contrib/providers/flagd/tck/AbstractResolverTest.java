@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e;
+package dev.openfeature.contrib.providers.flagd.tck;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
@@ -57,7 +57,7 @@ import java.util.Set;
  * declared as a {@link KnownDeviation}: a deviation says the provider is wrong, and the provider was
  * never given the flag to get wrong.
  */
-abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
+abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
     /**
      * A port nothing listens on, for the initialisation-failure scenarios.
