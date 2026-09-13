@@ -28,7 +28,8 @@ import java.util.Set;
  * flags the suite's assets added are absent from {@code flagd-testbed} v3.8.0:
  * {@code large-integer-flag}, {@code huge-integer-flag} and {@code integral-float-flag}. Two of the
  * three are reached — {@code huge-integer-flag} is asked for solely under {@code @large-integers},
- * which is withheld below for a reason of its own — so three scenarios fail with
+ * which no Java provider can declare because the SDK's integer accessor is 32 bits, so that
+ * scenario is skipped before the missing flag can matter — so three scenarios fail with
  * {@code FLAG_NOT_FOUND} in both modes until open-feature/flagd-testbed#392 lands and the tag here
  * is bumped:
  *
@@ -148,9 +149,9 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Everything declarable except {@link Capability#REINITIALIZATION} and
-     * {@link Capability#LARGE_INTEGERS}, both of which are facts about the provider or the SDK
-     * rather than defects, and both explained below.
+     * <p>Everything declarable except {@link Capability#REINITIALIZATION}, which is a fact about
+     * this provider rather than a defect and is explained below. Nothing else is withheld: what no
+     * Java provider can claim is no longer in {@link Capability#declarable()} to remove.
      *
      * <p><strong>{@link Capability#NUMERIC_COERCION} is declared even though one of its scenarios
      * fails</strong>, and that is deliberate — see {@link #knownDeviations()} for the reasoning.
@@ -205,12 +206,14 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * provider withholds the tag for its RPC resolver; on this evidence that is a difference between
      * the two implementations, not a property of the transport.
      *
-     * <p>{@link Capability#LARGE_INTEGERS} is withheld, as it is by every Java provider. It asks for
-     * 2^53 − 1 and {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for it,
-     * so the limit is the SDK's rather than flagd's — Appendix F is where that is recorded, and it is
-     * not a {@link dev.openfeature.contrib.tools.tck.KnownDeviation}, because flagd is not at
-     * fault for a value the accessor cannot carry. Its one scenario is reported as skipped for an
-     * undeclared capability, like any other.
+     * <p>{@link Capability#LARGE_INTEGERS} is no longer named here, and that is the change rather
+     * than an omission. This suite used to withhold it with a paragraph explaining that
+     * {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for 2^53 − 1 — the
+     * same paragraph the OFREP suite and two suites inside {@code tools/tck} each carried, because
+     * every Java adopter was expected to know the fact and act on it. The TCK refuses the capability
+     * centrally now, so there is nothing for an adoption to decide and nothing here to get wrong.
+     * Its scenario is still skipped, with a reason naming the SDK rather than this provider, which
+     * is the part a report's reader needs: flagd declined nothing.
      *
      * <p>{@link Capability#VARIANTS} and {@link Capability#TARGETING} are both declared, and both on
      * evidence rather than by inheriting the "everything except" default. flagd names the variant it
@@ -225,7 +228,8 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * <p>{@link Capability#DISABLED_FLAGS} is declared, and measured rather than assumed. Both
      * resolvers substitute the caller's default for a flag whose state is {@code DISABLED} and report
      * no error code, so all four rows of that outline pass in both modes. Measured on the pinned
-     * image: 65 scenarios in each mode, 59 passing, two skipped for the withheld tags above and four
+     * image: 65 scenarios in each mode, 59 passing, two skipped — one for the withheld
+     * {@code @reinitialization}, one because the SDK cannot ask {@code @large-integers} — and four
      * failing — the one real defect plus the three testbed gaps already described. The cold-start
      * initialisation error recorded on {@link #CONNECTED_DEADLINE_MS} did not reproduce in the run
      * these numbers come from; it is intermittent and host-dependent, and when it appears in-process
@@ -263,7 +267,7 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return Capability.declarableExcept(Capability.REINITIALIZATION, Capability.LARGE_INTEGERS);
+        return Capability.declarableExcept(Capability.REINITIALIZATION);
     }
 
     /**
