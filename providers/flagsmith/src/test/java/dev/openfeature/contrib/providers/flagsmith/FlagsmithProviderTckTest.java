@@ -96,6 +96,10 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      * rather than an oversight: Java's integer accessor is a 32-bit {@code Integer}, so 2^53-1
      * cannot be asked for at all. This is the same reason Java withholds it for flagd.
      *
+     * <p>{@code STANDARD_REASONS} is withheld, and it is a defect rather than a permitted absence
+     * -- see the deviation below. It is the capability that turned eight failures into skips here,
+     * which is the point of it being a claim a provider opts into rather than an exemption.
+     *
      * <p>{@code DISABLED_FLAGS} is declared. Flagsmith's native model is {@code enabled} plus a
      * value, so the canonical set's four disabled-* flags map straight onto it.
      *
@@ -111,7 +115,18 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
 
     @Override
     public List<KnownDeviation> knownDeviations() {
-        return Arrays.asList(KnownDeviation.untracked(
+        return Arrays.asList(
+                KnownDeviation.untracked(
+                        Capability.STANDARD_REASONS,
+                        "This provider never populates the resolution reason: every evaluation returns null, so "
+                                + "not one of the reasons this capability claims is reported. The resolved values are "
+                                + "correct throughout -- only the reason is missing. 2.2.5 makes the reason a SHOULD, "
+                                + "so null is arguably permitted, which is exactly why this is a withheld claim rather "
+                                + "than a failure. What makes it worth recording as a defect is that the Go Flagsmith "
+                                + "provider reports STATIC, DISABLED and TARGETING_MATCH against the identical backend, "
+                                + "so it is a gap rather than a considered choice. Withholding turns eight failures "
+                                + "into skips carrying this reason."),
+                KnownDeviation.untracked(
                 Capability.NUMERIC_COERCION,
                 "Withheld pending the run, and recorded as a prediction rather than a measurement. "
                         + "Flagsmith stores floats and objects as strings because feature_state_value is "
