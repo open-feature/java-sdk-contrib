@@ -4,8 +4,10 @@
 # TCK's control API contract was derived from. It does not yet serve the whole canonical flag
 # set: v3.8.0 has none of large-integer-flag, huge-integer-flag or integral-float-flag. Two of
 # the three are reached by scenarios that run here -- huge-integer-flag sits behind
-# @large-integers, which this provider does not declare -- and between them they fail three
-# scenarios, all until open-feature/flagd-testbed#392 lands. Bump the tag then.
+# @large-integers, which no Java provider can declare because Client.getIntegerDetails is a
+# 32-bit Integer, so its scenario is skipped before the missing flag can matter -- and between
+# them they fail three scenarios, all until open-feature/flagd-testbed#392 lands. Bump the tag
+# then.
 #
 #   * large-integer-flag: the untagged precision scenario, which gets the code default instead
 #     of 2147483647, and the @variants row asking for its "max-int32" variant, answered with
