@@ -418,7 +418,7 @@ class ConformanceReportPluginTest {
         JsonNode deviations = envelope.get("knownDeviations");
 
         assertThat(deviations).hasSize(1);
-        assertThat(deviations.get(0).get("capability").asText()).isEqualTo(Capability.NUMERIC_COERCION.tag());
+        assertThat(deviations.get(0).get("capability").asText()).isEqualTo(Capability.CONFIGURATION_CHANGE.tag());
         assertThat(deviations.get(0).get("summary").asText()).isNotEmpty();
         assertThat(deviations.get(0).has("issue"))
                 .as("the fixture's deviation is untracked, and the field is omitted rather than empty")
@@ -521,8 +521,14 @@ class ConformanceReportPluginTest {
                 declared,
                 "a test double",
                 ControlApi.HTTP,
+                // Withheld-and-skipped, which is the shape a fixture may legitimately depict: this
+                // provider cannot attempt the behaviour, because it never subscribes to the thing
+                // that would tell it. A narrowing-coercion deviation used to stand here, and that
+                // is the shape the guidance discourages -- a provider that attempts a behaviour and
+                // gets it wrong declares the capability and lets the scenario fail.
                 Collections.singletonList(KnownDeviation.untracked(
-                        Capability.NUMERIC_COERCION, "the fixture provider narrows a float to an integer")));
+                        Capability.CONFIGURATION_CHANGE,
+                        "the fixture provider swallows its child's change events and can never " + "report one")));
         metadata.recordProviderName("My Provider");
         return metadata;
     }
