@@ -66,7 +66,7 @@ public class ControllableProviderTckTest extends ProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>{@link InMemoryProviderTckTest}'s five, plus the three this suite exists for. Each addition
+     * <p>{@link InMemoryProviderTckTest}'s six, plus the three this suite exists for. Each addition
      * is a fact about {@link ControllableProvider} rather than a convenience:
      *
      * <ul>
@@ -117,6 +117,7 @@ public class ControllableProviderTckTest extends ProviderTckTest {
                 Capability.CONFIGURATION_CHANGE,
                 Capability.OBJECT,
                 Capability.VARIANTS,
-                Capability.DISABLED_FLAGS);
+                Capability.DISABLED_FLAGS,
+                Capability.STANDARD_REASONS);
     }
 }
