@@ -930,8 +930,59 @@ putting it back — and both were found by running this, not by reading:
 mvn -Pe2e -pl providers/<your-provider> help:evaluate -Dexpression=testExclusions -DforceStdout
 ```
 
-The single documented command that runs a suite deliberately, per the appendix, is the one in each
-adoption's own README: `-DtestExclusions=` on the command line overrides the property for one run.
+**Then give the suite a step of its own**, which is the appendix's other requirement and the reason
+is what a red build *says*: a conformance run carries failures by design wherever a `knownDeviation`
+is declared, so a signal it shares with a suite that is expected green ends with somebody silencing
+the informative half. In Maven that step is a profile, one per adopting module, and it is named
+`tck` because JavaScript's `nx tck` target and Python's `poe test-tck` task already spell it that
+way:
+
+```xml
+<profile>
+  <id>tck</id>
+  <properties>
+    <!-- the include below selects the suite, so the exclusion has nothing left to do -->
+    <testExclusions></testExclusions>
+  </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <includes>
+            <include>**/e2e/*TckTest.java</include>
+          </includes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</profile>
+```
+
+Clearing the exclusion and narrowing the includes **in the same profile** is what makes it a
+conformance step rather than a wider one. Clearing alone re-enables every Docker-dependent suite the
+module has; narrowing alone leaves the exclusion in force and runs nothing.
+
+```bash
+# once, if this module is not in your local repository yet
+mvn -pl tools/tck -am -DskipTests install
+
+mvn -Ptck -pl providers/<your-provider> test
+```
+
+The second line is the documented command the appendix asks for, and it is the one in each
+adoption's own README. **Resist adding `-am` to it.** `-am` pulls this module — and anything else
+the adoption depends on, `tools/flagd-core` for `providers/flagd` — into the reactor and runs their
+test suites before the first scenario, so a failure in any of them comes out as a `-Ptck` failure.
+That is the signal-mixing the separate step exists to prevent, reintroduced by a flag. The one-off
+`install` is what `-am` was there for.
+
+The three command-line overrides this replaced — `-DtestExclusions= -Dtest='<Your>*TckTest'
+-Dsurefire.failIfNoSpecifiedTests=false` — did run the right suites, so this is not a correctness
+fix. It is that a command a reader has to reassemble from three flags is not a step: nothing names
+it, CI cannot invoke it by name, and its failure is indistinguishable from any other Surefire
+failure in the same module.
 
 Scenarios run **serially** and the suite enforces this, overriding any
 `cucumber.execution.parallel.enabled=true` in your module's `junit-platform.properties`. Control API
