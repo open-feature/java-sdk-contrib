@@ -14,6 +14,17 @@
 
     <properties>
         <module-name>${groupId}.tck</module-name>
+
+        <!--
+            Set this to true to stop the build moving the `spec` submodule's working tree to the
+            pinned commit. There is one good reason to: a checkout where `git` cannot read the
+            repository at all — a worktree whose gitdir is an absolute path this JVM's `git` does
+            not understand, a source tarball with no `.git` — where the execution can only fail.
+            Do the checkout by hand in that case; CanonicalAssetDigestTest is what makes it safe
+            to, because it fails the build if the packaged assets are not the pinned revision's.
+        -->
+        <tck.spec.checkout.skip>false</tck.spec.checkout.skip>
+
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.1</jackson-databind.version>
@@ -208,8 +219,25 @@
     <build>
         <plugins>
             <!--
-                Phase 1 – keep the spec submodule up to date. Registered with:
+                Phase 1 – move the spec submodule's WORKING TREE to the pinned commit.
+                Registered with:
                 git submodule add https://github.com/open-feature/spec.git tools/tck/spec
+
+                This runs on every build and must keep doing so. A rebase, a branch switch or a
+                `git checkout` moves the GITLINK; only `git submodule update` moves the checkout,
+                and between the two the copy below happily packages the previous pin's assets.
+                The result is internally consistent — the old feature files agree with each other,
+                and with the old flag set — so a suite runs, passes, and reports numbers that
+                describe a revision nobody asked for.
+
+                Skipped through a switch of its own rather than through exec-maven-plugin's
+                `exec.skip`. That property is generic, so "skip the spec checkout" used to be
+                reachable as a side effect of skipping something else entirely — which is how
+                every local run in this repository has skipped it without meaning to. Saying
+                -Dtck.spec.checkout.skip=true is a decision an operator has to take on purpose,
+                and it is safe to take: the digest check in CanonicalAssetDigestTest fails the
+                build if what ends up in the JAR is not the pinned revision's assets, whether or
+                not this execution ran.
             -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -223,6 +251,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
+                            <skip>${tck.spec.checkout.skip}</skip>
                             <executable>git</executable>
                             <arguments>
                                 <argument>submodule</argument>
@@ -236,7 +265,50 @@
             </plugin>
 
             <!--
-                Phase 2 – copy the three spec artifacts into src/main/resources so
+                Phase 2 – empty the three generated resource directories before anything is
+                copied into them.
+
+                copy-resources overwrites and never deletes, and these directories are
+                gitignored, so a file that exists in the old pin and not in the new one survives
+                the re-pin and is packaged alongside assets it was never meant to travel with.
+                Going forwards that is invisible; going backwards — taking a baseline
+                measurement, bisecting a failure — it produces a set that exists in no revision
+                of the specification at all, and the run against it looks entirely plausible.
+
+                Declared ahead of maven-resources-plugin because Maven runs same-phase
+                executions in POM order. excludeDefaultDirectories keeps this from touching
+                target/; the filesets below are the only things it is allowed to remove.
+            -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>clear-generated-spec-assets</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${basedir}/src/main/resources/gherkin</directory>
+                                </fileset>
+                                <fileset>
+                                    <directory>${basedir}/src/main/resources/flags</directory>
+                                </fileset>
+                                <fileset>
+                                    <directory>${basedir}/src/main/resources/openapi</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Phase 3 – copy the three spec artifacts into src/main/resources so
                 they are packaged into the release JAR. Consumers load them from the
                 classpath and need no submodule.
             -->
