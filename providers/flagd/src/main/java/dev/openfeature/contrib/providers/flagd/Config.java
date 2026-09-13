@@ -13,7 +13,7 @@ public final class Config {
     static final Resolver DEFAULT_RESOLVER_TYPE = Resolver.RPC;
     static final String DEFAULT_RPC_PORT = "8013";
     static final String DEFAULT_IN_PROCESS_PORT = "8015";
-    static final String DEFAULT_TLS = "false";
+    static final boolean DEFAULT_TLS = false;
     static final String DEFAULT_HOST = "localhost";
 
     static final int DEFAULT_DEADLINE = 500;
@@ -23,7 +23,7 @@ public final class Config {
     static final int DEFAULT_MAX_CACHE_SIZE = 1000;
     static final int DEFAULT_OFFLINE_POLL_MS = 5000;
     static final long DEFAULT_KEEP_ALIVE = 0;
-    static final String DEFAULT_REINITIALIZE_ON_ERROR = "false";
+    static final boolean DEFAULT_REINITIALIZE_ON_ERROR = false;
 
     static final String RESOLVER_ENV_VAR = "FLAGD_RESOLVER";
     static final String HOST_ENV_VAR_NAME = "FLAGD_HOST";
@@ -84,19 +84,53 @@ public final class Config {
     }
 
     static int fallBackToEnvOrDefault(String key, int defaultValue) {
+        final String value = System.getenv(key);
+        if (value == null) {
+            return defaultValue;
+        }
         try {
-            return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : defaultValue;
-        } catch (Exception e) {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            logInvalidEnvValue(key, value, "an integer", defaultValue);
             return defaultValue;
         }
     }
 
     static long fallBackToEnvOrDefault(String key, long defaultValue) {
-        try {
-            return System.getenv(key) != null ? Long.parseLong(System.getenv(key)) : defaultValue;
-        } catch (Exception e) {
+        final String value = System.getenv(key);
+        if (value == null) {
             return defaultValue;
         }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            logInvalidEnvValue(key, value, "an integer", defaultValue);
+            return defaultValue;
+        }
+    }
+
+    static boolean fallBackToEnvOrDefault(String key, boolean defaultValue) {
+        final String value = System.getenv(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        if ("true".equalsIgnoreCase(value)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(value)) {
+            return false;
+        }
+        logInvalidEnvValue(key, value, "'true' or 'false'", defaultValue);
+        return defaultValue;
+    }
+
+    private static void logInvalidEnvValue(String key, String value, String expected, Object defaultValue) {
+        log.error(
+                "Invalid value '{}' for environment variable {}: expected {}. Falling back to default value '{}'.",
+                value,
+                key,
+                expected,
+                defaultValue);
     }
 
     static List<String> fallBackToEnvOrDefaultList(String key, List<String> defaultValue) {
