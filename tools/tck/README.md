@@ -907,6 +907,37 @@ git submodule update --init tools/tck/spec
 Maven does this itself at `initialize`, so a plain `mvn verify` works from a fresh clone; the
 explicit command is only useful when working offline or inspecting the sources by hand.
 
+### Stale assets
+
+A re-pin moves two things by two different commands, and a build between them is silent. A rebase, a
+branch switch or a `git checkout` moves the **gitlink**; only `git submodule update` moves the
+**working tree**. Build in between and the copy step packages the previous pin's assets under the new
+pin's name — and nothing looks wrong, because the old feature files agree with each other and with
+the old flag set. One language's suite ran a whole adoption this way and the only trace was that its
+totals matched the previous run exactly.
+
+Three things in the build make that unrepresentable rather than something to remember:
+
+1. **The checkout runs on every build**, at `initialize`. It is skippable, but only through
+   `-Dtck.spec.checkout.skip=true`, which is a switch of its own rather than a generic one — the
+   point being that you cannot turn it off as a side effect of turning something else off. There is
+   one good reason to use it: a checkout where `git` cannot read the repository at all.
+2. **The three generated directories are emptied before anything is copied into them**, at
+   `generate-resources`. `copy-resources` overwrites and never deletes, and they are git-ignored, so
+   without this a file that exists in the old pin and not in the new one survives the re-pin. Going
+   forwards that is invisible; going *backwards* — a baseline measurement, a bisect — it produces an
+   asset set that exists in no revision of the specification, and a run against it that looks
+   entirely plausible.
+3. **`CanonicalAssetDigestTest` fails the build if the packaged assets are not the pinned revision's**,
+   by digest, over all three directories and not just the Gherkin. This is what makes skipping the
+   checkout safe, and it is the only one of the three that catches a pin whose only change is
+   *content*: the re-pin it was written for changed two `$comment` blocks in `canonical-flags.json`
+   and not one scenario, which every count and every tag check in this module passes unmoved.
+
+Re-pinning is therefore one commit containing the gitlink, `PINNED_REVISION` and `PINNED_DIGEST` in
+that test — which prints the value it wanted when it fails — and, on a branch that reports it,
+`tck.spec.revision` in the POM.
+
 ## Known gaps
 
 - **Evaluation context passthrough, beyond the targeting key.** `targeting-key-flag` resolves
