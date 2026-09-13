@@ -76,7 +76,12 @@ Given below are the supported configurations:
 ## Provider conformance (TCK)
 
 This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md) as a single suite,
-`OfrepTckTest`. Read that class before changing it: it records which capabilities are declared,
+`OfrepTest`, in a source directory of its own: `src/test/java/.../ofrep/tck/`. It is the module's
+only Docker-dependent test package, and having it be a directory rather than a filename convention
+is what lets every selector below name a place instead of a pattern. In a package called `tck` the
+class needs no further label; the fully-qualified name still carries everything.
+
+Read that class before changing it: it records which capabilities are declared,
 which are withheld and why — several are withheld because OFREP puts the decision on the server
 rather than in the provider, which is a fact about the protocol and not a defect — and every known
 deviation.
@@ -85,7 +90,7 @@ Because OFREP is a protocol rather than a vendor, the backend under test is simp
 speaks it. The suite reuses the unmodified `flagd-testbed` image and its launchpad control API.
 
 **The suite is Docker-gated and excluded from the default build**, via
-`<testExclusions>**/e2e/*.java</testExclusions>` in this module's POM. That property is the
+`<testExclusions>**/tck/*.java</testExclusions>` in this module's POM. That property is the
 repository's convention for a Docker-dependent suite, fed to Surefire by the parent POM; the parent
 defines no default, so each module that wants the gate declares it. This module did not, which meant
 `mvn verify` started a Compose stack and the suite ran — and failed — in every job that touched
@@ -107,11 +112,12 @@ every job.
 
 **The conformance suite has a profile of its own, `tck`.** That is the separation the appendix asks
 for, and the reason is what a red build *says* rather than how long it takes: a conformance run
-carries failures by design, wherever `OfrepTckTest` declares a `knownDeviation`, so a signal shared
+carries failures by design, wherever `OfrepTest` declares a `knownDeviation`, so a signal shared
 with a suite that is expected green ends with somebody silencing the informative half. The profile
-clears the exclusion and narrows Surefire's includes to `**/e2e/*TckTest.java` in the same breath,
-so it runs the conformance suite and nothing else — not the module's unit tests. Nothing activates
-it in CI.
+drops the `tck` directory from the exclusion and narrows Surefire's includes to `**/tck/*.java` in
+the same breath, so it runs the conformance suite and nothing else — not the module's unit tests.
+Both halves are needed: the include alone leaves the exclusion in force and runs nothing, and
+dropping the exclusion alone runs the unit tests too. Nothing activates it in CI.
 
 The consequence is that **no CI job runs the suite**, so a maintainer runs it by hand before merging
 a change to the provider's resolution or error behaviour, and quotes the result in the pull request.
@@ -130,11 +136,11 @@ mvn -Ptck -pl providers/ofrep test
 before the first scenario, so a failure there comes out as a `-Ptck` failure — the signal-mixing this
 step exists to prevent, reintroduced by a flag. The separate `install` is what `-am` was there for.
 
-The suite is currently **expected to fail** on the failures enumerated in `OfrepTckTest`, which come
+The suite is currently **expected to fail** on the failures enumerated in `OfrepTest`, which come
 from flags the pinned testbed image does not serve (open-feature/flagd-testbed#392). A clean run is
 65 scenarios, 46 passing, 17 skipped and 2 failing.
 
-It is also **intermittently flaky**, and `OfrepTckTest`'s class javadoc says why: about half the runs
+It is also **intermittently flaky**, and `OfrepTest`'s class javadoc says why: about half the runs
 carry one or two extra failures where an evaluation comes back as the code default or as
 `FLAG_NOT_FOUND`, on a scenario that moves from run to run. That is the testbed readiness window of
 open-feature/flagd-testbed#394, not a provider defect and not something to cover with a sleep. Repeat
