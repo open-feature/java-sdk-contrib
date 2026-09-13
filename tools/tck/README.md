@@ -460,7 +460,9 @@ standard results format identifies:
   suite name is chosen to read well in a failure message (`flagd-rpc`), which makes it the
   *configuration*, and it is reported as such. One provider with two materially different modes
   produces two reports that are not interchangeable. Derived from the suite class name
-  (`FlagdInProcessTckTest` → `flagd-in-process`); override `ProviderTckHarness.configuration()`.
+  (`MyProviderInProcessTest` → `my-provider-in-process`) unless the suite overrides
+  `ProviderTckHarness.configuration()`, which flagd's two do — a class in a package already called
+  `.../flagd/tck/` is named `InProcessTest`, and `in-process` on a report does not say whose.
 - **`sdk`** — read from the classpath rather than declared, because the TCK depends on an SDK version
   *range* so that adopting it can never force an upgrade. What a consumer actually ran against is
   only knowable at runtime.
