@@ -8,10 +8,29 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * <p>The requirement has to be a numbered {@code MUST}, or a rule the implementation bound itself to
  * elsewhere — flagd's numeric-coercion ADR, say. Where the specification <em>permits</em> the
  * choice, withholding the capability <em>is</em> the honest report and a deviation entry would
- * assert a defect that does not exist. A provider that does not declare
- * {@code @configuration-change} has no streaming transport and is not pretending otherwise; a
- * provider that narrows {@code 0.5} to {@code 0} with no error code, having said elsewhere that it
- * coerces losslessly, has a defect.
+ * assert a defect that does not exist.
+ *
+ * <p><strong>The clearest illustration is one capability withheld twice, for two different
+ * reasons.</strong> A provider with no streaming transport does not declare
+ * {@code @configuration-change}: it has no way to notice a change and is not pretending otherwise,
+ * so the skip is the whole report and there is nothing to deviate from. This module's own
+ * {@code MultiProviderTckTest} withholds that same tag because {@code MultiProvider} extends
+ * {@code EventProvider} and never subscribes to its children, so a child's
+ * {@code PROVIDER_CONFIGURATION_CHANGED} is swallowed —
+ * <a href="https://github.com/open-feature/java-sdk/issues/1882">open-feature/java-sdk#1882</a>,
+ * a defect with a fix pending rather than a design. One skip, two meanings, and only the second is
+ * something a reader has to be told.
+ *
+ * <p>That is the distinction. It is <em>not</em> a rule about which absences may carry a deviation:
+ * a provider that attempts a behaviour and gets it wrong declares the capability and lets the
+ * scenario fail — shape 1 below — rather than withholding it. flagd narrowing {@code 0.5} to
+ * {@code 0} with no error code is that case, and the adoption in this repository declares
+ * {@code @numeric-coercion} for exactly that reason. An earlier revision of
+ * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
+ * F</a> illustrated the choice-against-defect distinction with a provider that <em>withheld</em>
+ * {@code @numeric-coercion} because it narrows, and two of the four implementations followed it into
+ * the withhold-plus-deviate combination this class exists to discourage. The appendix has since been
+ * corrected and so has this paragraph.
  *
  * <h2>The two legitimate shapes</h2>
  *

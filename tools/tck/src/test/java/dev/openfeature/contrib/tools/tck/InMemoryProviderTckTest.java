@@ -62,7 +62,10 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      * and pass. The other two carry {@code @targeting} as well and are skipped for that omission —
      * the tag composition doing its job, since a provider that evaluates no rules has no
      * {@code TARGETING_MATCH} to report and failing it for the absence would say nothing. Each
-     * omission below is a fact about {@link InMemoryProvider} rather than a convenience:
+     * omission below is a fact about {@link InMemoryProvider} rather than a convenience, and each is
+     * a <em>property</em> rather than a defect — so none of them leans on the self-test carve-out
+     * Appendix F grants these suites, and {@link MultiProviderTckTest} is the only one in this
+     * module that does:
      *
      * <ul>
      *   <li>{@link Capability#NUMERIC_COERCION} — omitted. {@link InMemoryProvider} keeps the two
@@ -74,7 +77,9 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      *       rule is borrowed from flagd's ADR rather than from the specification, so strict typing
      *       is a choice the SDK's reference provider is entitled to, not a defect to declare; the
      *       capability is withheld and the three scenarios are skipped with that reason. Declare it
-     *       again if the SDK ever adopts the coercion rule.
+     *       again if the SDK ever adopts the coercion rule. Appendix F's scenario-level declaring
+     *       rule does not reach this omission: it decides whether a question is <em>askable</em>,
+     *       not whether the provider owes an answer, and no requirement says this one is owed.
      *   <li>{@link Capability#LIFECYCLE} — omitted. {@link InMemoryProvider} is handed its whole
      *       flag set by its constructor, so initialisation acquires nothing and cannot be refused,
      *       and the readiness scenario would pass without demonstrating anything — which is exactly
