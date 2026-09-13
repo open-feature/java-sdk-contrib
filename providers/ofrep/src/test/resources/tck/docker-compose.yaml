@@ -18,7 +18,7 @@
 # targeting-key-flag is served, which is why @targeting needs no bump: its three scenarios pass
 # on this image. The four disabled-* flags behind @disabled-flags are served too, from this
 # image's own flags/disabled-flags.json -- so the four failures that tag produced here are the
-# provider's and not the stack's, and the tag is withheld in OfrepTckTest with the reason. flagd
+# provider's and not the stack's, and the tag is withheld in OfrepTest with the reason. flagd
 # answers a disabled flag with 200, reason DISABLED and no value, which is what OFREP calls a
 # codeDefaultFlag; nothing is missing from this image.
 #
