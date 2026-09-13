@@ -24,9 +24,9 @@ import java.util.Set;
  * <p><strong>The testbed does not yet serve the whole canonical flag set.</strong> Three flags the
  * suite's assets added are absent from {@code flagd-testbed} v3.8.0: {@code large-integer-flag},
  * {@code huge-integer-flag} and {@code integral-float-flag}. Only the first is reached —
- * {@code huge-integer-flag} is asked for solely under {@code @large-integers}, which is not
- * applicable in Java, and {@code integral-float-flag} solely under {@code @numeric-coercion}, which
- * is withheld below — so exactly one untagged scenario, the 32-bit precision one, fails with
+ * {@code huge-integer-flag} is asked for solely under {@code @large-integers}, which no Java
+ * provider can be asked, and {@code integral-float-flag} solely under {@code @numeric-coercion},
+ * which is withheld below — so exactly one untagged scenario, the 32-bit precision one, fails with
  * {@code FLAG_NOT_FOUND} until open-feature/flagd-testbed#392 lands.
  *
  * <p>The three falsy flags used to fail the same way and no longer do. The testbed's
@@ -208,12 +208,14 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
      * exact-instance check is what makes the {@code @object} mismatch matrix work, and the
      * structured happy path passes through {@code resolve(Object.class, ...)}, which every non-null
      * value satisfies, and is converted with {@code Value.objectToValue} (Resolver.java:125-136).
-     * And {@link Capability#LARGE_INTEGERS} is withheld, as every Java provider withholds it, for a
-     * reason that is not about OFREP at all: the tag asks for 2^53 − 1 and
-     * {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for it. The limit is
-     * the SDK's, it is recorded once in Appendix F rather than in each run, and the scenario is
-     * skipped for an undeclared capability like any other. It is named here for the same reason
-     * {@code REINITIALIZATION} is — {@link Capability#declarableExcept} would otherwise claim it.
+     * And {@link Capability#LARGE_INTEGERS} is no longer in the list below, which is the one
+     * omission here that says nothing about OFREP. The tag asks for 2^53 − 1 and
+     * {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for it, so the limit
+     * is the SDK's; the TCK refuses the capability outright now rather than asking every Java
+     * adoption to remember, and {@link Capability#declarableExcept} no longer offers it. Its
+     * scenario is still skipped, with a reason naming the accessor rather than this provider — which
+     * matters more here than elsewhere, because every other name in that list <em>is</em> something
+     * this provider genuinely cannot do, and a reader should not have to guess which is which.
      *
      * <p>{@link Capability#VARIANTS} and {@link Capability#TARGETING} are declared, and unlike the
      * withheld tags above both are confirmed by a run rather than read from the source. The OFREP
@@ -305,8 +307,7 @@ public class OfrepTckTest extends ContainerizedProviderTckTest {
                 Capability.CONFIGURATION_CHANGE,
                 Capability.DISABLED_FLAGS,
                 Capability.UNAVAILABLE_INIT,
-                Capability.NUMERIC_COERCION,
-                Capability.LARGE_INTEGERS);
+                Capability.NUMERIC_COERCION);
     }
 
     /**
