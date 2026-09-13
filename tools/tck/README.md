@@ -751,9 +751,14 @@ public List<KnownDeviation> knownDeviations() {
 what, which is worth less than the bare skip or failure it accompanies. `issue` is **optional** —
 use `KnownDeviation.untracked(...)` when there is nothing to point at yet. That is still worth
 declaring, because naming the defect is what separates it from a choice, but an issue link is
-better. The capability may be `null`, when the gap is against a mandatory, ungated scenario; it may
-not be a [reserved](#declaring-capabilities) one, since no scenario carries the tag and so there is
-nothing to deviate from. Empty is the default, and it is silence rather than a claim of having none.
+better. The capability may be `null`, when the gap is against a mandatory, ungated scenario. It may
+not be either of the two whose scenarios were never put to your provider, and both are refused where
+you write them, with different messages: a
+[reserved](#declaring-capabilities) one, since no scenario carries the tag in any language, and an
+[inexpressible](#declaring-capabilities) one, since the scenarios exist and this SDK cannot ask them.
+Neither leaves anything to deviate from, and a deviation reads as an admission of fault — here it
+would be a fault nobody committed and nobody could fix. Empty is the default, and it is silence
+rather than a claim of having none.
 
 ### Naming the configuration under test
 
