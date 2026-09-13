@@ -87,7 +87,8 @@ public class ControllableProviderTckTest extends ProviderTckTest {
      *
      * <p>And the omissions, which are the same as {@link InMemoryProviderTckTest}'s because every
      * resolution decision here is still the SDK provider's — this class adds a lifecycle and
-     * delegates all evaluation:
+     * delegates all evaluation. Each is a property of the delegate rather than a defect, so none of
+     * them rests on the self-test carve-out:
      *
      * <ul>
      *   <li>{@link Capability#NUMERIC_COERCION} — the delegate type-checks rather than coerces, so

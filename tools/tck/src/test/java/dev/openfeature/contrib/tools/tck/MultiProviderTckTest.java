@@ -66,6 +66,21 @@ public class MultiProviderTckTest extends ProviderTckTest {
      * {@code @configuration-change} scenario is reported as skipped-with-reason rather than passing
      * on a provider that cannot satisfy it.
      *
+     * <p><strong>This is the one omission in this module that rests on Appendix F's self-test
+     * carve-out</strong>, and it is worth naming as such. The rule for an adoption is that a
+     * provider which attempts a behaviour and gets it wrong declares the capability and lets the
+     * scenario fail;
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
+     * F</a> exempts a TCK's own self-tests, because they run the scenarios against an SDK provider
+     * as a fixture, report on nobody, and run in the ordinary build where a permanently failing
+     * scenario is a broken build rather than a finding — the fix is an SDK release away. The
+     * exemption has one condition: <em>the defect is pinned by a test of its own</em>, so that the
+     * skip is not the only record. That condition is met only partly here. The issue is named above
+     * and the deletion criterion with it, but nothing in this module asserts the swallowed event
+     * directly, so a reader has the javadoc and the skip reason and no executing assertion. The
+     * other two self-test suites do not need the carve-out at all: every capability they omit is a
+     * property of the provider rather than a defect.
+     *
      * <p>Everything else holds. Values, variants, reasons, the full type-mismatch matrix,
      * {@code FLAG_NOT_FOUND}, falsy values, 32-bit integer precision and structured values all
      * survive the delegation hop unchanged — {@link Capability#VARIANTS} is declared for exactly
