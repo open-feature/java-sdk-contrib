@@ -132,7 +132,9 @@ class DeclarationApiTest {
 
         assertThat(reserved)
                 .as("the reserved refusal says there is nothing to gate yet")
-                .contains("no scenario in the suite carries");
+                .contains("no scenario in the suite carries")
+                .as("and never blames the SDK, because a reservation is every language's")
+                .doesNotContain("SDK");
         assertThat(inexpressible)
                 .as("the inexpressible refusal says the opposite: the scenarios exist elsewhere")
                 .contains("the scenarios exist and are asked in languages whose API is wide enough")
@@ -230,6 +232,36 @@ class DeclarationApiTest {
         KnownDeviation untracked = KnownDeviation.untracked(null, "a gap against a mandatory scenario");
         assertThat(untracked.capability).isNull();
         assertThat(untracked.issue).isNull();
+    }
+
+    @Test
+    @DisplayName("a deviation cannot name a capability whose scenarios were never put to the provider")
+    void deviationsCannotNameAnUnaskedCapability() {
+        // A deviation asserts that the provider fails something it is required to do, so it has to
+        // be about a question that was actually asked. Two never are, and they are refused apart
+        // for the same reason the declaration refuses them apart -- this is the same claim reaching
+        // the report by a second route, and the more damaging one, because a deviation reads as an
+        // admission of fault.
+        assertThatThrownBy(() -> KnownDeviation.untracked(Capability.CACHING, "no scenario carries it"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reserved CACHING")
+                .hasMessageContaining("no scenario in the suite carries")
+                .hasMessageNotContaining("SDK");
+
+        assertThatThrownBy(() -> KnownDeviation.tracked(
+                        Capability.LARGE_INTEGERS, "https://example.invalid/1", "cannot be asked"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("LARGE_INTEGERS")
+                .hasMessageContaining("the Java SDK cannot express")
+                .hasMessageContaining("Client.getIntegerDetails")
+                .as("it is not a reservation, and the message must not read as one")
+                .hasMessageNotContaining("no scenario in the suite carries");
+
+        // Null still means "a gap against a mandatory, ungated scenario", and an ordinary capability
+        // is still allowed in both shapes.
+        assertThat(KnownDeviation.untracked(null, "a mandatory gap").capability).isNull();
+        assertThat(KnownDeviation.untracked(Capability.DISABLED_FLAGS, "withheld and skipped").capability)
+                .isEqualTo("@disabled-flags");
     }
 
     @Test
