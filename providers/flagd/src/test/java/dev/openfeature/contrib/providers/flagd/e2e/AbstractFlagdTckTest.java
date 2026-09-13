@@ -225,10 +225,11 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * <p>{@link Capability#DISABLED_FLAGS} is declared, and measured rather than assumed. Both
      * resolvers substitute the caller's default for a flag whose state is {@code DISABLED} and report
      * no error code, so all four rows of that outline pass in both modes. Measured on the pinned
-     * image: RPC is 56 scenarios, 50 passing, two skipped for the withheld tags above and four
-     * failing — the one real defect plus the three testbed gaps already described. In-process is the
-     * same four failures plus the cold-start initialisation error recorded on
-     * {@link #CONNECTED_DEADLINE_MS}, so 49 passing. Nothing needed bumping for it either: {@code disabled-boolean-flag},
+     * image: 65 scenarios in each mode, 59 passing, two skipped for the withheld tags above and four
+     * failing — the one real defect plus the three testbed gaps already described. The cold-start
+     * initialisation error recorded on {@link #CONNECTED_DEADLINE_MS} did not reproduce in the run
+     * these numbers come from; it is intermittent and host-dependent, and when it appears in-process
+     * it costs one further scenario. Nothing needed bumping for it either: {@code disabled-boolean-flag},
      * {@code disabled-string-flag}, {@code disabled-integer-flag} and {@code disabled-float-flag}
      * are flagd-testbed's own, from {@code flags/disabled-flags.json}, which the image already
      * carries at the v3.8.0 pinned below and which the launchpad combines into the set it serves. The
@@ -241,6 +242,16 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * decides locally what to do with a response that carries no value. A provider whose backend
      * decides — one speaking OFREP — cannot hold it at all, which is the comparison the tag exists to
      * make legible.
+     *
+     * <p>{@link Capability#STANDARD_REASONS} is declared, and it arrived here by the
+     * {@code declarableExcept} default rather than by a decision — which is exactly why it was
+     * measured before this paragraph was written. All nine scenarios of {@code reason.feature} pass
+     * in both modes, including the two that compose with {@link Capability#TARGETING} and
+     * {@link Capability#DISABLED_FLAGS}: flagd reports {@code STATIC} for the rule-less flags,
+     * {@code TARGETING_MATCH} and {@code DEFAULT} either side of {@code targeting-key-flag}'s rule,
+     * {@code DISABLED} for a disabled flag, and {@code ERROR} beside {@code FLAG_NOT_FOUND} and
+     * {@code TYPE_MISMATCH}. So the claim the tag makes — the standard vocabulary with the standard
+     * meanings — holds for both resolvers, and the declaration is evidence rather than inheritance.
      *
      * <p>{@link Capability#declarableExcept} rather than {@code EnumSet.complementOf}, which is what
      * this used to be. The complement of one capability is every other <em>enum constant</em>,
