@@ -94,8 +94,9 @@ defines no default, so each module that wants the gate declares it. This module 
 names, and the appendix has the reasoning for the whole policy; the exclusion is the fix and this
 paragraph is the other half of it.
 
-This module has no profile that touches the property, so both spellings resolve the same way —
-checked rather than read, because that is the appendix's other warning:
+Exactly one profile touches the property — `tck`, below — and `e2e`, which the repository's CI
+activates on every push, does not exist in this module at all. Checked rather than read, because
+that is the appendix's other warning:
 
 ```bash
 mvn -Pe2e -pl providers/ofrep help:evaluate -Dexpression=testExclusions -DforceStdout
@@ -104,6 +105,14 @@ mvn -Pe2e -pl providers/ofrep help:evaluate -Dexpression=testExclusions -DforceS
 The exclusion is Surefire's and not the compiler's, so the suite still builds against the harness in
 every job.
 
+**The conformance suite has a profile of its own, `tck`.** That is the separation the appendix asks
+for, and the reason is what a red build *says* rather than how long it takes: a conformance run
+carries failures by design, wherever `OfrepTckTest` declares a `knownDeviation`, so a signal shared
+with a suite that is expected green ends with somebody silencing the informative half. The profile
+clears the exclusion and narrows Surefire's includes to `**/e2e/*TckTest.java` in the same breath,
+so it runs the conformance suite and nothing else — not the module's unit tests. Nothing activates
+it in CI.
+
 The consequence is that **no CI job runs the suite**, so a maintainer runs it by hand before merging
 a change to the provider's resolution or error behaviour, and quotes the result in the pull request.
 A scheduled or path-filtered workflow was considered and declined: a suite whose red is diagnosed by
@@ -111,9 +120,15 @@ whoever happens to read the notification is worse than one whose red is diagnose
 caused it.
 
 ```bash
-mvn -pl providers/ofrep -am -DtestExclusions= -Dtest=OfrepTckTest \
-    -Dsurefire.failIfNoSpecifiedTests=false test
+# once, if tools/tck is not in your local repository yet
+mvn -pl tools/tck -am -DskipTests install
+
+mvn -Ptck -pl providers/ofrep test
 ```
+
+**Do not add `-am` to the run itself**: it pulls `tools/tck` into the reactor and runs its 246 tests
+before the first scenario, so a failure there comes out as a `-Ptck` failure — the signal-mixing this
+step exists to prevent, reintroduced by a flag. The separate `install` is what `-am` was there for.
 
 The suite is currently **expected to fail** on the failures enumerated in `OfrepTckTest`, which come
 from flags the pinned testbed image does not serve (open-feature/flagd-testbed#392). A clean run is
