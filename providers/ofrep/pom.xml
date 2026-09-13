@@ -22,13 +22,14 @@
         <tck.version>[0.1.0,)</tck.version>
         <testcontainers.version>2.0.4</testcontainers.version>
         <!--
-            OfrepTckTest needs a Docker daemon for its Compose stack, so it is excluded from the
-            default build exactly as providers/flagd excludes its own TCK suites. The parent POM
-            feeds this property to Surefire's <excludes>; it defines no default, so a module that
+            The conformance adoption needs a Docker daemon for its Compose stack, so its package is
+            excluded from the default build exactly as providers/flagd excludes its own. The parent
+            POM feeds this property to Surefire's <excludes>; it defines no default, so a module that
             wants the gate declares it, and one that forgets silently runs a Docker-dependent suite
-            in every job. See providers/ofrep/README.md for the policy and how to run the suite.
+            in every job. The whole directory is named rather than a filename pattern inside one:
+            see providers/ofrep/README.md for the policy and how to run the suite.
         -->
-        <testExclusions>**/e2e/*.java</testExclusions>
+        <testExclusions>**/tck/*.java</testExclusions>
     </properties>
 
     <developers>
@@ -98,8 +99,9 @@
 
         <!--
             OpenFeature Provider TCK. Brings its own Gherkin, step definitions, Compose lifecycle
-            and JUnit Platform suite configuration; OfrepTckTest is the whole adoption. Version
-            range so a local reactor build matches whatever is checked out.
+            and JUnit Platform suite configuration; the one class under src/test/java/.../ofrep/tck
+            is the whole adoption. Version range so a local reactor build matches whatever is
+            checked out.
         -->
         <dependency>
             <groupId>dev.openfeature.contrib.tools</groupId>
@@ -128,11 +130,15 @@
             <!--
                 This profile runs the Provider TCK conformance suite, and nothing else:
 
-                    mvn -Ptck -pl providers/ofrep -am test
+                    mvn -Ptck -pl providers/ofrep test
+
+                Do not add `-am`: it pulls tools/tck into the reactor and runs its own suite first,
+                which puts two kinds of failure back on one signal. A one-off
+                `mvn -pl tools/tck -am -DskipTests install` is what it was there for.
 
                 It is a step of its own, not a corner of some wider end-to-end target, because of
                 what a red build says. A conformance run carries failures by design — wherever
-                OfrepTckTest declares a knownDeviation — so a signal shared with a suite that is
+                OfrepTest declares a knownDeviation — so a signal shared with a suite that is
                 expected green ends with somebody silencing the informative half. See Appendix F,
                 "Running the suite in CI".
 
@@ -142,10 +148,10 @@
             <id>tck</id>
             <properties>
                 <!--
-                    The include below is what selects the suite, so the default e2e exclusion has
-                    nothing left to do and is cleared. Clearing it is safe *here* because this
-                    profile also narrows the includes; clearing it without that would re-enable
-                    every Docker-dependent suite this module might grow later.
+                    Drop the tck directory from the exclusions; the include below is what selects
+                    the suite. Both halves are needed: the include alone leaves the exclusion in
+                    force and runs nothing, and dropping the exclusion alone runs this module's
+                    unit tests alongside the suite.
                 -->
                 <testExclusions></testExclusions>
             </properties>
@@ -156,7 +162,7 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
                             <includes>
-                                <include>**/e2e/*TckTest.java</include>
+                                <include>**/tck/*.java</include>
                             </includes>
                         </configuration>
                     </plugin>
