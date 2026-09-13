@@ -190,9 +190,9 @@ class CanonicalAssetDigestTest {
      * The directory this artifact's classes and resources were loaded from.
      *
      * <p>Read through the code source rather than the classloader, as {@link CanonicalTagCoverageTest}
-     * and {@code CanonicalScenarios} read it, and for the same reason: an asset placed at the same
-     * classpath path on another root shadows the packaged one, and a check that digested the
-     * shadowing copy would be comparing the replacement against itself.
+     * reads it, and for the same reason: an asset placed at the same classpath path on another root
+     * shadows the packaged one, and a check that digested the shadowing copy would be comparing the
+     * replacement against itself.
      */
     private static Path codeSourceRoot() {
         CodeSource codeSource = ProviderTck.class.getProtectionDomain().getCodeSource();
