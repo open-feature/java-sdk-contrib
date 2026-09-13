@@ -172,14 +172,19 @@ Three suites in this module are exactly the class above, and all three run with 
 under a second. They are the reference adoption, and they are the fast CI canary.
 
 [`InMemoryProviderTckTest`](src/test/java/dev/openfeature/contrib/tools/tck/InMemoryProviderTckTest.java)
-runs the full applicable suite against the SDK's `InMemoryProvider` — of the 56 scenarios (outline
-rows counted individually), 42 pass and 14 are skipped by capability: the six `@lifecycle` ones — one
+runs the full applicable suite against the SDK's `InMemoryProvider` — of the 65 scenarios (outline
+rows counted individually), 49 pass and 16 are skipped by capability: the six `@lifecycle` ones — one
 of which also carries `@reinitialization`, and is skipped for the first of the two — the `@stale`
-one, the three `@numeric-coercion` ones, the `@large-integers` one and the three `@targeting` ones.
+one, the three `@numeric-coercion` ones, the `@large-integers` one and the five `@targeting` ones
+(three in `evaluation.feature`, two more in `reason.feature`).
 It declares `VARIANTS`, because `InMemoryProvider` does name the variant it served, so the gated
 variant outline runs rather than being skipped. It declares `DISABLED_FLAGS` too, on the same kind of
 evidence: the provider honours a flag's state, so the four `disabled-*` flags resolve to nothing, the
-caller's default stands in with no error code, and all four rows of that outline pass. It does not
+caller's default stands in with no error code, and all four rows of that outline pass. It declares
+`STANDARD_REASONS` on the same footing: the provider reports `STATIC` for a rule-less flag, `ERROR`
+alongside `FLAG_NOT_FOUND` and `TYPE_MISMATCH`, and `DISABLED` for a disabled flag, so seven of
+`reason.feature`'s nine scenarios run and pass — the two carrying `@targeting` are skipped because
+that capability is withheld, which is the tag composition working as intended. It does not
 declare `TARGETING`: the provider reads a flag's `variants` and `defaultVariant` and evaluates no
 rules, so `targeting-key-flag`'s `targeting` member is inert and a matching context resolves `miss`
 like any other. It does not declare `NUMERIC_COERCION`, because `InMemoryProvider` keeps the two
@@ -197,8 +202,8 @@ withholds `LIFECYCLE`. The consequence was that shutdown, double shutdown, shutd
 backend and initialise-again had coverage only inside a containerised provider suite, where a break
 in them reads as a provider defect rather than a TCK one. `ControllableProvider` acquires its flag
 store at `initialize()` time from a store that may refuse it, so it declares `LIFECYCLE`,
-`REINITIALIZATION` and `UNAVAILABLE_INIT` and all six `@lifecycle` scenarios run. Of the 14 the
-in-memory suite skips, only 8 remain: the three `@numeric-coercion`, the three `@targeting`, the
+`REINITIALIZATION` and `UNAVAILABLE_INIT` and all six `@lifecycle` scenarios run. Of the 16 the
+in-memory suite skips, only 10 remain: the three `@numeric-coercion`, the five `@targeting`, the
 `@large-integers` one and the `@stale` one — `@stale` because an in-JVM store can refuse an
 initialisation but cannot take a connection away from a running provider and hand it back, so
 `disconnect()` stays at its throwing default. That is the one capability still without Docker-free
@@ -332,8 +337,9 @@ Four details are load-bearing:
 
 - **`missing-flag` must not exist.** Its absence is what the `FLAG_NOT_FOUND` scenario tests.
 - **Only `targeting-key-flag` has a targeting rule.** Every other flag resolves to its default
-  variant whatever the evaluation context, which is what lets the untargeted scenarios expect reason
-  `STATIC`; seeding targeting onto any other flag breaks them. Its rule is specified by behaviour —
+  variant whatever the evaluation context, which is what lets a provider declaring
+  `STANDARD_REASONS` expect `STATIC` rather than `TARGETING_MATCH` for them; seeding targeting onto
+  any other flag breaks them. Its rule is specified by behaviour —
   resolve `hit` when the targeting key is exactly `5c3d8535-f81a-4478-a6d3-afaa4d51199e`, `miss`
   otherwise — so express it however your backend expresses targeting. The flag, its variants and the
   uuid are flagd-testbed's own, so a backend serving that harness already serves this one. A backend
@@ -520,6 +526,7 @@ green on scenarios it did not run is worse than no suite at all.
 | `NUMERIC_COERCION` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` — both directions tested |
 | `LARGE_INTEGERS` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; **every Java provider withholds it** — the SDK's integer accessor is a 32-bit `Integer`, so the limit is the language's, not the provider's |
 | `TARGETING` | `@targeting` | resolves `targeting-key-flag` differently for a matching evaluation context — *needs a backend that evaluates rules* |
+| `STANDARD_REASONS` | `@standard-reasons` | reports the standard resolution reasons, with the meanings [Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md) gives them — a claim, not an exemption |
 | `CACHING` | `@caching` | reserved, **not declarable** — no scenarios yet |
 
 The default is every *declarable* capability. **Narrow it, do not widen it**: start from the
@@ -629,6 +636,44 @@ scenario's own tags say what was being asked. Withholding the tag therefore need
 fails when `TckValues` cannot fit `9007199254740991` into an `Integer`, which is a louder answer than
 a rejected declaration. The 32-bit precision scenario (`large-integer-flag`, 2^31 − 1) is untagged and
 always runs.
+
+A note on `STANDARD_REASONS`, which is **a claim rather than an exemption** and is the one capability
+whose absence costs a provider nothing.
+[Requirement 2.2.5](https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md)
+is a `SHOULD` that goes further than the others: it lets a provider populate `reason` with one of the
+listed values *"or some other string indicating the semantic reason for the returned flag value"*. A
+provider whose backend reports vendor-specific reasons is therefore conformant, and asserting an exact
+reason against it would fail it for something the specification permits. An earlier revision of this
+suite did exactly that, in thirteen places across three feature files, and it bought very little —
+every canonical flag resolves to a value distinct from the caller's default, so a provider that
+silently falls back is already caught by the value assertion.
+
+So the reasons live in `gherkin/reason.feature`, gated as a whole. Declaring the tag is a provider
+saying *"I use the standard vocabulary with the standard meanings"*, and that file is what checks the
+claim. A provider that does not declare it loses nothing: its values, variants and error codes are
+asserted everywhere else, on `MUST` requirements. What the declaration adds is something a report's
+reader can act on — anyone building telemetry, dashboards or debugging on `reason` can see that the
+vocabulary was verified rather than assumed. Withholding it needs no `KnownDeviation`.
+
+| Situation | Reason |
+|---|---|
+| The flag was resolved from configuration and carries no targeting rule | `STATIC` |
+| A targeting rule matched the evaluation context | `TARGETING_MATCH` |
+| A targeting rule exists and did not match | `DEFAULT` |
+| The flag is disabled in the management system | `DISABLED` |
+| The evaluation failed, and an error code is reported with it | `ERROR` |
+
+`STATIC` for the first row is the call worth flagging.
+[`types.md`](https://github.com/open-feature/spec/blob/main/specification/types.md) types `DEFAULT` as
+*"no dynamic evaluation occurred **or** dynamic evaluation yielded no result"*, which a rule-less flag
+satisfies as readily as `STATIC` does — two providers can disagree here and both conform. A provider
+that answers `DEFAULT` for a rule-less flag is not defective; it does not use the standard meanings,
+and should not declare the tag.
+
+**Tags compose, and here that is load-bearing.** `TARGETING_MATCH` cannot be observed without
+targeting and `DISABLED` cannot be observed unless the backend distinguishes a disabled flag, so
+those two scenarios carry `@targeting` and `@disabled-flags` as well. A provider declaring
+`STANDARD_REASONS` alone runs the other six rows and skips those two with their reason.
 
 ### Saying that a gap is a defect
 
