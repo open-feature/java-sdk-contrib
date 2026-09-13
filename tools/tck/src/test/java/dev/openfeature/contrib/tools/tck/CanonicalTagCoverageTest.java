@@ -28,15 +28,22 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Every declarable capability is carried by at least one canonical scenario, and no reserved one is.
+ * Every capability this suite does not call reserved is carried by at least one canonical scenario,
+ * and every reserved one is carried by none.
  *
  * <p>{@link CapabilityGate#requireNoExpiredReservation} already fails a run where a <em>scenario</em>
  * carries a reserved tag — a capability no adopter may declare, gating something, so the scenario is
- * skipped forever and nothing notices. This is the other half of the same rule: a capability an
- * adopter <em>may</em> declare that gates <strong>nothing</strong>. Such a declaration cannot be
- * produced a skip, cannot be contradicted by any result, and tells a report's reader that a
- * capability was examined when nothing examined it. That is the same vacuous claim, arrived at from
- * the opposite direction.
+ * skipped forever and nothing notices. This is the other half of the same rule: a capability this
+ * suite says has scenarios that gates <strong>nothing</strong>. Declarable, that is a claim no result
+ * can contradict, which tells a report's reader that a capability was examined when nothing examined
+ * it. That is the same vacuous claim, arrived at from the opposite direction.
+ *
+ * <p>The first test is over every capability that is not reserved, rather than over
+ * {@link Capability#declarable()}, and the difference matters. An
+ * {@linkplain Capability#inexpressible() inexpressible} capability is not declarable here, but its
+ * scenarios are precisely what distinguish it from a reservation: they exist, and other languages
+ * run them. Checking only the declarable set would stop looking at the one capability whose whole
+ * justification is that the scenarios are there.
  *
  * <p>It has one realistic cause, and it is a build accident rather than a design mistake: the
  * canonical assets are copied out of the {@code spec} submodule at {@code generate-resources}, and
@@ -65,17 +72,19 @@ class CanonicalTagCoverageTest {
     private static final Set<String> CARRIED = readCarriedTags();
 
     @Test
-    @DisplayName("every declarable capability is carried by at least one canonical scenario")
-    void everyDeclarableCapabilityGatesSomething() {
-        for (Capability capability : Capability.declarable()) {
+    @DisplayName("every capability that is not reserved is carried by at least one canonical scenario")
+    void everyUnreservedCapabilityGatesSomething() {
+        for (Capability capability : Capability.values()) {
+            if (capability.reserved()) {
+                continue;
+            }
             assertThat(CARRIED)
                     .as(
-                            "%s (%s) is declarable, so an adopter may claim it — but no canonical scenario "
-                                    + "carries its tag, so the claim gates nothing and no result can contradict "
-                                    + "it. Either the packaged gherkin/ is stale (check that the spec submodule "
-                                    + "working tree matches the gitlink: git -C tools/tck/spec rev-parse HEAD) "
-                                    + "or the capability was added ahead of its scenarios, in which case mark it "
-                                    + "reserved until they arrive.",
+                            "%s (%s) is not reserved, so this suite says scenarios for it exist — but no "
+                                    + "canonical scenario carries its tag. Either the packaged gherkin/ is stale "
+                                    + "(check that the spec submodule working tree matches the gitlink: git -C "
+                                    + "tools/tck/spec rev-parse HEAD) or the capability was added ahead of its "
+                                    + "scenarios, in which case mark it reserved until they arrive.",
                             capability.name(), capability.tag())
                     .contains(capability.tag());
         }
