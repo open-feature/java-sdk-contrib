@@ -389,6 +389,23 @@ mvn -Pe2e -pl providers/flagd help:evaluate -Dexpression=testExclusions -DforceS
 Narrowing keeps the legacy suites running exactly as before and the TCK suites out. The exclusion is
 Surefire's, not the compiler's, so both suites still build against the harness in every job.
 
+**So `-Pe2e` does not run the conformance suites — it is the profile that keeps them out.** Worth
+stating plainly, because a command of the form `mvn -Pe2e -pl providers/flagd test` reads as if it
+runs everything under `e2e/` and runs the legacy suites instead, in silence: 788 tests, no scenario
+tally, and not one mention of either `TckTest` class in the log.
+
+**The conformance suites have a profile of their own, `tck`.** That is the separation
+[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
+asks for, and the reason is what a red build *says* rather than how long it takes. `-Pe2e` red means
+the provider's own end-to-end suites regressed. `-Ptck` red means conformance failed — and a
+conformance run carries failures by design, wherever `AbstractFlagdTckTest` declares a
+`knownDeviation`. One signal shared between "you broke something" and "this is the known state" ends
+with somebody silencing the informative half.
+
+The profile clears the exclusion and narrows Surefire's includes to `**/e2e/*TckTest.java` in the
+same breath, so it runs the two conformance suites and nothing else — not the legacy `Run*Test`
+suites and not the module's unit tests. Nothing activates it in CI.
+
 The consequence is that **no CI job runs them**, so a maintainer runs them by hand before merging a
 change that touches the provider's resolution, event or lifecycle behaviour, and quotes the result in
 the pull request. A scheduled or path-filtered workflow was considered and declined: a suite whose
@@ -396,16 +413,23 @@ red is diagnosed by whoever happens to read the notification is worse than one w
 diagnosed by the person who caused it.
 
 ```bash
+# once, if tools/tck is not in your local repository yet
+mvn -pl tools/tck -am -DskipTests install
+
 # both resolvers
-mvn -pl providers/flagd -am -DtestExclusions= -Dtest='Flagd*TckTest' \
-    -Dsurefire.failIfNoSpecifiedTests=false test
+mvn -Ptck -pl providers/flagd test
 
 # one resolver
-mvn -pl providers/flagd -am -DtestExclusions= -Dtest=FlagdInProcessTckTest \
-    -Dsurefire.failIfNoSpecifiedTests=false test
+mvn -Ptck -pl providers/flagd -Dtest=FlagdInProcessTckTest test
 ```
+
+**Do not add `-am` to the run itself.** It pulls `tools/tck` and `tools/flagd-core` into the reactor
+and runs their test suites too — 246 and 75 tests before the first scenario — so a failure anywhere
+in either of them comes out as a `-Ptck` failure. That is the signal-mixing this step exists to
+prevent, reintroduced by a flag. The separate `install` above is what `-am` was there for.
 
 Both suites are currently **expected to fail**, and the expected failures are enumerated in
 `AbstractFlagdTckTest`: three come from flags that the pinned `flagd-testbed` image does not serve
 (open-feature/flagd-testbed#392) and one is the real numeric-coercion defect, declared and left
-visible rather than skipped (open-feature/flagd#1996). Anything else is a regression.
+visible rather than skipped (open-feature/flagd#1996). Anything else is a regression. Each resolver
+is 65 scenarios: 59 passing, 2 skipped and 4 failing, the same in both.
