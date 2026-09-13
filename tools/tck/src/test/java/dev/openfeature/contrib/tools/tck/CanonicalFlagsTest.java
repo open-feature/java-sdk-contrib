@@ -197,7 +197,9 @@ class CanonicalFlagsTest {
      * integer accessor and a fractional one through the float accessor, and the SDK's provider
      * refuses a variant of the other type, so this is where a decoder that widened or narrowed a
      * number fails. 2^53 − 1 has no room in an {@link Integer} and goes through the long accessor,
-     * which is also the reason a Java provider leaves {@code @large-integers} undeclared.
+     * which is also why {@code @large-integers} is {@linkplain Capability#inexpressible()
+     * inexpressible} in Java — a flag definition can hold the value, and the client API cannot ask
+     * for it.
      *
      * <p>The accessor is still chosen by the literal for a disabled flag, so a {@code disabled-*}
      * flag whose type was mangled by the decoder is caught the same way: the answer is then neither

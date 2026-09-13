@@ -100,11 +100,13 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
      *       with that reason rather than failed, which is what the tag is for.
      *   <li>{@link Capability#CACHING} — reserved, so not declarable and nothing is skipped by
      *       leaving it out.
-     *   <li>{@link Capability#LARGE_INTEGERS} — omitted, as every Java provider omits it. The tag
-     *       asks for 2^53 − 1 and {@code Client.getIntegerDetails} is a 32-bit {@link Integer}, so
-     *       the limit is the SDK's rather than this provider's; Appendix F is where that is
-     *       recorded, and here it is simply undeclared and its scenario skipped.
      * </ul>
+     *
+     * <p>{@link Capability#LARGE_INTEGERS} is not in that list and is not this suite's to omit:
+     * it is {@linkplain Capability#inexpressible() inexpressible} in Java, so
+     * {@link Capability#requireDeclarable} refuses it and its scenario is skipped for a reason that
+     * names the SDK. That used to be a bullet here, and an identical one in every other suite in
+     * this repository.
      */
     @Override
     public Set<Capability> capabilities() {

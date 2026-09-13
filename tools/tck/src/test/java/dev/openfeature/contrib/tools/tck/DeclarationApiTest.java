@@ -82,35 +82,90 @@ class DeclarationApiTest {
     }
 
     @Test
-    @DisplayName("a capability a language cannot hold is an ordinary one, withheld and skipped like any other")
-    void aCapabilityTheLanguageCannotHoldIsWithheldRatherThanSetApart() {
+    @DisplayName("a capability the Java SDK cannot express is refused here, not left to every adopter")
+    void aCapabilityTheSdkCannotExpressIsRefusedCentrally() {
         // @large-integers asks for 2^53 - 1 and the Java SDK's accessor is a 32-bit Integer, so no
-        // Java provider can hold it. That is a property of the SDK, recorded once in Appendix F,
-        // and not a second kind of declaration: there is one skip and it carries its reason.
-        assertThat(Capability.LARGE_INTEGERS.reserved())
-                .as("a scenario does carry the tag, so there is something to gate")
-                .isFalse();
+        // Java provider can be asked it -- ever, until the SDK changes. Three suites in this
+        // repository used to withhold it by hand, each with its own comment restating this
+        // paragraph. The implementation refuses it instead, so an adopter neither has to know it
+        // nor can get it wrong.
+        assertThat(Capability.LARGE_INTEGERS.inexpressible()).isTrue();
         assertThat(Capability.declarable())
-                .as("it is an ordinary declarable capability; a harness withholds it rather than being forbidden it")
-                .contains(Capability.LARGE_INTEGERS);
-        assertThat(Capability.declarableExcept(Capability.LARGE_INTEGERS))
-                .as("declarableExcept is how a Java harness says so")
+                .as("no Java provider may claim it, so \"everything\" does not include it")
+                .doesNotContain(Capability.LARGE_INTEGERS);
+        assertThat(Capability.declarableExcept(Capability.EVENTS))
+                .as("nor does \"everything except\", which is what the adoptions call")
                 .doesNotContain(Capability.LARGE_INTEGERS);
 
-        // Declaring it is not refused. The guard exists for a claim no result can contradict, and
-        // this is not one: the scenario runs and fails, which says more than a rejected declaration.
-        Capability.requireDeclarable(EnumSet.of(Capability.EVENTS, Capability.LARGE_INTEGERS));
-
-        // Withheld, it is skipped exactly as any undeclared capability is.
-        TestAbortedException aborted = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(
-                        Arrays.asList("@large-integers"), Capability.declarableExcept(Capability.LARGE_INTEGERS)),
-                TestAbortedException.class);
-        assertThat(aborted).isNotNull();
-        assertThat(aborted)
+        assertThatThrownBy(() -> Capability.requireDeclarable(EnumSet.of(Capability.EVENTS, Capability.LARGE_INTEGERS)))
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("LARGE_INTEGERS")
                 .hasMessageContaining("@large-integers")
-                .hasMessageContaining("does not declare");
+                .as("the message says why, naming the SDK property rather than citing a rule")
+                .hasMessageContaining("Client.getIntegerDetails")
+                .hasMessageContaining("cannot express");
+    }
+
+    @Test
+    @DisplayName("the two refusals are different facts, and neither message could be mistaken for the other")
+    void reservedAndInexpressibleAreToldApart() {
+        // A reader who sees a capability missing from a report has to be able to tell "no scenario
+        // anywhere carries this tag yet" from "the scenarios exist and this SDK cannot ask them".
+        // Only the second is permanent, and neither says anything about the provider under test --
+        // which is the third thing they must not be mistaken for.
+        assertThat(Capability.CACHING.reserved()).isTrue();
+        assertThat(Capability.CACHING.inexpressible())
+                .as("a reservation is global and expires; it is not a language's limit")
+                .isFalse();
+        assertThat(Capability.LARGE_INTEGERS.reserved())
+                .as("scenarios do carry @large-integers, which is what makes it not a reservation")
+                .isFalse();
+
+        String reserved = catchThrowableOfType(
+                        () -> Capability.requireDeclarable(EnumSet.of(Capability.CACHING)),
+                        IllegalArgumentException.class)
+                .getMessage();
+        String inexpressible = catchThrowableOfType(
+                        () -> Capability.requireDeclarable(EnumSet.of(Capability.LARGE_INTEGERS)),
+                        IllegalArgumentException.class)
+                .getMessage();
+
+        assertThat(reserved)
+                .as("the reserved refusal says there is nothing to gate yet")
+                .contains("no scenario in the suite carries");
+        assertThat(inexpressible)
+                .as("the inexpressible refusal says the opposite: the scenarios exist elsewhere")
+                .contains("the scenarios exist and are asked in languages whose API is wide enough")
+                .contains("This is not a reserved capability")
+                .doesNotContain("no scenario in the suite carries");
+
+        // And the same distinction survives into the skip, which is where a report's reader meets
+        // it. An undeclared capability names the provider; an inexpressible one must not, because
+        // the provider had no say.
+        TestAbortedException undeclared = catchThrowableOfType(
+                () -> CapabilityGate.requireDeclared(
+                        Arrays.asList("@variants"), Capability.declarableExcept(Capability.VARIANTS)),
+                TestAbortedException.class);
+        TestAbortedException unaskable = catchThrowableOfType(
+                () -> CapabilityGate.requireDeclared(Arrays.asList("@large-integers"), Capability.declarable()),
+                TestAbortedException.class);
+
+        assertThat(undeclared).hasMessageContaining("provider does not declare capability");
+        assertThat(unaskable)
+                .hasMessageContaining("the Java SDK cannot express capability LARGE_INTEGERS")
+                .hasMessageContaining("Client.getIntegerDetails")
+                .as("not the provider's decision, and the reason has to say so")
+                .hasMessageContaining("not the provider under test declining");
+        assertThat(unaskable.getMessage()).doesNotContain("provider does not declare");
+
+        // The inexpressible reason is reached whatever the declaration says, because a declaration
+        // cannot contain it. Checking it after the declaration would make the right reason appear
+        // only by luck.
+        TestAbortedException evenIfSomehowDeclared = catchThrowableOfType(
+                () -> CapabilityGate.requireDeclared(
+                        Arrays.asList("@large-integers"), EnumSet.of(Capability.LARGE_INTEGERS)),
+                TestAbortedException.class);
+        assertThat(evenIfSomehowDeclared).hasMessageContaining("the Java SDK cannot express capability");
     }
 
     @Test
