@@ -57,7 +57,7 @@
             line fails the build rather than producing a report that names a revision which did not
             produce its scenarios.
         -->
-        <tck.spec.revision>89b1519a08d81c46ba47fc2a54c44d40fdee845d</tck.spec.revision>
+        <tck.spec.revision>aa2ad24f5a14ae2b5756df0b6d23f493f39507e6</tck.spec.revision>
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.1</jackson-databind.version>
