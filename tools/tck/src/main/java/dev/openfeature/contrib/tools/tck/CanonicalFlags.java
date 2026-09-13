@@ -42,8 +42,10 @@ import java.util.Map;
  *   <li>{@code missing-flag} is absent, which is what the {@code FLAG_NOT_FOUND} scenario tests.
  *       Nothing here adds flags the file does not define.
  *   <li>no flag carries a {@link dev.openfeature.sdk.providers.memory.ContextEvaluator}, so every
- *       evaluation reports reason {@code STATIC} as the feature files expect. The TCK tests a
- *       provider's mapping of a response, not a backend's evaluation logic.
+ *       evaluation resolves the flag's default variant whatever the context — which is what lets a
+ *       provider declaring {@link Capability#STANDARD_REASONS} report {@code STATIC} rather than
+ *       {@code TARGETING_MATCH} for them. The TCK tests a provider's mapping of a response, not a
+ *       backend's evaluation logic.
  *   <li>a number keeps the width and the kind it was written with. {@code 10} becomes an
  *       {@link Integer} and {@code 10.0} a {@link Double}, because
  *       {@link dev.openfeature.sdk.providers.memory.InMemoryProvider} matches a variant by type: an

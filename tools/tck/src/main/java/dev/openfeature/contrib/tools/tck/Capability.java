@@ -157,8 +157,10 @@ public enum Capability {
      *
      * <p>A provider whose backend names its variants declares this and the {@code @variants}
      * scenario outline runs. One whose backend does not leaves it undeclared, and those rows are
-     * skipped with that reason rather than passed. Either way the value and reason assertions are
-     * unaffected: they are untagged, and Requirement 2.2.3 makes the value a {@code MUST}.
+     * skipped with that reason rather than passed. Either way the value assertions are unaffected:
+     * they are untagged, and Requirement 2.2.3 makes the value a {@code MUST}. The reason is the same
+     * shape of question one requirement further on, and it is gated the same way — see
+     * {@link #STANDARD_REASONS}.
      */
     VARIANTS("@variants"),
 
@@ -187,9 +189,12 @@ public enum Capability {
      * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
      * F</a> states the behaviour, as it does for {@link #NUMERIC_COERCION}, and gates it.
      *
-     * <p><strong>The value is asserted, not the reason.</strong> The value rests on Requirement
-     * 2.2.3, a {@code MUST}; pinning reason {@code DISABLED} would rest on 2.2.5, a {@code SHOULD}
-     * that explicitly permits "some other string". No variant is asserted either — a disabled flag
+     * <p><strong>The value is asserted here, not the reason.</strong> The value rests on Requirement
+     * 2.2.3, a {@code MUST}; pinning reason {@code DISABLED} on these rows would rest on 2.2.5, a
+     * {@code SHOULD} that explicitly permits "some other string", and would narrow it for every
+     * adopter. It is pinned in {@code gherkin/reason.feature} instead, on a scenario carrying both
+     * this tag and {@code @standard-reasons}, so a provider opts into that narrowing rather than
+     * inheriting it — see {@link #STANDARD_REASONS}. No variant is asserted either — a disabled flag
      * resolved no variant, so there is none to name, and this capability and {@link #VARIANTS}
      * deliberately do not compose.
      */
@@ -279,6 +284,77 @@ public enum Capability {
      * custom attribute.
      */
     TARGETING("@targeting"),
+
+    /**
+     * Provider reports the standard resolution reasons, with the meanings Appendix F gives them.
+     *
+     * <p>Gates {@code gherkin/reason.feature} in its entirety — and it is <strong>a claim, not an
+     * exemption</strong>.
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md">Requirement
+     * 2.2.5</a> is a {@code SHOULD}, and it goes further than 2.2.4 does: it lets a provider populate
+     * {@code reason} with one of the listed values <em>"or some other string indicating the semantic
+     * reason for the returned flag value"</em>. A provider whose backend reports vendor-specific
+     * reasons is therefore conformant, and asserting an exact reason against it would fail it for
+     * something the specification permits.
+     *
+     * <p>An earlier revision of the suite asserted a reason in thirteen places across three feature
+     * files, which narrowed that {@code SHOULD} into a {@code MUST} for every adopter. It bought very
+     * little: every canonical flag resolves to a value distinct from the caller's default, so a
+     * provider that silently falls back is already caught by the value assertion, and the reason only
+     * said <em>why</em> it failed.
+     *
+     * <p>So declaring this is a provider saying <em>"I use the standard vocabulary with the standard
+     * meanings"</em>, and {@code reason.feature} is what checks the claim. A provider that does not
+     * declare it loses nothing: its values, variants and error codes are asserted everywhere else, on
+     * {@code MUST} requirements. What the declaration adds is something a report's reader can act on —
+     * anyone building telemetry, dashboards or debugging on {@code reason} can see that the vocabulary
+     * was verified rather than assumed. Withholding it therefore needs no {@link KnownDeviation}.
+     *
+     * <p>The meanings are the content of the claim, and they constrain nobody who does not make it:
+     *
+     * <table border="1">
+     *   <caption>The reason each situation is claimed to produce</caption>
+     *   <tr><th>Situation</th><th>Reason</th></tr>
+     *   <tr><td>The flag was resolved from configuration and carries no targeting rule</td>
+     *       <td>{@code STATIC}</td></tr>
+     *   <tr><td>A targeting rule matched the evaluation context</td><td>{@code TARGETING_MATCH}</td></tr>
+     *   <tr><td>A targeting rule exists and did not match</td><td>{@code DEFAULT}</td></tr>
+     *   <tr><td>The flag is disabled in the management system</td><td>{@code DISABLED}</td></tr>
+     *   <tr><td>The evaluation failed, and an error code is reported with it</td><td>{@code ERROR}</td></tr>
+     * </table>
+     *
+     * <p>{@code STATIC} for the first row is the call worth flagging.
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/types.md">{@code types.md}</a>
+     * types {@code DEFAULT} as <em>"no dynamic evaluation occurred <strong>or</strong> dynamic
+     * evaluation yielded no result"</em>, which a rule-less flag satisfies as readily as
+     * {@code STATIC} does — two providers can disagree here and both conform. A provider that answers
+     * {@code DEFAULT} for a rule-less flag is not defective; it does not use the standard meanings and
+     * should not declare the tag.
+     *
+     * <p>{@code ERROR} is the row where the suite's subject is blurred, and it is asserted anyway. The
+     * other four rest on
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/01-flag-evaluation.md">Requirement
+     * 1.4.7</a>, which makes the SDK propagate the provider's reason — but only <em>"in cases of normal
+     * execution"</em>. Abnormal execution is 1.4.9, a {@code SHOULD} on the <strong>SDK</strong> to
+     * indicate an error, and nothing requires the provider's reason to survive. So a passing
+     * {@code ERROR} scenario establishes that the value reaching the application is coherent, not that
+     * the provider produced it. It is still worth asserting: the error code alone is already covered
+     * ungated in {@code errors.feature}, the reason alone could have been written by the SDK, and an
+     * evaluation reporting {@code FLAG_NOT_FOUND} with reason {@code STATIC} is incoherent whoever
+     * wrote it.
+     *
+     * <p><strong>Tags compose, and here that is load-bearing.</strong> {@code TARGETING_MATCH} cannot
+     * be observed without targeting and {@code DISABLED} cannot be observed unless the backend
+     * distinguishes a disabled flag, so those scenarios carry {@link #TARGETING} and
+     * {@link #DISABLED_FLAGS} as well. A provider declaring this one alone runs the rest and skips
+     * those two with their reason.
+     *
+     * <p>{@code SPLIT}, {@code UNKNOWN}, {@code CACHED} and {@code STALE} are not asserted. The first
+     * two have no scenario that produces them; {@code CACHED} belongs behind {@link #CACHING} and needs
+     * a repeat evaluation that nothing here performs, and {@code STALE} needs a scenario asserting what
+     * a provider serves <em>during</em> an outage, which is the same gap.
+     */
+    STANDARD_REASONS("@standard-reasons"),
 
     /**
      * Provider caches evaluation results and invalidates them on configuration change.

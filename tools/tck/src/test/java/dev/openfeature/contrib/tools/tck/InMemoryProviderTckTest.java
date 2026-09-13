@@ -47,14 +47,22 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Five capabilities, two of which are not obvious. {@link Capability#VARIANTS} holds because
+     * <p>Six capabilities, three of which are not obvious. {@link Capability#VARIANTS} holds because
      * {@link InMemoryProvider} does name the variant it served, so the gated variant outline runs
      * and passes here. {@link Capability#DISABLED_FLAGS} holds because it honours a flag's state: the
      * four {@code disabled-*} flags resolve to nothing and the caller's default stands in, with no
      * error code, so all four rows of that outline pass. That is not a given for an in-memory
      * provider — the capability is gated precisely because whether the substitution can happen at all
-     * depends on where it happens — and it was measured rather than assumed. Each omission below is a
-     * fact about {@link InMemoryProvider} rather than a convenience:
+     * depends on where it happens — and it was measured rather than assumed.
+     *
+     * <p>{@link Capability#STANDARD_REASONS} is the third, and it was measured the same way rather
+     * than inferred from the provider's source. {@link InMemoryProvider} reports {@code STATIC} for a
+     * rule-less flag, {@code ERROR} beside {@code FLAG_NOT_FOUND} and {@code TYPE_MISMATCH}, and
+     * {@code DISABLED} for a disabled flag, so seven of {@code reason.feature}'s nine scenarios run
+     * and pass. The other two carry {@code @targeting} as well and are skipped for that omission —
+     * the tag composition doing its job, since a provider that evaluates no rules has no
+     * {@code TARGETING_MATCH} to report and failing it for the absence would say nothing. Each
+     * omission below is a fact about {@link InMemoryProvider} rather than a convenience:
      *
      * <ul>
      *   <li>{@link Capability#NUMERIC_COERCION} — omitted. {@link InMemoryProvider} keeps the two
@@ -105,6 +113,7 @@ public class InMemoryProviderTckTest extends ProviderTckTest {
                 Capability.CONFIGURATION_CHANGE,
                 Capability.OBJECT,
                 Capability.VARIANTS,
-                Capability.DISABLED_FLAGS);
+                Capability.DISABLED_FLAGS,
+                Capability.STANDARD_REASONS);
     }
 }
