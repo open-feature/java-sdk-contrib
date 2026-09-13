@@ -122,4 +122,46 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <!--
+                This profile runs the Provider TCK conformance suite, and nothing else:
+
+                    mvn -Ptck -pl providers/ofrep -am test
+
+                It is a step of its own, not a corner of some wider end-to-end target, because of
+                what a red build says. A conformance run carries failures by design — wherever
+                OfrepTckTest declares a knownDeviation — so a signal shared with a suite that is
+                expected green ends with somebody silencing the informative half. See Appendix F,
+                "Running the suite in CI".
+
+                Nothing activates this profile in CI, deliberately: the suite is expected to fail
+                today and is run by hand before merge. See providers/ofrep/README.md.
+            -->
+            <id>tck</id>
+            <properties>
+                <!--
+                    The include below is what selects the suite, so the default e2e exclusion has
+                    nothing left to do and is cleared. Clearing it is safe *here* because this
+                    profile also narrows the includes; clearing it without that would re-enable
+                    every Docker-dependent suite this module might grow later.
+                -->
+                <testExclusions></testExclusions>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/e2e/*TckTest.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
