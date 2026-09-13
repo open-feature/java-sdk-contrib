@@ -290,6 +290,19 @@ abstract class AbstractFlagdTckTest extends ContainerizedProviderTckTest {
      * behind a withheld capability. And the alternative is worse, because a skip cannot distinguish
      * "flagd declines to coerce" from "flagd coerces and gets it wrong", and only the second is true.
      *
+     * <p>That argument is no longer this file's to make.
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
+     * F</a> now states it as a declaring rule — once a provider is attempting a capability, the unit
+     * of the decision is the <em>scenario</em> rather than the tag, so it is declared when at least
+     * one scenario gating it can be put to the provider and withheld only when none can. Both halves
+     * apply here in order: flagd <em>is</em> attempting the coercion, which the widening scenario
+     * proves, and two of the tag's three scenarios can be put to it. A provider that simply does not
+     * coerce would stop at the first half and withhold, which is what the SDK's in-memory provider
+     * does and why the self-tests in {@code tools/tck} skip these scenarios. The appendix's other
+     * consequence is why the summary below names the testbed: a scenario that fails because the
+     * backend cannot serve its fixture is not a provider defect, and a deviation that did not say so
+     * would have the report accuse flagd of the stack's gap.
+     *
      * <p>Tracked against flagd's numeric coercion ADR, which is where the rule this deviates from is
      * settled: coercion is permitted when it is lossless and must fail with {@code TYPE_MISMATCH}
      * only when information would be lost. The summary says which half is broken, because "flagd
