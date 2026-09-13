@@ -22,10 +22,12 @@ final class ReportNames {
     /**
      * Derives a configuration name from a suite class.
      *
-     * <p>{@code FlagdInProcessTckTest} becomes {@code flagd-in-process}: the suffix that exists only
-     * so JUnit picks the class up is dropped, and the rest is hyphenated. A provider whose modes do
-     * not read well this way overrides {@link ProviderTckHarness#configuration()} and says so
-     * directly.
+     * <p>{@code MyProviderInProcessTest} becomes {@code my-provider-in-process}: the suffix that
+     * exists only so JUnit picks the class up is dropped, and the rest is hyphenated. A provider
+     * whose modes do not read well this way overrides {@link ProviderTckHarness#configuration()} and
+     * says so directly — as one whose suite sits in a package that already names it should, since a
+     * class called {@code InProcessTest} derives {@code in-process} and a report is read by someone
+     * who cannot see which package it came from.
      *
      * @param suite the concrete suite class
      * @return a hyphenated, lower-case configuration name
