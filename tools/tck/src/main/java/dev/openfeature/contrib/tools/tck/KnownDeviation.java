@@ -43,9 +43,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * soon as there is an issue to point at.
  *
  * <p>{@link #capability} may be {@code null}, when the gap is against a mandatory, ungated scenario
- * and so belongs to no capability. It may <strong>not</strong> name a
- * {@linkplain Capability#reserved() reserved} capability: no scenario carries the tag, so there is
- * nothing to deviate from.
+ * and so belongs to no capability. It may <strong>not</strong> name a capability whose scenarios
+ * were never put to this provider, and there are two of those, refused with different messages: a
+ * {@linkplain Capability#reserved() reserved} one, where no scenario carries the tag in any
+ * language, and an {@linkplain Capability#inexpressible() inexpressible} one, where the scenarios
+ * exist and this SDK cannot ask them. Neither leaves anything to deviate from, and a deviation reads
+ * as an admission of fault — here it would be a fault nobody committed and nobody could fix.
  *
  * <p>Declared by the provider author through {@link ProviderTckHarness#knownDeviations()}, because
  * that is the only place that knows. The TCK cannot infer any of this: from the outside, a
@@ -74,10 +77,54 @@ public final class KnownDeviation {
     /** What the gap is, in a form someone comparing providers can use. Never {@code null}. */
     public final String summary;
 
-    private KnownDeviation(String capability, String issue, String summary) {
-        this.capability = capability;
+    private KnownDeviation(Capability capability, String issue, String summary) {
+        requireDeviable(capability);
+        this.capability = capability == null ? null : capability.tag();
         this.issue = issue;
         this.summary = summary;
+    }
+
+    /**
+     * Refuses a deviation against a capability whose scenarios were never put to this provider.
+     *
+     * <p>The same rule as {@link Capability#requireDeclarable}, one step along: a deviation asserts
+     * that the provider fails to do something it is required to do, so it has to be about a question
+     * that was actually asked. Two are not, and they are refused separately because they are
+     * different facts.
+     *
+     * <p>A {@linkplain Capability#reserved() reserved} capability has no scenarios in any language,
+     * so there is nothing to deviate from. An {@linkplain Capability#inexpressible() inexpressible}
+     * one has scenarios that run elsewhere and no way to put them through this SDK — so they were
+     * never asked of this provider, and a deviation would assert a defect that could not have been
+     * observed. Declaring it was already refused; recording a deviation against it is the same claim
+     * by another route, and it is the more dangerous of the two, because a deviation reads as an
+     * admission of fault and the fault here would belong to nobody.
+     *
+     * <p>Checked when the deviation is constructed rather than when it is read, so an adopter is told
+     * at the point they wrote it and whether or not anything downstream ever reads the declaration.
+     *
+     * @param capability the capability the deviation names, or {@code null}
+     * @throws IllegalArgumentException if the capability is reserved or inexpressible
+     */
+    private static void requireDeviable(Capability capability) {
+        if (capability == null) {
+            return;
+        }
+        if (capability.reserved()) {
+            throw new IllegalArgumentException("knownDeviations() records a deviation against reserved "
+                    + capability.name() + " (" + capability.tag() + "), which no scenario in the suite "
+                    + "carries. There is nothing to deviate from: no scenario was skipped for it and "
+                    + "none failed. Use null for a gap against a mandatory, ungated scenario.");
+        }
+        if (capability.inexpressible()) {
+            throw new IllegalArgumentException("knownDeviations() records a deviation against "
+                    + capability.name() + " (" + capability.tag() + "), which the Java SDK cannot "
+                    + "express: " + capability.inexpressibleBecause() + ". This is not a reserved "
+                    + "capability — the scenarios exist and are asked in languages whose API is wide "
+                    + "enough — but they were never put to your provider, so a deviation here asserts "
+                    + "a defect that could not have been observed and that nobody could fix. The "
+                    + "scenario's skip already says the SDK is the limit.");
+        }
     }
 
     /**
@@ -85,13 +132,16 @@ public final class KnownDeviation {
      *
      * @param capability the capability the gap is about — declared and failing, or withheld and
      *     skipped — or {@code null} when the gap is against a mandatory, ungated scenario and so
-     *     belongs to no capability. Must not be a {@linkplain Capability#reserved() reserved} one
+     *     belongs to no capability. Must not be {@linkplain Capability#reserved() reserved} or
+     *     {@linkplain Capability#inexpressible() inexpressible}: neither's scenarios were put to
+     *     this provider
      * @param issue a URI where the gap is tracked
      * @param summary what the gap is; required
      * @return the deviation, ready to declare
+     * @throws IllegalArgumentException if the capability is reserved or inexpressible
      */
     public static KnownDeviation tracked(Capability capability, String issue, String summary) {
-        return new KnownDeviation(capability == null ? null : capability.tag(), issue, summary);
+        return new KnownDeviation(capability, issue, summary);
     }
 
     /**
@@ -103,11 +153,14 @@ public final class KnownDeviation {
      *
      * @param capability the capability the gap is about — declared and failing, or withheld and
      *     skipped — or {@code null} when the gap is against a mandatory, ungated scenario and so
-     *     belongs to no capability. Must not be a {@linkplain Capability#reserved() reserved} one
+     *     belongs to no capability. Must not be {@linkplain Capability#reserved() reserved} or
+     *     {@linkplain Capability#inexpressible() inexpressible}: neither's scenarios were put to
+     *     this provider
      * @param summary what the gap is; required
      * @return the deviation, ready to declare
+     * @throws IllegalArgumentException if the capability is reserved or inexpressible
      */
     public static KnownDeviation untracked(Capability capability, String summary) {
-        return new KnownDeviation(capability == null ? null : capability.tag(), null, summary);
+        return new KnownDeviation(capability, null, summary);
     }
 }
