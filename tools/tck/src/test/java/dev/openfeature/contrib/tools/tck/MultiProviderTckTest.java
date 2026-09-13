@@ -74,7 +74,12 @@ public class MultiProviderTckTest extends ProviderTckTest {
      * interesting of the two: a disabled flag resolves to nothing, so the child hands back the
      * caller's default and a facade that substituted a default of its own, or that read the absence
      * as an error, would be caught on the value. All four rows pass, so the substitution survives the
-     * hop exactly as the child performs it. {@link Capability#LIFECYCLE} and
+     * hop exactly as the child performs it. {@link Capability#STANDARD_REASONS} is declared for the
+     * same kind of reason and answers one of the risks named at the top of this class: a reason
+     * rewritten in delegation. The child reports the standard vocabulary, and
+     * {@code reason.feature}'s seven applicable scenarios pass through {@code MultiProvider}
+     * unchanged, so {@code STATIC}, {@code ERROR} and {@code DISABLED} all survive the hop. {@link
+     * Capability#LIFECYCLE} and
      * {@link Capability#NUMERIC_COERCION} are omitted for
      * the same reasons as in {@link InMemoryProviderTckTest}: nothing here reaches a backend during
      * initialisation, and the child refuses the lossless coercions the tag now requires — a facade
@@ -83,6 +88,11 @@ public class MultiProviderTckTest extends ProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.EVENTS, Capability.OBJECT, Capability.VARIANTS, Capability.DISABLED_FLAGS);
+        return EnumSet.of(
+                Capability.EVENTS,
+                Capability.OBJECT,
+                Capability.VARIANTS,
+                Capability.DISABLED_FLAGS,
+                Capability.STANDARD_REASONS);
     }
 }
