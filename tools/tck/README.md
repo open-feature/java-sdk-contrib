@@ -232,6 +232,25 @@ it. That is a known SDK gap,
 which the suite reproduced from the outside — the gap was originally found by hand-comparing
 implementations against the js-sdk reference. Everything else survives delegation unchanged.
 
+**A self-test is allowed one thing an adoption is not: withholding a capability for a defect.**
+[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md)
+carves these suites out of the rule that a provider which attempts a behaviour and gets it wrong must
+declare the capability and let the scenario fail. A self-test runs the scenarios against an SDK
+provider as a fixture for the harness, reports on nobody, and runs in the ordinary build, where a
+permanently failing scenario is a broken build rather than a finding anyone downstream can act on —
+the fix is an SDK release away. The licence carries one condition: **the defect must be pinned by a
+test of its own**, so the skip is not the only record of it. An adoption has no such licence: it
+exists to report on a provider, and a skip there is a claim about that provider.
+
+Two of the three suites here do not need the carve-out. Every omission in `InMemoryProviderTckTest`
+and `ControllableProviderTckTest` is a property of the provider rather than a defect: strict numeric
+typing, no rule evaluation, no connection to lose, a flag set handed over by the constructor.
+`MultiProviderTckTest`'s missing `CONFIGURATION_CHANGE` is the one that does use it — java-sdk#1882
+is a defect, not a design choice — and today it meets the carve-out's condition only partly: the
+class javadoc names the issue and says what to delete when it is fixed, but no test in this module
+asserts the swallowed event directly, so the skip is still the only executable record. That is the
+open item against this section.
+
 Two more tests are not suites at all, because what they guard is invisible from inside a scenario.
 [`InProcessBackendControlTest`](src/test/java/dev/openfeature/contrib/tools/tck/InProcessBackendControlTest.java)
 calls the unsupported operations directly, so a connection operation that quietly did nothing cannot
@@ -533,6 +552,33 @@ green on scenarios it did not run is worse than no suite at all.
 The default is every *declarable* capability. **Narrow it, do not widen it**: start from the
 default, run the suite, and remove only what your provider genuinely cannot do.
 
+**Once your provider is attempting a capability, the unit of that decision is the scenario, not the
+tag.**
+[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md)
+states it as: declare a capability when at least one scenario gating it can actually be put to your
+provider, and withhold it only when none can. `@numeric-coercion` has three scenarios, so a backend
+that cannot serve the flag one of them asks for still has two answers to give, and withholding the tag
+hides both of them to avoid one failure.
+
+**The opening clause is a condition, not throat-clearing.** That rule decides whether the question can
+be *asked*; whether your provider owes an answer is the earlier question, and [Saying that a gap is a
+defect](#saying-that-a-gap-is-a-defect) is where that one is settled. Where the specification permits
+declining — `@numeric-coercion` rests on no requirement, so a provider may simply not coerce —
+withholding is the honest report however askable the scenarios are, and applying the scenario rule
+there manufactures a failure out of a permitted choice. The self-tests in this module withhold that
+tag on exactly those grounds, and are right to.
+
+Two consequences follow from the rule itself, and they go wrong in opposite directions:
+
+- **A scenario that fails because the backend cannot serve its fixture is not a provider defect.** Say
+  so in the deviation's `summary` beside it, or the report accuses your provider of the stack's gap.
+- **A capability withheld for a backend gap is temporary**, in a way one withheld by choice is not.
+  Say why it is withheld and what would change the answer, or it outlives its reason and no later
+  reader can tell that it was meant to be revisited.
+
+Neither applies to `LARGE_INTEGERS`, which is refused here for a reason upstream of any backend — see
+below.
+
 Two rows above are not yours to decide and are refused if you name them, with different messages
 because they are different facts:
 
@@ -644,10 +690,20 @@ the specification has a single numeric type and says nothing about a value that 
 accessor it was asked through ([spec#430](https://github.com/open-feature/spec/issues/430)), so a
 provider that behaves differently is not violating it. It is still worth saying which kind of
 difference it is: narrowing `0.5` to `0` with no error code hands an application a plausible value and
-no signal, which is a defect to declare as a `KnownDeviation`, whereas keeping the two types strictly
-apart — what `InMemoryProvider` does — is a choice. **The flagd provider does not declare it**, in
-either mode, for the first reason — see
-[flagd#1996](https://github.com/open-feature/flagd/issues/1996).
+no signal, which is a defect, whereas keeping the two types strictly apart — what `InMemoryProvider`
+does — is a choice.
+
+**The two are reported differently, and that is the point of the distinction.** A provider that
+narrows **declares** the tag, lets the lossy scenario fail, and records a `KnownDeviation` beside the
+failure — it does attempt the coercion and gets one direction wrong, which is exactly what a skip
+cannot express. A provider that cannot attempt it at all — a single numeric type, or strict typing in
+both directions — **withholds** the tag, and needs no deviation, because there is no distinction
+there to get wrong. Do not read the defect half as a reason to withhold: withholding a capability *in
+order to* turn a failure into a skip is the one use [Saying that a gap is a
+defect](#saying-that-a-gap-is-a-defect) rules out. The flagd adoption in this repository is the first
+kind — it declares `@numeric-coercion` in both modes and carries a tracked deviation for the
+narrowing, see [flagd#1996](https://github.com/open-feature/flagd/issues/1996) — and the OFREP
+adoption is the second.
 
 A note on `LARGE_INTEGERS`, which **you do not have to know anything about**: accessor width is a
 property of the SDK rather than of the provider, and Java's is 32 bits — `Client.getIntegerDetails`
@@ -676,6 +732,15 @@ that run and pass in Go and JavaScript. So its scenario is skipped with a reason
 and says the provider had no say, rather than the ordinary *"provider does not declare"*. Neither
 needs a `KnownDeviation` — neither is a defect. The 32-bit precision scenario
 (`large-integer-flag`, 2^31 − 1) is untagged and always runs.
+
+**It is not a backend gap either**, which is the third thing it could be mistaken for now that the
+declaring rules distinguish them. A capability withheld because the backend serves no flag for a
+scenario is temporary, needs a note saying what would change the answer, and is revisited when the
+backend gains the fixture — Appendix F illustrates that rule with this very tag, because the
+reference backend serves no flag for its one scenario. Here the question never reaches a backend: no
+`Integer` can carry 2^53 − 1 however the stack is provisioned, so no fixture arriving anywhere would
+change the answer and no Java suite reaches the declaring rules for this tag at all. Only a wider SDK
+accessor would.
 
 A note on `STANDARD_REASONS`, which is **a claim rather than an exemption** and is the one capability
 whose absence costs a provider nothing.
