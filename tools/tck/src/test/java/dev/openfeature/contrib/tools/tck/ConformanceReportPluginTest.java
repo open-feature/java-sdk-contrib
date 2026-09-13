@@ -55,7 +55,11 @@ import org.junit.platform.launcher.core.LauncherFactory;
  */
 class ConformanceReportPluginTest {
 
-    /** The fixture's {@code @stale} tag is deliberately absent, so two scenarios must be skipped. */
+    /**
+     * The fixture's {@code @stale} tag is deliberately absent, so two scenarios must be skipped — and
+     * a third that no declaration could have covered, because {@code @large-integers} is
+     * {@linkplain Capability#inexpressible() inexpressible} in Java.
+     */
     private static final Set<Capability> DECLARED = EnumSet.of(Capability.OBJECT, Capability.EVENTS);
 
     private static final String CONFIGURATION = "my-provider-rpc";
@@ -101,10 +105,10 @@ class ConformanceReportPluginTest {
     @Test
     @DisplayName("every scenario appears exactly once, whatever happened to it")
     void everyScenarioAppearsExactlyOnce() {
-        // Seven pickles: four plain scenarios and three outline rows. A report that quietly omitted
+        // Eight pickles: five plain scenarios and three outline rows. A report that quietly omitted
         // the ones it did not run would satisfy every other rule here and still mislead, because a
         // reader would have no way to know how many questions went unasked.
-        assertThat(results.pickles).hasSize(7);
+        assertThat(results.pickles).hasSize(8);
 
         assertThat(results.pickleOfTestCase.values())
                 .as("one test case per pickle, and no pickle executed twice")
@@ -123,7 +127,7 @@ class ConformanceReportPluginTest {
     @DisplayName("the outcome counts are what the fixture describes")
     void theOutcomeCountsAreWhatTheFixtureDescribes() {
         assertThat(results.outcomeCounts())
-                .containsExactlyInAnyOrderEntriesOf(counts("PASSED", 4L, "FAILED", 1L, "SKIPPED", 2L));
+                .containsExactlyInAnyOrderEntriesOf(counts("PASSED", 4L, "FAILED", 1L, "SKIPPED", 3L));
     }
 
     @Test
@@ -137,8 +141,9 @@ class ConformanceReportPluginTest {
         }
 
         assertThat(gated)
-                .as("the premise: the fixture has a gated plain scenario and a gated outline row")
-                .hasSize(2);
+                .as("the premise: the fixture has a gated plain scenario, a gated outline row and an "
+                        + "inexpressible one, which no declaration could have contained")
+                .hasSize(3);
 
         for (String pickleId : gated) {
             assertThat(results.outcomeOfPickle(pickleId))
@@ -152,13 +157,37 @@ class ConformanceReportPluginTest {
     }
 
     @Test
-    @DisplayName("the gate's own reason survives into the stream")
+    @DisplayName("the gate's own reason survives into the stream, and the two kinds of skip stay apart")
     void theGateReasonSurvives() {
-        // The declaration in the envelope is enough to work out *why* a scenario was skipped, but
-        // the reason the gate gave is carried too, on the hook result that produced the skip.
-        assertThat(results.messagesOfSkippedSteps()).isNotEmpty().allSatisfy(message -> assertThat(message)
-                .contains("does not declare capability")
-                .contains("STALE"));
+        // The declaration in the envelope is enough to work out *why* most scenarios were skipped,
+        // but the reason the gate gave is carried too, on the hook result that produced the skip.
+        List<String> messages = results.messagesOfSkippedSteps();
+        assertThat(messages).hasSize(3);
+
+        // And for one of them the declaration is NOT enough, which is why this reason has to travel.
+        // @large-integers is absent from every Java declaration and absent for a reason that says
+        // nothing about the provider: the SDK's integer accessor is 32 bits. A reader who inferred
+        // "the provider declined" from the absence would be reading a decision into something no
+        // Java provider was ever offered. So the message names the SDK, and says it is not the
+        // provider declining, in words that could not be confused with the other two.
+        List<String> unaskable = new ArrayList<>();
+        messages.forEach(message -> {
+            if (message.contains("LARGE_INTEGERS")) {
+                unaskable.add(message);
+            }
+        });
+        assertThat(unaskable).hasSize(1);
+        assertThat(unaskable.get(0))
+                .contains("the Java SDK cannot express capability")
+                .contains("not the provider under test declining")
+                .doesNotContain("does not declare capability");
+
+        assertThat(messages)
+                .filteredOn(message -> !message.contains("LARGE_INTEGERS"))
+                .hasSize(2)
+                .allSatisfy(message -> assertThat(message)
+                        .contains("does not declare capability")
+                        .contains("STALE"));
     }
 
     @Test
@@ -252,6 +281,9 @@ class ConformanceReportPluginTest {
         assertThat(envelope.get("sdk").get("version").asText()).isNotEmpty();
         assertThat(envelope.get("tck").get("implementation").asText()).isEqualTo("java-sdk-contrib/tools/tck");
         assertThat(envelope.get("tck").get("specRevision").asText()).hasSizeGreaterThanOrEqualTo(7);
+        assertThat(envelope.get("tck").get("specRevision").asText())
+                .as("and it is the revision the packaged assets actually came from; see the test below")
+                .isEqualTo(CanonicalAssetDigestTest.PINNED_REVISION);
         // backend is in the schema's top-level required array and controlApi in backend's, so both
         // are asserted as present rather than as present-if-set.
         assertThat(envelope.has("backend")).isTrue();
@@ -315,12 +347,11 @@ class ConformanceReportPluginTest {
                         Capability.DISABLED_FLAGS.tag(),
                         Capability.UNAVAILABLE_INIT.tag(),
                         Capability.NUMERIC_COERCION.tag(),
-                        // @large-integers gates a scenario and is an ordinary declarable capability.
-                        // No Java provider holds it, because the SDK's integer accessor is 32 bits,
-                        // but that is a fact about the SDK recorded in Appendix F rather than a
-                        // second kind of declaration, so the maximal claim includes it and a real
-                        // harness withholds it.
-                        Capability.LARGE_INTEGERS.tag(),
+                        // @large-integers is absent, and for a different reason from @caching's.
+                        // Scenarios do carry it -- Go and JavaScript run them -- but the Java SDK's
+                        // integer accessor is 32 bits, so no Java provider can be asked for 2^53 - 1
+                        // and none may claim it. The maximal claim is the maximal claim a provider
+                        // written against THIS SDK can make, which is what a report has to carry.
                         // @targeting was reserved until targeting-key-flag's three scenarios
                         // arrived. It gates something now, so the maximal claim includes it.
                         Capability.TARGETING.tag(),
@@ -330,6 +361,28 @@ class ConformanceReportPluginTest {
                         // -- but it is an ordinary declarable capability all the same, and the
                         // maximal claim includes it.
                         Capability.STANDARD_REASONS.tag());
+    }
+
+    @Test
+    @DisplayName("the revision a report publishes is the one the packaged assets came from")
+    void theReportedRevisionIsTheRevisionTheAssetsCameFrom() {
+        // A report's whole claim to be readable later is that it says which questions were asked.
+        // The revision it names is a POM property, maintained by hand beside a submodule gitlink
+        // that moves by a different command -- so until now "keep them in step" was a comment in
+        // the POM, and a re-pin that updated one and not the other would have published a revision
+        // that did not produce the scenarios in the same file.
+        //
+        // CanonicalAssetDigestTest has already established that the packaged assets are
+        // PINNED_REVISION's, by digest. This is the last link: what the build filtered into the JAR
+        // and TckBuildInfo reads back is that same revision.
+        assertThat(TckBuildInfo.specRevision())
+                .as("tck.spec.revision in tools/tck/pom.xml must equal "
+                        + "CanonicalAssetDigestTest.PINNED_REVISION -- a re-pin moves the submodule "
+                        + "gitlink, that constant and this property together")
+                .isEqualTo(CanonicalAssetDigestTest.PINNED_REVISION);
+        assertThat(TckBuildInfo.specRevision())
+                .as("and the properties resource must actually have been filtered, or both are 'unknown'")
+                .isNotEqualTo(TckBuildInfo.UNKNOWN);
     }
 
     @Test
