@@ -564,6 +564,18 @@ Cucumber's parsed tags rather than the feature files as text, which matters more
 `gherkin/events.feature` names `@caching` inside a `#` comment explaining what is deliberately not
 covered yet, so a text scan would fail every adoption on the day it shipped.
 
+There is a third direction, and it is this module's own build that has to catch it: a capability that
+is **declarable and gates nothing**. That is the same vacuous claim as a declared reserved tag —
+nothing can produce a skip, no result can contradict it, and a report tells its reader a capability
+was examined when nothing examined it. Its realistic cause is a build accident rather than a design
+mistake: the canonical assets are copied out of the `spec` submodule, and the submodule's gitlink and
+its working tree move by different commands, so a rebase followed by a build can overwrite the new
+assets with the old ones. The result is internally consistent — the old feature files agree with each
+other — so **counting scenarios does not catch it**. `CanonicalTagCoverageTest` asserts that every
+declarable capability's tag is carried by at least one canonical scenario, and that no reserved one
+is; it parses the packaged Gherkin for the same reason the runtime check does. If you re-pin the
+submodule, run `git submodule update` before building, and let that test tell you if you forgot.
+
 That is a rule about an accident rather than about intent: `EnumSet.complementOf(EnumSet.of(X))`
 reads as "everything except X" and in fact means "every other enum constant", reserved tags
 included. The flagd suite said exactly that and published `"declared": [..., "@targeting",
