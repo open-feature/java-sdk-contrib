@@ -116,5 +116,11 @@ mvn -pl providers/ofrep -am -DtestExclusions= -Dtest=OfrepTckTest \
 ```
 
 The suite is currently **expected to fail** on the failures enumerated in `OfrepTckTest`, which come
-from flags the pinned testbed image does not serve (open-feature/flagd-testbed#392). Anything else
-is a regression.
+from flags the pinned testbed image does not serve (open-feature/flagd-testbed#392). A clean run is
+65 scenarios, 46 passing, 17 skipped and 2 failing.
+
+It is also **intermittently flaky**, and `OfrepTckTest`'s class javadoc says why: about half the runs
+carry one or two extra failures where an evaluation comes back as the code default or as
+`FLAG_NOT_FOUND`, on a scenario that moves from run to run. That is the testbed readiness window of
+open-feature/flagd-testbed#394, not a provider defect and not something to cover with a sleep. Repeat
+the run before treating an extra failure as a regression; anything that reproduces is one.
