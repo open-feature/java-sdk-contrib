@@ -109,9 +109,10 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
         return Arrays.asList(
                 KnownDeviation.untracked(
                         Capability.STANDARD_REASONS,
-                        "This provider never populates the resolution reason: every evaluation returns null, so not "
-                                + "one of the reasons this capability claims is reported. The resolved values are "
-                                + "correct throughout -- only the reason is missing. The capability is declared and "
+                        "This provider reports exactly one reason. resolveFlagsmithEvaluation returns "
+                                + "Reason.DISABLED for a disabled flag and leaves the reason null on every "
+                                + "successful resolution, so STATIC and TARGETING_MATCH are never reported. The "
+                                + "resolved values are correct throughout -- only the reason is missing. The capability is declared and "
                                 + "the scenarios fail rather than skip, because the provider does build a resolution "
                                 + "and simply leaves the field out, so running them establishes something. The Go "
                                 + "Flagsmith provider reports STATIC, DISABLED and TARGETING_MATCH against the "
