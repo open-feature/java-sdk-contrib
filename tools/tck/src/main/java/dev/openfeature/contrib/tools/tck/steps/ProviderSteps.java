@@ -209,15 +209,11 @@ public class ProviderSteps extends AbstractSteps {
     /**
      * Initialises the provider under test again by calling its own {@code initialize()} directly.
      *
-     * <p>Requirement 2.5.2 says a provider <em>SHOULD</em> revert to its uninitialised state after
-     * shutdown, and its supporting text says some providers <em>MAY</em> allow reinitialisation from
-     * it. Reuse is therefore permitted rather than required, and the one scenario using this step is
-     * gated on {@link dev.openfeature.contrib.tools.tck.Capability#REINITIALIZATION}
-     * accordingly — a provider that discards its client on shutdown and never rebuilds it is making
-     * a choice the specification offers, not exhibiting a defect. The SDK still holds the provider
-     * as {@code READY}, because it was never told about the shutdown, so the evaluation that follows
-     * this step reaches the re-initialised provider through the scenario's client with nothing in
-     * between.
+     * <p>The one scenario using this step is gated on
+     * {@link dev.openfeature.contrib.tools.tck.Capability#REINITIALIZATION}, which says why reuse is
+     * permitted rather than required. The SDK still holds the provider as {@code READY}, because it
+     * was never told about the shutdown, so the evaluation that follows this step reaches the
+     * re-initialised provider through the scenario's client with nothing in between.
      *
      * <p>The scenario's evaluation context is passed, which is empty unless a context step added to
      * it. Exceptions are recorded rather than propagated, the same way an evaluation's are.
