@@ -17,6 +17,8 @@ public class Const {
     public static final String HTTP_HEADER_ETAG = "ETag";
     public static final String HTTP_HEADER_IF_NONE_MATCH = "If-None-Match";
     public static final String HTTP_HEADER_LAST_MODIFIED = "Last-Modified";
+    // API ROUTES (relative to the configured endpoint, so that a path prefix on the endpoint survives)
+    public static final String PATH_FLAG_CONFIGURATION = "v1/flag/configuration";
     // DEFAULT VALUES
     public static final long DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS = 2L * 60L * 1000L;
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
@@ -27,7 +29,7 @@ public class Const {
     public static final ObjectMapper DESERIALIZE_OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     public static final ObjectMapper SERIALIZE_OBJECT_MAPPER = new ObjectMapper();
-    public static final ObjectMapper SERIALIZE_WASM_MAPPER = new ObjectMapper()
-            .setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public static final ObjectMapper SERIALIZE_WASM_MAPPER = new ObjectMapper().setDefaultPropertyInclusion(
+                    com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
             .setDateFormat(new StdDateFormat().withColonInTimeZone(true));
 }

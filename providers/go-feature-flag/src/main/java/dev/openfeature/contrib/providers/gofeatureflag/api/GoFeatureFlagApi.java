@@ -74,7 +74,8 @@ public final class GoFeatureFlagApi {
         this.apiKey = options.getApiKey();
 
         try {
-            this.endpoint = new URI(options.getEndpoint());
+            val rawEndpoint = options.getEndpoint();
+            this.endpoint = new URI(rawEndpoint.endsWith("/") ? rawEndpoint : rawEndpoint + "/");
         } catch (URISyntaxException e) {
             throw new InvalidEndpoint(e);
         }
@@ -166,7 +167,7 @@ public final class GoFeatureFlagApi {
     public FlagConfigResponse retrieveFlagConfiguration(final String etag, final List<String> flags) {
         try {
             val request = new FlagConfigApiRequest(flags == null ? Collections.emptyList() : flags);
-            final URI url = this.endpoint.resolve("/v1/flag/configuration");
+            final URI url = route(Const.PATH_FLAG_CONFIGURATION);
 
             HttpRequest.Builder reqBuilder =
                     HttpRequest.newBuilder().uri(url).header(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON);
@@ -292,6 +293,18 @@ public final class GoFeatureFlagApi {
             log.debug("Error parsing Last-Modified header: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * route builds the URL of an API route from the configured endpoint, preserving any path prefix
+     * the endpoint carries. Resolving an absolute path such as {@code /v1/flag/configuration} would
+     * discard that prefix (RFC 3986 section 5.3) and silently retarget the request.
+     *
+     * @param path - route path, relative to the endpoint and without a leading slash
+     * @return the URL to call
+     */
+    private URI route(final String path) {
+        return this.endpoint.resolve(path.startsWith("/") ? path.substring(1) : path);
     }
 
     /**
