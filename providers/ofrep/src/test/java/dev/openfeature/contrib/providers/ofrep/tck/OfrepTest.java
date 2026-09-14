@@ -225,9 +225,10 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      * {@code FLAG_NOT_FOUND} and "No value returned for flag", discarding the {@code reason} it
      * parsed one field earlier (Resolver.java:169-181, OfrepResponse.java:19).
      *
-     * <p><strong>That response is well-formed OFREP, and it says what to do.</strong> The obvious
-     * reading of this failure — the caller's default never leaves the process, so a provider whose
-     * backend decides cannot hold the tag — does not survive the protocol. OFREP's
+     * <p><strong>That response is well-formed OFREP, and it says what to do.</strong> It is worth
+     * establishing, because the intuitive reading of the failure — the caller's default never leaves
+     * the process, so a provider whose backend decides cannot hold this tag — is wrong here, and
+     * {@link Capability#DISABLED_FLAGS} cites this class for why. OFREP's
      * {@code evaluationSuccess} requires only {@code key} and {@code reason}; {@code value} is
      * <em>not</em> required, because one of the member schemas a success may be is
      * {@code codeDefaultFlag}, described as <em>"A flag evaluation that defers to the code default
