@@ -47,18 +47,12 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * Creates a control client for a running backend.
      *
-     * <p>There is no post-command settle, deliberately. A control call returns when the backend has
-     * acted, because that is what the control API promises: {@code /start}, {@code /change} and
-     * {@code /reset} all block until the new state is actually being served. A fixed pause after
-     * every command would cover that window whether or not the promise is kept, which is the
-     * difference between a suite that can detect a control API regression and one that hides it. If
-     * a step after a control call is racy, the defect is in the backend's control API and belongs in
-     * its issue tracker.
-     *
-     * <p>The promise is about the <em>backend</em>. How long the provider under test takes to notice
-     * is a property of its transport and is what {@code eventTimeout()} bounds; conflating the two
-     * makes the provider's detection latency unmeasurable, because the clock would start before
-     * there is anything to detect.
+     * <p><strong>There is no post-command settle, deliberately.</strong> A control call returns when
+     * the backend has acted, because that is what the control API promises, and
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
+     * F</a> says why a suite must not add a pause of its own. If a step after a control call is
+     * racy, the defect is in the backend's control API. The promise is about the <em>backend</em>;
+     * how long the provider takes to notice is what {@code eventTimeout()} bounds.
      *
      * @param baseUrl the control API base URL, without a trailing slash
      * @param backendConfiguration the backend configuration name defining the canonical baseline

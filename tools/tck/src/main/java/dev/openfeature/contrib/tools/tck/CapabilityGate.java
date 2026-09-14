@@ -45,15 +45,12 @@ public final class CapabilityGate {
      * <p>Tags that gate nothing are ignored, so a scenario with no capability tag is mandatory and
      * always runs.
      *
-     * <p><strong>Two skips, and they do not say the same thing.</strong> The ordinary one is a
-     * capability the provider did not declare, and it names the provider. The other is a capability
-     * this SDK {@linkplain Capability#inexpressible() cannot express} — {@link
-     * Capability#LARGE_INTEGERS} on the Java SDK's 32-bit integer accessor — where the provider had
-     * no say: no Java provider can be asked that scenario, and {@link Capability#requireDeclarable}
-     * refuses a declaration that pretends otherwise. Reporting both as "the provider does not
-     * declare it" would read as a decision the provider took, and a reader of the report would
-     * believe it. So the reason names the SDK instead, and is checked before the declaration, which
-     * makes it the reason every time rather than only when the provider happens to have withheld it.
+     * <p><strong>Two skips, and they do not say the same thing.</strong> The ordinary one names the
+     * provider, which did not declare the capability. The other names the SDK, which
+     * {@linkplain Capability#inexpressible() cannot express} it — reporting that as "the provider
+     * does not declare it" would read as a decision the provider took. It is checked before the
+     * declaration, which makes it the reason every time rather than only when the provider happens
+     * to have withheld the tag as well.
      *
      * @param tags the scenario's Gherkin tags, including the leading at-sign
      * @param declared the capabilities the provider declares
@@ -86,28 +83,24 @@ public final class CapabilityGate {
     /**
      * Fails the run if a scenario carries the tag of a capability this suite still calls reserved.
      *
-     * <p>This is the expiry check on {@link Capability#reserved()}, and it is the other half of
-     * {@link Capability#requireDeclarable}. That one refuses a <em>declaration</em> naming a reserved
-     * capability; this one refuses a <em>scenario</em> carrying its tag. There is no equivalent for
-     * an {@linkplain Capability#inexpressible() inexpressible} capability and there could not be: a
-     * scenario carrying its tag is exactly what is expected, since the scenarios are what the other
-     * languages run. A reservation is a name held
-     * open for scenarios that do not exist yet and is only ever temporary — the specification writes
-     * them, the tag starts gating something, and the capability becomes declarable. Until this
-     * implementation follows, the two halves meet in the worst possible place: the scenario is
-     * skipped for a capability no adopter is permitted to claim, a question put and silently
-     * withdrawn. That is the unclaimable-capability failure
+     * <p>The expiry check on {@link Capability#reserved()}, and the other half of
+     * {@link Capability#requireDeclarable}: that one refuses a <em>declaration</em> naming a reserved
+     * capability, this one a <em>scenario</em> carrying its tag. An
+     * {@linkplain Capability#inexpressible() inexpressible} capability has no equivalent and could
+     * not — a scenario carrying its tag is exactly what is expected, since other languages run it.
+     *
+     * <p>When the specification writes the scenarios a reservation was holding the name open for and
+     * this implementation has not followed, the two halves meet in the worst possible place: the
+     * scenario is skipped for a capability no adopter is permitted to claim — the
+     * unclaimable-capability failure
      * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
-     * F</a> describes.
+     * F</a> describes. Nothing else in the suite would notice: the report is well-formed, the run is
+     * green, and a capability-gated skip is explicitly not a gap. It has no local symptom at all,
+     * which is why it is checked rather than watched for — {@link Capability#TARGETING} was reserved
+     * until the {@code targeting-key-flag} scenarios arrived.
      *
-     * <p>Nothing else in the suite would notice it. The report is well-formed, the run is green, and
-     * a capability-gated skip is explicitly not a gap — so the new scenario is executed by nobody and
-     * the results say only what they say about every undeclared capability. It has no local symptom
-     * at all, which is why it is checked rather than watched for: {@link Capability#TARGETING} was
-     * reserved until the {@code targeting-key-flag} scenarios arrived.
-     *
-     * <p>Refused rather than worked around. Quietly treating the tag as declarable here would let a
-     * run claim a capability against an implementation that does not know the tag exists; the point
+     * <p>Refused rather than worked around: treating the tag as declarable here would let a run
+     * claim a capability against an implementation that does not know the tag exists, and the point
      * of the check is that a human re-reads the reserved list against the specification.
      *
      * <p><strong>The tags are the parsed ones.</strong> They come from

@@ -11,35 +11,22 @@ package dev.openfeature.contrib.tools.tck;
  *
  * <h2>Which implementation is right for your provider</h2>
  *
- * <p>If your provider talks to a backend — a server, a service, anything out of process — use
- * {@link HttpBackendControl} by extending {@link ContainerizedProviderTckTest}. The HTTP control
- * API in {@code openapi/control-api.yaml} is the normative contract for those providers, and it is
- * what makes a conformance claim portable: another language's TCK drives the same endpoints against
- * the same stack and must get the same answers.
- *
- * <p><strong>Do not</strong> write a custom in-JVM {@code BackendControl} that reaches into an
- * external backend through a side channel — a test-only admin client, a shared database handle, a
- * static hook inside the provider. It will pass, and it will prove nothing, because the thing it
- * exercised is not the thing the contract describes.
- *
- * <p>In-process control exists for providers that have <em>no</em> backend to contract with:
- * in-memory, environment-variable and file-based providers, where "the backend" is a data structure
- * in the same JVM. See {@link InProcessBackendControl}.
+ * <p>A provider that talks to a backend uses {@link HttpBackendControl} by extending
+ * {@link ContainerizedProviderTckTest}; in-process control is for a provider with <em>no</em>
+ * backend to contract with — see {@link InProcessBackendControl}. That allowance is narrow, and
+ * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
+ * F</a> says why a custom in-JVM control reaching an external backend through a side channel passes
+ * while proving nothing.
  *
  * <h2>Operations a backend may not support</h2>
  *
- * <p>{@link #prepareScenario()} and {@link #changeFlag()} are mandatory: a backend that cannot reset
- * itself or change a flag cannot run the suite at all.
- *
- * <p>{@link #controlApi()} is mandatory too, and has deliberately no default — see {@link ControlApi}
- * for why silence there is not a neutral answer.
- *
- * <p>The two connection operations are not mandatory. A provider with nothing to disconnect from
- * leaves them at their defaults, which throw {@link UnsupportedOperationException}. That exception is a
- * <strong>test-configuration bug, never a skip</strong> — the scenarios that need connection
- * control are gated behind {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT}, so
- * reaching one of these defaults means a capability was declared that the backend cannot back up.
- * Failing loudly there is deliberate: a silent no-op would report the scenario as passed.
+ * <p>{@link #prepareScenario()}, {@link #changeFlag()} and {@link #controlApi()} are mandatory. The
+ * two connection operations are not: a provider with nothing to disconnect from leaves them at
+ * their defaults, which throw {@link UnsupportedOperationException}. That exception is a
+ * <strong>test-configuration bug, never a skip</strong> — the scenarios needing connection control
+ * are gated behind {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT}, so reaching a
+ * default means a capability was declared the backend cannot back up, and a silent no-op there
+ * would report the scenario as passed.
  *
  * @see Capability
  * @see ProviderTckTest
@@ -96,23 +83,10 @@ public interface BackendControl {
     /**
      * Returns how the backend is driven, as one of the two kinds the provider contract recognises.
      *
-     * <p>{@link ControlApi#HTTP} is the normative control API: the backend is a real one and it is
-     * driven over the endpoints in {@code openapi/control-api.yaml}, which is what makes a
-     * conformance claim portable between languages. {@link ControlApi#IN_PROCESS} is the narrow
-     * allowance for a provider with no backend at all, where "the backend" is a data structure in
-     * this JVM — a claim of {@code in-process} for a provider that does have a backend should be
-     * treated with suspicion.
-     *
-     * <p>Part of the declaration vocabulary rather than of any one consumer of it: it says which of
-     * the two contracts a run was conducted under, which anyone reading the result needs whether or
-     * not a machine-readable report is being produced. A custom {@code BackendControl} states it
-     * here and nothing downstream has to guess.
-     *
-     * <p><strong>Required, with no default.</strong> Both implementations the TCK ships answer it
-     * already, and an adopter with a real backend writes no control at all — the HTTP one comes with
-     * {@link ContainerizedProviderTckTest}. The only person who implements this interface by hand is
-     * the one writing a custom control, which is precisely the case where the value cannot be
-     * inferred. An unanswered value would not be "no claim made"; it would be an unfalsifiable one.
+     * <p>Appendix F requires the control to state this rather than the harness to infer it, and is
+     * why there is deliberately no default: an omitted value would be an unfalsifiable claim rather
+     * than no claim. Both implementations the TCK ships answer it, so the only author who has to is
+     * the one writing a custom control — precisely the case where it cannot be inferred.
      *
      * @return which of the two control contracts this run is conducted under
      */

@@ -17,20 +17,16 @@ import java.util.Map;
  * {@code PROVIDER_CONFIGURATION_CHANGED} through the provider's own event mechanism rather than
  * through a simulated one.
  *
- * <p><strong>This is not a shortcut for providers that do have a backend.</strong> Reaching into an
- * external backend from inside the JVM — a test-only admin client, a shared database handle, a
- * static hook in the provider — produces a suite that passes while proving nothing, because the
- * path it exercised is not the path the contract describes. Those providers use
- * {@link HttpBackendControl} via {@link ContainerizedProviderTckTest}, and the control API in
- * {@code openapi/control-api.yaml} stays the normative contract. See {@link BackendControl}.
+ * <p><strong>This is not a shortcut for providers that do have a backend.</strong> Those use
+ * {@link HttpBackendControl} via {@link ContainerizedProviderTckTest}; {@link BackendControl} says
+ * why, and links the rule.
  *
  * <h2>Connection control</h2>
  *
  * <p>{@link #disconnect()} and {@link #reconnect()} are not implemented, so they inherit the
- * interface defaults and throw. An in-memory provider has no connection to lose,
- * and pretending otherwise with a no-op would report {@code @stale} scenarios as passed. The
- * harness instead leaves {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT}
- * undeclared, and those scenarios are reported as skipped.
+ * interface defaults and throw. An in-memory provider has no connection to lose, and a no-op would
+ * report {@code @stale} scenarios as passed. The harness instead leaves {@link Capability#STALE} and
+ * {@link Capability#UNAVAILABLE_INIT} undeclared, and those scenarios are skipped.
  *
  * <h2>Ownership of the provider</h2>
  *
