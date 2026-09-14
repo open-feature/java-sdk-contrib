@@ -20,44 +20,15 @@ import org.testcontainers.containers.wait.strategy.Wait;
  * providers.
  *
  * <p>The HTTP control API described in {@code openapi/control-api.yaml} is the normative contract
- * here, and that is the point: another language's TCK drives the same endpoints against the same
- * stack and must get the same answers. Substituting a custom in-JVM {@link BackendControl} that
- * manipulates an external backend through a side channel bypasses that contract — see
- * {@link BackendControl} for why that is not an acceptable adoption path.
+ * here; a custom in-JVM {@link BackendControl} manipulating an external backend through a side
+ * channel bypasses it — see {@link BackendControl}.
  *
  * <p>Provider authors implement three methods, optionally a fourth, and override the defaults their
  * stack needs. The Compose stack is started <strong>once</strong>, before the first scenario, and
- * stopped after the last one. It is never stopped or restarted in between: Testcontainers cannot
- * reliably preserve dynamically mapped host ports across a container restart, so a restart would
- * silently invalidate every provider already pointed at the old port. Backend unavailability is
- * therefore always simulated inside the running stack through the control API.
+ * stopped after the last one; it is never restarted in between, and backend unavailability is
+ * always simulated inside the running stack through the control API. Appendix F says why.
  *
- * <p>Example — the entire adoption for a provider with one transport:
- *
- * <pre>{@code
- * public class MyProviderTest extends ContainerizedProviderTckTest {
- *
- *     @Override
- *     public File composeFile() {
- *         return new File("src/test/resources/tck/docker-compose.yaml");
- *     }
- *
- *     @Override
- *     public List<Integer> backendPorts() {
- *         return Collections.singletonList(8013);
- *     }
- *
- *     @Override
- *     public FeatureProvider createProvider(BackendEndpoint endpoint) {
- *         return new MyProvider(endpoint.host(), endpoint.port(8013));
- *     }
- *
- *     @Override
- *     public FeatureProvider createUnavailableProvider() {
- *         return new MyProvider("localhost", 9999);
- *     }
- * }
- * }</pre>
+ * <p>{@code tools/tck/README.md} carries a worked adoption.
  *
  * @see ProviderTckTest
  * @see HttpBackendControl
@@ -169,9 +140,8 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
      * Returns the name of the <em>backend</em> configuration used to seed the canonical flag set.
      *
      * <p>Not to be confused with {@link ProviderTckHarness#configuration()}, which names the mode of
-     * the <em>provider</em> under test — flagd's RPC resolver versus its in-process one — and is what
-     * a conformance report's {@code provider.configuration} carries. This one is a name the backend
-     * understands, passed through to {@code POST /start?config=...}.
+     * the <em>provider</em> under test. This one is a name the backend understands, passed through
+     * to {@code POST /start?config=...}.
      *
      * @return the backend configuration name passed to {@code POST /start}, {@code default} by
      *     default
@@ -199,10 +169,9 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
      * <p>Starts the Compose stack, resolves the control API's mapped port and waits for it to
      * accept commands.
      *
-     * <p>The await here is the only timing allowance the suite makes, and it is a readiness check
-     * against the control API itself rather than a guess at how long a backend takes: it probes
-     * until the control API answers, bounded by {@link #startupTimeout()}. Nothing sleeps after a
-     * control command — see {@link HttpBackendControl}.
+     * <p>The await here is the only timing allowance the suite makes: a readiness check against the
+     * control API itself, bounded by {@link #startupTimeout()}, rather than a guess at how long a
+     * backend takes. Nothing sleeps after a control command — see {@link HttpBackendControl}.
      */
     @Override
     public final void startSuite() {
