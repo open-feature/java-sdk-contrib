@@ -172,10 +172,10 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      *
      * <p>{@link Capability#DISABLED_FLAGS} is declared, and measured: both resolvers substitute the
      * caller's default for a flag whose state is {@code DISABLED} and report no error code, so all
-     * four rows of that outline pass in both modes. The tag is gated on architecture rather than on
-     * quality, and flagd sits on the right side of that line twice over — the in-process resolver
-     * evaluates the ruleset locally, and the RPC resolver still decides locally what to do with a
-     * response that carries no value.
+     * four rows of that outline pass in both modes. Both resolvers are told the flag is disabled —
+     * the in-process one evaluates the ruleset locally, and the RPC one still decides locally what
+     * to do with a response that carries no value — so the question {@link Capability#DISABLED_FLAGS}
+     * gates on is answered here in both.
      *
      * <p>{@link Capability#STANDARD_REASONS} arrived by the {@code declarableExcept} default rather
      * than by a decision, which is why it was measured before being written down. All nine scenarios
