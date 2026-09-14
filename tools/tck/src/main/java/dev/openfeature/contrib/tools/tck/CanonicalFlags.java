@@ -20,18 +20,13 @@ import java.util.Map;
  * {@code specification/assets/provider-tck/}, is copied in from the {@code spec} submodule at build
  * time and is packaged into the release JAR, which is why this class reads it off the classpath.
  *
- * <p><strong>Why decoded rather than transcribed.</strong> Appendix F exposes the canonical set so
- * that an adopting provider can seed a backend directly from the canonical definition rather than
- * transcribing it, transcription being the usual way the two drift apart. A hand-written copy inside
- * the TCK is the same drift with a shorter fuse: the in-process self-tests would then verify the
- * suite against a second baseline of our own, so a rename in the spec makes them pass against the
- * wrong flags while reporting green. Go's TCK decodes the same file for the same reason, and this
- * follows it.
+ * <p><strong>Why decoded rather than transcribed.</strong> A hand-written copy inside the TCK would
+ * have the in-process self-tests verify the suite against a second baseline of our own, so a rename
+ * in the spec makes them pass against the wrong flags while reporting green.
  *
  * <p>The file is flagd's flag-definition format —
- * <code>{"flags": {"&lt;key&gt;": {"state", "variants", "defaultVariant"}}}</code> — because that is
- * the only widely implemented vendor-neutral format today. {@code $comment} members are
- * documentation and are ignored wherever they appear.
+ * <code>{"flags": {"&lt;key&gt;": {"state", "variants", "defaultVariant"}}}</code>. {@code $comment}
+ * members are documentation and are ignored wherever they appear.
  *
  * <h2>What the decoding has to preserve</h2>
  *

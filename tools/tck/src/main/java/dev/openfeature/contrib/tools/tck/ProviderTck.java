@@ -11,11 +11,9 @@ package dev.openfeature.contrib.tools.tck;
  * Annotation values permit constant concatenation, so {@code ProviderTck.ALL_GLUE + ",com.vendor.steps"}
  * is legal where a method call is not.
  *
- * <p>A class of its own rather than constants on the suite. The values describe the TCK's classpath
- * conventions rather than the behaviour of a suite, and things that are not suites read them: a build
- * check, a custom launcher, a test that asserts the extension point still works. Putting them on
- * {@link ProviderTckTest} would also inherit the whole namespace into every adopter's suite class,
- * where {@code GLUE} would show up as a member of their own type.
+ * <p>A class of its own rather than constants on the suite, because things that are not suites read
+ * them and because putting them on {@link ProviderTckTest} would inherit the whole namespace into
+ * every adopter's suite class.
  *
  * <p>Nothing here is a setting. Changing what the suite passes to Cucumber means changing the
  * annotations on {@link ProviderTckTest}; these constants follow that, they do not drive it.
@@ -30,10 +28,10 @@ public final class ProviderTck {
      * {@link #EXTENSIONS}.
      *
      * <p>Named for the directory the assets have in Appendix F rather than for Cucumber's habit of
-     * calling them features. Appendix F identifies a canonical feature by its path relative to the
-     * asset directory — {@code gherkin/errors.feature} — and a consumer joining results from several
-     * languages keys on that path, so the directory a runner reports has to be this one. Cucumber's
-     * {@code classpath:} scheme in front of it is the runner's and is compared past, not stripped.
+     * calling them features: a consumer joining results from several languages keys on the path a
+     * canonical feature has relative to the asset directory, so the directory a runner reports has
+     * to be this one. Cucumber's {@code classpath:} scheme in front of it is the runner's and is
+     * compared past, not stripped.
      */
     public static final String FEATURES = "gherkin";
 

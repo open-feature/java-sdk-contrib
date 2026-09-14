@@ -18,8 +18,6 @@ import java.util.Set;
  *
  * <ul>
  *   <li>Your provider talks to an external backend — extend {@link ContainerizedProviderTckTest}.
- *       It brings the Compose lifecycle, port discovery and {@link HttpBackendControl}, and the
- *       HTTP control API stays the normative contract for your conformance claim.
  *   <li>Your provider has no backend (in-memory, environment variables, a local file) — extend
  *       {@link ProviderTckTest} directly and supply an in-process {@link BackendControl}.
  * </ul>
@@ -28,29 +26,7 @@ import java.util.Set;
  * {@link java.util.ServiceLoader} as a fallback. Extend one of the two base classes — each is both
  * the JUnit suite and the harness — and no registration is needed.
  *
- * <p>Example — the entire adoption for a backend-less provider:
- *
- * <pre>{@code
- * public class MyProviderTest extends ProviderTckTest {
- *
- *     private final InProcessBackendControl control = new InProcessBackendControl();
- *
- *     @Override
- *     public BackendControl backendControl() {
- *         return control;
- *     }
- *
- *     @Override
- *     public FeatureProvider createProvider() {
- *         return control.createProvider();
- *     }
- *
- *     @Override
- *     public Set<Capability> capabilities() {
- *         return EnumSet.of(Capability.EVENTS, Capability.CONFIGURATION_CHANGE, Capability.OBJECT);
- *     }
- * }
- * }</pre>
+ * <p>{@code tools/tck/README.md} carries a worked adoption for each of the two shapes.
  *
  * @see ProviderTckTest
  * @see ContainerizedProviderTckTest
@@ -86,20 +62,14 @@ public interface ProviderTckHarness {
     /**
      * Creates a provider pointed at a backend that does not exist.
      *
-     * <p>Used by the initialisation-failure scenarios, which assert that a provider that cannot
-     * reach its backend settles into {@code ERROR} and emits {@code PROVIDER_ERROR} rather than
-     * hanging or throwing out of {@code setProvider}.
-     *
-     * <p>Point this at a closed port on localhost. Do not point it at the backend under test — that
-     * must stay up and reachable, and simulated outages belong to {@link BackendControl}.
-     *
-     * <p>Configure a short connection deadline. The scenario allows a bounded time for the error
-     * event to arrive, and a provider with a 30-second connect timeout will not make it.
+     * <p>Point this at a closed port on localhost, with a short connection deadline: the scenario
+     * allows a bounded time for {@code PROVIDER_ERROR} to arrive, and a provider with a 30-second
+     * connect timeout will not make it. Do not point it at the backend under test — that must stay
+     * up, and simulated outages belong to {@link BackendControl}.
      *
      * <p>Defaults to throwing, because a provider with no backend has no way to be unreachable.
-     * Such a harness leaves {@link Capability#UNAVAILABLE_INIT} undeclared and the scenarios that
-     * would call this are reported as skipped, so the default is never reached. Reaching it means a
-     * capability was declared that the harness cannot back up.
+     * Such a harness leaves {@link Capability#UNAVAILABLE_INIT} undeclared, so the default is never
+     * reached; reaching it means a capability was declared that the harness cannot back up.
      *
      * @return a configured provider that cannot reach a backend
      */
@@ -122,47 +92,18 @@ public interface ProviderTckHarness {
      * provider genuinely cannot do — {@link Capability#declarableExcept} is the idiomatic way to say
      * "everything except".
      *
-     * <p><strong>Once your provider is attempting a capability, the unit of that decision is the
-     * scenario, not the tag.</strong>
-     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
-     * F</a> states it as: declare a capability when at least one scenario gating it can actually be
-     * put to your provider, and withhold it only when none can. A tag with three scenarios whose
-     * backend cannot serve the flag one of them asks for still has two answers to give, and
-     * withholding it hides both to avoid one failure.
-     *
-     * <p><strong>The opening clause is a condition, not throat-clearing.</strong> This rule decides
-     * whether the question can be <em>asked</em>; whether your provider owes an answer is the earlier
-     * question, and {@link KnownDeviation} is where that one is settled. Where the specification
-     * permits declining — {@code @numeric-coercion} rests on no requirement, so a provider may
-     * simply not coerce — withholding is the honest report however askable its scenarios are, and
-     * applying this rule there manufactures a failure out of a permitted choice. The self-tests in
-     * this module withhold that tag on exactly those grounds.
-     *
-     * <p>Two consequences follow from the rule itself, and they are easy to get wrong in opposite
-     * directions:
-     *
-     * <ul>
-     *   <li>A scenario that fails because the backend cannot serve its fixture is <strong>not</strong>
-     *       a provider defect. Say so in the {@link KnownDeviation#summary} beside it, or the report
-     *       accuses your provider of the stack's gap.
-     *   <li>A capability withheld for a backend gap is <strong>temporary</strong> in a way one
-     *       withheld by choice is not. Note why it is withheld and what would change the answer, or
-     *       it outlives its reason and no later reader can tell that it should have been revisited.
-     * </ul>
-     *
-     * <p>This does not reach {@link Capability#LARGE_INTEGERS}, which is refused here for a reason
-     * upstream of any backend — see that constant.
+     * <p><strong>Read Appendix F's
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">rules
+     * for declaring</a> before narrowing this.</strong> They are what makes two reports comparable,
+     * and the two that are most often got wrong in opposite directions are that the unit of the
+     * decision is the <em>scenario</em> rather than the tag, and that whether your provider owes an
+     * answer at all is the question that comes first.
      *
      * <p>Remove only what <em>your</em> provider cannot do. What no Java provider can do is already
-     * gone: {@link Capability#LARGE_INTEGERS} asks for 2^53 − 1 and {@code Client.getIntegerDetails}
-     * is a 32-bit {@link Integer} with no room for it, so it is
-     * {@linkplain Capability#inexpressible() inexpressible} here, absent from
-     * {@link Capability#declarable()}, and refused if you name it. You do not have to know that, and
-     * that is the point of it being refused rather than documented.
-     *
-     * <p>Do not build the set with {@code EnumSet.allOf} or {@code EnumSet.complementOf}. Both
-     * include the {@linkplain Capability#reserved() reserved} and inexpressible capabilities, which
-     * no provider may claim; declaring one fails the run.
+     * gone — see {@link Capability#LARGE_INTEGERS} — and neither that nor a
+     * {@linkplain Capability#reserved() reserved} capability may be declared, so do not build the
+     * set with {@code EnumSet.allOf} or {@code EnumSet.complementOf}: both include them and
+     * declaring one fails the run.
      *
      * @return the capabilities this provider supports
      */
@@ -176,17 +117,10 @@ public interface ProviderTckHarness {
      *
      * <p>Declared so that a consumer can tell a design decision from a defect. The TCK cannot tell
      * them apart from the outside: a capability the provider chose not to offer and one it cannot
-     * honour are the same absence, and a failing scenario says nothing about whether its author
-     * already knows. Only the provider author can, so only the provider author can say.
+     * honour are the same absence, and only the provider author knows which happened.
      *
-     * <p>Empty by default, which is silence rather than a claim.
-     *
-     * <p>An entry is legitimate in two shapes, and the first is preferred: <strong>declare the
-     * capability, let the scenario fail, and record the deviation beside the failure.</strong>
-     * Withholding the capability so that its scenarios skip is for the case where the provider
-     * cannot attempt the behaviour at all — withdrawing one <em>in order to</em> turn a failure into
-     * a skip is the failure mode this method exists to prevent. See {@link KnownDeviation} for the
-     * full rule, including what counts as a requirement to deviate from.
+     * <p>Empty by default, which is silence rather than a claim. See {@link KnownDeviation} for what
+     * counts as a requirement to deviate from and which of the two legitimate shapes to reach for.
      *
      * @return the deviations this provider acknowledges, empty by default
      */
@@ -240,14 +174,11 @@ public interface ProviderTckHarness {
     /**
      * Returns how long to wait for a provider event to arrive.
      *
-     * <p>This is the single most important knob for a provider author, because providers observe
-     * backend changes on wildly different timescales. A streaming provider sees a configuration
-     * change in milliseconds; a provider that polls every 30 seconds may need most of a poll
-     * interval before it notices. Set this to comfortably exceed your worst-case detection latency,
-     * or the suite will report timeouts that are really just impatience.
-     *
-     * <p>Individual scenarios can tighten this with the explicit {@code within {int}ms} step, which
-     * always wins over this value.
+     * <p>The single most important knob for a provider author, because providers observe backend
+     * changes on wildly different timescales — a streaming provider in milliseconds, one that polls
+     * every 30 seconds in most of a poll interval. Set it to comfortably exceed your worst-case
+     * detection latency, or the suite reports timeouts that are really just impatience. A scenario
+     * can tighten it with the explicit {@code within {int}ms} step, which always wins.
      *
      * @return the default event await timeout, 12 seconds by default
      */
