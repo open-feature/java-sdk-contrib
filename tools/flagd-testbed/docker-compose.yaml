@@ -1,0 +1,21 @@
+# The flagd-testbed stack every Provider TCK adoption in this repository runs against, named from
+# each suite's ContainerizedProviderTckTest.composeFile(). Shared so the adoptions cannot drift onto
+# two backends while claiming to ask the same questions.
+#
+# NOT providers/flagd/test-harness/docker-compose.yaml, which the legacy e2e suites drive: that one
+# bind-mounts ${FLAGS_DIR}, names its service "flagd" and runs an envoy sidecar (e2e/ContainerEntry).
+#
+# Every port either adoption uses is listed, and the extras are free -- with no host bindings the
+# TCK maps each container port dynamically and resolves only the ones a suite asks for. Do not add
+# a host binding; Appendix F says why.
+#
+# The image does not serve the whole canonical flag set yet, open-feature/flagd-testbed#392; what
+# that costs is recorded in each adoption's suite class.
+services:
+  backend:
+    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    ports:
+      - 8013   # flagd RPC evaluation (gRPC)      -- providers/flagd
+      - 8015   # flagd in-process sync (gRPC)     -- providers/flagd
+      - 8016   # flagd OFREP evaluation (HTTP)    -- providers/ofrep
+      - 8080   # launchpad control API            -- both
