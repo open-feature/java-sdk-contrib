@@ -129,6 +129,9 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
         super.initialize(evaluationContext);
+        // re-initialization must reset the publisher: its shutdown flag and its scheduler are both
+        // one-shot, so without this a provider that is shut down and initialized again never flushes.
+        this.eventsPublisher.start();
         this.evalService.init();
         this.hooks.add(new EnrichEvaluationContextHook(this.options.getExporterMetadata()));
         // In case of remote evaluation, we don't need to send the data to the collector

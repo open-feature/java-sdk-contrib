@@ -32,8 +32,9 @@ public final class EventsPublisher<T> {
     private final Lock readLock = readWriteLock.readLock();
     private final Lock writeLock = readWriteLock.writeLock();
 
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private final long flushIntervalMs;
     private final List<T> eventsList;
+    private ScheduledExecutorService scheduledExecutorService;
 
     /**
      * Constructor.
@@ -47,6 +48,21 @@ public final class EventsPublisher<T> {
         eventsList = new CopyOnWriteArrayList<>();
         this.publisher = publisher;
         this.maxPendingEvents = maxPendingEvents;
+        this.flushIntervalMs = flushIntervalMs;
+        start();
+    }
+
+    /**
+     * start schedules the periodic flush.
+     * Calling start() on a running publisher does nothing, so it is safe to call from both the
+     * constructor and provider initialization.
+     */
+    public synchronized void start() {
+        if (scheduledExecutorService != null && !scheduledExecutorService.isShutdown()) {
+            return;
+        }
+        isShutdown.set(false);
+        scheduledExecutorService = Executors.newScheduledThreadPool(1);
         log.debug("Scheduling events publishing at fixed rate of {} milliseconds", flushIntervalMs);
         scheduledExecutorService.scheduleAtFixedRate(
                 this::publish, flushIntervalMs, flushIntervalMs, TimeUnit.MILLISECONDS);
@@ -113,10 +129,13 @@ public final class EventsPublisher<T> {
         }
     }
 
-    /** Shutdown. */
-    public void shutdown() {
+    /** Shutdown: stop accepting events, drain what is buffered and stop the scheduler. */
+    public synchronized void shutdown() {
         log.info("shutdown, draining remaining events");
+        isShutdown.set(true);
         publish();
-        ConcurrentUtil.shutdownAndAwaitTermination(scheduledExecutorService, 10);
+        if (scheduledExecutorService != null) {
+            ConcurrentUtil.shutdownAndAwaitTermination(scheduledExecutorService, 10);
+        }
     }
 }
