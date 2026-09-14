@@ -96,9 +96,12 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      * rather than an oversight: Java's integer accessor is a 32-bit {@code Integer}, so 2^53-1
      * cannot be asked for at all. This is the same reason Java withholds it for flagd.
      *
-     * <p>{@code STANDARD_REASONS} is withheld, and it is a defect rather than a permitted absence
-     * -- see the deviation below. It is the capability that turned eight failures into skips here,
-     * which is the point of it being a claim a provider opts into rather than an exemption.
+     * <p>{@code STANDARD_REASONS} and {@code NUMERIC_COERCION} are both DECLARED and both fail.
+     * That is deliberate: KnownDeviation's rule is that withholding a capability in order to turn a
+     * failing scenario into a skip is the failure mode the field exists to prevent, and this
+     * adoption was doing exactly that. Running these scenarios establishes something real -- that
+     * the reason is null, and that a float cannot be read back as a float -- so the failures belong
+     * in the results with their deviations attached rather than hidden as skips.
      *
      * <p>{@code DISABLED_FLAGS} is declared. Flagsmith's native model is {@code enabled} plus a
      * value, so the canonical set's four disabled-* flags map straight onto it.
@@ -110,7 +113,12 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.OBJECT, Capability.TARGETING, Capability.DISABLED_FLAGS);
+        return EnumSet.of(
+                Capability.OBJECT,
+                Capability.TARGETING,
+                Capability.DISABLED_FLAGS,
+                Capability.STANDARD_REASONS,
+                Capability.NUMERIC_COERCION);
     }
 
     @Override
@@ -118,14 +126,23 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
         return Arrays.asList(
                 KnownDeviation.untracked(
                         Capability.STANDARD_REASONS,
-                        "This provider never populates the resolution reason: every evaluation returns null, so "
-                                + "not one of the reasons this capability claims is reported. The resolved values are "
-                                + "correct throughout -- only the reason is missing. 2.2.5 makes the reason a SHOULD, "
-                                + "so null is arguably permitted, which is exactly why this is a withheld claim rather "
-                                + "than a failure. What makes it worth recording as a defect is that the Go Flagsmith "
-                                + "provider reports STATIC, DISABLED and TARGETING_MATCH against the identical backend, "
-                                + "so it is a gap rather than a considered choice. Withholding turns eight failures "
-                                + "into skips carrying this reason."),
+                        "This provider never populates the resolution reason: every evaluation returns null, so not "
+                                + "one of the reasons this capability claims is reported. The resolved values are "
+                                + "correct throughout -- only the reason is missing. The capability is declared and "
+                                + "the scenarios fail rather than skip, because the provider does build a resolution "
+                                + "and simply leaves the field out, so running them establishes something. The Go "
+                                + "Flagsmith provider reports STATIC, DISABLED and TARGETING_MATCH against the "
+                                + "identical backend, which is what makes this a gap rather than a considered choice."),
+                KnownDeviation.untracked(
+                        null,
+                        "float-flag requested as a String resolves to \"0.5\" rather than reporting TYPE_MISMATCH, in "
+                                + "an untagged row of the wrong-type outline, and object-flag as a String resolves to "
+                                + "the raw JSON text beside it. Flagsmith has no float type and no object type -- "
+                                + "feature_state_value is natively boolean, integer or string -- so on this backend "
+                                + "both really are strings and neither request is a type mismatch. Recorded because "
+                                + "the scenarios are mandatory and fail, not because the provider is wrong: whether "
+                                + "the type-mismatch matrix is satisfiable against a backend with a coarser type "
+                                + "system is an open question for the suite. All four language adoptions fail these."),
                 KnownDeviation.untracked(
                 Capability.NUMERIC_COERCION,
                 "Withheld pending the run, and recorded as a prediction rather than a measurement. "
