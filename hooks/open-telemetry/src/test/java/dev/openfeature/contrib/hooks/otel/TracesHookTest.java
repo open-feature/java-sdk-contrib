@@ -39,7 +39,7 @@ class TracesHookTest {
     }
 
     private final AttributeKey<String> flagKeyAttributeKey = AttributeKey.stringKey("feature_flag.key");
-    private final AttributeKey<String> providerNameAttributeKey = AttributeKey.stringKey("feature_flag.provider_name");
+    private final AttributeKey<String> providerNameAttributeKey = AttributeKey.stringKey("feature_flag.provider.name");
     private final AttributeKey<String> variantAttributeKey = AttributeKey.stringKey("feature_flag.variant");
 
     private final HookContext<String> hookContext = HookContext.<String>builder()
