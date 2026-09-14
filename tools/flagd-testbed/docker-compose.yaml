@@ -13,7 +13,7 @@
 # that costs is recorded in each adoption's suite class.
 services:
   backend:
-    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    image: ghcr.io/open-feature/flagd-testbed:v3.10.1
     ports:
       - 8013   # flagd RPC evaluation (gRPC)      -- providers/flagd
       - 8015   # flagd in-process sync (gRPC)     -- providers/flagd
