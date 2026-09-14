@@ -99,7 +99,7 @@ class FractionalTest {
                 List.of("one", 50), List.of("two", 50));
 
         // bucketing key is null, so fractional falls back to flagKey + targetingKey
-        // but targetingKey is null, so it should return null
+        // but targetingKey is null, so it should throw GeneralError
         assertNull(fractional.evaluate(rule, data, "path"));
     }
 

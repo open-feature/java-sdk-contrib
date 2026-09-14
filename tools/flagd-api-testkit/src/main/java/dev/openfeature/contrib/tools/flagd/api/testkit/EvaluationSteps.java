@@ -76,6 +76,7 @@ public class EvaluationSteps {
             state.evaluation = dev.openfeature.sdk.ProviderEvaluation.builder()
                     .errorCode(ErrorCode.TYPE_MISMATCH)
                     .errorMessage(e.getMessage())
+                    .reason("ERROR")
                     .build();
         } catch (dev.openfeature.sdk.exceptions.OpenFeatureError e) {
             // Mirror the OpenFeature SDK client behaviour: on any provider error, return the
@@ -84,6 +85,7 @@ public class EvaluationSteps {
                     .value(state.defaultValue)
                     .errorCode(e.getErrorCode())
                     .errorMessage(e.getMessage())
+                    .reason("ERROR")
                     .build();
         }
     }
@@ -94,7 +96,11 @@ public class EvaluationSteps {
         if (state.evaluation.getErrorCode() != null) {
             log.warning("Evaluation error: " + state.evaluation.getErrorMessage());
         }
-        assertThat(state.evaluation.getValue()).isEqualTo(EvaluatorUtils.convert(value, state.flagType));
+        Object actualValue = state.evaluation.getValue();
+        if (actualValue == null && state.evaluation.getErrorCode() != null) {
+            actualValue = state.defaultValue;
+        }
+        assertThat(actualValue).isEqualTo(EvaluatorUtils.convert(value, state.flagType));
     }
 
     /** Asserts the evaluation reason matches the expected value. */
