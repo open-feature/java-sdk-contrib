@@ -499,6 +499,34 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("request should keep the path prefix of the endpoint")
+        @Test
+        public void requestShouldKeepThePathPrefixOfTheEndpoint() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(server.url("/gofeatureflagproxy/").toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            val want = "/gofeatureflagproxy/v1/flag/configuration";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("request should keep the path prefix of an endpoint without a trailing slash")
+        @Test
+        public void requestShouldKeepThePathPrefixOfAnEndpointWithoutTrailingSlash() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(server.url("/gofeatureflagproxy").toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            val want = "/gofeatureflagproxy/v1/flag/configuration";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
         @DisplayName("request should not set an api key if empty")
         @Test
         public void requestShouldNotSetAnAPIKeyIfEmpty() {

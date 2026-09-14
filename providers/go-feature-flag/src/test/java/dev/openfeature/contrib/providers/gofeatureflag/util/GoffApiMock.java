@@ -44,14 +44,16 @@ public class GoffApiMock {
 
             lastRequestBody = request.getBody().readUtf8();
             assert request.getPath() != null;
-            if (request.getPath().startsWith("/ofrep/v1/evaluate/flags/")) {
+            // routes are matched with contains() so that an endpoint carrying a path prefix
+            // (https://host/gofeatureflagproxy/) still reaches the right handler
+            if (request.getPath().contains("/ofrep/v1/evaluate/flags/")) {
                 return handleEvaluateFlags(request);
             }
-            if (request.getPath().startsWith("/v1/data/collector")) {
+            if (request.getPath().contains("/v1/data/collector")) {
                 collectorCallCount++;
                 return handleCollector(request);
             }
-            if (request.getPath().startsWith("/v1/flag/configuration")) {
+            if (request.getPath().contains("/v1/flag/configuration")) {
                 configurationCallCount++;
                 return handleFlagConfiguration(request);
             }
@@ -67,7 +69,8 @@ public class GoffApiMock {
     @SneakyThrows
     public MockResponse handleEvaluateFlags(RecordedRequest request) {
         assert request.getPath() != null;
-        String flagName = request.getPath().replace("/ofrep/v1/evaluate/flags/", "");
+        String flagName = request.getPath().substring(request.getPath().indexOf("/ofrep/v1/evaluate/flags/")
+                + "/ofrep/v1/evaluate/flags/".length());
         switch (flagName) {
             case "timeout":
                 Thread.sleep(500);
