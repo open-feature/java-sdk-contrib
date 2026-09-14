@@ -94,14 +94,20 @@ public enum Capability {
     /**
      * Provider resolves a flag disabled in the management system to the caller's default value.
      *
-     * <p><strong>Gated because the answer is a property of architecture rather than of quality</strong>,
-     * which is the part of this tag no other document states. Where the substitution happens decides
-     * whether it can happen at all: a provider that evaluates locally — flagd's RPC and in-process
-     * resolvers, an in-memory provider — holds the caller's default in its own hands and can return
-     * it, while a provider whose backend decides, one speaking OFREP for instance, cannot, because
-     * the default never leaves the process and the server has nothing to echo back. The same flag
-     * cannot behave the same way across those two designs and neither of them is wrong, so
-     * withholding this needs no {@link KnownDeviation}.
+     * <p><strong>Gated on whether the provider is told the flag was deliberately disabled</strong>,
+     * which is the part of this tag no other document states. A provider that evaluates locally —
+     * flagd's resolvers, an in-memory provider — reads the state itself. A provider whose backend
+     * decides can only substitute the caller's default if the response distinguishes a disabled flag
+     * from an absent one; where it does not, the provider has nothing to act on, and withholding
+     * this needs no {@link KnownDeviation}.
+     *
+     * <p><strong>Do not assume a remote-evaluation protocol is in that position.</strong> The
+     * obvious reading — the caller's default never leaves the process, so the server has nothing to
+     * echo back — is wrong for at least one protocol: OFREP's {@code codeDefaultFlag} is a success
+     * carrying a {@code reason} and no {@code value}, which tells the provider to use the code
+     * default. {@code OfrepTest} in {@code providers/ofrep} has the protocol citation and the probed
+     * response. Check what the response actually carries before concluding a provider cannot hold
+     * this tag.
      *
      * <p>The value is asserted here and not the reason, because the value rests on a {@code MUST}
      * and the reason on a {@code SHOULD} that permits any string. Reason {@code DISABLED} is pinned
