@@ -91,7 +91,7 @@ public final class Config {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            logInvalidEnvValue(key, value, "an integer", defaultValue);
+            logInvalidEnvValue(key, value, "a whole number", defaultValue);
             return defaultValue;
         }
     }
@@ -104,7 +104,7 @@ public final class Config {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException e) {
-            logInvalidEnvValue(key, value, "an integer", defaultValue);
+            logInvalidEnvValue(key, value, "a whole number", defaultValue);
             return defaultValue;
         }
     }
