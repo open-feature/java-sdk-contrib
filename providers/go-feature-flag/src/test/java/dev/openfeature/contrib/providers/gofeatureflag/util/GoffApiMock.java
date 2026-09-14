@@ -179,6 +179,34 @@ public class GoffApiMock {
                 return new MockResponse().setResponseCode(404);
             case "500":
                 return new MockResponse().setResponseCode(500);
+            case "no-flags":
+                // a 200 whose body carries no flags key at all
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("{}")
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"an-advanced-etag\"")
+                        .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
+            case "null-flags":
+                // a 200 whose flags key is explicitly null
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("{\"flags\": null, \"evaluationContextEnrichment\": {\"env\": \"production\"}}")
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"an-advanced-etag\"")
+                        .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
+            case "null-body":
+                // a 200 whose body is the JSON literal null
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("null")
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"an-advanced-etag\"");
+            case "null-enrichment":
+                // a nil Go map marshals to null: valid, and means "no enrichment"
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("{\"flags\": {\"TEST\": {\"variations\": {\"on\": true, \"off\": false},"
+                                + " \"defaultRule\": {\"variation\": \"on\"}}},"
+                                + " \"evaluationContextEnrichment\": null}")
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"null-enrichment\"");
             case "304-with-etag":
                 // a 304 that echoes the validator back, as the relay proxy does
                 return new MockResponse()

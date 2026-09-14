@@ -264,11 +264,22 @@ public final class GoFeatureFlagApi {
      * @param response - response of the request
      * @param body     - body of the request
      * @return FlagConfigResponse with the flag configuration
-     * @throws JsonProcessingException - if an error occurred while processing the json
+     * @throws JsonProcessingException           - if an error occurred while processing the json
+     * @throws ImpossibleToRetrieveConfiguration - if the response carries no flag map
      */
     private FlagConfigResponse handleFlagConfigurationSuccess(final HttpResponse<String> response, final String body)
             throws JsonProcessingException {
         val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
+
+        // A 200 that decodes to no flag map is a failed refresh, not an empty configuration:
+        // accepting it would wipe every flag and advance the ETag, making the empty state permanent.
+        // A null evaluationContextEnrichment is NOT the same case - the relay proxy builds that field
+        // from a Go map and a nil map marshals to null - so it is accepted as "no enrichment".
+        if (goffResp == null || goffResp.getFlags() == null) {
+            throw new ImpossibleToRetrieveConfiguration(
+                    "retrieve flag configuration error: the response contains no flag map");
+        }
+
         return FlagConfigResponse.builder()
                 .etag(response.headers().firstValue(Const.HTTP_HEADER_ETAG).orElse(null))
                 .lastUpdated(extractLastUpdatedFromHeaders(response))

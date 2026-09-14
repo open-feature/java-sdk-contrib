@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.gofeatureflag.api;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
@@ -525,6 +526,63 @@ public class GoFeatureFlagApiTest {
 
             val want = "/gofeatureflagproxy/v1/flag/configuration";
             assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("a 200 carrying no flag map should be a failed refresh")
+        @Test
+        public void a200CarryingNoFlagMapShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("no-flags", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 200 with a null flag map should be a failed refresh")
+        @Test
+        public void a200WithANullFlagMapShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("null-flags", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 200 whose body is the json literal null should be a failed refresh")
+        @Test
+        public void a200WithANullBodyShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("null-body", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a null evaluationContextEnrichment should be accepted as no enrichment")
+        @Test
+        public void aNullEvaluationContextEnrichmentShouldBeAccepted() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            val got = api.retrieveFlagConfiguration("null-enrichment", Collections.emptyList());
+            assertTrue(got.isPresent());
+            assertNull(got.get().getEvaluationContextEnrichment());
+            assertEquals(1, got.get().getFlags().size());
         }
 
         @SneakyThrows
