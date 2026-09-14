@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -115,12 +116,14 @@ public class InProcessEvaluator implements IEvaluator {
 
     @Override
     public void init() {
-        val configFlags = api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList());
-        this.state = new EvaluatorState(
-                configFlags.getFlags(),
-                configFlags.getEvaluationContextEnrichment(),
-                configFlags.getEtag(),
-                configFlags.getLastUpdated());
+        // an empty response means the configuration has not been modified, so the state we already
+        // hold is still current and must not be overwritten.
+        api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList())
+                .ifPresent(configFlags -> this.state = new EvaluatorState(
+                        configFlags.getFlags(),
+                        configFlags.getEvaluationContextEnrichment(),
+                        configFlags.getEtag(),
+                        configFlags.getLastUpdated()));
 
         // start the polling of the flag configuration
         this.configurationDisposable = startCheckFlagConfigurationChangesDaemon();
@@ -150,8 +153,12 @@ public class InProcessEvaluator implements IEvaluator {
                                 this.api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList()))
                         .onErrorResumeNext(e -> {
                             log.error("error while calling flag configuration API", e);
-                            return Observable.empty();
+                            return Observable.<Optional<FlagConfigResponse>>empty();
                         }))
+                // a 304 emits an empty Optional: drop it here so the refresh consumer below is
+                // structurally unable to write state for a response that carries no configuration.
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .subscribeOn(Schedulers.io());
 
         return apiCallObservable.subscribe(
