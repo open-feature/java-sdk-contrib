@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage.connect
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -24,6 +25,7 @@ import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsRequest;
 import dev.openfeature.flagd.grpc.sync.Sync.SyncFlagsResponse;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -312,6 +314,30 @@ class SyncStreamQueueSourceTest {
         // should have restarted the stream (2 calls)
         latch.await();
         verify(stub, times(2)).syncFlags(any(), any());
+    }
+
+    @Test
+    void shutdownCancelsStreamBeforeAwaitingTermination() throws Exception {
+        // shutdown must close the channel (cancelling the stream) before awaiting
+        int deadline = 5000;
+
+        // simulate: closing the channel cancels the in-flight stream, waking the observer
+        doAnswer((Answer<Void>) invocation -> {
+                    observer.onError(new StatusRuntimeException(io.grpc.Status.CANCELLED));
+                    return null;
+                })
+                .when(mockConnector)
+                .shutdown();
+
+        queueSource = new SyncStreamQueueSource(
+                FlagdOptions.builder().deadline(deadline).build(), mockConnector, stub, blockingStub);
+        latch = new CountDownLatch(1);
+        queueSource.init();
+        latch.await(); // observer is now waiting
+
+        // assert that we don't wait the whole deadline
+        assertTimeoutPreemptively(Duration.ofMillis(deadline - 1000L), () -> queueSource.shutdown());
+        verify(mockConnector).shutdown();
     }
 
     @Test

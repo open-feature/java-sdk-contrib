@@ -174,9 +174,10 @@ public class SyncStreamQueueSource implements QueueSource {
 
         synchronized (this) {
             retryScheduler.shutdownNow();
+            // shut the channel down before awaiting
+            grpcComponents.channelConnector.shutdown();
             ShutdownUtils.awaitTerminationQuietly(
                     () -> retryScheduler.awaitTermination(deadline, TimeUnit.MILLISECONDS));
-            grpcComponents.channelConnector.shutdown();
         }
     }
 
