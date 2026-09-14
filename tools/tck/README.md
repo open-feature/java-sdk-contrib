@@ -373,7 +373,7 @@ Set `TCK_REPORT_DIR` and each suite writes two files: an envelope conforming to 
 [Cucumber Messages][messages] stream.
 
 ```console
-$ TCK_REPORT_DIR=./reports mvn test -Dtest='Flagd*TckTest'
+$ TCK_REPORT_DIR=./reports mvn -Ptck -pl providers/flagd test
 $ ls reports/
 flagd-in-process.json  flagd-in-process.ndjson  flagd-rpc.json  flagd-rpc.ndjson
 ```
@@ -465,8 +465,8 @@ standard results format identifies:
   contracts drove it. Always present, both of them: the same scenarios passing over the HTTP control
   API and passing through in-process manipulation of a provider that *does* have a backend are not
   the same claim, and this is the only field that separates them, so an omission would be an
-  unfalsifiable claim rather than no claim at all. See [How the backend was
-  driven](#how-the-backend-was-driven).
+  unfalsifiable claim rather than no claim at all. See [Identifying the
+  run](#identifying-the-run).
 - **`declaration`** — the capability set the provider claims. This is an **input** to reading the
   results, not a summary of them, which is why it cannot be derived from the stream. The stream says
   a scenario was skipped; only the declaration says whether that is because the provider declines the
@@ -483,8 +483,7 @@ standard results format identifies:
   [Declaring capabilities](#declaring-capabilities).
 
 `knownDeviations` is the one thing neither the stream nor the declaration can express: whether a
-withheld capability is a limitation or a bug. See
-[Saying that a withheld capability is a defect](#saying-that-a-withheld-capability-is-a-defect).
+withheld capability is a limitation or a bug. See [Known deviations](#known-deviations).
 
 `results.digest` covers the `.ndjson`, so a consumer that fetched the two separately can tell that
 what it has is what the envelope describes.
