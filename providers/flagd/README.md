@@ -362,84 +362,37 @@ FlagdOptions options = FlagdOptions.builder()
 ## Provider conformance (TCK)
 
 This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md), once per resolver:
-`RpcTest` and `InProcessTest`, both over the shared `AbstractResolverTest`. Read that class before
-changing either — it records which capabilities are declared, which are withheld and why, and every
-known deviation, each against measured behaviour rather than assumption.
-
-**The adoption has a source directory of its own**, `src/test/java/.../flagd/tck/`, beside the
-legacy end-to-end suites in `.../flagd/e2e/` rather than inside them. The two answer different
-questions — `e2e` tests this provider against flagd's own test harness, `tck` tests it against the
-OpenFeature provider contract — and they mean different things by a red run: an e2e suite is
-expected green, while a conformance suite fails scenarios by design wherever a `knownDeviation` is
-declared. Everything below follows from that, including the class names: in a package called `tck`,
-`RpcTest` needs no further label, and the fully-qualified name still reads
-`...providers.flagd.tck.RpcTest`.
-
-**Both packages are Docker-gated and excluded from the default build**, by
-`<testExclusions>**/e2e/*.java,**/tck/*.java</testExclusions>` in this module's POM, which is what
-keeps them out of `mvn verify`. Why an adoption suite is excluded rather than gating is written down
-once for all four languages in
-[Appendix F: Running the suite in CI](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci);
-this section is only what that means in this module.
-
-**The `e2e` profile drops `e2e` from that exclusion and keeps `tck`.** The profile exists for the
-legacy `Run*Test` suites over the `test-harness` submodule, and `ci.yml`'s `main` job activates it
-on every push — so a profile that cleared the property outright, which is what this one used to do,
-ran the TCK suites in CI on a runner that does have a Docker daemon. They are expected to fail, so
-every unrelated pull request went red for a reason that had nothing to do with it. That is the first
-of the two mistakes the appendix names, found here by resolving the property rather than reading the
-POM:
-
-```bash
-mvn -Pe2e -pl providers/flagd help:evaluate -Dexpression=testExclusions -DforceStdout
-```
-
-The legacy suites run exactly as before and the conformance suites stay out. The exclusion is
-Surefire's, not the compiler's, so both packages still build against the harness in every job.
-
-**So `-Pe2e` does not run the conformance suites — it is the profile that keeps them out.** Worth
-stating plainly, because a command of the form `mvn -Pe2e -pl providers/flagd test` reads as if it
-ran everything and runs the legacy suites instead, in silence: 788 tests, no scenario tally, and not
-one mention of either conformance suite in the log.
-
-**The conformance suites have a profile of their own, `tck`.** That is the separation
-[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
-asks for, and the reason is what a red build *says* rather than how long it takes. `-Pe2e` red means
-the provider's own end-to-end suites regressed. `-Ptck` red means conformance failed — and a
-conformance run carries failures by design, wherever `AbstractResolverTest` declares a
-`knownDeviation`. One signal shared between "you broke something" and "this is the known state" ends
-with somebody silencing the informative half.
-
-The profile is the mirror image of `e2e`: it drops `tck` from the exclusion and narrows Surefire's
-includes to `**/tck/*.java` in the same breath, so it runs the two conformance suites and nothing
-else — not the legacy `Run*Test` suites and not the module's unit tests. Both halves are needed. The
-include alone leaves the exclusion in force and runs nothing; dropping the exclusion alone runs the
-module's unit tests alongside the suites. Nothing activates it in CI.
-
-The consequence is that **no CI job runs them**, so a maintainer runs them by hand before merging a
-change that touches the provider's resolution, event or lifecycle behaviour, and quotes the result in
-the pull request. A scheduled or path-filtered workflow was considered and declined: a suite whose
-red is diagnosed by whoever happens to read the notification is worse than one whose red is
-diagnosed by the person who caused it.
+`RpcTest` and `InProcessTest`, both over the shared `AbstractResolverTest` in
+`src/test/java/.../flagd/tck/`. **Read that class before changing either.** It records, against
+measured behaviour rather than assumption, which capabilities are declared, which are withheld and
+why, and every known deviation — that reasoning is the most valuable thing about this adoption and it
+lives next to the declaration rather than here.
 
 ```bash
 # once, if tools/tck is not in your local repository yet
 mvn -pl tools/tck -am -DskipTests install
 
-# both resolvers
-mvn -Ptck -pl providers/flagd test
-
-# one resolver
-mvn -Ptck -pl providers/flagd -Dtest=InProcessTest test
+mvn -Ptck -pl providers/flagd test                            # both resolvers
+mvn -Ptck -pl providers/flagd -Dtest=InProcessTest test       # one
 ```
 
-**Do not add `-am` to the run itself.** It pulls `tools/tck` and `tools/flagd-core` into the reactor
-and runs their test suites too — 246 and 75 tests before the first scenario — so a failure anywhere
-in either of them comes out as a `-Ptck` failure. That is the signal-mixing this step exists to
-prevent, reintroduced by a flag. The separate `install` above is what `-am` was there for.
+Do not add `-am` to the run itself; the TCK README says why.
 
-Both suites are currently **expected to fail**, and the expected failures are enumerated in
-`AbstractResolverTest`: three come from flags that the pinned `flagd-testbed` image does not serve
+**`-Pe2e` does not run these suites — it is the profile that keeps them out.** Worth stating plainly,
+because `mvn -Pe2e -pl providers/flagd test` reads as if it ran everything and instead runs the legacy
+`Run*Test` suites in silence: 788 tests, no scenario tally, and no mention of either conformance
+suite. This module excludes `**/e2e/*.java,**/tck/*.java` by default; the `e2e` profile drops only the
+first, and the `tck` profile only the second. It used to clear the property outright, which — since
+`ci.yml`'s `main` job activates `e2e` on every push, on a runner that has a Docker daemon — ran these
+suites in CI, where they are expected to fail, and turned every unrelated pull request red.
+
+**No CI job runs them**, so a maintainer runs them by hand before merging a change to the provider's
+resolution, event or lifecycle behaviour, and quotes the result in the pull request. A scheduled or
+path-filtered workflow was considered and declined: a suite whose red is diagnosed by whoever happens
+to read the notification is worse than one whose red is diagnosed by the person who caused it.
+
+Both suites are **expected to fail**, identically: 65 scenarios each, 59 passing, 2 skipped, 4
+failing. Three of the four failures come from flags the pinned `flagd-testbed` image does not serve
 (open-feature/flagd-testbed#392) and one is the real numeric-coercion defect, declared and left
-visible rather than skipped (open-feature/flagd#1996). Anything else is a regression. Each resolver
-is 65 scenarios: 59 passing, 2 skipped and 4 failing, the same in both.
+visible rather than skipped (open-feature/flagd#1996). `AbstractResolverTest` enumerates them by name.
+Anything else is a regression.
