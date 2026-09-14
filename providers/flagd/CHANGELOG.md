@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.1...dev.openfeature.contrib.providers.flagd-v0.14.2) (2026-09-14)
+
+
+### 🐛 Bug Fixes
+
+* shutdown blocks for unary deadline time ([#1848](https://github.com/open-feature/java-sdk-contrib/issues/1848)) ([4a433dc](https://github.com/open-feature/java-sdk-contrib/commit/4a433dce21f82e2f2d21f9f25b9326df59070942))
+* update Config defaults to boolean types and enhance environment variable handling ([#1851](https://github.com/open-feature/java-sdk-contrib/issues/1851)) ([eaf611d](https://github.com/open-feature/java-sdk-contrib/commit/eaf611d399e73a2487e2ecad3c494db0cb323300))
+
 ## [0.14.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.0...dev.openfeature.contrib.providers.flagd-v0.14.1) (2026-08-20)
 
 
