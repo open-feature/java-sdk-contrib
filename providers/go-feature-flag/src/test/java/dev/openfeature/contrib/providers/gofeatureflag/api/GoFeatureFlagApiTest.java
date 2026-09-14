@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -527,6 +528,30 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("a 304 should not return a configuration")
+        @Test
+        public void a304ShouldNotReturnAConfiguration() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertEquals(Optional.empty(), api.retrieveFlagConfiguration("304-with-etag", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 304 without an etag should not return a configuration either")
+        @Test
+        public void a304WithoutAnEtagShouldNotReturnAConfiguration() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertEquals(Optional.empty(), api.retrieveFlagConfiguration("304-without-etag", Collections.emptyList()));
+        }
+
+        @SneakyThrows
         @DisplayName("request should not set an api key if empty")
         @Test
         public void requestShouldNotSetAnAPIKeyIfEmpty() {
@@ -690,7 +715,7 @@ public class GoFeatureFlagApiTest {
                             .parse("Wed, 21 Oct 2015 07:28:00 GMT"))
                     .evaluationContextEnrichment(evaluationContextEnrichment)
                     .build();
-            assertEquals(want, got);
+            assertEquals(Optional.of(want), got);
         }
 
         @SneakyThrows
@@ -734,7 +759,7 @@ public class GoFeatureFlagApiTest {
                     .lastUpdated(null)
                     .evaluationContextEnrichment(evaluationContextEnrichment)
                     .build();
-            assertEquals(want, got);
+            assertEquals(Optional.of(want), got);
         }
     }
 }

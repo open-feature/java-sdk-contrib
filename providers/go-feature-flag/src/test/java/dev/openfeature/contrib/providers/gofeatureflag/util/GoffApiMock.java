@@ -22,6 +22,7 @@ public class GoffApiMock {
     @Getter
     private int collectorCallCount = 0;
 
+    @Getter
     private int configurationCallCount = 0;
     /**
      * lastRequestBody contains the body of the last request.
@@ -143,6 +144,14 @@ public class GoffApiMock {
                 configLocation =
                         configurationCallCount > 1 ? "valid-all-types-config-change.json" : "valid-all-types.json";
                 break;
+            case NOT_MODIFIED_THEN_CHANGE:
+                if (configurationCallCount == 2) {
+                    // a 304 on the 2nd call: the polling daemon must survive it and keep polling
+                    return new MockResponse().setResponseCode(304);
+                }
+                configLocation =
+                        configurationCallCount > 2 ? "valid-all-types-config-change.json" : "valid-all-types.json";
+                break;
             case SIMPLE_CONFIG:
                 configLocation = "valid-flag-config.json";
                 break;
@@ -170,6 +179,15 @@ public class GoffApiMock {
                 return new MockResponse().setResponseCode(404);
             case "500":
                 return new MockResponse().setResponseCode(500);
+            case "304-with-etag":
+                // a 304 that echoes the validator back, as the relay proxy does
+                return new MockResponse()
+                        .setResponseCode(304)
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"" + configLocation + "\"")
+                        .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
+            case "304-without-etag":
+                // a 304 carrying no validator at all
+                return new MockResponse().setResponseCode(304);
             case "invalid-lastmodified-header":
                 return new MockResponse()
                         .setResponseCode(200)
@@ -191,6 +209,7 @@ public class GoffApiMock {
         ENDPOINT_ERROR,
         ENDPOINT_ERROR_404,
         CHANGE_CONFIG_AFTER_1ST_EVAL,
+        NOT_MODIFIED_THEN_CHANGE,
         SIMPLE_CONFIG,
         DEFAULT,
         SERVE_OLD_CONFIGURATION,

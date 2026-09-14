@@ -37,6 +37,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -161,10 +162,15 @@ public final class GoFeatureFlagApi {
      * retrieveFlagConfiguration is calling the GO Feature Flag relay proxy to retrieve the flags'
      * configuration.
      *
-     * @param etag - etag of the request
-     * @return FlagConfigResponse with the flag configuration
+     * <p>A {@code 304 Not Modified} response is reported as an empty Optional rather than as an
+     * empty configuration object, so that the not-modified branch is structurally incapable of
+     * carrying a configuration and cannot be mistaken for one downstream.</p>
+     *
+     * @param etag  - etag of the request
+     * @param flags - flags to retrieve, empty for all of them
+     * @return the flag configuration, or empty if the configuration has not been modified
      */
-    public FlagConfigResponse retrieveFlagConfiguration(final String etag, final List<String> flags) {
+    public Optional<FlagConfigResponse> retrieveFlagConfiguration(final String etag, final List<String> flags) {
         try {
             val request = new FlagConfigApiRequest(flags == null ? Collections.emptyList() : flags);
             final URI url = route(Const.PATH_FLAG_CONFIGURATION);
@@ -188,8 +194,9 @@ public final class GoFeatureFlagApi {
             String body = response.body();
             switch (response.statusCode()) {
                 case HttpURLConnection.HTTP_OK:
+                    return Optional.of(handleFlagConfigurationSuccess(response, body));
                 case HttpURLConnection.HTTP_NOT_MODIFIED:
-                    return handleFlagConfigurationSuccess(response, body);
+                    return Optional.empty();
                 case HttpURLConnection.HTTP_NOT_FOUND:
                     throw new FlagConfigurationEndpointNotFound();
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
@@ -251,8 +258,8 @@ public final class GoFeatureFlagApi {
     }
 
     /**
-     * handleFlagConfigurationSuccess is handling the success response of the flag configuration
-     * request.
+     * handleFlagConfigurationSuccess is handling the 200 response of the flag configuration request.
+     * It is never reached for a 304, which carries no configuration.
      *
      * @param response - response of the request
      * @param body     - body of the request
@@ -261,18 +268,13 @@ public final class GoFeatureFlagApi {
      */
     private FlagConfigResponse handleFlagConfigurationSuccess(final HttpResponse<String> response, final String body)
             throws JsonProcessingException {
-        var result = FlagConfigResponse.builder()
+        val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
+        return FlagConfigResponse.builder()
                 .etag(response.headers().firstValue(Const.HTTP_HEADER_ETAG).orElse(null))
                 .lastUpdated(extractLastUpdatedFromHeaders(response))
+                .flags(goffResp.getFlags())
+                .evaluationContextEnrichment(goffResp.getEvaluationContextEnrichment())
                 .build();
-
-        if (response.statusCode() == HttpURLConnection.HTTP_OK) {
-            val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
-            result.setFlags(goffResp.getFlags());
-            result.setEvaluationContextEnrichment(goffResp.getEvaluationContextEnrichment());
-        }
-
-        return result;
     }
 
     /**

@@ -451,6 +451,43 @@ class GoFeatureFlagProviderTest {
             assertEquals(List.of("bool_targeting_match", "new-flag-changed", "disabled_bool"), flagsChanged);
         }
 
+        @DisplayName("Should keep polling the configuration after a 304 not-modified response")
+        @SneakyThrows
+        @Test
+        void shouldKeepPollingAfterANotModifiedResponse() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.NOT_MODIFIED_THEN_CHANGE);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flagChangePollingIntervalMs(100L)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                AtomicBoolean configurationChangedCalled = new AtomicBoolean(false);
+                client.onProviderConfigurationChanged(event -> configurationChangedCalled.set(true));
+
+                val before =
+                        client.getBooleanDetails("bool_targeting_match", false, TestUtils.defaultEvaluationContext);
+
+                // the 1st poll answers a 304, so the change can only arrive on a later poll
+                int maxWait = 200;
+                while (!configurationChangedCalled.get() && maxWait > 0) {
+                    maxWait--;
+                    Thread.sleep(10L);
+                }
+
+                assertTrue(
+                        configurationChangedCalled.get(),
+                        "the polling daemon must survive a 304 and pick up the next configuration change");
+                assertTrue(goffAPIMock.getConfigurationCallCount() >= 3, "the 304 poll should have happened");
+                val after = client.getBooleanDetails("bool_targeting_match", false, TestUtils.defaultEvaluationContext);
+                assertNotEquals(before, after);
+            }
+        }
+
         @DisplayName("Should not emit configuration change event, if config has not changed")
         @SneakyThrows
         @Test
