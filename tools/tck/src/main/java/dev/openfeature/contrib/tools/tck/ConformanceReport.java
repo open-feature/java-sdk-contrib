@@ -50,10 +50,9 @@ public final class ConformanceReport {
     /**
      * What the provider was pointed at.
      *
-     * <p>Always present: {@code backend} is in the schema's top-level {@code required} array. An
-     * earlier revision described it as "omitted for a provider with no backend", which contradicted
-     * the {@code controlApi} enum whose {@code in-process} member exists for exactly that provider —
-     * so the one value most worth knowing could never legally appear.
+     * <p>Always present: {@code backend} is in the schema's top-level {@code required} array,
+     * including for a provider with no backend — that is what {@code controlApi}'s
+     * {@code in-process} member is for.
      */
     public final Backend backend;
 
@@ -220,10 +219,9 @@ public final class ConformanceReport {
         /**
          * The Cucumber Messages release the stream was produced against.
          *
-         * <p>Messages is versioned and the four TCK implementations pin different releases -- this
-         * one takes whatever cucumber-jvm bundles, while the Go TCK builds against v21 and the
-         * Python one against 34.2.0 -- so a consumer holding two reports cannot assume one schema
-         * validates both.
+         * <p>Messages is versioned and the TCK implementations pin different releases -- this one
+         * takes whatever cucumber-jvm bundles -- so a consumer holding two reports cannot assume one
+         * schema validates both.
          *
          * <p>Guessing is worse than not validating. A later schema accepts messages this producer
          * could not have emitted, and an earlier one rejects messages that are perfectly valid, so a
