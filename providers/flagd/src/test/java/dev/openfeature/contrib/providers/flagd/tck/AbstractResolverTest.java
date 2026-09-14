@@ -31,6 +31,13 @@ import java.util.Set;
  * scenario "An integral float requested as an integer is coerced without loss". The third is the
  * cost of declaring {@code @numeric-coercion} — see {@link #knownDeviations()}. None of the three is
  * a {@link KnownDeviation}: the provider was never given the flag to get wrong.
+ *
+ * <p><strong>A run occasionally carries one failure beyond those, and it is the stack's.</strong>
+ * Observed in RPC mode as {@code FLAG_NOT_FOUND} on an {@code evaluation.feature} row that expected
+ * no error code; the next run of the same tree was clean. That is the flagd-testbed readiness window
+ * of open-feature/flagd-testbed#394, the same intermittency the OFREP adoption records, and it is
+ * not covered with a sleep here either. Repeat a run before treating an extra failure as a
+ * regression — anything that reproduces is one.
  */
 abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
