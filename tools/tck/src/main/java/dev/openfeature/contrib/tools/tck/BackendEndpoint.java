@@ -6,14 +6,10 @@ import org.testcontainers.containers.ComposeContainer;
  * Addresses of the running backend stack, handed to
  * {@link ContainerizedProviderTckTest#createProvider(BackendEndpoint)}.
  *
- * <p>This type exists because external ports are only known <em>after</em> the Compose stack has
- * started. Compose stacks under test must not pin host ports — Docker assigns them dynamically, so
- * a provider cannot be configured until the stack is up. That is the whole reason the harness
- * exposes a factory method rather than a pre-built provider instance.
- *
- * <p>The port mapping is stable for the lifetime of the suite: the stack is started once and never
- * restarted, so a provider built from this endpoint stays valid across every scenario. See the
- * no-container-restart invariant in {@code openapi/control-api.yaml}.
+ * <p>This type exists because host ports are only known <em>after</em> the Compose stack has
+ * started, which is why the harness exposes a factory method rather than a pre-built provider. The
+ * mapping is stable for the lifetime of the suite, since the stack is started once and never
+ * restarted — see the no-container-restart invariant in {@code openapi/control-api.yaml}.
  */
 public final class BackendEndpoint {
 
