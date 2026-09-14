@@ -18,45 +18,27 @@ import java.util.Set;
  *
  * <p>OFREP is a protocol rather than a vendor, so the backend under test is simply something that
  * speaks it. flagd does, on port {@value #OFREP_PORT}, which means this suite reuses the flagd
- * testbed image and its launchpad control API unchanged — see
- * {@code src/test/resources/tck/docker-compose.yaml}.
+ * testbed image and its launchpad control API unchanged — the same stack the flagd adoption runs
+ * against, from the same Compose file.
  *
- * <p><strong>The testbed does not yet serve the whole canonical flag set.</strong> Three flags the
- * suite's assets added are absent from {@code flagd-testbed} v3.8.0: {@code large-integer-flag},
- * {@code huge-integer-flag} and {@code integral-float-flag}. Only the first is reached —
- * {@code huge-integer-flag} is asked for solely under {@code @large-integers}, which no Java
- * provider can be asked, and {@code integral-float-flag} solely under {@code @numeric-coercion},
- * which is withheld below — so exactly one untagged scenario, the 32-bit precision one, fails with
- * {@code FLAG_NOT_FOUND} until open-feature/flagd-testbed#392 lands.
- *
- * <p>The three falsy flags used to fail the same way and no longer do. The testbed's
- * {@code zero-flags.json} already served {@code boolean-zero-flag}, {@code integer-zero-flag} and
- * {@code string-zero-flag} with {@code zero}/{@code non-zero} variants, while the canonical set
- * called them {@code false-flag}, {@code zero-flag} and {@code empty-string-flag}; spec ba002ce8
- * renamed the canonical flags to the testbed's names rather than the other way round.
- *
- * <p>A missing flag is a gap in the stack, not in the provider, so it is recorded here rather than
- * declared as a {@code KnownDeviation}: a deviation says the provider is wrong, and the provider was
+ * <p><strong>A clean run is 65 scenarios, 46 passing, 17 skipped and 2 failing.</strong> Both
+ * failures are the untagged 32-bit precision scenario and the {@code @variants} row beside it, on a
+ * flag the pinned testbed image does not serve — open-feature/flagd-testbed#392. That is a gap in
+ * the stack rather than in the provider, so neither is a {@code KnownDeviation}: the provider was
  * never given the flag to get wrong.
  *
- * <p><strong>A clean run is 65 scenarios, 46 passing, 17 skipped and those 2 failing.</strong>
- *
  * <p><strong>The suite is intermittently flaky, and the flakiness is the backend's.</strong> Roughly
- * half of the runs measured carry one or two <em>additional</em> failures on top of those two, and
- * they all have the same shape: an evaluation that should have resolved comes back as the code
- * default, or as {@code FLAG_NOT_FOUND} where {@code TYPE_MISMATCH} was expected, or with reason
- * {@code ERROR} where a resolution was expected. Which scenario is hit moves from run to run —
+ * half of the runs measured carry one or two <em>additional</em> failures, all of the same shape: an
+ * evaluation that should have resolved comes back as the code default, or as
+ * {@code FLAG_NOT_FOUND} where {@code TYPE_MISMATCH} was expected, or with reason {@code ERROR}
+ * where a resolution was expected. Which scenario is hit moves from run to run —
  * {@code errors.feature}, {@code evaluation.feature} and {@code reason.feature} have each been the
- * victim — so it is not a property of any assertion.
- *
- * <p>It is not new with the reason scenarios, and that was checked rather than assumed: five runs at
- * this revision and three at {@code ccdb8879} before it, with the old pin producing a run of seven
- * failures and a run of two from the same tree. It is the flagd-testbed readiness window that
- * open-feature/flagd-testbed#394 exists to close — a control endpoint returning before the backend
- * serves the new state — reaching a provider that holds nothing between calls, so every evaluation
- * races the stack afresh. <strong>Do not add a settle after control calls to cover it</strong>: a
- * suite that sleeps instead of holding the control API to its promise stops being able to detect
- * when the promise breaks, which is the whole argument of that issue.
+ * victim — so it is not a property of any assertion. Checked rather than assumed: five runs at this
+ * revision and three at {@code ccdb8879} before it, the old pin producing a run of seven failures
+ * and a run of two from the same tree. It is the readiness window
+ * open-feature/flagd-testbed#394 exists to close, reaching a provider that holds nothing between
+ * calls, so every evaluation races the stack afresh. <strong>Do not add a settle after control
+ * calls to cover it</strong> — that issue, and Appendix F, say why.
  */
 public class OfrepTest extends ContainerizedProviderTckTest {
 
@@ -71,9 +53,16 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      */
     private static final int UNAVAILABLE_PORT = 9999;
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Outside this module on purpose, and not the idiomatic {@code src/test/resources} path: the
+     * flagd adoption runs against the same stack and names the same file, so there is one image tag
+     * for both rather than two that can drift. Module-relative, like any other value here.
+     */
     @Override
     public File composeFile() {
-        return new File("src/test/resources/tck/docker-compose.yaml");
+        return new File("../../tools/flagd-testbed/docker-compose.yaml");
     }
 
     @Override
@@ -126,13 +115,9 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      *   <li><b>{@link Capability#REINITIALIZATION}</b> — omitted, and independently of the omission
      *       above. {@code shutdown()} terminates the executor the HTTP client runs on
      *       (OfrepProvider.java:90-108) and, with no {@code initialize()} of its own, nothing ever
-     *       recreates it, so a shut-down {@code OfrepProvider} cannot be started again. Requirement
-     *       2.5.2 permits exactly that — a provider <em>SHOULD</em> revert to its uninitialized
-     *       state and <em>"some providers MAY allow reinitialization from this state"</em> — so this
-     *       is a choice the specification offers and not a defect to declare. It is named here
-     *       rather than left to the {@code @lifecycle} skip because
-     *       {@link Capability#declarableExcept} would otherwise have claimed it, and a claim nothing
-     *       examined is exactly what the declaration exists to prevent.
+     *       recreates it, so a shut-down {@code OfrepProvider} cannot be started again — which
+     *       Requirement 2.5.2 permits. Named here rather than left to the {@code @lifecycle} skip
+     *       because {@link Capability#declarableExcept} would otherwise have claimed it.
      *   <li><b>{@link Capability#EVENTS}</b> — the class declares {@code implements FeatureProvider},
      *       not {@code extends EventProvider} (OfrepProvider.java:19), so it has no {@code emit*}
      *       method available and calls none. The whole file contains no reference to
@@ -164,10 +149,8 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      * check and no round trip anywhere in that path — nothing in the provider widens or narrows a
      * number.
      *
-     * <p>The tag's rule is that lossless coercion must succeed and lossy coercion must return
-     * {@code TYPE_MISMATCH}, and the three scenarios carrying it test all three cases; a provider
-     * declaring the tag must pass all three. This provider passes one. The lossy case is right for
-     * the wrong reason — {@code float-flag} (0.5) requested as an integer is rejected rather than
+     * <p>A provider declaring the tag must pass all three of its scenarios. This one passes one, and
+     * that one is right for the wrong reason — {@code float-flag} (0.5) requested as an integer is rejected rather than
      * truncated to {@code 0}, because it is a {@link Double} and not because 0.5 is fractional —
      * and both lossless cases fail on the same exact-instance check. {@code integer-flag} (10)
      * requested as a float arrives as an {@code Integer}, which {@code Double.class.isInstance}
@@ -178,82 +161,50 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      * three scenarios red.
      *
      * <p>No {@code KnownDeviation} accompanies it, and that is deliberate rather than silence.
-     * Appendix F is explicit that {@code @numeric-coercion} is the one capability the specification
-     * does not define: OpenFeature has a single {@code number} type, the rule this tag is tested
-     * against is borrowed from flagd's numeric-coercion ADR, and <em>"a provider that behaves
-     * differently is not violating the specification"</em>. The appendix says so having retracted
-     * an earlier draft that called non-declaration "an admission of a known bug". Strict typing in
-     * both directions is therefore a legitimate choice — the SDK's own {@code InMemoryProvider}
-     * makes it — and a deviation entry would assert a defect the spec says is not one. That is the
-     * opposite mistake from a vacuous declaration, but a mistake in the same currency.
+     * {@link Capability#NUMERIC_COERCION} records that the rule is borrowed rather than normative,
+     * so strict typing in both directions is a legitimate choice — the SDK's own
+     * {@code InMemoryProvider} makes it — and a deviation would assert a defect the specification
+     * says is not one.
      *
-     * <p>Go's OFREP provider declares the tag, and that is not an inconsistency to reconcile away:
-     * it coerces through an integral check and this one does not, so the two declarations describe
-     * two implementations rather than one protocol. OFREP being JSON is what makes the difference
-     * possible — one wire number type, so integer-ness is the provider's decision, not the
-     * payload's. Declaring the tag here to match Go would also run the
-     * {@code integral-float-flag} scenario, which the testbed cannot serve — a note about what such
-     * a run would look like, and deliberately <em>not</em> a reason. Appendix F's declaring rules
-     * have since said why it cannot be one: a scenario that fails because the backend cannot serve
-     * its fixture is not a provider defect, so the gap is no argument for withholding anything. The
-     * reason is the paragraph above and only that paragraph.
-     *
-     * <p>Nor does the appendix's scenario-level rule reach this omission, which is worth saying
-     * because it reads at first as though it should. That rule — once a provider is attempting a
-     * capability, declare it when at least one scenario gating it can be put to the provider — is
-     * about whether a question is <em>askable</em>, and all three of these are. What comes first is
-     * whether an answer is owed, and no requirement says this one is: the provider does not coerce,
-     * the specification permits that, and withholding is the honest report. Taking the second rule
-     * without the first would manufacture two failures out of a permitted choice.
+     * <p>Appendix F's scenario-level declaring rule does not reach this omission, which is worth
+     * saying because at first it reads as though it should. That rule is about whether a question is
+     * <em>askable</em>, and all three of these are; what comes first is whether an answer is owed,
+     * and none is. Taking the second rule without the first would manufacture two failures out of a
+     * permitted choice.
      *
      * <p>All of that is read from the source, because a withheld tag means the scenarios are
-     * skipped and a run cannot confirm it; the three are reported as skipped with this reason on
-     * every run, which is the observable that the declaration is being honoured rather than the
-     * behaviour behind it. {@code OfrepProviderTest} asserts the exact-instance check itself, but
-     * only across Boolean and String (OfrepProviderTest.java:71, 338-339) — no unit test pins the
-     * numeric pair, which is why the reasoning above cites {@code handleResolved} directly. A run in
-     * which either lossless scenario passes means {@code handleResolved} or the deserialiser
-     * changed, and this declaration should follow it.
+     * skipped and a run cannot confirm it. {@code OfrepProviderTest} asserts the exact-instance
+     * check itself, but only across Boolean and String (OfrepProviderTest.java:71, 338-339) — no
+     * unit test pins the numeric pair, which is why the reasoning above cites {@code handleResolved}
+     * directly. A run in which either lossless scenario passes means {@code handleResolved} or the
+     * deserialiser changed, and this declaration should follow it.
      *
-     * <p>Two things this leaves in place. {@link Capability#OBJECT} is declared: the same
-     * exact-instance check is what makes the {@code @object} mismatch matrix work, and the
-     * structured happy path passes through {@code resolve(Object.class, ...)}, which every non-null
-     * value satisfies, and is converted with {@code Value.objectToValue} (Resolver.java:125-136).
-     * And {@link Capability#LARGE_INTEGERS} is no longer in the list below, which is the one
-     * omission here that says nothing about OFREP. The tag asks for 2^53 − 1 and
-     * {@code Client.getIntegerDetails} is a 32-bit {@code Integer} with no room for it, so the limit
-     * is the SDK's; the TCK refuses the capability outright now rather than asking every Java
-     * adoption to remember, and {@link Capability#declarableExcept} no longer offers it. Its
-     * scenario is still skipped, with a reason naming the accessor rather than this provider — which
-     * matters more here than elsewhere, because every other name in that list <em>is</em> something
-     * this provider genuinely cannot do, and a reader should not have to guess which is which.
+     * <p>{@link Capability#OBJECT} is declared: the same exact-instance check is what makes the
+     * {@code @object} mismatch matrix work, and the structured happy path passes through
+     * {@code resolve(Object.class, ...)}, which every non-null value satisfies, and is converted
+     * with {@code Value.objectToValue} (Resolver.java:125-136). {@link Capability#LARGE_INTEGERS} is
+     * absent from the list below for a reason that says nothing about OFREP — the TCK refuses it
+     * centrally — and that matters more here than elsewhere, because every other name in that list
+     * <em>is</em> something this provider genuinely cannot do.
      *
      * <p>{@link Capability#VARIANTS} and {@link Capability#TARGETING} are declared, and unlike the
      * withheld tags above both are confirmed by a run rather than read from the source. The OFREP
-     * response carries {@code variant} alongside {@code value} and {@code reason}, and the provider
-     * passes it through, so seven of the {@code @variants} outline's eight rows pass; the eighth asks
-     * for {@code large-integer-flag}'s {@code max-int32} and gets no variant because testbed v3.8.0
-     * does not serve that flag — the gap already noted next to the image tag, not a second defect.
-     * {@code @targeting} matters more here than the capability's name suggests: the provider sends the
-     * evaluation context in the request body and the backend evaluates the rule, so the three
-     * {@code targeting-key-flag} scenarios are the only ones in the canonical set that would notice a
-     * context dropped on the way out. All three pass.
+     * response carries {@code variant} alongside {@code value} and {@code reason} and the provider
+     * passes it through, so seven of the {@code @variants} outline's eight rows pass; the eighth is
+     * the testbed gap above, not a second defect. {@code @targeting} matters more here than its name
+     * suggests: the provider sends the evaluation context in the request body and the backend
+     * evaluates the rule, so the three {@code targeting-key-flag} scenarios are the only ones in the
+     * canonical set that would notice a context dropped on the way out. All three pass.
      *
-     * <p>{@link Capability#STANDARD_REASONS} is declared, and it arrived by the
-     * {@code declarableExcept} default rather than by a decision, so it was measured before being
-     * written down. Eight of {@code reason.feature}'s nine scenarios run and pass: {@code STATIC} for
-     * the four rule-less flags, {@code ERROR} beside {@code FLAG_NOT_FOUND} and
-     * {@code TYPE_MISMATCH}, and — because {@code @targeting} is declared here — {@code
-     * TARGETING_MATCH} and {@code DEFAULT} either side of {@code targeting-key-flag}'s rule. The
-     * ninth carries {@code @disabled-flags} as well and is skipped for that omission, which is the
-     * right outcome and not a second report of the same gap: what is wrong with this provider's
-     * handling of a disabled flag is already said once, below and in {@link #knownDeviations()}, and
-     * a reason it never reaches is not more evidence of it.
-     *
-     * <p>Worth noting what the declaration does <em>not</em> claim. The reason for a disabled flag is
-     * the one standard reason this provider is not held to, so the tag here means "the standard
-     * vocabulary, over the responses this provider actually completes". A consumer reading the report
-     * sees the withheld {@code @disabled-flags} beside it and can tell which scenario went unasked.
+     * <p>{@link Capability#STANDARD_REASONS} arrived by the {@code declarableExcept} default rather
+     * than by a decision, so it was measured before being written down. Eight of
+     * {@code reason.feature}'s nine scenarios run and pass: {@code STATIC} for the four rule-less
+     * flags, {@code ERROR} beside {@code FLAG_NOT_FOUND} and {@code TYPE_MISMATCH}, and — because
+     * {@code @targeting} is declared here — {@code TARGETING_MATCH} and {@code DEFAULT} either side
+     * of {@code targeting-key-flag}'s rule. The ninth carries {@code @disabled-flags} and is skipped
+     * for that omission, so the tag here means "the standard vocabulary, over the responses this
+     * provider actually completes"; a consumer sees the withheld {@code @disabled-flags} beside it
+     * and can tell which scenario went unasked.
      *
      * <p><b>{@link Capability#DISABLED_FLAGS}</b> is withheld, and unlike every other withheld tag
      * above it was <em>measured</em>. Declared, all four rows of its outline fail, and they fail on
@@ -297,29 +248,23 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      * {@link dev.openfeature.contrib.tools.tck.KnownDeviation} rather than left as a bare
      * omission — see {@link #knownDeviations()}. That is the opposite call from
      * {@code @numeric-coercion} above, and the difference is where the rule lives: numeric coercion
-     * is a rule Appendix F borrowed from flagd's ADR and that no specification states, whereas
-     * {@code codeDefaultFlag} is a {@code MUST} in the protocol this provider implements. Withholding
-     * the tag keeps the four rows honest — skipped, not passed — and the deviation is what says the
-     * omission is a bug rather than a choice. Delete both once {@code handleResolved} honours a
-     * value-less success.
+     * is borrowed from flagd's ADR and no specification states it, whereas {@code codeDefaultFlag}
+     * is a {@code MUST} in the protocol this provider implements. Delete both once
+     * {@code handleResolved} honours a value-less success.
      *
      * <p><strong>This is the one declaration on this branch that the settled guidance would shape
-     * differently, and it is recorded here rather than quietly left.</strong>
-     * {@link dev.openfeature.contrib.tools.tck.KnownDeviation} prefers the declared-and-failing shape
-     * and confines the withheld-and-skipped one to a provider that cannot attempt the behaviour at
-     * all. This provider does attempt it: it receives the {@code codeDefaultFlag} response, parses
-     * the {@code reason} that accompanies it, and then answers with the wrong error code — measured,
-     * four rows, failing on the code and not on the value. By that reading the honest report is to
-     * declare {@code @disabled-flags}, let the four rows fail, and keep this same deviation beside
-     * them, exactly as the flagd adoption does for {@code @numeric-coercion}. The flip is a change of
-     * results rather than of prose, so it is not made in the documentation pass that noticed it; it
-     * costs four failures in place of four skips and nothing else, and the deviation's text needs no
-     * change when it happens.
+     * differently, and it is recorded here rather than quietly left.</strong> The preferred shape is
+     * declared-and-failing, and this provider does attempt the behaviour: it receives the
+     * {@code codeDefaultFlag} response, parses the {@code reason} that accompanies it, and answers
+     * with the wrong error code — measured, four rows, failing on the code and not on the value. By
+     * that reading the honest report is to declare {@code @disabled-flags}, let the four rows fail,
+     * and keep this same deviation beside them. The flip is a change of results rather than of
+     * prose, so it is not made in the documentation pass that noticed it; it costs four failures in
+     * place of four skips and nothing else, and the deviation's text needs no change when it
+     * happens.
      *
-     * <p>{@code declarableExcept} rather than {@code EnumSet.complementOf}, which would also claim
-     * {@code @caching} on the way past; the suite refuses such a declaration at startup. It claimed
-     * {@code @targeting} the same way until that tag gated something — the reserved set shrinks as
-     * the vocabulary fills up, which is an argument for the form of the call rather than against it.
+     * <p>{@code declarableExcept} and not {@code EnumSet.complementOf}, which would claim
+     * {@code @caching} on the way past; the suite refuses such a declaration at startup.
      */
     @Override
     public Set<Capability> capabilities() {
@@ -342,11 +287,7 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      * Every other withheld tag describes something {@code OfrepProvider} has no machinery for — no
      * initialisation, no events, no state between calls — or a rule no specification states. This one
      * describes a response the provider receives, understands well enough to parse, and then answers
-     * wrongly.
-     *
-     * <p>Untracked, because there is no issue to point at yet. Naming it anyway is the whole point of
-     * the mechanism: in the results a capability withheld by choice and one withheld because it is
-     * broken are the same absence, and only the provider author can say which happened.
+     * wrongly. Untracked, because there is no issue to point at yet.
      *
      * <p>The summary names the response shape rather than the scenario, because the scenario is only
      * where it was noticed. {@code codeDefaultFlag} is not specific to disabled flags — any backend
