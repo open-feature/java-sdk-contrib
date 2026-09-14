@@ -14,26 +14,13 @@ import java.util.Set;
 /**
  * The OpenFeature Provider Conformance Suite against the Flagsmith <b>Java</b> provider.
  *
- * <p>An experiment rather than a finished adoption. The point is comparison: the Go adoption
- * (go-sdk-contrib#959) reports 31 pass / 2 fail / 19 skip, and the Python provider -- which lives
- * in the Flagsmith organisation rather than in a contrib repo -- reports 28 / 5 / 19 against the
- * same container. Three providers written by different people against the same backend API is
- * exactly the situation the cross-language suite exists for, and the Go and Python results already
- * disagree.
- *
- * <p>The backend is the same container both of those use:
- * <a href="https://github.com/aepfli/flagsmith-tck-testbed">aepfli/flagsmith-tck-testbed</a>, the
- * Flagsmith Edge Proxy with a launchpad implementing the control API. Nothing about it is
- * language-specific -- it is a container with an HTTP control API, which is the point of the
- * control API existing.
+ * <p>The backend, and how the four language adoptions compare against it, are documented once in
+ * <a href="https://github.com/aepfli/flagsmith-tck-testbed">aepfli/flagsmith-tck-testbed</a> rather
+ * than restated in each adoption.
  */
 public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
 
-    /**
-     * Fixed by the testbed. The control API has no way to communicate connection parameters --
-     * {@code POST /start} returns a bare 200 with no body -- so every adoption hardcodes these,
-     * exactly as a flagd adoption hardcodes a port.
-     */
+    /** Fixed by the testbed, because the control API cannot hand connection parameters to a provider. */
     private static final String SERVER_SIDE_KEY = "ser.provider-tck-server-key";
 
     private static final int PROXY_PORT = 8000;
@@ -96,12 +83,8 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      * rather than an oversight: Java's integer accessor is a 32-bit {@code Integer}, so 2^53-1
      * cannot be asked for at all. This is the same reason Java withholds it for flagd.
      *
-     * <p>{@code STANDARD_REASONS} and {@code NUMERIC_COERCION} are both DECLARED and both fail.
-     * That is deliberate: KnownDeviation's rule is that withholding a capability in order to turn a
-     * failing scenario into a skip is the failure mode the field exists to prevent, and this
-     * adoption was doing exactly that. Running these scenarios establishes something real -- that
-     * the reason is null, and that a float cannot be read back as a float -- so the failures belong
-     * in the results with their deviations attached rather than hidden as skips.
+     * <p>{@code STANDARD_REASONS} and {@code NUMERIC_COERCION} are declared and both fail: this
+     * provider attempts each and gets it wrong, so the failures belong in the results.
      *
      * <p>{@code DISABLED_FLAGS} is declared. Flagsmith's native model is {@code enabled} plus a
      * value, so the canonical set's four disabled-* flags map straight onto it.
