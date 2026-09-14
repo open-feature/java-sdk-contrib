@@ -122,6 +122,9 @@ public class InProcessEvaluator implements IEvaluator {
 
     @Override
     public void init() {
+        // We ensure that no polling is happening before starting the initialization.
+        stopPolling();
+
         // an empty response means the configuration has not been modified, so the state we already
         // hold is still current and must not be overwritten.
         api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList())
@@ -137,8 +140,20 @@ public class InProcessEvaluator implements IEvaluator {
 
     @Override
     public void destroy() {
+        stopPolling();
+    }
+
+    /**
+     * stopPolling cancels the configuration polling task, if one is running.
+     * Once dispose() returns, the subscription is guaranteed to deliver no further emission to the
+     * refresh consumer, so a request still in flight can no longer reach the configuration state. The
+     * field is cleared so that the disposed subscription cannot be disposed, or mistaken for a live
+     * one, a second time.
+     */
+    private synchronized void stopPolling() {
         if (this.configurationDisposable != null) {
             this.configurationDisposable.dispose();
+            this.configurationDisposable = null;
         }
     }
 
