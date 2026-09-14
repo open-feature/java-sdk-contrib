@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.providers.gofeatureflag.evaluator;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.api.GoFeatureFlagApi;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.Flag;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
@@ -47,13 +47,13 @@ public class InProcessEvaluator implements IEvaluator {
     private Disposable configurationDisposable;
 
     private static final class EvaluatorState {
-        final Map<String, Flag> flags;
+        final Map<String, JsonNode> flags;
         final Map<String, Object> evaluationContextEnrichment;
         final String etag;
         final Date lastUpdate;
 
         EvaluatorState(
-                Map<String, Flag> flags,
+                Map<String, JsonNode> flags,
                 Map<String, Object> evaluationContextEnrichment,
                 String etag,
                 Date lastUpdate) {
@@ -110,8 +110,14 @@ public class InProcessEvaluator implements IEvaluator {
 
     @Override
     public boolean isFlagTrackable(final String flagKey) {
-        Flag flag = this.state.flags.get(flagKey);
-        return flag != null && (flag.getTrackEvents() == null || flag.getTrackEvents());
+        // trackEvents is the only field of the flag configuration a provider may read: everything
+        // else belongs to the evaluation engine and is passed through untouched.
+        JsonNode flag = this.state.flags.get(flagKey);
+        if (flag == null) {
+            return false;
+        }
+        JsonNode trackEvents = flag.get(Const.FIELD_TRACK_EVENTS);
+        return trackEvents == null || trackEvents.isNull() || trackEvents.asBoolean(true);
     }
 
     @Override
@@ -199,16 +205,16 @@ public class InProcessEvaluator implements IEvaluator {
      * @return - list of flags that have changed
      */
     private List<String> findFlagConfigurationChanges(
-            final Map<String, Flag> originalFlags, final Map<String, Flag> newFlags) {
+            final Map<String, JsonNode> originalFlags, final Map<String, JsonNode> newFlags) {
         // this function should return a list of flags that have changed between the two maps
         // it should contain all updated, added and removed flags
         List<String> changedFlags = new ArrayList<>();
 
         // Find added or updated flags
-        for (Map.Entry<String, Flag> entry : newFlags.entrySet()) {
+        for (Map.Entry<String, JsonNode> entry : newFlags.entrySet()) {
             String key = entry.getKey();
-            Flag newFlag = entry.getValue();
-            Flag originalFlag = originalFlags.get(key);
+            JsonNode newFlag = entry.getValue();
+            JsonNode originalFlag = originalFlags.get(key);
 
             if (originalFlag == null || !originalFlag.equals(newFlag)) {
                 changedFlags.add(key);

@@ -179,6 +179,15 @@ public class GoffApiMock {
                 return new MockResponse().setResponseCode(404);
             case "500":
                 return new MockResponse().setResponseCode(500);
+            case "unknown-flag-field":
+                // a flag carrying fields this provider has no model for: they must survive intact
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("{\"flags\": {\"TEST\": {\"variations\": {\"on\": true},"
+                                + " \"defaultRule\": {\"variation\": \"on\"},"
+                                + " \"aFieldFromANewerEngine\": {\"nested\": [1, 2, 3]},"
+                                + " \"bucketingKey\": \"teamId\"}}}")
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"unknown-flag-field\"");
             case "no-flags":
                 // a 200 whose body carries no flags key at all
                 return new MockResponse()

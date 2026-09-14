@@ -6,14 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.TestUtils;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FeatureEvent;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.Flag;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.Rule;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.TrackingEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToRetrieveConfiguration;
@@ -49,6 +48,11 @@ public class GoFeatureFlagApiTest {
     private MockWebServer server;
     private GoffApiMock goffAPIMock;
     private HttpUrl baseUrl;
+
+    private static final String TEST_FLAG_JSON =
+            "{\"variations\": {\"off\": false, \"on\": true}, \"defaultRule\": {\"variation\": \"off\"}}";
+    private static final String TEST2_FLAG_JSON =
+            "{\"variations\": {\"off\": false, \"on\": true}, \"defaultRule\": {\"variation\": \"on\"}}";
 
     @BeforeEach
     void beforeEach(TestInfo testInfo) throws IOException {
@@ -529,6 +533,27 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("a flag should be kept opaque, including fields this provider has no model for")
+        @Test
+        public void aFlagShouldBeKeptOpaque() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            val got = api.retrieveFlagConfiguration("unknown-flag-field", Collections.emptyList());
+            assertTrue(got.isPresent());
+            val flag = got.get().getFlags().get("TEST");
+
+            // a field the engine may have gained after this provider was written
+            assertEquals(
+                    Const.DESERIALIZE_OBJECT_MAPPER.readTree("{\"nested\": [1, 2, 3]}"),
+                    flag.get("aFieldFromANewerEngine"));
+            // and a field the deleted typed model never declared
+            assertEquals("teamId", flag.get("bucketingKey").asText());
+        }
+
+        @SneakyThrows
         @DisplayName("a 200 carrying no flag map should be a failed refresh")
         @Test
         public void a200CarryingNoFlagMapShouldBeAFailedRefresh() {
@@ -746,26 +771,11 @@ public class GoFeatureFlagApiTest {
             val evaluationContextEnrichment = new HashMap<String, Object>();
             evaluationContextEnrichment.put("env", "production");
 
-            val flags = new HashMap<String, Flag>();
-            val variations = new HashMap<String, Object>();
-            variations.put("on", true);
-            variations.put("off", false);
-            val rule = new Rule();
-            rule.setVariation("off");
-
-            val rule2 = new Rule();
-            rule2.setVariation("on");
-
-            val flag1 = new Flag();
-            flag1.setVariations(variations);
-            flag1.setDefaultRule(rule);
-
-            val flag2 = new Flag();
-            flag2.setVariations(variations);
-            flag2.setDefaultRule(rule2);
-
-            flags.put("TEST", flag1);
-            flags.put("TEST2", flag2);
+            // flags are compared as raw JSON: the provider must not reconstruct them from a typed
+            // model, so there is no model here to compare against either.
+            val flags = new HashMap<String, JsonNode>();
+            flags.put("TEST", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST_FLAG_JSON));
+            flags.put("TEST2", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST2_FLAG_JSON));
             val want = FlagConfigResponse.builder()
                     .flags(flags)
                     .etag("\"valid-flag-config.json\"")
@@ -791,26 +801,11 @@ public class GoFeatureFlagApiTest {
             val evaluationContextEnrichment = new HashMap<String, Object>();
             evaluationContextEnrichment.put("env", "production");
 
-            val flags = new HashMap<String, Flag>();
-            val variations = new HashMap<String, Object>();
-            variations.put("on", true);
-            variations.put("off", false);
-            val rule = new Rule();
-            rule.setVariation("off");
-
-            val rule2 = new Rule();
-            rule2.setVariation("on");
-
-            val flag1 = new Flag();
-            flag1.setVariations(variations);
-            flag1.setDefaultRule(rule);
-
-            val flag2 = new Flag();
-            flag2.setVariations(variations);
-            flag2.setDefaultRule(rule2);
-
-            flags.put("TEST", flag1);
-            flags.put("TEST2", flag2);
+            // flags are compared as raw JSON: the provider must not reconstruct them from a typed
+            // model, so there is no model here to compare against either.
+            val flags = new HashMap<String, JsonNode>();
+            flags.put("TEST", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST_FLAG_JSON));
+            flags.put("TEST2", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST2_FLAG_JSON));
             val want = FlagConfigResponse.builder()
                     .flags(flags)
                     .etag("\"valid-flag-config.json\"")
