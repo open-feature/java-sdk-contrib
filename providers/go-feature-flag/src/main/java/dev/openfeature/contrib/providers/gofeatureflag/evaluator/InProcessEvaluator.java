@@ -51,16 +51,39 @@ public class InProcessEvaluator implements IEvaluator {
         final Map<String, Object> evaluationContextEnrichment;
         final String etag;
         final Date lastUpdate;
+        /**
+         * true once a configuration has been retrieved and applied. A configuration carrying an empty
+         * flag map counts as loaded: an empty configuration is a valid one, not a missing one.
+         * The marker lives in the snapshot rather than beside it, so that readiness and the flag map
+         * it describes can never be read out of step.
+         */
+        final boolean configurationLoaded;
+
+        /** the state held until a configuration has been applied for the first time. */
+        static EvaluatorState notLoaded() {
+            return new EvaluatorState(Collections.emptyMap(), null, "", new Date(0), false);
+        }
 
         EvaluatorState(
                 Map<String, JsonNode> flags,
                 Map<String, Object> evaluationContextEnrichment,
                 String etag,
                 Date lastUpdate) {
+            // only reachable from a retrieved configuration, so it is loaded by construction
+            this(flags, evaluationContextEnrichment, etag, lastUpdate, true);
+        }
+
+        private EvaluatorState(
+                Map<String, JsonNode> flags,
+                Map<String, Object> evaluationContextEnrichment,
+                String etag,
+                Date lastUpdate,
+                boolean configurationLoaded) {
             this.flags = flags;
             this.evaluationContextEnrichment = evaluationContextEnrichment;
             this.etag = etag;
             this.lastUpdate = lastUpdate;
+            this.configurationLoaded = configurationLoaded;
         }
     }
 
@@ -78,7 +101,7 @@ public class InProcessEvaluator implements IEvaluator {
         this.api = api;
         this.options = options;
         this.emitProviderConfigurationChanged = emitProviderConfigurationChanged;
-        this.state = new EvaluatorState(Collections.emptyMap(), null, "", new Date(0));
+        this.state = EvaluatorState.notLoaded();
         int poolSize = options.getWasmEvaluatorPoolSize() != null
                 ? options.getWasmEvaluatorPoolSize()
                 : Const.DEFAULT_WASM_EVALUATOR_POOL_SIZE;
@@ -88,6 +111,17 @@ public class InProcessEvaluator implements IEvaluator {
     @Override
     public GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
         EvaluatorState current = this.state;
+        // With no configuration ever loaded every key is absent, and answering FLAG_NOT_FOUND would
+        // blame the caller's flag key for an infrastructure failure.
+        if (!current.configurationLoaded) {
+            val notReady = new GoFeatureFlagResponse();
+            notReady.setReason(Reason.ERROR.name());
+            notReady.setErrorCode(ErrorCode.PROVIDER_NOT_READY.name());
+            notReady.setErrorDetails(
+                    "impossible to evaluate flag " + key + ": no flag configuration has been loaded yet");
+            notReady.setValue(defaultValue);
+            return notReady;
+        }
         if (current.flags.get(key) == null) {
             val err = new GoFeatureFlagResponse();
             err.setReason(Reason.ERROR.name());

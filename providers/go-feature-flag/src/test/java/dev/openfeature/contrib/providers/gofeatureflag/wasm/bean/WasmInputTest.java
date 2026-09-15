@@ -24,7 +24,8 @@ class WasmInputTest {
                 .build();
 
         val serialized = new String(Const.SERIALIZE_WASM_MAPPER.writeValueAsBytes(wasmInput));
-        val flagSentToEngine = Const.DESERIALIZE_OBJECT_MAPPER.readTree(serialized).get("flag");
+        val flagSentToEngine =
+                Const.DESERIALIZE_OBJECT_MAPPER.readTree(serialized).get("flag");
 
         // byte-for-byte equivalent: no field dropped, reordered into a lossy model or reconstructed,
         // and the NON_NULL serialisation inclusion does not strip nulls inside the opaque flag.

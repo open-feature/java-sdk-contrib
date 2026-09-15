@@ -70,8 +70,9 @@ public class GoffApiMock {
     @SneakyThrows
     public MockResponse handleEvaluateFlags(RecordedRequest request) {
         assert request.getPath() != null;
-        String flagName = request.getPath().substring(request.getPath().indexOf("/ofrep/v1/evaluate/flags/")
-                + "/ofrep/v1/evaluate/flags/".length());
+        String flagName = request.getPath()
+                .substring(
+                        request.getPath().indexOf("/ofrep/v1/evaluate/flags/") + "/ofrep/v1/evaluate/flags/".length());
         switch (flagName) {
             case "timeout":
                 Thread.sleep(500);
@@ -130,6 +131,13 @@ public class GoffApiMock {
                 break;
             case ENDPOINT_ERROR_404:
                 return new MockResponse().setResponseCode(404);
+            case EMPTY_FLAG_CONFIG:
+                // a valid configuration that happens to contain no flag
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("{\"flags\": {}}")
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"empty-flag-config\"")
+                        .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
             case SERVE_OLD_CONFIGURATION:
                 if (configurationCallCount > 1) {
                     // we serve an old configuration after the 1st call.
@@ -251,5 +259,6 @@ public class GoffApiMock {
         DEFAULT,
         SERVE_OLD_CONFIGURATION,
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
+        EMPTY_FLAG_CONFIG,
     }
 }

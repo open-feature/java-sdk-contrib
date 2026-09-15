@@ -554,6 +554,32 @@ class GoFeatureFlagProviderTest {
             assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider));
         }
 
+        @DisplayName("Should report PROVIDER_NOT_READY on evaluation after a failed initialization")
+        @SneakyThrows
+        @Test
+        void shouldReportProviderNotReadyAfterAFailedInitialization() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.ENDPOINT_ERROR_404);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flagChangePollingIntervalMs(100L)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                assertThrows(
+                        GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider));
+
+                // a failed initialization leaves the provider in ERROR, which the SDK does not
+                // short-circuit, so the resolver is reached and must answer for itself
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+                val got = client.getBooleanDetails("bool_targeting_match", false, TestUtils.defaultEvaluationContext);
+
+                assertEquals(ErrorCode.PROVIDER_NOT_READY, got.getErrorCode());
+                assertEquals(Reason.ERROR.name(), got.getReason());
+                assertEquals(false, got.getValue());
+            }
+        }
+
         @DisplayName("Should ignore configuration if etag is different by last-modified is older")
         @SneakyThrows
         @Test
