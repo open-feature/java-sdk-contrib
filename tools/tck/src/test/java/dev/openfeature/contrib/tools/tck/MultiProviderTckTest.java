@@ -108,6 +108,7 @@ public class MultiProviderTckTest extends ProviderTckTest {
                 Capability.OBJECT,
                 Capability.VARIANTS,
                 Capability.DISABLED_FLAGS,
+                Capability.STRING_TYPING,
                 Capability.STANDARD_REASONS);
     }
 }
