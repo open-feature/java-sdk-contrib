@@ -175,6 +175,7 @@ public class InProcessEvaluator implements IEvaluator {
     @Override
     public void destroy() {
         stopPolling();
+        this.evaluationPool.close();
     }
 
     /**

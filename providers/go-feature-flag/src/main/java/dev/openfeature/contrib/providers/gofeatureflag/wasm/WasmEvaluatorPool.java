@@ -16,9 +16,11 @@ import lombok.extern.slf4j.Slf4j;
  * evaluate() calls without interleaving memory operations.
  */
 @Slf4j
-public final class WasmEvaluatorPool {
+public final class WasmEvaluatorPool implements AutoCloseable {
     private final BlockingQueue<EvaluationWasm> pool;
     private final Supplier<EvaluationWasm> instanceFactory;
+
+    private volatile boolean closed;
 
     /**
      * Creates a pool of {@code size} independent EvaluationWasm instances.
@@ -55,16 +57,15 @@ public final class WasmEvaluatorPool {
      * @return evaluation result
      */
     public GoFeatureFlagResponse evaluate(WasmInput wasmInput) {
+        if (closed) {
+            return errorResponse("WASM evaluator pool is closed");
+        }
         EvaluationWasm instance;
         try {
             instance = pool.take();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            GoFeatureFlagResponse err = new GoFeatureFlagResponse();
-            err.setErrorCode(ErrorCode.GENERAL.name());
-            err.setReason(Reason.ERROR.name());
-            err.setErrorDetails("WASM evaluator pool interrupted while waiting for an available instance");
-            return err;
+            return errorResponse("WASM evaluator pool interrupted while waiting for an available instance");
         }
         try {
             return instance.evaluate(wasmInput);
@@ -83,6 +84,7 @@ public final class WasmEvaluatorPool {
         EvaluationWasm toReturn = instance;
         if (instance.isPoisoned()) {
             log.warn("discarding a WASM instance whose guest faulted, and rebuilding it");
+            closeQuietly(instance);
             try {
                 toReturn = newInstance();
             } catch (Exception e) {
@@ -90,8 +92,48 @@ public final class WasmEvaluatorPool {
                 return;
             }
         }
+        if (closed) {
+            closeQuietly(toReturn);
+            return;
+        }
         if (!pool.offer(toReturn)) {
             log.error("Failed to return WASM instance to pool - instance leaked, pool capacity may be compromised");
+            closeQuietly(toReturn);
         }
+    }
+
+    /**
+     * close releases every instance the pool owns. An instance still serving an evaluation is not in
+     * the queue, so returnToPool closes it as soon as it comes back rather than handing it to a pool
+     * nobody will read again.
+     */
+    @Override
+    public void close() {
+        closed = true;
+        EvaluationWasm instance = pool.poll();
+        while (instance != null) {
+            closeQuietly(instance);
+            instance = pool.poll();
+        }
+    }
+
+    /**
+     * Releasing an instance is best effort: a descriptor that refuses to close must not abort a
+     * provider shutdown, nor the rebuild of an instance whose guest faulted.
+     */
+    private void closeQuietly(final EvaluationWasm instance) {
+        try {
+            instance.close();
+        } catch (Exception e) {
+            log.warn("failed to release a WASM instance", e);
+        }
+    }
+
+    private GoFeatureFlagResponse errorResponse(final String details) {
+        GoFeatureFlagResponse err = new GoFeatureFlagResponse();
+        err.setErrorCode(ErrorCode.GENERAL.name());
+        err.setReason(Reason.ERROR.name());
+        err.setErrorDetails(details);
+        return err;
     }
 }

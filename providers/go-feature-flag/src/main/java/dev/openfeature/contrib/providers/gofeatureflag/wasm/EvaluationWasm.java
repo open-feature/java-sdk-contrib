@@ -23,7 +23,8 @@ import lombok.val;
  * EvaluationWasm is a class that represents the evaluation of a feature flag
  * it calls an external WASM module to evaluate the feature flag.
  */
-public final class EvaluationWasm {
+public final class EvaluationWasm implements AutoCloseable {
+    private final WasiPreview1 wasi;
     private final Instance instance;
     private final ExportFunction evaluate;
     private final ExportFunction malloc;
@@ -43,7 +44,7 @@ public final class EvaluationWasm {
      * @throws WasmFileNotFound - if the WASM file is not found
      */
     public EvaluationWasm() throws WasmFileNotFound {
-        val wasi = WasiPreview1.builder()
+        this.wasi = WasiPreview1.builder()
                 .withOptions(WasiOptions.builder()
                         .inheritSystem()
                         .withThrowOnExit0(false)
@@ -53,12 +54,22 @@ public final class EvaluationWasm {
                 .withMemoryFactory(ByteArrayMemory::new)
                 .withMachineFactory(Module::create)
                 .withImportValues(ImportValues.builder()
-                        .addFunction(wasi.toHostFunctions())
+                        .addFunction(this.wasi.toHostFunctions())
                         .build())
                 .build();
         this.evaluate = this.instance.export("evaluate");
         this.malloc = this.instance.export("malloc");
         this.free = this.instance.export("free");
+    }
+
+    /**
+     * close releases the descriptors the WASI instance owns. The WASI object serves the guest's
+     * imports for as long as the module is alive, so it can only be released once this evaluator is
+     * discarded, never at the end of the constructor.
+     */
+    @Override
+    public void close() {
+        this.wasi.close();
     }
 
     /**
