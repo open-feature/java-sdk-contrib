@@ -17,12 +17,14 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.nio.charset.StandardCharsets;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
  * EvaluationWasm is a class that represents the evaluation of a feature flag
  * it calls an external WASM module to evaluate the feature flag.
  */
+@Slf4j
 public final class EvaluationWasm implements AutoCloseable {
     private final WasiPreview1 wasi;
     private final Instance instance;
@@ -121,9 +123,26 @@ public final class EvaluationWasm implements AutoCloseable {
         } catch (Exception e) {
             return errorResponse(e);
         } finally {
-            if (len > 0) {
-                this.free.apply(ptr, len);
-            }
+            freeInput(ptr, len);
+        }
+    }
+
+    /**
+     * freeInput releases the input buffer, unless the guest faulted while serving this evaluation.
+     *
+     * <p>Calling into a trapped instance faults inside malloc at a wrapped address, which masks the
+     * original error; the instance is discarded by the pool anyway, so its memory is not worth
+     * reclaiming. A fault raised by free itself is contained here for the same reason.</p>
+     */
+    private void freeInput(final int ptr, final int len) {
+        if (len <= 0 || this.poisoned) {
+            return;
+        }
+        try {
+            this.free.apply(ptr, len);
+        } catch (ChicoryException | WasmException e) {
+            this.poisoned = true;
+            log.error("failed to free the WASM input buffer, the instance will be discarded", e);
         }
     }
 
