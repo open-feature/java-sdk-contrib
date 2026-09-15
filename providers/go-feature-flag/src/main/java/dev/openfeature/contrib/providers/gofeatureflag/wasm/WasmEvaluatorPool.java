@@ -7,6 +7,7 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -17,22 +18,32 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class WasmEvaluatorPool {
     private final BlockingQueue<EvaluationWasm> pool;
+    private final Supplier<EvaluationWasm> instanceFactory;
 
     /**
      * Creates a pool of {@code size} independent EvaluationWasm instances.
      * All instances are allocated eagerly so that first-call latency is
-     * absorbed at provider initialisation time.
+     * absorbed in provider initialisation time.
      *
      * @param size number of WASM instances; must be >= 1
      * @throws WasmFileNotFound if the embedded WASM module cannot be loaded
      */
     public WasmEvaluatorPool(int size) throws WasmFileNotFound {
+        this(size, EvaluationWasm::new);
+    }
+
+    WasmEvaluatorPool(int size, Supplier<EvaluationWasm> instanceFactory) throws WasmFileNotFound {
+        this.instanceFactory = instanceFactory;
         this.pool = new ArrayBlockingQueue<>(size);
         for (int i = 0; i < size; i++) {
-            EvaluationWasm instance = new EvaluationWasm();
-            instance.preWarmWasm();
-            pool.add(instance);
+            pool.add(newInstance());
         }
+    }
+
+    private EvaluationWasm newInstance() {
+        EvaluationWasm instance = instanceFactory.get();
+        instance.preWarmWasm();
+        return instance;
     }
 
     /**
@@ -58,9 +69,29 @@ public final class WasmEvaluatorPool {
         try {
             return instance.evaluate(wasmInput);
         } finally {
-            if (!pool.offer(instance)) {
-                log.error("Failed to return WASM instance to pool — instance leaked, pool capacity may be compromised");
+            returnToPool(instance);
+        }
+    }
+
+    /**
+     * returnToPool gives the instance back, replacing it first if the guest faulted while it was
+     * serving. A trapped instance is permanently poisoned and must never be reused, so it is dropped
+     * and a fresh one takes its place; if the replacement cannot be built the pool simply shrinks,
+     * which is preferable to handing out a corrupted instance.
+     */
+    private void returnToPool(final EvaluationWasm instance) {
+        EvaluationWasm toReturn = instance;
+        if (instance.isPoisoned()) {
+            log.warn("discarding a WASM instance whose guest faulted, and rebuilding it");
+            try {
+                toReturn = newInstance();
+            } catch (Exception e) {
+                log.error("failed to rebuild a WASM instance, the evaluation pool has shrunk", e);
+                return;
             }
+        }
+        if (!pool.offer(toReturn)) {
+            log.error("Failed to return WASM instance to pool - instance leaked, pool capacity may be compromised");
         }
     }
 }

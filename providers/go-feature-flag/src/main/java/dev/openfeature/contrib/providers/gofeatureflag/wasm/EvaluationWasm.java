@@ -7,9 +7,11 @@ import com.dylibso.chicory.runtime.ImportFunction;
 import com.dylibso.chicory.runtime.ImportValues;
 import com.dylibso.chicory.runtime.Instance;
 import com.dylibso.chicory.runtime.Memory;
+import com.dylibso.chicory.runtime.WasmException;
 import com.dylibso.chicory.wasi.WasiExitException;
 import com.dylibso.chicory.wasi.WasiOptions;
 import com.dylibso.chicory.wasi.WasiPreview1;
+import com.dylibso.chicory.wasm.ChicoryException;
 import com.dylibso.chicory.wasm.types.ValueType;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.WasmFileNotFound;
@@ -22,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.val;
 
 /**
@@ -33,6 +36,13 @@ public final class EvaluationWasm {
     private final ExportFunction evaluate;
     private final ExportFunction malloc;
     private final ExportFunction free;
+
+    /**
+     * poisoned is set when the guest faults. A trap does not unwind the module's shadow-stack
+     * pointer, so the instance is permanently unusable and must never serve another evaluation.
+     */
+    @Getter
+    private volatile boolean poisoned;
 
     /**
      * Constructor of the EvaluationWasm.
@@ -126,16 +136,23 @@ public final class EvaluationWasm {
             // Convert the output to a WasmOutput object
             return Const.DESERIALIZE_OBJECT_MAPPER.readValue(output, GoFeatureFlagResponse.class);
 
+        } catch (ChicoryException | WasmException e) {
+            this.poisoned = true;
+            return errorResponse(e);
         } catch (Exception e) {
-            val response = new GoFeatureFlagResponse();
-            response.setErrorCode(ErrorCode.GENERAL.name());
-            response.setReason(Reason.ERROR.name());
-            response.setErrorDetails(e.getMessage());
-            return response;
+            return errorResponse(e);
         } finally {
             if (len > 0) {
                 this.free.apply(ptr, len);
             }
         }
+    }
+
+    private GoFeatureFlagResponse errorResponse(final Exception e) {
+        val response = new GoFeatureFlagResponse();
+        response.setErrorCode(ErrorCode.GENERAL.name());
+        response.setReason(Reason.ERROR.name());
+        response.setErrorDetails(e.getMessage());
+        return response;
     }
 }
