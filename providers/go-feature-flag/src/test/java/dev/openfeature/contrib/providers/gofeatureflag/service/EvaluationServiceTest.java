@@ -15,6 +15,7 @@ import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -97,5 +98,62 @@ class EvaluationServiceTest {
         assertEquals(Reason.TARGETING_MATCH.name(), result.getReason());
         assertEquals("enabled", result.getVariant());
         assertEquals(null, result.getErrorCode());
+    }
+
+    @DisplayName("Should accept an int number for the double resolver")
+    @Test
+    void shouldAcceptAnIntegralNumberForTheDoubleResolver() {
+        assertEquals(100.0, doubleEvaluationOf(100));
+    }
+
+    @DisplayName("Should accept an int number larger than an int for the double resolver")
+    @Test
+    void shouldAcceptAnIntegralNumberLargerThanAnIntForTheDoubleResolver() {
+        // above Integer.MAX_VALUE Jackson decodes a JSON integer to Long
+        assertEquals(3000000000.0, doubleEvaluationOf(3000000000L));
+    }
+
+    @DisplayName("Should accept a decimal number for the double resolver")
+    @Test
+    void shouldAcceptADecimalNumberForTheDoubleResolver() {
+        assertEquals(101.25, doubleEvaluationOf(101.25));
+    }
+
+    @DisplayName("Should not let a boolean satisfy the double resolver")
+    @Test
+    void shouldNotLetABooleanSatisfyTheDoubleResolver() {
+        when(mockEvaluator.evaluate(anyString(), any(), any(EvaluationContext.class)))
+                .thenReturn(responseWithValue(true));
+
+        assertThrows(
+                TypeMismatchError.class,
+                () -> evaluationService.getEvaluation("test-flag", 0.0, evaluationContext, Double.class));
+    }
+
+    @DisplayName("Should not let a decimal number satisfy the integer resolver")
+    @Test
+    void shouldNotLetADecimalNumberSatisfyTheIntegerResolver() {
+        when(mockEvaluator.evaluate(anyString(), any(), any(EvaluationContext.class)))
+                .thenReturn(responseWithValue(101.25));
+
+        assertThrows(
+                TypeMismatchError.class,
+                () -> evaluationService.getEvaluation("test-flag", 0, evaluationContext, Integer.class));
+    }
+
+    private Double doubleEvaluationOf(Object engineValue) {
+        when(mockEvaluator.evaluate(anyString(), any(), any(EvaluationContext.class)))
+                .thenReturn(responseWithValue(engineValue));
+        return evaluationService
+                .getEvaluation("test-flag", 0.0, evaluationContext, Double.class)
+                .getValue();
+    }
+
+    private GoFeatureFlagResponse responseWithValue(Object value) {
+        GoFeatureFlagResponse response = new GoFeatureFlagResponse();
+        response.setValue(value);
+        response.setReason(Reason.TARGETING_MATCH.name());
+        response.setVariationType("enabled");
+        return response;
     }
 }

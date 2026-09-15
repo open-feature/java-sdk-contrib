@@ -114,6 +114,9 @@ public class EvaluationService {
      * @param <T>          the type we want to convert to.
      * @return A converted object
      */
+    // The cast to T is unchecked on purpose: getEvaluation compares the runtime class with
+    // expectedType right after and raises a TypeMismatchError if the API returned another type.
+    @SuppressWarnings("unchecked")
     private <T> T convertValue(Object value, Class<?> expectedType) {
         boolean isPrimitive = expectedType == Boolean.class
                 || expectedType == String.class
@@ -121,8 +124,10 @@ public class EvaluationService {
                 || expectedType == Double.class;
 
         if (isPrimitive) {
-            if (value.getClass() == Integer.class && expectedType == Double.class) {
-                return (T) Double.valueOf((Integer) value);
+            // JSON does not distinguish 100 from 100.0, and a number too large for an int decodes to
+            // Long, so the float resolver accepts any number rather than only Integer.
+            if (expectedType == Double.class && value instanceof Number) {
+                return (T) Double.valueOf(((Number) value).doubleValue());
             }
             return (T) value;
         }
