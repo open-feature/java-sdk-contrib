@@ -12,7 +12,8 @@ import com.dylibso.chicory.wasi.WasiExitException;
 import com.dylibso.chicory.wasi.WasiOptions;
 import com.dylibso.chicory.wasi.WasiPreview1;
 import com.dylibso.chicory.wasm.ChicoryException;
-import com.dylibso.chicory.wasm.types.ValueType;
+import com.dylibso.chicory.wasm.types.FunctionType;
+import com.dylibso.chicory.wasm.types.ValType;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.WasmFileNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
@@ -21,7 +22,6 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -81,11 +81,7 @@ public final class EvaluationWasm {
      */
     private ImportFunction getProcExitFunc() {
         return new HostFunction(
-                "wasi_snapshot_preview1",
-                "proc_exit",
-                Collections.singletonList(ValueType.I32),
-                Collections.emptyList(),
-                (instance, args) -> {
+                "wasi_snapshot_preview1", "proc_exit", FunctionType.accepting(ValType.I32), (instance, args) -> {
                     if ((int) args[0] != 0) {
                         throw new WasiExitException((int) args[0]);
                     }
