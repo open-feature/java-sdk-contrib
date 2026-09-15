@@ -145,7 +145,17 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      * declines to coerce. The lossy scenario fails; the remaining lossless one fails only on the
      * absent {@code integral-float-flag}. Both resolvers behave identically, which places the defect
      * in the shared provider layer rather than in either transport — as does every other capability
-     * here, including the full non-numeric type-mismatch matrix.
+     * here, including the whole remaining type-mismatch matrix.
+     *
+     * <p><strong>{@link Capability#STRING_TYPING} is declared, and all four of its scenarios
+     * pass</strong> in both modes. It gates what specification revision {@code d47a66eb} moved out
+     * of the mandatory matrix: {@code boolean-flag}, {@code integer-flag}, {@code float-flag} and
+     * {@code object-flag} asked through the String accessor. flagd's flag definitions carry a JSON
+     * type per flag and both resolvers preserve it, so a non-string flag requested as a string is a
+     * genuine mismatch here and is reported as one — which is exactly the position the capability
+     * exists to distinguish from a backend that stores every value as a string. Declared on the run
+     * rather than on the "everything except" default: these four were mandatory and passing before
+     * the tag existed, and the numbers below are unchanged by the move.
      *
      * <p>{@link Capability#LIFECYCLE} is declared because flagd reaches its backend during
      * initialisation in both modes — an RPC round trip, or a full ruleset sync — so the lifecycle
