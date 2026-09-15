@@ -80,10 +80,10 @@ class CanonicalAssetDigestTest {
      * <p>Must equal {@code git -C tools/tck/spec rev-parse HEAD}, and is the value the report
      * branch publishes as the source of a run's scenarios.
      */
-    static final String PINNED_REVISION = "aa2ad24f5a14ae2b5756df0b6d23f493f39507e6";
+    static final String PINNED_REVISION = "d47a66ebb9500706e5bded7799d0e49aa1e86bfd";
 
     /** SHA-256 of the three asset trees at {@link #PINNED_REVISION}, as {@link #digest} computes it. */
-    static final String PINNED_DIGEST = "a7c74fbe178cf5a9937be8d26e098bc4d6f4b723991a77e0e73d0a330a299c94";
+    static final String PINNED_DIGEST = "f7e9b9e63138b19f11f795095bb9e5c78801989d02822789e9202f777af319e9";
 
     /** The generated resource directories, in the order they are digested. */
     private static final List<String> ASSET_DIRECTORIES = Arrays.asList("flags", "gherkin", "openapi");
