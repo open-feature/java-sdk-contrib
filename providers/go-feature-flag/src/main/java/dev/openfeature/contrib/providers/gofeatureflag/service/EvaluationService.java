@@ -89,6 +89,14 @@ public class EvaluationService {
                     .build();
         }
 
+        if (goffResp.getValue() == null) {
+            return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
+                    .reason(Reason.DEFAULT.name())
+                    .flagMetadata(MetadataUtil.convertFlagMetadata(goffResp.getMetadata()))
+                    .build();
+        }
+
         // Convert the value received from the API.
         T flagValue = convertValue(goffResp.getValue(), expectedType);
 
