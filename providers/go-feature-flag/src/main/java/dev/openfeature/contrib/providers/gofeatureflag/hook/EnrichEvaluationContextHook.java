@@ -9,11 +9,14 @@ import dev.openfeature.sdk.Value;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import lombok.val;
 
 /**
  * EnrichEvaluationContextHook is an OpenFeature Hook in charge of enriching the evaluation context.
  */
 public class EnrichEvaluationContextHook implements Hook<String> {
+    private static final String GOFEATUREFLAG_KEY = "gofeatureflag";
+    private static final String EXPORTER_METADATA_KEY = "exporterMetadata";
     private final Map<String, Object> exporterMetadata;
 
     public EnrichEvaluationContextHook(Map<String, Object> exporterMetadata) {
@@ -53,9 +56,13 @@ public class EnrichEvaluationContextHook implements Hook<String> {
             }
         }
 
-        Map<String, Value> expMetadata = new HashMap<>();
-        expMetadata.put("exporterMetadata", new Value(metadata));
-        mutableContext.add("gofeatureflag", new MutableStructure(expMetadata));
+        Map<String, Value> goffNamespace = new HashMap<>();
+        val existing = ctx.getCtx().getValue(GOFEATUREFLAG_KEY);
+        if (existing != null && existing.isStructure()) {
+            goffNamespace.putAll(existing.asStructure().asMap());
+        }
+        goffNamespace.put(EXPORTER_METADATA_KEY, new Value(metadata));
+        mutableContext.add(GOFEATUREFLAG_KEY, new MutableStructure(goffNamespace));
         return Optional.of(mutableContext);
     }
 }
