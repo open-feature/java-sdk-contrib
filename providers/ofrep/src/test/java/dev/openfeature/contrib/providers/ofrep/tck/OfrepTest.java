@@ -179,6 +179,19 @@ public class OfrepTest extends ContainerizedProviderTckTest {
      * directly. A run in which either lossless scenario passes means {@code handleResolved} or the
      * deserialiser changed, and this declaration should follow it.
      *
+     * <p><strong>{@link Capability#STRING_TYPING} is declared, and all four of its scenarios
+     * pass.</strong> It gates what specification revision {@code d47a66eb} moved out of the
+     * mandatory matrix — {@code boolean-flag}, {@code integer-flag}, {@code float-flag} and
+     * {@code object-flag} asked through the String accessor — and the mechanism is the same
+     * exact-instance check as above, reached from the other side: {@code String.class.isInstance} of
+     * a {@link Boolean}, an {@link Integer} or a {@link Double} is false, so {@code handleResolved}
+     * returns {@code TYPE_MISMATCH} with the code default rather than the value's
+     * {@code toString()}. OFREP carries a JSON type per flag and Jackson preserves it, so this
+     * provider is on the typed side of the distinction the capability exists to draw. Confirmed by a
+     * run: skip count unchanged at 17, and none of the four among the failures. It is one of the
+     * cases {@code OfrepProviderTest} does pin directly, across Boolean and String
+     * (OfrepProviderTest.java:71, 338-339).
+     *
      * <p>{@link Capability#OBJECT} is declared: the same exact-instance check is what makes the
      * {@code @object} mismatch matrix work, and the structured happy path passes through
      * {@code resolve(Object.class, ...)}, which every non-null value satisfies, and is converted
