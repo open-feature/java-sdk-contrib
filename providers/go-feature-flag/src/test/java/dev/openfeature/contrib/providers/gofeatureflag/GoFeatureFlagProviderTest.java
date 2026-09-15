@@ -22,6 +22,7 @@ import dev.openfeature.sdk.MutableTrackingEventDetails;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FatalError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -552,6 +553,28 @@ class GoFeatureFlagProviderTest {
                     .evaluationType(EvaluationType.IN_PROCESS)
                     .build());
             assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider));
+        }
+
+        @DisplayName("Should be in FATAL state if the relay proxy rejects the credentials")
+        @SneakyThrows
+        @Test
+        void shouldBeInFatalStateIfTheRelayProxyRejectsTheCredentials() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.API_KEY_MISSING);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flagChangePollingIntervalMs(100L)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+
+                assertThrows(
+                        FatalError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider));
+
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+                val got = client.getBooleanDetails("bool_targeting_match", false, TestUtils.defaultEvaluationContext);
+                assertEquals(ErrorCode.PROVIDER_FATAL, got.getErrorCode());
+            }
         }
 
         @DisplayName("Should report PROVIDER_NOT_READY on evaluation after a failed initialization")
