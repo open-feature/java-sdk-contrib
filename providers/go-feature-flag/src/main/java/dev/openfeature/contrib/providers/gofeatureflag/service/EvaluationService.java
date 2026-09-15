@@ -9,7 +9,6 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
-import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import lombok.AllArgsConstructor;
 import lombok.val;
@@ -61,10 +60,6 @@ public class EvaluationService {
      */
     public <T> ProviderEvaluation<T> getEvaluation(
             String flagKey, T defaultValue, EvaluationContext evaluationContext, Class<?> expectedType) {
-
-        if (evaluationContext.getTargetingKey() == null) {
-            throw new TargetingKeyMissingError("GO Feature Flag requires a targeting key");
-        }
 
         val goffResp = evaluator.evaluate(flagKey, defaultValue, evaluationContext);
 

@@ -146,4 +146,32 @@ class InProcessEvaluatorTest {
         assertEquals(ErrorCode.FLAG_NOT_FOUND.name(), got.getErrorCode());
         evaluator.destroy();
     }
+
+    @SneakyThrows
+    @DisplayName("a missing targeting key should be passed through to the engine")
+    @Test
+    void aMissingTargetingKeyShouldBePassedThroughToTheEngine() {
+        val evaluator = evaluator(this.server);
+        evaluator.init();
+
+        // object_key resolves through a default rule that does not bucket, so it needs no targeting key
+        val got = evaluator.evaluate("object_key", null, new ImmutableContext());
+
+        assertEquals("", got.getErrorCode());
+        assertEquals("varA", got.getVariationType());
+        evaluator.destroy();
+    }
+
+    @SneakyThrows
+    @DisplayName("the engine should report TARGETING_KEY_MISSING only for a flag that buckets")
+    @Test
+    void theEngineShouldReportTargetingKeyMissingOnlyForAFlagThatBuckets() {
+        val evaluator = evaluator(this.server);
+        evaluator.init();
+
+        val got = evaluator.evaluate("string_key", "default", new ImmutableContext());
+
+        assertEquals(ErrorCode.TARGETING_KEY_MISSING.name(), got.getErrorCode());
+        evaluator.destroy();
+    }
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,6 +16,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.FlagEvaluationDetails;
+import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
@@ -553,6 +555,52 @@ class GoFeatureFlagProviderTest {
                     .evaluationType(EvaluationType.IN_PROCESS)
                     .build());
             assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider));
+        }
+
+        @DisplayName("Should not reject an evaluation context without a targeting key")
+        @SneakyThrows
+        @Test
+        void shouldNotRejectAnEvaluationContextWithoutATargetingKey() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.DEFAULT);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flagChangePollingIntervalMs(100L)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                val got = client.getObjectDetails("object_key", new Value("default"), new ImmutableContext());
+
+                assertNull(got.getErrorCode());
+                assertEquals("varA", got.getVariant());
+            }
+        }
+
+        @DisplayName("Should return TARGETING_KEY_MISSING if the flag needs a targeting key to bucket")
+        @SneakyThrows
+        @Test
+        void shouldReturnTargetingKeyMissingIfTheFlagNeedsATargetingKeyToBucket() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.DEFAULT);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flagChangePollingIntervalMs(100L)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                // string_key buckets on a percentage default rule, so the engine cannot evaluate it blind
+                val got = client.getStringDetails("string_key", "default", new ImmutableContext());
+
+                assertEquals(ErrorCode.TARGETING_KEY_MISSING, got.getErrorCode());
+                assertEquals(Reason.ERROR.name(), got.getReason());
+                assertEquals("default", got.getValue());
+            }
         }
 
         @DisplayName("Should be in FATAL state if the relay proxy rejects the credentials")
