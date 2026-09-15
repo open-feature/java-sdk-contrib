@@ -2,18 +2,13 @@ package dev.openfeature.contrib.providers.gofeatureflag.wasm;
 
 import com.dylibso.chicory.runtime.ByteArrayMemory;
 import com.dylibso.chicory.runtime.ExportFunction;
-import com.dylibso.chicory.runtime.HostFunction;
-import com.dylibso.chicory.runtime.ImportFunction;
 import com.dylibso.chicory.runtime.ImportValues;
 import com.dylibso.chicory.runtime.Instance;
 import com.dylibso.chicory.runtime.Memory;
 import com.dylibso.chicory.runtime.WasmException;
-import com.dylibso.chicory.wasi.WasiExitException;
 import com.dylibso.chicory.wasi.WasiOptions;
 import com.dylibso.chicory.wasi.WasiPreview1;
 import com.dylibso.chicory.wasm.ChicoryException;
-import com.dylibso.chicory.wasm.types.FunctionType;
-import com.dylibso.chicory.wasm.types.ValType;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.WasmFileNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
@@ -21,9 +16,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.val;
 
@@ -51,42 +43,22 @@ public final class EvaluationWasm {
      * @throws WasmFileNotFound - if the WASM file is not found
      */
     public EvaluationWasm() throws WasmFileNotFound {
-        // We will create two output streams to capture stdout and stderr
         val wasi = WasiPreview1.builder()
-                .withOptions(WasiOptions.builder().inheritSystem().build())
+                .withOptions(WasiOptions.builder()
+                        .inheritSystem()
+                        .withThrowOnExit0(false)
+                        .build())
                 .build();
-        List<ImportFunction> hostFunctions =
-                Arrays.stream(wasi.toHostFunctions()).map(this::replaceProcExit).collect(Collectors.toList());
         this.instance = Instance.builder(Module.load())
                 .withMemoryFactory(ByteArrayMemory::new)
                 .withMachineFactory(Module::create)
-                .withImportValues(
-                        ImportValues.builder().withFunctions(hostFunctions).build())
+                .withImportValues(ImportValues.builder()
+                        .addFunction(wasi.toHostFunctions())
+                        .build())
                 .build();
         this.evaluate = this.instance.export("evaluate");
         this.malloc = this.instance.export("malloc");
         this.free = this.instance.export("free");
-    }
-
-    private ImportFunction replaceProcExit(HostFunction hf) {
-        return hf.name().equals("proc_exit") ? getProcExitFunc() : hf;
-    }
-
-    /**
-     * getProcExitFunc is a function that is called when the WASM module calls
-     * proc_exit. It throws a WasiExitException with the exit code.
-     * By default, the exit code is 0, and it raises an Exception.
-     *
-     * @return a HostFunction that is called when the WASM module calls proc_exit
-     */
-    private ImportFunction getProcExitFunc() {
-        return new HostFunction(
-                "wasi_snapshot_preview1", "proc_exit", FunctionType.accepting(ValType.I32), (instance, args) -> {
-                    if ((int) args[0] != 0) {
-                        throw new WasiExitException((int) args[0]);
-                    }
-                    return null;
-                });
     }
 
     /**
