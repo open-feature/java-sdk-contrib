@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -14,8 +15,10 @@ import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -155,5 +158,47 @@ class EvaluationServiceTest {
         response.setReason(Reason.TARGETING_MATCH.name());
         response.setVariationType("enabled");
         return response;
+    }
+
+    @DisplayName("Should return the caller default and keep the engine details when the value is null")
+    @Test
+    void shouldReturnTheCallerDefaultAndKeepTheEngineDetailsWhenTheValueIsNull() {
+        GoFeatureFlagResponse response = responseWithValue(null);
+        response.setMetadata(Map.of("description", "a flag with no value"));
+
+        when(mockEvaluator.evaluate(anyString(), any(), any(EvaluationContext.class)))
+                .thenReturn(response);
+
+        ProviderEvaluation<Boolean> result =
+                evaluationService.getEvaluation("test-flag", true, evaluationContext, Boolean.class);
+
+        assertEquals(true, result.getValue());
+        assertEquals(Reason.DEFAULT.name(), result.getReason());
+        assertNull(result.getVariant());
+        assertEquals("a flag with no value", result.getFlagMetadata().getString("description"));
+        assertNull(result.getErrorCode());
+    }
+
+    @DisplayName("Should not return a zero value when the value is null")
+    @Test
+    void shouldNotReturnAZeroValueWhenTheValueIsNull() {
+        when(mockEvaluator.evaluate(anyString(), any(), any(EvaluationContext.class)))
+                .thenReturn(responseWithValue(null));
+
+        assertEquals(
+                42,
+                evaluationService
+                        .getEvaluation("test-flag", 42, evaluationContext, Integer.class)
+                        .getValue());
+        assertEquals(
+                "caller-default",
+                evaluationService
+                        .getEvaluation("test-flag", "caller-default", evaluationContext, String.class)
+                        .getValue());
+        assertEquals(
+                new Value("caller-default"),
+                evaluationService
+                        .getEvaluation("test-flag", new Value("caller-default"), evaluationContext, Value.class)
+                        .getValue());
     }
 }
