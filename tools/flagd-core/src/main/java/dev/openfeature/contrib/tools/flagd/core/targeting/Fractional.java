@@ -2,13 +2,15 @@ package dev.openfeature.contrib.tools.flagd.core.targeting;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.upokecenter.cbor.CBORObject;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.openfeature.contrib.tools.flagd.core.cbor.CborEncoder;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
@@ -22,6 +24,7 @@ import org.apache.commons.codec.digest.MurmurHash3;
 class Fractional implements PreEvaluatedArgumentsExpression {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonNodeFactory NODE_FACTORY = JsonNodeFactory.instance;
     static final int MAX_WEIGHT = Integer.MAX_VALUE;
 
     @Override
@@ -110,15 +113,38 @@ class Fractional implements PreEvaluatedArgumentsExpression {
             throws JsonLogicEvaluationException {
         byte[] bytes;
         try {
-            JsonNode node = OBJECT_MAPPER.valueToTree(hashKey);
-            CBORObject dataItem = convertNode(node);
-            bytes = dataItem.EncodeToBytes();
+            JsonNode node = normalizeNumbers(OBJECT_MAPPER.valueToTree(hashKey));
+            bytes = CborEncoder.encode(node);
         } catch (Exception e) {
             log.debug("Error converting hashKey to CBOR", e);
             throw new JsonLogicEvaluationException("Error converting hashKey to CBOR", jsonPath);
         }
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
         return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
+    }
+
+    // normalize for hashing parity (ADR): whole doubles -> int, -0.0 -> 0, else unchanged
+    private static JsonNode normalizeNumbers(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode result = NODE_FACTORY.objectNode();
+            node.fields().forEachRemaining(field -> result.set(field.getKey(), normalizeNumbers(field.getValue())));
+            return result;
+        }
+        if (node.isArray()) {
+            ArrayNode result = NODE_FACTORY.arrayNode();
+            node.forEach(child -> result.add(normalizeNumbers(child)));
+            return result;
+        }
+        if (node.isFloatingPointNumber()) {
+            double value = node.asDouble();
+            if (!Double.isInfinite(value)
+                    && value == Math.floor(value)
+                    && value >= Long.MIN_VALUE
+                    && value <= Long.MAX_VALUE) {
+                return NODE_FACTORY.numberNode((long) value);
+            }
+        }
+        return node;
     }
 
     /**
@@ -151,60 +177,6 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
         // this shall not be reached
         throw new JsonLogicEvaluationException("Unable to find a correct bucket for hash " + hash, jsonPath);
-    }
-
-    private static final Comparator<String> KEY_COMPARATOR = (k1, k2) -> {
-        byte[] b1 = k1.getBytes(StandardCharsets.UTF_8);
-        byte[] b2 = k2.getBytes(StandardCharsets.UTF_8);
-        if (b1.length != b2.length) {
-            return Integer.compare(b1.length, b2.length);
-        }
-        for (int i = 0; i < b1.length; i++) {
-            int v1 = b1[i] & 0xFF;
-            int v2 = b2[i] & 0xFF;
-            if (v1 != v2) {
-                return Integer.compare(v1, v2);
-            }
-        }
-        return 0;
-    };
-
-    private static CBORObject convertNode(JsonNode node) {
-        if (node.isNull()) {
-            return CBORObject.Null;
-        } else if (node.isBoolean()) {
-            return node.asBoolean() ? CBORObject.True : CBORObject.False;
-        } else if (node.isTextual()) {
-            return CBORObject.FromObject(node.asText());
-        } else if (node.isNumber()) {
-            if (node.isIntegralNumber()) {
-                return CBORObject.FromObject(node.asLong());
-            } else {
-                double val = node.asDouble();
-                if (val == Math.floor(val) && val >= Long.MIN_VALUE && val <= Long.MAX_VALUE) {
-                    return CBORObject.FromObject((long) val);
-                }
-                return CBORObject.FromObject(val);
-            }
-        } else if (node.isArray()) {
-            CBORObject array = CBORObject.NewArray();
-            for (JsonNode item : node) {
-                CBORObject child = convertNode(item);
-                array.Add(child);
-            }
-            return array;
-        } else if (node.isObject()) {
-            CBORObject map = CBORObject.NewOrderedMap();
-            List<String> fieldNames = new ArrayList<>();
-            node.fieldNames().forEachRemaining(fieldNames::add);
-            fieldNames.sort(KEY_COMPARATOR);
-            for (String fieldName : fieldNames) {
-                CBORObject child = convertNode(node.get(fieldName));
-                map.Add(fieldName, child);
-            }
-            return map;
-        }
-        throw new IllegalArgumentException("Unsupported node type: " + node.getNodeType());
     }
 
     @Getter
