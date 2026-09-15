@@ -12,6 +12,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.api.bean.OfrepResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.AuthenticationFailure;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToRetrieveConfiguration;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToSendEventsException;
@@ -201,7 +202,7 @@ public final class GoFeatureFlagApi {
                     throw new FlagConfigurationEndpointNotFound();
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
                 case HttpURLConnection.HTTP_FORBIDDEN:
-                    throw new ImpossibleToRetrieveConfiguration(
+                    throw new AuthenticationFailure(
                             "retrieve flag configuration error: authentication/authorization error");
                 case HttpURLConnection.HTTP_BAD_REQUEST:
                     throw new ImpossibleToRetrieveConfiguration(

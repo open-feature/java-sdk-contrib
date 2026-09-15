@@ -14,6 +14,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.TrackingEvent;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.AuthenticationFailure;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToRetrieveConfiguration;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToSendEventsException;
@@ -699,9 +700,9 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
+            // fatal, not retryable: the SDK moves the provider to FATAL on a PROVIDER_FATAL error
             assertThrows(
-                    ImpossibleToRetrieveConfiguration.class,
-                    () -> api.retrieveFlagConfiguration("401", Collections.emptyList()));
+                    AuthenticationFailure.class, () -> api.retrieveFlagConfiguration("401", Collections.emptyList()));
         }
 
         @SneakyThrows
@@ -712,9 +713,9 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
+            // fatal, not retryable: the SDK moves the provider to FATAL on a PROVIDER_FATAL error
             assertThrows(
-                    ImpossibleToRetrieveConfiguration.class,
-                    () -> api.retrieveFlagConfiguration("403", Collections.emptyList()));
+                    AuthenticationFailure.class, () -> api.retrieveFlagConfiguration("403", Collections.emptyList()));
         }
 
         @SneakyThrows
