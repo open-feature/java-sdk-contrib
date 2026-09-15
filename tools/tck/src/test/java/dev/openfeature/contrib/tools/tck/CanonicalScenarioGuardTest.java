@@ -50,11 +50,13 @@ class CanonicalScenarioGuardTest {
                 .as("every canonical scenario comes from a packaged feature file")
                 .allSatisfy(ref -> assertThat(ref.toString()).startsWith(ProviderTck.FEATURES + "/"));
 
-        // The eleven rows of the type-mismatch matrix share one name, so a set that counted scenarios
+        // The eight rows of the type-mismatch matrix share one name, so a set that counted scenarios
         // by name would see one of them. Each Examples row is its own line and its own entry.
+        // Eleven until specification revision d47a66eb moved the three "requested as a String" rows
+        // onto @string-typing, where a backend that stores every value as a string can withhold them.
         assertThat(canonical)
                 .filteredOn(ref -> ref.toString().contains("Requesting the wrong type returns the code default"))
-                .hasSize(11);
+                .hasSize(8);
     }
 
     @Test
