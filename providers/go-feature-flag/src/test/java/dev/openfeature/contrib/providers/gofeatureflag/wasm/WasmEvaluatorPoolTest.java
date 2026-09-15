@@ -6,11 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.FlagContext;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.Reason;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -139,5 +143,47 @@ class WasmEvaluatorPoolTest {
 
         assertEquals("PARSE_ERROR", got.getErrorCode());
         assertFalse(instance.isPoisoned(), "a guarded input is not a guest fault, the instance is still healthy");
+    }
+
+    @SneakyThrows
+    @DisplayName("closing the pool should release every instance it holds")
+    @Test
+    void closingThePoolShouldReleaseEveryInstanceItHolds() {
+        val first = instanceThatIsPoisonedAfterEvaluating(false);
+        val second = instanceThatIsPoisonedAfterEvaluating(false);
+        val pool = new WasmEvaluatorPool(2, new RecordingFactory(List.of(first, second)));
+
+        pool.close();
+
+        verify(first).close();
+        verify(second).close();
+    }
+
+    @SneakyThrows
+    @DisplayName("a discarded instance should be released rather than left holding its descriptors")
+    @Test
+    void aDiscardedInstanceShouldBeReleasedRatherThanLeftHoldingItsDescriptors() {
+        val trapped = instanceThatIsPoisonedAfterEvaluating(true);
+        val replacement = instanceThatIsPoisonedAfterEvaluating(false);
+        val pool = new WasmEvaluatorPool(1, new RecordingFactory(List.of(trapped, replacement)));
+
+        pool.evaluate(input().value);
+
+        verify(trapped).close();
+        verify(replacement, never()).close();
+    }
+
+    @SneakyThrows
+    @DisplayName("a closed pool should answer with an error instead of blocking on an empty queue")
+    @Test
+    void aClosedPoolShouldAnswerWithAnErrorInsteadOfBlockingOnAnEmptyQueue() {
+        val instance = instanceThatIsPoisonedAfterEvaluating(false);
+        val pool = new WasmEvaluatorPool(1, new RecordingFactory(List.of(instance)));
+        pool.close();
+
+        val got = pool.evaluate(input().value);
+
+        assertEquals(ErrorCode.GENERAL.name(), got.getErrorCode());
+        assertEquals(Reason.ERROR.name(), got.getReason());
     }
 }
