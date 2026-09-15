@@ -86,6 +86,32 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      * <p>{@code STANDARD_REASONS} and {@code NUMERIC_COERCION} are declared and both fail: this
      * provider attempts each and gets it wrong, so the failures belong in the results.
      *
+     * <p><strong>{@code STRING_TYPING} is withheld, and this is the backend the capability was
+     * created for.</strong> Measured rather than predicted: with the tag declared, two of its four
+     * scenarios fail and two pass. {@code float-flag} through the String accessor resolves to
+     * {@code "0.5"} and {@code object-flag} to its raw JSON text, while {@code boolean-flag} and
+     * {@code integer-flag} report {@code TYPE_MISMATCH} correctly. The split is exactly Flagsmith's
+     * type system: {@code feature_state_value} is natively boolean, integer or string, so a boolean
+     * flag really is a boolean and an integer really is an integer — but a float and a structure
+     * have no native type and are <em>stored as strings</em>. Asked for as strings, they are
+     * returned, and that is the resolved flag value.
+     *
+     * <p>Withheld rather than declared-and-failing, which is the opposite call from
+     * {@code NUMERIC_COERCION} above, and Appendix F's declaring rules are what separate them. The
+     * rule about scenarios being askable is subordinate to a prior question — whether the provider
+     * owes an answer at all — and for this tag it does not: {@code TYPE_MISMATCH} is obliged by no
+     * requirement, and the only normative statement about value type is Requirement 1.3.4, a
+     * {@code SHOULD} on the client. Where the specification permits declining, withholding is the
+     * honest report however askable the scenarios are, and a {@link KnownDeviation} would assert a
+     * defect that does not exist. {@code NUMERIC_COERCION} is declared because flagd's ADR is a rule
+     * this suite binds providers to; nothing binds Flagsmith to report a type its backend does not
+     * have.
+     *
+     * <p>The cost is stated rather than hidden: withholding skips the two scenarios this provider
+     * gets right along with the two it does not, because the tag is the unit of declaration and the
+     * backend's typing is not uniform across the four flags. Revisit if the capability is ever split
+     * by flag type.
+     *
      * <p>{@code DISABLED_FLAGS} is declared. Flagsmith's native model is {@code enabled} plus a
      * value, so the canonical set's four disabled-* flags map straight onto it.
      *
@@ -117,16 +143,6 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
                                 + "and simply leaves the field out, so running them establishes something. The Go "
                                 + "Flagsmith provider reports STATIC, DISABLED and TARGETING_MATCH against the "
                                 + "identical backend, which is what makes this a gap rather than a considered choice."),
-                KnownDeviation.untracked(
-                        null,
-                        "float-flag requested as a String resolves to \"0.5\" rather than reporting TYPE_MISMATCH, in "
-                                + "an untagged row of the wrong-type outline, and object-flag as a String resolves to "
-                                + "the raw JSON text beside it. Flagsmith has no float type and no object type -- "
-                                + "feature_state_value is natively boolean, integer or string -- so on this backend "
-                                + "both really are strings and neither request is a type mismatch. Recorded because "
-                                + "the scenarios are mandatory and fail, not because the provider is wrong: whether "
-                                + "the type-mismatch matrix is satisfiable against a backend with a coarser type "
-                                + "system is an open question for the suite. All four language adoptions fail these."),
                 KnownDeviation.untracked(
                 Capability.NUMERIC_COERCION,
                 "Withheld pending the run, and recorded as a prediction rather than a measurement. "
