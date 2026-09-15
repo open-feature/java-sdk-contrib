@@ -140,6 +140,42 @@ public enum Capability {
     NUMERIC_COERCION("@numeric-coercion"),
 
     /**
+     * Provider reports {@code TYPE_MISMATCH} for a non-string flag requested as a string, rather
+     * than the value's string representation.
+     *
+     * <p>The same gap as {@link #NUMERIC_COERCION}, one type further out, and gated for a stronger
+     * reason: every value has a string representation, so a backend that stores flag values as
+     * strings satisfies the string accessor for <em>every</em> flag and has no mismatch to report.
+     * Its flags are strings, and
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md">Requirement
+     * 2.2.3</a> asks it to populate {@code value} with the resolved flag value, which it did.
+     *
+     * <p>Nothing in the specification contradicts that, because the specification never says what
+     * the type of a flag value <strong>is</strong>. {@code TYPE_MISMATCH} appears once, as a row in
+     * the <a href="https://github.com/open-feature/spec/blob/main/specification/types.md">error code
+     * table</a>, and no requirement obliges anyone to raise it; the only normative statement about
+     * value type is
+     * <a href="https://github.com/open-feature/spec/blob/main/specification/sections/01-flag-evaluation.md">Requirement
+     * 1.3.4</a>, a {@code SHOULD} and on the <em>client</em> rather than the provider. So
+     * <strong>a provider that withholds this tag is not violating the specification</strong> and
+     * owes no {@link KnownDeviation} — the same instrument, and the same reasoning, as the numeric
+     * rule it sits beside.
+     *
+     * <p>Gates four scenarios in {@code gherkin/errors.feature}, which were mandatory until
+     * specification revision {@code d47a66eb} moved them out: {@code boolean-flag},
+     * {@code integer-flag} and {@code float-flag} requested as strings, and {@code object-flag}
+     * requested as a string. That last one carries {@link #OBJECT} as well, since a provider with no
+     * structured values cannot be asked the question at all, so withholding either tag skips it.
+     *
+     * <p>Java-specific consequence: {@code Client.getStringDetails} is the one accessor every
+     * backend can satisfy, so this tag is a claim about the <em>backend's</em> typing rather than
+     * about anything the SDK does. A provider over a typed backend — flagd's resolvers, OFREP —
+     * declares it; one over a backend that stores values as strings withholds it with the reason
+     * recorded.
+     */
+    STRING_TYPING("@string-typing"),
+
+    /**
      * Provider resolves integers up to 2^53 − 1 exactly.
      *
      * <p><strong>{@linkplain #inexpressible() Inexpressible} in Java, so no Java provider may

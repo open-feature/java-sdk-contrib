@@ -199,9 +199,9 @@ below is a member of `Capability`.
 | `REINITIALIZATION` | `@reinitialization` | | `NUMERIC_COERCION` | `@numeric-coercion` |
 | `EVENTS` | `@events` | | `TARGETING` | `@targeting` |
 | `STALE` | `@stale` | | `STANDARD_REASONS` | `@standard-reasons` |
-| `CONFIGURATION_CHANGE` | `@configuration-change` | | `LARGE_INTEGERS` | `@large-integers` ¹ |
-| `OBJECT` | `@object` | | `CACHING` | `@caching` ² |
-| `VARIANTS` | `@variants` | | | |
+| `CONFIGURATION_CHANGE` | `@configuration-change` | | `STRING_TYPING` | `@string-typing` |
+| `OBJECT` | `@object` | | `LARGE_INTEGERS` | `@large-integers` ¹ |
+| `VARIANTS` | `@variants` | | `CACHING` | `@caching` ² |
 | `DISABLED_FLAGS` | `@disabled-flags` | | | |
 
 ¹ not declarable in Java &nbsp;&nbsp; ² reserved, not declarable
