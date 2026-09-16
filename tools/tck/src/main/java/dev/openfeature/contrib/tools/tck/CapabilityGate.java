@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.tck;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +28,10 @@ import org.opentest4j.TestAbortedException;
  * provider: a capability this SDK {@linkplain Capability#inexpressible() cannot express}. Its skip
  * reason is deliberately different from an undeclared capability's, because a report's reader has
  * to be able to tell them apart.
+ *
+ * <p>The fourth is the second one's own direction reversed, and fails too: a <em>canonical</em>
+ * scenario carrying a tag this vocabulary does not know at all. See
+ * {@link #requireKnownVocabulary}.
  */
 public final class CapabilityGate {
 
@@ -58,11 +63,35 @@ public final class CapabilityGate {
      * @throws TestAbortedException if a tag gates an inexpressible or an undeclared capability
      */
     public static void requireDeclared(Collection<String> tags, Set<Capability> declared) {
-        requireNoExpiredReservation(tags);
+        requireDeclared(null, tags, declared);
+    }
 
+    /**
+     * Applies every gate rule to a scenario about to run, knowing where the scenario came from.
+     *
+     * <p>The overload {@link #requireDeclared(Collection, Set)} calls into this one with no source,
+     * which is every rule except {@link #requireKnownVocabulary} — that one is the only rule whose
+     * answer depends on whether the scenario is canonical, and it cannot be applied to a scenario
+     * of unknown origin without failing an adopter's own feature file for using its own tag.
+     *
+     * @param source the scenario's feature file, as Cucumber reports it, or {@code null} if unknown
+     * @param tags the scenario's Gherkin tags, including the leading at-sign
+     * @param declared the capabilities the provider declares
+     * @throws IllegalStateException if a tag names a reserved capability, or if a canonical
+     *     scenario carries a tag this vocabulary does not know
+     * @throws TestAbortedException if a tag gates an inexpressible or an undeclared capability
+     */
+    public static void requireDeclared(URI source, Collection<String> tags, Set<Capability> declared) {
+        requireNoExpiredReservation(tags);
+        requireKnownVocabulary(source, tags);
         for (String tag : tags) {
             Optional<Capability> found = Capability.fromTag(tag);
             if (!found.isPresent()) {
+                // Not a capability tag as far as this vocabulary is concerned, so it gates nothing
+                // here. Skipping it is right for an adopter's own tag under extensions/ and wrong
+                // for a canonical one, and the two are told apart by requireKnownVocabulary above
+                // rather than here — by the time this loop runs, an unknown canonical tag has
+                // already failed the scenario.
                 continue;
             }
             Capability capability = found.get();
@@ -78,6 +107,95 @@ public final class CapabilityGate {
                         + " (tag " + tag + "). Declared capabilities: " + declared);
             }
         }
+    }
+
+    /**
+     * Fails the run if a canonical scenario carries a tag this vocabulary does not know.
+     *
+     * <p>{@link #requireNoExpiredReservation} run backwards. That one catches a tag this
+     * implementation knows and says nothing carries; this one catches a tag something carries and
+     * this implementation does not know. Both end in a scenario whose gating is wrong in a way no
+     * result reports, and this direction is the easier of the two to leave out — <strong>an unknown
+     * tag gates nothing, so its scenarios stay mandatory for every adopter</strong>. A suite that
+     * has not learned a new capability does not report a new capability; it silently keeps
+     * demanding the old behaviour, and the symptom is a provider that legitimately withholds the
+     * capability showing unexplained failures while every other provider stays green. Nothing in
+     * the results says why. All four reference implementations ignored an unknown tag rather than
+     * failing before Appendix F made this normative, and this package was one of them: the loop in
+     * {@link #requireDeclared} did nothing but {@code continue}.
+     *
+     * <p><strong>Canonical scenarios only, and that restriction is not a weakening.</strong> The
+     * extension point exists so an adopter can add feature files under
+     * {@link ProviderTck#EXTENSIONS} with tags of its own, which this vocabulary is not supposed to
+     * know — failing those would make the extension point unusable, and {@code DeclarationApiTest}
+     * pins that a tag gating nothing is tolerated. What distinguishes them is the directory:
+     * {@link ProviderTck#FEATURES} holds the canonical set and nothing else, which is why
+     * {@code EXTENSIONS} is deliberately a different name rather than a subdirectory of it. A tag
+     * in <em>there</em> that resolves to nothing is a capability this implementation has not
+     * learned.
+     *
+     * <p>Checked at run time as well as in this artifact's own tests, and the run-time half is not
+     * redundant: {@code CanonicalTagCoverageTest} reads the assets packaged in <em>this</em> build,
+     * and an adopter can put a {@code gherkin/} directory on a classpath root that shadows the
+     * packaged one. Appendix F also requires the check to be in force where the scenarios execute,
+     * which the artifact's own test suite is not.
+     *
+     * @param source the scenario's feature file, as Cucumber reports it, or {@code null} if unknown
+     * @param tags the scenario's Gherkin tags, including the leading at-sign
+     * @throws IllegalStateException if the scenario is canonical and carries an unknown tag
+     */
+    public static void requireKnownVocabulary(URI source, Collection<String> tags) {
+        if (!isCanonical(source)) {
+            return;
+        }
+        List<String> unknown = new ArrayList<>();
+        for (String tag : tags) {
+            if (!Capability.fromTag(tag).isPresent()) {
+                unknown.add(tag);
+            }
+        }
+        if (unknown.isEmpty()) {
+            return;
+        }
+        throw new IllegalStateException("The canonical scenario at " + source + " carries " + unknown
+                + ", which this implementation's capability vocabulary does not know. An unknown tag "
+                + "gates nothing, so without this check the scenario would stay mandatory for every "
+                + "adopter — including one that legitimately cannot support the capability, which "
+                + "would see unexplained failures while every other provider stayed green, and "
+                + "nothing in the results would say why. The pinned specification revision has "
+                + "added a capability this package has not: add it to the Capability enum, beside "
+                + "the tag it was split from or grouped with, and say in its javadoc what declaring "
+                + "it claims. If instead this is a feature file of your own, move it under "
+                + ProviderTck.EXTENSIONS + "/ — " + ProviderTck.FEATURES + "/ is the canonical set "
+                + "and is checked against the vocabulary.");
+    }
+
+    /**
+     * Whether a scenario came from the canonical set rather than from an adopter's extension.
+     *
+     * <p>Decided on the feature file's immediate parent directory being
+     * {@link ProviderTck#FEATURES}, over the URI Cucumber reports — {@code classpath:gherkin/
+     * errors.feature} for the packaged assets, a {@code file:} URI when the features are read from
+     * a directory. Only the last two segments are looked at, so neither form needs special casing
+     * and a shadowing copy on another classpath root is still canonical, which is the point.
+     *
+     * <p>A {@code null} source is not canonical. It is what the two-argument
+     * {@link #requireDeclared(Collection, Set)} passes, and the callers that use it are tests
+     * asserting the other three rules over a bare tag list; treating an unknown origin as canonical
+     * would make those assert this rule by accident.
+     */
+    private static boolean isCanonical(URI source) {
+        if (source == null) {
+            return false;
+        }
+        String path = source.toString().replace('\\', '/');
+        int lastSeparator = path.lastIndexOf('/');
+        if (lastSeparator < 0) {
+            return false;
+        }
+        String parent = path.substring(0, lastSeparator);
+        int start = Math.max(parent.lastIndexOf('/'), parent.lastIndexOf(':')) + 1;
+        return ProviderTck.FEATURES.equals(parent.substring(start));
     }
 
     /**
