@@ -122,6 +122,7 @@ public class ControllableProviderTckTest extends ProviderTckTest {
                 Capability.VARIANTS,
                 Capability.DISABLED_FLAGS,
                 Capability.STRING_TYPING,
+                Capability.FULLY_TYPED_VALUES,
                 Capability.STANDARD_REASONS);
     }
 }
