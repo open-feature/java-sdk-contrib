@@ -32,10 +32,10 @@ public class EnrichEvaluationContextHook implements Hook<String> {
             return Optional.of(ctx.getCtx());
         }
 
-        MutableContext mutableContext =
+        final MutableContext mutableContext =
                 new MutableContext(ctx.getCtx().getTargetingKey(), ctx.getCtx().asMap());
 
-        MutableStructure metadata = new MutableStructure();
+        final MutableStructure metadata = new MutableStructure();
         for (Map.Entry<String, Object> entry : exporterMetadata.entrySet()) {
             switch (entry.getValue().getClass().getSimpleName()) {
                 case "String":
