@@ -18,7 +18,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.ExceptionUtils;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -234,18 +234,9 @@ public class InProcessEvaluator implements IEvaluator {
      */
     static <T> ProviderEvaluation<T> toProviderEvaluation(
             final String key, final T defaultValue, final GoFeatureFlagResponse response, final Class<?> expectedType) {
-        if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(response.getErrorCode())) {
-            throw new FlagNotFoundError("Flag " + key + " was not found in your configuration");
-        }
-
-        // the engine reports a successful evaluation with an empty error code, not a null one.
         if (response.getErrorCode() != null && !response.getErrorCode().isEmpty()) {
-            return ProviderEvaluation.<T>builder()
-                    .errorCode(mapErrorCode(response.getErrorCode()))
-                    .errorMessage(response.getErrorDetails())
-                    .reason(Reason.ERROR.name())
-                    .value(defaultValue)
-                    .build();
+            throw ExceptionUtils.instantiateErrorByErrorCode(
+                    mapErrorCode(response.getErrorCode()), response.getErrorDetails());
         }
 
         if (Reason.DISABLED.name().equalsIgnoreCase(response.getReason())) {
@@ -273,7 +264,6 @@ public class InProcessEvaluator implements IEvaluator {
         }
 
         return ProviderEvaluation.<T>builder()
-                .errorCode(mapErrorCode(response.getErrorCode()))
                 .reason(response.getReason())
                 .value(flagValue)
                 .variant(response.getVariationType())

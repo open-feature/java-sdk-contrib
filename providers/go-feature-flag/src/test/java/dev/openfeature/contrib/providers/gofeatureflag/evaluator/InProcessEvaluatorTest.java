@@ -18,6 +18,11 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.GeneralError;
+import dev.openfeature.sdk.exceptions.InvalidContextError;
+import dev.openfeature.sdk.exceptions.ParseError;
+import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
+import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
 import java.util.Map;
@@ -86,12 +91,16 @@ class InProcessEvaluatorTest {
     @DisplayName("should report PROVIDER_NOT_READY before any configuration is loaded")
     @Test
     void shouldReportProviderNotReadyBeforeAnyConfigurationIsLoaded() {
-        val got = evaluator(this.server)
-                .getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("user-key"));
+        val evaluator = evaluator(this.server);
 
-        assertEquals(ErrorCode.PROVIDER_NOT_READY, got.getErrorCode());
-        assertEquals(Reason.ERROR.name(), got.getReason());
-        assertEquals(false, got.getValue());
+        val error = assertThrows(
+                ProviderNotReadyError.class,
+                () -> evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("user-key")));
+
+        assertEquals(ErrorCode.PROVIDER_NOT_READY, error.getErrorCode());
+        assertEquals(
+                "impossible to evaluate flag bool_targeting_match: no flag configuration has been loaded yet",
+                error.getMessage());
     }
 
     @SneakyThrows
@@ -103,11 +112,14 @@ class InProcessEvaluatorTest {
             val evaluator = evaluator(s);
             assertThrows(FlagConfigurationEndpointNotFound.class, () -> evaluator.initialize(new ImmutableContext()));
 
-            val got = evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("user-key"));
+            val error = assertThrows(
+                    ProviderNotReadyError.class,
+                    () -> evaluator.getBooleanEvaluation(
+                            "bool_targeting_match", false, new ImmutableContext("user-key")));
 
-            assertEquals(ErrorCode.PROVIDER_NOT_READY, got.getErrorCode());
+            assertEquals(ErrorCode.PROVIDER_NOT_READY, error.getErrorCode());
             // the flag key is not at fault here, the relay proxy is
-            assertNotEquals(ErrorCode.FLAG_NOT_FOUND, got.getErrorCode());
+            assertNotEquals(ErrorCode.FLAG_NOT_FOUND, error.getErrorCode());
         }
     }
 
@@ -180,9 +192,11 @@ class InProcessEvaluatorTest {
         val evaluator = evaluator(this.server);
         evaluator.initialize(new ImmutableContext());
 
-        val got = evaluator.getStringEvaluation("string_key", "default", new ImmutableContext());
+        val error = assertThrows(
+                TargetingKeyMissingError.class,
+                () -> evaluator.getStringEvaluation("string_key", "default", new ImmutableContext()));
 
-        assertEquals(ErrorCode.TARGETING_KEY_MISSING, got.getErrorCode());
+        assertEquals(ErrorCode.TARGETING_KEY_MISSING, error.getErrorCode());
         evaluator.shutdown();
     }
 
@@ -216,20 +230,60 @@ class InProcessEvaluatorTest {
             assertEquals("Flag test-flag was not found in your configuration", exception.getMessage());
         }
 
-        @DisplayName("Should return error response for other error codes")
+        @DisplayName("Should raise the matching SDK error for other error codes")
         @Test
-        void shouldReturnErrorResponseForOtherErrorCodes() {
+        void shouldRaiseTheMatchingSdkErrorForOtherErrorCodes() {
             val response = new GoFeatureFlagResponse();
             response.setErrorCode(ErrorCode.GENERAL.name());
             response.setErrorDetails("Some other error occurred");
             response.setValue(false);
 
-            ProviderEvaluation<Boolean> result = toProviderEvaluation("test-flag", false, response, Boolean.class);
+            val error = assertThrows(
+                    GeneralError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
 
-            assertEquals(ErrorCode.GENERAL, result.getErrorCode());
-            assertEquals("Some other error occurred", result.getErrorMessage());
-            assertEquals(Reason.ERROR.name(), result.getReason());
-            assertEquals(false, result.getValue());
+            assertEquals(ErrorCode.GENERAL, error.getErrorCode());
+            assertEquals("Some other error occurred", error.getMessage());
+        }
+
+        @DisplayName("Should raise a TargetingKeyMissingError when the engine reports one")
+        @Test
+        void shouldRaiseATargetingKeyMissingErrorWhenTheEngineReportsOne() {
+            val response = new GoFeatureFlagResponse();
+            response.setErrorCode(ErrorCode.TARGETING_KEY_MISSING.name());
+            response.setErrorDetails("Error: Empty targeting key");
+
+            val error = assertThrows(
+                    TargetingKeyMissingError.class,
+                    () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
+
+            assertEquals(ErrorCode.TARGETING_KEY_MISSING, error.getErrorCode());
+            assertEquals("Error: Empty targeting key", error.getMessage());
+        }
+
+        @DisplayName("Should raise an InvalidContextError when the engine reports one")
+        @Test
+        void shouldRaiseAnInvalidContextErrorWhenTheEngineReportsOne() {
+            val response = new GoFeatureFlagResponse();
+            response.setErrorCode(ErrorCode.INVALID_CONTEXT.name());
+            response.setErrorDetails("the evaluation context is invalid");
+
+            val error = assertThrows(
+                    InvalidContextError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
+
+            assertEquals(ErrorCode.INVALID_CONTEXT, error.getErrorCode());
+        }
+
+        @DisplayName("Should raise a ParseError when the engine reports one")
+        @Test
+        void shouldRaiseAParseErrorWhenTheEngineReportsOne() {
+            val response = new GoFeatureFlagResponse();
+            response.setErrorCode(ErrorCode.PARSE_ERROR.name());
+            response.setErrorDetails("the flag could not be parsed");
+
+            val error = assertThrows(
+                    ParseError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
+
+            assertEquals(ErrorCode.PARSE_ERROR, error.getErrorCode());
         }
 
         @DisplayName("Should map an error code the SDK does not know to GENERAL")
@@ -240,11 +294,11 @@ class InProcessEvaluatorTest {
             response.setErrorCode("FLAG_CONFIG");
             response.setErrorDetails("the flag configuration is invalid");
 
-            ProviderEvaluation<Boolean> result = toProviderEvaluation("test-flag", false, response, Boolean.class);
+            val error = assertThrows(
+                    GeneralError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
 
-            assertEquals(ErrorCode.GENERAL, result.getErrorCode());
-            assertEquals("the flag configuration is invalid", result.getErrorMessage());
-            assertEquals(false, result.getValue());
+            assertEquals(ErrorCode.GENERAL, error.getErrorCode());
+            assertEquals("the flag configuration is invalid", error.getMessage());
         }
 
         @DisplayName("Should handle successful evaluation")
