@@ -64,7 +64,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         options.validate();
         this.options = options;
         this.api = GoFeatureFlagApi.builder().options(options).build();
-        this.evaluator = getEvaluator(this.api);
+        this.evaluator = getEvaluator();
 
         Consumer<List<IEvent>> publisher = this::publishEvents;
         this.eventsPublisher =
@@ -118,7 +118,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-         this.initialize(evaluationContext, "");
+        this.initialize(evaluationContext, "");
     }
 
     @Override
@@ -183,15 +183,14 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
 
     /**
      * Get the evaluator based on the evaluation type.
-     * It will initialize the evaluator based on the evaluation type.
      *
      * @return the evaluator
      */
-    private IEvaluator getEvaluator(final GoFeatureFlagApi api) {
+    private IEvaluator getEvaluator() {
         // Select the evaluator based on the evaluation type
         if (options.getEvaluationType() == null || options.getEvaluationType() == EvaluationType.IN_PROCESS) {
             Consumer<ProviderEventDetails> emitProviderConfigurationChanged = this::emitProviderConfigurationChanged;
-            return new InProcessEvaluator(api, this.options, emitProviderConfigurationChanged);
+            return new InProcessEvaluator(this.api, this.options, emitProviderConfigurationChanged);
         }
         return new RemoteEvaluator(this.options);
     }

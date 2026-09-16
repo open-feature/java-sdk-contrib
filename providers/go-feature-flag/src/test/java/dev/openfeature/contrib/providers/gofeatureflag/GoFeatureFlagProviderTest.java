@@ -941,7 +941,7 @@ class GoFeatureFlagProviderTest {
                         .flagKey("bool_flag")
                         .reason(Reason.ERROR.name())
                         .errorCode(ErrorCode.GENERAL)
-                        .errorMessage("Unknown error while retrieving flag ")
+                        .errorMessage("Unknown error while retrieving flag: bool_flag, status code: 500")
                         .build();
                 assertEquals(want, got);
             }
@@ -967,7 +967,7 @@ class GoFeatureFlagProviderTest {
                         .flagKey("bool_flag")
                         .reason(Reason.ERROR.name())
                         .errorCode(ErrorCode.GENERAL)
-                        .errorMessage("authentication/authorization error")
+                        .errorMessage("authentication/authorization error for flag: bool_flag")
                         .build();
                 assertEquals(want, got);
             }
@@ -994,7 +994,7 @@ class GoFeatureFlagProviderTest {
                         .flagKey("bool_flag")
                         .reason(Reason.ERROR.name())
                         .errorCode(ErrorCode.GENERAL)
-                        .errorMessage("authentication/authorization error")
+                        .errorMessage("authentication/authorization error for flag: bool_flag")
                         .build();
                 assertEquals(want, got);
             }
@@ -1016,7 +1016,7 @@ class GoFeatureFlagProviderTest {
                     .flagKey("does-not-exists")
                     .reason(Reason.ERROR.name())
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .errorMessage("Flag does-not-exists not found")
+                    .errorMessage("flag: does-not-exists not found")
                     .build();
             assertEquals(want, got);
         }
@@ -1036,9 +1036,12 @@ class GoFeatureFlagProviderTest {
                     .value("default")
                     .flagKey("bool_flag")
                     .reason(Reason.ERROR.name())
-                    .errorMessage(
-                            "Flag value bool_flag had unexpected type class java.lang.Boolean, expected class java.lang.String.")
+                    .errorMessage("Type mismatch: expected String but got Boolean")
                     .errorCode(ErrorCode.TYPE_MISMATCH)
+                    .flagMetadata(ImmutableMetadata.builder()
+                            .addString("description", "A flag that is always off")
+                            .addBoolean("gofeatureflag_cacheable", true)
+                            .build())
                     .build();
             assertEquals(want, got);
         }
@@ -1061,6 +1064,7 @@ class GoFeatureFlagProviderTest {
                     .reason(Reason.TARGETING_MATCH.name())
                     .flagMetadata(ImmutableMetadata.builder()
                             .addString("description", "A flag that is always off")
+                            .addBoolean("gofeatureflag_cacheable", true)
                             .build())
                     .build();
             assertEquals(want, got);
@@ -1084,6 +1088,7 @@ class GoFeatureFlagProviderTest {
                     .reason(Reason.TARGETING_MATCH.name())
                     .flagMetadata(ImmutableMetadata.builder()
                             .addString("description", "A flag that is always off")
+                            .addBoolean("gofeatureflag_cacheable", true)
                             .build())
                     .build();
             assertEquals(want, got);
@@ -1107,6 +1112,7 @@ class GoFeatureFlagProviderTest {
                     .reason(Reason.TARGETING_MATCH.name())
                     .flagMetadata(ImmutableMetadata.builder()
                             .addString("description", "A flag that is always off")
+                            .addBoolean("gofeatureflag_cacheable", true)
                             .build())
                     .build();
             assertEquals(want, got);
@@ -1130,6 +1136,7 @@ class GoFeatureFlagProviderTest {
                     .reason(Reason.TARGETING_MATCH.name())
                     .flagMetadata(ImmutableMetadata.builder()
                             .addString("description", "A flag that is always off")
+                            .addBoolean("gofeatureflag_cacheable", true)
                             .build())
                     .build();
             assertEquals(want, got);
@@ -1154,6 +1161,7 @@ class GoFeatureFlagProviderTest {
                     .reason(Reason.TARGETING_MATCH.name())
                     .flagMetadata(ImmutableMetadata.builder()
                             .addString("description", "A flag that is always off")
+                            .addBoolean("gofeatureflag_cacheable", true)
                             .build())
                     .build();
             assertEquals(want, got);

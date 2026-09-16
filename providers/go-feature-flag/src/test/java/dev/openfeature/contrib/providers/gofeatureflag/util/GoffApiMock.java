@@ -14,6 +14,13 @@ import okhttp3.mockwebserver.SocketPolicy;
 
 public class GoffApiMock {
     private static final String ofrepResponseDir = "ofrep_evaluate_responses/";
+    /**
+     * body the relay proxy returns alongside an OFREP error status. The status alone is not enough:
+     * an OFREP client reads the body of every response, so a bodiless error is not representative.
+     */
+    private static final String ofrepErrorBody =
+            "{\"errorCode\":\"GENERAL\",\"errorDetails\":\"error\",\"metadata\":{}}";
+
     private final MockMode mode;
 
     @Getter
@@ -36,11 +43,11 @@ public class GoffApiMock {
         public MockResponse dispatch(RecordedRequest request) {
             switch (mode) {
                 case ENDPOINT_ERROR:
-                    return new MockResponse().setResponseCode(500);
+                    return new MockResponse().setResponseCode(500).setBody(ofrepErrorBody);
                 case API_KEY_MISSING:
-                    return new MockResponse().setResponseCode(401);
+                    return new MockResponse().setResponseCode(401).setBody(ofrepErrorBody);
                 case INVALID_API_KEY:
-                    return new MockResponse().setResponseCode(403);
+                    return new MockResponse().setResponseCode(403).setBody(ofrepErrorBody);
             }
 
             lastRequestBody = request.getBody().readUtf8();
@@ -84,11 +91,11 @@ public class GoffApiMock {
                         .setResponseCode(400)
                         .setBody(TestUtils.readMockResponse(ofrepResponseDir, flagName + ".json"));
             case "401":
-                return new MockResponse().setResponseCode(401);
+                return new MockResponse().setResponseCode(401).setBody(ofrepErrorBody);
             case "403":
-                return new MockResponse().setResponseCode(403);
+                return new MockResponse().setResponseCode(403).setBody(ofrepErrorBody);
             case "404":
-                return new MockResponse().setResponseCode(404);
+                return new MockResponse().setResponseCode(404).setBody(ofrepErrorBody);
             case "500":
                 return new MockResponse()
                         .setResponseCode(500)
@@ -99,7 +106,7 @@ public class GoffApiMock {
                             .setResponseCode(200)
                             .setBody(TestUtils.readMockResponse(ofrepResponseDir, flagName + ".json"));
                 } catch (Exception e) {
-                    return new MockResponse().setResponseCode(404);
+                    return new MockResponse().setResponseCode(404).setBody(ofrepErrorBody);
                 }
         }
     }

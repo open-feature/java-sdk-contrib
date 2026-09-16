@@ -9,9 +9,9 @@ import dev.openfeature.contrib.providers.ofrep.OfrepProviderOptions;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Value;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import java.time.Duration;
 
 /**
  * RemoteEvaluator is an implementation of the IEvaluator interface.
@@ -19,7 +19,8 @@ import java.time.Duration;
  */
 @Slf4j
 public class RemoteEvaluator implements IEvaluator {
-    public final OfrepProvider ofrep;
+    /** OFREP provider doing the actual remote evaluation. */
+    private final OfrepProvider ofrep;
 
     /**
      * Constructor of the evaluator.
@@ -72,7 +73,7 @@ public class RemoteEvaluator implements IEvaluator {
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return this.ofrep.getIntegerEvaluation(key,defaultValue,ctx);
+        return this.ofrep.getIntegerEvaluation(key, defaultValue, ctx);
     }
 
     @Override
