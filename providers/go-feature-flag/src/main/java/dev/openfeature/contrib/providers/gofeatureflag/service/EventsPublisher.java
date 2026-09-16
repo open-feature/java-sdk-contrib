@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public final class EventsPublisher<T> {
     public final AtomicBoolean isShutdown = new AtomicBoolean(false);
     private final int maxPendingEvents;
     private final Consumer<List<T>> publisher;
+    private final Lock publishLock = new ReentrantLock();
 
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Lock readLock = readWriteLock.readLock();
@@ -109,23 +111,51 @@ public final class EventsPublisher<T> {
      * @return count of publish events
      */
     public int publish() {
-        int publishedEvents = 0;
+        if (!publishLock.tryLock()) {
+            log.debug("a publish is already in progress, skipping this one");
+            return 0;
+        }
+        try {
+            return drainAndPost();
+        } finally {
+            publishLock.unlock();
+        }
+    }
+
+    /**
+     * drainAndPost swaps the buffer out under the lock, releases it, and only then posts, so the
+     * data collector's availability cannot hold up an evaluation. A batch that fails to publish goes
+     * back to the head of the buffer, keeping the events in chronological order.
+     *
+     * <p>Callers must hold {@link #publishLock}.</p>
+     */
+    private int drainAndPost() {
+        List<T> batch;
         writeLock.lock();
         try {
             if (eventsList.isEmpty()) {
                 log.debug("Not publishing, no events");
-                return publishedEvents;
+                return 0;
             }
-            log.info("publishing {} events", eventsList.size());
-            publisher.accept(new ArrayList<>(eventsList));
-            publishedEvents = eventsList.size();
+            batch = new ArrayList<>(eventsList);
             eventsList.clear();
-            return publishedEvents;
-        } catch (Exception e) {
-            log.error("Error publishing events", e);
-            return 0;
         } finally {
             writeLock.unlock();
+        }
+
+        try {
+            log.info("publishing {} events", batch.size());
+            publisher.accept(batch);
+            return batch.size();
+        } catch (Exception e) {
+            log.error("Error publishing events", e);
+            writeLock.lock();
+            try {
+                eventsList.addAll(0, batch);
+            } finally {
+                writeLock.unlock();
+            }
+            return 0;
         }
     }
 
@@ -133,7 +163,12 @@ public final class EventsPublisher<T> {
     public synchronized void shutdown() {
         log.info("shutdown, draining remaining events");
         isShutdown.set(true);
-        publish();
+        publishLock.lock();
+        try {
+            drainAndPost();
+        } finally {
+            publishLock.unlock();
+        }
         if (scheduledExecutorService != null) {
             ConcurrentUtil.shutdownAndAwaitTermination(scheduledExecutorService, 10);
         }

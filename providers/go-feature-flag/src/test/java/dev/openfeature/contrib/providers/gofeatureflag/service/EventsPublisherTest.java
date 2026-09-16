@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -68,5 +71,105 @@ class EventsPublisherTest {
         publisher.shutdown();
 
         assertEquals(List.of("once"), published, "a second scheduler would publish the event twice");
+    }
+
+    @SneakyThrows
+    @DisplayName("adding an event should not wait for an in-flight publish")
+    @Test
+    void addingAnEventShouldNotWaitForAnInFlightPublish() {
+        val posting = new CountDownLatch(1);
+        val releasePost = new CountDownLatch(1);
+        val publisher = new EventsPublisher<String>(
+                batch -> {
+                    posting.countDown();
+                    try {
+                        releasePost.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                },
+                FLUSH_INTERVAL_MS,
+                10000);
+
+        publisher.add("first");
+        val flush = new Thread(publisher::publish);
+        flush.start();
+        assertTrue(posting.await(5, TimeUnit.SECONDS), "the publish should have reached the collector");
+
+        // the collector is still hanging: enqueuing must not block behind it
+        val added = new CountDownLatch(1);
+        new Thread(() -> {
+                    publisher.add("while-posting");
+                    added.countDown();
+                })
+                .start();
+        assertTrue(added.await(2, TimeUnit.SECONDS), "add() blocked behind the data collector");
+
+        releasePost.countDown();
+        flush.join(5000);
+        publisher.shutdown();
+    }
+
+    @SneakyThrows
+    @DisplayName("publishing should be single flight")
+    @Test
+    void publishingShouldBeSingleFlight() {
+        val concurrentPosts = new AtomicInteger();
+        val maxConcurrentPosts = new AtomicInteger();
+        val posting = new CountDownLatch(1);
+        val releasePost = new CountDownLatch(1);
+        val publisher = new EventsPublisher<String>(
+                batch -> {
+                    maxConcurrentPosts.accumulateAndGet(concurrentPosts.incrementAndGet(), Math::max);
+                    posting.countDown();
+                    try {
+                        releasePost.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    concurrentPosts.decrementAndGet();
+                },
+                FLUSH_INTERVAL_MS,
+                10000);
+
+        publisher.add("first");
+        val flush = new Thread(publisher::publish);
+        flush.start();
+        assertTrue(posting.await(5, TimeUnit.SECONDS));
+
+        publisher.add("second");
+        publisher.publish();
+
+        releasePost.countDown();
+        flush.join(5000);
+        assertEquals(1, maxConcurrentPosts.get(), "two publishes overlapped");
+        publisher.shutdown();
+    }
+
+    @SneakyThrows
+    @DisplayName("a failed batch should be re-queued in chronological order")
+    @Test
+    void aFailedBatchShouldBeRequeuedInChronologicalOrder() {
+        val attempts = new CopyOnWriteArrayList<List<String>>();
+        val publisher = new EventsPublisher<String>(
+                batch -> {
+                    attempts.add(List.copyOf(batch));
+                    if (attempts.size() == 1) {
+                        throw new IllegalStateException("collector is down");
+                    }
+                },
+                FLUSH_INTERVAL_MS,
+                10000);
+
+        publisher.add("first");
+        publisher.add("second");
+        publisher.publish();
+
+        publisher.add("third");
+        publisher.publish();
+
+        assertEquals(List.of("first", "second"), attempts.get(0));
+        assertEquals(List.of("first", "second", "third"), attempts.get(1), "order was not preserved");
+        publisher.shutdown();
     }
 }
