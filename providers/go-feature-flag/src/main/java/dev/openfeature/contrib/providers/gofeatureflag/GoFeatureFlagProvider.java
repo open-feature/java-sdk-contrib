@@ -13,7 +13,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOpt
 import dev.openfeature.contrib.providers.gofeatureflag.hook.EnrichEvaluationContextHook;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
-import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUtil;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
@@ -68,22 +67,14 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         this.api = GoFeatureFlagApi.builder().options(options).build();
         this.evalService = new EvaluationService(getEvaluator(this.api));
 
-        long flushIntervalMs =
-                (options.getFlushIntervalMs() == null) ? Const.DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
-        int maxPendingEvents = (options.getMaxPendingEvents() == null)
-                ? Const.DEFAULT_MAX_PENDING_EVENTS
-                : options.getMaxPendingEvents();
         Consumer<List<IEvent>> publisher = this::publishEvents;
-        this.eventsPublisher = new EventsPublisher<>(publisher, flushIntervalMs, maxPendingEvents);
+        this.eventsPublisher =
+                new EventsPublisher<>(publisher, options.getFlushIntervalMs(), options.getMaxPendingEvents());
 
-        if (options.getExporterMetadata() == null) {
-            this.exporterMetadata = new HashMap<>();
-        } else {
-            val exp = new HashMap<>(options.getExporterMetadata());
-            exp.put("provider", "java");
-            exp.put("openfeature", true);
-            this.exporterMetadata = exp;
-        }
+        val exp = new HashMap<>(options.getExporterMetadata());
+        exp.put("provider", "java");
+        exp.put("openfeature", true);
+        this.exporterMetadata = exp;
     }
 
     @Override
