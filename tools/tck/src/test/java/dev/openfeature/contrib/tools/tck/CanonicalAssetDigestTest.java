@@ -80,7 +80,7 @@ class CanonicalAssetDigestTest {
      * <p>Must equal {@code git -C tools/tck/spec rev-parse HEAD}, and is the value the report
      * branch publishes as the source of a run's scenarios.
      */
-    static final String PINNED_REVISION = "bda599f1db440aa8d395d1d3af7b9b3cc3103b98";
+    static final String PINNED_REVISION = "ff68adb4c7617ad2d980988241e92603bc247926";
 
     /** SHA-256 of the three asset trees at {@link #PINNED_REVISION}, as {@link #digest} computes it. */
     static final String PINNED_DIGEST = "7a753b5f5f60248336d93f565bc12ad844af9f04de40867916b98f283363354b";
