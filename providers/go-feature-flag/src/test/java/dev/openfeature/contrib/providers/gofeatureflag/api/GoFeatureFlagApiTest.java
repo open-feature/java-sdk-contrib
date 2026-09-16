@@ -22,6 +22,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.MutableTrackingEventDetails;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.InvalidContextError;
 import java.io.IOException;
@@ -118,6 +119,37 @@ public class GoFeatureFlagApiTest {
             api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
 
             val want = "/ofrep/v1/evaluate/flags/flag-key";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("request should keep the path prefix of the endpoint")
+        @Test
+        public void requestShouldKeepThePathPrefixOfTheEndpoint() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(server.url("/gofeatureflagproxy/").toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
+
+            val want = "/gofeatureflagproxy/ofrep/v1/evaluate/flags/flag-key";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("request should escape a flag key that would otherwise alter the url")
+        @Test
+        public void requestShouldEscapeAFlagKeyThatWouldOtherwiseAlterTheUrl() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            // the mock has no fixture under this name, only the shape of the url matters here
+            assertThrows(
+                    FlagNotFoundError.class,
+                    () -> api.evaluateFlag("my flag/with slash", TestUtils.defaultEvaluationContext));
+
+            val want = "/ofrep/v1/evaluate/flags/my%20flag%2Fwith%20slash";
             assertEquals(want, server.takeRequest().getPath());
         }
 

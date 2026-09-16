@@ -28,9 +28,11 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Collections;
@@ -119,7 +121,7 @@ public final class GoFeatureFlagApi {
     private GoFeatureFlagResponse evaluateFlag(
             final String key, final EvaluationContext evaluationContext, final int retryCount) throws OpenFeatureError {
         try {
-            URI url = this.endpoint.resolve("/ofrep/v1/evaluate/flags/" + key);
+            URI url = route(Const.PATH_OFREP_EVALUATE + encodePathSegment(key));
 
             val requestBody = OfrepRequest.builder()
                     .context(evaluationContext.asObjectMap())
@@ -295,6 +297,18 @@ public final class GoFeatureFlagApi {
             log.debug("Error parsing Last-Modified header: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * encodePathSegment escapes a flag key so that it cannot alter the shape of the URL. A key
+     * containing a space would otherwise make the URI unparseable, and one containing a slash would
+     * address a different route.
+     *
+     * @param segment - the raw flag key
+     * @return the key, safe to place in a path
+     */
+    private static String encodePathSegment(final String segment) {
+        return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     /**
