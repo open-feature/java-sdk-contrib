@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Every capability this suite does not call reserved is carried by at least one canonical scenario,
- * and every reserved one is carried by none.
+ * every reserved one is carried by none, and every tag they carry is a capability this suite knows.
  *
  * <p>{@link CapabilityGate#requireNoExpiredReservation} already fails a run where a <em>scenario</em>
  * carries a reserved tag — a capability no adopter may declare, gating something, so the scenario is
@@ -105,6 +105,32 @@ class CanonicalTagCoverageTest {
                                     + "run time; this says it at build time.",
                             capability.name(), capability.tag())
                     .doesNotContain(capability.tag());
+        }
+    }
+
+    @Test
+    @DisplayName("every tag a canonical scenario carries resolves to a capability")
+    void everyCarriedTagIsInTheVocabulary() {
+        // The reverse of the first test, and the direction that is easy to leave out: that one
+        // catches a capability with no scenarios, this one a scenario tag with no capability. An
+        // unknown tag gates nothing, so its scenarios stay mandatory for every adopter — a suite
+        // that has not learned a new capability keeps demanding the old behaviour, and the only
+        // symptom is a provider that legitimately withholds it failing while the rest stay green.
+        //
+        // This fires on the re-pin that adds a tag, which is the moment it is needed: the pin and
+        // the Capability constant move in the same commit, and nothing else notices if only the
+        // pin moves. CapabilityGate.requireKnownVocabulary is the same rule at run time, for the
+        // canonical assets an adopter actually executes rather than the ones packaged here.
+        for (String tag : CARRIED) {
+            assertThat(Capability.fromTag(tag))
+                    .as(
+                            "A canonical scenario carries %s, which Capability.fromTag does not resolve. The "
+                                    + "pinned specification revision has a capability this package does not: add "
+                                    + "it to the Capability enum and say in its javadoc what declaring it claims. "
+                                    + "Until then the tag gates nothing and its scenarios are mandatory for every "
+                                    + "adopter, including the ones that cannot support it.",
+                            tag)
+                    .isPresent();
         }
     }
 
