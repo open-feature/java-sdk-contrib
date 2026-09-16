@@ -99,9 +99,25 @@ public final class EventsPublisher<T> {
             writeLock.lock();
             if (eventsList != null) {
                 eventsList.add(event);
+                discardOverflow();
             }
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    /**
+     * discardOverflow keeps the buffer within twice maxPendingEvents, dropping the oldest events
+     * first. Without a cap a data collector outage is an unbounded memory leak, and the oldest
+     * events are the least useful to keep.
+     *
+     * <p>Callers must hold {@link #writeLock}.</p>
+     */
+    private void discardOverflow() {
+        int overflow = eventsList.size() - (2 * maxPendingEvents);
+        if (overflow > 0) {
+            log.warn("events buffer is full, discarding the {} oldest events", overflow);
+            eventsList.subList(0, overflow).clear();
         }
     }
 
@@ -152,6 +168,7 @@ public final class EventsPublisher<T> {
             writeLock.lock();
             try {
                 eventsList.addAll(0, batch);
+                discardOverflow();
             } finally {
                 writeLock.unlock();
             }

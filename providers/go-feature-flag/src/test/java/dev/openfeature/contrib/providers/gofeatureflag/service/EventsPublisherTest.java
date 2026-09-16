@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -170,6 +171,38 @@ class EventsPublisherTest {
 
         assertEquals(List.of("first", "second"), attempts.get(0));
         assertEquals(List.of("first", "second", "third"), attempts.get(1), "order was not preserved");
+        publisher.shutdown();
+    }
+
+    @SneakyThrows
+    @DisplayName("the buffer should be capped at twice maxPendingEvents, discarding the oldest")
+    @Test
+    void theBufferShouldBeCappedAtTwiceMaxPendingEventsDiscardingTheOldest() {
+        val attempts = new CopyOnWriteArrayList<List<String>>();
+        val collectorIsDown = new AtomicBoolean(true);
+        val maxPendingEvents = 4;
+        val publisher = new EventsPublisher<String>(
+                batch -> {
+                    attempts.add(List.copyOf(batch));
+                    if (collectorIsDown.get()) {
+                        throw new IllegalStateException("collector is down");
+                    }
+                },
+                FLUSH_INTERVAL_MS,
+                maxPendingEvents);
+
+        // the collector refuses every batch, so nothing ever leaves the buffer
+        for (int i = 0; i < 40; i++) {
+            publisher.add("event-" + i);
+        }
+
+        collectorIsDown.set(false);
+        publisher.publish();
+
+        val delivered = attempts.get(attempts.size() - 1);
+        assertEquals(2 * maxPendingEvents, delivered.size(), "the buffer grew past twice maxPendingEvents");
+        assertEquals("event-39", delivered.get(delivered.size() - 1), "the newest event should be kept");
+        assertEquals("event-32", delivered.get(0), "the oldest events should be the ones discarded");
         publisher.shutdown();
     }
 }
