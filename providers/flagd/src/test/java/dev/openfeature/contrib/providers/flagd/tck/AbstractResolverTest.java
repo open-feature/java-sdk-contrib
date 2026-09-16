@@ -147,15 +147,23 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      * in the shared provider layer rather than in either transport — as does every other capability
      * here, including the whole remaining type-mismatch matrix.
      *
-     * <p><strong>{@link Capability#STRING_TYPING} is declared, and all four of its scenarios
-     * pass</strong> in both modes. It gates what specification revision {@code d47a66eb} moved out
-     * of the mandatory matrix: {@code boolean-flag}, {@code integer-flag}, {@code float-flag} and
-     * {@code object-flag} asked through the String accessor. flagd's flag definitions carry a JSON
-     * type per flag and both resolvers preserve it, so a non-string flag requested as a string is a
-     * genuine mismatch here and is reported as one — which is exactly the position the capability
-     * exists to distinguish from a backend that stores every value as a string. Declared on the run
-     * rather than on the "everything except" default: these four were mandatory and passing before
-     * the tag existed, and the numbers below are unchanged by the move.
+     * <p><strong>{@link Capability#STRING_TYPING} and {@link Capability#FULLY_TYPED_VALUES} are both
+     * declared, and all four of their scenarios pass</strong> in both modes. Together they gate what
+     * specification revision {@code d47a66eb} moved out of the mandatory matrix: {@code boolean-flag}
+     * and {@code integer-flag} asked through the String accessor under the first tag, and
+     * {@code float-flag} and {@code object-flag} under both tags since {@code bda599f1} split them
+     * apart. flagd's flag definitions carry a JSON type per flag and both resolvers preserve it, so a
+     * non-string flag requested as a string is a genuine mismatch here and is reported as one —
+     * which is exactly the position these capabilities exist to distinguish from a backend that
+     * stores every value as a string.
+     *
+     * <p>flagd is the case the split was <em>not</em> written for, and declaring both is how that
+     * shows: the question {@code @fully-typed-values} asks separately — does the store record a
+     * native type for a float and for a structure — flagd answers yes to, just as it does for a
+     * boolean and an integer. A partially typed backend declares the first and withholds the second;
+     * there is nothing partial here. Declared on the run rather than on the "everything except"
+     * default, which would have swept the new tag up unexamined: the four scenarios were measured in
+     * both modes after the re-pin, and the numbers below are unchanged by the split.
      *
      * <p>{@link Capability#LIFECYCLE} is declared because flagd reaches its backend during
      * initialisation in both modes — an RPC round trip, or a full ruleset sync — so the lifecycle
