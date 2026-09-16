@@ -125,9 +125,8 @@ public final class GoFeatureFlagApi {
                     .context(evaluationContext.asObjectMap())
                     .build();
 
-            HttpRequest request = prepareHttpRequest(url, requestBody);
-
-            HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response =
+                    this.httpClient.send(prepareHttpRequest(url, requestBody), HttpResponse.BodyHandlers.ofString());
             String body = response.body();
 
             switch (response.statusCode()) {
@@ -176,22 +175,11 @@ public final class GoFeatureFlagApi {
             val request = new FlagConfigApiRequest(flags == null ? Collections.emptyList() : flags);
             final URI url = route(Const.PATH_FLAG_CONFIGURATION);
 
-            HttpRequest.Builder reqBuilder =
-                    HttpRequest.newBuilder().uri(url).header(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON);
+            final HttpRequest httpRequest = etag != null && !etag.isEmpty()
+                    ? prepareHttpRequest(url, request, Const.HTTP_HEADER_IF_NONE_MATCH, etag)
+                    : prepareHttpRequest(url, request);
 
-            if (this.apiKey != null && !this.apiKey.isEmpty()) {
-                reqBuilder.header(Const.HTTP_HEADER_AUTHORIZATION, Const.BEARER_TOKEN + this.apiKey);
-            }
-
-            if (etag != null && !etag.isEmpty()) {
-                reqBuilder.header(Const.HTTP_HEADER_IF_NONE_MATCH, etag);
-            }
-
-            reqBuilder.POST(
-                    HttpRequest.BodyPublishers.ofByteArray(Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(request)));
-
-            HttpResponse<String> response =
-                    this.httpClient.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = this.httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             String body = response.body();
             switch (response.statusCode()) {
                 case HttpURLConnection.HTTP_OK:
@@ -329,7 +317,8 @@ public final class GoFeatureFlagApi {
      * @return HttpRequest ready to be sent
      * @throws JsonProcessingException - if an error occurred while processing the json
      */
-    private <T> HttpRequest prepareHttpRequest(final URI url, final T requestBody) throws JsonProcessingException {
+    private <T> HttpRequest prepareHttpRequest(final URI url, final T requestBody, final String... customHeaders)
+            throws JsonProcessingException {
         HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                 .uri(url)
                 .timeout(Duration.ofMillis(timeout))
@@ -337,10 +326,13 @@ public final class GoFeatureFlagApi {
                 .POST(HttpRequest.BodyPublishers.ofByteArray(
                         Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(requestBody)));
 
-        if (this.apiKey != null && !this.apiKey.isEmpty()) {
-            reqBuilder.header(Const.HTTP_HEADER_AUTHORIZATION, Const.BEARER_TOKEN + this.apiKey);
+        if (customHeaders != null && customHeaders.length > 0) {
+            reqBuilder.headers(customHeaders);
         }
 
+        if (this.apiKey != null && !this.apiKey.isEmpty()) {
+            reqBuilder.header(Const.HTTP_HEADER_API_KEY, this.apiKey);
+        }
         return reqBuilder.build();
     }
 }
