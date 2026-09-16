@@ -133,8 +133,9 @@ public class GoFeatureFlagApiTest {
             val api = GoFeatureFlagApi.builder().options(options).build();
             api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
 
-            val want = Const.BEARER_TOKEN + apiKey;
-            assertEquals(want, server.takeRequest().getHeader("Authorization"));
+            val request = server.takeRequest();
+            assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
+            assertNull(request.getHeader("Authorization"));
         }
 
         @SneakyThrows
@@ -148,7 +149,7 @@ public class GoFeatureFlagApiTest {
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
             api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
-            assertNull(server.takeRequest().getHeader("Authorization"));
+            assertNull(server.takeRequest().getHeader(Const.HTTP_HEADER_API_KEY));
         }
 
         @SneakyThrows
@@ -307,8 +308,9 @@ public class GoFeatureFlagApiTest {
             Map<String, Object> exporterMetadata = new HashMap<>();
             api.sendEventToDataCollector(events, exporterMetadata);
 
-            val want = Const.BEARER_TOKEN + apiKey;
-            assertEquals(want, server.takeRequest().getHeader("Authorization"));
+            val request = server.takeRequest();
+            assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
+            assertNull(request.getHeader("Authorization"));
         }
 
         @SneakyThrows
@@ -340,7 +342,7 @@ public class GoFeatureFlagApiTest {
             List<IEvent> events = new ArrayList<>();
             Map<String, Object> exporterMetadata = new HashMap<>();
             api.sendEventToDataCollector(events, exporterMetadata);
-            assertNull(server.takeRequest().getHeader("Authorization"));
+            assertNull(server.takeRequest().getHeader(Const.HTTP_HEADER_API_KEY));
         }
 
         @SneakyThrows
@@ -487,8 +489,9 @@ public class GoFeatureFlagApiTest {
             val api = GoFeatureFlagApi.builder().options(options).build();
             api.retrieveFlagConfiguration(null, Collections.emptyList());
 
-            val want = Const.BEARER_TOKEN + apiKey;
-            assertEquals(want, server.takeRequest().getHeader("Authorization"));
+            val request = server.takeRequest();
+            assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
+            assertNull(request.getHeader("Authorization"));
         }
 
         @SneakyThrows
@@ -646,7 +649,7 @@ public class GoFeatureFlagApiTest {
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
             api.retrieveFlagConfiguration(null, Collections.emptyList());
-            assertNull(server.takeRequest().getHeader("Authorization"));
+            assertNull(server.takeRequest().getHeader(Const.HTTP_HEADER_API_KEY));
         }
 
         @SneakyThrows
