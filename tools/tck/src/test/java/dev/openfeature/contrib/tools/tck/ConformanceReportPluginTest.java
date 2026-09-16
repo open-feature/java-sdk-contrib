@@ -347,11 +347,16 @@ class ConformanceReportPluginTest {
                         Capability.DISABLED_FLAGS.tag(),
                         Capability.UNAVAILABLE_INIT.tag(),
                         Capability.NUMERIC_COERCION.tag(),
-                        // @string-typing gates the four scenarios that ask a non-string flag
-                        // through the String accessor. Gated because every value has a string
-                        // representation, so a backend that stores flag values as strings has no
-                        // mismatch to report and withholds it without being non-conformant.
+                        // @string-typing gates the two outline rows that ask a boolean and an
+                        // integer flag through the String accessor. Gated because every value has a
+                        // string representation, so a backend that stores flag values as strings has
+                        // no mismatch to report and withholds it without being non-conformant.
                         Capability.STRING_TYPING.tag(),
+                        // @fully-typed-values asks the same of a float and a structure, and is a
+                        // separate claim because a store can record booleans and integers natively
+                        // while keeping those two as text. Both scenarios carry @string-typing as
+                        // well, so the maximal claim has to include both tags to reach them.
+                        Capability.FULLY_TYPED_VALUES.tag(),
                         // @large-integers is absent, and for a different reason from @caching's.
                         // Scenarios do carry it -- Go and JavaScript run them -- but the Java SDK's
                         // integer accessor is 32 bits, so no Java provider can be asked for 2^53 - 1
