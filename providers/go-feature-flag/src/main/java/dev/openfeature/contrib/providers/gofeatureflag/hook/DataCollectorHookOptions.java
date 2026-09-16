@@ -25,7 +25,7 @@ public class DataCollectorHookOptions {
     private EventsPublisher<IEvent> eventsPublisher;
 
     /**
-     * evalService is the service to evaluate the flags.
+     * evaluator is used to know whether the usage of a flag should be collected.
      */
     private IEvaluator evaluator;
 

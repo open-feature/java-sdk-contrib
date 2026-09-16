@@ -215,8 +215,25 @@ public class InProcessEvaluator implements IEvaluator {
      */
     private <T> ProviderEvaluation<T> genericEvaluation(
             final String key, final T defaultValue, final EvaluationContext ctx, final Class<?> expectedType) {
-        val response = this.evaluate(key, defaultValue, ctx);
+        return toProviderEvaluation(key, defaultValue, this.evaluate(key, defaultValue, ctx), expectedType);
+    }
 
+    /**
+     * toProviderEvaluation converts an engine response into the resolution structure expected by
+     * the OpenFeature SDK.
+     *
+     * <p>It is separate from genericEvaluation so that the conversion can be specified against a
+     * response directly, independently of what the WASM engine can be made to emit.
+     *
+     * @param key          - name of the flag
+     * @param defaultValue - default value provided by the caller
+     * @param response     - response returned by the evaluation engine
+     * @param expectedType - type the resolver called by the SDK is contracted to return
+     * @param <T>          - type of the flag value
+     * @return the evaluation result for this flag
+     */
+    static <T> ProviderEvaluation<T> toProviderEvaluation(
+            final String key, final T defaultValue, final GoFeatureFlagResponse response, final Class<?> expectedType) {
         if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(response.getErrorCode())) {
             throw new FlagNotFoundError("Flag " + key + " was not found in your configuration");
         }
@@ -272,10 +289,10 @@ public class InProcessEvaluator implements IEvaluator {
      * @param <T>          - the type we want to convert to
      * @return a converted object
      */
-    // The cast to T is unchecked on purpose: genericEvaluation compares the runtime class with
+    // The cast to T is unchecked on purpose: toProviderEvaluation compares the runtime class with
     // expectedType right after and raises a TypeMismatchError if the engine returned another type.
     @SuppressWarnings("unchecked")
-    private <T> T convertValue(final Object value, final Class<?> expectedType) {
+    private static <T> T convertValue(final Object value, final Class<?> expectedType) {
         boolean isPrimitive = expectedType == Boolean.class
                 || expectedType == String.class
                 || expectedType == Integer.class
@@ -299,7 +316,7 @@ public class InProcessEvaluator implements IEvaluator {
      * @param errorCode - string of the error code received from the evaluation engine
      * @return an item from the enum, null if the engine reported no error
      */
-    private ErrorCode mapErrorCode(final String errorCode) {
+    private static ErrorCode mapErrorCode(final String errorCode) {
         if (errorCode == null || errorCode.isEmpty()) {
             return null;
         }

@@ -11,7 +11,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOpti
 import dev.openfeature.contrib.providers.gofeatureflag.TestUtils;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FeatureEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.TrackingEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.AuthenticationFailure;
@@ -22,9 +21,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.MutableTrackingEventDetails;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.InvalidContextError;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
