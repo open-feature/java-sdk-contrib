@@ -1,9 +1,17 @@
 package dev.openfeature.contrib.providers.gofeatureflag.evaluator;
 
-import dev.openfeature.contrib.providers.gofeatureflag.api.GoFeatureFlagApi;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
+import dev.openfeature.contrib.providers.ofrep.OfrepProvider;
+import dev.openfeature.contrib.providers.ofrep.OfrepProviderOptions;
 import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Value;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import java.time.Duration;
 
 /**
  * RemoteEvaluator is an implementation of the IEvaluator interface.
@@ -11,21 +19,25 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class RemoteEvaluator implements IEvaluator {
-    /** API to contact GO Feature Flag. */
-    public final GoFeatureFlagApi api;
+    public final OfrepProvider ofrep;
 
     /**
      * Constructor of the evaluator.
      *
-     * @param api - api service to evaluate the flags
+     * @param opts - options to configure the provider
      */
-    public RemoteEvaluator(GoFeatureFlagApi api) {
-        this.api = api;
-    }
+    public RemoteEvaluator(GoFeatureFlagProviderOptions opts) {
+        val headers = ImmutableMap.<String, ImmutableList<String>>builder();
+        if (opts.getApiKey() != null && !opts.getApiKey().isEmpty()) {
+            headers.put(Const.HTTP_HEADER_API_KEY, ImmutableList.of(opts.getApiKey()));
+        }
 
-    @Override
-    public GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
-        return this.api.evaluateFlag(key, evaluationContext);
+        this.ofrep = OfrepProvider.constructProvider(OfrepProviderOptions.builder()
+                .baseUrl(opts.getEndpoint().replaceAll("/+$", ""))
+                .connectTimeout(Duration.ofMillis(opts.getTimeout()))
+                .requestTimeout(Duration.ofMillis(opts.getTimeout()))
+                .headers(headers.build())
+                .build());
     }
 
     @Override
@@ -34,12 +46,42 @@ public class RemoteEvaluator implements IEvaluator {
     }
 
     @Override
-    public void init() {
-        // do nothing
+    public void initialize(final EvaluationContext ctx, final String domain) throws Exception {
+        this.ofrep.initialize(ctx, domain);
     }
 
     @Override
-    public void destroy() {
-        // do nothing
+    public void initialize(final EvaluationContext ctx) throws Exception {
+        this.ofrep.initialize(ctx);
+    }
+
+    @Override
+    public void shutdown() {
+        this.ofrep.shutdown();
+    }
+
+    @Override
+    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
+        return this.ofrep.getBooleanEvaluation(key, defaultValue, ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
+        return this.ofrep.getStringEvaluation(key, defaultValue, ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
+        return this.ofrep.getIntegerEvaluation(key,defaultValue,ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
+        return this.ofrep.getDoubleEvaluation(key, defaultValue, ctx);
+    }
+
+    @Override
+    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
+        return this.ofrep.getObjectEvaluation(key, defaultValue, ctx);
     }
 }

@@ -1,18 +1,25 @@
 package dev.openfeature.contrib.providers.gofeatureflag.evaluator;
 
+import static dev.openfeature.sdk.Value.objectToValue;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.api.GoFeatureFlagApi;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
+import dev.openfeature.contrib.providers.gofeatureflag.util.MetadataUtil;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.WasmEvaluatorPool;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.FlagContext;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.FlagNotFoundError;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -108,8 +115,7 @@ public class InProcessEvaluator implements IEvaluator {
         this.evaluationPool = new WasmEvaluatorPool(poolSize);
     }
 
-    @Override
-    public GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
+    private GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
         EvaluatorState current = this.state;
         // With no configuration ever loaded every key is absent, and answering FLAG_NOT_FOUND would
         // blame the caller's flag key for an infrastructure failure.
@@ -143,19 +149,12 @@ public class InProcessEvaluator implements IEvaluator {
     }
 
     @Override
-    public boolean isFlagTrackable(final String flagKey) {
-        // trackEvents is the only field of the flag configuration a provider may read: everything
-        // else belongs to the evaluation engine and is passed through untouched.
-        JsonNode flag = this.state.flags.get(flagKey);
-        if (flag == null) {
-            return false;
-        }
-        JsonNode trackEvents = flag.get(Const.FIELD_TRACK_EVENTS);
-        return trackEvents == null || trackEvents.isNull() || trackEvents.asBoolean(true);
+    public void initialize(EvaluationContext ctx, String domain) throws Exception {
+        this.initialize(ctx);
     }
 
     @Override
-    public void init() {
+    public void initialize(EvaluationContext ctx) throws Exception {
         // We ensure that no polling is happening before starting the initialization.
         stopPolling();
 
@@ -173,9 +172,157 @@ public class InProcessEvaluator implements IEvaluator {
     }
 
     @Override
-    public void destroy() {
+    public void shutdown() {
         stopPolling();
         this.evaluationPool.close();
+    }
+
+    @Override
+    public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
+        return genericEvaluation(key, defaultValue, ctx, Boolean.class);
+    }
+
+    @Override
+    public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
+        return genericEvaluation(key, defaultValue, ctx, String.class);
+    }
+
+    @Override
+    public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
+        return genericEvaluation(key, defaultValue, ctx, Integer.class);
+    }
+
+    @Override
+    public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
+        return genericEvaluation(key, defaultValue, ctx, Double.class);
+    }
+
+    @Override
+    public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
+        return genericEvaluation(key, defaultValue, ctx, Value.class);
+    }
+
+    /**
+     * genericEvaluation evaluates the flag and converts the engine response into the resolution
+     * structure expected by the OpenFeature SDK.
+     *
+     * @param key          - name of the flag
+     * @param defaultValue - default value provided by the caller
+     * @param ctx          - evaluation context
+     * @param expectedType - type the resolver called by the SDK is contracted to return
+     * @param <T>          - type of the flag value
+     * @return the evaluation result for this flag
+     */
+    private <T> ProviderEvaluation<T> genericEvaluation(
+            final String key, final T defaultValue, final EvaluationContext ctx, final Class<?> expectedType) {
+        val response = this.evaluate(key, defaultValue, ctx);
+
+        if (ErrorCode.FLAG_NOT_FOUND.name().equalsIgnoreCase(response.getErrorCode())) {
+            throw new FlagNotFoundError("Flag " + key + " was not found in your configuration");
+        }
+
+        // the engine reports a successful evaluation with an empty error code, not a null one.
+        if (response.getErrorCode() != null && !response.getErrorCode().isEmpty()) {
+            return ProviderEvaluation.<T>builder()
+                    .errorCode(mapErrorCode(response.getErrorCode()))
+                    .errorMessage(response.getErrorDetails())
+                    .reason(Reason.ERROR.name())
+                    .value(defaultValue)
+                    .build();
+        }
+
+        if (Reason.DISABLED.name().equalsIgnoreCase(response.getReason())) {
+            // we don't set a variant since we are using the default value,
+            // and we are not able to know which variant it is.
+            return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
+                    .variant(response.getVariationType())
+                    .reason(Reason.DISABLED.name())
+                    .build();
+        }
+
+        if (response.getValue() == null) {
+            return ProviderEvaluation.<T>builder()
+                    .value(defaultValue)
+                    .reason(Reason.DEFAULT.name())
+                    .flagMetadata(MetadataUtil.convertFlagMetadata(response.getMetadata()))
+                    .build();
+        }
+
+        T flagValue = convertValue(response.getValue(), expectedType);
+        if (flagValue.getClass() != expectedType) {
+            throw new TypeMismatchError(String.format(
+                    "Flag value %s had unexpected type %s, expected %s.", key, flagValue.getClass(), expectedType));
+        }
+
+        return ProviderEvaluation.<T>builder()
+                .errorCode(mapErrorCode(response.getErrorCode()))
+                .reason(response.getReason())
+                .value(flagValue)
+                .variant(response.getVariationType())
+                .flagMetadata(MetadataUtil.convertFlagMetadata(response.getMetadata()))
+                .build();
+    }
+
+    /**
+     * convertValue is converting the value returned by the evaluation engine in the right type.
+     *
+     * @param value        - the value we have received
+     * @param expectedType - the type we expect for this value
+     * @param <T>          - the type we want to convert to
+     * @return a converted object
+     */
+    // The cast to T is unchecked on purpose: genericEvaluation compares the runtime class with
+    // expectedType right after and raises a TypeMismatchError if the engine returned another type.
+    @SuppressWarnings("unchecked")
+    private <T> T convertValue(final Object value, final Class<?> expectedType) {
+        boolean isPrimitive = expectedType == Boolean.class
+                || expectedType == String.class
+                || expectedType == Integer.class
+                || expectedType == Double.class;
+
+        if (isPrimitive) {
+            // JSON does not distinguish 100 from 100.0, and a number too large for an int decodes to
+            // Long, so the float resolver accepts any number rather than only Integer.
+            if (expectedType == Double.class && value instanceof Number) {
+                return (T) Double.valueOf(((Number) value).doubleValue());
+            }
+            return (T) value;
+        }
+        return (T) objectToValue(value);
+    }
+
+    /**
+     * mapErrorCode is mapping the error code in string received from the evaluation engine to the
+     * SDK ErrorCode enum.
+     *
+     * @param errorCode - string of the error code received from the evaluation engine
+     * @return an item from the enum, null if the engine reported no error
+     */
+    private ErrorCode mapErrorCode(final String errorCode) {
+        if (errorCode == null || errorCode.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return ErrorCode.valueOf(errorCode);
+        } catch (IllegalArgumentException e) {
+            // an error the SDK does not know about, such as GO Feature Flag's own FLAG_CONFIG, is
+            // still an error: reporting it as GENERAL keeps the evaluation from looking successful.
+            return ErrorCode.GENERAL;
+        }
+    }
+
+    @Override
+    public boolean isFlagTrackable(final String flagKey) {
+        // trackEvents is the only field of the flag configuration a provider may read: everything
+        // else belongs to the evaluation engine and is passed through untouched.
+        JsonNode flag = this.state.flags.get(flagKey);
+        if (flag == null) {
+            return false;
+        }
+        JsonNode trackEvents = flag.get(Const.FIELD_TRACK_EVENTS);
+        return trackEvents == null || trackEvents.isNull() || trackEvents.asBoolean(true);
     }
 
     /**
