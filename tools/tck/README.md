@@ -202,7 +202,7 @@ below is a member of `Capability`.
 | `CONFIGURATION_CHANGE` | `@configuration-change` | | `STRING_TYPING` | `@string-typing` |
 | `OBJECT` | `@object` | | `LARGE_INTEGERS` | `@large-integers` ¹ |
 | `VARIANTS` | `@variants` | | `CACHING` | `@caching` ² |
-| `DISABLED_FLAGS` | `@disabled-flags` | | | |
+| `DISABLED_FLAGS` | `@disabled-flags` | | `FULLY_TYPED_VALUES` | `@fully-typed-values` |
 
 ¹ not declarable in Java &nbsp;&nbsp; ² reserved, not declarable
 
@@ -237,6 +237,17 @@ with a reason naming the **SDK**, so a report's reader can tell *"this provider 
 Java provider can be asked"*; the 32-bit precision scenario is untagged and always runs. A reserved
 capability is a different thing and its reason says so. Neither refusal is a defect, and neither needs
 a `KnownDeviation`.
+
+**`STRING_TYPING` and `FULLY_TYPED_VALUES` are a pair, and the narrower one is a claim about the
+backend.** `@string-typing` asks whether a boolean or an integer flag requested as a string is a
+`TYPE_MISMATCH` rather than its string representation; `@fully-typed-values` asks the same of a float
+and of a structure. Every scenario the second gates carries the first as well, so declare the second
+only alongside the first — and expect to withhold it alone, because a store that records booleans and
+integers natively while keeping floats and structures as text can answer two of the four cases and
+not the other two. It was a single tag until specification revision `bda599f1`; the split exists
+because one tag let a real defect in one language be published as a permitted absence, and Appendix F
+carries the measurement that showed it. Neither tag rests on a `MUST`, so withholding either needs no
+`KnownDeviation`.
 
 ### Known deviations
 
@@ -395,6 +406,15 @@ the dedicated `-Dtck.spec.checkout.skip=true`; the generated directories are emp
 so a file present in the old pin and not the new one cannot survive; and `CanonicalAssetDigestTest`
 fails the build by digest over all three directories, which is the only one of the three that catches
 a pin whose sole change is *content*.
+
+**A fourth check faces the other way: a pin that arrives with a capability tag this module has not
+learned.** An unknown tag gates nothing, so its scenarios stay mandatory for *every* adopter — the
+suite does not report a new capability, it quietly keeps demanding the old behaviour, and the only
+symptom is the one provider that legitimately cannot support it failing while the rest stay green.
+`CanonicalTagCoverageTest` fails this build for it, and `CapabilityGate.requireKnownVocabulary` fails
+an adopter's run for it, which is where Appendix F asks the check to be in force. It applies to
+`gherkin/` only: a feature file of your own under `extensions/` is expected to carry tags this
+vocabulary does not know.
 
 **The step vocabulary** is inherited from the [flagd test harness](https://github.com/open-feature/test-harness)
 wherever it was already provider-neutral, so flagd's feature files ported with a near-zero diff; only

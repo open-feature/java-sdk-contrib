@@ -140,8 +140,8 @@ public enum Capability {
     NUMERIC_COERCION("@numeric-coercion"),
 
     /**
-     * Provider reports {@code TYPE_MISMATCH} for a non-string flag requested as a string, rather
-     * than the value's string representation.
+     * Provider reports {@code TYPE_MISMATCH} for a boolean or integer flag requested as a string,
+     * rather than the value's string representation.
      *
      * <p>The same gap as {@link #NUMERIC_COERCION}, one type further out, and gated for a stronger
      * reason: every value has a string representation, so a backend that stores flag values as
@@ -159,13 +159,22 @@ public enum Capability {
      * 1.3.4</a>, a {@code SHOULD} and on the <em>client</em> rather than the provider. So
      * <strong>a provider that withholds this tag is not violating the specification</strong> and
      * owes no {@link KnownDeviation} — the same instrument, and the same reasoning, as the numeric
-     * rule it sits beside.
+     * rule it sits beside. The open question is
+     * <a href="https://github.com/open-feature/spec/issues/433">open-feature/spec#433</a>.
      *
-     * <p>Gates four scenarios in {@code gherkin/errors.feature}, which were mandatory until
-     * specification revision {@code d47a66eb} moved them out: {@code boolean-flag},
-     * {@code integer-flag} and {@code float-flag} requested as strings, and {@code object-flag}
-     * requested as a string. That last one carries {@link #OBJECT} as well, since a provider with no
-     * structured values cannot be asked the question at all, so withholding either tag skips it.
+     * <p><strong>Boolean and integer only.</strong> Gates the two rows of the
+     * {@code gherkin/errors.feature} Scenario Outline — {@code boolean-flag} and
+     * {@code integer-flag} requested as strings. The float and structured cases carried this tag
+     * too until specification revision {@code bda599f1} moved them behind
+     * {@link #FULLY_TYPED_VALUES}; they still carry this one as well, so withholding it skips all
+     * four and declaring it alone runs only these two. {@link #FULLY_TYPED_VALUES} says why the
+     * one tag became two.
+     *
+     * <p>These two are the rows a <em>partially</em> typed backend can still answer: a boolean and
+     * an integer are types such a store records natively, so failing them is the provider's own
+     * doing rather than the backend's shape. That is what makes this tag worth asking separately —
+     * a Flagsmith-backed provider records no native float or structure and yet does record these
+     * two, and Java answers both.
      *
      * <p>Java-specific consequence: {@code Client.getStringDetails} is the one accessor every
      * backend can satisfy, so this tag is a claim about the <em>backend's</em> typing rather than
@@ -174,6 +183,37 @@ public enum Capability {
      * recorded.
      */
     STRING_TYPING("@string-typing"),
+
+    /**
+     * Backend records a native type for float and structured values too, so the string-typing
+     * question can be asked of them.
+     *
+     * <p>Strictly narrower than {@link #STRING_TYPING} and always declared alongside it: the two
+     * scenarios this gates — {@code float-flag} and {@code object-flag} requested as strings —
+     * carry both tags, so withholding either skips them. Declaring this one without
+     * {@code STRING_TYPING} claims something no scenario will check.
+     *
+     * <p><strong>Why the split exists, since a single tag looks simpler.</strong> It was a single
+     * tag, over all four cases, until specification revision {@code bda599f1}. Measurement across
+     * three languages against one Flagsmith backend showed the problem: {@code float-flag} and
+     * {@code object-flag} were stringified by every provider, because that store records no native
+     * float or structure type and no provider over it can report a mismatch — a permitted absence.
+     * {@code boolean-flag} and {@code integer-flag} were not: the store does record those two, Go
+     * and Java answered them, and JavaScript returned {@code "true"} and {@code "10"} because of
+     * its own code. Under one tag that provider withholds, and a real defect is published as a
+     * permitted absence — the suite goes quiet on a bug. Appendix F states the general rule: a
+     * capability coarser than the variation providers actually show hides defects inside permitted
+     * absences.
+     *
+     * <p>So the unit of declaration is the question the <em>backend</em> can be asked, not the
+     * accessor the SDK offers. Withholding this while declaring {@code STRING_TYPING} is the
+     * expected combination for a partially typed store, and it needs no {@link KnownDeviation} for
+     * the reason {@code STRING_TYPING} gives: the behaviour is not required.
+     *
+     * <p>Nothing about this is Java-specific. {@code Client.getStringDetails} asks all four cases
+     * equally well; what differs is whether the backend has a type to mismatch against.
+     */
+    FULLY_TYPED_VALUES("@fully-typed-values"),
 
     /**
      * Provider resolves integers up to 2^53 − 1 exactly.

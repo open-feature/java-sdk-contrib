@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.CapabilityGate;
+import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckRuntime;
 import dev.openfeature.contrib.tools.tck.TckState;
@@ -77,16 +78,22 @@ public class ProviderSteps extends AbstractSteps {
      * leaves {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT} undeclared, and the
      * scenarios needing them are skipped here — before any step can reach an unsupported operation.
      *
-     * <p>The one tag that is <em>failed</em> rather than skipped is a
-     * {@linkplain Capability#reserved() reserved} one, which cannot be declared and so could only
-     * ever produce a skip nobody is able to clear. See
-     * {@link CapabilityGate#requireNoExpiredReservation}.
+     * <p>Two tags are <em>failed</em> rather than skipped, and both are failures of this suite
+     * rather than of the provider. A {@linkplain Capability#reserved() reserved} one cannot be
+     * declared, so it could only ever produce a skip nobody is able to clear — see
+     * {@link CapabilityGate#requireNoExpiredReservation}. A tag on a canonical scenario that this
+     * vocabulary does not know at all gates nothing, so it would leave its scenario mandatory for
+     * every adopter — see {@link CapabilityGate#requireKnownVocabulary}.
+     *
+     * <p>The scenario's URI is passed along with its tags, and only the second of those two checks
+     * reads it: an adopter's feature file under {@link ProviderTck#EXTENSIONS} is expected to carry
+     * tags this vocabulary does not know, and {@link ProviderTck#FEATURES} is expected not to.
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        CapabilityGate.requireDeclared(scenario.getSourceTagNames(), harness().capabilities());
+        CapabilityGate.requireDeclared(scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
     }
 
     /**
