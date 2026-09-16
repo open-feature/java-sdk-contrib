@@ -93,7 +93,8 @@ public class ProviderSteps extends AbstractSteps {
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        CapabilityGate.requireDeclared(scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
+        CapabilityGate.requireDeclared(
+                scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
     }
 
     /**
