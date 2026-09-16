@@ -11,7 +11,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.EnrichEvaluationContextHook;
-import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUtil;
 import dev.openfeature.sdk.EvaluationContext;
@@ -40,7 +39,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     /** Options to configure the provider. */
     private final GoFeatureFlagProviderOptions options;
     /** Service to evaluate the flags. */
-    private final EvaluationService evalService;
+    private final IEvaluator evaluator;
     /** List of the hooks used by the provider. */
     private final List<Hook> hooks = new ArrayList<>();
     /** API layer to contact GO Feature Flag. */
@@ -65,7 +64,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         options.validate();
         this.options = options;
         this.api = GoFeatureFlagApi.builder().options(options).build();
-        this.evalService = new EvaluationService(getEvaluator(this.api));
+        this.evaluator = getEvaluator(this.api);
 
         Consumer<List<IEvent>> publisher = this::publishEvents;
         this.eventsPublisher =
@@ -90,40 +89,45 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(
             String key, Boolean defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Boolean.class);
+        return this.evaluator.getBooleanEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(
             String key, String defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, String.class);
+        return this.evaluator.getStringEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(
             String key, Integer defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Integer.class);
+        return this.evaluator.getIntegerEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(
             String key, Double defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Double.class);
+        return this.evaluator.getDoubleEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(
             String key, Value defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Value.class);
+        return this.evaluator.getObjectEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
+         this.initialize(evaluationContext, "");
+    }
+
+    @Override
+    public void initialize(EvaluationContext evaluationContext, String domain) throws Exception {
         super.initialize(evaluationContext);
         // re-initialization must reset the publisher: its shutdown flag and its scheduler are both
         // one-shot, so without this a provider that is shut down and initialized again never flushes.
         this.eventsPublisher.start();
-        this.evalService.init();
+        this.evaluator.initialize(evaluationContext, domain);
         this.hooks.add(new EnrichEvaluationContextHook(this.options.getExporterMetadata()));
         // In case of remote evaluation, we don't need to send the data to the collector
         // because the relay-proxy will collect events directly server side.
@@ -131,7 +135,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
             this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
                     .eventsPublisher(this.eventsPublisher)
                     .collectUnCachedEvaluation(true)
-                    .evalService(this.evalService)
+                    .evaluator(this.evaluator)
                     .build());
 
             this.hooks.add(this.dataCollectorHook);
@@ -142,7 +146,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     @Override
     public void shutdown() {
         super.shutdown();
-        this.evalService.destroy();
+        this.evaluator.shutdown();
         if (this.dataCollectorHook != null) {
             this.dataCollectorHook.shutdown();
         }
@@ -183,13 +187,13 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
      *
      * @return the evaluator
      */
-    private IEvaluator getEvaluator(GoFeatureFlagApi api) {
+    private IEvaluator getEvaluator(final GoFeatureFlagApi api) {
         // Select the evaluator based on the evaluation type
         if (options.getEvaluationType() == null || options.getEvaluationType() == EvaluationType.IN_PROCESS) {
             Consumer<ProviderEventDetails> emitProviderConfigurationChanged = this::emitProviderConfigurationChanged;
             return new InProcessEvaluator(api, this.options, emitProviderConfigurationChanged);
         }
-        return new RemoteEvaluator(api);
+        return new RemoteEvaluator(this.options);
     }
 
     /**

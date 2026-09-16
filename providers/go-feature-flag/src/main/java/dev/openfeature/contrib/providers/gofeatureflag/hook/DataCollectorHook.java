@@ -2,8 +2,8 @@ package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FeatureEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
+import dev.openfeature.contrib.providers.gofeatureflag.evaluator.IEvaluator;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
-import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUtil;
 import dev.openfeature.sdk.FlagEvaluationDetails;
@@ -23,8 +23,8 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
     private final DataCollectorHookOptions options;
     /** eventsPublisher is the system collecting all the information to send to GO Feature Flag. */
     private final EventsPublisher<IEvent> eventsPublisher;
-    /** evalService is the service to evaluate the flags. */
-    private final EvaluationService evalService;
+    /** evaluator is the service to evaluate the flags. */
+    private final IEvaluator evaluator;
 
     /**
      * Constructor of the hook.
@@ -38,13 +38,13 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
         }
         options.validate();
         eventsPublisher = options.getEventsPublisher();
-        evalService = options.getEvalService();
+        evaluator = options.getEvaluator();
         this.options = options;
     }
 
     @Override
     public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
-        if (!this.evalService.isFlagTrackable(ctx.getFlagKey())
+        if (!this.evaluator.isFlagTrackable(ctx.getFlagKey())
                 || (!Boolean.TRUE.equals(this.options.getCollectUnCachedEvaluation())
                         && !Reason.CACHED.name().equals(details.getReason()))) {
             return;

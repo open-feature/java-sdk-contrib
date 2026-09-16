@@ -7,10 +7,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOpti
 import dev.openfeature.contrib.providers.gofeatureflag.api.bean.ExporterRequest;
 import dev.openfeature.contrib.providers.gofeatureflag.api.bean.FlagConfigApiRequest;
 import dev.openfeature.contrib.providers.gofeatureflag.api.bean.FlagConfigApiResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.api.bean.OfrepRequest;
-import dev.openfeature.contrib.providers.gofeatureflag.api.bean.OfrepResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.AuthenticationFailure;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
@@ -19,20 +16,14 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToSen
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
-import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.InvalidContextError;
-import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Collections;
@@ -93,71 +84,6 @@ public final class GoFeatureFlagApi {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(timeout))
                 .build();
-    }
-
-    /**
-     * evaluateFlag is calling the GO Feature Flag relay proxy to evaluate the feature flag.
-     *
-     * @param key               - name of the flag
-     * @param evaluationContext - context of the evaluation
-     * @return EvaluationResponse with the evaluation of the flag
-     * @throws OpenFeatureError - if an error occurred while evaluating the flag
-     */
-    public GoFeatureFlagResponse evaluateFlag(final String key, final EvaluationContext evaluationContext)
-            throws OpenFeatureError {
-        return this.evaluateFlag(key, evaluationContext, 0);
-    }
-
-    /**
-     * evaluateFlag is calling the GO Feature Flag relay proxy to evaluate the feature flag.\
-     * It will retry once if the relay proxy is unavailable.
-     *
-     * @param key               - name of the flag
-     * @param evaluationContext - context of the evaluation
-     * @param retryCount        - number of retries already done
-     * @return EvaluationResponse with the evaluation of the flag
-     * @throws OpenFeatureError - if an error occurred while evaluating the flag
-     */
-    private GoFeatureFlagResponse evaluateFlag(
-            final String key, final EvaluationContext evaluationContext, final int retryCount) throws OpenFeatureError {
-        try {
-            URI url = route(Const.PATH_OFREP_EVALUATE + encodePathSegment(key));
-
-            val requestBody = OfrepRequest.builder()
-                    .context(evaluationContext.asObjectMap())
-                    .build();
-
-            HttpResponse<String> response =
-                    this.httpClient.send(prepareHttpRequest(url, requestBody), HttpResponse.BodyHandlers.ofString());
-            String body = response.body();
-
-            switch (response.statusCode()) {
-                case HttpURLConnection.HTTP_OK:
-                    val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, OfrepResponse.class);
-                    return goffResp.toGoFeatureFlagResponse();
-                case HttpURLConnection.HTTP_UNAUTHORIZED:
-                case HttpURLConnection.HTTP_FORBIDDEN:
-                    throw new GeneralError("authentication/authorization error");
-                case HttpURLConnection.HTTP_BAD_REQUEST:
-                    throw new InvalidContextError("Invalid context: " + body);
-                case HttpURLConnection.HTTP_UNAVAILABLE:
-                    // If the relay proxy is unavailable, we can retry once.
-                    if (retryCount < 1) {
-                        log.warn("GO Feature Flag relay proxy is unavailable, retrying evaluation for flag: {}", key);
-                        return this.evaluateFlag(key, evaluationContext, retryCount + 1);
-                    }
-                    throw new GeneralError("Service Unavailable: " + body);
-                case HttpURLConnection.HTTP_NOT_FOUND:
-                    throw new FlagNotFoundError("Flag " + key + " not found");
-                default:
-                    throw new GeneralError("Unknown error while retrieving flag " + body);
-            }
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            throw new GeneralError("unknown error while retrieving flag " + key, e);
-        }
     }
 
     /**
@@ -297,18 +223,6 @@ public final class GoFeatureFlagApi {
             log.debug("Error parsing Last-Modified header: {}", e.getMessage());
             return null;
         }
-    }
-
-    /**
-     * encodePathSegment escapes a flag key so that it cannot alter the shape of the URL. A key
-     * containing a space would otherwise make the URI unparseable, and one containing a slash would
-     * address a different route.
-     *
-     * @param segment - the raw flag key
-     * @return the key, safe to place in a path
-     */
-    private static String encodePathSegment(final String segment) {
-        return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     /**

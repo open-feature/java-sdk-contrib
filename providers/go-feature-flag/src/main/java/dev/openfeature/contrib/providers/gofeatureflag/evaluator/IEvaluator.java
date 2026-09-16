@@ -2,37 +2,21 @@ package dev.openfeature.contrib.providers.gofeatureflag.evaluator;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.Value;
 
 /**
  * IEvaluator is an interface that represents the evaluation of a feature flag.
  * It can have multiple implementations: REMOTE or IN-PROCESS.
  */
 public interface IEvaluator {
-    /**
-     * Initialize the evaluator.
-     */
-    void init();
-
-    /**
-     * Destroy the evaluator.
-     */
-    void destroy();
-
-    /**
-     * Evaluate the flag.
-     *
-     * @param key               - name of the flag
-     * @param defaultValue      - default value
-     * @param evaluationContext - evaluation context
-     * @return the evaluation response
-     */
-    GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext);
-
-    /**
-     * Check if the flag is trackable or not.
-     *
-     * @param flagKey - name of the flag
-     * @return true if the flag is trackable, false otherwise
-     */
+    void initialize(final EvaluationContext ctx, final String domain) throws Exception;
+    void initialize(final EvaluationContext ctx) throws Exception;
+    void shutdown();
+    ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx);
+    ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx);
+    ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx);
+    ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx);
+    ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx);
     boolean isFlagTrackable(String flagKey);
 }
