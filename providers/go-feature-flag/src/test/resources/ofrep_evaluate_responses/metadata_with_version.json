@@ -1,0 +1,11 @@
+{
+  "key": "metadata_with_version",
+  "value": true,
+  "reason": "TARGETING_MATCH",
+  "variant": "enabled",
+  "metadata": {
+    "gofeatureflag_cacheable": true,
+    "gofeatureflag_version": "1.2.3",
+    "description": "A flag carrying both relay proxy metadata keys"
+  }
+}
