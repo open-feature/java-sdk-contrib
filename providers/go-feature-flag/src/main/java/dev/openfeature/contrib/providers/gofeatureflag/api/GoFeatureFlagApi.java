@@ -146,7 +146,7 @@ public final class GoFeatureFlagApi {
     public void sendEventToDataCollector(final List<IEvent> eventsList, final Map<String, Object> exporterMetadata) {
         try {
             ExporterRequest requestBody = new ExporterRequest(eventsList, exporterMetadata);
-            URI url = this.endpoint.resolve("/v1/data/collector");
+            URI url = route(Const.PATH_DATA_COLLECTOR);
 
             HttpRequest request = prepareHttpRequest(url, requestBody);
 

@@ -18,6 +18,7 @@ public class Const {
     public static final String HTTP_HEADER_LAST_MODIFIED = "Last-Modified";
     // API ROUTES (relative to the configured endpoint, so that a path prefix on the endpoint survives)
     public static final String PATH_FLAG_CONFIGURATION = "v1/flag/configuration";
+    public static final String PATH_DATA_COLLECTOR = "v1/data/collector";
     // FLAG CONFIGURATION FIELDS
     // the only field of a flag configuration a provider may read, everything else is the engine's
     public static final String FIELD_TRACK_EVENTS = "trackEvents";
