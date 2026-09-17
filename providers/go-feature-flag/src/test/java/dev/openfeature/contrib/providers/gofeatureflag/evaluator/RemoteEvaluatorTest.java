@@ -109,6 +109,41 @@ class RemoteEvaluatorTest {
         assertEquals("A flag that is always off", got.getFlagMetadata().getString("description"));
     }
 
+    @DisplayName("should pass gofeatureflag_version through untouched")
+    @Test
+    void shouldPassTheRelayProxyVersionThrough() {
+        val got = evaluator().getBooleanEvaluation("metadata_with_version", false, new ImmutableContext("user-key"));
+
+        assertEquals(true, got.getFlagMetadata().getBoolean("gofeatureflag_cacheable"));
+        assertEquals("1.2.3", got.getFlagMetadata().getString("gofeatureflag_version"));
+        assertEquals(
+                "A flag carrying both relay proxy metadata keys",
+                got.getFlagMetadata().getString("description"));
+    }
+
+    @DisplayName("should evaluate a flag whose metadata carries no relay proxy key")
+    @Test
+    void shouldEvaluateAFlagWithoutRelayProxyMetadataKeys() {
+        val got =
+                evaluator().getBooleanEvaluation("metadata_without_goff_keys", false, new ImmutableContext("user-key"));
+
+        assertEquals(true, got.getValue());
+        assertNull(got.getErrorCode());
+        assertNull(got.getFlagMetadata().getBoolean("gofeatureflag_cacheable"));
+        assertEquals(
+                "A relay proxy that adds no gofeatureflag_ keys",
+                got.getFlagMetadata().getString("description"));
+    }
+
+    @DisplayName("should evaluate a flag whose response carries no metadata at all")
+    @Test
+    void shouldEvaluateAFlagWithoutAnyMetadata() {
+        val got = evaluator().getBooleanEvaluation("metadata_absent", false, new ImmutableContext("user-key"));
+
+        assertEquals(true, got.getValue());
+        assertNull(got.getErrorCode());
+    }
+
     @DisplayName("should not claim a remote evaluation in the flag metadata")
     @Test
     void shouldNotClaimARemoteEvaluationInTheFlagMetadata() {
