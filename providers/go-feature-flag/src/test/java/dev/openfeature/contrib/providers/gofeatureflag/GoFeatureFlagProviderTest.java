@@ -417,6 +417,10 @@ class GoFeatureFlagProviderTest {
                     .variant("SdkDefault")
                     .flagKey("disabled_bool")
                     .reason(Reason.DISABLED.name())
+                    .flagMetadata(ImmutableMetadata.builder()
+                            .addString("description", "this is a test flag")
+                            .addBoolean("defaultValue", false)
+                            .build())
                     .build();
             assertEquals(want, got);
         }
