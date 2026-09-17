@@ -36,7 +36,11 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.HttpUrl;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -196,6 +200,31 @@ public class GoFeatureFlagApiTest {
                 api.retrieveFlagConfiguration(null, Collections.emptyList());
                 assertEquals("/v1/flag/configuration", server.takeRequest().getPath());
                 assertEquals(0, collectorServer.getRequestCount());
+            }
+        }
+
+        @SneakyThrows
+        @DisplayName("dataCollectorBaseURL should carry the configured timeout")
+        @Test
+        public void dataCollectorBaseUrlShouldCarryTheConfiguredTimeout() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new Dispatcher() {
+                    @Override
+                    public @NonNull MockResponse dispatch(@NonNull RecordedRequest request) {
+                        return new MockResponse().setResponseCode(200).setHeadersDelay(5, TimeUnit.SECONDS);
+                    }
+                });
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .timeout(200)
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+
+                assertThrows(
+                        ImpossibleToSendEventsException.class,
+                        () -> api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>()));
             }
         }
 
