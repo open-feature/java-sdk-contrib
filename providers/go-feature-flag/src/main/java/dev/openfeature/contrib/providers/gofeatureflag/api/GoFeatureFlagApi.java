@@ -50,6 +50,9 @@ public final class GoFeatureFlagApi {
     /** endpoint is the endpoint of the GO Feature Flag relay proxy. */
     private final URI endpoint;
 
+    /** dataCollectorBaseURL is the base of the data collector route, the endpoint unless overridden. */
+    private final URI dataCollectorBaseURL;
+
     /** timeout is the timeout in milliseconds for the HTTP requests. */
     private final int timeout;
 
@@ -69,8 +72,8 @@ public final class GoFeatureFlagApi {
         this.apiKey = options.getApiKey();
 
         try {
-            val rawEndpoint = options.getEndpoint();
-            this.endpoint = new URI(rawEndpoint.endsWith("/") ? rawEndpoint : rawEndpoint + "/");
+            this.endpoint = asBaseUri(options.getEndpoint());
+            this.dataCollectorBaseURL = asBaseUri(options.getDataCollectorBaseURL());
         } catch (URISyntaxException e) {
             throw new InvalidEndpoint(e);
         }
@@ -101,7 +104,7 @@ public final class GoFeatureFlagApi {
     public Optional<FlagConfigResponse> retrieveFlagConfiguration(final String etag, final List<String> flags) {
         try {
             val request = new FlagConfigApiRequest(flags == null ? Collections.emptyList() : flags);
-            final URI url = route(Const.PATH_FLAG_CONFIGURATION);
+            final URI url = route(this.endpoint, Const.PATH_FLAG_CONFIGURATION);
 
             final HttpRequest httpRequest = etag != null && !etag.isEmpty()
                     ? prepareHttpRequest(url, request, Const.HTTP_HEADER_IF_NONE_MATCH, etag)
@@ -146,7 +149,7 @@ public final class GoFeatureFlagApi {
     public void sendEventToDataCollector(final List<IEvent> eventsList, final Map<String, Object> exporterMetadata) {
         try {
             ExporterRequest requestBody = new ExporterRequest(eventsList, exporterMetadata);
-            URI url = route(Const.PATH_DATA_COLLECTOR);
+            URI url = route(this.dataCollectorBaseURL, Const.PATH_DATA_COLLECTOR);
 
             HttpRequest request = prepareHttpRequest(url, requestBody);
 
@@ -226,15 +229,28 @@ public final class GoFeatureFlagApi {
     }
 
     /**
-     * route builds the URL of an API route from the configured endpoint, preserving any path prefix
-     * the endpoint carries. Resolving an absolute path such as {@code /v1/flag/configuration} would
-     * discard that prefix (RFC 3986 section 5.3) and silently retarget the request.
+     * route builds the URL of an API route from an arbitrary base, so that the data collector can be
+     * addressed somewhere other than the relay proxy.
      *
-     * @param path - route path, relative to the endpoint and without a leading slash
+     * @param base - base URL of the route, already normalised by {@link #asBaseUri(String)}
+     * @param path - route path, relative to the base and without a leading slash
      * @return the URL to call
      */
-    private URI route(final String path) {
-        return this.endpoint.resolve(path.startsWith("/") ? path.substring(1) : path);
+    private static URI route(final URI base, final String path) {
+        return base.resolve(path.startsWith("/") ? path.substring(1) : path);
+    }
+
+    /**
+     * asBaseUri normalises a configured URL into a base other paths can be resolved against. The
+     * trailing slash makes it directory-like, so resolving a relative path appends to any prefix it
+     * carries instead of replacing it.
+     *
+     * @param url - the configured URL
+     * @return the URL as a base
+     * @throws URISyntaxException - if the URL is not a valid URI
+     */
+    private static URI asBaseUri(final String url) throws URISyntaxException {
+        return new URI(url.endsWith("/") ? url : url + "/");
     }
 
     /**
