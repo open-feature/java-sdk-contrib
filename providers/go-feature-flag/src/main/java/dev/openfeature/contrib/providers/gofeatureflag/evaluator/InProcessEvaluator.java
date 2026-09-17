@@ -246,6 +246,7 @@ public class InProcessEvaluator implements IEvaluator {
                     .value(defaultValue)
                     .variant(response.getVariationType())
                     .reason(Reason.DISABLED.name())
+                    .flagMetadata(MetadataUtil.convertFlagMetadata(response.getMetadata()))
                     .build();
         }
 

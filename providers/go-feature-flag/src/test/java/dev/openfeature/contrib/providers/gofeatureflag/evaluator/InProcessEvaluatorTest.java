@@ -368,6 +368,22 @@ class InProcessEvaluatorTest {
             assertNull(result.getErrorCode());
         }
 
+        @DisplayName("Should keep the flag metadata when the flag is disabled")
+        @Test
+        void shouldKeepTheFlagMetadataWhenTheFlagIsDisabled() {
+            val response = responseWithValue(true);
+            response.setReason(Reason.DISABLED.name());
+            response.setVariationType("SdkDefault");
+            response.setMetadata(Map.of("description", "a disabled flag", "gofeatureflag_cacheable", true));
+
+            ProviderEvaluation<Boolean> result = toProviderEvaluation("test-flag", false, response, Boolean.class);
+
+            assertEquals(false, result.getValue());
+            assertEquals(Reason.DISABLED.name(), result.getReason());
+            assertEquals("a disabled flag", result.getFlagMetadata().getString("description"));
+            assertEquals(true, result.getFlagMetadata().getBoolean("gofeatureflag_cacheable"));
+        }
+
         @DisplayName("Should not return a zero value when the value is null")
         @Test
         void shouldNotReturnAZeroValueWhenTheValueIsNull() {
