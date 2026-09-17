@@ -142,6 +142,20 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("request should keep the path prefix of the endpoint")
+        @Test
+        public void requestShouldKeepThePathPrefixOfTheEndpoint() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(server.url("/gofeatureflagproxy/").toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+            val want = "/gofeatureflagproxy/v1/data/collector";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
         @DisplayName("request should not set an api key if empty")
         @Test
         public void requestShouldNotSetAnAPIKeyIfEmpty() {
