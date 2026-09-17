@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -153,6 +155,70 @@ public class GoFeatureFlagApiTest {
 
             val want = "/gofeatureflagproxy/v1/data/collector";
             assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("request should go to dataCollectorBaseURL when it is set")
+        @Test
+        public void requestShouldGoToDataCollectorBaseUrlWhenItIsSet() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseURL(
+                                collectorServer.url("/collector-prefix/").toString())
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+                api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+                val request = collectorServer.takeRequest(5, TimeUnit.SECONDS);
+                assertNotNull(request, "the data collector base URL was not called");
+                // the whole base is replaced: host, port and path prefix
+                assertEquals("/collector-prefix/v1/data/collector", request.getPath());
+                assertEquals(0, server.getRequestCount(), "the endpoint should not have been called");
+            }
+        }
+
+        @SneakyThrows
+        @DisplayName("the other routes should keep using the endpoint when dataCollectorBaseURL is set")
+        @Test
+        public void theOtherRoutesShouldKeepUsingTheEndpointWhenDataCollectorBaseUrlIsSet() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+
+                api.retrieveFlagConfiguration(null, Collections.emptyList());
+                assertEquals("/v1/flag/configuration", server.takeRequest().getPath());
+                assertEquals(0, collectorServer.getRequestCount());
+            }
+        }
+
+        @SneakyThrows
+        @DisplayName("dataCollectorBaseURL should carry the api key and the timeout")
+        @Test
+        public void dataCollectorBaseUrlShouldCarryTheApiKeyAndTheTimeout() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val apiKey = "my-api-key";
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .apiKey(apiKey)
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+                api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+                val request = collectorServer.takeRequest(5, TimeUnit.SECONDS);
+                assertNotNull(request, "the data collector base URL was not called");
+                assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
+            }
         }
 
         @SneakyThrows

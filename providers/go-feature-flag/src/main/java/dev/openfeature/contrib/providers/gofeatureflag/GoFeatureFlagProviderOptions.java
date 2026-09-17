@@ -43,6 +43,13 @@ public class GoFeatureFlagProviderOptions {
      */
     private String endpoint;
     /**
+     * (optional) dataCollectorBaseURL is the base URL used to publish the evaluation data, when the
+     * data collector is not served by the relay proxy itself. It replaces the whole base of the
+     * collector route, scheme, host, port and path prefix included, and applies to that route only:
+     * the flag configuration and the evaluations keep using endpoint. Default: endpoint
+     */
+    private String dataCollectorBaseURL;
+    /**
      * (optional) timeout in millisecond we are waiting when calling the go-feature-flag relay proxy
      * API. Default: 10000 ms
      */
@@ -124,6 +131,15 @@ public class GoFeatureFlagProviderOptions {
      */
     public EvaluationType getEvaluationType() {
         return evaluationType == null ? EvaluationType.IN_PROCESS : evaluationType;
+    }
+
+    /**
+     * Get the base URL used to publish the evaluation data.
+     *
+     * @return the configured data collector base URL, the endpoint if none was set
+     */
+    public String getDataCollectorBaseURL() {
+        return dataCollectorBaseURL == null || dataCollectorBaseURL.isEmpty() ? endpoint : dataCollectorBaseURL;
     }
 
     /**
@@ -226,6 +242,14 @@ public class GoFeatureFlagProviderOptions {
             new URL(endpoint);
         } catch (MalformedURLException e) {
             throw new InvalidEndpoint("malformed endpoint: " + endpoint);
+        }
+
+        if (dataCollectorBaseURL != null && !dataCollectorBaseURL.isEmpty()) {
+            try {
+                new URL(dataCollectorBaseURL);
+            } catch (MalformedURLException e) {
+                throw new InvalidEndpoint("malformed dataCollectorBaseURL: " + dataCollectorBaseURL);
+            }
         }
 
         if (wasmEvaluatorPoolSize != null && wasmEvaluatorPoolSize < 1) {
