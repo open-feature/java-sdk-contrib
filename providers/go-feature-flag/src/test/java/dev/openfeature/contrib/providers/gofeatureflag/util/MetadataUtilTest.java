@@ -2,9 +2,11 @@ package dev.openfeature.contrib.providers.gofeatureflag.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import dev.openfeature.sdk.ImmutableMetadata;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -48,14 +50,25 @@ class MetadataUtilTest {
     }
 
     @Test
-    void testConvertFlagMetadata_UnsupportedType() {
-        // Test with a map containing an unsupported type
+    void testConvertFlagMetadata_StructuredValueStaysParseable() {
         Map<String, Object> flagMetadata = new HashMap<>();
-        flagMetadata.put("key1", new RuntimeException()); // Unsupported type
+        flagMetadata.put("nested", Map.of("a", 1));
+        flagMetadata.put("list", List.of(1, 2, 3));
+
+        ImmutableMetadata metadata = MetadataUtil.convertFlagMetadata(flagMetadata);
+        assertEquals("{\"a\":1}", metadata.getString("nested"));
+        assertEquals("[1,2,3]", metadata.getString("list"));
+    }
+
+    @Test
+    void testConvertFlagMetadata_NullValueIsSkipped() {
+        Map<String, Object> flagMetadata = new HashMap<>();
+        flagMetadata.put("present", "value");
+        flagMetadata.put("absent", null);
 
         ImmutableMetadata metadata = MetadataUtil.convertFlagMetadata(flagMetadata);
 
-        assertNotNull(metadata);
-        assertEquals("java.lang.RuntimeException", metadata.getString("key1"));
+        assertEquals("value", metadata.getString("present"));
+        assertNull(metadata.getString("absent"));
     }
 }
