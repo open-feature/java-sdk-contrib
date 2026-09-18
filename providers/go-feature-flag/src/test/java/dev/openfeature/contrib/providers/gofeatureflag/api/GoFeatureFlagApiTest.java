@@ -479,6 +479,25 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("an unknown field beside the flags should be tolerated")
+        @Test
+        public void anUnknownFieldBesideTheFlagsShouldBeTolerated() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            val got = api.retrieveFlagConfiguration("unknown-response-field", Collections.emptyList());
+
+            // a top level field the provider has no property for must not fail the refresh
+            assertTrue(got.isPresent());
+            assertEquals(
+                    Const.DESERIALIZE_OBJECT_MAPPER.readTree("{\"deep\": {\"deeper\": 1}}"),
+                    got.get().getFlags().get("TEST").get("aFieldFromANewerEngine"));
+            assertEquals(1, got.get().getEvaluationContextEnrichment().get("anUnknownEnrichmentKey"));
+        }
+
+        @SneakyThrows
         @DisplayName("a 200 carrying no flag map should be a failed refresh")
         @Test
         public void a200CarryingNoFlagMapShouldBeAFailedRefresh() {

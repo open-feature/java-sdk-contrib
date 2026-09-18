@@ -158,6 +158,24 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("a flag carrying unknown fields should still evaluate through the engine")
+    @Test
+    void aFlagCarryingUnknownFieldsShouldStillEvaluateThroughTheEngine() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.UNKNOWN_RESPONSE_FIELD).dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            val got = evaluator.getBooleanEvaluation("TEST", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            // the engine receives the flag with the unrecognised fields still on it
+            assertEquals(true, got.getValue());
+            assertNull(got.getErrorCode());
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("should report PROVIDER_NOT_READY before any configuration is loaded")
     @Test
     void shouldReportProviderNotReadyBeforeAnyConfigurationIsLoaded() {
