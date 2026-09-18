@@ -129,6 +129,22 @@ public class GoffApiMock {
         return new MockResponse().setResponseCode(200).setBody("{\"ingestedContentCount\":0}");
     }
 
+    /**
+     * a configuration carrying fields this provider has no property for, at the top level, inside a
+     * flag and inside the enrichment: all of them must be tolerated and none discarded.
+     */
+    private MockResponse unknownResponseFieldConfig() {
+        return new MockResponse()
+                .setResponseCode(200)
+                .setBody("{\"schemaVersion\": 2,"
+                        + " \"aFieldFromANewerRelayProxy\": {\"nested\": [1, 2, 3]},"
+                        + " \"flags\": {\"TEST\": {\"variations\": {\"on\": true},"
+                        + " \"defaultRule\": {\"variation\": \"on\"},"
+                        + " \"aFieldFromANewerEngine\": {\"deep\": {\"deeper\": 1}}}},"
+                        + " \"evaluationContextEnrichment\": {\"anUnknownEnrichmentKey\": 1}}")
+                .addHeader(Const.HTTP_HEADER_ETAG, "\"unknown-response-field\"");
+    }
+
     @SneakyThrows
     public MockResponse handleFlagConfiguration(RecordedRequest request) {
         var configLocation = "valid-all-types.json";
@@ -167,6 +183,8 @@ public class GoffApiMock {
                 configLocation =
                         configurationCallCount > 2 ? "valid-all-types-config-change.json" : "valid-all-types.json";
                 break;
+            case UNKNOWN_RESPONSE_FIELD:
+                return unknownResponseFieldConfig();
             case CONFIG_CHANGES_EVERY_POLL:
                 // alternating configurations, so every poll sees a validator it has not stored
                 configLocation =
@@ -208,6 +226,8 @@ public class GoffApiMock {
                                 + " \"aFieldFromANewerEngine\": {\"nested\": [1, 2, 3]},"
                                 + " \"bucketingKey\": \"teamId\"}}}")
                         .addHeader(Const.HTTP_HEADER_ETAG, "\"unknown-flag-field\"");
+            case "unknown-response-field":
+                return unknownResponseFieldConfig();
             case "no-flags":
                 // a 200 whose body carries no flags key at all
                 return new MockResponse()
@@ -271,6 +291,7 @@ public class GoffApiMock {
         DEFAULT,
         SERVE_OLD_CONFIGURATION,
         CONFIG_CHANGES_EVERY_POLL,
+        UNKNOWN_RESPONSE_FIELD,
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
         EMPTY_FLAG_CONFIG,
     }
