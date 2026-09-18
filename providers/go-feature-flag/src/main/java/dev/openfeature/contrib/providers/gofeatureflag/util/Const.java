@@ -33,6 +33,8 @@ public class Const {
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     public static final ObjectMapper SERIALIZE_OBJECT_MAPPER = new ObjectMapper();
     public static final ObjectMapper SERIALIZE_WASM_MAPPER = new ObjectMapper()
-            .setDefaultPropertyInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            .setDefaultPropertyInclusion(com.fasterxml.jackson.annotation.JsonInclude.Value.construct(
+                    com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL,
+                    com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS))
             .setDateFormat(new StdDateFormat().withColonInTimeZone(true));
 }
