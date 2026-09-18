@@ -374,32 +374,59 @@ public class InProcessEvaluator implements IEvaluator {
 
         return apiCallObservable.subscribe(
                 response -> {
-                    EvaluatorState current = this.state;
-                    if (response.getEtag().equals(current.etag)) {
-                        log.debug("flag configuration has not changed: {}", response);
-                        return;
+                    try {
+                        applyFlagConfiguration(response);
+                    } catch (Exception e) {
+                        // an exception escaping the subscriber disposes it, which would stop polling
+                        // for the lifetime of the provider rather than for this one refresh.
+                        log.error("error while applying the flag configuration", e);
                     }
-
-                    if (response.getLastUpdated().before(current.lastUpdate)) {
-                        log.info("configuration received is older than the current one");
-                        return;
-                    }
-
-                    log.info("flag configuration has changed");
-                    val flagChanges = findFlagConfigurationChanges(current.flags, response.getFlags());
-                    this.state = new EvaluatorState(
-                            response.getFlags(),
-                            response.getEvaluationContextEnrichment(),
-                            response.getEtag(),
-                            response.getLastUpdated());
-                    val changeDetails = ProviderEventDetails.builder()
-                            .flagsChanged(flagChanges)
-                            .message("flag configuration has changed")
-                            .build();
-                    this.emitProviderConfigurationChanged.accept(changeDetails);
                 },
-                throwable ->
-                        log.error("error while calling flag configuration API, error: {}", throwable.getMessage()));
+                throwable -> log.error("flag configuration polling has stopped and will not resume", throwable));
+    }
+
+    /**
+     * applyFlagConfiguration replaces the configuration state with a newly retrieved one, unless the
+     * response describes the configuration already held or an older one.
+     *
+     * <p>Both validators are optional: a relay proxy behind a cache or a reverse proxy may answer
+     * without an {@code ETag} or with a {@code Last-Modified} this provider cannot parse, so a null
+     * on either side means "cannot rule this response out" rather than a comparison.
+     *
+     * @param response - configuration returned by the last successful refresh
+     */
+    private void applyFlagConfiguration(final FlagConfigResponse response) {
+        EvaluatorState current = this.state;
+        if (response.getEtag() != null && response.getEtag().equals(current.etag)) {
+            log.debug("flag configuration has not changed: {}", response);
+            return;
+        }
+
+        if (response.getLastUpdated() != null
+                && current.lastUpdate != null
+                && response.getLastUpdated().before(current.lastUpdate)) {
+            log.info("configuration received is older than the current one");
+            return;
+        }
+
+        val flagChanges = findFlagConfigurationChanges(current.flags, response.getFlags());
+        this.state = new EvaluatorState(
+                response.getFlags(),
+                response.getEvaluationContextEnrichment(),
+                response.getEtag(),
+                response.getLastUpdated());
+
+        if (flagChanges.isEmpty()) {
+            log.debug("flag configuration has not changed: {}", response);
+            return;
+        }
+
+        log.info("flag configuration has changed");
+        val changeDetails = ProviderEventDetails.builder()
+                .flagsChanged(flagChanges)
+                .message("flag configuration has changed")
+                .build();
+        this.emitProviderConfigurationChanged.accept(changeDetails);
     }
 
     /**

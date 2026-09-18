@@ -167,6 +167,11 @@ public class GoffApiMock {
                 configLocation =
                         configurationCallCount > 2 ? "valid-all-types-config-change.json" : "valid-all-types.json";
                 break;
+            case CONFIG_CHANGES_EVERY_POLL:
+                // alternating configurations, so every poll sees a validator it has not stored
+                configLocation =
+                        configurationCallCount % 2 == 0 ? "valid-all-types-config-change.json" : "valid-all-types.json";
+                break;
             case SIMPLE_CONFIG:
                 configLocation = "valid-flag-config.json";
                 break;
@@ -265,6 +270,7 @@ public class GoffApiMock {
         SIMPLE_CONFIG,
         DEFAULT,
         SERVE_OLD_CONFIGURATION,
+        CONFIG_CHANGES_EVERY_POLL,
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
         EMPTY_FLAG_CONFIG,
     }
