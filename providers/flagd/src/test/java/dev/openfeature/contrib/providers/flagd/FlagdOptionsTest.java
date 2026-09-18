@@ -1,18 +1,23 @@
 package dev.openfeature.contrib.providers.flagd;
 
+import static dev.openfeature.contrib.providers.flagd.Config.DEADLINE_MS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_CACHE;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_DEADLINE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_HOST;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_IN_PROCESS_PORT;
+import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_KEEP_ALIVE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_MAX_CACHE_SIZE;
 import static dev.openfeature.contrib.providers.flagd.Config.DEFAULT_RPC_PORT;
 import static dev.openfeature.contrib.providers.flagd.Config.KEEP_ALIVE_MS_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.KEEP_ALIVE_MS_ENV_VAR_NAME_OLD;
+import static dev.openfeature.contrib.providers.flagd.Config.MAX_CACHE_SIZE_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.PORT_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_ENV_VAR;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_IN_PROCESS;
 import static dev.openfeature.contrib.providers.flagd.Config.RESOLVER_RPC;
 import static dev.openfeature.contrib.providers.flagd.Config.SYNC_PORT_ENV_VAR_NAME;
 import static dev.openfeature.contrib.providers.flagd.Config.TARGET_URI_ENV_VAR_NAME;
+import static dev.openfeature.contrib.providers.flagd.Config.TLS_ENV_VAR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -328,5 +333,49 @@ class FlagdOptionsTest {
         FlagdOptions flagdOptions = FlagdOptions.builder().build();
 
         assertThat(flagdOptions.getTargetUri()).isEqualTo("envoy://localhost:1234/foo.service");
+    }
+
+    @Nested
+    class InvalidEnvironmentVariables {
+
+        @Test
+        @SetEnvironmentVariable(key = DEADLINE_MS_ENV_VAR_NAME, value = "not-a-number")
+        void invalidIntFallsBackToDefault() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+            assertThat(flagdOptions.getDeadline()).isEqualTo(DEFAULT_DEADLINE);
+        }
+
+        @Test
+        @SetEnvironmentVariable(key = MAX_CACHE_SIZE_ENV_VAR_NAME, value = "10.5")
+        void invalidIntWithDecimalFallsBackToDefault() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+            assertThat(flagdOptions.getMaxCacheSize()).isEqualTo(DEFAULT_MAX_CACHE_SIZE);
+        }
+
+        @Test
+        @SetEnvironmentVariable(key = KEEP_ALIVE_MS_ENV_VAR_NAME, value = "abc")
+        void invalidLongFallsBackToDefault() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+            assertThat(flagdOptions.getKeepAlive()).isEqualTo(DEFAULT_KEEP_ALIVE);
+        }
+
+        @Test
+        @SetEnvironmentVariable(key = TLS_ENV_VAR_NAME, value = "yes")
+        void invalidBooleanFallsBackToDefault() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+            assertThat(flagdOptions.isTls()).isFalse();
+        }
+
+        @Test
+        @SetEnvironmentVariable(key = TLS_ENV_VAR_NAME, value = "TRUE")
+        void booleanIsParsedCaseInsensitively() {
+            FlagdOptions flagdOptions = FlagdOptions.builder().build();
+
+            assertThat(flagdOptions.isTls()).isTrue();
+        }
     }
 }
