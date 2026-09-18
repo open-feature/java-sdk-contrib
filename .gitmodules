@@ -8,12 +8,17 @@
 # open-feature/community-tooling and is left sitting on the dependency dashboard
 # where nobody sees it.
 #
+# `json/json-schema-v*` is a release-please component tag. It needs the prefix
+# rule from open-feature/community-tooling#126 to resolve as a version; until
+# that lands the pin is inert, but harmless.
+#
 # So deleting a `branch` line silently switches off updates for that submodule.
 # That has happened several times; see open-feature/flagd-testbed#398. Keep the
 # pin, and let Renovate move it.
 [submodule "providers/flagd/schemas"]
 	path = providers/flagd/schemas
 	url = https://github.com/open-feature/schemas.git
+	branch = json/json-schema-v0.2.15
 [submodule "providers/flagd/test-harness"]
 	path = providers/flagd/test-harness
 	url = https://github.com/open-feature/test-harness.git
@@ -27,6 +32,7 @@
 [submodule "tools/flagd-core/schemas"]
 	path = tools/flagd-core/schemas
 	url = https://github.com/open-feature/schemas.git
+	branch = json/json-schema-v0.2.15
 [submodule "tools/flagd-api-testkit/test-harness"]
 	path = tools/flagd-api-testkit/test-harness
 	url = https://github.com/open-feature/test-harness.git
