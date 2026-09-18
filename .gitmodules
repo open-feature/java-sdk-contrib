@@ -17,11 +17,11 @@
 # pin, and let Renovate move it.
 [submodule "providers/flagd/schemas"]
 	path = providers/flagd/schemas
-	url = https://github.com/open-feature/schemas.git
+	url = https://github.com/open-feature/flagd-schemas.git
 	branch = json/json-schema-v0.2.15
 [submodule "providers/flagd/test-harness"]
 	path = providers/flagd/test-harness
-	url = https://github.com/open-feature/test-harness.git
+	url = https://github.com/open-feature/flagd-testbed.git
 	branch = v3.10.1
 [submodule "providers/flagd/spec"]
 	path = providers/flagd/spec
@@ -31,9 +31,9 @@
 	url = https://github.com/go-feature-flag/wasm-releases.git
 [submodule "tools/flagd-core/schemas"]
 	path = tools/flagd-core/schemas
-	url = https://github.com/open-feature/schemas.git
+	url = https://github.com/open-feature/flagd-schemas.git
 	branch = json/json-schema-v0.2.15
 [submodule "tools/flagd-api-testkit/test-harness"]
 	path = tools/flagd-api-testkit/test-harness
-	url = https://github.com/open-feature/test-harness.git
+	url = https://github.com/open-feature/flagd-testbed.git
 	branch = v3.8.0
