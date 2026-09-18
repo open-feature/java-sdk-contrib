@@ -26,9 +26,13 @@ import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.val;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -85,6 +89,72 @@ class InProcessEvaluatorTest {
         // a poller stranded by the second init would keep calling the API forever
         Thread.sleep(POLLING_INTERVAL_MS * 5);
         assertEquals(afterShutdown, goffApiMock.getConfigurationCallCount(), "polling continued after shutdown()");
+    }
+
+    @SneakyThrows
+    @DisplayName("polling should survive an error raised while applying a configuration")
+    @Test
+    void pollingShouldSurviveAnErrorRaisedWhileApplyingAConfiguration() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.CONFIG_CHANGES_EVERY_POLL).dispatcher);
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(s.url("").toString())
+                    .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            val refreshes = new AtomicInteger();
+            val evaluator = new InProcessEvaluator(api, options, details -> {
+                if (refreshes.incrementAndGet() == 1) {
+                    throw new IllegalStateException("an event consumer that fails on the first change");
+                }
+            });
+
+            evaluator.initialize(new ImmutableContext());
+            Thread.sleep(POLLING_INTERVAL_MS * 8);
+            evaluator.shutdown();
+
+            assertTrue(
+                    refreshes.get() > 1,
+                    "polling stopped after the first failed refresh, it reached " + refreshes.get() + " refresh(es)");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("polling should survive a configuration served without ETag and Last-Modified")
+    @Test
+    void pollingShouldSurviveAConfigurationServedWithoutEtagAndLastModified() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new Dispatcher() {
+                @Override
+                public MockResponse dispatch(RecordedRequest request) {
+                    // neither cache validator: nothing to compare this response against
+                    return new MockResponse()
+                            .setResponseCode(200)
+                            .setBody("{\"flags\": {\"TEST\": {\"variations\": {\"on\": true},"
+                                    + " \"defaultRule\": {\"variation\": \"on\"}}}}");
+                }
+            });
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(s.url("").toString())
+                    .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            val changeEvents = new AtomicInteger();
+            val evaluator = new InProcessEvaluator(api, options, details -> changeEvents.incrementAndGet());
+
+            evaluator.initialize(new ImmutableContext());
+            Thread.sleep(POLLING_INTERVAL_MS * 4);
+            val afterPolling = s.getRequestCount();
+            Thread.sleep(POLLING_INTERVAL_MS * 4);
+            val later = s.getRequestCount();
+            val evaluated = evaluator.getBooleanEvaluation("TEST", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertTrue(later > afterPolling, "polling stopped, it stayed at " + afterPolling + " request(s)");
+            assertEquals(true, evaluated.getValue());
+            // the configuration never changes, so no validator to compare must not mean "changed"
+            assertEquals(0, changeEvents.get(), "an unchanged configuration was announced as a change");
+        }
     }
 
     @SneakyThrows
