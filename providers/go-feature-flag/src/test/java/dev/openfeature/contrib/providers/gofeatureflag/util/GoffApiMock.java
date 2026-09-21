@@ -203,6 +203,13 @@ public class GoffApiMock {
                     return new MockResponse().setResponseCode(500);
                 }
                 break;
+            case STALE_AFTER_A_RECOVERY:
+                // stale, a recovery, then stale again: recovering has to re-arm the failure run
+                // rather than leave the provider unable to go stale a second time
+                if ((configurationCallCount > 1 && configurationCallCount <= 4) || configurationCallCount > 5) {
+                    return new MockResponse().setResponseCode(500);
+                }
+                break;
             case NOT_MODIFIED_AFTER_STALE:
                 // the same three failures, but the refresh that ends them is a 304 rather than a
                 // configuration: it never reaches the consumer, yet it is a refresh that worked
@@ -349,6 +356,7 @@ public class GoffApiMock {
         NOT_MODIFIED_DURING_FAILURES,
         FAIL_UNTIL_RECOVERY,
         NOT_MODIFIED_AFTER_STALE,
+        STALE_AFTER_A_RECOVERY,
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
         EMPTY_FLAG_CONFIG,
     }
