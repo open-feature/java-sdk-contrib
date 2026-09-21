@@ -28,6 +28,8 @@ public class Const {
     public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
     public static final int DEFAULT_WASM_EVALUATOR_POOL_SIZE =
             Runtime.getRuntime().availableProcessors();
+    /** consecutive failed refreshes after which the configuration is announced as stale. */
+    public static final int STALE_AFTER_CONSECUTIVE_FAILURES = 3;
     // MAPPERS
     public static final ObjectMapper DESERIALIZE_OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
