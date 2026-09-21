@@ -183,6 +183,14 @@ public class GoffApiMock {
                 configLocation =
                         configurationCallCount > 2 ? "valid-all-types-config-change.json" : "valid-all-types.json";
                 break;
+            case SAME_CONFIG_CHANGING_ETAG:
+                // identical content behind a fresh validator on every poll: the ETag alone cannot
+                // tell "changed" from "fetched", so only the content can
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody(TestUtils.readMockResponse("flag_config_responses/", configLocation))
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"etag-" + configurationCallCount + "\"")
+                        .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
             case UNKNOWN_RESPONSE_FIELD:
                 return unknownResponseFieldConfig();
             case CONFIG_CHANGES_EVERY_POLL:
@@ -292,6 +300,7 @@ public class GoffApiMock {
         SERVE_OLD_CONFIGURATION,
         CONFIG_CHANGES_EVERY_POLL,
         UNKNOWN_RESPONSE_FIELD,
+        SAME_CONFIG_CHANGING_ETAG,
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
         EMPTY_FLAG_CONFIG,
     }
