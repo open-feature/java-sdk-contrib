@@ -15,6 +15,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
@@ -30,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -46,8 +47,8 @@ public class InProcessEvaluator implements IEvaluator {
     private final WasmEvaluatorPool evaluationPool;
     /** Options to configure the provider. */
     private final GoFeatureFlagProviderOptions options;
-    /** Method to call when we have a configuration change. */
-    private final Consumer<ProviderEventDetails> emitProviderConfigurationChanged;
+    /** Method to call to emit a provider event to the SDK. */
+    private final BiConsumer<ProviderEvent, ProviderEventDetails> emitter;
     /** Immutable snapshot of all flag configuration state; updated atomically by the polling daemon. */
     private volatile EvaluatorState state;
     /** disposable which manage the polling of the flag configurations. */
@@ -97,17 +98,17 @@ public class InProcessEvaluator implements IEvaluator {
     /**
      * Constructor of the InProcessEvaluator.
      *
-     * @param api                              - API to contact GO Feature Flag
-     * @param options                          - options to configure the provider
-     * @param emitProviderConfigurationChanged - method to call when we have a configuration change
+     * @param api     - API to contact GO Feature Flag
+     * @param options - options to configure the provider
+     * @param emitter - method to call to emit a provider event to the SDK
      */
     public InProcessEvaluator(
             GoFeatureFlagApi api,
             GoFeatureFlagProviderOptions options,
-            Consumer<ProviderEventDetails> emitProviderConfigurationChanged) {
+            BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
         this.api = api;
         this.options = options;
-        this.emitProviderConfigurationChanged = emitProviderConfigurationChanged;
+        this.emitter = emitter;
         this.state = EvaluatorState.notLoaded();
         int poolSize = options.getWasmEvaluatorPoolSize() != null
                 ? options.getWasmEvaluatorPoolSize()
@@ -426,7 +427,7 @@ public class InProcessEvaluator implements IEvaluator {
                 .flagsChanged(flagChanges)
                 .message("flag configuration has changed")
                 .build();
-        this.emitProviderConfigurationChanged.accept(changeDetails);
+        this.emitter.accept(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, changeDetails);
     }
 
     /**

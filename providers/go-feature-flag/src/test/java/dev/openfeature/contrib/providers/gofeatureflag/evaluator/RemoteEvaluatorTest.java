@@ -9,9 +9,14 @@ import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
+import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
 import lombok.SneakyThrows;
 import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
@@ -36,16 +41,19 @@ class RemoteEvaluatorTest {
         this.server = null;
     }
 
-    private RemoteEvaluator evaluator(String endpoint, String apiKey) {
-        return new RemoteEvaluator(GoFeatureFlagProviderOptions.builder()
-                .endpoint(endpoint)
-                .apiKey(apiKey)
-                .timeout(1000)
-                .build());
+    private RemoteEvaluator evaluator(
+            String endpoint, String apiKey, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
+        return new RemoteEvaluator(
+                GoFeatureFlagProviderOptions.builder()
+                        .endpoint(endpoint)
+                        .apiKey(apiKey)
+                        .timeout(1000)
+                        .build(),
+                emitter);
     }
 
     private RemoteEvaluator evaluator() {
-        return evaluator(this.server.url("").toString(), null);
+        return evaluator(this.server.url("").toString(), null, (event, details) -> {});
     }
 
     @DisplayName("should resolve a boolean flag")
@@ -154,11 +162,61 @@ class RemoteEvaluatorTest {
         assertNull(got.getFlagMetadata().getBoolean("gofeatureflag_evaluated_remotely"));
     }
 
+    @DisplayName("should report a fatal provider error when the credentials are rejected")
+    @SneakyThrows
+    @Test
+    void shouldReportAFatalProviderErrorWhenTheCredentialsAreRejected() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.INVALID_API_KEY).dispatcher);
+            val reported = new RecordedEvents();
+            val got = evaluator(s.url("").toString(), "a-rejected-key", reported)
+                    .getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
+
+            assertEquals(false, got.getValue());
+            assertEquals(1, reported.events.size());
+            assertEquals(ProviderEvent.PROVIDER_ERROR, reported.events.get(0));
+            assertEquals(ErrorCode.PROVIDER_FATAL, reported.details.get(0).getErrorCode());
+        }
+    }
+
+    @DisplayName("should report the rejected credentials only once")
+    @SneakyThrows
+    @Test
+    void shouldReportTheRejectedCredentialsOnlyOnce() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.INVALID_API_KEY).dispatcher);
+            val reported = new RecordedEvents();
+            val evaluator = evaluator(s.url("").toString(), "a-rejected-key", reported);
+
+            evaluator.getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
+            evaluator.getStringEvaluation("string_flag", "d", new ImmutableContext("user-key"));
+            evaluator.getIntegerEvaluation("int_flag", 0, new ImmutableContext("user-key"));
+
+            assertEquals(1, reported.events.size());
+        }
+    }
+
+    @DisplayName("should not report a fatal provider error for an ordinary failure")
+    @SneakyThrows
+    @Test
+    void shouldNotReportAFatalProviderErrorForAnOrdinaryFailure() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.ENDPOINT_ERROR).dispatcher);
+            val reported = new RecordedEvents();
+            val got = evaluator(s.url("").toString(), null, reported)
+                    .getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
+
+            // a 500 is repairable without touching the credentials, so it must stay a per-call error
+            assertEquals(ErrorCode.GENERAL, got.getErrorCode());
+            assertTrue(reported.events.isEmpty());
+        }
+    }
+
     @SneakyThrows
     @DisplayName("should send the API key as an X-API-Key header")
     @Test
     void shouldSendTheApiKeyAsAnApiKeyHeader() {
-        evaluator(this.server.url("").toString(), "my-api-key")
+        evaluator(this.server.url("").toString(), "my-api-key", (event, details) -> {})
                 .getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
 
         val request = this.server.takeRequest();
@@ -179,7 +237,7 @@ class RemoteEvaluatorTest {
     @DisplayName("should keep the path prefix of the endpoint")
     @Test
     void shouldKeepThePathPrefixOfTheEndpoint() {
-        evaluator(this.server.url("/gofeatureflagproxy/").toString(), null)
+        evaluator(this.server.url("/gofeatureflagproxy/").toString(), null, (event, details) -> {})
                 .getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
 
         val request = this.server.takeRequest();
@@ -203,5 +261,17 @@ class RemoteEvaluatorTest {
         // know what is tracked and must not filter anything out
         assertTrue(evaluator().isFlagTrackable("bool_flag"));
         assertTrue(evaluator().isFlagTrackable("DOES_NOT_EXIST"));
+    }
+
+    /** Records what the evaluator emits, so a test can assert on the event kind and on its details. */
+    private static final class RecordedEvents implements BiConsumer<ProviderEvent, ProviderEventDetails> {
+        final List<ProviderEvent> events = new ArrayList<>();
+        final List<ProviderEventDetails> details = new ArrayList<>();
+
+        @Override
+        public void accept(ProviderEvent event, ProviderEventDetails eventDetails) {
+            this.events.add(event);
+            this.details.add(eventDetails);
+        }
     }
 }

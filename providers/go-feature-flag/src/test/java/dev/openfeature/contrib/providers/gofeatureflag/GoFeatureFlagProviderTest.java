@@ -22,6 +22,7 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.MutableStructure;
 import dev.openfeature.sdk.MutableTrackingEventDetails;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FatalError;
@@ -948,6 +949,59 @@ class GoFeatureFlagProviderTest {
                         .errorMessage("Unknown error while retrieving flag: bool_flag, status code: 500")
                         .build();
                 assertEquals(want, got);
+            }
+        }
+
+        @DisplayName("Should become FATAL on the first evaluation rejected for bad credentials")
+        @SneakyThrows
+        @Test
+        void shouldBecomeFatalOnTheFirstEvaluationRejectedForBadCredentials() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.INVALID_API_KEY);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.REMOTE)
+                        .apiKey("a-rejected-key")
+                        .timeout(1000)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                // remote evaluation holds no configuration, so initialization has nothing to fetch
+                // and cannot discover the credentials are wrong
+                assertEquals(ProviderState.READY, client.getProviderState());
+
+                client.getBooleanDetails("bool_flag", false, TestUtils.defaultEvaluationContext);
+
+                // the event is emitted on the SDK's own emitter thread
+                for (int i = 0; i < 100 && client.getProviderState() != ProviderState.FATAL; i++) {
+                    Thread.sleep(20);
+                }
+                assertEquals(ProviderState.FATAL, client.getProviderState());
+            }
+        }
+
+        @DisplayName("Should stay READY when an evaluation fails for a repairable reason")
+        @SneakyThrows
+        @Test
+        void shouldStayReadyWhenAnEvaluationFailsForARepairableReason() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.ENDPOINT_ERROR);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.REMOTE)
+                        .timeout(1000)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                client.getBooleanDetails("bool_flag", false, TestUtils.defaultEvaluationContext);
+                Thread.sleep(200);
+
+                // a 500 is repairable without touching the credentials
+                assertEquals(ProviderState.READY, client.getProviderState());
             }
         }
 
