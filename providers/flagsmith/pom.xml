@@ -25,7 +25,44 @@
         </developer>
     </developers>
 
+    <properties>
+        <!-- Match any provider-tck version locally; CI resolves it from the reactor -->
+        <provider-tck.version>[0.0.1,)</provider-tck.version>
+    </properties>
+
     <dependencies>
+        <!-- Jackson alignment.
+             tools/tck brings jackson-databind 2.22.1, while flagsmith-java-client 7.4.3 pins
+             jackson-annotations and jackson-core at 2.15.2. Maven's nearest-wins then assembles
+             databind 2.22 against annotations 2.15, and the Flagsmith client's ObjectMapper dies
+             with ClassNotFoundException on com.fasterxml.jackson.annotation.JsonSerializeAs.
+
+             The provider's own 35 tests pass without the TCK on the classpath, so this is a
+             conflict the TCK introduces rather than a defect in the provider. Still present after
+             the TCK moved testcontainers to provided/optional, so it wants its own fix upstream:
+             shade Jackson, or stop exporting a hard databind version.
+
+             Aligned DOWN to the client's 2.15.2 rather than up, because jackson-annotations has no
+             2.22.1 release at all (it tracks its own version line), so aligning upward needs the
+             Jackson BOM. Compile scope, not test: the provider's own main source imports
+             com.fasterxml.jackson.databind. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>tck</artifactId>
+            <version>${provider-tck.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>2.0.4</version>
+            <scope>test</scope>
+        </dependency>
         <!-- Inherits dev.openfeature.javasdk and the test dependencies from the parent pom -->
         <dependency>
             <groupId>com.flagsmith</groupId>
