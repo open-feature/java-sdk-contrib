@@ -517,6 +517,32 @@ class GoFeatureFlagProviderTest {
             assertFalse(configurationChangedCalled.get());
         }
 
+        @DisplayName("Should not emit configuration change event, if only the ETag has changed")
+        @SneakyThrows
+        @Test
+        void shouldNotEmitConfigurationChangeEventIfOnlyTheEtagHasChanged() {
+            try (val s = new MockWebServer()) {
+                val goffAPIMock = new GoffApiMock(GoffApiMock.MockMode.SAME_CONFIG_CHANGING_ETAG);
+                s.setDispatcher(goffAPIMock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flagChangePollingIntervalMs(100L)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+                AtomicInteger changeEvents = new AtomicInteger();
+                client.onProviderConfigurationChanged(event -> changeEvents.incrementAndGet());
+
+                Thread.sleep(500L);
+
+                // every poll carries a validator the provider has never stored, so the ETag cannot
+                // tell "changed" from "fetched" and only the content can
+                assertTrue(goffAPIMock.getConfigurationCallCount() >= 3, "the provider should have polled");
+                assertEquals(0, changeEvents.get(), "an unchanged configuration was announced as a change");
+            }
+        }
+
         @DisplayName("Should change evaluation details if config has changed")
         @SneakyThrows
         @Test
