@@ -65,13 +65,27 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
-    private InProcessEvaluator evaluator(MockWebServer srv) {
+    private InProcessEvaluator evaluator(MockWebServer srv, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
         val options = GoFeatureFlagProviderOptions.builder()
                 .endpoint(srv.url("").toString())
                 .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
                 .build();
-        val api = GoFeatureFlagApi.builder().options(options).build();
-        return new InProcessEvaluator(api, options, (event, details) -> {});
+        return new InProcessEvaluator(
+                GoFeatureFlagApi.builder().options(options).build(), options, emitter);
+    }
+
+    private InProcessEvaluator evaluator(MockWebServer srv) {
+        return evaluator(srv, (event, details) -> {});
+    }
+
+    /** Records the events the evaluator emits, in the order it emits them. */
+    private static final class RecordedEvents implements BiConsumer<ProviderEvent, ProviderEventDetails> {
+        final List<ProviderEvent> events = new ArrayList<>();
+
+        @Override
+        public void accept(ProviderEvent event, ProviderEventDetails eventDetails) {
+            this.events.add(event);
+        }
     }
 
     @SneakyThrows
@@ -181,16 +195,6 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
-    private InProcessEvaluator evaluator(MockWebServer srv, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
-        val options = GoFeatureFlagProviderOptions.builder()
-                .endpoint(srv.url("").toString())
-                .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
-                .build();
-        return new InProcessEvaluator(
-                GoFeatureFlagApi.builder().options(options).build(), options, emitter);
-    }
-
-    @SneakyThrows
     @DisplayName("should go stale after three consecutive failed refreshes")
     @Test
     void shouldGoStaleAfterThreeConsecutiveFailedRefreshes() {
@@ -244,6 +248,28 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("should not announce a return to ready when it never went stale")
+    @Test
+    void shouldNotAnnounceAReturnToReadyWhenItNeverWentStale() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.FAIL_TWICE_THEN_RECOVER).dispatcher);
+            val events = new ArrayList<ProviderEvent>();
+            val evaluator = evaluator(s, (event, details) -> {
+                if (event == ProviderEvent.PROVIDER_READY) {
+                    events.add(event);
+                }
+            });
+            evaluator.initialize(new ImmutableContext());
+
+            // two failures then a success: recovering from something never announced is not news
+            Thread.sleep(POLLING_INTERVAL_MS * 4 + POLLING_INTERVAL_MS / 2);
+            evaluator.shutdown();
+
+            assertTrue(events.isEmpty(), "a return to ready was announced without a staleness to end");
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("polling should survive a failure raised while announcing a stale configuration")
     @Test
     void pollingShouldSurviveAFailureRaisedWhileAnnouncingAStaleConfiguration() {
@@ -285,6 +311,27 @@ class InProcessEvaluatorTest {
             evaluator.shutdown();
 
             assertTrue(stale.isEmpty(), "a 304 was counted as a failed refresh");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("should go stale again after recovering from a first stale configuration")
+    @Test
+    void shouldGoStaleAgainAfterRecoveringFromAFirstStaleConfiguration() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.STALE_AFTER_A_RECOVERY).dispatcher);
+            val recorded = new RecordedEvents();
+            val evaluator = evaluator(s, recorded);
+            evaluator.initialize(new ImmutableContext());
+
+            Thread.sleep(POLLING_INTERVAL_MS * 10);
+            evaluator.shutdown();
+
+            // announcing the recovery has to re-arm the run, not spend the provider's one chance
+            assertEquals(
+                    List.of(ProviderEvent.PROVIDER_STALE, ProviderEvent.PROVIDER_READY, ProviderEvent.PROVIDER_STALE),
+                    recorded.events,
+                    "a second outage after a recovery was not announced");
         }
     }
 
@@ -358,16 +405,6 @@ class InProcessEvaluatorTest {
 
             assertTrue(later > afterRecovery, "polling stopped, it stayed at " + afterRecovery + " call(s)");
             assertNull(evaluated.getErrorCode());
-        }
-    }
-
-    /** Records the events the evaluator emits, in the order it emits them. */
-    private static final class RecordedEvents implements BiConsumer<ProviderEvent, ProviderEventDetails> {
-        final List<ProviderEvent> events = new ArrayList<>();
-
-        @Override
-        public void accept(ProviderEvent event, ProviderEventDetails eventDetails) {
-            this.events.add(event);
         }
     }
 
