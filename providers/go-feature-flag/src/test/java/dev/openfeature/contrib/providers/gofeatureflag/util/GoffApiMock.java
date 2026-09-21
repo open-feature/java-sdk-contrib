@@ -183,6 +183,49 @@ public class GoffApiMock {
                 configLocation =
                         configurationCallCount > 2 ? "valid-all-types-config-change.json" : "valid-all-types.json";
                 break;
+            case FAIL_REFRESH_AFTER_INIT:
+                // the initial fetch succeeds, then every poll fails: enough in a row and the
+                // configuration in hand can no longer be vouched for
+                if (configurationCallCount > 1) {
+                    return new MockResponse().setResponseCode(500);
+                }
+                break;
+            case FAIL_TWICE_THEN_RECOVER:
+                // two failures, a success, then failures again: the run must restart from zero
+                if (configurationCallCount == 2 || configurationCallCount == 3 || configurationCallCount > 4) {
+                    return new MockResponse().setResponseCode(500);
+                }
+                break;
+            case FAIL_UNTIL_RECOVERY:
+                // the initial fetch succeeds, three polls fail, then refreshes work again: the
+                // stale condition has an end, and the end has to be announced
+                if (configurationCallCount > 1 && configurationCallCount <= 4) {
+                    return new MockResponse().setResponseCode(500);
+                }
+                break;
+            case NOT_MODIFIED_AFTER_STALE:
+                // the same three failures, but the refresh that ends them is a 304 rather than a
+                // configuration: it never reaches the consumer, yet it is a refresh that worked
+                if (configurationCallCount > 1 && configurationCallCount <= 4) {
+                    return new MockResponse().setResponseCode(500);
+                }
+                if (configurationCallCount > 4) {
+                    return new MockResponse().setResponseCode(304);
+                }
+                break;
+            case NOT_MODIFIED_DURING_FAILURES:
+                // two failures, a 304, two more failures: four failed polls in a row unless the 304
+                // in the middle counts as the successful refresh it is
+                if (configurationCallCount == 2
+                        || configurationCallCount == 3
+                        || configurationCallCount == 5
+                        || configurationCallCount == 6) {
+                    return new MockResponse().setResponseCode(500);
+                }
+                if (configurationCallCount > 1) {
+                    return new MockResponse().setResponseCode(304);
+                }
+                break;
             case SAME_CONFIG_CHANGING_ETAG:
                 // identical content behind a fresh validator on every poll: the ETag alone cannot
                 // tell "changed" from "fetched", so only the content can
@@ -301,6 +344,11 @@ public class GoffApiMock {
         CONFIG_CHANGES_EVERY_POLL,
         UNKNOWN_RESPONSE_FIELD,
         SAME_CONFIG_CHANGING_ETAG,
+        FAIL_REFRESH_AFTER_INIT,
+        FAIL_TWICE_THEN_RECOVER,
+        NOT_MODIFIED_DURING_FAILURES,
+        FAIL_UNTIL_RECOVERY,
+        NOT_MODIFIED_AFTER_STALE,
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
         EMPTY_FLAG_CONFIG,
     }

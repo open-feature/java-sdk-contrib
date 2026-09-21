@@ -15,6 +15,8 @@ import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
+import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
@@ -25,8 +27,11 @@ import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import lombok.SneakyThrows;
 import lombok.val;
 import okhttp3.mockwebserver.Dispatcher;
@@ -172,6 +177,197 @@ class InProcessEvaluatorTest {
             // the engine receives the flag with the unrecognised fields still on it
             assertEquals(true, got.getValue());
             assertNull(got.getErrorCode());
+        }
+    }
+
+    @SneakyThrows
+    private InProcessEvaluator evaluator(MockWebServer srv, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
+        val options = GoFeatureFlagProviderOptions.builder()
+                .endpoint(srv.url("").toString())
+                .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
+                .build();
+        return new InProcessEvaluator(
+                GoFeatureFlagApi.builder().options(options).build(), options, emitter);
+    }
+
+    @SneakyThrows
+    @DisplayName("should go stale after three consecutive failed refreshes")
+    @Test
+    void shouldGoStaleAfterThreeConsecutiveFailedRefreshes() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.FAIL_REFRESH_AFTER_INIT).dispatcher);
+            val stale = new ArrayList<ProviderEvent>();
+            val evaluator = evaluator(s, (event, details) -> {
+                if (event == ProviderEvent.PROVIDER_STALE) {
+                    stale.add(event);
+                }
+            });
+            evaluator.initialize(new ImmutableContext());
+
+            // two failures are not enough, the third is
+            Thread.sleep(POLLING_INTERVAL_MS * 2 + POLLING_INTERVAL_MS / 2);
+            assertTrue(stale.isEmpty(), "went stale after fewer than three failures");
+
+            Thread.sleep(POLLING_INTERVAL_MS * 3);
+            val evaluated = evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("d45"));
+            evaluator.shutdown();
+
+            assertEquals(1, stale.size(), "stale should be announced once, not on every later failure");
+            // the configuration it could no longer refresh is still the one it serves: the flag
+            // resolves from it rather than reporting the provider as unready
+            assertNull(evaluated.getErrorCode());
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a successful refresh should restart the failure run")
+    @Test
+    void aSuccessfulRefreshShouldRestartTheFailureRun() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.FAIL_TWICE_THEN_RECOVER).dispatcher);
+            val stale = new ArrayList<ProviderEvent>();
+            val evaluator = evaluator(s, (event, details) -> {
+                if (event == ProviderEvent.PROVIDER_STALE) {
+                    stale.add(event);
+                }
+            });
+            evaluator.initialize(new ImmutableContext());
+
+            // two failures, then a success: the two must not carry over into the next run
+            Thread.sleep(POLLING_INTERVAL_MS * 4 + POLLING_INTERVAL_MS / 2);
+            assertTrue(stale.isEmpty(), "the failures before the successful refresh were carried over");
+
+            Thread.sleep(POLLING_INTERVAL_MS * 3);
+            evaluator.shutdown();
+            assertEquals(1, stale.size(), "a fresh run of three failures should still go stale");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("polling should survive a failure raised while announcing a stale configuration")
+    @Test
+    void pollingShouldSurviveAFailureRaisedWhileAnnouncingAStaleConfiguration() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.FAIL_REFRESH_AFTER_INIT);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s, (event, details) -> {
+                throw new IllegalStateException("an emitter that fails, as it does after a shutdown");
+            });
+            evaluator.initialize(new ImmutableContext());
+
+            // the stale announcement happens on the third failure; polling has to outlive it
+            Thread.sleep(POLLING_INTERVAL_MS * 4);
+            val afterStale = mock.getConfigurationCallCount();
+            Thread.sleep(POLLING_INTERVAL_MS * 4);
+            val later = mock.getConfigurationCallCount();
+            evaluator.shutdown();
+
+            assertTrue(later > afterStale, "polling stopped, it stayed at " + afterStale + " call(s)");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a not modified response should count as a successful refresh")
+    @Test
+    void aNotModifiedResponseShouldCountAsASuccessfulRefresh() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.NOT_MODIFIED_DURING_FAILURES).dispatcher);
+            val stale = new ArrayList<ProviderEvent>();
+            val evaluator = evaluator(s, (event, details) -> {
+                if (event == ProviderEvent.PROVIDER_STALE) {
+                    stale.add(event);
+                }
+            });
+            evaluator.initialize(new ImmutableContext());
+
+            // a 304 says the configuration in hand is current, so it is a refresh that worked
+            Thread.sleep(POLLING_INTERVAL_MS * 8);
+            evaluator.shutdown();
+
+            assertTrue(stale.isEmpty(), "a 304 was counted as a failed refresh");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("should return to ready once refreshes recover after a stale configuration")
+    @Test
+    void shouldReturnToReadyOnceRefreshesRecoverAfterStale() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.FAIL_UNTIL_RECOVERY).dispatcher);
+            val recorded = new RecordedEvents();
+            val evaluator = evaluator(s, recorded);
+            evaluator.initialize(new ImmutableContext());
+
+            // three failures announce the stale configuration, then every later poll succeeds
+            Thread.sleep(POLLING_INTERVAL_MS * 8);
+            val evaluated = evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("d45"));
+            evaluator.shutdown();
+
+            // the recovery serves the configuration already held, so nothing else is announced:
+            // the return to ready happens once, not on every successful poll after it
+            assertEquals(
+                    List.of(ProviderEvent.PROVIDER_STALE, ProviderEvent.PROVIDER_READY),
+                    recorded.events,
+                    "the provider did not come back from stale, or came back more than once");
+            assertNull(evaluated.getErrorCode());
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a not modified response should bring the provider back to ready")
+    @Test
+    void aNotModifiedResponseShouldBringTheProviderBackToReady() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.NOT_MODIFIED_AFTER_STALE).dispatcher);
+            val recorded = new RecordedEvents();
+            val evaluator = evaluator(s, recorded);
+            evaluator.initialize(new ImmutableContext());
+
+            // a 304 carries no configuration, so it never reaches the refresh consumer: the
+            // recovery has to be recognised where the call succeeds, not where a response is applied
+            Thread.sleep(POLLING_INTERVAL_MS * 8);
+            evaluator.shutdown();
+
+            assertEquals(
+                    List.of(ProviderEvent.PROVIDER_STALE, ProviderEvent.PROVIDER_READY),
+                    recorded.events,
+                    "a 304 did not end the stale condition");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("polling should survive a failure raised while announcing the return to ready")
+    @Test
+    void pollingShouldSurviveAFailureRaisedWhileAnnouncingTheReturnToReady() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.FAIL_UNTIL_RECOVERY);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s, (event, details) -> {
+                throw new IllegalStateException("an emitter that fails, as it does after a shutdown");
+            });
+            evaluator.initialize(new ImmutableContext());
+
+            // the return to ready is announced from the refresh call itself, where a throw would
+            // otherwise be read as one more failed refresh
+            Thread.sleep(POLLING_INTERVAL_MS * 6);
+            val afterRecovery = mock.getConfigurationCallCount();
+            Thread.sleep(POLLING_INTERVAL_MS * 4);
+            val later = mock.getConfigurationCallCount();
+            val evaluated = evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("d45"));
+            evaluator.shutdown();
+
+            assertTrue(later > afterRecovery, "polling stopped, it stayed at " + afterRecovery + " call(s)");
+            assertNull(evaluated.getErrorCode());
+        }
+    }
+
+    /** Records the events the evaluator emits, in the order it emits them. */
+    private static final class RecordedEvents implements BiConsumer<ProviderEvent, ProviderEventDetails> {
+        final List<ProviderEvent> events = new ArrayList<>();
+
+        @Override
+        public void accept(ProviderEvent event, ProviderEventDetails eventDetails) {
+            this.events.add(event);
         }
     }
 

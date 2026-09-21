@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -53,6 +55,10 @@ public class InProcessEvaluator implements IEvaluator {
     private volatile EvaluatorState state;
     /** disposable which manage the polling of the flag configurations. */
     private Disposable configurationDisposable;
+    /** Number of refreshes that have failed in a row, reset by any successful one. */
+    private final AtomicInteger consecutiveRefreshFailures = new AtomicInteger();
+    /** true between the announcement of a stale configuration and the announcement of its end. */
+    private final AtomicBoolean staleAnnounced = new AtomicBoolean();
 
     private static final class EvaluatorState {
         final Map<String, JsonNode> flags;
@@ -167,6 +173,10 @@ public class InProcessEvaluator implements IEvaluator {
                         configFlags.getEvaluationContextEnrichment(),
                         configFlags.getEtag(),
                         configFlags.getLastUpdated()));
+        // this fetch is a successful refresh too, and it bypasses the polling chain entirely. The
+        // SDK announces readiness itself once initialize() returns, so nothing is emitted here.
+        this.consecutiveRefreshFailures.set(0);
+        this.staleAnnounced.set(false);
 
         // start the polling of the flag configuration
         this.configurationDisposable = startCheckFlagConfigurationChangesDaemon();
@@ -361,10 +371,15 @@ public class InProcessEvaluator implements IEvaluator {
         Observable<Long> intervalObservable =
                 Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS, Schedulers.io());
         Observable<FlagConfigResponse> apiCallObservable = intervalObservable
-                .flatMap(tick -> Observable.fromCallable(() ->
-                                this.api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList()))
+                .flatMap(tick -> Observable.fromCallable(() -> {
+                            val configuration = this.api.retrieveFlagConfiguration(
+                                    this.state.etag, options.getEvaluationFlagList());
+                            emitRefreshSuccessEvent();
+                            return configuration;
+                        })
                         .onErrorResumeNext(e -> {
                             log.error("error while calling flag configuration API", e);
+                            emitRefreshFailureEvent();
                             return Observable.<Optional<FlagConfigResponse>>empty();
                         }))
                 // a 304 emits an empty Optional: drop it here so the refresh consumer below is
@@ -384,6 +399,53 @@ public class InProcessEvaluator implements IEvaluator {
                     }
                 },
                 throwable -> log.error("flag configuration polling has stopped and will not resume", throwable));
+    }
+
+    /**
+     * emitRefreshFailureEvent counts a failed refresh and marks the configuration stale once enough of
+     * them have happened in a row.
+     */
+    private void emitRefreshFailureEvent() {
+        if (this.consecutiveRefreshFailures.incrementAndGet() != Const.STALE_AFTER_CONSECUTIVE_FAILURES) {
+            return;
+        }
+
+        log.warn(
+                "{} consecutive failed refreshes, still serving the last known good configuration",
+                Const.STALE_AFTER_CONSECUTIVE_FAILURES);
+        this.staleAnnounced.set(true);
+        try {
+            this.emitter.accept(
+                    ProviderEvent.PROVIDER_STALE,
+                    ProviderEventDetails.builder()
+                            .message("the flag configuration could not be refreshed "
+                                    + Const.STALE_AFTER_CONSECUTIVE_FAILURES + " times in a row")
+                            .build());
+        } catch (Exception e) {
+            log.error("error while emitting the {} event", ProviderEvent.PROVIDER_STALE, e);
+        }
+    }
+
+    /**
+     * emitRefreshSuccessEvent counts a refresh that worked and, if the configuration had been announced
+     * as stale, announces that it no longer is.
+     */
+    private void emitRefreshSuccessEvent() {
+        this.consecutiveRefreshFailures.set(0);
+        if (!this.staleAnnounced.compareAndSet(true, false)) {
+            return;
+        }
+
+        log.info("the flag configuration could be refreshed again");
+        try {
+            this.emitter.accept(
+                    ProviderEvent.PROVIDER_READY,
+                    ProviderEventDetails.builder()
+                            .message("the flag configuration could be refreshed again")
+                            .build());
+        } catch (Exception e) {
+            log.error("error while emitting the {} event", ProviderEvent.PROVIDER_READY, e);
+        }
     }
 
     /**
