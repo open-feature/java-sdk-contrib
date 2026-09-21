@@ -18,6 +18,7 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Tracking;
 import dev.openfeature.sdk.TrackingEventDetails;
@@ -27,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -188,11 +190,11 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
      */
     private IEvaluator getEvaluator() {
         // Select the evaluator based on the evaluation type
+        BiConsumer<ProviderEvent, ProviderEventDetails> emitter = this::emit;
         if (options.getEvaluationType() == null || options.getEvaluationType() == EvaluationType.IN_PROCESS) {
-            Consumer<ProviderEventDetails> emitProviderConfigurationChanged = this::emitProviderConfigurationChanged;
-            return new InProcessEvaluator(this.api, this.options, emitProviderConfigurationChanged);
+            return new InProcessEvaluator(this.api, this.options, emitter);
         }
-        return new RemoteEvaluator(this.options);
+        return new RemoteEvaluator(this.options, emitter);
     }
 
     /**

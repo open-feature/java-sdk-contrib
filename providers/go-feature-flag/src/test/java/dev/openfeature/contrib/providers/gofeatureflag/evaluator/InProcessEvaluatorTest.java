@@ -66,7 +66,7 @@ class InProcessEvaluatorTest {
                 .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
                 .build();
         val api = GoFeatureFlagApi.builder().options(options).build();
-        return new InProcessEvaluator(api, options, details -> {});
+        return new InProcessEvaluator(api, options, (event, details) -> {});
     }
 
     @SneakyThrows
@@ -103,7 +103,7 @@ class InProcessEvaluatorTest {
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
             val refreshes = new AtomicInteger();
-            val evaluator = new InProcessEvaluator(api, options, details -> {
+            val evaluator = new InProcessEvaluator(api, options, (event, details) -> {
                 if (refreshes.incrementAndGet() == 1) {
                     throw new IllegalStateException("an event consumer that fails on the first change");
                 }
@@ -140,7 +140,7 @@ class InProcessEvaluatorTest {
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
             val changeEvents = new AtomicInteger();
-            val evaluator = new InProcessEvaluator(api, options, details -> changeEvents.incrementAndGet());
+            val evaluator = new InProcessEvaluator(api, options, (event, details) -> changeEvents.incrementAndGet());
 
             evaluator.initialize(new ImmutableContext());
             Thread.sleep(POLLING_INTERVAL_MS * 4);
