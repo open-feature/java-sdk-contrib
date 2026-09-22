@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,6 +44,13 @@ import lombok.val;
  */
 @Slf4j
 public class InProcessEvaluator implements IEvaluator {
+    /**
+     * Raw engine error codes that make the engine, rather than the flag, the suspect: the relay proxy
+     * runs the same engine against the same flag and may well answer correctly. FLAG_CONFIG is
+     * deliberately absent, being a misconfiguration the relay proxy would reproduce identically.
+     */
+    private static final Set<String> FALLBACK_TRIGGERS = Set.of(ErrorCode.PARSE_ERROR.name(), ErrorCode.GENERAL.name());
+
     /** API to contact GO Feature Flag. */
     private final GoFeatureFlagApi api;
     /** Pool of WASM evaluation engine instances for thread-safe concurrent evaluation. */
@@ -59,6 +67,8 @@ public class InProcessEvaluator implements IEvaluator {
     private final AtomicInteger consecutiveRefreshFailures = new AtomicInteger();
     /** true between the announcement of a stale configuration and the announcement of its end. */
     private final AtomicBoolean staleAnnounced = new AtomicBoolean();
+    /** Builds the evaluator a failed local evaluation falls back to. */
+    private final IEvaluator fallbackEvaluator;
 
     private static final class EvaluatorState {
         final Map<String, JsonNode> flags;
@@ -115,6 +125,7 @@ public class InProcessEvaluator implements IEvaluator {
         this.api = api;
         this.options = options;
         this.emitter = emitter;
+        this.fallbackEvaluator = new RemoteEvaluator(options, emitter);
         this.state = EvaluatorState.notLoaded();
         int poolSize = options.getWasmEvaluatorPoolSize() != null
                 ? options.getWasmEvaluatorPoolSize()
@@ -185,48 +196,69 @@ public class InProcessEvaluator implements IEvaluator {
     @Override
     public void shutdown() {
         stopPolling();
+        this.fallbackEvaluator.shutdown();
         this.evaluationPool.close();
     }
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return genericEvaluation(key, defaultValue, ctx, Boolean.class);
+        return genericEvaluation(key, defaultValue, ctx, Boolean.class, IEvaluator::getBooleanEvaluation);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return genericEvaluation(key, defaultValue, ctx, String.class);
+        return genericEvaluation(key, defaultValue, ctx, String.class, IEvaluator::getStringEvaluation);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
-        return genericEvaluation(key, defaultValue, ctx, Integer.class);
+        return genericEvaluation(key, defaultValue, ctx, Integer.class, IEvaluator::getIntegerEvaluation);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return genericEvaluation(key, defaultValue, ctx, Double.class);
+        return genericEvaluation(key, defaultValue, ctx, Double.class, IEvaluator::getDoubleEvaluation);
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
-        return genericEvaluation(key, defaultValue, ctx, Value.class);
+        return genericEvaluation(key, defaultValue, ctx, Value.class, IEvaluator::getObjectEvaluation);
     }
 
     /**
      * genericEvaluation evaluates the flag and converts the engine response into the resolution
      * structure expected by the OpenFeature SDK.
      *
-     * @param key          - name of the flag
-     * @param defaultValue - default value provided by the caller
-     * @param ctx          - evaluation context
-     * @param expectedType - type the resolver called by the SDK is contracted to return
-     * @param <T>          - type of the flag value
+     * <p>When the engine reports a failure that points at this provider rather than at the flag, the
+     * relay proxy is asked instead and its answer is the one the caller receives.</p>
+     *
+     * @param key            - name of the flag
+     * @param defaultValue   - default value provided by the caller
+     * @param ctx            - evaluation context
+     * @param expectedType   - type the resolver called by the SDK is contracted to return
+     * @param remoteResolver - resolver of the fallback evaluator matching the type asked for
+     * @param <T>            - type of the flag value
      * @return the evaluation result for this flag
      */
     private <T> ProviderEvaluation<T> genericEvaluation(
-            final String key, final T defaultValue, final EvaluationContext ctx, final Class<?> expectedType) {
-        return toProviderEvaluation(key, defaultValue, this.evaluate(key, defaultValue, ctx), expectedType);
+            final String key,
+            final T defaultValue,
+            final EvaluationContext ctx,
+            final Class<?> expectedType,
+            final RemoteResolver<T> remoteResolver) {
+        val response = this.evaluate(key, defaultValue, ctx);
+        // the raw code the engine emitted, read before toProviderEvaluation maps it onto the SDK
+        // enumeration, where GO Feature Flag's own codes are folded into GENERAL and stop being
+        // distinguishable from an engine failure.
+        if (FALLBACK_TRIGGERS.contains(response.getErrorCode())) {
+            return remoteResolver.resolve(fallbackEvaluator, key, defaultValue, ctx);
+        }
+        return toProviderEvaluation(key, defaultValue, response, expectedType);
+    }
+
+    @FunctionalInterface
+    private interface RemoteResolver<T> {
+        ProviderEvaluation<T> resolve(IEvaluator remote, String key, T defaultValue, EvaluationContext ctx);
     }
 
     /**

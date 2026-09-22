@@ -11,6 +11,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOpti
 import dev.openfeature.contrib.providers.gofeatureflag.api.GoFeatureFlagApi;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
+import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
@@ -18,6 +19,7 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Reason;
+import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
@@ -406,6 +408,63 @@ class InProcessEvaluatorTest {
             assertTrue(later > afterRecovery, "polling stopped, it stayed at " + afterRecovery + " call(s)");
             assertNull(evaluated.getErrorCode());
         }
+    }
+
+    /**
+     * A context the evaluation engine's own guards refuse to read, so that the engine answers
+     * PARSE_ERROR rather than a value. It is a real engine failure, not a simulated one.
+     */
+    @SneakyThrows
+    private static ImmutableContext contextTooDeepForTheEngine() {
+        val deep = new StringBuilder();
+        for (int i = 0; i < 400; i++) {
+            deep.append("{\"a\":");
+        }
+        deep.append("1");
+        for (int i = 0; i < 400; i++) {
+            deep.append("}");
+        }
+        val asMap = Const.DESERIALIZE_OBJECT_MAPPER.readValue(
+                "{\"targetingKey\":\"user-key\",\"deep\":" + deep + "}", Map.class);
+        return new ImmutableContext(Structure.mapToStructure(asMap).asMap());
+    }
+
+    @SneakyThrows
+    @DisplayName("a failed local evaluation should be answered by the relay proxy")
+    @Test
+    void aFailedLocalEvaluationShouldBeAnsweredByTheRelayProxy() {
+        val evaluator = evaluator(this.server);
+        evaluator.initialize(new ImmutableContext());
+
+        val evaluated = evaluator.getStringEvaluation("string_key", "caller-default", contextTooDeepForTheEngine());
+        evaluator.shutdown();
+
+        // the value, variant and reason are the relay proxy's, not the ones the local engine failed to
+        // produce and not the caller's default
+        assertEquals("answered by the relay proxy", evaluated.getValue());
+        assertEquals("remoteVariant", evaluated.getVariant());
+        assertEquals(Reason.TARGETING_MATCH.name(), evaluated.getReason());
+        assertNull(evaluated.getErrorCode());
+    }
+
+    @SneakyThrows
+    @DisplayName("an unknown flag should not be sent to the relay proxy")
+    @Test
+    void anUnknownFlagShouldNotBeSentToTheRelayProxy() {
+        val evaluator = evaluator(this.server);
+        evaluator.initialize(new ImmutableContext());
+
+        // FLAG_NOT_FOUND is this provider's own answer about the caller's key, not an engine failure:
+        // the relay proxy holds the same configuration and would answer the same
+        assertThrows(
+                FlagNotFoundError.class,
+                () -> evaluator.getBooleanEvaluation("DOES_NOT_EXIST", false, new ImmutableContext("user-key")));
+        evaluator.shutdown();
+
+        assertEquals(
+                List.of(),
+                goffApiMock.getEvaluatedFlagKeys(),
+                "the relay proxy was asked about a flag it does not have either");
     }
 
     @SneakyThrows
