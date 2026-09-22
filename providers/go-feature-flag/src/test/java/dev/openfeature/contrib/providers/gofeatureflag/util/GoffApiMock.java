@@ -4,6 +4,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.TestUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -31,6 +32,10 @@ public class GoffApiMock {
 
     @Getter
     private int configurationCallCount = 0;
+
+    /** Keys of every flag the relay proxy has been asked to evaluate, in order. */
+    @Getter
+    private final List<String> evaluatedFlagKeys = new CopyOnWriteArrayList<>();
     /**
      * lastRequestBody contains the body of the last request.
      */
@@ -80,6 +85,7 @@ public class GoffApiMock {
         String flagName = request.getPath()
                 .substring(
                         request.getPath().indexOf("/ofrep/v1/evaluate/flags/") + "/ofrep/v1/evaluate/flags/".length());
+        evaluatedFlagKeys.add(flagName);
         switch (flagName) {
             case "timeout":
                 Thread.sleep(500);
