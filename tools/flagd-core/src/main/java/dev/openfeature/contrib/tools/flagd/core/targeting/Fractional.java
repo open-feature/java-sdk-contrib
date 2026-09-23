@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.MurmurHash3;
@@ -42,17 +43,20 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
         // json-logic pre-evaluation flattens a single-entry fractional
         // e.g. [["single",1]] becomes ["single", 1]; detect and re-wrap
-        if (isFlattened(arguments)) {
+        if (arguments.get(0) == null) {
+            log.debug("Invalid arguments for fractional targeting: first argument is null");
+            return null;
+        } else if (isFlattened(arguments)) {
             if (properties.getTargetingKey() == null) {
                 log.debug("Missing fallback targeting key");
                 return null;
             }
-            bucketBy = java.util.Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
+            bucketBy = Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
             distributions = List.of(arguments);
         } else if (arguments.get(0) instanceof String
                 || arguments.get(0) instanceof Boolean
                 || arguments.get(0) instanceof Number
-                || arguments.get(0) instanceof java.util.Map) {
+                || arguments.get(0) instanceof Map) {
             // first arg is a primitive or Map, use for bucketing
             bucketBy = arguments.get(0);
             distributions = arguments.subList(1, arguments.size());
@@ -63,14 +67,8 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 return null;
             }
 
-            bucketBy = java.util.Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
-
-            if (arguments.get(0) == null) {
-                // arguments.get(0) resolved to null, skip it in distributions
-                distributions = arguments.subList(1, arguments.size());
-            } else {
-                distributions = arguments;
-            }
+            bucketBy = Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
+            distributions = arguments;
         }
 
         final List<FractionProperty> propertyList = new ArrayList<>();
