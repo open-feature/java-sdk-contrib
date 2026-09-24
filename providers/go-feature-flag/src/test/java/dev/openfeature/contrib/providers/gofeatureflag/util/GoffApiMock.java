@@ -151,6 +151,22 @@ public class GoffApiMock {
                 .addHeader(Const.HTTP_HEADER_ETAG, "\"unknown-response-field\"");
     }
 
+    /**
+     * two flags the evaluation engine refuses, for the two raw error codes that differ once mapped
+     * onto the SDK enumeration: a flag with no default rule answers FLAG_CONFIG, and a flag whose
+     * targeting query cannot be parsed makes the engine trap, which answers GENERAL.
+     */
+    private MockResponse misconfiguredFlagsConfig() {
+        return new MockResponse()
+                .setResponseCode(200)
+                .setBody("{\"flags\": {"
+                        + " \"flag-without-default-rule\": {\"variations\": {\"on\": true}},"
+                        + " \"flag-with-a-broken-query\": {\"variations\": {\"on\": true},"
+                        + " \"targeting\": [{\"query\": \"((((\", \"variation\": \"on\"}],"
+                        + " \"defaultRule\": {\"variation\": \"on\"}}}}")
+                .addHeader(Const.HTTP_HEADER_ETAG, "\"misconfigured-flags\"");
+    }
+
     @SneakyThrows
     public MockResponse handleFlagConfiguration(RecordedRequest request) {
         var configLocation = "valid-all-types.json";
@@ -167,6 +183,8 @@ public class GoffApiMock {
                         .setBody("{\"flags\": {}}")
                         .addHeader(Const.HTTP_HEADER_ETAG, "\"empty-flag-config\"")
                         .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
+            case MISCONFIGURED_FLAGS:
+                return misconfiguredFlagsConfig();
             case SERVE_OLD_CONFIGURATION:
                 if (configurationCallCount > 1) {
                     // we serve an old configuration after the 1st call.
@@ -365,5 +383,6 @@ public class GoffApiMock {
         STALE_AFTER_A_RECOVERY,
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
         EMPTY_FLAG_CONFIG,
+        MISCONFIGURED_FLAGS,
     }
 }
