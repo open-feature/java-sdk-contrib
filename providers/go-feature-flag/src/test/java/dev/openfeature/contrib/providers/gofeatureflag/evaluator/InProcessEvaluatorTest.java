@@ -468,6 +468,52 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("a misconfigured flag should not be sent to the relay proxy")
+    @Test
+    void aMisconfiguredFlagShouldNotBeSentToTheRelayProxy() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            // the engine answers the raw code FLAG_CONFIG, which the SDK enumeration has no member
+            // for and which mapping folds into GENERAL. Read after mapping, the trigger would send
+            // this to the relay proxy, which holds the same configuration and would refuse it too.
+            val error = assertThrows(
+                    GeneralError.class,
+                    () -> evaluator.getBooleanEvaluation(
+                            "flag-without-default-rule", false, new ImmutableContext("user-key")));
+            evaluator.shutdown();
+
+            assertEquals(ErrorCode.GENERAL, error.getErrorCode());
+            assertEquals(List.of(), mock.getEvaluatedFlagKeys(), "a misconfiguration was sent to the relay proxy");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a trapped evaluation should be sent to the relay proxy")
+    @Test
+    void aTrappedEvaluationShouldBeSentToTheRelayProxy() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            // a targeting query the engine cannot parse makes it trap, which answers the raw code
+            // GENERAL. It maps onto itself, so this half holds whichever code the trigger reads, and
+            // the two tests together can only pass if it reads the raw one.
+            val evaluated =
+                    evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(true, evaluated.getValue());
+            assertEquals(List.of("flag-with-a-broken-query"), mock.getEvaluatedFlagKeys());
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("should report PROVIDER_NOT_READY before any configuration is loaded")
     @Test
     void shouldReportProviderNotReadyBeforeAnyConfigurationIsLoaded() {
