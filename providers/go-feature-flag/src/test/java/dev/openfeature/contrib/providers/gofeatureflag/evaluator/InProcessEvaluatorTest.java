@@ -30,6 +30,7 @@ import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -510,6 +511,32 @@ class InProcessEvaluatorTest {
 
             assertEquals(true, evaluated.getValue());
             assertEquals(List.of("flag-with-a-broken-query"), mock.getEvaluatedFlagKeys());
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("every failed evaluation should be sent to the relay proxy, not only the first")
+    @Test
+    void everyFailedEvaluationShouldBeSentToTheRelayProxy() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            val evaluations = new ArrayList<Boolean>();
+            for (int i = 0; i < 5; i++) {
+                evaluations.add(evaluator
+                        .getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-" + i))
+                        .getValue());
+            }
+            evaluator.shutdown();
+            assertEquals(
+                    List.of(true, true, true, true, true), evaluations, "a later caller got a worse answer than one");
+            assertEquals(
+                    Collections.nCopies(5, "flag-with-a-broken-query"),
+                    mock.getEvaluatedFlagKeys(),
+                    "the relay proxy stopped being asked");
         }
     }
 
