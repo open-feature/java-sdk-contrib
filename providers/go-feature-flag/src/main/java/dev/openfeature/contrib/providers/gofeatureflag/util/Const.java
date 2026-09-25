@@ -28,6 +28,8 @@ public class Const {
     // the collector groups by provider, so the value must not change between releases
     public static final String METADATA_PROVIDER = "provider";
     public static final String METADATA_OPENFEATURE = "openfeature";
+    // EVENT FIELDS
+    public static final String UNDEFINED_TARGETING_KEY = "undefined-targetingKey";
     // DEFAULT VALUES
     public static final long DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS = 2L * 60L * 1000L;
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
