@@ -173,8 +173,8 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
 
         val trackingEvent = TrackingEvent.builder()
                 .evaluationContext((context != null) ? context.asObjectMap() : Collections.emptyMap())
-                .userKey(context != null ? context.getTargetingKey() : "undefined-targetingKey")
-                .contextKind(EvaluationContextUtil.isAnonymousUser(context) ? "anonymousUser" : "user")
+                .userKey(EvaluationContextUtil.userKey(context))
+                .contextKind(EvaluationContextUtil.contextKind(context))
                 .kind("tracking")
                 .key(eventName)
                 .trackingEventDetails(details != null ? details.asObjectMap() : Collections.emptyMap())

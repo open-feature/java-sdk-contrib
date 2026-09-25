@@ -1,10 +1,16 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
+import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
+import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableTrackingEventDetails;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -59,6 +65,36 @@ class ProviderTrackingTest extends AbstractGoFeatureFlagProviderTest {
                 disableDataCollection ? 0 : 1,
                 goffAPIMock.getCollectorRequestsHistory().size(),
                 "shutdown dropped the events the publisher was holding");
+    }
+
+    @DisplayName("Should build a tracking event by the same rules as a feature event")
+    @SneakyThrows
+    @Test
+    void shouldBuildATrackingEventByTheSameRulesAsAFeatureEvent() {
+        GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .flushIntervalMs(100L)
+                .maxPendingEvents(1000)
+                .endpoint(baseUrl.toString())
+                .evaluationType(EvaluationType.IN_PROCESS)
+                .build());
+        OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+        val client = OpenFeatureAPI.getInstance().getClient(testName);
+        val before = System.currentTimeMillis() / 1000L;
+
+        client.track("my-key", new ImmutableContext(), new MutableTrackingEventDetails().add("revenue", 123));
+        Thread.sleep(200L);
+
+        val body = Const.DESERIALIZE_OBJECT_MAPPER.readValue(goffAPIMock.getLastRequestBody(), HashMap.class);
+        val event = ((List<Map<String, Object>>) body.get("events")).get(0);
+        assertEquals("tracking", event.get("kind"));
+        assertEquals(Map.of("revenue", 123), event.get("trackingEventDetails"));
+        assertEquals(Map.of(), event.get("evaluationContext"));
+        assertEquals("undefined-targetingKey", event.get("userKey"), "a tracking event was attributed to nobody");
+        assertEquals("user", event.get("contextKind"));
+        val creationDate = ((Number) event.get("creationDate")).longValue();
+        assertTrue(
+                creationDate >= before && creationDate <= System.currentTimeMillis() / 1000L,
+                "creationDate is not Unix epoch seconds: " + creationDate);
     }
 
     @DisplayName("Should record no tracking event when data collection is disabled")
