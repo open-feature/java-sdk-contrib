@@ -51,8 +51,6 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     private final EventsPublisher<IEvent> eventsPublisher;
     /** exporter metadata contains the metadata that we want to send to the exporter. */
     private final Map<String, Object> exporterMetadata;
-    /** DataCollectorHook is the hook to send usage of the flags. */
-    private DataCollectorHook dataCollectorHook;
 
     /**
      * Constructor of the provider.
@@ -136,13 +134,11 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         // In case of remote evaluation, we don't need to send the data to the collector
         // because the relay-proxy will collect events directly server side.
         if (!this.options.isDisableDataCollection() && this.options.getEvaluationType() != EvaluationType.REMOTE) {
-            this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
+            this.hooks.add(new DataCollectorHook(DataCollectorHookOptions.builder()
                     .eventsPublisher(this.eventsPublisher)
                     .collectUnCachedEvaluation(true)
                     .evaluator(this.evaluator)
-                    .build());
-
-            this.hooks.add(this.dataCollectorHook);
+                    .build()));
         }
         log.info("finishing initializing provider");
     }
@@ -151,9 +147,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     public void shutdown() {
         super.shutdown();
         this.evaluator.shutdown();
-        if (this.dataCollectorHook != null) {
-            this.dataCollectorHook.shutdown();
-        }
+        this.eventsPublisher.shutdown();
     }
 
     @Override

@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -49,9 +50,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @Slf4j
 class GoFeatureFlagProviderTest {
+    /** The three shapes that register no data collector hook, plus the one that does. */
+    static Stream<Arguments> shutdownModes() {
+        return Stream.of(
+                Arguments.of(EvaluationType.IN_PROCESS, false),
+                Arguments.of(EvaluationType.IN_PROCESS, true),
+                Arguments.of(EvaluationType.REMOTE, false),
+                Arguments.of(EvaluationType.REMOTE, true));
+    }
+
     private MockWebServer server;
     private GoffApiMock goffAPIMock;
     private HttpUrl baseUrl;
@@ -1474,6 +1487,32 @@ class GoFeatureFlagProviderTest {
                     new MutableTrackingEventDetails().add("revenue", 123).add("user_id", "123ABC"));
             Thread.sleep(200L);
             assertEquals(1, goffAPIMock.getCollectorRequestsHistory().size());
+        }
+
+        @DisplayName("Should flush buffered events on shutdown in every mode")
+        @ParameterizedTest(name = "{0} evaluation, data collection disabled: {1}")
+        @MethodSource("dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderTest#shutdownModes")
+        @SneakyThrows
+        void shouldFlushBufferedEventsOnShutdownInEveryMode(EvaluationType type, boolean disableDataCollection) {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    // long enough that only shutdown can flush within the test
+                    .flushIntervalMs(60000L)
+                    .maxPendingEvents(1000)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(type)
+                    .disableDataCollection(disableDataCollection)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+            client.track("my-key", TestUtils.defaultEvaluationContext, new MutableTrackingEventDetails());
+            assertEquals(0, goffAPIMock.getCollectorRequestsHistory().size(), "the event was flushed before shutdown");
+
+            provider.shutdown();
+
+            assertEquals(
+                    1,
+                    goffAPIMock.getCollectorRequestsHistory().size(),
+                    "shutdown dropped the events the publisher was holding");
         }
 
         @DisplayName("Should omit events if max pending events is reached")
