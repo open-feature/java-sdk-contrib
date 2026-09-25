@@ -252,6 +252,11 @@ public class InProcessEvaluator implements IEvaluator {
         // enumeration, where GO Feature Flag's own codes are folded into GENERAL and stop being
         // distinguishable from an engine failure.
         if (FALLBACK_TRIGGERS.contains(response.getErrorCode())) {
+            log.warn(
+                    "the engine could not evaluate flag {} ({}: {}), asking the relay proxy instead",
+                    key,
+                    response.getErrorCode(),
+                    response.getErrorDetails());
             val remote = evaluateRemotely(key, defaultValue, ctx, remoteResolver);
             if (remote.isPresent()) {
                 return remote.get();
