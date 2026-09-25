@@ -27,6 +27,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -282,7 +283,7 @@ public class InProcessEvaluator implements IEvaluator {
         try {
             val remote = remoteResolver.resolve(this.fallbackEvaluator, key, defaultValue, ctx);
             if (remote.getErrorCode() == null) {
-                return Optional.of(remote);
+                return Optional.of(markEvaluatedRemotely(remote));
             }
             log.error(
                     "the relay proxy could not evaluate flag {} either: {} {}",
@@ -295,6 +296,26 @@ public class InProcessEvaluator implements IEvaluator {
             log.error("the relay proxy could not be asked about flag {}", key, e);
         }
         return Optional.empty();
+    }
+
+    /**
+     * markEvaluatedRemotely records in the flag metadata that the relay proxy produced this result.
+     *
+     * <p>The relay proxy's own metadata keys are kept: they describe the evaluation, which is the
+     * proxy's, and only the marker is this provider's to add.</p>
+     *
+     * @param remote - answer the relay proxy gave
+     * @param <T>    - type of the flag value
+     * @return the same evaluation, carrying the marker
+     */
+    private static <T> ProviderEvaluation<T> markEvaluatedRemotely(final ProviderEvaluation<T> remote) {
+        val metadata = new LinkedHashMap<String, Object>();
+        if (remote.getFlagMetadata() != null) {
+            metadata.putAll(remote.getFlagMetadata().asUnmodifiableMap());
+        }
+        metadata.put(Const.METADATA_EVALUATED_REMOTELY, true);
+        remote.setFlagMetadata(MetadataUtil.convertFlagMetadata(metadata));
+        return remote;
     }
 
     @FunctionalInterface
