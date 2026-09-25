@@ -36,6 +36,10 @@ public class GoffApiMock {
     /** Keys of every flag the relay proxy has been asked to evaluate, in order. */
     @Getter
     private final List<String> evaluatedFlagKeys = new CopyOnWriteArrayList<>();
+
+    /** Every evaluation request the relay proxy received, in order. */
+    @Getter
+    private final List<RecordedRequest> evaluateRequestsHistory = new CopyOnWriteArrayList<>();
     /**
      * lastRequestBody contains the body of the last request.
      */
@@ -86,7 +90,13 @@ public class GoffApiMock {
                 .substring(
                         request.getPath().indexOf("/ofrep/v1/evaluate/flags/") + "/ofrep/v1/evaluate/flags/".length());
         evaluatedFlagKeys.add(flagName);
+        evaluateRequestsHistory.add(request);
         switch (flagName) {
+            case "flag-the-proxy-answers-slowly":
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setHeadersDelay(5, java.util.concurrent.TimeUnit.SECONDS)
+                        .setBody(TestUtils.readMockResponse(ofrepResponseDir, "flag-with-a-broken-query.json"));
             case "timeout":
                 Thread.sleep(500);
                 return new MockResponse()
@@ -173,6 +183,7 @@ public class GoffApiMock {
                         + " \"flag-with-a-broken-query\": " + BROKEN_QUERY_FLAG + ","
                         + " \"flag-the-proxy-does-not-have\": " + BROKEN_QUERY_FLAG + ","
                         + " \"flag-the-proxy-answers-badly\": " + BROKEN_QUERY_FLAG + ","
+                        + " \"flag-the-proxy-answers-slowly\": " + BROKEN_QUERY_FLAG + ","
                         + " \"healthy-flag\": {\"variations\": {\"on\": true},"
                         + " \"defaultRule\": {\"variation\": \"on\"}}}}")
                 .addHeader(Const.HTTP_HEADER_ETAG, "\"misconfigured-flags\"");

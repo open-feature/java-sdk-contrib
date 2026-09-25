@@ -434,6 +434,56 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("a fallback request should carry the configured api key")
+    @Test
+    void aFallbackRequestShouldCarryTheConfiguredApiKey() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s, "my-api-key", 10000);
+            evaluator.initialize(new ImmutableContext());
+
+            evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(1, mock.getEvaluateRequestsHistory().size());
+            assertEquals(
+                    "my-api-key",
+                    mock.getEvaluateRequestsHistory().get(0).getHeader(Const.HTTP_HEADER_API_KEY),
+                    "the fallback was sent unauthenticated");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a fallback request should honour the configured timeout")
+    @Test
+    void aFallbackRequestShouldHonourTheConfiguredTimeout() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val impatient = evaluator(s, "my-api-key", 200);
+            impatient.initialize(new ImmutableContext());
+
+            // the relay proxy takes 5s to answer, so a 200ms timeout leaves the engine's error standing
+            val error = assertThrows(
+                    GeneralError.class,
+                    () -> impatient.getBooleanEvaluation(
+                            "flag-the-proxy-answers-slowly", false, new ImmutableContext("user-key")));
+            impatient.shutdown();
+            assertEquals("Trapped on unreachable instruction", error.getMessage());
+
+            val patient = evaluator(s, "my-api-key", 10000);
+            patient.initialize(new ImmutableContext());
+            val evaluated =
+                    patient.getBooleanEvaluation("flag-the-proxy-answers-slowly", false, new ImmutableContext("u"));
+            patient.shutdown();
+
+            // the same 5s delay against a timeout that tolerates it: the failure above was the timeout
+            assertEquals(true, evaluated.getValue());
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("every fallback should be logged at warning level")
     @Test
     void everyFallbackShouldBeLoggedAtWarningLevel() {
@@ -770,6 +820,18 @@ class InProcessEvaluatorTest {
 
     private InProcessEvaluator evaluator(MockWebServer srv) {
         return evaluator(srv, (event, details) -> {});
+    }
+
+    @SneakyThrows
+    private InProcessEvaluator evaluator(MockWebServer srv, String apiKey, long timeoutMs) {
+        val options = GoFeatureFlagProviderOptions.builder()
+                .endpoint(srv.url("").toString())
+                .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
+                .apiKey(apiKey)
+                .timeout((int) timeoutMs)
+                .build();
+        return new InProcessEvaluator(
+                GoFeatureFlagApi.builder().options(options).build(), options, (event, details) -> {});
     }
 
     /**
