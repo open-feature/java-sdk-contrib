@@ -172,7 +172,9 @@ public class GoffApiMock {
                         + " \"flag-without-default-rule\": {\"variations\": {\"on\": true}},"
                         + " \"flag-with-a-broken-query\": " + BROKEN_QUERY_FLAG + ","
                         + " \"flag-the-proxy-does-not-have\": " + BROKEN_QUERY_FLAG + ","
-                        + " \"flag-the-proxy-answers-badly\": " + BROKEN_QUERY_FLAG + "}}")
+                        + " \"flag-the-proxy-answers-badly\": " + BROKEN_QUERY_FLAG + ","
+                        + " \"healthy-flag\": {\"variations\": {\"on\": true},"
+                        + " \"defaultRule\": {\"variation\": \"on\"}}}}")
                 .addHeader(Const.HTTP_HEADER_ETAG, "\"misconfigured-flags\"");
     }
 
