@@ -33,7 +33,7 @@ public class TrackingEvent implements IEvent {
     private String userKey;
 
     /**
-     * CreationDate When the feature flag was requested at Unix epoch time in milliseconds.
+     * CreationDate When the event happened, at Unix epoch time in seconds.
      */
     private Long creationDate;
 
