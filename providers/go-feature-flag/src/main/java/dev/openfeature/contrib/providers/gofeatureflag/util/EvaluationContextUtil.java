@@ -25,6 +25,6 @@ public class EvaluationContextUtil {
             return true;
         }
         Value value = ctx.getValue(anonymousFieldName);
-        return value != null && value.asBoolean();
+        return value != null && value.isBoolean() && Boolean.TRUE.equals(value.asBoolean());
     }
 }
