@@ -94,6 +94,60 @@ class GoFeatureFlagProviderTest {
     @Nested
     @DisplayName("Common tests working with all evaluation types")
     class Common {
+        @DisplayName("Should stop polling the flag configuration on shutdown")
+        @SneakyThrows
+        @Test
+        void shouldStopPollingTheFlagConfigurationOnShutdown() {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .flagChangePollingIntervalMs(100L)
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            Thread.sleep(300L);
+
+            provider.shutdown();
+            // whatever was in flight when shutdown was called may still land, so settle first
+            Thread.sleep(200L);
+            val afterShutdown = goffAPIMock.getConfigurationCallCount();
+            Thread.sleep(500L);
+
+            assertTrue(afterShutdown > 1, "the provider never polled, so stopping is not what is under test");
+            assertEquals(
+                    afterShutdown,
+                    goffAPIMock.getConfigurationCallCount(),
+                    "the configuration was still being polled after shutdown");
+        }
+
+        @DisplayName("Should stop the event publisher on shutdown in every mode")
+        @ParameterizedTest(name = "{0} evaluation, data collection disabled: {1}")
+        @MethodSource("dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderTest#shutdownModes")
+        @SneakyThrows
+        void shouldStopTheEventPublisherOnShutdownInEveryMode(EvaluationType type, boolean disableDataCollection) {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1000)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(type)
+                    .disableDataCollection(disableDataCollection)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+            client.track("before-shutdown", TestUtils.defaultEvaluationContext, new MutableTrackingEventDetails());
+
+            provider.shutdown();
+            val afterShutdown = goffAPIMock.getCollectorRequestsHistory().size();
+
+            client.track("after-shutdown", TestUtils.defaultEvaluationContext, new MutableTrackingEventDetails());
+            Thread.sleep(400L);
+
+            assertEquals(1, afterShutdown, "the final drain did not happen");
+            assertEquals(
+                    afterShutdown,
+                    goffAPIMock.getCollectorRequestsHistory().size(),
+                    "the publisher kept accepting and flushing after shutdown");
+        }
+
         @DisplayName("Should not register the hooks twice when initialized twice")
         @SneakyThrows
         @Test
