@@ -167,6 +167,10 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
 
     @Override
     public void track(final String eventName, final EvaluationContext context, final TrackingEventDetails details) {
+        if (this.options.isDisableDataCollection()) {
+            return;
+        }
+
         val trackingEvent = TrackingEvent.builder()
                 .evaluationContext((context != null) ? context.asObjectMap() : Collections.emptyMap())
                 .userKey(context != null ? context.getTargetingKey() : "undefined-targetingKey")
