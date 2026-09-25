@@ -10,6 +10,7 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @DisplayName("Provider tracking")
@@ -55,9 +56,34 @@ class ProviderTrackingTest extends AbstractGoFeatureFlagProviderTest {
         provider.shutdown();
 
         assertEquals(
-                1,
+                disableDataCollection ? 0 : 1,
                 goffAPIMock.getCollectorRequestsHistory().size(),
                 "shutdown dropped the events the publisher was holding");
+    }
+
+    @DisplayName("Should record no tracking event when data collection is disabled")
+    @ParameterizedTest(name = "{0} evaluation")
+    @EnumSource(EvaluationType.class)
+    @SneakyThrows
+    void shouldRecordNoTrackingEventWhenDataCollectionIsDisabled(EvaluationType type) {
+        GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .flushIntervalMs(100L)
+                .maxPendingEvents(1000)
+                .endpoint(baseUrl.toString())
+                .evaluationType(type)
+                .disableDataCollection(true)
+                .build());
+        OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+        val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+        client.track("my-key", TestUtils.defaultEvaluationContext, new MutableTrackingEventDetails());
+        Thread.sleep(400L);
+        provider.shutdown();
+
+        assertEquals(
+                0,
+                goffAPIMock.getCollectorRequestsHistory().size(),
+                "a tracking event was sent although data collection is disabled");
     }
 
     @DisplayName("Should omit events if max pending events is reached")

@@ -69,7 +69,7 @@ class GoFeatureFlagProviderTest extends AbstractGoFeatureFlagProviderTest {
         client.track("after-shutdown", TestUtils.defaultEvaluationContext, new MutableTrackingEventDetails());
         Thread.sleep(400L);
 
-        assertEquals(1, afterShutdown, "the final drain did not happen");
+        assertEquals(disableDataCollection ? 0 : 1, afterShutdown, "the final drain did not happen");
         assertEquals(
                 afterShutdown,
                 goffAPIMock.getCollectorRequestsHistory().size(),
