@@ -25,10 +25,6 @@ import lombok.val;
 public class GoFeatureFlagProviderOptions {
     /** Default timeout in millisecond when calling the GO Feature Flag relay proxy API. */
     private static final int DEFAULT_TIMEOUT_MS = 10000;
-    /** Default maximum number of connexions in the connexion pool. */
-    private static final int DEFAULT_MAX_IDLE_CONNECTIONS = 1000;
-    /** Default time in millisecond we keep the connexion open (2 hours). */
-    private static final long DEFAULT_KEEP_ALIVE_DURATION_MS = 7200000L;
 
     /**
      * evaluationType is the type of evaluation you want to use.
@@ -54,22 +50,6 @@ public class GoFeatureFlagProviderOptions {
      * API. Default: 10000 ms
      */
     private int timeout;
-    /**
-     * (optional) maxIdleConnections is the maximum number of connexions in the connexion pool.
-     * Default: 1000
-     *
-     * <p>This option is currently not used by the provider, the underlying HTTP client does not
-     * expose this setting.</p>
-     */
-    private int maxIdleConnections;
-    /**
-     * (optional) keepAliveDuration is the time in millisecond we keep the connexion open. Default:
-     * 7200000 (2 hours)
-     *
-     * <p>This option is currently not used by the provider, the underlying HTTP client does not
-     * expose this setting.</p>
-     */
-    private Long keepAliveDuration;
     /**
      * (optional) If the relay proxy is configured to authenticate the requests, you should provide an
      * API Key to the provider. Please ask the administrator of the relay proxy to provide an API Key.
@@ -149,24 +129,6 @@ public class GoFeatureFlagProviderOptions {
      */
     public int getTimeout() {
         return timeout == 0 ? DEFAULT_TIMEOUT_MS : timeout;
-    }
-
-    /**
-     * Get the maximum number of connexions in the connexion pool.
-     *
-     * @return the configured maximum, 1000 if none was set
-     */
-    public int getMaxIdleConnections() {
-        return maxIdleConnections == 0 ? DEFAULT_MAX_IDLE_CONNECTIONS : maxIdleConnections;
-    }
-
-    /**
-     * Get the time in millisecond we keep the connexion open.
-     *
-     * @return the configured duration, 7200000 ms if none was set
-     */
-    public Long getKeepAliveDuration() {
-        return keepAliveDuration == null ? DEFAULT_KEEP_ALIVE_DURATION_MS : keepAliveDuration;
     }
 
     /**
