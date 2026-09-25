@@ -68,6 +68,10 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
 
     @Override
     public void error(HookContext ctx, Exception error, Map hints) {
+        if (!this.evaluator.isFlagTrackable(ctx.getFlagKey())) {
+            return;
+        }
+
         IEvent event = FeatureEvent.builder()
                 .key(ctx.getFlagKey())
                 .kind("feature")

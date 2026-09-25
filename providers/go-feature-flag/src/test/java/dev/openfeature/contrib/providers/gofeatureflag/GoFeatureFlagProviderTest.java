@@ -945,6 +945,56 @@ class GoFeatureFlagProviderTest {
             }
         }
 
+        @DisplayName("Should not send an evaluation event for an untrackable flag that errors")
+        @SneakyThrows
+        @Test
+        void shouldNotSendAnEvaluationEventForAnUntrackableFlagThatErrors() {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+            // string_key carries trackEvents:false, and asking for it as a boolean reaches the error
+            // stage rather than the after stage
+            val details = client.getBooleanDetails("string_key", false, TestUtils.defaultEvaluationContext);
+            Thread.sleep(180L);
+
+            assertEquals(
+                    ErrorCode.TYPE_MISMATCH, details.getErrorCode(), "the evaluation did not reach the error stage");
+            assertEquals(
+                    0,
+                    goffAPIMock.getCollectorRequestsHistory().size(),
+                    "an untrackable flag was recorded by the error stage");
+        }
+
+        @DisplayName("Should send an evaluation event for a trackable flag that errors")
+        @SneakyThrows
+        @Test
+        void shouldSendAnEvaluationEventForATrackableFlagThatErrors() {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+            val details = client.getBooleanDetails("integer_key", false, TestUtils.defaultEvaluationContext);
+            Thread.sleep(180L);
+
+            assertEquals(
+                    ErrorCode.TYPE_MISMATCH, details.getErrorCode(), "the evaluation did not reach the error stage");
+            assertEquals(
+                    1,
+                    goffAPIMock.getCollectorRequestsHistory().size(),
+                    "the gate silenced the error stage for every flag, not only untrackable ones");
+        }
+
         @DisplayName("Should not send events for remote evaluation")
         @SneakyThrows
         @Test
