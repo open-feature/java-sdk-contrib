@@ -130,6 +130,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         // one-shot, so without this a provider that is shut down and initialized again never flushes.
         this.eventsPublisher.start();
         this.evaluator.initialize(evaluationContext, domain);
+        this.hooks.clear();
         this.hooks.add(new EnrichEvaluationContextHook(this.options.getExporterMetadata()));
         // In case of remote evaluation, we don't need to send the data to the collector
         // because the relay-proxy will collect events directly server side.

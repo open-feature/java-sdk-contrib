@@ -12,6 +12,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidExporterMetadata;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.hook.EnrichEvaluationContextHook;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.ErrorCode;
@@ -36,6 +37,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -79,6 +81,54 @@ class GoFeatureFlagProviderTest {
     @Nested
     @DisplayName("Common tests working with all evaluation types")
     class Common {
+        @DisplayName("Should not register the hooks twice when initialized twice")
+        @SneakyThrows
+        @Test
+        void shouldNotRegisterTheHooksTwiceWhenInitializedTwice() {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            provider.initialize(new ImmutableContext());
+            val afterFirst = provider.getProviderHooks().size();
+            provider.initialize(new ImmutableContext());
+            val afterSecond = provider.getProviderHooks();
+            provider.shutdown();
+
+            assertEquals(afterFirst, afterSecond.size(), "a second initialization registered the hooks again");
+            assertEquals(
+                    List.of(
+                            EnrichEvaluationContextHook.class,
+                            dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook.class),
+                    afterSecond.stream().map(Object::getClass).collect(Collectors.toList()));
+        }
+
+        @DisplayName("Should record one evaluation once after being initialized twice")
+        @SneakyThrows
+        @Test
+        void shouldRecordOneEvaluationOnceAfterBeingInitializedTwice() {
+            try (val s = new MockWebServer()) {
+                val mock = new GoffApiMock(GoffApiMock.MockMode.DEFAULT);
+                s.setDispatcher(mock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flushIntervalMs(100L)
+                        .maxPendingEvents(1)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                provider.initialize(new ImmutableContext());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
+                Thread.sleep(180L);
+                assertEquals(
+                        1,
+                        mock.getCollectorRequestsHistory().size(),
+                        "a duplicated data collector hook records the same evaluation once per copy");
+            }
+        }
+
         @SneakyThrows
         @Test
         void getMetadata_validate_name() {
