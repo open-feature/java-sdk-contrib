@@ -4,19 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dylibso.chicory.runtime.ExportFunction;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.FlagContext;
+import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -143,6 +147,98 @@ class WasmEvaluatorPoolTest {
 
         assertEquals("PARSE_ERROR", got.getErrorCode());
         assertFalse(instance.isPoisoned(), "a guarded input is not a guest fault, the instance is still healthy");
+    }
+
+    /**
+     * An input the bundled binary traps on. The guards of 10.1 turn over-large inputs into a
+     * PARSE_ERROR, but a query that is malformed rather than over-large still faults the guest, which
+     * is why GOFF-WASM-013 asks for trap handling whichever binary ships.
+     */
+    @SneakyThrows
+    private static WasmInput trappingInput() {
+        return WasmInput.builder()
+                .flagKey("TEST")
+                .flag(Const.DESERIALIZE_OBJECT_MAPPER.readTree("{\"variations\":{\"on\":true},"
+                        + "\"targeting\":[{\"query\":\"((((\",\"variation\":\"on\"}],"
+                        + "\"defaultRule\":{\"variation\":\"on\"}}"))
+                .evalContext(Const.DESERIALIZE_OBJECT_MAPPER.readValue("{\"targetingKey\":\"k\"}", java.util.Map.class))
+                .flagContext(FlagContext.builder().defaultSdkValue(false).build())
+                .build();
+    }
+
+    @SneakyThrows
+    @DisplayName("a real trap should poison the instance")
+    @Test
+    void aRealTrapShouldPoisonTheInstance() {
+        val instance = new EvaluationWasm();
+        instance.preWarmWasm();
+
+        val got = instance.evaluate(trappingInput());
+
+        assertEquals(ErrorCode.GENERAL.name(), got.getErrorCode());
+        assertEquals("Trapped on unreachable instruction", got.getErrorDetails());
+        assertTrue(instance.isPoisoned(), "a guest fault left the instance usable");
+    }
+
+    /**
+     * Counts the calls an instance makes to the guest's free, by swapping the export for one that
+     * delegates. The requirement is about the call being made at all, and nothing the instance
+     * returns reveals whether it was.
+     */
+    @SneakyThrows
+    private static AtomicInteger countFreeCalls(final EvaluationWasm instance) {
+        val calls = new AtomicInteger();
+        val field = EvaluationWasm.class.getDeclaredField("free");
+        field.setAccessible(true);
+        val real = (ExportFunction) field.get(instance);
+        field.set(instance, (ExportFunction) args -> {
+            calls.incrementAndGet();
+            return real.apply(args);
+        });
+        return calls;
+    }
+
+    @SneakyThrows
+    @DisplayName("a real trap should not have the input buffer freed on it")
+    @Test
+    void aRealTrapShouldNotHaveTheInputBufferFreedOnIt() {
+        val instance = new EvaluationWasm();
+        instance.preWarmWasm();
+        val freeCalls = countFreeCalls(instance);
+
+        instance.evaluate(trappingInput());
+
+        assertEquals(0, freeCalls.get(), "free was called on a trapped instance");
+    }
+
+    @SneakyThrows
+    @DisplayName("an evaluation that did not trap should have its input buffer freed")
+    @Test
+    void anEvaluationThatDidNotTrapShouldHaveItsInputBufferFreed() {
+        val instance = new EvaluationWasm();
+        instance.preWarmWasm();
+        val freeCalls = countFreeCalls(instance);
+
+        instance.evaluate(input().value);
+
+        // the guard is on the trap, not on freeing in general
+        assertEquals(1, freeCalls.get());
+    }
+
+    @SneakyThrows
+    @DisplayName("a real trap should leave the pool able to serve the next evaluation")
+    @Test
+    void aRealTrapShouldLeaveThePoolAbleToServeTheNextEvaluation() {
+        try (val pool = new WasmEvaluatorPool(1)) {
+            val trapped = pool.evaluate(trappingInput());
+            val next = pool.evaluate(input().value);
+
+            assertEquals(ErrorCode.GENERAL.name(), trapped.getErrorCode());
+            // the poisoned instance was discarded and rebuilt rather than handed out again
+            assertEquals(true, next.getValue());
+            // the engine reports no error as an empty string, not as null
+            assertEquals("", next.getErrorCode());
+        }
     }
 
     @SneakyThrows
