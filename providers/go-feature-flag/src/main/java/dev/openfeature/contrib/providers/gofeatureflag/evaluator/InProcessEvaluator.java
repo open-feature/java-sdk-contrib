@@ -251,9 +251,50 @@ public class InProcessEvaluator implements IEvaluator {
         // enumeration, where GO Feature Flag's own codes are folded into GENERAL and stop being
         // distinguishable from an engine failure.
         if (FALLBACK_TRIGGERS.contains(response.getErrorCode())) {
-            return remoteResolver.resolve(fallbackEvaluator, key, defaultValue, ctx);
+            val remote = evaluateRemotely(key, defaultValue, ctx, remoteResolver);
+            if (remote.isPresent()) {
+                return remote.get();
+            }
         }
         return toProviderEvaluation(key, defaultValue, response, expectedType);
+    }
+
+    /**
+     * evaluateRemotely asks the relay proxy about a flag the engine could not evaluate.
+     *
+     * <p>An empty result means the relay proxy could not answer either, in which case the caller is
+     * owed the engine's error rather than the proxy's: the engine failing is the root cause, and the
+     * proxy merely failed to make up for it. The remote failure is logged here because it is about to
+     * disappear from the answer entirely.</p>
+     *
+     * @param key            - name of the flag
+     * @param defaultValue   - default value provided by the caller
+     * @param ctx            - evaluation context
+     * @param remoteResolver - resolver of the fallback evaluator matching the type asked for
+     * @param <T>            - type of the flag value
+     * @return the relay proxy's answer, or empty if it could not give one
+     */
+    private <T> Optional<ProviderEvaluation<T>> evaluateRemotely(
+            final String key,
+            final T defaultValue,
+            final EvaluationContext ctx,
+            final RemoteResolver<T> remoteResolver) {
+        try {
+            val remote = remoteResolver.resolve(this.fallbackEvaluator, key, defaultValue, ctx);
+            if (remote.getErrorCode() == null) {
+                return Optional.of(remote);
+            }
+            log.error(
+                    "the relay proxy could not evaluate flag {} either: {} {}",
+                    key,
+                    remote.getErrorCode(),
+                    remote.getErrorMessage());
+        } catch (Exception e) {
+            // the OFREP client raises on responses it cannot read at all, and an exception escaping
+            // here would replace the engine's error with one about the recovery attempt.
+            log.error("the relay proxy could not be asked about flag {}", key, e);
+        }
+        return Optional.empty();
     }
 
     @FunctionalInterface

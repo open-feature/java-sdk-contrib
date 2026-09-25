@@ -541,6 +541,47 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("a relay proxy that refuses the flag too should leave the engine's error standing")
+    @Test
+    void aRelayProxyThatRefusesTheFlagTooShouldLeaveTheEnginesErrorStanding() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            val error = assertThrows(
+                    GeneralError.class,
+                    () -> evaluator.getBooleanEvaluation(
+                            "flag-the-proxy-does-not-have", false, new ImmutableContext("user-key")));
+            evaluator.shutdown();
+
+            assertEquals("Trapped on unreachable instruction", error.getMessage());
+            assertEquals(List.of("flag-the-proxy-does-not-have"), mock.getEvaluatedFlagKeys());
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a relay proxy that cannot be read should leave the engine's error standing")
+    @Test
+    void aRelayProxyThatCannotBeReadShouldLeaveTheEnginesErrorStanding() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            val error = assertThrows(
+                    GeneralError.class,
+                    () -> evaluator.getBooleanEvaluation(
+                            "flag-the-proxy-answers-badly", false, new ImmutableContext("user-key")));
+            evaluator.shutdown();
+
+            assertEquals("Trapped on unreachable instruction", error.getMessage());
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("should report PROVIDER_NOT_READY before any configuration is loaded")
     @Test
     void shouldReportProviderNotReadyBeforeAnyConfigurationIsLoaded() {
