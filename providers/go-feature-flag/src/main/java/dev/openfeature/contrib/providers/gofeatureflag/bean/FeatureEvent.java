@@ -18,6 +18,7 @@ public class FeatureEvent implements IEvent {
 
     private String key;
     private String kind;
+    private String source;
     private String userKey;
     private Object value;
     private String variation;

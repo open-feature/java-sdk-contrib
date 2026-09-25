@@ -16,6 +16,8 @@ import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @DisplayName("Provider data collector")
 class ProviderDataCollectorTest extends AbstractGoFeatureFlagProviderTest {
@@ -198,6 +200,32 @@ class ProviderDataCollectorTest extends AbstractGoFeatureFlagProviderTest {
                 "undefined-targetingKey",
                 events.get(0).get("userKey"),
                 "an evaluation with no targeting key was attributed to nobody");
+    }
+
+    @DisplayName("Should record a locally evaluated flag as an in-process evaluation")
+    @SneakyThrows
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({"after stage, bool_targeting_match", "error stage, integer_key"})
+    void shouldRecordALocallyEvaluatedFlagAsAnInProcessEvaluation(String stage, String flagKey) {
+        GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .flushIntervalMs(100L)
+                .maxPendingEvents(1)
+                .endpoint(baseUrl.toString())
+                .evaluationType(EvaluationType.IN_PROCESS)
+                .build());
+        OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+        val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+        client.getBooleanDetails(flagKey, false, TestUtils.defaultEvaluationContext);
+        Thread.sleep(180L);
+
+        val body = Const.DESERIALIZE_OBJECT_MAPPER.readValue(goffAPIMock.getLastRequestBody(), HashMap.class);
+        val events = (List<Map<String, Object>>) body.get("events");
+        assertEquals(1, events.size());
+        assertEquals(
+                "INPROCESS",
+                events.get(0).get("source"),
+                "the collector cannot tell an in-process evaluation from one the relay proxy served");
     }
 
     @DisplayName("Should not send events for remote evaluation")

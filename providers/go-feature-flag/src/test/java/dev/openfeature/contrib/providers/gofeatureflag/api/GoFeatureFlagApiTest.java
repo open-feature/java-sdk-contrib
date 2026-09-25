@@ -296,6 +296,7 @@ public class GoFeatureFlagApiTest {
                     .creationDate(1617970547L)
                     .contextKind("anonymousUser")
                     .kind("feature")
+                    .source("INPROCESS")
                     .userKey("ABCD")
                     .variation("enabled")
                     .value(true)
