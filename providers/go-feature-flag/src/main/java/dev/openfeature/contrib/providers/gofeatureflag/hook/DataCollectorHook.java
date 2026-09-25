@@ -60,7 +60,7 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
                 .defaultValue(false)
                 .variation(details.getVariant())
                 .value(details.getValue())
-                .userKey(ctx.getCtx().getTargetingKey())
+                .userKey(EvaluationContextUtil.userKey(ctx.getCtx()))
                 .creationDate(System.currentTimeMillis() / 1000L)
                 .build();
         eventsPublisher.add(event);
@@ -80,7 +80,7 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
                 .defaultValue(true)
                 .variation("SdkDefault")
                 .value(ctx.getDefaultValue())
-                .userKey(ctx.getCtx().getTargetingKey())
+                .userKey(EvaluationContextUtil.userKey(ctx.getCtx()))
                 .build();
         eventsPublisher.add(event);
     }

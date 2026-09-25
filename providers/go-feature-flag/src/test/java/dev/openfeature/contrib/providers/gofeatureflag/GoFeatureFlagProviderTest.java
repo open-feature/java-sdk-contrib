@@ -1019,6 +1019,31 @@ class GoFeatureFlagProviderTest {
                     "a flag this provider has not polled yet went unrecorded");
         }
 
+        @DisplayName("Should record an evaluation with no targeting key under a placeholder key")
+        @SneakyThrows
+        @Test
+        void shouldRecordAnEvaluationWithNoTargetingKeyUnderAPlaceholderKey() {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+            client.getIntegerDetails("integer_key", 1000, new ImmutableContext());
+            Thread.sleep(180L);
+
+            val body = Const.DESERIALIZE_OBJECT_MAPPER.readValue(goffAPIMock.getLastRequestBody(), HashMap.class);
+            val events = (List<Map<String, Object>>) body.get("events");
+            assertEquals(1, events.size());
+            assertEquals(
+                    "undefined-targetingKey",
+                    events.get(0).get("userKey"),
+                    "an evaluation with no targeting key was attributed to nobody");
+        }
+
         @DisplayName("Should not send events for remote evaluation")
         @SneakyThrows
         @Test

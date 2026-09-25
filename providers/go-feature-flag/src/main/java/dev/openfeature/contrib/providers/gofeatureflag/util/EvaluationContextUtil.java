@@ -27,4 +27,19 @@ public class EvaluationContextUtil {
         Value value = ctx.getValue(anonymousFieldName);
         return value != null && value.isBoolean() && Boolean.TRUE.equals(value.asBoolean());
     }
+
+    /**
+     * userKey is the key an event is attributed to.
+     *
+     * @param ctx - EvaluationContext from open-feature
+     * @return the targeting key, or a placeholder when there is none
+     */
+    public static String userKey(final EvaluationContext ctx) {
+        if (ctx == null
+                || ctx.getTargetingKey() == null
+                || ctx.getTargetingKey().isEmpty()) {
+            return Const.UNDEFINED_TARGETING_KEY;
+        }
+        return ctx.getTargetingKey();
+    }
 }
