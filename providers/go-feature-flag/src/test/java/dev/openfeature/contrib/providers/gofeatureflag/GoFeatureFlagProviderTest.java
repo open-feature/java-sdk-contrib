@@ -995,6 +995,30 @@ class GoFeatureFlagProviderTest {
                     "the gate silenced the error stage for every flag, not only untrackable ones");
         }
 
+        @DisplayName("Should send an evaluation event for a flag absent from the configuration")
+        @SneakyThrows
+        @Test
+        void shouldSendAnEvaluationEventForAFlagAbsentFromTheConfiguration() {
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(baseUrl.toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+            val details = client.getBooleanDetails(
+                    "a-flag-added-since-the-last-poll", false, TestUtils.defaultEvaluationContext);
+            Thread.sleep(180L);
+
+            assertEquals(ErrorCode.FLAG_NOT_FOUND, details.getErrorCode());
+            assertEquals(
+                    1,
+                    goffAPIMock.getCollectorRequestsHistory().size(),
+                    "a flag this provider has not polled yet went unrecorded");
+        }
+
         @DisplayName("Should not send events for remote evaluation")
         @SneakyThrows
         @Test

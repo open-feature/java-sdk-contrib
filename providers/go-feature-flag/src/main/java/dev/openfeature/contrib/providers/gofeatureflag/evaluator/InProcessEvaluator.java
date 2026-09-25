@@ -437,7 +437,7 @@ public class InProcessEvaluator implements IEvaluator {
         // else belongs to the evaluation engine and is passed through untouched.
         JsonNode flag = this.state.flags.get(flagKey);
         if (flag == null) {
-            return false;
+            return true;
         }
         JsonNode trackEvents = flag.get(Const.FIELD_TRACK_EVENTS);
         return trackEvents == null || trackEvents.isNull() || trackEvents.asBoolean(true);
