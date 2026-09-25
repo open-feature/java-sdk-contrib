@@ -95,35 +95,37 @@ public final class EvaluationWasm implements AutoCloseable {
      * @return the result of the evaluation
      */
     public GoFeatureFlagResponse evaluate(WasmInput wasmInput) {
-        int len = 0;
-        int ptr = 0;
         try {
-            // convert the WasmInput object to JSON string
-            val message = Const.SERIALIZE_WASM_MAPPER.writeValueAsBytes(wasmInput);
-            // Store the json string in the memory
-            Memory memory = this.instance.memory();
-            len = message.length;
-            ptr = (int) malloc.apply(len)[0];
-            memory.write(ptr, message);
-
-            // Call the wasm evaluate function
-            val resultPointer = this.evaluate.apply(ptr, len);
-
-            // Read the output
-            int valuePosition = (int) ((resultPointer[0] >>> 32) & 0xFFFFFFFFL);
-            int valueSize = (int) (resultPointer[0] & 0xFFFFFFFFL);
-            val output = memory.readString(valuePosition, valueSize);
-
-            // Convert the output to a WasmOutput object
+            val output = evaluateRaw(Const.SERIALIZE_WASM_MAPPER.writeValueAsBytes(wasmInput));
             return Const.DESERIALIZE_OBJECT_MAPPER.readValue(output, GoFeatureFlagResponse.class);
-
-        } catch (ChicoryException | WasmException e) {
-            this.poisoned = true;
-            return errorResponse(e);
         } catch (Exception e) {
             return errorResponse(e);
+        }
+    }
+
+    /**
+     * evaluateRaw hands the engine a raw input and returns its raw output, across the engine ABI.
+     *
+     * @param message - the JSON input of the engine
+     * @return the JSON output of the engine
+     */
+    String evaluateRaw(final byte[] message) {
+        int ptr = 0;
+        try {
+            Memory memory = this.instance.memory();
+            ptr = (int) malloc.apply(message.length)[0];
+            memory.write(ptr, message);
+
+            val resultPointer = this.evaluate.apply(ptr, message.length);
+
+            int valuePosition = (int) ((resultPointer[0] >>> 32) & 0xFFFFFFFFL);
+            int valueSize = (int) (resultPointer[0] & 0xFFFFFFFFL);
+            return memory.readString(valuePosition, valueSize);
+        } catch (ChicoryException | WasmException e) {
+            this.poisoned = true;
+            throw e;
         } finally {
-            freeInput(ptr, len);
+            freeInput(ptr, message.length);
         }
     }
 

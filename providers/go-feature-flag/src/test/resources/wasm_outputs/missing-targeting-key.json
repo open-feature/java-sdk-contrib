@@ -1,0 +1,15 @@
+{
+  "trackEvents": true,
+  "variationType": "SdkDefault",
+  "failed": true,
+  "version": "",
+  "reason": "ERROR",
+  "errorCode": "TARGETING_KEY_MISSING",
+  "errorDetails": "Error: Empty targeting key",
+  "value": false,
+  "cacheable": false,
+  "metadata": {
+    "description": "test flag",
+    "type": "boolean"
+  }
+}
