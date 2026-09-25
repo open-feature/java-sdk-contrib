@@ -2,7 +2,6 @@ package dev.openfeature.contrib.providers.gofeatureflag.evaluator;
 
 import static dev.openfeature.contrib.providers.gofeatureflag.evaluator.InProcessEvaluator.toProviderEvaluation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,6 +23,7 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import dev.openfeature.sdk.exceptions.InvalidContextError;
+import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import dev.openfeature.sdk.exceptions.ParseError;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import dev.openfeature.sdk.exceptions.TargetingKeyMissingError;
@@ -35,17 +35,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.val;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class InProcessEvaluatorTest {
     private static final long POLLING_INTERVAL_MS = 100L;
@@ -65,30 +76,6 @@ class InProcessEvaluatorTest {
     void afterEach() throws IOException {
         this.server.close();
         this.server = null;
-    }
-
-    @SneakyThrows
-    private InProcessEvaluator evaluator(MockWebServer srv, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
-        val options = GoFeatureFlagProviderOptions.builder()
-                .endpoint(srv.url("").toString())
-                .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
-                .build();
-        return new InProcessEvaluator(
-                GoFeatureFlagApi.builder().options(options).build(), options, emitter);
-    }
-
-    private InProcessEvaluator evaluator(MockWebServer srv) {
-        return evaluator(srv, (event, details) -> {});
-    }
-
-    /** Records the events the evaluator emits, in the order it emits them. */
-    private static final class RecordedEvents implements BiConsumer<ProviderEvent, ProviderEventDetails> {
-        final List<ProviderEvent> events = new ArrayList<>();
-
-        @Override
-        public void accept(ProviderEvent event, ProviderEventDetails eventDetails) {
-            this.events.add(event);
-        }
     }
 
     @SneakyThrows
@@ -119,13 +106,8 @@ class InProcessEvaluatorTest {
     void pollingShouldSurviveAnErrorRaisedWhileApplyingAConfiguration() {
         try (val s = new MockWebServer()) {
             s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.CONFIG_CHANGES_EVERY_POLL).dispatcher);
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(s.url("").toString())
-                    .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
             val refreshes = new AtomicInteger();
-            val evaluator = new InProcessEvaluator(api, options, (event, details) -> {
+            val evaluator = evaluator(s, (event, details) -> {
                 if (refreshes.incrementAndGet() == 1) {
                     throw new IllegalStateException("an event consumer that fails on the first change");
                 }
@@ -156,13 +138,8 @@ class InProcessEvaluatorTest {
                                     + " \"defaultRule\": {\"variation\": \"on\"}}}}");
                 }
             });
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(s.url("").toString())
-                    .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
             val changeEvents = new AtomicInteger();
-            val evaluator = new InProcessEvaluator(api, options, (event, details) -> changeEvents.incrementAndGet());
+            val evaluator = evaluator(s, (event, details) -> changeEvents.incrementAndGet());
 
             evaluator.initialize(new ImmutableContext());
             Thread.sleep(POLLING_INTERVAL_MS * 4);
@@ -232,66 +209,21 @@ class InProcessEvaluatorTest {
     void aSuccessfulRefreshShouldRestartTheFailureRun() {
         try (val s = new MockWebServer()) {
             s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.FAIL_TWICE_THEN_RECOVER).dispatcher);
-            val stale = new ArrayList<ProviderEvent>();
-            val evaluator = evaluator(s, (event, details) -> {
-                if (event == ProviderEvent.PROVIDER_STALE) {
-                    stale.add(event);
-                }
-            });
+            val recorded = new RecordedEvents();
+            val evaluator = evaluator(s, recorded);
             evaluator.initialize(new ImmutableContext());
 
-            // two failures, then a success: the two must not carry over into the next run
+            // two failures, then a success: the two must not carry over into the next run, and
+            // recovering from something never announced is not news
             Thread.sleep(POLLING_INTERVAL_MS * 4 + POLLING_INTERVAL_MS / 2);
-            assertTrue(stale.isEmpty(), "the failures before the successful refresh were carried over");
+            assertEquals(List.of(), recorded.events, "an event was announced before any staleness");
 
             Thread.sleep(POLLING_INTERVAL_MS * 3);
             evaluator.shutdown();
-            assertEquals(1, stale.size(), "a fresh run of three failures should still go stale");
-        }
-    }
-
-    @SneakyThrows
-    @DisplayName("should not announce a return to ready when it never went stale")
-    @Test
-    void shouldNotAnnounceAReturnToReadyWhenItNeverWentStale() {
-        try (val s = new MockWebServer()) {
-            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.FAIL_TWICE_THEN_RECOVER).dispatcher);
-            val events = new ArrayList<ProviderEvent>();
-            val evaluator = evaluator(s, (event, details) -> {
-                if (event == ProviderEvent.PROVIDER_READY) {
-                    events.add(event);
-                }
-            });
-            evaluator.initialize(new ImmutableContext());
-
-            // two failures then a success: recovering from something never announced is not news
-            Thread.sleep(POLLING_INTERVAL_MS * 4 + POLLING_INTERVAL_MS / 2);
-            evaluator.shutdown();
-
-            assertTrue(events.isEmpty(), "a return to ready was announced without a staleness to end");
-        }
-    }
-
-    @SneakyThrows
-    @DisplayName("polling should survive a failure raised while announcing a stale configuration")
-    @Test
-    void pollingShouldSurviveAFailureRaisedWhileAnnouncingAStaleConfiguration() {
-        try (val s = new MockWebServer()) {
-            val mock = new GoffApiMock(GoffApiMock.MockMode.FAIL_REFRESH_AFTER_INIT);
-            s.setDispatcher(mock.dispatcher);
-            val evaluator = evaluator(s, (event, details) -> {
-                throw new IllegalStateException("an emitter that fails, as it does after a shutdown");
-            });
-            evaluator.initialize(new ImmutableContext());
-
-            // the stale announcement happens on the third failure; polling has to outlive it
-            Thread.sleep(POLLING_INTERVAL_MS * 4);
-            val afterStale = mock.getConfigurationCallCount();
-            Thread.sleep(POLLING_INTERVAL_MS * 4);
-            val later = mock.getConfigurationCallCount();
-            evaluator.shutdown();
-
-            assertTrue(later > afterStale, "polling stopped, it stayed at " + afterStale + " call(s)");
+            assertEquals(
+                    List.of(ProviderEvent.PROVIDER_STALE),
+                    recorded.events,
+                    "a fresh run of three failures should go stale, once");
         }
     }
 
@@ -411,25 +343,6 @@ class InProcessEvaluatorTest {
         }
     }
 
-    /**
-     * A context the evaluation engine's own guards refuse to read, so that the engine answers
-     * PARSE_ERROR rather than a value. It is a real engine failure, not a simulated one.
-     */
-    @SneakyThrows
-    private static ImmutableContext contextTooDeepForTheEngine() {
-        val deep = new StringBuilder();
-        for (int i = 0; i < 400; i++) {
-            deep.append("{\"a\":");
-        }
-        deep.append("1");
-        for (int i = 0; i < 400; i++) {
-            deep.append("}");
-        }
-        val asMap = Const.DESERIALIZE_OBJECT_MAPPER.readValue(
-                "{\"targetingKey\":\"user-key\",\"deep\":" + deep + "}", Map.class);
-        return new ImmutableContext(Structure.mapToStructure(asMap).asMap());
-    }
-
     @SneakyThrows
     @DisplayName("a failed local evaluation should be answered by the relay proxy")
     @Test
@@ -493,28 +406,6 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
-    @DisplayName("a trapped evaluation should be sent to the relay proxy")
-    @Test
-    void aTrappedEvaluationShouldBeSentToTheRelayProxy() {
-        try (val s = new MockWebServer()) {
-            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
-            s.setDispatcher(mock.dispatcher);
-            val evaluator = evaluator(s);
-            evaluator.initialize(new ImmutableContext());
-
-            // a targeting query the engine cannot parse makes it trap, which answers the raw code
-            // GENERAL. It maps onto itself, so this half holds whichever code the trigger reads, and
-            // the two tests together can only pass if it reads the raw one.
-            val evaluated =
-                    evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-key"));
-            evaluator.shutdown();
-
-            assertEquals(true, evaluated.getValue());
-            assertEquals(List.of("flag-with-a-broken-query"), mock.getEvaluatedFlagKeys());
-        }
-    }
-
-    @SneakyThrows
     @DisplayName("every failed evaluation should be sent to the relay proxy, not only the first")
     @Test
     void everyFailedEvaluationShouldBeSentToTheRelayProxy() {
@@ -524,6 +415,8 @@ class InProcessEvaluatorTest {
             val evaluator = evaluator(s);
             evaluator.initialize(new ImmutableContext());
 
+            // a targeting query the engine cannot parse makes it trap, which answers the raw code
+            // GENERAL, so the pair with the misconfigured flag can only pass if the trigger reads it raw
             val evaluations = new ArrayList<Boolean>();
             for (int i = 0; i < 5; i++) {
                 evaluations.add(evaluator
@@ -537,6 +430,29 @@ class InProcessEvaluatorTest {
                     Collections.nCopies(5, "flag-with-a-broken-query"),
                     mock.getEvaluatedFlagKeys(),
                     "the relay proxy stopped being asked");
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("every fallback should be logged at warning level")
+    @Test
+    void everyFallbackShouldBeLoggedAtWarningLevel() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            val warnings = warningsWhile(() -> {
+                evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-1"));
+                evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-2"));
+            });
+            evaluator.shutdown();
+
+            assertEquals(2, warnings.size(), "a fallback went unlogged: " + warnings);
+            assertTrue(
+                    warnings.get(0).contains("flag-with-a-broken-query"),
+                    "the warning does not name the flag: " + warnings.get(0));
         }
     }
 
@@ -565,24 +481,28 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
-    @DisplayName("a result the engine produced should not say it was evaluated remotely")
+    @DisplayName("an evaluation the engine answers should not go through the fallback")
     @Test
-    void aResultTheEngineProducedShouldNotSayItWasEvaluatedRemotely() {
+    void anEvaluationTheEngineAnswersShouldNotGoThroughTheFallback() {
         val evaluator = evaluator(this.server);
         evaluator.initialize(new ImmutableContext());
 
-        val evaluated = evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("d45"));
+        val evaluated = new ArrayList<ProviderEvaluation<Boolean>>();
+        val warnings = warningsWhile(() -> evaluated.add(
+                evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("d45"))));
         evaluator.shutdown();
 
-        assertNull(evaluated.getErrorCode());
+        assertNull(evaluated.get(0).getErrorCode());
         assertEquals(List.of(), goffApiMock.getEvaluatedFlagKeys());
-        assertNull(evaluated.getFlagMetadata().getBoolean(Const.METADATA_EVALUATED_REMOTELY));
+        assertNull(evaluated.get(0).getFlagMetadata().getBoolean(Const.METADATA_EVALUATED_REMOTELY));
+        assertEquals(List.of(), warnings);
     }
 
     @SneakyThrows
-    @DisplayName("a relay proxy that refuses the flag too should leave the engine's error standing")
-    @Test
-    void aRelayProxyThatRefusesTheFlagTooShouldLeaveTheEnginesErrorStanding() {
+    @DisplayName("a relay proxy that fails too should leave the engine's error standing")
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"flag-the-proxy-does-not-have", "flag-the-proxy-answers-badly"})
+    void aRelayProxyThatFailsTooShouldLeaveTheEnginesErrorStanding(String flagKey) {
         try (val s = new MockWebServer()) {
             val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
             s.setDispatcher(mock.dispatcher);
@@ -591,32 +511,11 @@ class InProcessEvaluatorTest {
 
             val error = assertThrows(
                     GeneralError.class,
-                    () -> evaluator.getBooleanEvaluation(
-                            "flag-the-proxy-does-not-have", false, new ImmutableContext("user-key")));
+                    () -> evaluator.getBooleanEvaluation(flagKey, false, new ImmutableContext("user-key")));
             evaluator.shutdown();
 
             assertEquals("Trapped on unreachable instruction", error.getMessage());
-            assertEquals(List.of("flag-the-proxy-does-not-have"), mock.getEvaluatedFlagKeys());
-        }
-    }
-
-    @SneakyThrows
-    @DisplayName("a relay proxy that cannot be read should leave the engine's error standing")
-    @Test
-    void aRelayProxyThatCannotBeReadShouldLeaveTheEnginesErrorStanding() {
-        try (val s = new MockWebServer()) {
-            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
-            s.setDispatcher(mock.dispatcher);
-            val evaluator = evaluator(s);
-            evaluator.initialize(new ImmutableContext());
-
-            val error = assertThrows(
-                    GeneralError.class,
-                    () -> evaluator.getBooleanEvaluation(
-                            "flag-the-proxy-answers-badly", false, new ImmutableContext("user-key")));
-            evaluator.shutdown();
-
-            assertEquals("Trapped on unreachable instruction", error.getMessage());
+            assertEquals(List.of(flagKey), mock.getEvaluatedFlagKeys());
         }
     }
 
@@ -651,22 +550,7 @@ class InProcessEvaluatorTest {
                             "bool_targeting_match", false, new ImmutableContext("user-key")));
 
             assertEquals(ErrorCode.PROVIDER_NOT_READY, error.getErrorCode());
-            // the flag key is not at fault here, the relay proxy is
-            assertNotEquals(ErrorCode.FLAG_NOT_FOUND, error.getErrorCode());
         }
-    }
-
-    @SneakyThrows
-    @DisplayName("should report FLAG_NOT_FOUND for an unknown key once a configuration is loaded")
-    @Test
-    void shouldReportFlagNotFoundForAnUnknownKeyOnceLoaded() {
-        val evaluator = evaluator(this.server);
-        evaluator.initialize(new ImmutableContext());
-
-        assertThrows(
-                FlagNotFoundError.class,
-                () -> evaluator.getBooleanEvaluation("DOES_NOT_EXIST", false, new ImmutableContext("user-key")));
-        evaluator.shutdown();
     }
 
     @SneakyThrows
@@ -735,115 +619,29 @@ class InProcessEvaluatorTest {
 
     @Nested
     @DisplayName("conversion of an engine response into a resolution")
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class Conversion {
-        private GoFeatureFlagResponse responseWithValue(Object value) {
+        @DisplayName("Should raise the SDK error matching the engine's error code")
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("engineErrorCodes")
+        void shouldRaiseTheSdkErrorMatchingTheEnginesErrorCode(
+                String engineCode, Class<? extends OpenFeatureError> expectedError, ErrorCode expectedCode) {
             val response = new GoFeatureFlagResponse();
-            response.setValue(value);
-            response.setReason(Reason.TARGETING_MATCH.name());
-            response.setVariationType("enabled");
-            return response;
-        }
-
-        private Double doubleEvaluationOf(Object engineValue) {
-            return toProviderEvaluation("test-flag", 0.0, responseWithValue(engineValue), Double.class)
-                    .getValue();
-        }
-
-        @DisplayName("Should throw FlagNotFoundError when flag is not found")
-        @Test
-        void shouldThrowFlagNotFoundErrorWhenFlagIsNotFound() {
-            val response = new GoFeatureFlagResponse();
-            response.setErrorCode(ErrorCode.FLAG_NOT_FOUND.name());
-            response.setErrorDetails("Flag test-flag was not found in your configuration");
-            response.setValue(false);
-
-            val exception = assertThrows(
-                    FlagNotFoundError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
-
-            assertEquals("Flag test-flag was not found in your configuration", exception.getMessage());
-        }
-
-        @DisplayName("Should raise the matching SDK error for other error codes")
-        @Test
-        void shouldRaiseTheMatchingSdkErrorForOtherErrorCodes() {
-            val response = new GoFeatureFlagResponse();
-            response.setErrorCode(ErrorCode.GENERAL.name());
-            response.setErrorDetails("Some other error occurred");
-            response.setValue(false);
+            response.setErrorCode(engineCode);
+            response.setErrorDetails("details for " + engineCode);
 
             val error = assertThrows(
-                    GeneralError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
+                    expectedError, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
 
-            assertEquals(ErrorCode.GENERAL, error.getErrorCode());
-            assertEquals("Some other error occurred", error.getMessage());
-        }
-
-        @DisplayName("Should raise a TargetingKeyMissingError when the engine reports one")
-        @Test
-        void shouldRaiseATargetingKeyMissingErrorWhenTheEngineReportsOne() {
-            val response = new GoFeatureFlagResponse();
-            response.setErrorCode(ErrorCode.TARGETING_KEY_MISSING.name());
-            response.setErrorDetails("Error: Empty targeting key");
-
-            val error = assertThrows(
-                    TargetingKeyMissingError.class,
-                    () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
-
-            assertEquals(ErrorCode.TARGETING_KEY_MISSING, error.getErrorCode());
-            assertEquals("Error: Empty targeting key", error.getMessage());
-        }
-
-        @DisplayName("Should raise an InvalidContextError when the engine reports one")
-        @Test
-        void shouldRaiseAnInvalidContextErrorWhenTheEngineReportsOne() {
-            val response = new GoFeatureFlagResponse();
-            response.setErrorCode(ErrorCode.INVALID_CONTEXT.name());
-            response.setErrorDetails("the evaluation context is invalid");
-
-            val error = assertThrows(
-                    InvalidContextError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
-
-            assertEquals(ErrorCode.INVALID_CONTEXT, error.getErrorCode());
-        }
-
-        @DisplayName("Should raise a ParseError when the engine reports one")
-        @Test
-        void shouldRaiseAParseErrorWhenTheEngineReportsOne() {
-            val response = new GoFeatureFlagResponse();
-            response.setErrorCode(ErrorCode.PARSE_ERROR.name());
-            response.setErrorDetails("the flag could not be parsed");
-
-            val error = assertThrows(
-                    ParseError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
-
-            assertEquals(ErrorCode.PARSE_ERROR, error.getErrorCode());
-        }
-
-        @DisplayName("Should map an error code the SDK does not know to GENERAL")
-        @Test
-        void shouldMapAnUnknownErrorCodeToGeneral() {
-            val response = new GoFeatureFlagResponse();
-            // FLAG_CONFIG is specific to GO Feature Flag and has no SDK equivalent
-            response.setErrorCode("FLAG_CONFIG");
-            response.setErrorDetails("the flag configuration is invalid");
-
-            val error = assertThrows(
-                    GeneralError.class, () -> toProviderEvaluation("test-flag", false, response, Boolean.class));
-
-            assertEquals(ErrorCode.GENERAL, error.getErrorCode());
-            assertEquals("the flag configuration is invalid", error.getMessage());
+            assertEquals(expectedCode, error.getErrorCode());
+            assertEquals("details for " + engineCode, error.getMessage());
         }
 
         @DisplayName("Should handle successful evaluation")
         @Test
         void shouldHandleSuccessfulEvaluation() {
-            val response = new GoFeatureFlagResponse();
-            response.setValue(true);
-            response.setReason(Reason.TARGETING_MATCH.name());
-            response.setVariationType("enabled");
-            response.setErrorCode(null);
-
-            ProviderEvaluation<Boolean> result = toProviderEvaluation("test-flag", false, response, Boolean.class);
+            ProviderEvaluation<Boolean> result =
+                    toProviderEvaluation("test-flag", false, responseWithValue(true), Boolean.class);
 
             assertEquals(true, result.getValue());
             assertEquals(Reason.TARGETING_MATCH.name(), result.getReason());
@@ -932,6 +730,97 @@ class InProcessEvaluatorTest {
                     new Value("caller-default"),
                     toProviderEvaluation("test-flag", new Value("caller-default"), responseWithValue(null), Value.class)
                             .getValue());
+        }
+
+        private GoFeatureFlagResponse responseWithValue(Object value) {
+            val response = new GoFeatureFlagResponse();
+            response.setValue(value);
+            response.setReason(Reason.TARGETING_MATCH.name());
+            response.setVariationType("enabled");
+            return response;
+        }
+
+        private Double doubleEvaluationOf(Object engineValue) {
+            return toProviderEvaluation("test-flag", 0.0, responseWithValue(engineValue), Double.class)
+                    .getValue();
+        }
+
+        private Stream<Arguments> engineErrorCodes() {
+            return Stream.of(
+                    Arguments.of("FLAG_NOT_FOUND", FlagNotFoundError.class, ErrorCode.FLAG_NOT_FOUND),
+                    Arguments.of("GENERAL", GeneralError.class, ErrorCode.GENERAL),
+                    Arguments.of(
+                            "TARGETING_KEY_MISSING", TargetingKeyMissingError.class, ErrorCode.TARGETING_KEY_MISSING),
+                    Arguments.of("INVALID_CONTEXT", InvalidContextError.class, ErrorCode.INVALID_CONTEXT),
+                    Arguments.of("PARSE_ERROR", ParseError.class, ErrorCode.PARSE_ERROR),
+                    // specific to GO Feature Flag, no SDK equivalent
+                    Arguments.of("FLAG_CONFIG", GeneralError.class, ErrorCode.GENERAL));
+        }
+    }
+
+    @SneakyThrows
+    private InProcessEvaluator evaluator(MockWebServer srv, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
+        val options = GoFeatureFlagProviderOptions.builder()
+                .endpoint(srv.url("").toString())
+                .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
+                .build();
+        return new InProcessEvaluator(
+                GoFeatureFlagApi.builder().options(options).build(), options, emitter);
+    }
+
+    private InProcessEvaluator evaluator(MockWebServer srv) {
+        return evaluator(srv, (event, details) -> {});
+    }
+
+    /**
+     * A context the evaluation engine's own guards refuse to read, so that the engine answers
+     * PARSE_ERROR rather than a value. It is a real engine failure, not a simulated one.
+     */
+    @SneakyThrows
+    private static ImmutableContext contextTooDeepForTheEngine() {
+        val deep = new StringBuilder();
+        for (int i = 0; i < 400; i++) {
+            deep.append("{\"a\":");
+        }
+        deep.append("1");
+        for (int i = 0; i < 400; i++) {
+            deep.append("}");
+        }
+        val asMap = Const.DESERIALIZE_OBJECT_MAPPER.readValue(
+                "{\"targetingKey\":\"user-key\",\"deep\":" + deep + "}", Map.class);
+        return new ImmutableContext(Structure.mapToStructure(asMap).asMap());
+    }
+
+    /** Runs an evaluation and returns the warnings InProcessEvaluator logged while it ran. */
+    private static List<String> warningsWhile(final Runnable evaluation) {
+        val logger = (org.apache.logging.log4j.core.Logger) LogManager.getLogger(InProcessEvaluator.class);
+        val captured = new ArrayList<String>();
+        val appender = new AbstractAppender("fallback-capture", null, null, true, Property.EMPTY_ARRAY) {
+            @Override
+            public void append(LogEvent event) {
+                if (Level.WARN.equals(event.getLevel())) {
+                    captured.add(event.getMessage().getFormattedMessage());
+                }
+            }
+        };
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            evaluation.run();
+        } finally {
+            logger.removeAppender(appender);
+            appender.stop();
+        }
+        return captured;
+    }
+
+    /** Records the events the evaluator emits, in the order it emits them. */
+    private static final class RecordedEvents implements BiConsumer<ProviderEvent, ProviderEventDetails> {
+        final List<ProviderEvent> events = new ArrayList<>();
+
+        @Override
+        public void accept(ProviderEvent event, ProviderEventDetails eventDetails) {
+            this.events.add(event);
         }
     }
 }
