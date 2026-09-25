@@ -12,6 +12,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.EnrichEvaluationContextHook;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
+import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUtil;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
@@ -73,8 +74,8 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
                 new EventsPublisher<>(publisher, options.getFlushIntervalMs(), options.getMaxPendingEvents());
 
         val exp = new HashMap<>(options.getExporterMetadata());
-        exp.put("provider", "java");
-        exp.put("openfeature", true);
+        exp.put(Const.METADATA_PROVIDER, "java");
+        exp.put(Const.METADATA_OPENFEATURE, true);
         this.exporterMetadata = exp;
     }
 
@@ -131,7 +132,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         this.eventsPublisher.start();
         this.evaluator.initialize(evaluationContext, domain);
         this.hooks.clear();
-        this.hooks.add(new EnrichEvaluationContextHook(this.options.getExporterMetadata()));
+        this.hooks.add(new EnrichEvaluationContextHook(this.exporterMetadata));
         // In case of remote evaluation, we don't need to send the data to the collector
         // because the relay-proxy will collect events directly server side.
         if (!this.options.isDisableDataCollection() && this.options.getEvaluationType() != EvaluationType.REMOTE) {
