@@ -847,6 +847,54 @@ class GoFeatureFlagProviderTest {
             assertEquals(0, goffAPIMock.getCollectorRequestsHistory().size());
         }
 
+        @DisplayName("Should not send an evaluation event for a flag the relay proxy evaluated")
+        @SneakyThrows
+        @Test
+        void shouldNotSendAnEvaluationEventForAFlagTheRelayProxyEvaluated() {
+            try (val s = new MockWebServer()) {
+                val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+                s.setDispatcher(mock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flushIntervalMs(100L)
+                        .maxPendingEvents(1)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                client.getBooleanDetails("flag-with-a-broken-query", false, TestUtils.defaultEvaluationContext);
+                Thread.sleep(180L);
+
+                assertEquals(List.of("flag-with-a-broken-query"), mock.getEvaluatedFlagKeys());
+                assertEquals(0, mock.getCollectorRequestsHistory().size());
+            }
+        }
+
+        @DisplayName("Should send an evaluation event for a flag the engine evaluated")
+        @SneakyThrows
+        @Test
+        void shouldSendAnEvaluationEventForAFlagTheEngineEvaluated() {
+            try (val s = new MockWebServer()) {
+                val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+                s.setDispatcher(mock.dispatcher);
+                GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                        .flushIntervalMs(100L)
+                        .maxPendingEvents(1)
+                        .endpoint(s.url("").toString())
+                        .evaluationType(EvaluationType.IN_PROCESS)
+                        .build());
+                OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+                val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+                client.getBooleanDetails("healthy-flag", false, TestUtils.defaultEvaluationContext);
+                Thread.sleep(180L);
+
+                // without this the suppression above would also hold with no hook wired at all
+                assertEquals(1, mock.getCollectorRequestsHistory().size());
+            }
+        }
+
         @DisplayName("Should not send events for remote evaluation")
         @SneakyThrows
         @Test
