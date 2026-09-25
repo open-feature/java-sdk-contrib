@@ -1082,7 +1082,11 @@ class GoFeatureFlagProviderTest {
                                     "test-boolean",
                                     true,
                                     "test-string",
-                                    "testing-provider")));
+                                    "testing-provider",
+                                    "provider",
+                                    "java",
+                                    "openfeature",
+                                    true)));
             context.put("professional", true);
             context.put("labels", List.of("pro", "beta"));
 
@@ -1091,10 +1095,10 @@ class GoFeatureFlagProviderTest {
             assertEquals(want, got);
         }
 
-        @DisplayName("Should not add gofeatureflag key in exporterMetadata if the exporterMetadata is empty")
+        @DisplayName("Should add the reserved exporter metadata even if the user configured none")
         @SneakyThrows
         @Test
-        void shouldNotAddGoffeatureflagKeyInExporterMetadataIfTheExporterMetadataIsEmpty() {
+        void shouldAddTheReservedExporterMetadataEvenIfTheUserConfiguredNone() {
             GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
                     .endpoint(baseUrl.toString())
                     .evaluationType(EvaluationType.REMOTE)
@@ -1115,10 +1119,11 @@ class GoFeatureFlagProviderTest {
             context.put("age", 30);
             context.put("professional", true);
             context.put("labels", List.of("pro", "beta"));
+            context.put("gofeatureflag", Map.of("exporterMetadata", Map.of("provider", "java", "openfeature", true)));
 
             Map<String, Object> want = new HashMap<>();
             want.put("context", context);
-            assertEquals(want, got);
+            assertEquals(want, got, "a provider with no configured metadata is unattributable to an SDK");
         }
     }
 
