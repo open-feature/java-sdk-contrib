@@ -21,6 +21,8 @@
         <module-name>${groupId}.gofeatureflag</module-name>
 
         <wasm.version>0.2.4</wasm.version>
+        <!-- exclusion expression for e2e tests -->
+        <testExclusions>**/e2e/*.java</testExclusions>
     </properties>
 
     <developers>
@@ -104,6 +106,20 @@
         </dependency>
 
         <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>2.0.4</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <version>2.0.4</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-annotations</artifactId>
             <version>4.9.8</version>
@@ -143,4 +159,14 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- runs the relay proxy integration tests, they need a docker daemon -->
+            <id>e2e</id>
+            <properties>
+                <testExclusions/>
+            </properties>
+        </profile>
+    </profiles>
 </project>
