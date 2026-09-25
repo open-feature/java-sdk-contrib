@@ -102,6 +102,10 @@ public class GoffApiMock {
                 return new MockResponse().setResponseCode(403).setBody(ofrepErrorBody);
             case "404":
                 return new MockResponse().setResponseCode(404).setBody(ofrepErrorBody);
+            case "flag-the-proxy-answers-badly":
+                // an error status with no body at all: the OFREP client reads the body first, so it
+                // raises instead of returning an evaluation carrying an error code
+                return new MockResponse().setResponseCode(500);
             case "500":
                 return new MockResponse()
                         .setResponseCode(500)
@@ -151,19 +155,24 @@ public class GoffApiMock {
                 .addHeader(Const.HTTP_HEADER_ETAG, "\"unknown-response-field\"");
     }
 
+    /** a flag whose targeting query cannot be parsed, which makes the engine trap. */
+    private static final String BROKEN_QUERY_FLAG = "{\"variations\": {\"on\": true},"
+            + " \"targeting\": [{\"query\": \"((((\", \"variation\": \"on\"}],"
+            + " \"defaultRule\": {\"variation\": \"on\"}}";
+
     /**
-     * two flags the evaluation engine refuses, for the two raw error codes that differ once mapped
-     * onto the SDK enumeration: a flag with no default rule answers FLAG_CONFIG, and a flag whose
-     * targeting query cannot be parsed makes the engine trap, which answers GENERAL.
+     * flags the evaluation engine refuses. A flag with no default rule answers FLAG_CONFIG; the
+     * others make it trap, which answers GENERAL. The three trapping flags differ only in what the
+     * relay proxy then does with them: answer, refuse, or reply unreadably.
      */
     private MockResponse misconfiguredFlagsConfig() {
         return new MockResponse()
                 .setResponseCode(200)
                 .setBody("{\"flags\": {"
                         + " \"flag-without-default-rule\": {\"variations\": {\"on\": true}},"
-                        + " \"flag-with-a-broken-query\": {\"variations\": {\"on\": true},"
-                        + " \"targeting\": [{\"query\": \"((((\", \"variation\": \"on\"}],"
-                        + " \"defaultRule\": {\"variation\": \"on\"}}}}")
+                        + " \"flag-with-a-broken-query\": " + BROKEN_QUERY_FLAG + ","
+                        + " \"flag-the-proxy-does-not-have\": " + BROKEN_QUERY_FLAG + ","
+                        + " \"flag-the-proxy-answers-badly\": " + BROKEN_QUERY_FLAG + "}}")
                 .addHeader(Const.HTTP_HEADER_ETAG, "\"misconfigured-flags\"");
     }
 
