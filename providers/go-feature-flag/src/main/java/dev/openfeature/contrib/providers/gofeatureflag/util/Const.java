@@ -22,6 +22,8 @@ public class Const {
     // FLAG CONFIGURATION FIELDS
     // the only field of a flag configuration a provider may read, everything else is the engine's
     public static final String FIELD_TRACK_EVENTS = "trackEvents";
+    // FLAG METADATA KEYS
+    public static final String METADATA_EVALUATED_REMOTELY = "gofeatureflag_evaluated_remotely";
     // DEFAULT VALUES
     public static final long DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS = 2L * 60L * 1000L;
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();

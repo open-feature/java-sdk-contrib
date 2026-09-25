@@ -541,6 +541,45 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("a fallback result should say it was evaluated remotely")
+    @Test
+    void aFallbackResultShouldSayItWasEvaluatedRemotely() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            // the engine trips on the flag's broken query; the relay proxy answers it successfully
+            val evaluated =
+                    evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(true, evaluated.getFlagMetadata().getBoolean(Const.METADATA_EVALUATED_REMOTELY));
+            // the marker is added to the relay proxy's metadata, not put in place of it
+            assertEquals(true, evaluated.getFlagMetadata().getBoolean("gofeatureflag_cacheable"));
+            assertEquals(
+                    "a flag only the relay proxy can evaluate",
+                    evaluated.getFlagMetadata().getString("description"));
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a result the engine produced should not say it was evaluated remotely")
+    @Test
+    void aResultTheEngineProducedShouldNotSayItWasEvaluatedRemotely() {
+        val evaluator = evaluator(this.server);
+        evaluator.initialize(new ImmutableContext());
+
+        val evaluated = evaluator.getBooleanEvaluation("bool_targeting_match", false, new ImmutableContext("d45"));
+        evaluator.shutdown();
+
+        assertNull(evaluated.getErrorCode());
+        assertEquals(List.of(), goffApiMock.getEvaluatedFlagKeys());
+        assertNull(evaluated.getFlagMetadata().getBoolean(Const.METADATA_EVALUATED_REMOTELY));
+    }
+
+    @SneakyThrows
     @DisplayName("a relay proxy that refuses the flag too should leave the engine's error standing")
     @Test
     void aRelayProxyThatRefusesTheFlagTooShouldLeaveTheEnginesErrorStanding() {
