@@ -472,12 +472,7 @@ public class InProcessEvaluator implements IEvaluator {
                         Observable.timer(nextPollDelayMs(pollingIntervalMs), TimeUnit.MILLISECONDS, Schedulers.io()))
                 .repeat();
         Observable<FlagConfigResponse> apiCallObservable = pollObservable
-                .flatMap(tick -> Observable.fromCallable(() -> {
-                            val configuration = this.api.retrieveFlagConfiguration(
-                                    this.state.etag, options.getEvaluationFlagList());
-                            emitRefreshSuccessEvent();
-                            return configuration;
-                        })
+                .flatMap(tick -> Observable.fromCallable(this::refreshFlagConfiguration)
                         .onErrorResumeNext(e -> {
                             log.error("error while calling flag configuration API", e);
                             emitRefreshFailureEvent();
@@ -500,6 +495,17 @@ public class InProcessEvaluator implements IEvaluator {
                     }
                 },
                 throwable -> log.error("flag configuration polling has stopped and will not resume", throwable));
+    }
+
+    /**
+     * refreshFlagConfiguration fetches the flag configuration once and counts it as a successful refresh.
+     *
+     * @return the configuration, or an empty Optional when the relay proxy answered not modified
+     */
+    private Optional<FlagConfigResponse> refreshFlagConfiguration() {
+        val configuration = this.api.retrieveFlagConfiguration(this.state.etag, options.getEvaluationFlagList());
+        emitRefreshSuccessEvent();
+        return configuration;
     }
 
     /**

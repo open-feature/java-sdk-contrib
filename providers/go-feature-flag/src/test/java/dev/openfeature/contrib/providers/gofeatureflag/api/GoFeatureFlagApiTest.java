@@ -162,7 +162,7 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
-        @DisplayName("request should go to dataCollectorBaseURL when it is set")
+        @DisplayName("request should go to dataCollectorBaseUrl when it is set")
         @Test
         public void requestShouldGoToDataCollectorBaseUrlWhenItIsSet() {
             try (val collectorServer = new MockWebServer()) {
@@ -170,7 +170,7 @@ public class GoFeatureFlagApiTest {
                 collectorServer.start();
                 val options = GoFeatureFlagProviderOptions.builder()
                         .endpoint(baseUrl.toString())
-                        .dataCollectorBaseURL(
+                        .dataCollectorBaseUrl(
                                 collectorServer.url("/collector-prefix/").toString())
                         .build();
                 val api = GoFeatureFlagApi.builder().options(options).build();
@@ -185,7 +185,7 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
-        @DisplayName("the other routes should keep using the endpoint when dataCollectorBaseURL is set")
+        @DisplayName("the other routes should keep using the endpoint when dataCollectorBaseUrl is set")
         @Test
         public void theOtherRoutesShouldKeepUsingTheEndpointWhenDataCollectorBaseUrlIsSet() {
             try (val collectorServer = new MockWebServer()) {
@@ -193,7 +193,7 @@ public class GoFeatureFlagApiTest {
                 collectorServer.start();
                 val options = GoFeatureFlagProviderOptions.builder()
                         .endpoint(baseUrl.toString())
-                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
                         .build();
                 val api = GoFeatureFlagApi.builder().options(options).build();
 
@@ -204,7 +204,7 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
-        @DisplayName("dataCollectorBaseURL should carry the configured timeout")
+        @DisplayName("dataCollectorBaseUrl should carry the configured timeout")
         @Test
         public void dataCollectorBaseUrlShouldCarryTheConfiguredTimeout() {
             try (val collectorServer = new MockWebServer()) {
@@ -217,7 +217,7 @@ public class GoFeatureFlagApiTest {
                 collectorServer.start();
                 val options = GoFeatureFlagProviderOptions.builder()
                         .endpoint(baseUrl.toString())
-                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
                         .timeout(200)
                         .build();
                 val api = GoFeatureFlagApi.builder().options(options).build();
@@ -229,7 +229,7 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
-        @DisplayName("dataCollectorBaseURL should carry the api key and the timeout")
+        @DisplayName("dataCollectorBaseUrl should carry the api key and the timeout")
         @Test
         public void dataCollectorBaseUrlShouldCarryTheApiKeyAndTheTimeout() {
             try (val collectorServer = new MockWebServer()) {
@@ -238,7 +238,7 @@ public class GoFeatureFlagApiTest {
                 val apiKey = "my-api-key";
                 val options = GoFeatureFlagProviderOptions.builder()
                         .endpoint(baseUrl.toString())
-                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
                         .apiKey(apiKey)
                         .build();
                 val api = GoFeatureFlagApi.builder().options(options).build();
@@ -251,7 +251,7 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
-        @DisplayName("dataCollectorBaseURL should carry the custom headers")
+        @DisplayName("dataCollectorBaseUrl should carry the custom headers")
         @Test
         public void dataCollectorBaseUrlShouldCarryTheCustomHeaders() {
             try (val collectorServer = new MockWebServer()) {
@@ -259,7 +259,7 @@ public class GoFeatureFlagApiTest {
                 collectorServer.start();
                 val options = GoFeatureFlagProviderOptions.builder()
                         .endpoint(baseUrl.toString())
-                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
                         .customHeaders(Map.of("X-Gateway-Token", "gateway-token"))
                         .build();
                 val api = GoFeatureFlagApi.builder().options(options).build();

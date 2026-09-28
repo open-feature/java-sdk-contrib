@@ -50,8 +50,8 @@ public final class GoFeatureFlagApi {
     /** endpoint is the endpoint of the GO Feature Flag relay proxy. */
     private final URI endpoint;
 
-    /** dataCollectorBaseURL is the base of the data collector route, the endpoint unless overridden. */
-    private final URI dataCollectorBaseURL;
+    /** dataCollectorBaseUrl is the base of the data collector route, the endpoint unless overridden. */
+    private final URI dataCollectorBaseUrl;
 
     /** timeout is the timeout in milliseconds for the HTTP requests. */
     private final int timeout;
@@ -77,7 +77,7 @@ public final class GoFeatureFlagApi {
 
         try {
             this.endpoint = asBaseUri(options.getEndpoint());
-            this.dataCollectorBaseURL = asBaseUri(options.getDataCollectorBaseURL());
+            this.dataCollectorBaseUrl = asBaseUri(options.getDataCollectorBaseUrl());
         } catch (URISyntaxException e) {
             throw new InvalidEndpoint(e);
         }
@@ -153,7 +153,7 @@ public final class GoFeatureFlagApi {
     public void sendEventToDataCollector(final List<IEvent> eventsList, final Map<String, Object> exporterMetadata) {
         try {
             ExporterRequest requestBody = new ExporterRequest(eventsList, exporterMetadata);
-            URI url = route(this.dataCollectorBaseURL, Const.PATH_DATA_COLLECTOR);
+            URI url = route(this.dataCollectorBaseUrl, Const.PATH_DATA_COLLECTOR);
 
             HttpRequest request = prepareHttpRequest(url, requestBody);
 

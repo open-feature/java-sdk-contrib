@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.val;
@@ -41,12 +42,12 @@ public class GoFeatureFlagProviderOptions {
      */
     private String endpoint;
     /**
-     * (optional) dataCollectorBaseURL is the base URL used to publish the evaluation data, when the
+     * (optional) dataCollectorBaseUrl is the base URL used to publish the evaluation data, when the
      * data collector is not served by the relay proxy itself. It replaces the whole base of the
      * collector route, scheme, host, port and path prefix included, and applies to that route only:
      * the flag configuration and the evaluations keep using endpoint. Default: endpoint
      */
-    private String dataCollectorBaseURL;
+    private String dataCollectorBaseUrl;
     /**
      * (optional) timeout in millisecond we are waiting when calling the go-feature-flag relay proxy
      * API. Default: 10000 ms
@@ -61,7 +62,7 @@ public class GoFeatureFlagProviderOptions {
     private String apiKey;
     /**
      * (optional) customHeaders are extra HTTP headers added to every request the provider makes, to the
-     * relay proxy and to dataCollectorBaseURL, for deployments behind a gateway that needs its own
+     * relay proxy and to dataCollectorBaseUrl, for deployments behind a gateway that needs its own
      * authentication. A configured apiKey always wins over a custom X-API-Key. Content-Type and
      * If-None-Match are set by the provider, and they are refused here, as are the headers the Java HTTP
      * client restricts (Host, Connection, Content-Length, Expect, Upgrade). Default: none
@@ -128,8 +129,8 @@ public class GoFeatureFlagProviderOptions {
      *
      * @return the configured data collector base URL, the endpoint if none was set
      */
-    public String getDataCollectorBaseURL() {
-        return dataCollectorBaseURL == null || dataCollectorBaseURL.isEmpty() ? endpoint : dataCollectorBaseURL;
+    public String getDataCollectorBaseUrl() {
+        return dataCollectorBaseUrl == null || dataCollectorBaseUrl.isEmpty() ? endpoint : dataCollectorBaseUrl;
     }
 
     /**
@@ -156,7 +157,7 @@ public class GoFeatureFlagProviderOptions {
      * @return the configured interval, 60000 ms if none was set
      */
     public Long getFlushIntervalMs() {
-        return flushIntervalMs == null ? Const.DEFAULT_FLUSH_INTERVAL_MS : flushIntervalMs;
+        return Objects.requireNonNullElse(flushIntervalMs, Const.DEFAULT_FLUSH_INTERVAL_MS);
     }
 
     /**
@@ -165,7 +166,7 @@ public class GoFeatureFlagProviderOptions {
      * @return the configured maximum, 10000 if none was set
      */
     public Integer getMaxPendingEvents() {
-        return maxPendingEvents == null ? Const.DEFAULT_MAX_PENDING_EVENTS : maxPendingEvents;
+        return Objects.requireNonNullElse(maxPendingEvents, Const.DEFAULT_MAX_PENDING_EVENTS);
     }
 
     /**
@@ -192,9 +193,8 @@ public class GoFeatureFlagProviderOptions {
      * @return the configured interval, 120000 ms if none was set
      */
     public Long getFlagChangePollingIntervalMs() {
-        return flagChangePollingIntervalMs == null
-                ? Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS
-                : flagChangePollingIntervalMs;
+        return Objects.requireNonNullElse(
+                flagChangePollingIntervalMs, Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS);
     }
 
     /**
@@ -203,7 +203,7 @@ public class GoFeatureFlagProviderOptions {
      * @return the configured pool size, the number of available CPU cores if none was set
      */
     public Integer getWasmEvaluatorPoolSize() {
-        return wasmEvaluatorPoolSize == null ? Const.DEFAULT_WASM_EVALUATOR_POOL_SIZE : wasmEvaluatorPoolSize;
+        return Objects.requireNonNullElse(wasmEvaluatorPoolSize, Const.DEFAULT_WASM_EVALUATOR_POOL_SIZE);
     }
 
     /**
@@ -225,11 +225,11 @@ public class GoFeatureFlagProviderOptions {
             throw new InvalidEndpoint("malformed endpoint: " + endpoint);
         }
 
-        if (dataCollectorBaseURL != null && !dataCollectorBaseURL.isEmpty()) {
+        if (dataCollectorBaseUrl != null && !dataCollectorBaseUrl.isEmpty()) {
             try {
-                new URL(dataCollectorBaseURL);
+                new URL(dataCollectorBaseUrl);
             } catch (MalformedURLException e) {
-                throw new InvalidEndpoint("malformed dataCollectorBaseURL: " + dataCollectorBaseURL);
+                throw new InvalidEndpoint("malformed dataCollectorBaseUrl: " + dataCollectorBaseUrl);
             }
         }
 
