@@ -56,6 +56,9 @@ public final class GoFeatureFlagApi {
     /** timeout is the timeout in milliseconds for the HTTP requests. */
     private final int timeout;
 
+    /** customHeaders are the extra headers added to every request, before the provider's own. */
+    private final Map<String, String> customHeaders;
+
     /**
      * GoFeatureFlagController is the constructor of the controller to contact the GO Feature Flag
      * relay proxy.
@@ -70,6 +73,7 @@ public final class GoFeatureFlagApi {
         }
         options.validate();
         this.apiKey = options.getApiKey();
+        this.customHeaders = Map.copyOf(options.getCustomHeaders());
 
         try {
             this.endpoint = asBaseUri(options.getEndpoint());
@@ -261,21 +265,21 @@ public final class GoFeatureFlagApi {
      * @return HttpRequest ready to be sent
      * @throws JsonProcessingException - if an error occurred while processing the json
      */
-    private <T> HttpRequest prepareHttpRequest(final URI url, final T requestBody, final String... customHeaders)
+    private <T> HttpRequest prepareHttpRequest(final URI url, final T requestBody, final String... requestHeaders)
             throws JsonProcessingException {
         HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                 .uri(url)
                 .timeout(Duration.ofMillis(timeout))
-                .header(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(
                         Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(requestBody)));
 
-        if (customHeaders != null && customHeaders.length > 0) {
-            reqBuilder.headers(customHeaders);
+        this.customHeaders.forEach(reqBuilder::header);
+        reqBuilder.setHeader(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON);
+        for (int i = 0; i + 1 < requestHeaders.length; i += 2) {
+            reqBuilder.setHeader(requestHeaders[i], requestHeaders[i + 1]);
         }
-
         if (this.apiKey != null && !this.apiKey.isEmpty()) {
-            reqBuilder.header(Const.HTTP_HEADER_API_KEY, this.apiKey);
+            reqBuilder.setHeader(Const.HTTP_HEADER_API_KEY, this.apiKey);
         }
         return reqBuilder.build();
     }

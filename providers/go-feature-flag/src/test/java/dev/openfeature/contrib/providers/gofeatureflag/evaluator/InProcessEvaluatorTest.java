@@ -471,6 +471,33 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("a fallback request should carry the custom headers")
+    @Test
+    void aFallbackRequestShouldCarryTheCustomHeaders() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(s.url("").toString())
+                    .flagChangePollingIntervalMs(POLLING_INTERVAL_MS)
+                    .customHeaders(Map.of("X-Gateway-Token", "gateway-token"))
+                    .build();
+            val evaluator = new InProcessEvaluator(
+                    GoFeatureFlagApi.builder().options(options).build(), options, (event, details) -> {});
+            evaluator.initialize(new ImmutableContext());
+
+            evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(1, mock.getEvaluateRequestsHistory().size());
+            assertEquals(
+                    "gateway-token",
+                    mock.getEvaluateRequestsHistory().get(0).getHeader("X-Gateway-Token"),
+                    "the fallback left the gateway's headers behind");
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("a fallback request should honour the configured timeout")
     @Test
     void aFallbackRequestShouldHonourTheConfiguredTimeout() {

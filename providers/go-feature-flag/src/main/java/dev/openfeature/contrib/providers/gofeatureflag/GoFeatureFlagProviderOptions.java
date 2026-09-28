@@ -7,7 +7,9 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.http.HttpRequest;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
@@ -57,6 +59,14 @@ public class GoFeatureFlagProviderOptions {
      * Default: null
      */
     private String apiKey;
+    /**
+     * (optional) customHeaders are extra HTTP headers added to every request the provider makes, to the
+     * relay proxy and to dataCollectorBaseURL, for deployments behind a gateway that needs its own
+     * authentication. A configured apiKey always wins over a custom X-API-Key. Content-Type and
+     * If-None-Match are set by the provider, and they are refused here, as are the headers the Java HTTP
+     * client restricts (Host, Connection, Content-Length, Expect, Upgrade). Default: none
+     */
+    private Map<String, String> customHeaders;
     /**
      * (optional) interval time we publish statistics collection data to the proxy. The parameter is
      * used only if the cache is enabled, otherwise the collection of the data is done directly when
@@ -129,6 +139,15 @@ public class GoFeatureFlagProviderOptions {
      */
     public int getTimeout() {
         return timeout == 0 ? DEFAULT_TIMEOUT_MS : timeout;
+    }
+
+    /**
+     * Get the extra HTTP headers added to every request to the relay proxy.
+     *
+     * @return the configured headers, an empty map if none was set
+     */
+    public Map<String, String> getCustomHeaders() {
+        return customHeaders == null ? Collections.emptyMap() : customHeaders;
     }
 
     /**
@@ -214,6 +233,8 @@ public class GoFeatureFlagProviderOptions {
             }
         }
 
+        validateCustomHeaders(customHeaders);
+
         if (wasmEvaluatorPoolSize != null && wasmEvaluatorPoolSize < 1) {
             throw new InvalidOptions("wasmEvaluatorPoolSize must be at least 1");
         }
@@ -226,6 +247,44 @@ public class GoFeatureFlagProviderOptions {
                     throw new InvalidExporterMetadata(
                             "exporterMetadata can only contain String, Boolean, Integer or Double");
                 }
+            }
+        }
+    }
+
+    /**
+     * validateCustomHeaders rejects, at construction, a custom header the provider would otherwise
+     * send wrongly or fail on at every request. The messages name the header but never carry its
+     * value, which is typically a gateway credential.
+     */
+    private static void validateCustomHeaders(final Map<String, String> headers) throws InvalidOptions {
+        if (headers == null || headers.isEmpty()) {
+            return;
+        }
+
+        val probe = HttpRequest.newBuilder();
+        val headersSet = new HashSet<String>();
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            val name = header.getKey();
+            if (name == null) {
+                throw new InvalidOptions("customHeaders cannot contain a null header name");
+            }
+            if (Const.HTTP_HEADER_CONTENT_TYPE.equalsIgnoreCase(name)
+                    || Const.HTTP_HEADER_IF_NONE_MATCH.equalsIgnoreCase(name)) {
+                throw new InvalidOptions("custom header " + name + " is set by the provider itself");
+            }
+            try {
+                probe.header(name, "value");
+            } catch (IllegalArgumentException e) {
+                throw new InvalidOptions("invalid custom header name, " + e.getMessage());
+            }
+
+            if (header.getValue() == null) {
+                throw new InvalidOptions("null value for header: " + name);
+            }
+
+            val setSuccess = headersSet.add(name.toLowerCase());
+            if (!setSuccess) {
+                throw new InvalidOptions("more than one header configured with the name, " + name);
             }
         }
     }

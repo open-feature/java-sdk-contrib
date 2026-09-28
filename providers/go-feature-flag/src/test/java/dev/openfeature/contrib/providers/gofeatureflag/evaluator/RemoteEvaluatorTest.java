@@ -16,6 +16,7 @@ import dev.openfeature.sdk.Value;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -50,6 +51,10 @@ class RemoteEvaluatorTest {
                         .timeout(1000)
                         .build(),
                 emitter);
+    }
+
+    private RemoteEvaluator evaluator(GoFeatureFlagProviderOptions.GoFeatureFlagProviderOptionsBuilder options) {
+        return new RemoteEvaluator(options.timeout(1000).build(), (event, details) -> {});
     }
 
     private RemoteEvaluator evaluator() {
@@ -221,6 +226,32 @@ class RemoteEvaluatorTest {
 
         val request = this.server.takeRequest();
         assertEquals("my-api-key", request.getHeader(Const.HTTP_HEADER_API_KEY));
+    }
+
+    @SneakyThrows
+    @DisplayName("should send the custom headers")
+    @Test
+    void shouldSendTheCustomHeaders() {
+        evaluator(GoFeatureFlagProviderOptions.builder()
+                        .endpoint(this.server.url("").toString())
+                        .customHeaders(Map.of("X-Gateway-Token", "gateway-token")))
+                .getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
+
+        assertEquals("gateway-token", this.server.takeRequest().getHeader("X-Gateway-Token"));
+    }
+
+    @SneakyThrows
+    @DisplayName("a configured api key should win over a custom header of the same name")
+    @Test
+    void aConfiguredApiKeyShouldWinOverACustomHeaderOfTheSameName() {
+        evaluator(GoFeatureFlagProviderOptions.builder()
+                        .endpoint(this.server.url("").toString())
+                        .apiKey("my-api-key")
+                        .customHeaders(Map.of("x-api-key", "custom-key")))
+                .getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
+
+        val request = this.server.takeRequest();
+        assertEquals(List.of("my-api-key"), request.getHeaders().values(Const.HTTP_HEADER_API_KEY));
     }
 
     @SneakyThrows

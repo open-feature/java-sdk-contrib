@@ -251,6 +251,27 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("dataCollectorBaseURL should carry the custom headers")
+        @Test
+        public void dataCollectorBaseUrlShouldCarryTheCustomHeaders() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseURL(collectorServer.url("").toString())
+                        .customHeaders(Map.of("X-Gateway-Token", "gateway-token"))
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+                api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+                val request = collectorServer.takeRequest(5, TimeUnit.SECONDS);
+                assertNotNull(request, "the data collector base URL was not called");
+                assertEquals("gateway-token", request.getHeader("X-Gateway-Token"));
+            }
+        }
+
+        @SneakyThrows
         @DisplayName("request should not set an api key if empty")
         @Test
         public void requestShouldNotSetAnAPIKeyIfEmpty() {
@@ -414,6 +435,36 @@ public class GoFeatureFlagApiTest {
             val request = server.takeRequest();
             assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
             assertNull(request.getHeader("Authorization"));
+        }
+
+        @SneakyThrows
+        @DisplayName("request should carry the custom headers")
+        @Test
+        public void requestShouldCarryTheCustomHeaders() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .customHeaders(Map.of("X-Gateway-Token", "gateway-token"))
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            assertEquals("gateway-token", server.takeRequest().getHeader("X-Gateway-Token"));
+        }
+
+        @SneakyThrows
+        @DisplayName("a configured api key should win over a custom header of the same name")
+        @Test
+        public void aConfiguredApiKeyShouldWinOverACustomHeaderOfTheSameName() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .apiKey("my-api-key")
+                    .customHeaders(Map.of("x-api-key", "custom-key"))
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            val request = server.takeRequest();
+            assertEquals(List.of("my-api-key"), request.getHeaders().values(Const.HTTP_HEADER_API_KEY));
         }
 
         @SneakyThrows

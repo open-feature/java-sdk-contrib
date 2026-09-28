@@ -13,6 +13,7 @@ import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Value;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
@@ -46,8 +47,10 @@ public class RemoteEvaluator implements IEvaluator {
      */
     public RemoteEvaluator(GoFeatureFlagProviderOptions opts, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
         this.emitter = emitter;
-        val headers = ImmutableMap.<String, ImmutableList<String>>builder();
+        val headers = new HashMap<String, ImmutableList<String>>();
+        opts.getCustomHeaders().forEach((name, value) -> headers.put(name, ImmutableList.of(value)));
         if (opts.getApiKey() != null && !opts.getApiKey().isEmpty()) {
+            headers.keySet().removeIf(Const.HTTP_HEADER_API_KEY::equalsIgnoreCase);
             headers.put(Const.HTTP_HEADER_API_KEY, ImmutableList.of(opts.getApiKey()));
         }
 
@@ -55,7 +58,7 @@ public class RemoteEvaluator implements IEvaluator {
                 .baseUrl(opts.getEndpoint().replaceAll("/+$", ""))
                 .connectTimeout(Duration.ofMillis(opts.getTimeout()))
                 .requestTimeout(Duration.ofMillis(opts.getTimeout()))
-                .headers(headers.build())
+                .headers(ImmutableMap.copyOf(headers))
                 .build());
     }
 

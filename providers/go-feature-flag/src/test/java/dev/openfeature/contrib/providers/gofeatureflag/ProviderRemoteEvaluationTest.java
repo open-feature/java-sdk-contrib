@@ -12,6 +12,7 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
@@ -196,6 +197,26 @@ class ProviderRemoteEvaluationTest extends AbstractGoFeatureFlagProviderTest {
                         .build())
                 .build();
         assertEquals(want, got);
+    }
+
+    @DisplayName("Should send the custom headers with a remote evaluation")
+    @SneakyThrows
+    @Test
+    void shouldSendTheCustomHeadersWithARemoteEvaluation() {
+        GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(baseUrl.toString())
+                .evaluationType(EvaluationType.REMOTE)
+                .customHeaders(Map.of("X-Gateway-Token", "gateway-token"))
+                .build());
+        OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+        val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+        client.getBooleanDetails("bool_flag", false, TestUtils.defaultEvaluationContext);
+
+        assertEquals(
+                "gateway-token",
+                goffAPIMock.getEvaluateRequestsHistory().get(0).getHeader("X-Gateway-Token"),
+                "the provider did not hand its custom headers to the remote evaluator");
     }
 
     @DisplayName("Should resolve a valid boolean flag")
