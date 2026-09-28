@@ -7,12 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,10 @@ public final class EventsPublisher<T> {
     public final AtomicBoolean isShutdown = new AtomicBoolean(false);
     private final int maxPendingEvents;
     private final Consumer<List<T>> publisher;
-    private final Lock publishLock = new ReentrantLock();
+    /** true while a batch is being posted, so that a second publish skips rather than overlapping it. */
+    private final AtomicBoolean publishing = new AtomicBoolean(false);
+    /** true while a flush of a full buffer is queued on the scheduler and has not started yet. */
+    private final AtomicBoolean flushRequested = new AtomicBoolean(false);
 
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Lock readLock = readWriteLock.readLock();
@@ -36,7 +39,7 @@ public final class EventsPublisher<T> {
 
     private final long flushIntervalMs;
     private final List<T> eventsList;
-    private ScheduledExecutorService scheduledExecutorService;
+    private volatile ScheduledExecutorService scheduledExecutorService;
 
     /**
      * Constructor.
@@ -91,8 +94,7 @@ public final class EventsPublisher<T> {
         }
 
         if (shouldPublish) {
-            log.warn("events collection is full. Publishing before adding new events.");
-            publish();
+            requestFlush();
         }
 
         try {
@@ -103,6 +105,27 @@ public final class EventsPublisher<T> {
             }
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    /**
+     * requestFlush has the scheduler's thread publish the buffer, so the thread adding an event, often
+     * one evaluating a flag, never waits for the data collector. Requests made while one is already
+     * queued are merged into it.
+     */
+    private void requestFlush() {
+        if (!flushRequested.compareAndSet(false, true)) {
+            return;
+        }
+        log.warn("events collection is full, publishing it");
+        try {
+            scheduledExecutorService.execute(() -> {
+                flushRequested.set(false);
+                publish();
+            });
+        } catch (RejectedExecutionException e) {
+            flushRequested.set(false);
+            log.debug("the publisher is shutting down, the final drain will publish the buffer");
         }
     }
 
@@ -127,14 +150,14 @@ public final class EventsPublisher<T> {
      * @return count of publish events
      */
     public int publish() {
-        if (!publishLock.tryLock()) {
+        if (!publishing.compareAndSet(false, true)) {
             log.debug("a publish is already in progress, skipping this one");
             return 0;
         }
         try {
             return drainAndPost();
         } finally {
-            publishLock.unlock();
+            publishing.set(false);
         }
     }
 
@@ -143,7 +166,7 @@ public final class EventsPublisher<T> {
      * data collector's availability cannot hold up an evaluation. A batch that fails to publish goes
      * back to the head of the buffer, keeping the events in chronological order.
      *
-     * <p>Callers must hold {@link #publishLock}.</p>
+     * <p>Callers must have set {@link #publishing}, or have stopped the scheduler.</p>
      */
     private int drainAndPost() {
         List<T> batch;
@@ -176,18 +199,16 @@ public final class EventsPublisher<T> {
         }
     }
 
-    /** Shutdown: stop accepting events, drain what is buffered and stop the scheduler. */
+    /**
+     * Shutdown: stop accepting events, stop the scheduler, letting a publish in progress finish, then
+     * drain what is buffered.
+     */
     public synchronized void shutdown() {
         log.info("shutdown, draining remaining events");
         isShutdown.set(true);
-        publishLock.lock();
-        try {
-            drainAndPost();
-        } finally {
-            publishLock.unlock();
-        }
         if (scheduledExecutorService != null) {
             ConcurrentUtil.shutdownAndAwaitTermination(scheduledExecutorService, 10);
         }
+        drainAndPost();
     }
 }

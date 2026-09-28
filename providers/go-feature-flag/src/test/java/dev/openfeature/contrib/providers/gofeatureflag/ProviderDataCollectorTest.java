@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
@@ -21,12 +22,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 @DisplayName("Provider data collector")
 class ProviderDataCollectorTest extends AbstractGoFeatureFlagProviderTest {
-    @DisplayName("Should omit events if max pending events is reached")
+    @DisplayName("Should flush before the interval once max pending events is reached")
     @SneakyThrows
     @Test
-    void shouldCallMultipleTimeTheDataCollectorIfMaxPendingEventsIsReached() {
+    void shouldFlushBeforeTheIntervalOnceMaxPendingEventsIsReached() {
         GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
-                .flushIntervalMs(100L)
+                .flushIntervalMs(60_000L)
                 .maxPendingEvents(1)
                 .endpoint(baseUrl.toString())
                 .evaluationType(EvaluationType.IN_PROCESS)
@@ -35,8 +36,12 @@ class ProviderDataCollectorTest extends AbstractGoFeatureFlagProviderTest {
         val client = OpenFeatureAPI.getInstance().getClient(testName);
         client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
         client.getIntegerDetails("integer_key", 1000, TestUtils.defaultEvaluationContext);
-        Thread.sleep(180L);
-        assertEquals(2, goffAPIMock.getCollectorRequestsHistory().size());
+        for (int i = 0; i < 200 && goffAPIMock.getCollectorRequestsHistory().isEmpty(); i++) {
+            Thread.sleep(10L);
+        }
+        assertFalse(
+                goffAPIMock.getCollectorRequestsHistory().isEmpty(),
+                "a full buffer should be flushed without waiting for the interval");
     }
 
     @DisplayName("Should not send evaluation event if flag has tracking disabled")

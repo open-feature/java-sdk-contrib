@@ -112,6 +112,42 @@ class EventsPublisherTest {
     }
 
     @SneakyThrows
+    @DisplayName("a full buffer should be flushed off the thread adding the event")
+    @Test
+    void aFullBufferShouldBeFlushedOffTheThreadAddingTheEvent() {
+        val postingThreads = new CopyOnWriteArrayList<Thread>();
+        val posting = new CountDownLatch(1);
+        val releasePost = new CountDownLatch(1);
+        val publisher = new EventsPublisher<String>(
+                batch -> {
+                    postingThreads.add(Thread.currentThread());
+                    posting.countDown();
+                    try {
+                        releasePost.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                },
+                60_000L,
+                1);
+
+        val added = new CountDownLatch(1);
+        val evaluatingThread = new Thread(() -> {
+            publisher.add("first");
+            publisher.add("fills-the-buffer");
+            added.countDown();
+        });
+        evaluatingThread.start();
+
+        assertTrue(added.await(2, TimeUnit.SECONDS), "add() waited on the data collector");
+        assertTrue(posting.await(2, TimeUnit.SECONDS), "a full buffer should still trigger a flush");
+        assertFalse(postingThreads.contains(evaluatingThread), "the flush ran on the thread adding the event");
+
+        releasePost.countDown();
+        publisher.shutdown();
+    }
+
+    @SneakyThrows
     @DisplayName("publishing should be single flight")
     @Test
     void publishingShouldBeSingleFlight() {
@@ -195,14 +231,15 @@ class EventsPublisherTest {
         for (int i = 0; i < 40; i++) {
             publisher.add("event-" + i);
         }
+        // the flushes a full buffer triggers run on the scheduler: let them fail and re-queue first
+        Thread.sleep(FLUSH_INTERVAL_MS * 2);
 
         collectorIsDown.set(false);
-        publisher.publish();
+        publisher.shutdown();
 
         val delivered = attempts.get(attempts.size() - 1);
         assertEquals(2 * maxPendingEvents, delivered.size(), "the buffer grew past twice maxPendingEvents");
         assertEquals("event-39", delivered.get(delivered.size() - 1), "the newest event should be kept");
         assertEquals("event-32", delivered.get(0), "the oldest events should be the ones discarded");
-        publisher.shutdown();
     }
 }

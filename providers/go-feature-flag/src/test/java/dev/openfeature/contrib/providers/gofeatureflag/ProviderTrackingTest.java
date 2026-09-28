@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
@@ -122,12 +123,12 @@ class ProviderTrackingTest extends AbstractGoFeatureFlagProviderTest {
                 "a tracking event was sent although data collection is disabled");
     }
 
-    @DisplayName("Should omit events if max pending events is reached")
+    @DisplayName("Should flush before the interval once max pending events is reached")
     @SneakyThrows
     @Test
-    void shouldCallMultipleTimeTheDataCollectorIfMaxPendingEventsIsReached() {
+    void shouldFlushBeforeTheIntervalOnceMaxPendingEventsIsReached() {
         GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
-                .flushIntervalMs(100L)
+                .flushIntervalMs(60_000L)
                 .maxPendingEvents(1)
                 .endpoint(baseUrl.toString())
                 .evaluationType(EvaluationType.IN_PROCESS)
@@ -142,7 +143,11 @@ class ProviderTrackingTest extends AbstractGoFeatureFlagProviderTest {
                 "my-key",
                 TestUtils.defaultEvaluationContext,
                 new MutableTrackingEventDetails().add("revenue", 567).add("user_id", "123ABC"));
-        Thread.sleep(180L);
-        assertEquals(2, goffAPIMock.getCollectorRequestsHistory().size());
+        for (int i = 0; i < 200 && goffAPIMock.getCollectorRequestsHistory().isEmpty(); i++) {
+            Thread.sleep(10L);
+        }
+        assertFalse(
+                goffAPIMock.getCollectorRequestsHistory().isEmpty(),
+                "a full buffer should be flushed without waiting for the interval");
     }
 }
