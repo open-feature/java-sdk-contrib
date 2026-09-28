@@ -8,6 +8,7 @@ import dev.openfeature.contrib.providers.gofeatureflag.api.GoFeatureFlagApi;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
+import dev.openfeature.contrib.providers.gofeatureflag.util.JsonValueUtil;
 import dev.openfeature.contrib.providers.gofeatureflag.util.MetadataUtil;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.WasmEvaluatorPool;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.FlagContext;
@@ -412,7 +413,7 @@ public class InProcessEvaluator implements IEvaluator {
             }
             return (T) value;
         }
-        return (T) objectToValue(value);
+        return (T) objectToValue(JsonValueUtil.widenBigIntegers(value));
     }
 
     /**

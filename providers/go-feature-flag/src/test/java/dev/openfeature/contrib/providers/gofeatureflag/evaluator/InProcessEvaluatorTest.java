@@ -833,6 +833,32 @@ class InProcessEvaluatorTest {
             assertNull(result.getErrorCode());
         }
 
+        @SneakyThrows
+        @DisplayName("Should accept an object value holding an integer beyond the long range")
+        @Test
+        void shouldAcceptAnObjectValueHoldingAnIntegerBeyondTheLongRange() {
+            val response = Const.DESERIALIZE_OBJECT_MAPPER.readValue(
+                    "{\"value\":{\"limit\":10000000000000000000,\"tiers\":[{\"max\":18446744073709551616}]},"
+                            + "\"reason\":\"STATIC\",\"variationType\":\"big\"}",
+                    GoFeatureFlagResponse.class);
+
+            ProviderEvaluation<Value> result =
+                    toProviderEvaluation("test-flag", new Value("caller-default"), response, Value.class);
+
+            Structure value = result.getValue().asStructure();
+            assertEquals(1e19, value.getValue("limit").asDouble(), "a float64 the engine wrote in plain form");
+            assertEquals(
+                    18446744073709551616.0,
+                    value.getValue("tiers")
+                            .asList()
+                            .get(0)
+                            .asStructure()
+                            .getValue("max")
+                            .asDouble(),
+                    "nested values beyond the long range must be kept too");
+            assertEquals("big", result.getVariant());
+        }
+
         @DisplayName("Should keep the flag metadata when the flag is disabled")
         @Test
         void shouldKeepTheFlagMetadataWhenTheFlagIsDisabled() {
