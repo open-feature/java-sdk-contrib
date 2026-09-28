@@ -125,3 +125,8 @@ The `wasm` module is compiled into Java bytecode when the provider is built, so 
 When the provider is configured to use remote evaluation, it will call the GO Feature Flag relay-proxy for each flag evaluation.
 
 It will perform an HTTP request to the GO Feature Flag relay-proxy API with the flag name and the evaluation context for each flag evaluation.
+
+### Logging
+The provider logs through [SLF4J](https://www.slf4j.org/), so its diagnostics go wherever your SLF4J backend sends them. Every logger it uses sits under `dev.openfeature.contrib.providers.gofeatureflag`, and remote evaluation also logs under `dev.openfeature.contrib.providers.ofrep`.
+
+What the evaluation engine prints, such as the panic it reports before a trap, is logged too, at error level by `dev.openfeature.contrib.providers.gofeatureflag.wasm.EvaluationWasm`, rather than written to the process's standard streams.

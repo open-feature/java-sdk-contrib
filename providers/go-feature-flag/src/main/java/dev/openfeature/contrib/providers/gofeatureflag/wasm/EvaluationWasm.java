@@ -31,6 +31,10 @@ public final class EvaluationWasm implements AutoCloseable {
     private final ExportFunction evaluate;
     private final ExportFunction malloc;
     private final ExportFunction free;
+    /** the engine writes nothing while evaluating normally, so anything it prints reports a fault. */
+    private final WasmGuestOutput stdout = new WasmGuestOutput(line -> log.error("evaluation engine: {}", line));
+
+    private final WasmGuestOutput stderr = new WasmGuestOutput(line -> log.error("evaluation engine: {}", line));
 
     /**
      * poisoned is set when the guest faults. A trap does not unwind the module's shadow-stack
@@ -48,7 +52,8 @@ public final class EvaluationWasm implements AutoCloseable {
     public EvaluationWasm() throws WasmFileNotFound {
         this.wasi = WasiPreview1.builder()
                 .withOptions(WasiOptions.builder()
-                        .inheritSystem()
+                        .withStdout(this.stdout)
+                        .withStderr(this.stderr)
                         .withThrowOnExit0(false)
                         .build())
                 .build();
@@ -72,6 +77,8 @@ public final class EvaluationWasm implements AutoCloseable {
     @Override
     public void close() {
         this.wasi.close();
+        this.stdout.close();
+        this.stderr.close();
     }
 
     /**

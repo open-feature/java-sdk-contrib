@@ -18,12 +18,21 @@ import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.FlagContext;
 import dev.openfeature.contrib.providers.gofeatureflag.wasm.bean.WasmInput;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -164,6 +173,45 @@ class WasmEvaluatorPoolTest {
                 .evalContext(Const.DESERIALIZE_OBJECT_MAPPER.readValue("{\"targetingKey\":\"k\"}", java.util.Map.class))
                 .flagContext(FlagContext.builder().defaultSdkValue(false).build())
                 .build();
+    }
+
+    @SneakyThrows
+    @DisplayName("a guest's panic should reach the provider's log, not the process's standard streams")
+    @Test
+    void aGuestsPanicShouldReachTheProvidersLogNotTheProcessStandardStreams() {
+        val logger = (org.apache.logging.log4j.core.Logger) LogManager.getLogger(EvaluationWasm.class);
+        val logged = new CopyOnWriteArrayList<String>();
+        val appender = new AbstractAppender("guest-output-capture", null, null, true, Property.EMPTY_ARRAY) {
+            @Override
+            public void append(LogEvent event) {
+                if (Level.ERROR.equals(event.getLevel())) {
+                    logged.add(event.getMessage().getFormattedMessage());
+                }
+            }
+        };
+        val processStreams = new ByteArrayOutputStream();
+        val processStdout = System.out;
+        val processStderr = System.err;
+        appender.start();
+        logger.addAppender(appender);
+        System.setOut(new PrintStream(processStreams, true, StandardCharsets.UTF_8));
+        System.setErr(new PrintStream(processStreams, true, StandardCharsets.UTF_8));
+        try (val instance = new EvaluationWasm()) {
+            instance.preWarmWasm();
+            instance.evaluate(trappingInput());
+        } finally {
+            System.setOut(processStdout);
+            System.setErr(processStderr);
+            logger.removeAppender(appender);
+            appender.stop();
+        }
+
+        assertTrue(
+                logged.stream().anyMatch(line -> line.contains("panic: runtime error")),
+                "the engine's panic did not reach the log as an error: " + logged);
+        assertFalse(
+                processStreams.toString(StandardCharsets.UTF_8).contains("panic"),
+                "the engine still writes to the process's standard streams");
     }
 
     @SneakyThrows
