@@ -69,9 +69,8 @@ public class GoFeatureFlagProviderOptions {
      */
     private Map<String, String> customHeaders;
     /**
-     * (optional) interval time we publish statistics collection data to the proxy. The parameter is
-     * used only if the cache is enabled, otherwise the collection of the data is done directly when
-     * calling the evaluation API. default: 60000 ms (1 minute)
+     * (optional) interval time in millisecond we publish the collected evaluation and tracking events
+     * to the data collector. default: 60000 ms (1 minute)
      */
     private Long flushIntervalMs;
     /**
@@ -80,8 +79,8 @@ public class GoFeatureFlagProviderOptions {
      */
     private Integer maxPendingEvents;
     /**
-     * (optional) disableDataCollection set to true if you don't want to collect the usage of flags
-     * retrieved in the cache. default: false
+     * (optional) disableDataCollection set to true if you don't want to send the evaluation and
+     * tracking events to the data collector. default: false
      */
     private boolean disableDataCollection;
 
@@ -152,7 +151,7 @@ public class GoFeatureFlagProviderOptions {
     }
 
     /**
-     * Get the interval time we publish statistics collection data to the proxy.
+     * Get the interval time we publish the collected events to the data collector.
      *
      * @return the configured interval, 60000 ms if none was set
      */
