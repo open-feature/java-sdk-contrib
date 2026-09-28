@@ -654,6 +654,32 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("an enrichment-only change should be announced as a configuration change")
+    @Test
+    void anEnrichmentOnlyChangeShouldBeAnnouncedAsAConfigurationChange() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.ENRICHMENT_CHANGES_AFTER_INIT).dispatcher);
+            val changes = new ArrayList<ProviderEventDetails>();
+            val evaluator = evaluator(s, (event, details) -> {
+                if (event == ProviderEvent.PROVIDER_CONFIGURATION_CHANGED) {
+                    changes.add(details);
+                }
+            });
+
+            evaluator.initialize(new ImmutableContext());
+            val before = evaluator.getBooleanEvaluation("TEST", false, new ImmutableContext("user-key"));
+            Thread.sleep(POLLING_INTERVAL_MS * 4);
+            val after = evaluator.getBooleanEvaluation("TEST", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(false, before.getValue());
+            assertEquals(true, after.getValue(), "the new enrichment should reach the engine");
+            assertEquals(1, changes.size(), "the evaluations changed, but no configuration change was announced");
+            assertEquals(List.of("TEST"), changes.get(0).getFlagsChanged());
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("should report PROVIDER_NOT_READY before any configuration is loaded")
     @Test
     void shouldReportProviderNotReadyBeforeAnyConfigurationIsLoaded() {

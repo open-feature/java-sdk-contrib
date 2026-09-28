@@ -295,6 +295,17 @@ public class GoffApiMock {
                 configLocation =
                         configurationCallCount % 2 == 0 ? "valid-all-types-config-change.json" : "valid-all-types.json";
                 break;
+            case ENRICHMENT_CHANGES_AFTER_INIT:
+                // the flags never change, only the enrichment the engine evaluates them with
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("{\"flags\": {\"TEST\": {\"variations\": {\"on\": true, \"off\": false},"
+                                + " \"targeting\": [{\"query\": \"env eq \\\"staging\\\"\", \"variation\": \"on\"}],"
+                                + " \"defaultRule\": {\"variation\": \"off\"}}},"
+                                + " \"evaluationContextEnrichment\": {\"env\": \""
+                                + (configurationCallCount > 1 ? "staging" : "production") + "\"}}")
+                        .addHeader(
+                                Const.HTTP_HEADER_ETAG, "\"enrichment-" + Math.min(configurationCallCount, 2) + "\"");
             case SIMPLE_CONFIG:
                 configLocation = "valid-flag-config.json";
                 break;
@@ -407,5 +418,6 @@ public class GoffApiMock {
         SCHEDULED_ROLLOUT_FLAG_CONFIG,
         EMPTY_FLAG_CONFIG,
         MISCONFIGURED_FLAGS,
+        ENRICHMENT_CHANGES_AFTER_INIT,
     }
 }

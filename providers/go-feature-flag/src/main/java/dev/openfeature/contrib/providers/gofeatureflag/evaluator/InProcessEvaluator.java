@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -598,7 +599,10 @@ public class InProcessEvaluator implements IEvaluator {
             return;
         }
 
-        val flagChanges = findFlagConfigurationChanges(current.flags, response.getFlags());
+        val flagChanges =
+                enrichmentChanged(current.evaluationContextEnrichment, response.getEvaluationContextEnrichment())
+                        ? allFlagKeys(current.flags, response.getFlags())
+                        : findFlagConfigurationChanges(current.flags, response.getFlags());
         this.state = new EvaluatorState(
                 response.getFlags(),
                 response.getEvaluationContextEnrichment(),
@@ -616,6 +620,35 @@ public class InProcessEvaluator implements IEvaluator {
                 .message("flag configuration has changed")
                 .build();
         this.emitter.accept(ProviderEvent.PROVIDER_CONFIGURATION_CHANGED, changeDetails);
+    }
+
+    /**
+     * enrichmentChanged reports whether the evaluation context enrichment differs between two
+     * configurations. A null enrichment is the same as an empty one.
+     *
+     * @param original - enrichment currently in use
+     * @param updated  - enrichment of the new configuration
+     * @return true if the enrichment has changed
+     */
+    private static boolean enrichmentChanged(final Map<String, Object> original, final Map<String, Object> updated) {
+        return !Optional.ofNullable(original)
+                .orElse(Collections.emptyMap())
+                .equals(Optional.ofNullable(updated).orElse(Collections.emptyMap()));
+    }
+
+    /**
+     * allFlagKeys lists every flag of either configuration: a new enrichment can change the result of
+     * any of them.
+     *
+     * @param originalFlags - list of original flags
+     * @param newFlags      - list of new flags
+     * @return the keys of every flag in either configuration
+     */
+    private static List<String> allFlagKeys(
+            final Map<String, JsonNode> originalFlags, final Map<String, JsonNode> newFlags) {
+        Set<String> keys = new LinkedHashSet<>(newFlags.keySet());
+        keys.addAll(originalFlags.keySet());
+        return new ArrayList<>(keys);
     }
 
     /**
