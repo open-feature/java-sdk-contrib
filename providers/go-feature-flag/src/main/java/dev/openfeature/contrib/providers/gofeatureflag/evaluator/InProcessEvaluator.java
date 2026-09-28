@@ -273,9 +273,10 @@ public class InProcessEvaluator implements IEvaluator {
     /**
      * evaluateRemotely asks the relay proxy about a flag the engine could not evaluate.
      *
-     * <p>An empty result means the relay proxy could not answer either, in which case the caller is
-     * owed the engine's error rather than the proxy's: the engine failing is the root cause, and the
-     * proxy merely failed to make up for it. The remote failure is logged here because it is about to
+     * <p>A TYPE_MISMATCH is kept: the relay proxy did evaluate the flag, and its value does not fit the
+     * type asked for. An empty result means the relay proxy could not answer either, in which case the
+     * caller is owed the engine's error rather than the proxy's: the engine failing is the root cause,
+     * and the proxy merely failed to make up for it. The remote failure is logged here because it is about to
      * disappear from the answer entirely.</p>
      *
      * @param key            - name of the flag
@@ -292,7 +293,7 @@ public class InProcessEvaluator implements IEvaluator {
             final RemoteResolver<T> remoteResolver) {
         try {
             val remote = remoteResolver.resolve(this.fallbackEvaluator, key, defaultValue, ctx);
-            if (remote.getErrorCode() == null) {
+            if (remote.getErrorCode() == null || remote.getErrorCode() == ErrorCode.TYPE_MISMATCH) {
                 return Optional.of(markEvaluatedRemotely(remote));
             }
             log.error(

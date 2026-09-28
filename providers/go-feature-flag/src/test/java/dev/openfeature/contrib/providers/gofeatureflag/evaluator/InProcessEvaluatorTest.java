@@ -614,6 +614,46 @@ class InProcessEvaluatorTest {
     }
 
     @SneakyThrows
+    @DisplayName("a boolean from the relay proxy should report TYPE_MISMATCH on a numeric resolver")
+    @Test
+    void aBooleanFromTheRelayProxyShouldReportTypeMismatchOnANumericResolver() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS).dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            val asInteger =
+                    evaluator.getIntegerEvaluation("flag-with-a-broken-query", 7, new ImmutableContext("user-key"));
+            val asDouble =
+                    evaluator.getDoubleEvaluation("flag-with-a-broken-query", 7.5, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(ErrorCode.TYPE_MISMATCH, asInteger.getErrorCode(), "the relay proxy served a boolean");
+            assertEquals(7, asInteger.getValue());
+            assertEquals(ErrorCode.TYPE_MISMATCH, asDouble.getErrorCode(), "the relay proxy served a boolean");
+            assertEquals(7.5, asDouble.getValue());
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a decimal from the relay proxy should report TYPE_MISMATCH on the integer resolver")
+    @Test
+    void aDecimalFromTheRelayProxyShouldReportTypeMismatchOnTheIntegerResolver() {
+        try (val s = new MockWebServer()) {
+            s.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS).dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+
+            val evaluated = evaluator.getIntegerEvaluation(
+                    "flag-the-proxy-serves-as-a-decimal", 7, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(ErrorCode.TYPE_MISMATCH, evaluated.getErrorCode(), "the relay proxy served 101.25");
+            assertEquals(7, evaluated.getValue());
+        }
+    }
+
+    @SneakyThrows
     @DisplayName("should report PROVIDER_NOT_READY before any configuration is loaded")
     @Test
     void shouldReportProviderNotReadyBeforeAnyConfigurationIsLoaded() {
