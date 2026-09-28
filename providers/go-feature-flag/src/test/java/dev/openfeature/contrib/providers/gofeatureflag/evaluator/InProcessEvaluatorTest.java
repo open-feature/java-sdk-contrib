@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -154,6 +156,20 @@ class InProcessEvaluatorTest {
             // the configuration never changes, so no validator to compare must not mean "changed"
             assertEquals(0, changeEvents.get(), "an unchanged configuration was announced as a change");
         }
+    }
+
+    @DisplayName("each poll should be spread by up to ten percent either way")
+    @Test
+    void eachPollShouldBeSpreadByUpToTenPercentEitherWay() {
+        val delays = LongStream.range(0, 1000)
+                .map(i -> InProcessEvaluator.nextPollDelayMs(1000L))
+                .boxed()
+                .collect(Collectors.toSet());
+
+        assertTrue(delays.stream().allMatch(d -> d >= 900L && d <= 1100L), "a poll strayed beyond the jitter");
+        assertTrue(
+                delays.stream().anyMatch(d -> d < 1000L) && delays.stream().anyMatch(d -> d > 1000L),
+                "a fleet restarted together would still poll in lockstep");
     }
 
     @SneakyThrows

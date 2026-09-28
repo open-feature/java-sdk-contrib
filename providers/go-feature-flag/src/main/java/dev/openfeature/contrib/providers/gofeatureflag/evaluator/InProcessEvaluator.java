@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -467,9 +468,10 @@ public class InProcessEvaluator implements IEvaluator {
                 ? options.getFlagChangePollingIntervalMs()
                 : Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS;
 
-        Observable<Long> intervalObservable =
-                Observable.interval(pollingIntervalMs, TimeUnit.MILLISECONDS, Schedulers.io());
-        Observable<FlagConfigResponse> apiCallObservable = intervalObservable
+        Observable<Long> pollObservable = Observable.defer(() ->
+                        Observable.timer(nextPollDelayMs(pollingIntervalMs), TimeUnit.MILLISECONDS, Schedulers.io()))
+                .repeat();
+        Observable<FlagConfigResponse> apiCallObservable = pollObservable
                 .flatMap(tick -> Observable.fromCallable(() -> {
                             val configuration = this.api.retrieveFlagConfiguration(
                                     this.state.etag, options.getEvaluationFlagList());
@@ -498,6 +500,19 @@ public class InProcessEvaluator implements IEvaluator {
                     }
                 },
                 throwable -> log.error("flag configuration polling has stopped and will not resume", throwable));
+    }
+
+    /**
+     * nextPollDelayMs is the polling interval with jitter applied, so that a fleet restarted together
+     * does not poll the relay proxy in lockstep for as long as it stays up.
+     *
+     * @param pollingIntervalMs - the configured polling interval
+     * @return the interval, randomly shortened or lengthened by up to {@link Const#POLLING_JITTER_RATIO}
+     */
+    static long nextPollDelayMs(final long pollingIntervalMs) {
+        return (long) (pollingIntervalMs
+                * ThreadLocalRandom.current()
+                        .nextDouble(1 - Const.POLLING_JITTER_RATIO, 1 + Const.POLLING_JITTER_RATIO));
     }
 
     /**

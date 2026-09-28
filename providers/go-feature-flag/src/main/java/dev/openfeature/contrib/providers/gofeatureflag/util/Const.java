@@ -38,6 +38,8 @@ public class Const {
             Runtime.getRuntime().availableProcessors();
     /** consecutive failed refreshes after which the configuration is announced as stale. */
     public static final int STALE_AFTER_CONSECUTIVE_FAILURES = 3;
+    /** fraction by which each poll interval is randomly shortened or lengthened. */
+    public static final double POLLING_JITTER_RATIO = 0.1;
     // MAPPERS
     public static final ObjectMapper DESERIALIZE_OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
