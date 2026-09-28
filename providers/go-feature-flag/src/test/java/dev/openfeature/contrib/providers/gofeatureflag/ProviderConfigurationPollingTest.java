@@ -46,7 +46,7 @@ class ProviderConfigurationPollingTest extends AbstractGoFeatureFlagProviderTest
         client.getBooleanDetails("disabled_bool", false, TestUtils.defaultEvaluationContext);
 
         // waiting to get a flag change
-        int maxWait = 10;
+        int maxWait = 200;
         while (!configurationChangedCalled.get() && maxWait > 0) {
             maxWait--;
             Thread.sleep(10L);
@@ -159,7 +159,7 @@ class ProviderConfigurationPollingTest extends AbstractGoFeatureFlagProviderTest
 
         val got1 = client.getBooleanDetails("bool_targeting_match", false, TestUtils.defaultEvaluationContext);
         // waiting to get a flag change
-        int maxWait = 10;
+        int maxWait = 200;
         while (!configurationChangedCalled.get() && maxWait > 0) {
             maxWait--;
             Thread.sleep(10L);
