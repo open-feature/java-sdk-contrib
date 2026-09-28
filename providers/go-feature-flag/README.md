@@ -114,9 +114,11 @@ client.getObjectDetails("my-flag",Value.objectToValue(new MutableStructure().add
 When the provider is configured to use in process evaluation, it will fetch the flag configuration from the GO Feature Flag relay-proxy API and evaluate the flags directly in the provider.
 
 The evaluation is done inside the provider using a webassembly module that is compiled from the GO Feature Flag source code.
-The `wasm` module is used to evaluate the flags and the source code is available in the [thomaspoignant/go-feature-flag](https://github.com/thomaspoignant/go-feature-flag/tree/main/wasm) repository.
+The `wasm` module is used to evaluate the flags and the source code is available in the [thomaspoignant/go-feature-flag](https://github.com/thomaspoignant/go-feature-flag/tree/main/cmd/wasm) repository.
 
 The provider will call the GO Feature Flag relay-proxy API to fetch the flag configuration and then evaluate the flags using the `wasm` module.
+
+The `wasm` module is compiled into Java bytecode when the provider is built, so it ships as classes inside the provider jar. There is no `.wasm` file to locate at runtime, and repackaging the provider (shaded or fat jars) keeps the engine with it. The engine version is pinned by the provider release.
 
 ### Remote evaluation
 When the provider is configured to use remote evaluation, it will call the GO Feature Flag relay-proxy for each flag evaluation.
