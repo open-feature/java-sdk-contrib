@@ -52,7 +52,7 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
                 .source("INPROCESS")
                 .contextKind(EvaluationContextUtil.contextKind(ctx.getCtx()))
                 .defaultValue(false)
-                .variation(details.getVariant())
+                .variation(details.getVariant() != null ? details.getVariant() : "SdkDefault")
                 .value(details.getValue())
                 .userKey(EvaluationContextUtil.userKey(ctx.getCtx()))
                 .creationDate(System.currentTimeMillis() / 1000L)

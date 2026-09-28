@@ -1,11 +1,13 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.openfeature.contrib.providers.gofeatureflag.bean.FeatureEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
 import dev.openfeature.contrib.providers.gofeatureflag.evaluator.IEvaluator;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
@@ -19,6 +21,7 @@ import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 public class DataCollectorHookTest {
     @SneakyThrows
@@ -69,5 +72,34 @@ public class DataCollectorHookTest {
                 Map.of());
 
         verify(eventsPublisher).add(any());
+    }
+
+    @SneakyThrows
+    @Test
+    void shouldRecordSdkDefaultAsVariationWhenTheEvaluationHasNoVariant() {
+        EventsPublisher<IEvent> eventsPublisher = mock(EventsPublisher.class);
+        val evaluator = mock(IEvaluator.class);
+        when(evaluator.isFlagTrackable("flag")).thenReturn(true);
+        val hook = new DataCollectorHook(DataCollectorHookOptions.builder()
+                .eventsPublisher(eventsPublisher)
+                .evaluator(evaluator)
+                .build());
+
+        hook.after(
+                HookContext.<Boolean>from(
+                        "flag", FlagValueType.BOOLEAN, null, null, new ImmutableContext("key"), false),
+                FlagEvaluationDetails.<Boolean>builder()
+                        .flagKey("flag")
+                        .value(false)
+                        .reason(Reason.DEFAULT.name())
+                        .build(),
+                Map.of());
+
+        ArgumentCaptor<IEvent> event = ArgumentCaptor.forClass(IEvent.class);
+        verify(eventsPublisher).add(event.capture());
+        assertEquals(
+                "SdkDefault",
+                ((FeatureEvent) event.getValue()).getVariation(),
+                "variation must be the resolved variant, or SdkDefault when there is none");
     }
 }

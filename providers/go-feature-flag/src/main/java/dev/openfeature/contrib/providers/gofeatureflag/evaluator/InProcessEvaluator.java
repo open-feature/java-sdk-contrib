@@ -367,7 +367,8 @@ public class InProcessEvaluator implements IEvaluator {
         if (response.getValue() == null) {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
-                    .reason(Reason.DEFAULT.name())
+                    .reason(response.getReason())
+                    .variant(response.getVariationType())
                     .flagMetadata(MetadataUtil.convertFlagMetadata(response.getMetadata()))
                     .build();
         }

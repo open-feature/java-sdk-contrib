@@ -820,13 +820,15 @@ class InProcessEvaluatorTest {
         @Test
         void shouldReturnTheCallerDefaultAndKeepTheEngineDetailsWhenTheValueIsNull() {
             val response = responseWithValue(null);
+            response.setReason("TARGETING_MATCH_SPLIT");
+            response.setVariationType("nullVariation");
             response.setMetadata(Map.of("description", "a flag with no value"));
 
             ProviderEvaluation<Boolean> result = toProviderEvaluation("test-flag", true, response, Boolean.class);
 
             assertEquals(true, result.getValue());
-            assertEquals(Reason.DEFAULT.name(), result.getReason());
-            assertNull(result.getVariant());
+            assertEquals("TARGETING_MATCH_SPLIT", result.getReason(), "the engine reason must be passed through");
+            assertEquals("nullVariation", result.getVariant(), "the engine variant must be kept");
             assertEquals("a flag with no value", result.getFlagMetadata().getString("description"));
             assertNull(result.getErrorCode());
         }
