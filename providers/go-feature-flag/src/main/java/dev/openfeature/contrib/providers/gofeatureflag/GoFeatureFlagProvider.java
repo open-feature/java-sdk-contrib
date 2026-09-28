@@ -136,7 +136,6 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         if (!this.options.isDisableDataCollection() && this.options.getEvaluationType() != EvaluationType.REMOTE) {
             this.hooks.add(new DataCollectorHook(DataCollectorHookOptions.builder()
                     .eventsPublisher(this.eventsPublisher)
-                    .collectUnCachedEvaluation(true)
                     .evaluator(this.evaluator)
                     .build()));
         }

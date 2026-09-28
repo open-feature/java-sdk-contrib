@@ -15,11 +15,6 @@ import lombok.Getter;
 @Getter
 public class DataCollectorHookOptions {
     /**
-     * collectUnCachedEvent (optional) set to true if you want to send all events not only the cached
-     * evaluations.
-     */
-    private Boolean collectUnCachedEvaluation;
-    /**
      * eventsPublisher is the system collecting all the information to send to GO Feature Flag.
      */
     private EventsPublisher<IEvent> eventsPublisher;

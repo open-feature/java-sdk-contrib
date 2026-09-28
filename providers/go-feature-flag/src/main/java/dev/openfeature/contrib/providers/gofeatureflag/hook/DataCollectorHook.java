@@ -10,7 +10,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUti
 import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.HookContext;
-import dev.openfeature.sdk.Reason;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,8 +19,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class DataCollectorHook implements Hook<HookContext<String>> {
-    /** options contains all the options of this hook. */
-    private final DataCollectorHookOptions options;
     /** eventsPublisher is the system collecting all the information to send to GO Feature Flag. */
     private final EventsPublisher<IEvent> eventsPublisher;
     /** evaluator is the service to evaluate the flags. */
@@ -40,16 +37,12 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
         options.validate();
         eventsPublisher = options.getEventsPublisher();
         evaluator = options.getEvaluator();
-        this.options = options;
     }
 
     @Override
     public void after(HookContext ctx, FlagEvaluationDetails details, Map hints) {
         // the relay proxy evaluated this flag itself and recorded it server side as it did so
-        if (wasEvaluatedRemotely(details)
-                || !this.evaluator.isFlagTrackable(ctx.getFlagKey())
-                || (!Boolean.TRUE.equals(this.options.getCollectUnCachedEvaluation())
-                        && !Reason.CACHED.name().equals(details.getReason()))) {
+        if (wasEvaluatedRemotely(details) || !this.evaluator.isFlagTrackable(ctx.getFlagKey())) {
             return;
         }
 
