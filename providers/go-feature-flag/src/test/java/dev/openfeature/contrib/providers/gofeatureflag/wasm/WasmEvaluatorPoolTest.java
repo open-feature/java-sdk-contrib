@@ -24,6 +24,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import lombok.SneakyThrows;
@@ -329,5 +332,39 @@ class WasmEvaluatorPoolTest {
 
         assertEquals(ErrorCode.GENERAL.name(), got.getErrorCode());
         assertEquals(Reason.ERROR.name(), got.getReason());
+    }
+
+    @SneakyThrows
+    @DisplayName("closing the pool should release an evaluation waiting for an instance")
+    @Test
+    void closingThePoolShouldReleaseAnEvaluationWaitingForAnInstance() {
+        val busy = new CountDownLatch(1);
+        val release = new CountDownLatch(1);
+        val instance = mock(EvaluationWasm.class);
+        when(instance.evaluate(any())).thenAnswer(invocation -> {
+            busy.countDown();
+            release.await();
+            return new GoFeatureFlagResponse();
+        });
+        val pool = new WasmEvaluatorPool(1, new RecordingFactory(List.of(instance)));
+        val executor = Executors.newFixedThreadPool(2);
+        try {
+            val holder = executor.submit(() -> pool.evaluate(input().value));
+            busy.await();
+            // the only instance is busy, so this evaluation waits for it
+            val waiter = executor.submit(() -> pool.evaluate(input().value));
+            Thread.sleep(100L);
+
+            pool.close();
+            release.countDown();
+            holder.get(2, TimeUnit.SECONDS);
+
+            // the returning instance is closed rather than handed over, so nothing else wakes the waiter
+            val got = waiter.get(2, TimeUnit.SECONDS);
+            assertEquals(ErrorCode.GENERAL.name(), got.getErrorCode());
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
     }
 }

@@ -7,6 +7,7 @@ import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Reason;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class WasmEvaluatorPool implements AutoCloseable {
+    /** how long an evaluation waits for an instance before checking again whether the pool was closed. */
+    private static final long CLOSED_CHECK_INTERVAL_MS = 100L;
+
     private final BlockingQueue<EvaluationWasm> pool;
     private final Supplier<EvaluationWasm> instanceFactory;
 
@@ -53,18 +57,22 @@ public final class WasmEvaluatorPool implements AutoCloseable {
     /**
      * Evaluates a feature flag by borrowing one WASM instance from the pool,
      * delegating to it, and returning it when done.
-     * Blocks if all instances are busy until one becomes available.
+     * Blocks if all instances are busy until one becomes available, or until the pool is closed.
      *
      * @param wasmInput evaluation input
      * @return evaluation result
      */
     public GoFeatureFlagResponse evaluate(WasmInput wasmInput) {
-        if (closed) {
-            return errorResponse("WASM evaluator pool is closed");
-        }
-        EvaluationWasm instance;
+        EvaluationWasm instance = null;
         try {
-            instance = pool.take();
+            // close() empties the queue and nothing is offered back afterwards, so a plain take()
+            // would wait forever: waiting in slices lets a waiter notice the pool has been closed.
+            while (instance == null) {
+                if (closed) {
+                    return errorResponse("WASM evaluator pool is closed");
+                }
+                instance = pool.poll(CLOSED_CHECK_INTERVAL_MS, TimeUnit.MILLISECONDS);
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return errorResponse("WASM evaluator pool interrupted while waiting for an available instance");
