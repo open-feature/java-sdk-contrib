@@ -112,6 +112,22 @@ class RemoteEvaluatorTest {
         assertNull(got.getErrorCode());
     }
 
+    @SneakyThrows
+    @DisplayName("should evaluate after shutdown and re-init")
+    @Test
+    void shouldEvaluateAfterShutdownAndReInit() {
+        val evaluator = evaluator();
+        evaluator.initialize(new ImmutableContext());
+        evaluator.shutdown();
+        evaluator.initialize(new ImmutableContext());
+
+        val got = evaluator.getBooleanEvaluation("bool_flag", false, new ImmutableContext("user-key"));
+        evaluator.shutdown();
+
+        assertEquals(true, got.getValue());
+        assertNull(got.getErrorCode());
+    }
+
     @DisplayName("should pass the relay proxy metadata through untouched")
     @Test
     void shouldPassTheRelayProxyMetadataThrough() {

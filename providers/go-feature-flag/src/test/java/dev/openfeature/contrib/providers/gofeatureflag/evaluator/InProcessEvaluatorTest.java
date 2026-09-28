@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.TestUtils;
 import dev.openfeature.contrib.providers.gofeatureflag.api.GoFeatureFlagApi;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
@@ -678,6 +679,44 @@ class InProcessEvaluatorTest {
                 FlagNotFoundError.class,
                 () -> evaluator.getBooleanEvaluation("DOES_NOT_EXIST", false, new ImmutableContext("user-key")));
         evaluator.shutdown();
+    }
+
+    @SneakyThrows
+    @DisplayName("should evaluate a configured flag after shutdown and re-init")
+    @Test
+    void shouldEvaluateAConfiguredFlagAfterShutdownAndReInit() {
+        val evaluator = evaluator(this.server);
+        evaluator.initialize(new ImmutableContext());
+        evaluator.shutdown();
+        evaluator.initialize(new ImmutableContext());
+
+        val evaluated =
+                evaluator.getBooleanEvaluation("bool_targeting_match", false, TestUtils.defaultEvaluationContext);
+        evaluator.shutdown();
+
+        assertNull(evaluated.getErrorCode());
+        assertEquals(true, evaluated.getValue());
+    }
+
+    @SneakyThrows
+    @DisplayName("should fall back to the relay proxy after shutdown and re-init")
+    @Test
+    void shouldFallBackToTheRelayProxyAfterShutdownAndReInit() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            val evaluator = evaluator(s);
+            evaluator.initialize(new ImmutableContext());
+            evaluator.shutdown();
+            evaluator.initialize(new ImmutableContext());
+
+            val evaluated =
+                    evaluator.getBooleanEvaluation("flag-with-a-broken-query", false, new ImmutableContext("user-key"));
+            evaluator.shutdown();
+
+            assertEquals(true, evaluated.getValue());
+            assertEquals(List.of("flag-with-a-broken-query"), mock.getEvaluatedFlagKeys());
+        }
     }
 
     @SneakyThrows

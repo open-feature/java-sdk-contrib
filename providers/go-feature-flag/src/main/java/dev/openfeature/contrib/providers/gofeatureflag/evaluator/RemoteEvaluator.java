@@ -32,8 +32,12 @@ public class RemoteEvaluator implements IEvaluator {
      */
     private static final String OFREP_AUTHENTICATION_ERROR = "authentication/authorization error for flag:";
 
+    /** Options to configure the provider, kept to rebuild the OFREP provider after a shutdown. */
+    private final GoFeatureFlagProviderOptions options;
     /** OFREP provider doing the actual remote evaluation. */
-    private final OfrepProvider ofrep;
+    private volatile OfrepProvider ofrep;
+    /** true once shutdown() has stopped the OFREP provider, which cannot be restarted. */
+    private volatile boolean ofrepShutDown;
     /** Method to call to emit a provider event to the SDK. */
     private final BiConsumer<ProviderEvent, ProviderEventDetails> emitter;
     /** Guards against re-reporting the same authentication failure on every later evaluation. */
@@ -46,7 +50,18 @@ public class RemoteEvaluator implements IEvaluator {
      * @param emitter - method to call to emit a provider event to the SDK
      */
     public RemoteEvaluator(GoFeatureFlagProviderOptions opts, BiConsumer<ProviderEvent, ProviderEventDetails> emitter) {
+        this.options = opts;
         this.emitter = emitter;
+        this.ofrep = newOfrepProvider(opts);
+    }
+
+    /**
+     * newOfrepProvider builds the OFREP provider from the provider options.
+     *
+     * @param opts - options to configure the provider
+     * @return a new OFREP provider
+     */
+    private static OfrepProvider newOfrepProvider(final GoFeatureFlagProviderOptions opts) {
         val headers = new HashMap<String, ImmutableList<String>>();
         opts.getCustomHeaders().forEach((name, value) -> headers.put(name, ImmutableList.of(value)));
         if (opts.getApiKey() != null && !opts.getApiKey().isEmpty()) {
@@ -54,7 +69,7 @@ public class RemoteEvaluator implements IEvaluator {
             headers.put(Const.HTTP_HEADER_API_KEY, ImmutableList.of(opts.getApiKey()));
         }
 
-        this.ofrep = OfrepProvider.constructProvider(OfrepProviderOptions.builder()
+        return OfrepProvider.constructProvider(OfrepProviderOptions.builder()
                 .baseUrl(opts.getEndpoint().replaceAll("/+$", ""))
                 .connectTimeout(Duration.ofMillis(opts.getTimeout()))
                 .requestTimeout(Duration.ofMillis(opts.getTimeout()))
@@ -69,18 +84,31 @@ public class RemoteEvaluator implements IEvaluator {
 
     @Override
     public void initialize(final EvaluationContext ctx, final String domain) throws Exception {
-        this.authenticationFailureReported.set(false);
+        restartAfterShutdown();
         this.ofrep.initialize(ctx, domain);
     }
 
     @Override
     public void initialize(final EvaluationContext ctx) throws Exception {
-        this.authenticationFailureReported.set(false);
+        restartAfterShutdown();
         this.ofrep.initialize(ctx);
+    }
+
+    /**
+     * restartAfterShutdown prepares the evaluator for a new initialization. The OFREP provider's
+     * shutdown terminates the executor its HTTP client runs on, so a shut down one is replaced.
+     */
+    private void restartAfterShutdown() {
+        this.authenticationFailureReported.set(false);
+        if (this.ofrepShutDown) {
+            this.ofrep = newOfrepProvider(this.options);
+            this.ofrepShutDown = false;
+        }
     }
 
     @Override
     public void shutdown() {
+        this.ofrepShutDown = true;
         this.ofrep.shutdown();
     }
 

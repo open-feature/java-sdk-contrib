@@ -56,7 +56,7 @@ public class InProcessEvaluator implements IEvaluator {
     /** API to contact GO Feature Flag. */
     private final GoFeatureFlagApi api;
     /** Pool of WASM evaluation engine instances for thread-safe concurrent evaluation. */
-    private final WasmEvaluatorPool evaluationPool;
+    private volatile WasmEvaluatorPool evaluationPool;
     /** Options to configure the provider. */
     private final GoFeatureFlagProviderOptions options;
     /** Method to call to emit a provider event to the SDK. */
@@ -129,10 +129,7 @@ public class InProcessEvaluator implements IEvaluator {
         this.emitter = emitter;
         this.fallbackEvaluator = new RemoteEvaluator(options, emitter);
         this.state = EvaluatorState.notLoaded();
-        int poolSize = options.getWasmEvaluatorPoolSize() != null
-                ? options.getWasmEvaluatorPoolSize()
-                : Const.DEFAULT_WASM_EVALUATOR_POOL_SIZE;
-        this.evaluationPool = new WasmEvaluatorPool(poolSize);
+        this.evaluationPool = new WasmEvaluatorPool(options.getWasmEvaluatorPoolSize());
     }
 
     private GoFeatureFlagResponse evaluate(String key, Object defaultValue, EvaluationContext evaluationContext) {
@@ -177,6 +174,12 @@ public class InProcessEvaluator implements IEvaluator {
     public void initialize(EvaluationContext ctx) throws Exception {
         // We ensure that no polling is happening before starting the initialization.
         stopPolling();
+
+        // shutdown() closes the pool and the fallback, and the provider reuses this evaluator on re-init
+        if (this.evaluationPool.isClosed()) {
+            this.evaluationPool = new WasmEvaluatorPool(options.getWasmEvaluatorPoolSize());
+        }
+        this.fallbackEvaluator.initialize(ctx);
 
         // an empty response means the configuration has not been modified, so the state we already
         // hold is still current and must not be overwritten.

@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
@@ -18,6 +19,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @DisplayName("Provider lifecycle")
@@ -94,6 +96,26 @@ class GoFeatureFlagProviderTest extends AbstractGoFeatureFlagProviderTest {
         assertEquals(
                 List.of(EnrichEvaluationContextHook.class, DataCollectorHook.class),
                 afterSecond.stream().map(Object::getClass).collect(Collectors.toList()));
+    }
+
+    @DisplayName("Should evaluate a configured flag after shutdown and re-init")
+    @ParameterizedTest(name = "{0} evaluation")
+    @CsvSource({"IN_PROCESS, bool_targeting_match", "REMOTE, bool_flag"})
+    @SneakyThrows
+    void shouldEvaluateAConfiguredFlagAfterShutdownAndReInit(EvaluationType type, String flagKey) {
+        GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                .endpoint(baseUrl.toString())
+                .evaluationType(type)
+                .build());
+        provider.initialize(new ImmutableContext());
+        provider.shutdown();
+        provider.initialize(new ImmutableContext());
+
+        val evaluated = provider.getBooleanEvaluation(flagKey, false, TestUtils.defaultEvaluationContext);
+        provider.shutdown();
+
+        assertNull(evaluated.getErrorCode());
+        assertEquals(true, evaluated.getValue());
     }
 
     @DisplayName("Should record one evaluation once after being initialized twice")

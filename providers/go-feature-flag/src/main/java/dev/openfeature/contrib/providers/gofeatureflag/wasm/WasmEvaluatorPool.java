@@ -8,6 +8,7 @@ import dev.openfeature.sdk.Reason;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Supplier;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -20,6 +21,7 @@ public final class WasmEvaluatorPool implements AutoCloseable {
     private final BlockingQueue<EvaluationWasm> pool;
     private final Supplier<EvaluationWasm> instanceFactory;
 
+    @Getter
     private volatile boolean closed;
 
     /**
