@@ -8,6 +8,7 @@ import dev.openfeature.sdk.Reason;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -24,14 +25,16 @@ public final class WasmEvaluatorPool implements AutoCloseable {
 
     private final BlockingQueue<EvaluationWasm> pool;
     private final Supplier<EvaluationWasm> instanceFactory;
+    /** instances discarded after a fault whose replacement could not be built yet. */
+    private final AtomicInteger missing = new AtomicInteger();
 
     @Getter
     private volatile boolean closed;
 
     /**
      * Creates a pool of {@code size} independent EvaluationWasm instances.
-     * All instances are allocated eagerly so that first-call latency is
-     * absorbed in provider initialisation time.
+     * All instances are allocated and warmed up eagerly so that first-call latency is
+     * absorbed in provider initialisation time: each slot costs roughly 20 ms of warm-up.
      *
      * @param size number of WASM instances; must be >= 1
      * @throws WasmFileNotFound if the embedded WASM module cannot be loaded
@@ -72,6 +75,13 @@ public final class WasmEvaluatorPool implements AutoCloseable {
                     return errorResponse("WASM evaluator pool is closed");
                 }
                 instance = pool.poll(CLOSED_CHECK_INTERVAL_MS, TimeUnit.MILLISECONDS);
+                if (instance == null && claimMissingInstance()) {
+                    instance = rebuild();
+                    if (instance == null) {
+                        missing.incrementAndGet();
+                        return errorResponse("no WASM instance is available and none could be rebuilt");
+                    }
+                }
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -87,18 +97,17 @@ public final class WasmEvaluatorPool implements AutoCloseable {
     /**
      * returnToPool gives the instance back, replacing it first if the guest faulted while it was
      * serving. A trapped instance is permanently poisoned and must never be reused, so it is dropped
-     * and a fresh one takes its place; if the replacement cannot be built the pool simply shrinks,
-     * which is preferable to handing out a corrupted instance.
+     * and a fresh one takes its place; if the replacement cannot be built, an evaluation that finds
+     * the pool empty builds it later.
      */
     private void returnToPool(final EvaluationWasm instance) {
         EvaluationWasm toReturn = instance;
         if (instance.isPoisoned()) {
             log.warn("discarding a WASM instance whose guest faulted, and rebuilding it");
             closeQuietly(instance);
-            try {
-                toReturn = newInstance();
-            } catch (Exception e) {
-                log.error("failed to rebuild a WASM instance, the evaluation pool has shrunk", e);
+            toReturn = rebuild();
+            if (toReturn == null) {
+                missing.incrementAndGet();
                 return;
             }
         }
@@ -110,6 +119,43 @@ public final class WasmEvaluatorPool implements AutoCloseable {
             log.error("Failed to return WASM instance to pool - instance leaked, pool capacity may be compromised");
             closeQuietly(toReturn);
         }
+    }
+
+    /**
+     * rebuild builds a replacement instance. The interrupt flag is cleared while it runs, because
+     * the module checks it and would fail the build on a thread interrupted during the evaluation
+     * that poisoned the previous instance.
+     *
+     * @return the new instance, or null if it could not be built
+     */
+    private EvaluationWasm rebuild() {
+        boolean interrupted = Thread.interrupted();
+        try {
+            return newInstance();
+        } catch (Exception | Error e) {
+            log.error("failed to rebuild a WASM instance", e);
+            return null;
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * claimMissingInstance takes responsibility for rebuilding one of the missing instances.
+     *
+     * @return true if an instance is missing and this caller must rebuild it
+     */
+    private boolean claimMissingInstance() {
+        int current = missing.get();
+        while (current > 0) {
+            if (missing.compareAndSet(current, current - 1)) {
+                return true;
+            }
+            current = missing.get();
+        }
+        return false;
     }
 
     /**

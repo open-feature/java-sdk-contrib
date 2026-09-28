@@ -5,10 +5,8 @@ import com.dylibso.chicory.runtime.ExportFunction;
 import com.dylibso.chicory.runtime.ImportValues;
 import com.dylibso.chicory.runtime.Instance;
 import com.dylibso.chicory.runtime.Memory;
-import com.dylibso.chicory.runtime.WasmException;
 import com.dylibso.chicory.wasi.WasiOptions;
 import com.dylibso.chicory.wasi.WasiPreview1;
-import com.dylibso.chicory.wasm.ChicoryException;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.WasmFileNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
@@ -35,6 +33,18 @@ public final class EvaluationWasm implements AutoCloseable {
     private final WasmGuestOutput stdout = new WasmGuestOutput(line -> log.error("evaluation engine: {}", line));
 
     private final WasmGuestOutput stderr = new WasmGuestOutput(line -> log.error("evaluation engine: {}", line));
+
+    /**
+     * A complete evaluation with a targeting rule, the shape of the canonical ABI vector. The rule
+     * matters: parsing its query is the bulk of what the engine initialises lazily on first use.
+     */
+    private static final byte[] WARM_UP_INPUT = ("{\"flagKey\":\"warm-up\","
+                    + "\"flag\":{\"variations\":{\"enabled\":true,\"disabled\":false},"
+                    + "\"targeting\":[{\"query\":\"targetingKey eq \\\"warm-up\\\"\",\"variation\":\"enabled\"}],"
+                    + "\"defaultRule\":{\"variation\":\"disabled\"}},"
+                    + "\"evalContext\":{\"targetingKey\":\"warm-up\"},"
+                    + "\"flagContext\":{\"defaultSdkValue\":false}}")
+            .getBytes(StandardCharsets.UTF_8);
 
     /**
      * poisoned is set when the guest faults. A trap does not unwind the module's shadow-stack
@@ -82,17 +92,12 @@ public final class EvaluationWasm implements AutoCloseable {
     }
 
     /**
-     * preWarmWasm is a function that is called to pre-warm the WASM module
-     * It calls the malloc function to allocate memory for the WASM module
-     * and then calls the free function to free the memory.
+     * preWarmWasm runs one throwaway evaluation so that the engine's lazy initialisation, and the
+     * loading of the classes it was compiled to, happen now rather than on the first real evaluation
+     * this instance serves. The answer is discarded; a fault propagates like any other.
      */
     public void preWarmWasm() {
-        val message = "".getBytes(StandardCharsets.UTF_8);
-        Memory memory = this.instance.memory();
-        int len = message.length;
-        int ptr = (int) malloc.apply(len)[0];
-        memory.write(ptr, message);
-        this.free.apply(ptr, len);
+        evaluateRaw(WARM_UP_INPUT);
     }
 
     /**
@@ -105,7 +110,7 @@ public final class EvaluationWasm implements AutoCloseable {
         try {
             val output = evaluateRaw(Const.SERIALIZE_WASM_MAPPER.writeValueAsBytes(wasmInput));
             return Const.DESERIALIZE_OBJECT_MAPPER.readValue(output, GoFeatureFlagResponse.class);
-        } catch (Exception e) {
+        } catch (Exception | Error e) {
             return errorResponse(e);
         }
     }
@@ -128,7 +133,8 @@ public final class EvaluationWasm implements AutoCloseable {
             int valuePosition = (int) ((resultPointer[0] >>> 32) & 0xFFFFFFFFL);
             int valueSize = (int) (resultPointer[0] & 0xFFFFFFFFL);
             return memory.readString(valuePosition, valueSize);
-        } catch (ChicoryException | WasmException e) {
+        } catch (RuntimeException | Error e) {
+            // anything escaping the guest, an OutOfMemoryError from memory.grow included, aborted it mid-call
             this.poisoned = true;
             throw e;
         } finally {
@@ -148,14 +154,14 @@ public final class EvaluationWasm implements AutoCloseable {
             return;
         }
         try {
-            this.free.apply(ptr, len);
-        } catch (ChicoryException | WasmException e) {
+            this.free.apply(ptr);
+        } catch (RuntimeException | Error e) {
             this.poisoned = true;
             log.error("failed to free the WASM input buffer, the instance will be discarded", e);
         }
     }
 
-    private GoFeatureFlagResponse errorResponse(final Exception e) {
+    private GoFeatureFlagResponse errorResponse(final Throwable e) {
         val response = new GoFeatureFlagResponse();
         response.setErrorCode(ErrorCode.GENERAL.name());
         response.setReason(Reason.ERROR.name());

@@ -117,6 +117,24 @@ class WasmEvaluatorPoolTest {
     }
 
     @SneakyThrows
+    @DisplayName("the warm-up should be an evaluation the engine accepts")
+    @Test
+    void theWarmUpShouldBeAnEvaluationTheEngineAccepts() {
+        val instance = new EvaluationWasm();
+        val field = EvaluationWasm.class.getDeclaredField("WARM_UP_INPUT");
+        field.setAccessible(true);
+
+        // preWarmWasm discards the answer, so the input is replayed here to see what it was
+        instance.preWarmWasm();
+        val answer = Const.DESERIALIZE_OBJECT_MAPPER.readValue(
+                instance.evaluateRaw((byte[]) field.get(instance)), GoFeatureFlagResponse.class);
+
+        assertFalse(instance.isPoisoned());
+        assertEquals("", answer.getErrorCode(), answer.getErrorDetails());
+        assertEquals(true, answer.getValue(), "the targeting rule should match, that is what warms the rule parser");
+    }
+
+    @SneakyThrows
     @DisplayName("a real instance should not be poisoned by a successful evaluation")
     @Test
     void aRealInstanceShouldNotBePoisonedByASuccessfulEvaluation() {
@@ -274,6 +292,82 @@ class WasmEvaluatorPoolTest {
 
         // the guard is on the trap, not on freeing in general
         assertEquals(1, freeCalls.get());
+    }
+
+    @SneakyThrows
+    @DisplayName("an Error raised by the guest should poison the instance and answer GENERAL")
+    @Test
+    void anErrorRaisedByTheGuestShouldPoisonTheInstanceAndAnswerGeneral() {
+        val instance = new EvaluationWasm();
+        instance.preWarmWasm();
+        val freeCalls = countFreeCalls(instance);
+        val field = EvaluationWasm.class.getDeclaredField("evaluate");
+        field.setAccessible(true);
+        field.set(instance, (ExportFunction) args -> {
+            throw new OutOfMemoryError("Java heap space");
+        });
+
+        val got = instance.evaluate(input().value);
+
+        assertEquals(ErrorCode.GENERAL.name(), got.getErrorCode());
+        assertEquals("Java heap space", got.getErrorDetails());
+        assertTrue(instance.isPoisoned(), "the guest was aborted mid-execution, its memory cannot be trusted");
+        assertEquals(0, freeCalls.get(), "free was called on an aborted instance");
+    }
+
+    @SneakyThrows
+    @DisplayName("an instance poisoned on an interrupted thread should still be rebuilt")
+    @Test
+    void anInstancePoisonedOnAnInterruptedThreadShouldStillBeRebuilt() {
+        val interrupted = mock(EvaluationWasm.class);
+        when(interrupted.evaluate(any())).thenAnswer(invocation -> {
+            Thread.currentThread().interrupt();
+            return new GoFeatureFlagResponse();
+        });
+        when(interrupted.isPoisoned()).thenReturn(true);
+        val instances = new ArrayList<Supplier<EvaluationWasm>>(List.of(() -> interrupted, EvaluationWasm::new));
+
+        val pool = new WasmEvaluatorPool(1, () -> instances.remove(0).get());
+        val executor = Executors.newSingleThreadExecutor();
+        try {
+            val callerKeptItsInterrupt = executor.submit(() -> {
+                        pool.evaluate(input().value);
+                        return Thread.interrupted();
+                    })
+                    .get(10, TimeUnit.SECONDS);
+            val next = executor.submit(() -> pool.evaluate(input().value)).get(10, TimeUnit.SECONDS);
+
+            assertTrue(callerKeptItsInterrupt, "the caller's interrupt should be kept");
+            assertEquals(true, next.getValue(), "the rebuild failed on the interrupted thread");
+        } finally {
+            executor.shutdownNow();
+            pool.close();
+        }
+    }
+
+    @SneakyThrows
+    @DisplayName("a failed rebuild should neither escape nor leave the pool without an instance")
+    @Test
+    void aFailedRebuildShouldNeitherEscapeNorLeaveThePoolWithoutAnInstance() {
+        val trapped = instanceThatIsPoisonedAfterEvaluating(true);
+        val healthy = instanceThatIsPoisonedAfterEvaluating(false);
+        val instances = new ArrayList<Supplier<EvaluationWasm>>(List.of(
+                () -> trapped,
+                () -> {
+                    throw new OutOfMemoryError("Java heap space");
+                },
+                () -> healthy));
+        val pool = new WasmEvaluatorPool(1, () -> instances.remove(0).get());
+        val executor = Executors.newSingleThreadExecutor();
+        try {
+            pool.evaluate(input().value);
+            executor.submit(() -> pool.evaluate(input().value)).get(2, TimeUnit.SECONDS);
+
+            verify(healthy).evaluate(any());
+        } finally {
+            executor.shutdownNow();
+            pool.close();
+        }
     }
 
     @SneakyThrows
