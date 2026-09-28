@@ -33,5 +33,8 @@ public class DataCollectorHookOptions {
         if (getEventsPublisher() == null) {
             throw new InvalidOptions("No events publisher provided");
         }
+        if (getEvaluator() == null) {
+            throw new InvalidOptions("No evaluator provided");
+        }
     }
 }

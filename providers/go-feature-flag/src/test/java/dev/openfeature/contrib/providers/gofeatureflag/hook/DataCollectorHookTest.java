@@ -37,6 +37,17 @@ public class DataCollectorHookTest {
 
     @SneakyThrows
     @Test
+    void shouldErrorIfNoEvaluatorProvided() {
+        EventsPublisher<IEvent> eventsPublisher = mock(EventsPublisher.class);
+        assertThrows(
+                InvalidOptions.class,
+                () -> new DataCollectorHook(DataCollectorHookOptions.builder()
+                        .eventsPublisher(eventsPublisher)
+                        .build()));
+    }
+
+    @SneakyThrows
+    @Test
     void shouldRecordAnEvaluationThatWasNotServedFromACache() {
         EventsPublisher<IEvent> eventsPublisher = mock(EventsPublisher.class);
         val evaluator = mock(IEvaluator.class);
