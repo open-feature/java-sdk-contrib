@@ -22,6 +22,7 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.ExceptionUtils;
 import dev.openfeature.sdk.exceptions.TypeMismatchError;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -522,6 +523,7 @@ public class InProcessEvaluator implements IEvaluator {
      * @param pollingIntervalMs - the configured polling interval
      * @return the interval, randomly shortened or lengthened by up to {@link Const#POLLING_JITTER_RATIO}
      */
+    @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "the poll jitter is not security-relevant")
     static long nextPollDelayMs(final long pollingIntervalMs) {
         return (long) (pollingIntervalMs
                 * ThreadLocalRandom.current()

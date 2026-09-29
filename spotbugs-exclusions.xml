@@ -17,13 +17,6 @@
         <Bug pattern="PREDICTABLE_RANDOM" />
     </Match>
 
-    <!-- Allow predictable random for the configuration polling jitter -->
-    <Match>
-        <Class name="dev.openfeature.contrib.providers.gofeatureflag.evaluator.InProcessEvaluator" />
-        <Method name="nextPollDelayMs" />
-        <Bug pattern="PREDICTABLE_RANDOM" />
-    </Match>
-
     <!-- Suppress: EI_EXPOSE_REP2 in ModuleMachine -->
     <Match>
         <Class name="dev.openfeature.contrib.providers.gofeatureflag.wasm.ModuleMachine"/>
