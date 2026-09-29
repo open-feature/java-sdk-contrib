@@ -75,7 +75,8 @@ public class GoFeatureFlagProviderOptions {
     private Long flushIntervalMs;
     /**
      * (optional) max pending events aggregated before publishing for collection data to the proxy.
-     * When an event is added while an events collection is full, the event is omitted. default: 10000
+     * Once that many events are pending they are published without waiting for flushIntervalMs. If
+     * they cannot be published, at most twice that many are kept and the oldest are dropped. default: 10000
      */
     private Integer maxPendingEvents;
     /**
@@ -100,9 +101,9 @@ public class GoFeatureFlagProviderOptions {
     private List<String> evaluationFlagList;
 
     /**
-     * (optional) interval time we poll the proxy to check if the configuration has changed. If the
-     * cache is enabled, we will poll the relay-proxy every X milliseconds to check if the
-     * configuration has changed. default: 120000
+     * (optional) interval time in millisecond we poll the relay proxy to check if the flag
+     * configuration has changed, for in process evaluation. Each poll is randomly shortened or
+     * lengthened by up to 10%. default: 120000
      */
     private Long flagChangePollingIntervalMs;
 
