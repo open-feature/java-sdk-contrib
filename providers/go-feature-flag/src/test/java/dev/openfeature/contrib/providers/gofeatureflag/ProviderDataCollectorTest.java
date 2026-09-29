@@ -86,6 +86,32 @@ class ProviderDataCollectorTest extends AbstractGoFeatureFlagProviderTest {
         }
     }
 
+    @DisplayName("Should not send an evaluation event for a flag the relay proxy evaluated with the wrong type")
+    @SneakyThrows
+    @Test
+    void shouldNotSendAnEvaluationEventForAFlagTheRelayProxyEvaluatedWithTheWrongType() {
+        try (val s = new MockWebServer()) {
+            val mock = new GoffApiMock(GoffApiMock.MockMode.MISCONFIGURED_FLAGS);
+            s.setDispatcher(mock.dispatcher);
+            GoFeatureFlagProvider provider = new GoFeatureFlagProvider(GoFeatureFlagProviderOptions.builder()
+                    .flushIntervalMs(100L)
+                    .maxPendingEvents(1)
+                    .endpoint(s.url("").toString())
+                    .evaluationType(EvaluationType.IN_PROCESS)
+                    .build());
+            OpenFeatureAPI.getInstance().setProviderAndWait(testName, provider);
+            val client = OpenFeatureAPI.getInstance().getClient(testName);
+
+            val details = client.getIntegerDetails("flag-with-a-broken-query", 1, TestUtils.defaultEvaluationContext);
+            Thread.sleep(180L);
+
+            assertEquals(
+                    ErrorCode.TYPE_MISMATCH, details.getErrorCode(), "the evaluation did not reach the error stage");
+            assertEquals(List.of("flag-with-a-broken-query"), mock.getEvaluatedFlagKeys());
+            assertEquals(0, mock.getCollectorRequestsHistory().size());
+        }
+    }
+
     @DisplayName("Should send an evaluation event for a flag the engine evaluated")
     @SneakyThrows
     @Test

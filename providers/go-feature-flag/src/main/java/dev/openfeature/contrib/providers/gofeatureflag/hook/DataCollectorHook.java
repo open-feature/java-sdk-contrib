@@ -60,9 +60,15 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
         eventsPublisher.add(event);
     }
 
+    /**
+     * finallyAfter records a failed evaluation. It stands in for the error stage, which only sees the
+     * exception and so cannot tell that the relay proxy produced the result.
+     */
     @Override
-    public void error(HookContext ctx, Exception error, Map hints) {
-        if (!this.evaluator.isFlagTrackable(ctx.getFlagKey())) {
+    public void finallyAfter(HookContext ctx, FlagEvaluationDetails details, Map hints) {
+        if (details.getErrorCode() == null
+                || wasEvaluatedRemotely(details)
+                || !this.evaluator.isFlagTrackable(ctx.getFlagKey())) {
             return;
         }
 
@@ -82,10 +88,8 @@ public final class DataCollectorHook implements Hook<HookContext<String>> {
 
     /**
      * wasEvaluatedRemotely reports whether this result came from the relay proxy rather than the
-     * local engine.
-     *
-     * <p>Only the after stage consults it. The error stage is reached when the fallback failed as
-     * well, and a relay proxy that could not answer recorded nothing to duplicate.</p>
+     * local engine. The relay proxy recorded such a result itself, so recording it here too would
+     * count it twice.
      *
      * @param details - result the SDK is about to hand to the caller
      * @return true if the relay proxy produced this result
