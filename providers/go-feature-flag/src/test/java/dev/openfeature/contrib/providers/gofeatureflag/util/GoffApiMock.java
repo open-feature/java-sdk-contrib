@@ -358,6 +358,12 @@ public class GoffApiMock {
                         .setBody("{\"flags\": null, \"evaluationContextEnrichment\": {\"env\": \"production\"}}")
                         .addHeader(Const.HTTP_HEADER_ETAG, "\"an-advanced-etag\"")
                         .addHeader(Const.HTTP_HEADER_LAST_MODIFIED, "Wed, 21 Oct 2015 07:28:00 GMT");
+            case "trailing-tokens":
+                // a 200 whose valid, empty flag map is followed by a stray token
+                return new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("{\"flags\": {}}}")
+                        .addHeader(Const.HTTP_HEADER_ETAG, "\"an-advanced-etag\"");
             case "null-body":
                 // a 200 whose body is the JSON literal null
                 return new MockResponse()

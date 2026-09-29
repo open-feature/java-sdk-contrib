@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.providers.gofeatureflag.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
@@ -193,7 +194,12 @@ public final class GoFeatureFlagApi {
      */
     private FlagConfigResponse handleFlagConfigurationSuccess(final HttpResponse<String> response, final String body)
             throws JsonProcessingException {
-        val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
+        // without FAIL_ON_TRAILING_TOKENS, a body cut or garbled after a complete JSON value would
+        // be read as that value, and {"flags":{}}} would wipe every flag and advance the ETag.
+        final FlagConfigApiResponse goffResp = Const.DESERIALIZE_OBJECT_MAPPER
+                .readerFor(FlagConfigApiResponse.class)
+                .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                .readValue(body);
 
         // A 200 that decodes to no flag map is a failed refresh, not an empty configuration:
         // accepting it would wipe every flag and advance the ETag, making the empty state permanent.

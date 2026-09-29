@@ -578,6 +578,20 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("a 200 with trailing tokens should be a failed refresh")
+        @Test
+        public void a200WithTrailingTokensShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("trailing-tokens", Collections.emptyList()));
+        }
+
+        @SneakyThrows
         @DisplayName("a 200 whose body is the json literal null should be a failed refresh")
         @Test
         public void a200WithANullBodyShouldBeAFailedRefresh() {
