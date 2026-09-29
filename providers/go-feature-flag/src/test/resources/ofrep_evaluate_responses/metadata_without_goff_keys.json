@@ -1,0 +1,9 @@
+{
+  "key": "metadata_without_goff_keys",
+  "value": true,
+  "reason": "TARGETING_MATCH",
+  "variant": "enabled",
+  "metadata": {
+    "description": "A relay proxy that adds no gofeatureflag_ keys"
+  }
+}
