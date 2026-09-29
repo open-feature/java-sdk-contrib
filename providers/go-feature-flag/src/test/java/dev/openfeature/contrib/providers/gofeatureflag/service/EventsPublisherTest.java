@@ -242,4 +242,17 @@ class EventsPublisherTest {
         assertEquals("event-39", delivered.get(delivered.size() - 1), "the newest event should be kept");
         assertEquals("event-32", delivered.get(0), "the oldest events should be the ones discarded");
     }
+
+    @SneakyThrows
+    @DisplayName("the largest maxPendingEvents should still accept events")
+    @Test
+    void theLargestMaxPendingEventsShouldStillAcceptEvents() {
+        val published = new CopyOnWriteArrayList<String>();
+        val publisher = new EventsPublisher<String>(published::addAll, FLUSH_INTERVAL_MS, Integer.MAX_VALUE);
+
+        publisher.add("event");
+        publisher.shutdown();
+
+        assertEquals(List.of("event"), published, "twice maxPendingEvents overflowed the buffer cap");
+    }
 }

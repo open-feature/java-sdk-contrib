@@ -137,10 +137,10 @@ public final class EventsPublisher<T> {
      * <p>Callers must hold {@link #writeLock}.</p>
      */
     private void discardOverflow() {
-        int overflow = eventsList.size() - (2 * maxPendingEvents);
+        long overflow = eventsList.size() - (2L * maxPendingEvents);
         if (overflow > 0) {
             log.warn("events buffer is full, discarding the {} oldest events", overflow);
-            eventsList.subList(0, overflow).clear();
+            eventsList.subList(0, (int) overflow).clear();
         }
     }
 
