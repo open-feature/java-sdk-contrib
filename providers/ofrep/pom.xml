@@ -17,6 +17,21 @@
     <description>OFREP Provider</description>
     <url>https://openfeature.dev</url>
 
+    <properties>
+        <!-- Match any tck version locally; CI resolves it from the reactor -->
+        <tck.version>[0.1.0,)</tck.version>
+        <testcontainers.version>2.0.4</testcontainers.version>
+        <!--
+            The conformance adoption needs a Docker daemon for its Compose stack, so its package is
+            excluded from the default build exactly as providers/flagd excludes its own. The parent
+            POM feeds this property to Surefire's <excludes>; it defines no default, so a module that
+            wants the gate declares it, and one that forgets silently runs a Docker-dependent suite
+            in every job. The whole directory is named rather than a filename pattern inside one:
+            see providers/ofrep/README.md for the policy and how to run the suite.
+        -->
+        <testExclusions>**/tck/*.java</testExclusions>
+    </properties>
+
     <developers>
 		<developer>
 			<id>Rahul-Baradol</id>
@@ -81,5 +96,78 @@
             <version>4.12.0</version>
             <scope>test</scope>
         </dependency>
+
+        <!--
+            OpenFeature Provider TCK. Brings its own Gherkin, step definitions, Compose lifecycle
+            and JUnit Platform suite configuration; the one class under src/test/java/.../ofrep/tck
+            is the whole adoption. Version range so a local reactor build matches whatever is
+            checked out.
+        -->
+        <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>tck</artifactId>
+            <version>${tck.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Testcontainers, declared here rather than inherited. The TCK compiles against it for
+            ContainerizedProviderTckTest's Compose lifecycle but declares it provided/optional, so
+            that the majority of adopters - which have no backend and never load that class - do not
+            resolve it. A containerised adopter such as this one therefore brings its own, which also
+            means it chooses its own major.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <!--
+                This profile runs the Provider TCK conformance suite, and nothing else:
+
+                    mvn -Ptck -pl providers/ofrep test
+
+                Do not add `-am`: it pulls tools/tck into the reactor and runs its own suite first,
+                which puts two kinds of failure back on one signal. A one-off
+                `mvn -pl tools/tck -am -DskipTests install` is what it was there for.
+
+                It is a step of its own, not a corner of some wider end-to-end target, because of
+                what a red build says. A conformance run carries failures by design — wherever
+                OfrepTest declares a knownDeviation — so a signal shared with a suite that is
+                expected green ends with somebody silencing the informative half. See Appendix F,
+                "Running the suite in CI".
+
+                Nothing activates this profile in CI, deliberately: the suite is expected to fail
+                today and is run by hand before merge. See providers/ofrep/README.md.
+            -->
+            <id>tck</id>
+            <properties>
+                <!--
+                    Drop the tck directory from the exclusions; the include below is what selects
+                    the suite. Both halves are needed: the include alone leaves the exclusion in
+                    force and runs nothing, and dropping the exclusion alone runs this module's
+                    unit tests alongside the suite.
+                -->
+                <testExclusions></testExclusions>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/tck/*.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
