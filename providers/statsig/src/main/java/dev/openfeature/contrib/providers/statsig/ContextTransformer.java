@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.statsig;
 
-import com.statsig.sdk.StatsigUser;
+import com.statsig.StatsigUser;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
@@ -23,7 +23,7 @@ class ContextTransformer {
         if (ctx.getTargetingKey() == null) {
             throw new TargetingKeyMissingError("targeting key is required.");
         }
-        StatsigUser user = new StatsigUser(ctx.getTargetingKey());
+        StatsigUser.Builder user = new StatsigUser.Builder().setUserID(ctx.getTargetingKey());
         Map<String, String> customMap = new HashMap<>();
         ctx.asObjectMap().forEach((k, v) -> {
             switch (k) {
@@ -64,6 +64,6 @@ class ContextTransformer {
             privateAttributesStructure.asObjectMap().forEach((k, v) -> privateMap.put(k, String.valueOf(v)));
             user.setPrivateAttributes(privateMap);
         }
-        return user;
+        return user.build();
     }
 }
