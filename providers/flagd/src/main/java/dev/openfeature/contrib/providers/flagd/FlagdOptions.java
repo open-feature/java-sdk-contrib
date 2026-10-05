@@ -60,7 +60,7 @@ public class FlagdOptions {
      * Use TLS connectivity.
      */
     @Builder.Default
-    private boolean tls = Boolean.parseBoolean(fallBackToEnvOrDefault(Config.TLS_ENV_VAR_NAME, Config.DEFAULT_TLS));
+    private boolean tls = fallBackToEnvOrDefault(Config.TLS_ENV_VAR_NAME, Config.DEFAULT_TLS);
 
     /**
      * TLS certificate overriding if TLS connectivity is used.
@@ -235,8 +235,8 @@ public class FlagdOptions {
      * Particularly useful for troubleshooting network issues related to proxies or service meshes.
      */
     @Builder.Default
-    private boolean reinitializeOnError = Boolean.parseBoolean(
-            fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR));
+    private boolean reinitializeOnError =
+            fallBackToEnvOrDefault(Config.REINITIALIZE_ON_ERROR_ENV_VAR_NAME, Config.DEFAULT_REINITIALIZE_ON_ERROR);
 
     /**
      * !EXPERIMENTAL!

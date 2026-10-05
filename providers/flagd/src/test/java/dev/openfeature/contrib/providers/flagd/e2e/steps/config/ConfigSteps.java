@@ -119,7 +119,6 @@ public class ConfigSteps extends AbstractSteps {
         propertyMapper.put("resolver", "resolverType");
         propertyMapper.put("deadlineMs", "deadline");
         propertyMapper.put("keepAliveTime", "keepAlive");
-        propertyMapper.put("retryBackoffMaxMs", "keepAlive");
         propertyMapper.put("cache", "cacheType");
 
         if (propertyMapper.get(option) != null) {

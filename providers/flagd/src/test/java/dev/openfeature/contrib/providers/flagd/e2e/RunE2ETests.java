@@ -56,7 +56,7 @@ public class RunE2ETests {
     @TestFactory
     @Execution(ExecutionMode.CONCURRENT)
     Stream<DynamicNode> rpc() {
-        return resolverTests(RESOLVERS + ".rpc", "rpc", "unixsocket", "fractional-v1", "deprecated");
+        return resolverTests(RESOLVERS + ".rpc", "rpc", "unixsocket", "fractional-v1", "fractional-v3", "deprecated");
     }
 
     @TestFactory
@@ -69,7 +69,7 @@ public class RunE2ETests {
         // after the waitForInitialization deadline. Tracked in flagd issue #1584 — once
         // getMetadata() is removed, these scenarios can be re-enabled.
         return resolverTests(
-                RESOLVERS + ".inprocess", "in-process", "unixsocket", "targetURI", "fractional-v1", "deprecated");
+                RESOLVERS + ".inprocess", "in-process", "unixsocket", "targetURI", "fractional-v1", "fractional-v3", "deprecated");
     }
 
     @TestFactory
@@ -85,6 +85,7 @@ public class RunE2ETests {
                 "events",
                 "contextEnrichment",
                 "fractional-v1",
+                "fractional-v3",
                 "deprecated");
     }
 

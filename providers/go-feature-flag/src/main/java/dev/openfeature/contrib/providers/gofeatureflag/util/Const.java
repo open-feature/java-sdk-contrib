@@ -10,24 +10,43 @@ import java.time.Duration;
  */
 public class Const {
     // HTTP
-    public static final String BEARER_TOKEN = "Bearer ";
     public static final String APPLICATION_JSON = "application/json; charset=utf-8";
     public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
-    public static final String HTTP_HEADER_AUTHORIZATION = "Authorization";
+    public static final String HTTP_HEADER_API_KEY = "X-API-Key";
     public static final String HTTP_HEADER_ETAG = "ETag";
     public static final String HTTP_HEADER_IF_NONE_MATCH = "If-None-Match";
     public static final String HTTP_HEADER_LAST_MODIFIED = "Last-Modified";
+    // API ROUTES (relative to the configured endpoint, so that a path prefix on the endpoint survives)
+    public static final String PATH_FLAG_CONFIGURATION = "v1/flag/configuration";
+    public static final String PATH_DATA_COLLECTOR = "v1/data/collector";
+    // FLAG CONFIGURATION FIELDS
+    // the only field of a flag configuration a provider may read, everything else is the engine's
+    public static final String FIELD_TRACK_EVENTS = "trackEvents";
+    // FLAG METADATA KEYS
+    public static final String METADATA_EVALUATED_REMOTELY = "gofeatureflag_evaluated_remotely";
+    // EXPORTER METADATA KEYS
+    // the collector groups by provider, so the value must not change between releases
+    public static final String METADATA_PROVIDER = "provider";
+    public static final String METADATA_OPENFEATURE = "openfeature";
+    // EVENT FIELDS
+    public static final String UNDEFINED_TARGETING_KEY = "undefined-targetingKey";
     // DEFAULT VALUES
     public static final long DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS = 2L * 60L * 1000L;
     public static final long DEFAULT_FLUSH_INTERVAL_MS = Duration.ofMinutes(1).toMillis();
     public static final int DEFAULT_MAX_PENDING_EVENTS = 10000;
     public static final int DEFAULT_WASM_EVALUATOR_POOL_SIZE =
             Runtime.getRuntime().availableProcessors();
+    /** consecutive failed refreshes after which the configuration is announced as stale. */
+    public static final int STALE_AFTER_CONSECUTIVE_FAILURES = 3;
+    /** fraction by which each poll interval is randomly shortened or lengthened. */
+    public static final double POLLING_JITTER_RATIO = 0.1;
     // MAPPERS
     public static final ObjectMapper DESERIALIZE_OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     public static final ObjectMapper SERIALIZE_OBJECT_MAPPER = new ObjectMapper();
     public static final ObjectMapper SERIALIZE_WASM_MAPPER = new ObjectMapper()
-            .setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            .setDefaultPropertyInclusion(com.fasterxml.jackson.annotation.JsonInclude.Value.construct(
+                    com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL,
+                    com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS))
             .setDateFormat(new StdDateFormat().withColonInTimeZone(true));
 }

@@ -1,0 +1,7 @@
+{
+  "key": "string_key",
+  "value": "answered by the relay proxy",
+  "reason": "TARGETING_MATCH",
+  "variant": "remoteVariant",
+  "metadata": {}
+}

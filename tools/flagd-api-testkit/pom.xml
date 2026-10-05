@@ -10,13 +10,13 @@
     </parent>
     <groupId>dev.openfeature.contrib.tools</groupId>
     <artifactId>flagd-api-testkit</artifactId>
-    <version>0.2.1</version> <!--x-release-please-version -->
+    <version>0.3.0</version> <!--x-release-please-version -->
 
     <properties>
         <module-name>${groupId}.flagdapitestkit</module-name>
         <!-- Match any flagd-api version locally; CI sets exact version -->
         <flagd-api.version>[0.0.1,)</flagd-api.version>
-        <jackson-databind.version>2.22.0</jackson-databind.version>
+        <jackson-databind.version>2.22.3</jackson-databind.version>
         <assertj.version>3.27.7</assertj.version>
     </properties>
 
@@ -98,7 +98,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.6.3</version>
+                <version>3.6.4</version>
                 <executions>
                     <execution>
                         <id>update-test-harness-submodule</id>

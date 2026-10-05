@@ -1,0 +1,7 @@
+{
+  "key": "flag-the-proxy-serves-as-a-decimal",
+  "value": 101.25,
+  "reason": "TARGETING_MATCH",
+  "variant": "on",
+  "metadata": {}
+}

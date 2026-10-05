@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.2.1...dev.openfeature.contrib.providers.go-feature-flag-v2.0.0) (2026-09-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** Refactor and harden GO Feature Flag provider ([#1868](https://github.com/open-feature/java-sdk-contrib/issues/1868))
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.2 [security] ([#1873](https://github.com/open-feature/java-sdk-contrib/issues/1873)) ([6be185a](https://github.com/open-feature/java-sdk-contrib/commit/6be185a5611a322292578f52c76dd2a677291d94))
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Refactor and harden GO Feature Flag provider ([#1868](https://github.com/open-feature/java-sdk-contrib/issues/1868)) ([1e67014](https://github.com/open-feature/java-sdk-contrib/commit/1e67014da93c45ee820b4905d98782a93bb9bc4a))
+
+## [1.2.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.2.0...dev.openfeature.contrib.providers.go-feature-flag-v1.2.1) (2026-07-24)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-core to v2.22.1 [security] ([#1828](https://github.com/open-feature/java-sdk-contrib/issues/1828)) ([df7b60a](https://github.com/open-feature/java-sdk-contrib/commit/df7b60a4deed2b654cb7933c8bf5bedd1fbc5c08))
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.1 [security] ([#1823](https://github.com/open-feature/java-sdk-contrib/issues/1823)) ([4f1ae9b](https://github.com/open-feature/java-sdk-contrib/commit/4f1ae9b5ac1bba9242aa3ff2ec5c43c94f7989fe))
+
+## [1.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.2...dev.openfeature.contrib.providers.go-feature-flag-v1.2.0) (2026-07-02)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Bump WASM module to 0.2.3 ([#1820](https://github.com/open-feature/java-sdk-contrib/issues/1820)) ([03e0eeb](https://github.com/open-feature/java-sdk-contrib/commit/03e0eeb501ea41e4aa4c19029da620dd3a0c007e))
+
 ## [1.1.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.1.1...dev.openfeature.contrib.providers.go-feature-flag-v1.1.2) (2026-04-25)
 
 
