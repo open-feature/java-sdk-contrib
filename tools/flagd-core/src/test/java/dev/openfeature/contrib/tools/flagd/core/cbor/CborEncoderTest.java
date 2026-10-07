@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.math.BigInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -67,7 +68,16 @@ class CborEncoderTest {
                 vector("-100", NODES.numberNode(-100L), "3863"),
                 vector("-1000", NODES.numberNode(-1000L), "3903e7"),
                 vector("Long.MIN_VALUE", NODES.numberNode(Long.MIN_VALUE), "3b7fffffffffffffff"),
+                vector(
+                        "18446744073709551615",
+                        NODES.numberNode(new BigInteger("18446744073709551615")),
+                        "1bffffffffffffffff"),
+                vector(
+                        "-18446744073709551616",
+                        NODES.numberNode(new BigInteger("-18446744073709551616")),
+                        "3bffffffffffffffff"),
                 // beyond Appendix A: argument-length boundaries (1/2/4/8-byte selection)
+                vector("2^63", NODES.numberNode(new BigInteger("9223372036854775808")), "1b8000000000000000"),
                 vector("255", NODES.numberNode(255L), "18ff"),
                 vector("256", NODES.numberNode(256L), "190100"),
                 vector("65535", NODES.numberNode(65535L), "19ffff"),

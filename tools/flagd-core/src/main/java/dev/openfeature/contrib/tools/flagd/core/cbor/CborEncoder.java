@@ -2,6 +2,7 @@ package dev.openfeature.contrib.tools.flagd.core.cbor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -108,7 +109,9 @@ public final class CborEncoder {
         } else if (node.isTextual()) {
             encodeString(node.asText(), output);
         } else if (node.isNumber()) {
-            if (node.isIntegralNumber()) {
+            if (node.isBigInteger()) {
+                encodeBigInteger(node.bigIntegerValue(), output);
+            } else if (node.isIntegralNumber()) {
                 encodeLong(node.asLong(), output);
             } else {
                 encodeDouble(node.asDouble(), output);
@@ -132,18 +135,18 @@ public final class CborEncoder {
         }
     }
 
-    // writes a CBOR head: major type (top 3 bits) + argument (shortest length form)
+    // writes a CBOR head: major type (top 3 bits) + argument (shortest length form); argument is unsigned 64-bit
     private static void writeHead(int majorType, long argument, ByteArrayOutputStream output) {
         int initialByte = majorType << MAJOR_SHIFT;
-        if (argument < ARG_INLINE_MAX) {
+        if (Long.compareUnsigned(argument, ARG_INLINE_MAX) < 0) {
             output.write(initialByte | (int) argument);
-        } else if (argument < UINT8_LIMIT) {
+        } else if (Long.compareUnsigned(argument, UINT8_LIMIT) < 0) {
             output.write(initialByte | ARG_ONE_BYTE);
             output.write((int) argument);
-        } else if (argument < UINT16_LIMIT) {
+        } else if (Long.compareUnsigned(argument, UINT16_LIMIT) < 0) {
             output.write(initialByte | ARG_TWO_BYTES);
             writeBigEndian(argument, 2, output);
-        } else if (argument < UINT32_LIMIT) {
+        } else if (Long.compareUnsigned(argument, UINT32_LIMIT) < 0) {
             output.write(initialByte | ARG_FOUR_BYTES);
             writeBigEndian(argument, 4, output);
         } else {
@@ -157,6 +160,17 @@ public final class CborEncoder {
             writeHead(MAJOR_UNSIGNED_INT, value, output);
         } else {
             writeHead(MAJOR_NEGATIVE_INT, -1L - value, output); // negative int argument = -1 - n
+        }
+    }
+
+    // full CBOR integer range [-2^64, 2^64-1]; the low 64 bits are the unsigned argument
+    private static void encodeBigInteger(BigInteger value, ByteArrayOutputStream output) {
+        if (value.signum() >= 0 && value.bitLength() <= Long.SIZE) {
+            writeHead(MAJOR_UNSIGNED_INT, value.longValue(), output);
+        } else if (value.signum() < 0 && value.not().bitLength() <= Long.SIZE) {
+            writeHead(MAJOR_NEGATIVE_INT, value.not().longValue(), output); // not(n) == -1 - n
+        } else {
+            throw new IllegalArgumentException("Integer outside CBOR 64-bit range: " + value);
         }
     }
 
