@@ -9,6 +9,7 @@ import dev.openfeature.contrib.tools.flagd.core.cbor.CborEncoder;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +26,9 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonNodeFactory NODE_FACTORY = JsonNodeFactory.instance;
+    // exact as doubles; Long.MAX_VALUE is not (it rounds up to 2^63)
+    private static final double TWO_POW_63 = 0x1p63;
+    private static final double TWO_POW_64 = 0x1p64;
     static final int MAX_WEIGHT = Integer.MAX_VALUE;
 
     @Override
@@ -123,8 +127,9 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
     }
 
-    // normalize for hashing parity (ADR): whole doubles -> int, -0.0 -> 0, else unchanged
-    private static JsonNode normalizeNumbers(JsonNode node) {
+    // normalize for hashing parity: whole doubles in [-2^63, 2^64-1] -> int, -0.0 -> 0, else unchanged
+    @SuppressWarnings("PMD.AvoidDecimalLiteralsInBigDecimalConstructor") // always a whole where we do this
+    static JsonNode normalizeNumbers(JsonNode node) {
         if (node.isObject()) {
             ObjectNode result = NODE_FACTORY.objectNode();
             node.fields().forEachRemaining(field -> result.set(field.getKey(), normalizeNumbers(field.getValue())));
@@ -137,11 +142,14 @@ class Fractional implements PreEvaluatedArgumentsExpression {
         }
         if (node.isFloatingPointNumber()) {
             double value = node.asDouble();
-            if (!Double.isInfinite(value)
-                    && value == Math.floor(value)
-                    && value >= Long.MIN_VALUE
-                    && value <= Long.MAX_VALUE) {
-                return NODE_FACTORY.numberNode((long) value);
+            if (!Double.isInfinite(value) && value == Math.floor(value)) {
+                if (value >= Long.MIN_VALUE && value < TWO_POW_63) {
+                    return NODE_FACTORY.numberNode((long) value);
+                }
+                if (value >= TWO_POW_63 && value < TWO_POW_64) {
+                    // beyond long; unsigned 64-bit
+                    return NODE_FACTORY.numberNode(new BigDecimal(value).toBigIntegerExact());
+                }
             }
         }
         return node;
