@@ -8,8 +8,7 @@ public class InProcessTest extends AbstractResolverTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Stated rather than derived, for the reason {@link RpcTest#configuration()} gives: the
-     * class name no longer carries the provider, and a report is read away from this repository.
+     * <p>Stated rather than derived, for the reason {@link RpcTest#configuration()} gives.
      */
     @Override
     public String configuration() {
