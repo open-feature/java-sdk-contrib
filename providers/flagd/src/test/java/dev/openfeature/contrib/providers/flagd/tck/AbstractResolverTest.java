@@ -20,24 +20,15 @@ import java.util.Set;
  * remotely over gRPC, while in-process syncs the ruleset and evaluates locally. They share a backend
  * stack and differ only in resolver and port, so the modes are two small subclasses.
  *
- * <p>Each concrete subclass is its own JUnit suite and its own TCK harness; the TCK works out which
- * one is running from the JUnit test plan, so adding a mode needs no registration or build
- * configuration.
+ * <p>Three scenarios fail in both modes on flags the pinned testbed image does not serve
+ * (open-feature/flagd-testbed#392): the untagged 32-bit precision scenario, the {@code @variants}
+ * row asking for {@code large-integer-flag}'s {@code max-int32}, and the {@code @numeric-coercion}
+ * scenario "An integral float requested as an integer is coerced without loss". None is a
+ * {@link KnownDeviation} — the provider was never given the flag to get wrong.
  *
- * <p><strong>Three scenarios fail in both modes on flags the pinned testbed image does not serve</strong>
- * (open-feature/flagd-testbed#392 names them and says what each catches): the untagged 32-bit
- * precision scenario and the {@code @variants} row asking for {@code large-integer-flag}'s
- * {@code max-int32}, both answered as if the flag were absent, and the {@code @numeric-coercion}
- * scenario "An integral float requested as an integer is coerced without loss". The third is the
- * cost of declaring {@code @numeric-coercion} — see {@link #knownDeviations()}. None of the three is
- * a {@link KnownDeviation}: the provider was never given the flag to get wrong.
- *
- * <p><strong>A run occasionally carries one failure beyond those, and it is the stack's.</strong>
- * Observed in RPC mode as {@code FLAG_NOT_FOUND} on an {@code evaluation.feature} row that expected
- * no error code; the next run of the same tree was clean. That is the flagd-testbed readiness window
- * of open-feature/flagd-testbed#394, the same intermittency the OFREP adoption records, and it is
- * not covered with a sleep here either. Repeat a run before treating an extra failure as a
- * regression — anything that reproduces is one.
+ * <p>A run occasionally carries one failure beyond those, of a shape that moves between runs. That
+ * is the flagd-testbed readiness window of open-feature/flagd-testbed#394, and it is deliberately
+ * not papered over with a sleep here; repeat a run before treating an extra failure as a regression.
  */
 abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
@@ -54,32 +45,26 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      *
      * <p>Generous on purpose, and measured. flagd <em>doubles</em> this value to get its
      * initialisation deadline, and the in-process resolver must sync the entire ruleset before it
-     * reports ready. At 5000 the first two in-process scenarios failed <em>reproducibly</em> with
-     * {@code Initialization timeout exceeded; did not complete within the 10000 ms deadline} out of
-     * {@code FlagdProviderSyncResources.waitForInitialization}, on flagd-testbed v3.8.0 and v3.10.1
-     * alike; 15000 cleared that. Not a post-command settle in disguise: a pause after the control
-     * call was tried at 50ms and at 3000ms and fixed nothing, because the wait this covers is the
-     * provider's own initialisation. {@link #UNAVAILABLE_DEADLINE_MS} stays short so the promptness
-     * assertions still mean something.
+     * reports ready. At 5000 the first two in-process scenarios failed reproducibly with
+     * {@code Initialization timeout exceeded ... 10000 ms deadline} out of
+     * {@code FlagdProviderSyncResources.waitForInitialization}; 15000 cleared that. Not a
+     * post-command settle in disguise: a pause after the control call was tried at 50ms and at
+     * 3000ms and fixed nothing, because the wait this covers is the provider's own initialisation.
      *
-     * <p><strong>Not fully solved, and the bound is not the thing to keep raising.</strong> On a
-     * loaded Docker-in-WSL host the <em>first</em> scenario of {@code errors.feature} still errors
-     * in in-process mode against the doubled 30000 ms deadline, after some 53 seconds of wall clock.
-     * Measured three times in a row, and it reproduces with {@code @numeric-coercion} withheld
-     * exactly as with it declared, so it is not a consequence of what this suite declares. RPC mode
-     * never shows it. That shape is stack-side readiness rather than provider slowness — only the
-     * mode that has to receive the whole ruleset after the first {@code POST /start} is affected,
-     * which is the defect open-feature/flagd-testbed#394 exists to close. So the bound stays at
-     * 15000 and this is recorded rather than covered.
+     * <p>Raising it further is not the fix for what remains. On a loaded host the first
+     * {@code errors.feature} scenario can still error in in-process mode against the doubled
+     * deadline, and only in the mode that must receive the whole ruleset after the first
+     * {@code POST /start} — stack-side readiness, open-feature/flagd-testbed#394. So the bound stays
+     * at 15000.
      */
     private static final int CONNECTED_DEADLINE_MS = 15000;
 
     /**
      * gRPC deadline for a provider pointed at a dead port.
      *
-     * <p>Short on purpose, and deliberately not the same as {@link #CONNECTED_DEADLINE_MS}: the
+     * <p>Short on purpose, and deliberately not {@link #CONNECTED_DEADLINE_MS}: the
      * initialisation-failure scenarios assert that the failure is reported <em>promptly</em>, so a
-     * provider that takes as long to give up as it does to connect would defeat the point.
+     * provider that took as long to give up as it does to connect would defeat the point.
      */
     private static final int UNAVAILABLE_DEADLINE_MS = 1000;
 
@@ -92,9 +77,8 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Outside this module on purpose, and not the idiomatic {@code src/test/resources} path: the
-     * OFREP adoption runs against the same stack and names the same file, so there is one image tag
-     * for both rather than two that can drift. Module-relative, like any other value here.
+     * <p>Outside this module on purpose: the OFREP adoption runs against the same stack and names the
+     * same file, so there is one image tag for both rather than two that can drift.
      */
     @Override
     public File composeFile() {
@@ -127,92 +111,44 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Everything declarable except {@link Capability#REINITIALIZATION}. Each declaration below is
-     * on evidence from a run or from the provider's source, not by inheriting the "everything
+     * <p>Everything declarable except {@link Capability#REINITIALIZATION}, each declaration on
+     * evidence from a run or from the provider's source rather than inherited from the "everything
      * except" default. Measured on the pinned image, both modes: 65 scenarios, 59 passing, 2 skipped
-     * — the withheld {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot
-     * ask — and 4 failing, the one real defect plus the three testbed gaps above. The cold-start
-     * error on {@link #CONNECTED_DEADLINE_MS} did not reproduce in that run; when it appears
-     * in-process it costs one further scenario.
+     * — the withheld {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot ask
+     * — and 4 failing, the one real defect plus the three testbed gaps above. That covers
+     * {@link Capability#STANDARD_REASONS}, {@link Capability#TARGETING} and
+     * {@link Capability#DISABLED_FLAGS}, whose scenarios all pass, and
+     * {@link Capability#VARIANTS}, where seven of the eight {@code @variants} rows pass and the
+     * eighth is a testbed gap.
      *
-     * <p><strong>{@link Capability#NUMERIC_COERCION} is declared even though one of its scenarios
-     * fails</strong> — see {@link #knownDeviations()}. Evaluating {@code float-flag} (0.5) through
-     * the integer API returns {@code 0} with <em>no</em> error code rather than
-     * {@code TYPE_MISMATCH} with the code default, so the fractional part is discarded silently.
-     * Measured in both modes: of the tag's three scenarios, "An integer requested as a float is
-     * widened without loss" <em>passes</em>, which is the fact that settles the shape of the report,
-     * because a provider that performs the coercion and gets one direction wrong is not one that
-     * declines to coerce. The lossy scenario fails; the remaining lossless one fails only on the
-     * absent {@code integral-float-flag}. Both resolvers behave identically, which places the defect
-     * in the shared provider layer rather than in either transport — as does every other capability
-     * here, including the whole remaining type-mismatch matrix.
+     * <p>{@link Capability#NUMERIC_COERCION} is declared even though one of its scenarios fails.
+     * flagd <em>does</em> attempt the coercion — "An integer requested as a float is widened without
+     * loss" passes — and gets the lossy direction wrong. See {@link #knownDeviations()}.
      *
-     * <p><strong>{@link Capability#STRING_TYPING} and {@link Capability#FULLY_TYPED_VALUES} are both
-     * declared, and all four of their scenarios pass</strong> in both modes. Together they gate what
-     * specification revision {@code d47a66eb} moved out of the mandatory matrix: {@code boolean-flag}
-     * and {@code integer-flag} asked through the String accessor under the first tag, and
-     * {@code float-flag} and {@code object-flag} under both tags since {@code bda599f1} split them
-     * apart. flagd's flag definitions carry a JSON type per flag and both resolvers preserve it, so a
-     * non-string flag requested as a string is a genuine mismatch here and is reported as one —
-     * which is exactly the position these capabilities exist to distinguish from a backend that
-     * stores every value as a string.
-     *
-     * <p>flagd is the case the split was <em>not</em> written for, and declaring both is how that
-     * shows: the question {@code @fully-typed-values} asks separately — does the store record a
-     * native type for a float and for a structure — flagd answers yes to, just as it does for a
-     * boolean and an integer. A partially typed backend declares the first and withholds the second;
-     * there is nothing partial here. Declared on the run rather than on the "everything except"
-     * default, which would have swept the new tag up unexamined: the four scenarios were measured in
-     * both modes after the re-pin, and the numbers below are unchanged by the split.
+     * <p>{@link Capability#STRING_TYPING} and {@link Capability#FULLY_TYPED_VALUES} are both declared,
+     * and all four of their scenarios pass in both modes. flagd's flag definitions carry a JSON type
+     * per flag and both resolvers preserve it — for a float and a structure as much as for a boolean
+     * and an integer — so nothing about this backend is partially typed and the second tag is declared
+     * rather than withheld.
      *
      * <p>{@link Capability#LIFECYCLE} is declared because flagd reaches its backend during
-     * initialisation in both modes — an RPC round trip, or a full ruleset sync — so the lifecycle
-     * scenarios assert something real here rather than passing vacuously.
+     * initialisation in both modes — an RPC round trip, or a full ruleset sync — so its scenarios
+     * assert something real here rather than passing vacuously.
      *
-     * <p><strong>{@link Capability#REINITIALIZATION} is withheld, and that is a fact about the
-     * provider rather than a defect in it.</strong> {@code shutdown()} sets the sync resources' own
-     * {@code isShutDown} flag and never clears {@code isInitialized}
-     * (FlagdProvider.java:136-155, FlagdProviderSyncResources.java:27-28, 112-115), so a later
-     * {@code initialize()} returns at its first check without rebuilding anything
-     * (FlagdProvider.java:121-125): the resolver is shut down, the RPC channel was
-     * {@code shutdownNow()}'d, the retry scheduler is terminated and {@code errorExecutor} is a
-     * {@code final} field nothing re-creates. A shut-down flagd provider is terminally shut down.
-     * Requirement 2.5.2 permits that, so withholding the tag is the whole of what is owed — see
-     * {@link Capability#REINITIALIZATION} — and the one scenario it gates is skipped with this
-     * reason on every run.
+     * <p>{@link Capability#REINITIALIZATION} is withheld, and that is a fact about the provider rather
+     * than a defect in it. {@code shutdown()} never clears {@code isInitialized}
+     * (FlagdProvider.java:136-155, FlagdProviderSyncResources.java:27-28), so a later
+     * {@code initialize()} returns at its first check (FlagdProvider.java:121-125) without rebuilding
+     * the resolver, the {@code shutdownNow()}'d RPC channel, the terminated retry scheduler or the
+     * {@code final errorExecutor}. A shut-down flagd provider is terminally shut down.
      *
-     * <p>{@link Capability#STALE} is declared for both resolvers, and examined rather than inherited.
-     * {@code PROVIDER_STALE} is emitted from {@code FlagdProvider.onError}
-     * (FlagdProvider.java:258-264), which the shared {@code onProviderEvent} switch reaches on
-     * {@code PROVIDER_ERROR} from either resolver (FlagdProvider.java:197, 236), before the grace
-     * period turns it into {@code PROVIDER_ERROR} — so the emit sits in the provider layer and not in
-     * a transport, and "Losing the backend makes the provider stale, regaining it makes it ready
-     * again" passes in RPC mode as well as in-process.
+     * <p>{@link Capability#STALE} is declared for both resolvers: {@code PROVIDER_STALE} is emitted
+     * from {@code FlagdProvider.onError} (FlagdProvider.java:258-264), which the shared
+     * {@code onProviderEvent} switch reaches from either resolver (FlagdProvider.java:197, 236), so
+     * the emit sits in the provider layer and not in a transport.
      *
-     * <p>{@link Capability#VARIANTS} and {@link Capability#TARGETING} are both declared. flagd names
-     * the variant it served in every resolution, so seven of the {@code @variants} outline's eight
-     * rows pass in both modes; the eighth is one of the testbed gaps above. {@code @targeting}'s
-     * three scenarios resolve {@code targeting-key-flag} through flagd's own rule evaluation and all
-     * three pass in both modes on the image already pinned.
-     *
-     * <p>{@link Capability#DISABLED_FLAGS} is declared, and measured: both resolvers substitute the
-     * caller's default for a flag whose state is {@code DISABLED} and report no error code, so all
-     * four rows of that outline pass in both modes. Both resolvers are told the flag is disabled —
-     * the in-process one evaluates the ruleset locally, and the RPC one still decides locally what
-     * to do with a response that carries no value — so the question {@link Capability#DISABLED_FLAGS}
-     * gates on is answered here in both.
-     *
-     * <p>{@link Capability#STANDARD_REASONS} arrived by the {@code declarableExcept} default rather
-     * than by a decision, which is why it was measured before being written down. All nine scenarios
-     * of {@code reason.feature} pass in both modes, including the two composing with
-     * {@link Capability#TARGETING} and {@link Capability#DISABLED_FLAGS}: {@code STATIC} for the
-     * rule-less flags, {@code TARGETING_MATCH} and {@code DEFAULT} either side of
-     * {@code targeting-key-flag}'s rule, {@code DISABLED} for a disabled flag, and {@code ERROR}
-     * beside {@code FLAG_NOT_FOUND} and {@code TYPE_MISMATCH}.
-     *
-     * <p>{@link Capability#declarableExcept} and not {@code EnumSet.complementOf}: the complement of
-     * one capability is every other <em>enum constant</em>, reserved tags included, and the suite
-     * refuses such a declaration at startup.
+     * <p>{@link Capability#declarableExcept} and not {@code EnumSet.complementOf}, whose complement
+     * would include reserved tags the suite refuses at startup.
      */
     @Override
     public Set<Capability> capabilities() {
@@ -222,20 +158,11 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>One entry, for {@link Capability#NUMERIC_COERCION}, taking the <strong>declared and
-     * failing</strong> shape. Appendix F's declaring rule decides it, and both halves apply here in
-     * order: flagd <em>is</em> attempting the coercion, which the widening scenario proves, and two
-     * of the tag's three scenarios can be put to it. A provider that simply does not coerce would
-     * stop at the first half and withhold, which is what the SDK's in-memory provider does and why
-     * the self-tests in {@code tools/tck} skip these scenarios.
-     *
-     * <p>Declaring it costs one failure that is the stack's rather than flagd's, since
-     * {@code integral-float-flag} is absent from the pinned image. Accepted, and the summary below
-     * says so explicitly — a deviation that did not would have the report accuse flagd of the gap.
-     *
-     * <p>Tracked against flagd's numeric coercion ADR, which is where the rule this deviates from is
-     * settled. The summary names which half is broken, because "flagd coerces numbers" on its own
-     * reads as a description of intended behaviour. Delete the entry once the lossy case reports
+     * <p>One entry, for the declared-and-failing {@link Capability#NUMERIC_COERCION}. Tracked against
+     * flagd's numeric coercion ADR, which is where the rule it deviates from is settled. The summary
+     * names which half is broken, because "flagd coerces numbers" on its own reads as a description
+     * of intended behaviour, and says that the tag's third failure is the absent
+     * {@code integral-float-flag} rather than flagd's. Delete the entry once the lossy case reports
      * {@code TYPE_MISMATCH}; the capability needs no change then.
      */
     @Override
@@ -246,14 +173,13 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
                 "The lossy half of the coercion rule is not enforced: evaluating float-flag (0.5) "
                         + "through the integer API returns 0 with no error code, rather than "
                         + "TYPE_MISMATCH with the code default, so the fractional part is discarded "
-                        + "silently. Lossless coercion is permitted and is not the defect -- flagd "
-                        + "does widen an integer to a float correctly, which is why the capability is "
-                        + "declared and the scenario left to fail rather than the capability "
-                        + "withheld. Both resolvers behave identically, which places it in the shared "
-                        + "provider layer rather than in either transport. The tag's third scenario "
-                        + "also fails, but for an unrelated reason that is not flagd's: "
-                        + "integral-float-flag is absent from the pinned flagd-testbed image, "
-                        + "open-feature/flagd-testbed#392."));
+                        + "silently. flagd does widen an integer to a float correctly, which is why "
+                        + "the capability is declared and the scenario left to fail rather than the "
+                        + "capability withheld. Both resolvers behave identically, which places it "
+                        + "in the shared provider layer rather than in either transport. The tag's "
+                        + "third scenario also fails, but for an unrelated reason that is not "
+                        + "flagd's: integral-float-flag is absent from the pinned flagd-testbed "
+                        + "image, open-feature/flagd-testbed#392."));
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {

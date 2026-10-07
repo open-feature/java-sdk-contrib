@@ -8,11 +8,9 @@ public class RpcTest extends AbstractResolverTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Stated rather than derived. The default derivation reads the suite's class name, which
-     * used to be {@code FlagdRpcTckTest} and now says only which resolver it is, because the
-     * package says the rest. A report is read away from this repository, where {@code rpc} on its
-     * own would not say whose RPC resolver it was, so the name a run is filed under is written here
-     * instead of moving with the class name.
+     * <p>Stated rather than derived from the class name, which says only which resolver this is: a
+     * report is read away from this repository, where {@code rpc} on its own would not say whose RPC
+     * resolver it was.
      */
     @Override
     public String configuration() {
