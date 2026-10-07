@@ -12,9 +12,8 @@ import dev.openfeature.contrib.tools.tck.TckState;
  * a step is allowed to reach: the provider author's harness, and the {@link BackendControl} that
  * manipulates the backend.
  *
- * <p>Deliberately no accessor for the runtime itself. Steps must not know whether the backend is a
- * container reached over HTTP or a map in this JVM — that is exactly what {@link BackendControl}
- * exists to hide, and it is what lets the same Gherkin run in both modes.
+ * <p>Deliberately no accessor for the runtime itself: steps must not know whether the backend is a
+ * container reached over HTTP or a map in this JVM.
  */
 public abstract class AbstractSteps {
 

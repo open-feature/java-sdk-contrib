@@ -9,13 +9,11 @@ import java.util.Map;
  * In-process control for {@link ControllableProvider}, with a backend that can refuse to answer.
  *
  * <p>Everything {@link InProcessBackendControl} does, plus the one thing it cannot: hand out a
- * provider whose initialisation <em>fails</em>. That is what unlocks the {@code @lifecycle} and
- * {@code @unavailable} scenarios without Docker — an unreachable in-JVM store, rather than a closed
- * socket, is enough for a provider to settle into {@code ERROR} observably and for a shutdown
- * against a dead backend to be timed.
+ * provider whose initialisation <em>fails</em>, which is what unlocks the {@code @lifecycle} and
+ * {@code @unavailable} scenarios without Docker.
  *
  * <p>Used only by {@link ControllableProviderTckTest}. {@link InProcessBackendControl} remains the
- * one an adopter with no backend writes against, and this does not widen it.
+ * one an adopter with no backend writes against.
  */
 final class ControllableBackendControl implements BackendControl {
 
@@ -40,9 +38,8 @@ final class ControllableBackendControl implements BackendControl {
     /**
      * Creates the provider for the scenario about to run, over a reachable store.
      *
-     * <p>The store is read at {@code initialize()} time rather than now, which is the whole reason
-     * this provider can cover the lifecycle feature: the flag set is something initialisation
-     * acquires.
+     * <p>The store is read at {@code initialize()} time rather than now, which is what makes the
+     * flag set something initialisation acquires.
      *
      * @return a configured, uninitialised provider
      */
@@ -73,8 +70,7 @@ final class ControllableBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>{@link ControlApi#IN_PROCESS}: there is no backend beyond a map in this JVM, which is the
-     * whole point of this double. Stated rather than defaulted, like every other control.
+     * <p>{@link ControlApi#IN_PROCESS}: there is no backend beyond a map in this JVM.
      */
     @Override
     public ControlApi controlApi() {

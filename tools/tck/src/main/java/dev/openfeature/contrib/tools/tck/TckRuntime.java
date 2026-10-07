@@ -12,15 +12,10 @@ import org.slf4j.LoggerFactory;
  * Suite-scoped runtime: discovers the provider's harness, drives its suite lifecycle, and exposes
  * its {@link BackendControl} to the step definitions.
  *
- * <p>This class knows nothing about containers, ports or transports. Whatever must exist before the
- * first scenario is created by {@link ProviderTckHarness#startSuite()} and released by
- * {@link ProviderTckHarness#stopSuite()} — a Compose stack for
- * {@link ContainerizedProviderTckTest}, nothing at all for a harness whose backend is a data
- * structure in this JVM.
- *
- * <p>The lifecycle runs <strong>once</strong>: started before the first scenario, stopped after the
- * last one, never cycled in between. Scenario isolation is achieved through
- * {@link BackendControl#prepareScenario()} instead.
+ * <p>Whatever must exist before the first scenario is created by
+ * {@link ProviderTckHarness#startSuite()} and released by {@link ProviderTckHarness#stopSuite()}.
+ * That lifecycle runs <strong>once</strong> and is never cycled in between; scenario isolation is
+ * achieved through {@link BackendControl#prepareScenario()} instead.
  *
  * <p>State is static because Cucumber's {@code @BeforeAll} / {@code @AfterAll} hooks are static and
  * the runtime must outlive individual scenarios. Consequently only one TCK suite may run per JVM
@@ -55,9 +50,8 @@ public final class TckRuntime {
         ProviderTckHarness harness = discoverHarness();
         log.info("Provider TCK harness: {}", harness.getClass().getName());
 
-        // Checked before the suite lifecycle starts, rather than only where the declaration
-        // reaches the report: an adopter should not wait for Docker to be told about a
-        // one-line mistake in capabilities().
+        // Before the suite lifecycle starts: an adopter should not wait for Docker to be told
+        // about a one-line mistake in capabilities().
         Capability.requireDeclarable(harness.capabilities());
 
         harness.startSuite();
@@ -124,10 +118,9 @@ public final class TckRuntime {
     /**
      * Finds the harness for the suite that is currently executing.
      *
-     * <p>Primary mechanism: the executing suite class itself, reported by {@link TckSuiteListener}.
-     * A suite class implements {@link ProviderTckHarness}, so a provider with several transports
-     * writes one suite class per transport and needs no registration, no system property and no
-     * build configuration to keep them apart.
+     * <p>Primary mechanism: the executing suite class itself, reported by {@link TckSuiteListener},
+     * so a provider with several transports writes one suite class per transport and needs no
+     * registration to keep them apart.
      *
      * <p>Fallback: {@link java.util.ServiceLoader}, for setups where the launcher does not
      * auto-register listeners. That path cannot distinguish between several registered harnesses,

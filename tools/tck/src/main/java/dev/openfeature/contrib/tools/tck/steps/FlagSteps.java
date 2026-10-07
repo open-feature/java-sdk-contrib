@@ -20,8 +20,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Flag evaluation steps and assertions on the resulting resolution details.
  *
- * <p>Step vocabulary is inherited verbatim from the flagd test harness, which was already
- * provider-neutral here.
+ * <p>Step vocabulary is inherited verbatim from the flagd test harness.
  */
 public class FlagSteps extends AbstractSteps {
 
@@ -47,15 +46,13 @@ public class FlagSteps extends AbstractSteps {
     /**
      * Evaluates the declared flag through the typed API matching its declared type.
      *
-     * <p>Dispatch is on the declared type alone, which is what makes the integer/float distinction
-     * observable: an {@code Integer} flag goes through {@code getIntegerDetails} and a {@code Float}
-     * flag through {@code getDoubleDetails}, with no widening in between. A provider that returns a
-     * double for an integer flag fails here rather than being quietly accommodated.
+     * <p>Dispatch is on the declared type alone, with no widening in between, which is what makes
+     * the integer/float distinction observable: a provider that returns a double for an integer flag
+     * fails here rather than being quietly accommodated.
      *
-     * <p>Exceptions are recorded rather than propagated. The SDK contract is that typed evaluation
-     * never throws — errors surface as an error code plus the code default — so
-     * {@code no exception should have been thrown} can assert that explicitly instead of the
-     * scenario merely erroring out.
+     * <p>Exceptions are recorded rather than propagated, so that
+     * {@code no exception should have been thrown} can assert the SDK contract that typed evaluation
+     * never throws, instead of the scenario merely erroring out.
      */
     @When("the flag was evaluated with details")
     public void theFlagWasEvaluatedWithDetails() {
@@ -150,10 +147,9 @@ public class FlagSteps extends AbstractSteps {
     /**
      * Captures the current resolved value so a later evaluation can be asserted to differ.
      *
-     * <p>Added by the TCK, for the configuration-change scenario. The control API only requires
-     * that {@code POST /change} changes the resolved value of {@code changing-flag}; which concrete
-     * value it changes to is vendor-defined. Asserting a delta rather than an absolute keeps the
-     * scenario portable and independent of how many times it has run against the same stack.
+     * <p>Which value {@code POST /change} changes {@code changing-flag} to is vendor-defined, so
+     * asserting a delta rather than an absolute keeps the scenario portable and independent of how
+     * many times it has run against the same stack.
      */
     @When("the resolved value is remembered")
     public void theResolvedValueIsRemembered() {
@@ -161,9 +157,7 @@ public class FlagSteps extends AbstractSteps {
         state.rememberedValue = state.evaluation.getValue();
     }
 
-    /**
-     * Asserts that re-evaluation produced a different value than the remembered one.
-     */
+    /** Asserts that re-evaluation produced a different value than the remembered one. */
     @Then("the resolved details value should have changed")
     public void theResolvedDetailsValueShouldHaveChanged() {
         requireEvaluation();
@@ -178,9 +172,8 @@ public class FlagSteps extends AbstractSteps {
     /**
      * Asserts that a resolved structure contains the given entries.
      *
-     * <p>Table columns are {@code key}, {@code type} and {@code value}, mirroring the shape of the
-     * flagd harness's metadata table. Asserting individual entries rather than a whole JSON blob
-     * keeps the step readable and avoids quoting a JSON document inside a Gherkin cell.
+     * <p>Table columns are {@code key}, {@code type} and {@code value}. Asserting individual entries
+     * avoids quoting a JSON document inside a Gherkin cell.
      *
      * @param expected a table of expected entries
      */
@@ -203,12 +196,10 @@ public class FlagSteps extends AbstractSteps {
             Object expectedValue = TckValues.convert(row.get("value"), row.get("type"));
             Object actualValue = actual.asObject();
 
-            // Numbers nested inside a structure are compared by value rather than by Java type.
-            // Structures arrive as JSON, and JSON has a single number type — whether 100 comes
-            // back as an Integer or a Double is an artefact of the provider's JSON library, not
-            // an observable part of the provider contract. The integer/float distinction that
-            // *is* part of the contract applies to top-level typed evaluation, and is asserted
-            // by the dedicated scenarios in evaluation.feature and errors.feature.
+            // Numbers nested inside a structure are compared by value rather than by Java type:
+            // JSON has one number type, so whether 100 comes back as an Integer or a Double is an
+            // artefact of the provider's JSON library. The integer/float distinction that *is* part
+            // of the contract applies to top-level typed evaluation and is asserted there.
             if (expectedValue instanceof Number && actualValue instanceof Number) {
                 assertThat(((Number) actualValue).doubleValue())
                         .as("structure entry '%s'", key)
@@ -222,8 +213,7 @@ public class FlagSteps extends AbstractSteps {
     /**
      * Asserts that no error message accompanies the evaluation.
      *
-     * <p>Requirement 2.3.2: a provider that reports a value <em>and</em> an error message is sending
-     * two contradictory signals, and an application reading the message believes the wrong one.
+     * <p>Requirement 2.3.2: a value and an error message together are two contradictory signals.
      * Every success path asserts this alongside the empty error code.
      */
     @Then("the error message should be empty")
@@ -237,11 +227,10 @@ public class FlagSteps extends AbstractSteps {
     /**
      * Asserts that every call the scenario made on the provider returned normally.
      *
-     * <p>Added by the TCK. The spec requires typed evaluation to absorb every error into the
-     * returned details, so an error scenario must prove both halves: the right error code, and no
-     * exception escaping to the caller. The lifecycle scenarios reuse it for a repeated
-     * {@code shutdown()} and for {@code initialize()} against a reachable backend, which record into
-     * the same slot as an evaluation does.
+     * <p>Typed evaluation must absorb every error into the returned details, so an error scenario
+     * proves both halves: the right error code, and no exception escaping to the caller. The
+     * lifecycle scenarios reuse it for a repeated {@code shutdown()} and for {@code initialize()},
+     * which record into the same slot as an evaluation does.
      */
     @Then("no exception should have been thrown")
     public void noExceptionShouldHaveBeenThrown() {
@@ -255,9 +244,7 @@ public class FlagSteps extends AbstractSteps {
                 .isNull();
     }
 
-    /**
-     * Asserts the flag under test appears in the payload of the most recently matched event.
-     */
+    /** Asserts the flag under test appears in the payload of the most recently matched event. */
     @Then("the flag should be part of the event payload")
     public void theFlagShouldBePartOfTheEventPayload() {
         ProviderEventRecord event = state.lastEvent.orElseThrow(

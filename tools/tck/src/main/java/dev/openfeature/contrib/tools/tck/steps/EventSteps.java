@@ -17,10 +17,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Registration of provider event handlers and awaiting the events they observe.
  *
- * <p>Step vocabulary is inherited verbatim from the flagd test harness. The one behavioural change
- * is that the default await timeout comes from {@link ProviderTckHarness#eventTimeout()} instead of
- * being a hard-coded constant, because how fast a provider notices a backend change differs by
- * orders of magnitude between streaming and polling transports.
+ * <p>Step vocabulary is inherited verbatim from the flagd test harness, except that the default
+ * await timeout comes from {@link ProviderTckHarness#eventTimeout()} rather than a constant, because
+ * how fast a provider notices a backend change differs by orders of magnitude between transports.
  */
 public class EventSteps extends AbstractSteps {
 
@@ -86,10 +85,9 @@ public class EventSteps extends AbstractSteps {
                 .until(() ->
                         state.events.stream().anyMatch(event -> event.type().equals(eventType)));
 
-        // Drain up to and including the first match. Without this, a READY recorded before a
-        // disconnect would satisfy a later assertion expecting a *new* READY after reconnect,
-        // and the reconnect scenarios would pass without the provider ever reconnecting.
-        // Events that arrived after the match are preserved for subsequent steps.
+        // Drain up to and including the first match, preserving later arrivals. Without this, a
+        // READY recorded before a disconnect would satisfy a later assertion expecting a *new*
+        // READY, and the reconnect scenarios would pass without the provider ever reconnecting.
         ProviderEventRecord matched = null;
         while (!state.events.isEmpty()) {
             ProviderEventRecord head = state.events.poll();

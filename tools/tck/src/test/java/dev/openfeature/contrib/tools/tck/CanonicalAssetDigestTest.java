@@ -27,25 +27,19 @@ import org.junit.jupiter.api.Test;
  * <p>They are copied out of the {@code spec} submodule at {@code generate-resources}, and the
  * submodule's <em>gitlink</em> and its <em>working tree</em> are moved by different commands: a
  * rebase, a branch switch or a checkout moves the first, and only {@code git submodule update}
- * moves the second. Build in between and the copy step packages the previous pin's assets under
- * the new pin's name. Nothing about the result looks wrong — the old feature files agree with each
- * other and with the old flag set, so the suite runs, passes, and reports numbers that describe a
- * revision nobody asked for. That is not hypothetical; one language's suite did exactly this for a
- * whole adoption run and the only trace was that its totals matched the previous pass exactly.
+ * moves the second. Build in between and the copy step packages the previous pin's assets under the
+ * new pin's name, with nothing about the result looking wrong — the old feature files agree with
+ * each other, so the suite runs, passes, and reports numbers that describe a revision nobody asked
+ * for.
  *
- * <p>{@link CanonicalTagCoverageTest} catches one symptom of it — a declarable capability whose
- * scenarios have not arrived — and catches it with a better message than this test could give. It
- * only fires for that symptom, though. A pin that changes the wording of a scenario, the value of a
- * canonical flag, or a field of the control API moves nothing it looks at, and those are the
- * changes most pins actually make: the re-pin this test was written for changed two
- * {@code $comment} blocks in {@code canonical-flags.json} and not one scenario.
+ * <p>{@link CanonicalTagCoverageTest} catches one symptom of that, with a better message than this
+ * test could give, but only that symptom: a pin that changes the wording of a scenario, the value of
+ * a canonical flag or a field of the control API moves nothing it looks at.
  *
- * <p>So this asserts the assets themselves, by digest. It is deliberately blunt: it cannot say
- * <em>what</em> differs, only that what was packaged is not what the pin names. The build step it
- * backs up is in {@code pom.xml}, and the division between them is the point — the build moves the
- * checkout and empties the copy's target directory, and this fails the build if the assets are
- * nevertheless wrong. Every route to stale assets ends here, including the one where the checkout
- * was skipped by hand.
+ * <p>So this asserts the assets themselves, by digest. It is deliberately blunt — it cannot say
+ * <em>what</em> differs, only that what was packaged is not what the pin names — and it backs up the
+ * build step in {@code pom.xml} rather than duplicating it, so every route to stale assets ends
+ * here, including the one where the checkout was skipped by hand.
  *
  * <h2>Updating the pin</h2>
  *
@@ -63,13 +57,11 @@ import org.junit.jupiter.api.Test;
  *
  * <h2>What the digest is over</h2>
  *
- * <p>All three asset trees, not just the Gherkin. The feature files are meaningless without the
- * flag set they evaluate and the control API that produces their outages, and it is the flag set
- * that a Gherkin-only digest would have missed here.
+ * <p>All three asset trees, not just the Gherkin: the feature files are meaningless without the
+ * flag set they evaluate and the control API that produces their outages.
  *
- * <p>Line endings are normalised out of it. The assets are checked out through git, so a Windows
- * clone with {@code core.autocrlf=true} holds bytes a Linux one does not, and a digest that
- * disagreed with itself across platforms would be turned off within a week. Nothing else is
+ * <p>Line endings are normalised out of it, because the assets are checked out through git and a
+ * Windows clone with {@code core.autocrlf=true} holds bytes a Linux one does not. Nothing else is
  * normalised: trailing whitespace, ordering and encoding are all part of what is pinned.
  */
 class CanonicalAssetDigestTest {
@@ -189,10 +181,9 @@ class CanonicalAssetDigestTest {
     /**
      * The directory this artifact's classes and resources were loaded from.
      *
-     * <p>Read through the code source rather than the classloader, as {@link CanonicalTagCoverageTest}
-     * reads it, and for the same reason: an asset placed at the same classpath path on another root
-     * shadows the packaged one, and a check that digested the shadowing copy would be comparing the
-     * replacement against itself.
+     * <p>Read through the code source rather than the classloader: an asset placed at the same
+     * classpath path on another root shadows the packaged one, and a check that digested the
+     * shadowing copy would be comparing the replacement against itself.
      */
     private static Path codeSourceRoot() {
         CodeSource codeSource = ProviderTck.class.getProtectionDomain().getCodeSource();
