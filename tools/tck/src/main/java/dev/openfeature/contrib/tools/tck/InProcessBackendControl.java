@@ -10,29 +10,28 @@ import java.util.Map;
  * {@link BackendControl} that manipulates the SDK's {@link InMemoryProvider} directly, with no
  * backend, no container and no HTTP.
  *
- * <p>This exists so that providers with nothing to connect to — in-memory, environment-variable and
- * file-based providers — can run the TCK. For those, "the backend" is a data structure in the same
- * JVM: seeding flags is building a map, and changing one is
- * {@link InMemoryProvider#updateFlag(String, Flag)}, which emits
+ * <p>For a provider with nothing to connect to — in-memory, environment-variable, file-based —
+ * "the backend" is a data structure in the same JVM: seeding flags is building a map, and changing
+ * one is {@link InMemoryProvider#updateFlag(String, Flag)}, which emits
  * {@code PROVIDER_CONFIGURATION_CHANGED} through the provider's own event mechanism rather than
  * through a simulated one.
  *
  * <p><strong>This is not a shortcut for providers that do have a backend.</strong> Those use
  * {@link HttpBackendControl} via {@link ContainerizedProviderTckTest}; {@link BackendControl} says
- * why, and links the rule.
+ * why.
  *
  * <h2>Connection control</h2>
  *
- * <p>{@link #disconnect()} and {@link #reconnect()} are not implemented, so they inherit the
- * interface defaults and throw. An in-memory provider has no connection to lose, and a no-op would
- * report {@code @stale} scenarios as passed. The harness instead leaves {@link Capability#STALE} and
+ * <p>{@link #disconnect()} and {@link #reconnect()} inherit the interface defaults and throw: an
+ * in-memory provider has no connection to lose, and a no-op would report {@code @stale} scenarios
+ * as passed. The harness instead leaves {@link Capability#STALE} and
  * {@link Capability#UNAVAILABLE_INIT} undeclared, and those scenarios are skipped.
  *
  * <h2>Ownership of the provider</h2>
  *
  * <p>This class both seeds the flags and creates the provider that serves them, because in-process
- * they are the same object: {@link #changeFlag()} has to reach the live provider instance to emit
- * an event from it. A harness therefore wires both of its factory methods to one instance:
+ * they are the same object: {@link #changeFlag()} has to reach the live provider instance to emit an
+ * event from it. A harness wires both of its factory methods to one instance:
  *
  * <pre>{@code
  * private final InProcessBackendControl control = new InProcessBackendControl();
@@ -54,10 +53,9 @@ public final class InProcessBackendControl implements BackendControl {
      * The flag {@link #changeFlag()} mutates, as named by the control API and by the canonical flag
      * definition.
      *
-     * <p>The key is the one thing about this flag that is not read out of the definition, because
-     * {@code POST /change} in {@code openapi/control-api.yaml} names it too: the two have to agree,
-     * and a key discovered from the file could not be checked against the contract that uses it. Its
-     * variants are read, and {@link #changingFlag} rebuilds it from them.
+     * <p>The key is the one thing here not read out of the definition, because
+     * {@code POST /change} in {@code openapi/control-api.yaml} names it too and the two have to
+     * agree. Its variants are read, and {@link #changingFlag} rebuilds it from them.
      */
     private static final String CHANGING_FLAG = "changing-flag";
 
@@ -65,7 +63,7 @@ public final class InProcessBackendControl implements BackendControl {
      * The canonical flag set, never mutated after construction.
      *
      * <p>Decoded from the packaged {@code flags/canonical-flags.json} rather than restated here —
-     * see {@link CanonicalFlags} for why a transcription is the failure mode this guards against.
+     * see {@link CanonicalFlags}.
      *
      * <p>Scenario isolation depends on the map not being mutated: {@link InMemoryProvider} copies the
      * map it is given, and {@code updateFlag} writes only to the provider's copy, so every provider
@@ -109,9 +107,8 @@ public final class InProcessBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Always {@link ControlApi#IN_PROCESS}, which is what this class exists for: there is no
-     * backend to drive over the normative HTTP endpoints, because "the backend" is a map in this
-     * JVM.
+     * <p>Always {@link ControlApi#IN_PROCESS}: there is no backend to drive over the normative HTTP
+     * endpoints, because "the backend" is a map in this JVM.
      */
     @Override
     public ControlApi controlApi() {
@@ -121,11 +118,11 @@ public final class InProcessBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Drops the reference to the previous scenario's provider. That is the whole reset: the
+     * <p>Drops the reference to the previous scenario's provider, which is the whole reset: the
      * baseline map is never mutated, so the {@link #createProvider()} call that follows produces a
-     * provider already at the baseline. Clearing the reference rather than leaving it dangling
-     * means a scenario that manipulates flags without creating a provider fails with a clear
-     * message instead of mutating a provider that has already been shut down.
+     * provider already at the baseline. Clearing the reference also means a scenario that
+     * manipulates flags without creating a provider fails with a clear message instead of mutating
+     * one that has already been shut down.
      */
     @Override
     public void prepareScenario() {
@@ -137,11 +134,9 @@ public final class InProcessBackendControl implements BackendControl {
      *
      * <p>Flips {@code changing-flag} between its two variants through
      * {@link InMemoryProvider#updateFlag(String, Flag)}, so the event the suite awaits is the
-     * provider's own {@code PROVIDER_CONFIGURATION_CHANGED} — carrying {@code changing-flag} in
-     * {@code flagsChanged} — and not a signal the TCK synthesised.
-     *
-     * <p>Alternating rather than assigning a fixed variant keeps repeated calls within one scenario
-     * meaningful; the suite asserts that the resolved value differs, not what it became.
+     * provider's own {@code PROVIDER_CONFIGURATION_CHANGED} rather than a signal the TCK
+     * synthesised. Alternating rather than assigning a fixed variant keeps repeated calls within one
+     * scenario meaningful.
      */
     @Override
     public void changeFlag() {

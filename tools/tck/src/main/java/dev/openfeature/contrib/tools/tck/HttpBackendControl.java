@@ -12,14 +12,14 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link BackendControl} backed by the standardised HTTP control API.
  *
- * <p>This is the normative implementation for every provider that talks to an external backend. It
- * implements the contract in {@code openapi/control-api.yaml}, including the documented fallback
- * for the optional {@code /reset} operation. It uses the JDK HTTP client so that adopting the TCK
- * does not drag an HTTP library onto a provider's test classpath.
+ * <p>The normative implementation for every provider that talks to an external backend, over the
+ * contract in {@code openapi/control-api.yaml}, including the documented fallback for the optional
+ * {@code /reset} operation. It uses the JDK HTTP client so that adopting the TCK does not drag an
+ * HTTP library onto a provider's test classpath.
  *
- * <p>Every operation here manipulates the backend <em>process</em> or its flag state. None of them
- * touch containers — that is the no-container-restart invariant, and it is the reason a provider
- * built once at suite start stays valid for every scenario.
+ * <p>Every operation manipulates the backend <em>process</em> or its flag state, never a container:
+ * that no-container-restart invariant is why a provider built once at suite start stays valid for
+ * every scenario.
  *
  * <p>Constructed by {@link ContainerizedProviderTckTest} once the Compose stack is up and the
  * control API host port is known. Provider authors do not build one themselves.
@@ -48,11 +48,9 @@ public final class HttpBackendControl implements BackendControl {
      * Creates a control client for a running backend.
      *
      * <p><strong>There is no post-command settle, deliberately.</strong> A control call returns when
-     * the backend has acted, because that is what the control API promises, and
-     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
-     * F</a> says why a suite must not add a pause of its own. If a step after a control call is
-     * racy, the defect is in the backend's control API. The promise is about the <em>backend</em>;
-     * how long the provider takes to notice is what {@code eventTimeout()} bounds.
+     * the backend has acted, because that is what the control API promises, so a racy step after a
+     * control call is a defect in the backend's control API rather than a reason to add a pause
+     * here. How long the <em>provider</em> takes to notice is what {@code eventTimeout()} bounds.
      *
      * @param baseUrl the control API base URL, without a trailing slash
      * @param backendConfiguration the backend configuration name defining the canonical baseline
@@ -92,10 +90,10 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Prefers {@code POST /reset} when the backend is already running, because restoring the
-     * baseline without an availability blip means the previous scenario teardown cannot leak a
-     * spurious lifecycle event into the next scenario. When the previous scenario left the backend
-     * unreachable, {@code /reset} alone would not bring it back, so this falls through to
+     * <p>Prefers {@code POST /reset} when the backend is already running: restoring the baseline
+     * without an availability blip keeps the previous scenario's teardown from leaking a spurious
+     * lifecycle event into the next one. When the previous scenario left the backend unreachable,
+     * {@code /reset} alone would not bring it back, so this falls through to
      * {@code POST /start?config=...}.
      */
     @Override

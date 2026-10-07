@@ -11,27 +11,11 @@ import org.opentest4j.TestAbortedException;
 /**
  * Decides what a scenario's tags mean for this run: skip it, fail it, or let it go ahead.
  *
- * <p>One implementation, deliberately. This is the rule the whole suite rests on — a scenario
- * skipped for an undeclared capability must be reported as skipped and never as passed — so the
- * gate that produces the skip and the tests that prove the skip survives into the results have to
- * be looking at the same code. Inlined into the step definitions, a self-test could only
- * demonstrate that some abort becomes a skip, not that <em>this</em> abort does.
+ * <p>A class of its own rather than inlined into the step definitions, so that the gate producing a
+ * skip and the self-tests proving the skip survives into the results are looking at the same code.
  *
- * <p>Aborting rather than failing is what makes the outcome a skip: {@link TestAbortedException} maps
- * to {@code SKIPPED} in Cucumber's step results, which is what reaches the results.
- *
- * <p>The second rule here is the mirror of the first and fails rather than skips: a tag this
- * implementation still calls {@linkplain Capability#reserved() reserved} must never reach a
- * scenario. See {@link #requireNoExpiredReservation}.
- *
- * <p>The third produces a skip like the first but for a reason that has nothing to do with the
- * provider: a capability this SDK {@linkplain Capability#inexpressible() cannot express}. Its skip
- * reason is deliberately different from an undeclared capability's, because a report's reader has
- * to be able to tell them apart.
- *
- * <p>The fourth is the second one's own direction reversed, and fails too: a <em>canonical</em>
- * scenario carrying a tag this vocabulary does not know at all. See
- * {@link #requireKnownVocabulary}.
+ * <p>Aborting rather than failing is what makes the outcome a skip: {@link TestAbortedException}
+ * maps to {@code SKIPPED} in Cucumber's step results, which is what reaches the results.
  */
 public final class CapabilityGate {
 
@@ -40,22 +24,17 @@ public final class CapabilityGate {
     /**
      * Applies both gate rules to a scenario about to run.
      *
-     * <p>First {@link #requireNoExpiredReservation}, then the declaration check below. The order is
-     * not interchangeable and is fixed here rather than left to the caller: a reserved capability
-     * can never be declared, so a reserved tag examined second is always a skip for an undeclared
-     * capability and the expiry is never reported. Both passes are over the whole tag list for the
-     * same reason — a scenario tagged {@code @events @caching} against a provider that declares
-     * neither would otherwise abort on the first tag and never look at the second.
+     * <p>First {@link #requireNoExpiredReservation}, then the declaration check below, and the
+     * order is not interchangeable: a reserved capability can never be declared, so a reserved tag
+     * examined second is always a skip for an undeclared capability and the expiry is never
+     * reported. Both passes are over the whole tag list for the same reason.
      *
      * <p>Tags that gate nothing are ignored, so a scenario with no capability tag is mandatory and
      * always runs.
      *
-     * <p><strong>Two skips, and they do not say the same thing.</strong> The ordinary one names the
-     * provider, which did not declare the capability. The other names the SDK, which
-     * {@linkplain Capability#inexpressible() cannot express} it — reporting that as "the provider
-     * does not declare it" would read as a decision the provider took. It is checked before the
-     * declaration, which makes it the reason every time rather than only when the provider happens
-     * to have withheld the tag as well.
+     * <p>A capability the SDK {@linkplain Capability#inexpressible() cannot express} is skipped with
+     * its own reason, which names the SDK rather than the provider, and is checked before the
+     * declaration so that it is the reason every time.
      *
      * @param tags the scenario's Gherkin tags, including the leading at-sign
      * @param declared the capabilities the provider declares
@@ -69,10 +48,10 @@ public final class CapabilityGate {
     /**
      * Applies every gate rule to a scenario about to run, knowing where the scenario came from.
      *
-     * <p>The overload {@link #requireDeclared(Collection, Set)} calls into this one with no source,
-     * which is every rule except {@link #requireKnownVocabulary} — that one is the only rule whose
-     * answer depends on whether the scenario is canonical, and it cannot be applied to a scenario
-     * of unknown origin without failing an adopter's own feature file for using its own tag.
+     * <p>{@link #requireKnownVocabulary} is the only rule whose answer depends on where the
+     * scenario came from, so the overload {@link #requireDeclared(Collection, Set)} passes no source
+     * and that rule does not apply: without it, an adopter's own feature file would fail for using
+     * its own tag.
      *
      * @param source the scenario's feature file, as Cucumber reports it, or {@code null} if unknown
      * @param tags the scenario's Gherkin tags, including the leading at-sign
@@ -87,11 +66,8 @@ public final class CapabilityGate {
         for (String tag : tags) {
             Optional<Capability> found = Capability.fromTag(tag);
             if (!found.isPresent()) {
-                // Not a capability tag as far as this vocabulary is concerned, so it gates nothing
-                // here. Skipping it is right for an adopter's own tag under extensions/ and wrong
-                // for a canonical one, and the two are told apart by requireKnownVocabulary above
-                // rather than here — by the time this loop runs, an unknown canonical tag has
-                // already failed the scenario.
+                // Gates nothing. An unknown tag on a canonical scenario has already failed the
+                // run in requireKnownVocabulary above, so what reaches here is an adopter's own.
                 continue;
             }
             Capability capability = found.get();
@@ -112,33 +88,21 @@ public final class CapabilityGate {
     /**
      * Fails the run if a canonical scenario carries a tag this vocabulary does not know.
      *
-     * <p>{@link #requireNoExpiredReservation} run backwards. That one catches a tag this
-     * implementation knows and says nothing carries; this one catches a tag something carries and
-     * this implementation does not know. Both end in a scenario whose gating is wrong in a way no
-     * result reports, and this direction is the easier of the two to leave out — <strong>an unknown
-     * tag gates nothing, so its scenarios stay mandatory for every adopter</strong>. A suite that
-     * has not learned a new capability does not report a new capability; it silently keeps
-     * demanding the old behaviour, and the symptom is a provider that legitimately withholds the
-     * capability showing unexplained failures while every other provider stays green. Nothing in
-     * the results says why. All four reference implementations ignored an unknown tag rather than
-     * failing before Appendix F made this normative, and this package was one of them: the loop in
-     * {@link #requireDeclared} did nothing but {@code continue}.
+     * <p><strong>An unknown tag gates nothing, so without this its scenarios stay mandatory for
+     * every adopter.</strong> A suite that has not learned a new capability keeps demanding the old
+     * behaviour, and the symptom is a provider that legitimately withholds the capability showing
+     * unexplained failures while every other provider stays green, with nothing in the results
+     * saying why.
      *
-     * <p><strong>Canonical scenarios only, and that restriction is not a weakening.</strong> The
-     * extension point exists so an adopter can add feature files under
-     * {@link ProviderTck#EXTENSIONS} with tags of its own, which this vocabulary is not supposed to
-     * know — failing those would make the extension point unusable, and {@code DeclarationApiTest}
-     * pins that a tag gating nothing is tolerated. What distinguishes them is the directory:
-     * {@link ProviderTck#FEATURES} holds the canonical set and nothing else, which is why
-     * {@code EXTENSIONS} is deliberately a different name rather than a subdirectory of it. A tag
-     * in <em>there</em> that resolves to nothing is a capability this implementation has not
-     * learned.
+     * <p>Canonical scenarios only: an adopter's feature files under {@link ProviderTck#EXTENSIONS}
+     * are expected to carry tags this vocabulary does not know, and failing those would make the
+     * extension point unusable. {@link ProviderTck#FEATURES} holds the canonical set and nothing
+     * else, which is why {@code EXTENSIONS} is a different name rather than a subdirectory of it.
      *
      * <p>Checked at run time as well as in this artifact's own tests, and the run-time half is not
      * redundant: {@code CanonicalTagCoverageTest} reads the assets packaged in <em>this</em> build,
      * and an adopter can put a {@code gherkin/} directory on a classpath root that shadows the
-     * packaged one. Appendix F also requires the check to be in force where the scenarios execute,
-     * which the artifact's own test suite is not.
+     * packaged one.
      *
      * @param source the scenario's feature file, as Cucumber reports it, or {@code null} if unknown
      * @param tags the scenario's Gherkin tags, including the leading at-sign
@@ -174,15 +138,10 @@ public final class CapabilityGate {
      * Whether a scenario came from the canonical set rather than from an adopter's extension.
      *
      * <p>Decided on the feature file's immediate parent directory being
-     * {@link ProviderTck#FEATURES}, over the URI Cucumber reports — {@code classpath:gherkin/
-     * errors.feature} for the packaged assets, a {@code file:} URI when the features are read from
-     * a directory. Only the last two segments are looked at, so neither form needs special casing
-     * and a shadowing copy on another classpath root is still canonical, which is the point.
-     *
-     * <p>A {@code null} source is not canonical. It is what the two-argument
-     * {@link #requireDeclared(Collection, Set)} passes, and the callers that use it are tests
-     * asserting the other three rules over a bare tag list; treating an unknown origin as canonical
-     * would make those assert this rule by accident.
+     * {@link ProviderTck#FEATURES}. Only the last two segments of the URI are looked at, so the
+     * {@code classpath:} and {@code file:} forms need no special casing and a shadowing copy on
+     * another classpath root is still canonical, which is the point. A {@code null} source is not
+     * canonical, so a caller that has only a tag list does not assert this rule by accident.
      */
     private static boolean isCanonical(URI source) {
         if (source == null) {
@@ -201,34 +160,19 @@ public final class CapabilityGate {
     /**
      * Fails the run if a scenario carries the tag of a capability this suite still calls reserved.
      *
-     * <p>The expiry check on {@link Capability#reserved()}, and the other half of
-     * {@link Capability#requireDeclarable}: that one refuses a <em>declaration</em> naming a reserved
-     * capability, this one a <em>scenario</em> carrying its tag. An
-     * {@linkplain Capability#inexpressible() inexpressible} capability has no equivalent and could
-     * not — a scenario carrying its tag is exactly what is expected, since other languages run it.
+     * <p>The other half of {@link Capability#requireDeclarable}: that one refuses a
+     * <em>declaration</em> naming a reserved capability, this one a <em>scenario</em> carrying its
+     * tag. When the specification writes the scenarios a reservation was holding the name open for,
+     * the two halves meet in the worst place — the scenario is skipped for a capability no adopter
+     * is permitted to claim, the report is well-formed and the run is green. It has no local symptom
+     * at all, which is why it is checked rather than watched for.
      *
-     * <p>When the specification writes the scenarios a reservation was holding the name open for and
-     * this implementation has not followed, the two halves meet in the worst possible place: the
-     * scenario is skipped for a capability no adopter is permitted to claim — the
-     * unclaimable-capability failure
-     * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
-     * F</a> describes. Nothing else in the suite would notice: the report is well-formed, the run is
-     * green, and a capability-gated skip is explicitly not a gap. It has no local symptom at all,
-     * which is why it is checked rather than watched for — {@link Capability#TARGETING} was reserved
-     * until the {@code targeting-key-flag} scenarios arrived.
-     *
-     * <p>Refused rather than worked around: treating the tag as declarable here would let a run
-     * claim a capability against an implementation that does not know the tag exists, and the point
-     * of the check is that a human re-reads the reserved list against the specification.
-     *
-     * <p><strong>The tags are the parsed ones.</strong> They come from
-     * {@link io.cucumber.java.Scenario#getSourceTagNames()}, which is the same parse the run itself
-     * is driven by, so this cannot disagree with the run about which tags a scenario carries —
-     * including tags inherited from the feature and tags on an {@code Examples} block. A check that
-     * scanned the feature files as text instead would be wrong on the day it was written:
-     * {@code gherkin/events.feature} names {@code @caching} inside a Gherkin {@code #} comment,
-     * explaining which scenarios are deliberately not covered yet, and a text scan would fail every
-     * adoption over a sentence.
+     * <p><strong>The tags are the parsed ones</strong>, from
+     * {@link io.cucumber.java.Scenario#getSourceTagNames()}, so this cannot disagree with the run
+     * about which tags a scenario carries — including tags inherited from the feature and tags on an
+     * {@code Examples} block. Do not replace it with a text scan of the feature files:
+     * {@code gherkin/events.feature} names {@code @caching} inside a Gherkin {@code #} comment, and
+     * a text scan would fail every adoption over a sentence.
      *
      * @param tags the scenario's Gherkin tags, including the leading at-sign
      * @throws IllegalStateException if a tag names a reserved capability

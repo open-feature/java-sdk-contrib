@@ -31,40 +31,26 @@ import org.junit.jupiter.api.Test;
  * Every capability this suite does not call reserved is carried by at least one canonical scenario,
  * every reserved one is carried by none, and every tag they carry is a capability this suite knows.
  *
- * <p>{@link CapabilityGate#requireNoExpiredReservation} already fails a run where a <em>scenario</em>
- * carries a reserved tag — a capability no adopter may declare, gating something, so the scenario is
- * skipped forever and nothing notices. This is the other half of the same rule: a capability this
- * suite says has scenarios that gates <strong>nothing</strong>. Declarable, that is a claim no result
- * can contradict, which tells a report's reader that a capability was examined when nothing examined
- * it. That is the same vacuous claim, arrived at from the opposite direction.
+ * <p>{@link CapabilityGate#requireNoExpiredReservation} already fails a run where a
+ * <em>scenario</em> carries a reserved tag. This is the other half of the same rule: a declarable
+ * capability that gates <strong>nothing</strong> is a claim no result can contradict, which tells a
+ * report's reader that a capability was examined when nothing examined it.
  *
  * <p>The first test is over every capability that is not reserved, rather than over
- * {@link Capability#declarable()}, and the difference matters. An
+ * {@link Capability#declarable()}, and the difference matters: an
  * {@linkplain Capability#inexpressible() inexpressible} capability is not declarable here, but its
- * scenarios are precisely what distinguish it from a reservation: they exist, and other languages
- * run them. Checking only the declarable set would stop looking at the one capability whose whole
- * justification is that the scenarios are there.
+ * scenarios existing is precisely what distinguishes it from a reservation.
  *
- * <p>It has one realistic cause, and it is a build accident rather than a design mistake: the
- * canonical assets are copied out of the {@code spec} submodule at {@code generate-resources}, and
- * the submodule's working tree and the gitlink are moved by different commands. A rebase or a branch
- * switch updates the gitlink; only {@code git submodule update} moves the checkout. Between the two,
- * the copy step happily overwrites the new assets with the old ones, and the result is internally
- * consistent — the old feature files agree with each other — so <em>counting</em> scenarios does not
- * catch it. A capability added in the same commit as the pin that gives it scenarios is then
- * declarable, and gates nothing.
+ * <p>The realistic cause is a build accident — the canonical assets are copied out of the
+ * {@code spec} submodule, whose working tree and gitlink move by different commands, so a build in
+ * between packages the previous pin's assets. See {@link CanonicalAssetDigestTest}.
  *
- * <p>This is a test rather than a runtime check on purpose. The reserved direction has to fail an
- * adopter's run, because a reservation expires when the specification writes scenarios for it and
- * this package may not have followed. This direction can only be introduced by a build of
- * <em>this</em> artifact, so it belongs in this artifact's own tests — and making every adopter parse
- * six feature files at suite start to detect a mistake only this repository can make would be a cost
- * paid in the wrong place.
+ * <p>A test rather than a runtime check, because this direction can only be introduced by a build of
+ * <em>this</em> artifact; the reserved direction has to fail an adopter's run instead.
  *
  * <p><strong>The tags are parsed, not scanned.</strong> {@code gherkin/events.feature} names
- * {@code @caching} inside a Gherkin {@code #} comment, explaining which stale-provider behaviour is
- * deliberately uncovered, so a text scan reports a reserved tag that no scenario carries. The third
- * test below asserts exactly that, so the distinction is pinned rather than described.
+ * {@code @caching} inside a Gherkin {@code #} comment, so a text scan would report a reserved tag
+ * that no scenario carries. The third test below pins that rather than describing it.
  */
 class CanonicalTagCoverageTest {
 
@@ -111,16 +97,11 @@ class CanonicalTagCoverageTest {
     @Test
     @DisplayName("every tag a canonical scenario carries resolves to a capability")
     void everyCarriedTagIsInTheVocabulary() {
-        // The reverse of the first test, and the direction that is easy to leave out: that one
-        // catches a capability with no scenarios, this one a scenario tag with no capability. An
-        // unknown tag gates nothing, so its scenarios stay mandatory for every adopter — a suite
-        // that has not learned a new capability keeps demanding the old behaviour, and the only
-        // symptom is a provider that legitimately withholds it failing while the rest stay green.
-        //
-        // This fires on the re-pin that adds a tag, which is the moment it is needed: the pin and
-        // the Capability constant move in the same commit, and nothing else notices if only the
-        // pin moves. CapabilityGate.requireKnownVocabulary is the same rule at run time, for the
-        // canonical assets an adopter actually executes rather than the ones packaged here.
+        // The reverse of the first test: that one catches a capability with no scenarios, this one
+        // a scenario tag with no capability. It fires on the re-pin that adds a tag, which is the
+        // moment it is needed, since nothing else notices if the pin moves without the Capability
+        // constant. CapabilityGate.requireKnownVocabulary is the same rule at run time, over the
+        // assets an adopter actually executes rather than the ones packaged here.
         for (String tag : CARRIED) {
             assertThat(Capability.fromTag(tag))
                     .as(
@@ -137,9 +118,9 @@ class CanonicalTagCoverageTest {
     @Test
     @DisplayName("a tag named only in a Gherkin comment is prose, not a tag")
     void aTagInACommentIsNotCarried() {
-        // The trap that makes a text scan wrong on day one, asserted rather than described.
-        // events.feature explains what @caching would cover, inside a comment; a grep-shaped
-        // implementation of the test above would report CACHING as an expired reservation forever.
+        // events.feature explains what @caching would cover, inside a Gherkin comment, so a
+        // grep-shaped implementation of the test above would report CACHING as an expired
+        // reservation forever.
         assertThat(rawCanonicalText())
                 .as("events.feature still names @caching in prose, which is what makes this test worth having")
                 .contains("@caching");

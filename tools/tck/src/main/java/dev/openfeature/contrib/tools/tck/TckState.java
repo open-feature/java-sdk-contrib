@@ -37,10 +37,8 @@ public class TckState {
     /**
      * A previously resolved value, captured so a later evaluation can be asserted to differ.
      *
-     * <p>Used by the configuration-change scenario. Asserting "the value changed" rather than "the
-     * value is now X" keeps the scenario portable: the control API only requires that
-     * {@code POST /change} changes the resolved value of {@code changing-flag}, not which concrete
-     * value it changes to.
+     * <p>Used by the configuration-change scenario, which asserts that the value changed rather
+     * than what it became — the control API does not say which value {@code POST /change} picks.
      */
     public Object rememberedValue;
 
@@ -48,12 +46,9 @@ public class TckState {
      * Any exception thrown out of the most recent call the scenario made on the provider, with
      * {@link #thrownBy} naming the call.
      *
-     * <p>Evaluation, shutdown and re-initialisation all record here rather than propagate. The SDK
-     * contract is that typed evaluation never throws — errors surface as an error code and the code
-     * default — and the lifecycle scenarios make the same demand of a repeated {@code shutdown()}
-     * and of an {@code initialize()} against a reachable backend. One slot, asserted by one step,
-     * {@code no exception should have been thrown}, so a scenario states the expectation explicitly
-     * instead of a thrown exception merely showing up as a step failure.
+     * <p>Evaluation, shutdown and re-initialisation all record here rather than propagate, into one
+     * slot asserted by one step — {@code no exception should have been thrown} — so a scenario
+     * states the expectation explicitly instead of a throw merely showing up as a step failure.
      */
     public Exception thrown;
 

@@ -18,31 +18,21 @@ import java.util.function.Supplier;
  * An in-JVM provider with a <strong>real initialisation</strong>, for the TCK's own Docker-free
  * self-test.
  *
- * <p>It exists because {@link InMemoryProvider} cannot cover the lifecycle feature and never will:
- * it is handed its whole flag set by its constructor, so {@code initialize()} does nothing but
- * record a state, and {@code shutdown()} releases nothing there is any way to observe. Running the
- * lifecycle scenarios against it would establish nothing, which is why
- * {@link InMemoryProviderTckTest} leaves {@link Capability#LIFECYCLE} undeclared. The consequence
- * was that the {@code @lifecycle} and {@code @reinitialization} steps — shutdown, double shutdown,
- * shutdown against a dead backend, initialise again — had no coverage without Docker, and a
- * regression in them surfaced first inside a containerised provider suite, where it looks like a
- * provider defect.
+ * <p>Unlike {@link InMemoryProvider}, which is handed its whole flag set by its constructor, this
+ * provider acquires something: it starts owning nothing, {@code initialize()} reaches a
+ * {@linkplain Supplier store} that may refuse it, and {@code shutdown()} drops what was acquired.
+ * The store is in this JVM rather than over a socket, but the <em>shape</em> is the one the
+ * lifecycle scenarios assert — see {@link ControllableProviderTckTest} for why that coverage is
+ * needed without Docker.
  *
- * <p>This provider therefore acquires something. It starts owning nothing, {@code initialize()}
- * reaches a {@linkplain Supplier store} that may refuse it, and {@code shutdown()} drops what was
- * acquired. The store is in this JVM rather than over a socket, but the <em>shape</em> is the one
- * the lifecycle scenarios assert: initialisation can fail, its outcome is observable, shutdown
- * releases and can be repeated, and initialising again brings the provider back.
- *
- * <p>Composition rather than {@code extends InMemoryProvider}, deliberately. Seeding a subclass's
- * flags at {@code initialize()} time means calling {@code updateFlags}, which emits
- * {@code PROVIDER_CONFIGURATION_CHANGED} — so initialisation would emit a configuration change
- * every time, and a test double that emits events the thing it stands in for would not emit is
- * worse than no double. Holding the delegate in a field keeps every emission deliberate.
+ * <p><strong>Composition rather than {@code extends InMemoryProvider}, deliberately.</strong>
+ * Seeding a subclass's flags at {@code initialize()} time means calling {@code updateFlags}, which
+ * emits {@code PROVIDER_CONFIGURATION_CHANGED}, so every initialisation would fire a spurious
+ * configuration change at the very scenarios that assert which events occur. Holding the delegate in
+ * a field keeps every emission deliberate.
  *
  * <p>Not part of the published API. An adopter with no backend uses
- * {@link InProcessBackendControl} and the SDK's own {@link InMemoryProvider}; this is the TCK
- * testing itself.
+ * {@link InProcessBackendControl} and the SDK's own {@link InMemoryProvider}.
  */
 final class ControllableProvider extends EventProvider {
 
@@ -73,8 +63,7 @@ final class ControllableProvider extends EventProvider {
      *
      * <p>Called by the SDK on registration, and directly by the {@code the provider is initialized
      * again} step. Both paths are the same code, which is the point of the reinitialisation
-     * scenario: a provider that returns early because an {@code initialized} flag was never cleared
-     * would pass the first and fail the second.
+     * scenario.
      *
      * @param context the scenario's evaluation context
      * @throws Exception if the backend is unreachable
@@ -89,10 +78,9 @@ final class ControllableProvider extends EventProvider {
     /**
      * Releases the flag set.
      *
-     * <p>Idempotent, which is what "shutting down a provider twice has no further effect" asks for:
-     * the second call finds {@code null} and returns. {@code super.shutdown()} is deliberately not
-     * called — it terminates {@link EventProvider}'s emitter executor, which would make this
-     * provider unusable after a shutdown the specification permits it to recover from. The SDK
+     * <p>Idempotent: the second call finds {@code null} and returns. {@code super.shutdown()} is
+     * deliberately not called — it terminates {@link EventProvider}'s emitter executor, which would
+     * make this provider unusable after a shutdown it is permitted to recover from. The SDK
      * terminates that executor when the provider is replaced, which the TCK does after every
      * scenario.
      */
@@ -110,9 +98,8 @@ final class ControllableProvider extends EventProvider {
     /**
      * Changes a flag and says so, from this provider rather than from the delegate.
      *
-     * <p>The delegate is not registered with the SDK, so an event emitted from it reaches nobody.
-     * Mutating the delegate's store and emitting from here is what makes the event the suite awaits
-     * arrive on the client the scenario is holding.
+     * <p>The delegate is not registered with the SDK, so an event emitted from it reaches nobody;
+     * emitting from here is what makes the awaited event arrive on the scenario's client.
      *
      * @param key the flag that changed
      * @param flag its new definition
@@ -154,7 +141,7 @@ final class ControllableProvider extends EventProvider {
      * The store, or a failure that names the cause.
      *
      * <p>An evaluation reaching a shut-down provider is a real error rather than a reason to serve
-     * stale values: the whole claim of the shutdown scenarios is that shutdown released something.
+     * stale values, since the claim of the shutdown scenarios is that shutdown released something.
      */
     private InMemoryProvider requireDelegate() {
         InMemoryProvider current = delegate;

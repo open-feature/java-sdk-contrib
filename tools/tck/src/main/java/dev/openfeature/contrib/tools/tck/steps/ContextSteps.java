@@ -9,17 +9,13 @@ import io.cucumber.java.en.Given;
  *
  * <p>Step vocabulary is inherited verbatim from the flagd test harness.
  *
- * <p>The context accumulated here is passed to every evaluation — {@code FlagSteps} hands
- * {@code state.context} to the typed accessor it dispatches on — so the {@code @targeting}
+ * <p>The context accumulated here is passed to every evaluation, so the {@code @targeting}
  * scenarios observe passthrough of the targeting key directly: {@code targeting-key-flag} resolves
- * to a different value for a matching context, so a provider that drops the context is caught by
- * the resolved value itself.
+ * differently for a matching context, so a provider that drops it is caught by the resolved value.
  *
- * <p>What is still not asserted is that the <em>whole</em> context reached the backend intact. A
- * provider that forwards the targeting key and silently discards every other attribute passes.
- * Closing that needs either an echo operation on the control API — something like
- * {@code GET /last-evaluation} returning the request the backend last received — or a canonical flag
- * whose rule keys on a custom attribute. That remains a known gap.
+ * <p>That the <em>whole</em> context reached the backend intact is not asserted — a provider
+ * forwarding only the targeting key passes — and closing that needs an echo operation on the control
+ * API or a canonical flag keyed on a custom attribute. Appendix F tracks it as an open question.
  */
 public class ContextSteps extends AbstractSteps {
 

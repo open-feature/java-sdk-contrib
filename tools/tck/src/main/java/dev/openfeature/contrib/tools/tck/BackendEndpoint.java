@@ -6,10 +6,9 @@ import org.testcontainers.containers.ComposeContainer;
  * Addresses of the running backend stack, handed to
  * {@link ContainerizedProviderTckTest#createProvider(BackendEndpoint)}.
  *
- * <p>This type exists because host ports are only known <em>after</em> the Compose stack has
- * started, which is why the harness exposes a factory method rather than a pre-built provider. The
- * mapping is stable for the lifetime of the suite, since the stack is started once and never
- * restarted — see the no-container-restart invariant in {@code openapi/control-api.yaml}.
+ * <p>Host ports are only known <em>after</em> the Compose stack has started, which is why the
+ * harness exposes a factory method rather than a pre-built provider. The mapping is stable for the
+ * lifetime of the suite, since the stack is started once and never restarted.
  */
 public final class BackendEndpoint {
 
@@ -24,9 +23,8 @@ public final class BackendEndpoint {
     /**
      * Returns the host the stack is reachable on.
      *
-     * <p>This is not necessarily {@code localhost}: with a remote Docker daemon, Docker Desktop on
-     * some platforms, or a rootless setup, it can be an arbitrary address. Always use this value
-     * rather than hard-coding a host.
+     * <p>Not necessarily {@code localhost} — with a remote Docker daemon or a rootless setup it can
+     * be an arbitrary address — so use this rather than hard-coding a host.
      *
      * @return the Docker host serving the backend stack
      */
@@ -59,9 +57,9 @@ public final class BackendEndpoint {
     /**
      * Resolves the dynamically mapped host port for a container-internal port on a named service.
      *
-     * <p>Use this for multi-service stacks — a proxy, an edge service, a sidecar. The service and
-     * port must have been declared via {@link ContainerizedProviderTckTest#additionalPorts()},
-     * otherwise Testcontainers has not exposed it and this call fails.
+     * <p>For multi-service stacks. The service and port must have been declared via
+     * {@link ContainerizedProviderTckTest#additionalPorts()}, or Testcontainers has not exposed it
+     * and this call fails.
      *
      * @param service the Compose service name
      * @param internalPort the container-internal port

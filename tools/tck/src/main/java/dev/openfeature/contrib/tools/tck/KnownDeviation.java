@@ -5,10 +5,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * An entry that says: <strong>this provider fails to do something it is required to do.</strong>
  *
- * <p>The requirement has to be a numbered {@code MUST}, or a rule the implementation bound itself to
- * elsewhere — flagd's numeric-coercion ADR, say. Where the specification <em>permits</em> the
- * choice, withholding the capability <em>is</em> the honest report and a deviation entry would
- * assert a defect that does not exist.
+ * <p>The requirement has to be a numbered {@code MUST}, or a rule the implementation bound itself
+ * to elsewhere. Where the specification <em>permits</em> the choice, withholding the capability
+ * <em>is</em> the honest report and a deviation entry would assert a defect that does not exist.
  *
  * <p>An entry is legitimate in two shapes, and <strong>the first is preferred</strong>: declare the
  * capability and let the scenario fail, or — only where the provider cannot attempt the behaviour at
@@ -17,14 +16,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
  * F</a> states both shapes and the rule behind them.
  *
- * <p>An illustration from this module, because it is the one case where the same absence means two
- * things. A provider with no streaming transport does not declare {@code @configuration-change} and
- * owes nothing further; {@code MultiProviderTckTest} withholds the same tag because
- * {@code MultiProvider} extends {@code EventProvider} and never subscribes to its children, so a
- * child's {@code PROVIDER_CONFIGURATION_CHANGED} is swallowed —
- * <a href="https://github.com/open-feature/java-sdk/issues/1882">open-feature/java-sdk#1882</a>.
- * Only the second is something a reader has to be told.
- *
  * <p>{@link #summary} is required; {@link #issue} is optional — see {@link #tracked} and
  * {@link #untracked}. {@link #capability} may be {@code null}, when the gap is against a mandatory,
  * ungated scenario. It may <strong>not</strong> name a {@linkplain Capability#reserved() reserved}
@@ -32,8 +23,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * to this provider, so a deviation would assert a fault nobody committed.
  *
  * <p>Declared by the provider author through {@link ProviderTckHarness#knownDeviations()}, because
- * that is the only place that knows. Whatever reads the declaration — a conformance report, a build
- * check, a human — is downstream of it and does not widen it.
+ * that is the only place that knows.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class KnownDeviation {
@@ -42,7 +32,7 @@ public final class KnownDeviation {
      * The capability tag the deviation concerns, or {@code null} when it maps to none.
      *
      * <p>Set whether the capability was declared and its scenario failed, or withheld and its
-     * scenarios skipped. The results say which happened; this says which capability it was about.
+     * scenarios skipped: the results say which happened, this says which capability it was about.
      */
     public final String capability;
 
@@ -64,13 +54,8 @@ public final class KnownDeviation {
      *
      * <p>The same rule as {@link Capability#requireDeclarable}, one step along: a deviation asserts
      * that the provider fails something it is required to do, so it has to be about a question that
-     * was actually asked. Recording a deviation against a capability that could not be declared is
-     * the same claim by another route, and the more dangerous of the two, because a deviation reads
-     * as an admission of fault. The two cases are refused separately because they are different
-     * facts.
-     *
-     * <p>Checked when the deviation is constructed rather than when it is read, so an adopter is told
-     * at the point they wrote it and whether or not anything downstream ever reads the declaration.
+     * was actually asked. Checked on construction rather than when it is read, so an adopter is told
+     * at the point they wrote it and whether or not anything downstream reads the declaration.
      *
      * @param capability the capability the deviation names, or {@code null}
      * @throws IllegalArgumentException if the capability is reserved or inexpressible
@@ -115,9 +100,8 @@ public final class KnownDeviation {
     /**
      * Records a deviation that is not tracked anywhere yet.
      *
-     * <p>Worth declaring even so. Naming the defect is what separates it from a capability the
-     * provider chose not to offer, and a declaration that merely omits the tag cannot say which of
-     * the two happened. Prefer {@link #tracked} as soon as there is an issue to point at.
+     * <p>Worth declaring even so: naming the defect is what separates it from a capability the
+     * provider chose not to offer. Prefer {@link #tracked} as soon as there is an issue to point at.
      *
      * @param capability the capability the gap is about — declared and failing, or withheld and
      *     skipped — or {@code null} when the gap belongs to no capability. Must not be
