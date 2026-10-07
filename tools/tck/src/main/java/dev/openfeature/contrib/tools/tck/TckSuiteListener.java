@@ -12,18 +12,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Tracks which TCK suite is currently executing, so the step definitions can find its harness.
  *
- * <p>The problem this solves: Cucumber's {@code @BeforeAll} is static and carries no information
- * about which suite triggered it. A provider with more than one transport — flagd has RPC and
- * in-process — therefore has no way to tell the glue which of its harnesses to use. Discovering
- * harnesses through {@link java.util.ServiceLoader} alone makes that ambiguous the moment a second
- * one is registered, and resolving it with a system property would push a separate Surefire
- * execution per mode onto every adopter's POM.
- *
- * <p>Instead: a concrete suite class <em>is</em> a {@link ProviderTckHarness}, and the JUnit
- * Platform tells us which one is running. This listener watches for a container whose source is a
- * concrete class implementing the SPI and records it for the duration of that suite's execution.
- * Adding a second mode is then a second class and nothing else — no registration file, no system
- * property, no build configuration.
+ * <p>Cucumber's {@code @BeforeAll} is static and carries no information about which suite triggered
+ * it, so a provider with more than one transport has no way to tell the glue which of its harnesses
+ * to use; {@link java.util.ServiceLoader} alone is ambiguous the moment a second one is registered.
+ * A concrete suite class <em>is</em> a {@link ProviderTckHarness}, though, and the JUnit Platform
+ * says which one is running, so this listener records the container whose source is a concrete class
+ * implementing the SPI. Adding a second mode is then a second class and nothing else.
  *
  * <p>Registered through {@code META-INF/services/org.junit.platform.launcher.TestExecutionListener}
  * inside this JAR, so it is picked up automatically by Surefire, Gradle and IDEs. It ignores every

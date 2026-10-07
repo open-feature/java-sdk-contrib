@@ -14,19 +14,14 @@ import org.testcontainers.containers.wait.strategy.Wait;
 /**
  * Base JUnit Platform Suite for providers that talk to an <strong>external backend</strong>.
  *
- * <p>Adds everything {@link ProviderTckTest} deliberately leaves out: the Docker Compose lifecycle,
- * discovery of dynamically mapped host ports, and construction of an {@link HttpBackendControl}
- * against the backend's control API. This is the base class for the overwhelming majority of
- * providers.
- *
- * <p>The HTTP control API described in {@code openapi/control-api.yaml} is the normative contract
- * here; a custom in-JVM {@link BackendControl} manipulating an external backend through a side
- * channel bypasses it — see {@link BackendControl}.
+ * <p>Adds everything {@link ProviderTckTest} leaves out: the Docker Compose lifecycle, discovery of
+ * dynamically mapped host ports, and construction of an {@link HttpBackendControl} against the
+ * backend's control API, which is the normative contract here — see {@link BackendControl}.
  *
  * <p>Provider authors implement three methods, optionally a fourth, and override the defaults their
- * stack needs. The Compose stack is started <strong>once</strong>, before the first scenario, and
- * stopped after the last one; it is never restarted in between, and backend unavailability is
- * always simulated inside the running stack through the control API. Appendix F says why.
+ * stack needs. The Compose stack is started <strong>once</strong>, before the first scenario, and is
+ * never restarted: backend unavailability is always simulated inside the running stack through the
+ * control API.
  *
  * <p>{@code tools/tck/README.md} carries a worked adoption.
  *
@@ -72,9 +67,8 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     /**
      * Creates the provider under test, configured against the running backend.
      *
-     * <p>Called after the Compose stack is up and the control API has seeded the canonical flag
-     * set. The endpoint carries the dynamically mapped host ports, which is why this is a factory
-     * rather than a field: the ports do not exist until the stack has started.
+     * <p>Called after the Compose stack is up and the control API has seeded the canonical flag set.
+     * The endpoint carries the dynamically mapped host ports, which do not exist until then.
      *
      * <p>The TCK owns the provider lifecycle from here. Do not call {@code setProvider} or
      * {@code initialize} yourself.
@@ -166,12 +160,10 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Starts the Compose stack, resolves the control API's mapped port and waits for it to
-     * accept commands.
-     *
-     * <p>The await here is the only timing allowance the suite makes: a readiness check against the
-     * control API itself, bounded by {@link #startupTimeout()}, rather than a guess at how long a
-     * backend takes. Nothing sleeps after a control command — see {@link HttpBackendControl}.
+     * <p>Starts the Compose stack, resolves the control API's mapped port and waits for it to accept
+     * commands. That await is the only timing allowance the suite makes, and it is a readiness check
+     * bounded by {@link #startupTimeout()} rather than a guess at how long a backend takes. Nothing
+     * sleeps after a control command — see {@link HttpBackendControl}.
      */
     @Override
     public final void startSuite() {

@@ -20,9 +20,9 @@ import java.util.Map;
  * {@code specification/assets/provider-tck/}, is copied in from the {@code spec} submodule at build
  * time and is packaged into the release JAR, which is why this class reads it off the classpath.
  *
- * <p><strong>Why decoded rather than transcribed.</strong> A hand-written copy inside the TCK would
- * have the in-process self-tests verify the suite against a second baseline of our own, so a rename
- * in the spec makes them pass against the wrong flags while reporting green.
+ * <p>Decoded rather than transcribed: a hand-written copy inside the TCK would have the in-process
+ * self-tests verify the suite against a second baseline of our own, so a rename in the spec would
+ * make them pass against the wrong flags while reporting green.
  *
  * <p>The file is flagd's flag-definition format —
  * <code>{"flags": {"&lt;key&gt;": {"state", "variants", "defaultVariant"}}}</code>. {@code $comment}
@@ -200,13 +200,12 @@ final class CanonicalFlags {
     /**
      * Splits a JSON number on how it was written, and on whether it fits.
      *
-     * <p>This is the load-bearing half of the decoding. A literal with a fraction or an exponent is a
+     * <p>The load-bearing half of the decoding. A literal with a fraction or an exponent is a
      * {@link Double} and an integral one is an {@link Integer} or, where 32 bits have no room for it,
      * a {@link Long}. {@code InMemoryProvider} matches a variant against the requested type, so it is
      * the decoded type that decides whether {@code integer-flag} is an integer flag and
-     * {@code integral-float-flag} a float one — and the file's own comment warns that a loader which
-     * turns {@code 10.0} back into {@code 10} lets the lossless-coercion scenario pass without
-     * coercing anything.
+     * {@code integral-float-flag} a float one: a loader that turns {@code 10.0} back into {@code 10}
+     * lets the lossless-coercion scenario pass without coercing anything.
      */
     private static Object number(String key, String variant, JsonNode node) {
         if (!node.isIntegralNumber()) {
