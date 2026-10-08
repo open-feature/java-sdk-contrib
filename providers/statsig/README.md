@@ -74,4 +74,12 @@ As it is limited, evaluation context based tests are limited.
 See [statsigProviderTest](./src/test/java/dev/openfeature/contrib/providers/statsig/StatsigProviderTest.java)
 for more information.
 
+## Release Notes
 
+### 0.3.0
+ - Migrated to Java Core according to [Migration guide](https://docs.statsig.com/server-core/migration-guides/java#java-migration-steps).
+ 
+   The provider usage is basically unchanged, the underlying implementation is changed.
+   As the initialization code may change, can refer to the migration guide for details.
+
+- group and secondaryExposures usage removed.
