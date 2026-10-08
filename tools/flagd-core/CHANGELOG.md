@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.1...dev.openfeature.contrib.tools.flagdcore-v2.0.2) (2026-10-08)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.2 [security] ([#1873](https://github.com/open-feature/java-sdk-contrib/issues/1873)) ([6be185a](https://github.com/open-feature/java-sdk-contrib/commit/6be185a5611a322292578f52c76dd2a677291d94))
+* **security:** update vulnerability-updates to v2.22.3 [security] ([#1882](https://github.com/open-feature/java-sdk-contrib/issues/1882)) ([c8f021d](https://github.com/open-feature/java-sdk-contrib/commit/c8f021dd40760790d0ddd93f4f2dc58dc4b3f449))
+
 ## [2.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.0...dev.openfeature.contrib.tools.flagdcore-v2.0.1) (2026-08-20)
 
 
