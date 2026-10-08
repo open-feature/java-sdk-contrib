@@ -158,7 +158,25 @@ public class ProviderSteps extends AbstractSteps {
                 .then()
                 .statusCode(200);
 
-        Thread.sleep(50);
+        if (State.resolverType == Config.Resolver.FILE) {
+            // The launchpad writes the flag file asynchronously; poll for it instead of sleeping.
+            String filePath = state.builder.build().getOfflineFlagSourcePath();
+            if (filePath != null) {
+                File flagFile = new File(filePath);
+                long deadline = System.currentTimeMillis() + 5_000;
+                while ((!flagFile.exists() || flagFile.length() == 0) && System.currentTimeMillis() < deadline) {
+                    Thread.sleep(50);
+                }
+                // "unavailable" deliberately points at a missing file, so only fail when we expect a ready provider.
+                if (wait && (!flagFile.exists() || flagFile.length() == 0)) {
+                    throw new IllegalStateException(
+                            "offline flag source file never became readable within 5000ms: " + filePath);
+                }
+            }
+        } else {
+            // The launchpad polls /readyz before returning, but the gRPC ports may lag slightly.
+            ContainerUtil.waitForGrpcPort(container, State.resolverType, 5_000);
+        }
 
         FeatureProvider provider =
                 new FlagdProvider(state.builder.resolverType(State.resolverType).build());
