@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v2.0.0...dev.openfeature.contrib.providers.go-feature-flag-v2.0.1) (2026-10-07)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update vulnerability-updates to v2.22.3 [security] ([#1882](https://github.com/open-feature/java-sdk-contrib/issues/1882)) ([c8f021d](https://github.com/open-feature/java-sdk-contrib/commit/c8f021dd40760790d0ddd93f4f2dc58dc4b3f449))
+
 ## [2.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.2.1...dev.openfeature.contrib.providers.go-feature-flag-v2.0.0) (2026-09-29)
 
 
