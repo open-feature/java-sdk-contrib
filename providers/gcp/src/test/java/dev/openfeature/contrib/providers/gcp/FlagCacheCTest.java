@@ -112,8 +112,9 @@ class FlagCacheCTest {
                         // (expired entry removed) or "new-value" (Thread A won the race) —
                         // never the stale "stale-value" whose TTL has elapsed
                         () -> assertThat(cache.get("key"))
-                                .satisfiesAnyOf(opt -> assertThat(opt).isEmpty(), opt -> assertThat(opt)
-                                        .hasValue("new-value")));
+                                .satisfiesAnyOf(
+                                        opt -> assertThat(opt).isEmpty(),
+                                        opt -> assertThat(opt).hasValue("new-value")));
             }
         }
     }

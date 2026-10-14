@@ -187,8 +187,13 @@ public final class RpcResolver implements Resolver {
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
-        return resolve(key, defaultValue, ctx, request, getBlockingStub()::resolveInt, (Object value) -> ((Long) value)
-                .intValue());
+        return resolve(
+                key,
+                defaultValue,
+                ctx,
+                request,
+                getBlockingStub()::resolveInt,
+                (Object value) -> ((Long) value).intValue());
     }
 
     /**
