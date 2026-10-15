@@ -7,7 +7,7 @@ This module implements the [`Evaluator`](../flagd-api) interface from the `flagd
 
 ## Usage
 
-flagd-core wraps a simple flagd feature flag storage and flag evaluation logic.
+flagd-core wraps simple flagd feature flag storage and evaluation logic.
 
 To use this implementation, instantiate a `FlagdCore` and provide valid flagd flag configurations.
 
