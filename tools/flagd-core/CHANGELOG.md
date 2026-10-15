@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.3...dev.openfeature.contrib.tools.flagdcore-v2.0.4) (2026-10-15)
+
+
+### 🐛 Bug Fixes
+
+* README, and update publish plugin ([16bd172](https://github.com/open-feature/java-sdk-contrib/commit/16bd172336eca43a1ba8b63b219bc5a3ece75742))
+
+## [2.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.2...dev.openfeature.contrib.tools.flagdcore-v2.0.3) (2026-10-15)
+
+
+### 🐛 Bug Fixes
+
+* remove SBOM from maven bundle, README typo ([5eecf75](https://github.com/open-feature/java-sdk-contrib/commit/5eecf75229cf5cce2e54954cbc20049ec6132512))
+
 ## [2.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.1...dev.openfeature.contrib.tools.flagdcore-v2.0.2) (2026-10-15)
 
 
