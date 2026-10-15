@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v2.0.1...dev.openfeature.contrib.providers.go-feature-flag-v2.0.2) (2026-10-15)
+
+
+### 🐛 Bug Fixes
+
+* remove SBOM from maven bundle, README typo ([5eecf75](https://github.com/open-feature/java-sdk-contrib/commit/5eecf75229cf5cce2e54954cbc20049ec6132512))
+
 ## [2.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v2.0.0...dev.openfeature.contrib.providers.go-feature-flag-v2.0.1) (2026-10-07)
 
 
