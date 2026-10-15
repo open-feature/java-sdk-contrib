@@ -1,11 +1,19 @@
 package dev.openfeature.contrib.tools.flagd.core.targeting;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.openfeature.contrib.tools.flagd.core.cbor.CborEncoder;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
-import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.MurmurHash3;
@@ -16,6 +24,11 @@ import org.apache.commons.codec.digest.MurmurHash3;
 @Slf4j
 class Fractional implements PreEvaluatedArgumentsExpression {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonNodeFactory NODE_FACTORY = JsonNodeFactory.instance;
+    // exact as doubles; Long.MAX_VALUE is not (it rounds up to 2^63)
+    private static final double TWO_POW_63 = 0x1p63;
+    private static final double TWO_POW_64 = 0x1p64;
     static final int MAX_WEIGHT = Integer.MAX_VALUE;
 
     @Override
@@ -32,21 +45,27 @@ class Fractional implements PreEvaluatedArgumentsExpression {
 
         final Operator.FlagProperties properties = new Operator.FlagProperties(data);
 
-        final String bucketBy;
+        final Object bucketBy;
         final List<Object> distributions;
 
         // json-logic pre-evaluation flattens a single-entry fractional
         // e.g. [["single",1]] becomes ["single", 1]; detect and re-wrap
-        if (isFlattened(arguments)) {
+        if (arguments.get(0) == null) {
+            log.debug("Invalid arguments for fractional targeting: first argument is null");
+            return null;
+        } else if (isFlattened(arguments)) {
             if (properties.getTargetingKey() == null) {
                 log.debug("Missing fallback targeting key");
                 return null;
             }
-            bucketBy = properties.getFlagKey() + properties.getTargetingKey();
+            bucketBy = Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
             distributions = List.of(arguments);
-        } else if (arguments.get(0) instanceof String) {
-            // first arg is a String, use for bucketing
-            bucketBy = (String) arguments.get(0);
+        } else if (arguments.get(0) instanceof String
+                || arguments.get(0) instanceof Boolean
+                || arguments.get(0) instanceof Number
+                || arguments.get(0) instanceof Map) {
+            // first arg is a primitive or Map, use for bucketing
+            bucketBy = arguments.get(0);
             distributions = arguments.subList(1, arguments.size());
         } else {
             // fallback to targeting key if present
@@ -54,22 +73,26 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 log.debug("Missing fallback targeting key");
                 return null;
             }
-            bucketBy = properties.getFlagKey() + properties.getTargetingKey();
+
+            bucketBy = Arrays.asList(properties.getFlagKey(), properties.getTargetingKey());
             distributions = arguments;
         }
 
         final List<FractionProperty> propertyList = new ArrayList<>();
         long totalWeight = 0;
 
-        try {
-            for (Object dist : distributions) {
+        for (Object dist : distributions) {
+            try {
                 FractionProperty fractionProperty = new FractionProperty(dist, jsonPath);
                 propertyList.add(fractionProperty);
                 totalWeight += fractionProperty.getWeight();
+            } catch (JsonLogicException e) {
+                if ("Property is not an array".equals(e.getMessage())) {
+                    throw new JsonLogicEvaluationException(
+                            "Error parsing fractional targeting rule: " + e.getMessage(), jsonPath);
+                }
+                return null;
             }
-        } catch (JsonLogicException e) {
-            log.debug("Error parsing fractional targeting rule", e);
-            return null;
         }
 
         if (totalWeight > MAX_WEIGHT) {
@@ -87,14 +110,49 @@ class Fractional implements PreEvaluatedArgumentsExpression {
     }
 
     private static Object distributeValue(
-            final String hashKey,
+            final Object hashKey,
             final List<FractionProperty> propertyList,
             final int totalWeight,
             final String jsonPath)
             throws JsonLogicEvaluationException {
-        byte[] bytes = hashKey.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes;
+        try {
+            JsonNode node = normalizeNumbers(OBJECT_MAPPER.valueToTree(hashKey));
+            bytes = CborEncoder.encode(node);
+        } catch (Exception e) {
+            log.debug("Error converting hashKey to CBOR", e);
+            throw new JsonLogicEvaluationException("Error converting hashKey to CBOR", jsonPath);
+        }
         int mmrHash = MurmurHash3.hash32x86(bytes, 0, bytes.length, 0);
         return distributeValueFromHash(mmrHash, propertyList, totalWeight, jsonPath);
+    }
+
+    // normalize for hashing parity: whole doubles in [-2^63, 2^64-1] -> int, -0.0 -> 0, else unchanged
+    @SuppressWarnings("PMD.AvoidDecimalLiteralsInBigDecimalConstructor") // always a whole where we do this
+    static JsonNode normalizeNumbers(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode result = NODE_FACTORY.objectNode();
+            node.fields().forEachRemaining(field -> result.set(field.getKey(), normalizeNumbers(field.getValue())));
+            return result;
+        }
+        if (node.isArray()) {
+            ArrayNode result = NODE_FACTORY.arrayNode();
+            node.forEach(child -> result.add(normalizeNumbers(child)));
+            return result;
+        }
+        if (node.isFloatingPointNumber()) {
+            double value = node.asDouble();
+            if (!Double.isInfinite(value) && value == Math.floor(value)) {
+                if (value >= Long.MIN_VALUE && value < TWO_POW_63) {
+                    return NODE_FACTORY.numberNode((long) value);
+                }
+                if (value >= TWO_POW_63 && value < TWO_POW_64) {
+                    // beyond long; unsigned 64-bit
+                    return NODE_FACTORY.numberNode(new BigDecimal(value).toBigIntegerExact());
+                }
+            }
+        }
+        return node;
     }
 
     /**
