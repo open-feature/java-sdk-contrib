@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.15.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.2...dev.openfeature.contrib.providers.flagd-v0.15.0) (2026-10-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831))
+
+### ✨ New Features
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831)) ([a6cc606](https://github.com/open-feature/java-sdk-contrib/commit/a6cc606b03a1a23986117f62f80157a2c7c935c9))
+
 ## [0.14.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.1...dev.openfeature.contrib.providers.flagd-v0.14.2) (2026-09-14)
 
 
