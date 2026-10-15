@@ -16,7 +16,7 @@ FlagdCore core = new FlagdCore();
 core.setFlags(FLAG_CONFIGURATION_STRING);
 ```
 
-Once initialization is complete, use matching flag resolving call:
+Once initialization is complete, use the matching flag resolution call:
 
 ```java
 ProviderEvaluation<Boolean> result = core.resolveBooleanValue("myBoolFlag", evaluationContext);

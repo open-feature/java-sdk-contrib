@@ -409,6 +409,8 @@
                             <includeTestScope>false</includeTestScope>
                             <includeLicenseText>false</includeLicenseText>
                             <outputFormat>all</outputFormat>
+                            <!-- central rejects bundles with attached sboms -->
+                            <skipAttach>true</skipAttach>
                         </configuration>
                         <executions>
                             <execution>
