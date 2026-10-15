@@ -28,7 +28,7 @@ ProviderEvaluation<Boolean> result = core.resolveBooleanValue("myBoolFlag", eval
 <dependency>
     <groupId>dev.openfeature.contrib.tools</groupId>
     <artifactId>flagd-core</artifactId>
-    <version>2.0.3</version> <!--x-release-please-version -->
+    <version>2.0.4</version> <!--x-release-please-version -->
 </dependency>
 ```
 
