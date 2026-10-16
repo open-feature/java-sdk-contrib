@@ -196,8 +196,9 @@ class ConformanceReportPluginTest {
         List<JsonNode> rows = results.picklesNamed(OUTLINE);
 
         assertThat(rows).hasSize(3);
-        assertThat(rows).as("the feature tag reaches every row").allSatisfy(row -> assertThat(results.tagsOf(row))
-                .contains("@events"));
+        assertThat(rows)
+                .as("the feature tag reaches every row")
+                .allSatisfy(row -> assertThat(results.tagsOf(row)).contains("@events"));
 
         // Gherkin allows a tag on an individual Examples block, so two rows of one outline can
         // differ in whether the gate stops them. Both rows must appear, and only the tagged one
