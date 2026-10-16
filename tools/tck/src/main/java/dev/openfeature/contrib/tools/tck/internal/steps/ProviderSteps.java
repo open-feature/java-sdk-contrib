@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.tck.Capability;
+import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.TckState;
@@ -33,8 +34,8 @@ public class ProviderSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderSteps.class);
 
-    public ProviderSteps(TckState state) {
-        super(state);
+    public ProviderSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
+        super(state, harness, backend);
     }
 
     /** Runs the harness's suite startup once, before the first scenario. */

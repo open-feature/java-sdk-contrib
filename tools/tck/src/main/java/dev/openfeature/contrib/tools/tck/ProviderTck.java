@@ -53,7 +53,7 @@ public final class ProviderTck {
     static final String FEATURE_EXECUTION_MODE = "same_thread";
 
     /** Object factory that injects {@link TckState} into every step class. */
-    static final String OBJECT_FACTORY = "io.cucumber.picocontainer.PicoFactory";
+    static final String OBJECT_FACTORY = "dev.openfeature.contrib.tools.tck.TckObjectFactory";
 
     private static final Logger log = LoggerFactory.getLogger(ProviderTck.class);
 
@@ -117,6 +117,10 @@ public final class ProviderTck {
      * @return the suite-scoped runtime
      * @throws IllegalStateException if the suite has not been started
      */
+    static synchronized boolean isRunning() {
+        return instance != null;
+    }
+
     private static synchronized ProviderTck current() {
         if (instance == null) {
             throw new IllegalStateException("the TCK suite has not been started");
@@ -141,7 +145,7 @@ public final class ProviderTck {
         CapabilityGate.requireDeclared(source, tags, harness().capabilities());
     }
 
-    public static ProviderTckHarness harness() {
+    static ProviderTckHarness harness() {
         return current().harness;
     }
 
@@ -150,7 +154,7 @@ public final class ProviderTck {
      *
      * @return the backend control for this suite
      */
-    public static BackendControl backendControl() {
+    static BackendControl backendControl() {
         return current().backendControl;
     }
 
