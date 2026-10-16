@@ -2,7 +2,6 @@ package dev.openfeature.contrib.tools.tck;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.openfeature.contrib.tools.tck.internal.TckSuiteListener;
 import io.cucumber.junit.platform.engine.Constants;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.engine.TestSource;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
+import org.junit.platform.engine.support.descriptor.ClassSource;
 import org.junit.platform.engine.support.descriptor.ClasspathResourceSource;
 import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
@@ -34,8 +34,7 @@ class ExtensionPointTest {
         TestPlan plan = discover(LauncherDiscoveryRequestBuilder.request()
                 .selectors(DiscoverySelectors.selectClass(TckSuiteFixture.class)));
 
-        TestIdentifier suite = only(
-                plan, identifier -> TckSuiteListener.harnessClassOf(identifier).isPresent());
+        TestIdentifier suite = only(plan, ExtensionPointTest::isTckSuite);
         TestIdentifier cucumber = only(
                 plan, identifier -> "cucumber".equals(engineIdOf(identifier)) && isDescendant(plan, identifier, suite));
 
@@ -161,5 +160,15 @@ class ExtensionPointTest {
         for (TestIdentifier child : plan.getChildren(identifier)) {
             collectMatching(plan, child, predicate, into);
         }
+    }
+
+    /** The suite node for {@link TckSuiteFixture}, named here rather than borrowed from the listener. */
+    private static boolean isTckSuite(TestIdentifier identifier) {
+        return identifier
+                .getSource()
+                .filter(ClassSource.class::isInstance)
+                .map(source -> ((ClassSource) source).getJavaClass())
+                .filter(TckSuiteFixture.class::equals)
+                .isPresent();
     }
 }
