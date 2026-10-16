@@ -21,3 +21,4 @@
 [submodule "tools/tck/spec"]
 	path = tools/tck/spec
 	url = https://github.com/open-feature/spec.git
+	branch = specification/assets/provider-tck/v0.1.0
