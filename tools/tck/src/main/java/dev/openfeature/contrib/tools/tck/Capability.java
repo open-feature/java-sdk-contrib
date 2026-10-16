@@ -117,7 +117,7 @@ public enum Capability {
      *
      * @return the Gherkin tag for this capability
      */
-    public String tag() {
+    String tag() {
         return tag;
     }
 
@@ -127,7 +127,7 @@ public enum Capability {
      *
      * @return {@code true} if no scenario carries this capability's tag
      */
-    public boolean reserved() {
+    boolean reserved() {
         return reserved;
     }
 
@@ -137,7 +137,7 @@ public enum Capability {
      * @return {@code true} if no provider written against this SDK can be asked this capability's
      *     scenarios
      */
-    public boolean inexpressible() {
+    boolean inexpressible() {
         return inexpressibleBecause != null;
     }
 
@@ -156,7 +156,7 @@ public enum Capability {
      * @param tag a Gherkin tag including the leading {@code @}
      * @return the matching capability, or empty if the tag does not gate a capability
      */
-    public static Optional<Capability> fromTag(String tag) {
+    static Optional<Capability> fromTag(String tag) {
         return Arrays.stream(values()).filter(c -> c.tag.equals(tag)).findFirst();
     }
 
