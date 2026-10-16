@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.openfeature.contrib.tools.tck.internal.CapabilityGate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;

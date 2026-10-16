@@ -1,7 +1,5 @@
-package dev.openfeature.contrib.tools.tck.internal;
+package dev.openfeature.contrib.tools.tck;
 
-import dev.openfeature.contrib.tools.tck.Capability;
-import dev.openfeature.contrib.tools.tck.ProviderTck;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,7 +12,7 @@ import org.opentest4j.TestAbortedException;
  * Decides whether a scenario is skipped, failed, or run based on its tags; skips are signalled with
  * {@link TestAbortedException}.
  */
-public final class CapabilityGate {
+final class CapabilityGate {
 
     private CapabilityGate() {}
 
@@ -26,7 +24,7 @@ public final class CapabilityGate {
      * @throws IllegalStateException if a tag names a reserved capability
      * @throws TestAbortedException if a tag gates an inexpressible or an undeclared capability
      */
-    public static void requireDeclared(Collection<String> tags, Set<Capability> declared) {
+    static void requireDeclared(Collection<String> tags, Set<Capability> declared) {
         requireDeclared(null, tags, declared);
     }
 
@@ -41,7 +39,7 @@ public final class CapabilityGate {
      *     scenario carries a tag this vocabulary does not know
      * @throws TestAbortedException if a tag gates an inexpressible or an undeclared capability
      */
-    public static void requireDeclared(URI source, Collection<String> tags, Set<Capability> declared) {
+    static void requireDeclared(URI source, Collection<String> tags, Set<Capability> declared) {
         requireNoExpiredReservation(tags);
         requireKnownVocabulary(source, tags);
         for (String tag : tags) {
@@ -71,7 +69,7 @@ public final class CapabilityGate {
      * @param tags the scenario's Gherkin tags, including the leading at-sign
      * @throws IllegalStateException if the scenario is canonical and carries an unknown tag
      */
-    public static void requireKnownVocabulary(URI source, Collection<String> tags) {
+    static void requireKnownVocabulary(URI source, Collection<String> tags) {
         if (!isCanonical(source)) {
             return;
         }
@@ -111,7 +109,7 @@ public final class CapabilityGate {
      * @param tags the scenario's Gherkin tags, including the leading at-sign
      * @throws IllegalStateException if a tag names a reserved capability
      */
-    public static void requireNoExpiredReservation(Collection<String> tags) {
+    static void requireNoExpiredReservation(Collection<String> tags) {
         List<String> expired = new ArrayList<>();
         for (String tag : tags) {
             Optional<Capability> capability = Capability.fromTag(tag);

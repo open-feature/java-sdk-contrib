@@ -9,7 +9,6 @@ import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckRuntime;
 import dev.openfeature.contrib.tools.tck.TckState;
-import dev.openfeature.contrib.tools.tck.internal.CapabilityGate;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.NoOpProvider;
@@ -52,15 +51,14 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     /**
-     * Skips scenarios needing an undeclared {@link Capability}; see {@link CapabilityGate}. Tags
+     * Skips scenarios needing an undeclared {@link Capability}; see {@link TckRuntime#gateScenario}. Tags
      * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check.
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        CapabilityGate.requireDeclared(
-                scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
+        TckRuntime.gateScenario(scenario.getUri(), scenario.getSourceTagNames());
     }
 
     /**

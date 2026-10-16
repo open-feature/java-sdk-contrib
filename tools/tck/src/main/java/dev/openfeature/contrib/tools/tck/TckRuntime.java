@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.tools.tck;
 
+import java.net.URI;
+import java.util.Collection;
 import dev.openfeature.contrib.tools.tck.internal.TckSuiteListener;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +55,7 @@ public final class TckRuntime {
             BackendControl control = harness.backendControl();
             if (control == null) {
                 throw new IllegalStateException(harness.getClass().getName()
-                        + ".backendControl() returned null; supply an HttpBackendControl or InProcessBackendControl.");
+                        + ".backendControl() returned null; supply BackendControl.overHttp(..) or BackendControl.inProcess().");
             }
             log.info("Backend control: {}", control.description());
             instance = new TckRuntime(harness, control);
@@ -94,6 +96,18 @@ public final class TckRuntime {
      *
      * @return the discovered harness
      */
+    /**
+     * Applies the capability gate to a scenario about to run.
+     *
+     * <p>The seam the step definitions call, which keeps {@code CapabilityGate} out of the API.
+     *
+     * @param source the scenario's feature file, or {@code null} when unknown
+     * @param tags the scenario's Gherkin tags, including the leading at-sign
+     */
+    public static void gateScenario(URI source, Collection<String> tags) {
+        CapabilityGate.requireDeclared(source, tags, get().harness().capabilities());
+    }
+
     public ProviderTckHarness harness() {
         return harness;
     }

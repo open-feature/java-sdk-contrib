@@ -143,7 +143,7 @@ public enum Capability {
      *
      * @return the reason, or {@code null} if this capability is expressible
      */
-    public String inexpressibleBecause() {
+    String inexpressibleBecause() {
         return inexpressibleBecause;
     }
 
