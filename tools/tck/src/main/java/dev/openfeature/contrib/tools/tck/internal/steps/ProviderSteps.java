@@ -5,9 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.tck.Capability;
-import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
-import dev.openfeature.contrib.tools.tck.TckRuntime;
+import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
@@ -41,24 +40,24 @@ public class ProviderSteps extends AbstractSteps {
     /** Runs the harness's suite startup once, before the first scenario. */
     @BeforeAll
     public static void beforeAll() {
-        TckRuntime.startIfNeeded();
+        ProviderTck.startIfNeeded();
     }
 
     /** Runs the harness's suite teardown after the last scenario. */
     @AfterAll
     public static void afterAll() {
-        TckRuntime.stop();
+        ProviderTck.stop();
     }
 
     /**
-     * Skips scenarios needing an undeclared {@link Capability}; see {@link TckRuntime#gateScenario}. Tags
+     * Skips scenarios needing an undeclared {@link Capability}; see {@link ProviderTck#gateScenario}. Tags
      * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check.
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        TckRuntime.gateScenario(scenario.getUri(), scenario.getSourceTagNames());
+        ProviderTck.gateScenario(scenario.getUri(), scenario.getSourceTagNames());
     }
 
     /**

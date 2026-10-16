@@ -247,7 +247,7 @@ src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openf
 
 - Same backend lifecycle and `BackendControl`; canonical steps are on the glue path, so an extension
   can open with `Given a stable provider`.
-- Step classes may inject `TckState` and use `TckRuntime.get()` for backend control and endpoint. Don't
+- Step classes may inject `TckState` and use `ProviderTck.get()` for backend control and endpoint. Don't
   build your own client; it would resolve against a provider the suite never registered.
 - Don't put files under `gherkin/`; a same-named file would silently shadow a canonical one.
 - Unknown tags are tolerated in `extensions/` (they gate nothing) but fail the run in `gherkin/`.
@@ -279,7 +279,7 @@ src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openf
 
 - See [Appendix F][appendix-f] for suite-wide gaps (context passthrough beyond the targeting key,
   per-flag control, caching, `@stale` without containers, hooks, flag metadata).
-- `TckRuntime` is static; suites in one JVM fork run sequentially, not concurrently.
+- `ProviderTck` is static; suites in one JVM fork run sequentially, not concurrently.
 
 ## Contributing
 

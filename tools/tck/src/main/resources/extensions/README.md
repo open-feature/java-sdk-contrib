@@ -15,9 +15,9 @@ Steps in the `openfeature.tck.extensions` glue package are picked up automatical
 suite's backend lifecycle.
 
 Step classes may take `dev.openfeature.contrib.tools.tck.TckState` as a constructor argument, and
-use `TckRuntime.get()` for the harness and backend control. The built-in step definitions live in
+use `ProviderTck.harness()` and `ProviderTck.backendControl()`. The built-in step definitions live in
 `dev.openfeature.contrib.tools.tck.internal.steps`; they are internal, not API, so only depend on
-`TckState` and `TckRuntime`.
+`TckState` and `ProviderTck`.
 
 Both the step class and each step method must be `public` -- `PicoFactory` registers only public,
 non-abstract classes and `MethodScanner` uses `Class.getMethods()`. Neither complains when it

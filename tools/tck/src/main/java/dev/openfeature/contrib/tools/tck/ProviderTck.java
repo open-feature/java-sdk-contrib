@@ -1,13 +1,32 @@
 package dev.openfeature.contrib.tools.tck;
 
+import java.net.URI;
+import java.util.Collection;
+import dev.openfeature.contrib.tools.tck.internal.TckSuiteListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * The Cucumber configuration values {@link ProviderTckTest} uses, as compile-time constants for
- * composing, e.g. {@code ProviderTck.ALL_GLUE + ",com.vendor.steps"}.
+ * The suite's entry point and its Cucumber configuration: discovers the harness, drives the suite
+ * lifecycle once, and exposes its {@link BackendControl} to step definitions.
+ *
+ * <p>State is static (Cucumber's {@code @BeforeAll}/{@code @AfterAll} are static), so only one TCK
+ * suite may run per JVM fork at a time.
  */
 public final class ProviderTck {
 
+
+    // Cucumber configuration, as compile-time constants so ProviderTckTest can use them in
+    // annotations. Only the three an extension composes with are public.
+
+
     /** Classpath directory of the canonical feature files; reserved, use {@link #EXTENSIONS}. */
-    public static final String FEATURES = "gherkin";
+    static final String FEATURES = "gherkin";
 
     /**
      * Classpath directory for adopter feature files; separate from {@link #FEATURES} so they cannot
@@ -16,7 +35,7 @@ public final class ProviderTck {
     public static final String EXTENSIONS = "extensions";
 
     /** Package holding the canonical step definitions. */
-    public static final String GLUE = "dev.openfeature.contrib.tools.tck.internal.steps";
+    static final String GLUE = "dev.openfeature.contrib.tools.tck.internal.steps";
 
     /** Package for adopter step definitions; may be absent. */
     public static final String EXTENSION_GLUE = "openfeature.tck.extensions";
@@ -25,16 +44,159 @@ public final class ProviderTck {
     public static final String ALL_GLUE = GLUE + "," + EXTENSION_GLUE;
 
     /** The Cucumber plugins the suite registers. */
-    public static final String PLUGINS = "summary";
+    static final String PLUGINS = "summary";
 
     /** Parallel execution is disabled; backend state is global to the suite. */
-    public static final String PARALLEL_EXECUTION_ENABLED = "false";
+    static final String PARALLEL_EXECUTION_ENABLED = "false";
 
     /** Execution mode for the scenarios of one feature, matching {@link #PARALLEL_EXECUTION_ENABLED}. */
-    public static final String FEATURE_EXECUTION_MODE = "same_thread";
+    static final String FEATURE_EXECUTION_MODE = "same_thread";
 
     /** Object factory that injects {@link TckState} into every step class. */
-    public static final String OBJECT_FACTORY = "io.cucumber.picocontainer.PicoFactory";
+    static final String OBJECT_FACTORY = "io.cucumber.picocontainer.PicoFactory";
 
-    private ProviderTck() {}
+    private static final Logger log = LoggerFactory.getLogger(ProviderTck.class);
+
+    /** System property selecting a harness by simple class name when several are registered. */
+    static final String HARNESS_SELECTOR_PROPERTY = "openfeature.tck.harness";
+
+    private static ProviderTck instance;
+
+    private final ProviderTckHarness harness;
+    private final BackendControl backendControl;
+
+    private ProviderTck(ProviderTckHarness harness, BackendControl backendControl) {
+        this.harness = harness;
+        this.backendControl = backendControl;
+    }
+
+    /**
+     * Starts the suite lifecycle if it is not already running, and returns the shared runtime.
+     *
+     */
+    public static synchronized void startIfNeeded() {
+        if (instance != null) {
+            return;
+        }
+        ProviderTckHarness harness = discoverHarness();
+        log.info("Provider TCK harness: {}", harness.getClass().getName());
+
+        // fail fast, before starting Docker
+        Capability.requireDeclarable(harness.capabilities());
+
+        try {
+            harness.startSuite();
+            BackendControl control = harness.backendControl();
+            if (control == null) {
+                throw new IllegalStateException(harness.getClass().getName()
+                        + ".backendControl() returned null; supply BackendControl.overHttp(..) or BackendControl.inProcess().");
+            }
+            log.info("Backend control: {}", control.description());
+            instance = new ProviderTck(harness, control);
+        } catch (RuntimeException e) {
+            // release anything a partial start allocated, e.g. containers
+            harness.stopSuite();
+            throw e;
+        }
+    }
+
+    /**
+     * Runs the harness's suite teardown and releases the shared runtime.
+     */
+    public static synchronized void stop() {
+        if (instance != null) {
+            ProviderTckHarness harness = instance.harness;
+            instance = null;
+            harness.stopSuite();
+        }
+    }
+
+    /**
+     * Returns the running runtime.
+     *
+     * @return the suite-scoped runtime
+     * @throws IllegalStateException if the suite has not been started
+     */
+    private static synchronized ProviderTck current() {
+        if (instance == null) {
+            throw new IllegalStateException("the TCK suite has not been started");
+        }
+        return instance;
+    }
+
+    /**
+     * Returns the provider author's harness.
+     *
+     * @return the discovered harness
+     */
+    /**
+     * Applies the capability gate to a scenario about to run.
+     *
+     * <p>The seam the step definitions call, which keeps {@code CapabilityGate} out of the API.
+     *
+     * @param source the scenario's feature file, or {@code null} when unknown
+     * @param tags the scenario's Gherkin tags, including the leading at-sign
+     */
+    public static void gateScenario(URI source, Collection<String> tags) {
+        CapabilityGate.requireDeclared(source, tags, harness().capabilities());
+    }
+
+    public static ProviderTckHarness harness() {
+        return current().harness;
+    }
+
+    /**
+     * Returns the seam through which the TCK manipulates the backend.
+     *
+     * @return the backend control for this suite
+     */
+    public static BackendControl backendControl() {
+        return current().backendControl;
+    }
+
+    /**
+     * Finds the harness for the executing suite via {@link TckSuiteListener}, falling back to
+     * {@link java.util.ServiceLoader} (disambiguated by {@link #HARNESS_SELECTOR_PROPERTY}).
+     */
+    private static ProviderTckHarness discoverHarness() {
+        Optional<Class<? extends ProviderTckHarness>> suite = TckSuiteListener.currentSuite();
+        if (suite.isPresent()) {
+            return instantiate(suite.get());
+        }
+
+        List<ProviderTckHarness> found = new ArrayList<>();
+        ServiceLoader.load(ProviderTckHarness.class).forEach(found::add);
+
+        if (found.isEmpty()) {
+            throw new IllegalStateException("No ProviderTckHarness found. Write a test class extending "
+                    + "ContainerizedProviderTckTest (external backend) or ProviderTckTest (no backend); "
+                    + "it is both the JUnit suite and the harness.");
+        }
+        if (found.size() == 1) {
+            return found.get(0);
+        }
+
+        String selector = System.getProperty(HARNESS_SELECTOR_PROPERTY);
+        if (selector == null) {
+            throw new IllegalStateException("Several ProviderTckHarness implementations are registered ("
+                    + found.stream().map(h -> h.getClass().getSimpleName()).collect(Collectors.joining(", "))
+                    + ") and the executing suite is unknown; select one with -D"
+                    + HARNESS_SELECTOR_PROPERTY + "=<simple class name>.");
+        }
+        return found.stream()
+                .filter(h -> h.getClass().getSimpleName().equals(selector))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No registered ProviderTckHarness named '" + selector
+                        + "'. Registered: "
+                        + found.stream().map(h -> h.getClass().getSimpleName()).collect(Collectors.joining(", "))));
+    }
+
+    private static ProviderTckHarness instantiate(Class<? extends ProviderTckHarness> suite) {
+        try {
+            return suite.getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(
+                    suite.getName() + " could not be instantiated; it needs a public no-arg constructor.", e);
+        }
+    }
 }
