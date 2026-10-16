@@ -235,6 +235,23 @@ class DeclarationApiTest {
     }
 
     @Test
+    @DisplayName("a deviation must say what the gap is")
+    void deviationsMustCarryASummary() {
+        // The summary is the only part of the entry that says what is wrong: the capability says
+        // which question was asked and the results say what happened. Serialization omits null
+        // fields, so an unchecked summary reaches a report as a deviation that asserts a defect
+        // without describing it -- which is worse than no entry, because it cannot be acted on.
+        assertThatThrownBy(() -> KnownDeviation.untracked(Capability.OBJECT, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no summary");
+
+        assertThatThrownBy(() -> KnownDeviation.tracked(Capability.OBJECT, "https://example.invalid/1", "   "))
+                .as("blank is the same omission with whitespace in it")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no summary");
+    }
+
+    @Test
     @DisplayName("a deviation cannot name a capability whose scenarios were never put to the provider")
     void deviationsCannotNameAnUnaskedCapability() {
         // A deviation asserts that the provider fails something it is required to do, so it has to

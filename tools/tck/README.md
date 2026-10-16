@@ -94,10 +94,13 @@ the file.
 ### A provider with no backend
 
 `InProcessBackendControl` implements the in-process path for the SDK's `InMemoryProvider`, seeded from
-the packaged flag set. The adoption is three methods:
+the packaged flag set. The adoption is three methods — shown here as the `InMemoryProvider` self-test
+it is, because `control.createProvider()` returns that provider and not yours. Copy the **shape**: for
+your own provider, `createProvider()` returns yours, and the `BackendControl` is the object that can
+reach its live flag store.
 
 ```java
-public class MyProviderTest extends ProviderTckTest {
+public class InMemoryProviderTckTest extends ProviderTckTest {
 
     private final InProcessBackendControl control = new InProcessBackendControl();
 

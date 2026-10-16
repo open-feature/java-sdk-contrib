@@ -54,8 +54,8 @@ public final class TckRuntime {
         // about a one-line mistake in capabilities().
         Capability.requireDeclarable(harness.capabilities());
 
-        harness.startSuite();
         try {
+            harness.startSuite();
             BackendControl control = harness.backendControl();
             if (control == null) {
                 throw new IllegalStateException(harness.getClass().getName()
@@ -66,7 +66,11 @@ public final class TckRuntime {
             log.info("Backend control: {}", control.description());
             instance = new TckRuntime(harness, control);
         } catch (RuntimeException e) {
-            // startSuite() may have allocated a container stack before this failed.
+            // startSuite() may have allocated a container stack before it failed, or before
+            // one of the checks above did. ContainerizedProviderTckTest.startSuite() brings
+            // Compose up and only then waits for the control API, so a backend that never
+            // becomes ready is the path that would otherwise leave containers running. Every
+            // stopSuite() has to tolerate a partial start for this reason, and the one here does.
             harness.stopSuite();
             throw e;
         }
