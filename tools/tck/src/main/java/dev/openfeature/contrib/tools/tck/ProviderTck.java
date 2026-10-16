@@ -65,7 +65,7 @@ public final class ProviderTck {
      * <p>Just Cucumber's own summary. Turning a run into a machine-readable conformance report is a
      * separate concern that registers its own plugin here.
      */
-    public static final String PLUGINS = "summary";
+    public static final String PLUGINS = "summary,dev.openfeature.contrib.tools.tck.ConformanceReportPlugin";
 
     /**
      * Whether scenarios may run in parallel: never.
