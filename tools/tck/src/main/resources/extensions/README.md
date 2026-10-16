@@ -19,6 +19,10 @@ use `TckRuntime.get()` for the harness and backend control. The built-in step de
 `dev.openfeature.contrib.tools.tck.internal.steps`; they are internal, not API, so only depend on
 `TckState` and `TckRuntime`.
 
+Both the step class and each step method must be `public` -- `PicoFactory` registers only public,
+non-abstract classes and `MethodScanner` uses `Class.getMethods()`. Neither complains when it
+finds nothing: the scenario reports *undefined* and a non-strict run reads as a pass.
+
 ## Why `extensions/` and not `gherkin/`
 
 A file in `gherkin/` with a canonical name would silently replace the canonical file. A separate
