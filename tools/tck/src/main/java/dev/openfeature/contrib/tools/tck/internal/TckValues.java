@@ -1,16 +1,12 @@
-package dev.openfeature.contrib.tools.tck;
+package dev.openfeature.contrib.tools.tck.internal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.sdk.Value;
 import java.io.IOException;
 
 /**
- * Converts the string values written in feature files into the typed Java values the SDK expects.
- *
- * <p>Gherkin has no type system — every cell in an Examples table is a string. The declared flag
- * type in the step is therefore the only thing that distinguishes an integer flag from a float
- * flag, and this class is where that distinction is made real. {@code Integer} produces an
- * {@link Integer}; {@code Float} produces a {@link Double}. Nothing widens one into the other.
+ * Converts feature-file strings into typed values; {@code Integer} yields {@link Integer} and
+ * {@code Float} yields {@link Double}, with no widening.
  */
 public final class TckValues {
 
@@ -41,13 +37,8 @@ public final class TckValues {
                     return Integer.parseInt(value);
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException(
-                            "'" + value + "' is not an Integer the Java SDK can ask for: "
-                                    + "Client.getIntegerDetails takes a 32-bit Integer. The canonical scenario "
-                                    + "that needs more than 2^31 - 1 carries @large-integers, and cannot reach "
-                                    + "here: Capability.LARGE_INTEGERS is inexpressible in Java, so no provider "
-                                    + "can declare it and CapabilityGate skips the scenario. Reaching this means "
-                                    + "an extension feature file of your own asked for a value outside the "
-                                    + "accessor's range, which the Java SDK has no way to request.",
+                            "'" + value + "' is not a 32-bit Integer; check your extension feature file "
+                                    + "(Client.getIntegerDetails cannot request larger values).",
                             e);
                 }
             case "Float":

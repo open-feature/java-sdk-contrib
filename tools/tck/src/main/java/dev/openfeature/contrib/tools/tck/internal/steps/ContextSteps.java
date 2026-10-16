@@ -1,21 +1,11 @@
-package dev.openfeature.contrib.tools.tck.steps;
+package dev.openfeature.contrib.tools.tck.internal.steps;
 
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.sdk.MutableStructure;
 import io.cucumber.java.en.Given;
 
 /**
- * Steps that build the evaluation context passed to the evaluation call.
- *
- * <p>Step vocabulary is inherited verbatim from the flagd test harness.
- *
- * <p>The context accumulated here is passed to every evaluation, so the {@code @targeting}
- * scenarios observe passthrough of the targeting key directly: {@code targeting-key-flag} resolves
- * differently for a matching context, so a provider that drops it is caught by the resolved value.
- *
- * <p>That the <em>whole</em> context reached the backend intact is not asserted — a provider
- * forwarding only the targeting key passes — and closing that needs an echo operation on the control
- * API or a canonical flag keyed on a custom attribute. Appendix F tracks it as an open question.
+ * Steps that build the evaluation context passed to every evaluation.
  */
 public class ContextSteps extends AbstractSteps {
 

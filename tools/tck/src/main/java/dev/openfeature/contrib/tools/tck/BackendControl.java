@@ -1,25 +1,12 @@
 package dev.openfeature.contrib.tools.tck;
 
 /**
- * The single seam between the TCK's step definitions and whatever manipulates the backend.
+ * The seam between the TCK's step definitions and whatever manipulates the backend.
  *
- * <p>Step definitions never talk to a backend directly. They talk to this interface, which is why
- * the same Gherkin runs unchanged against a containerised backend driven over HTTP
- * ({@link HttpBackendControl}) and against a provider manipulated in-process
- * ({@link InProcessBackendControl}).
- *
- * <p>A provider that talks to a backend uses {@link HttpBackendControl} by extending
- * {@link ContainerizedProviderTckTest}; in-process control is for a provider with <em>no</em>
- * backend to contract with — see {@link InProcessBackendControl}. That allowance is narrow, and
- * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
- * F</a> says why.
- *
- * <p>{@link #prepareScenario()}, {@link #changeFlag()} and {@link #controlApi()} are mandatory. The
- * two connection operations are not: a provider with nothing to disconnect from leaves them at
- * their defaults, which throw {@link UnsupportedOperationException}. That exception is a
- * <strong>test-configuration bug, never a skip</strong> — the scenarios needing connection control
- * are gated behind {@link Capability#STALE} and {@link Capability#UNAVAILABLE_INIT}, so a silent
- * no-op there would report the scenario as passed.
+ * <p>Use {@link HttpBackendControl} (via {@link ContainerizedProviderTckTest}) for providers with a
+ * backend; {@link InProcessBackendControl} only for providers with none. The connection operations
+ * default to throwing {@link UnsupportedOperationException}, a test-configuration bug rather than a
+ * skip.
  *
  * @see Capability
  * @see ProviderTckTest
@@ -27,19 +14,13 @@ package dev.openfeature.contrib.tools.tck;
 public interface BackendControl {
 
     /**
-     * Brings the backend to the state every scenario starts from: reachable, with flag state at the
-     * baseline of the canonical flag set.
-     *
-     * <p>Called once before each scenario, and the TCK's only isolation mechanism — scenarios share
-     * one backend for the whole suite, and containers are never restarted between them.
+     * Brings the backend to the baseline state: reachable, with the canonical flag set. Called before
+     * each scenario.
      */
     void prepareScenario();
 
     /**
-     * Mutates flag configuration so that a conforming provider observes a configuration change and
-     * resolves a different value for {@code changing-flag} afterwards.
-     *
-     * <p>Which value it changes to is unspecified; the suite asserts only that it differs.
+     * Mutates flag configuration so {@code changing-flag} resolves to a different value afterwards.
      */
     void changeFlag();
 
@@ -53,8 +34,7 @@ public interface BackendControl {
     }
 
     /**
-     * Makes the backend reachable again after {@link #disconnect()}, preserving flag state so the
-     * provider observes an availability change rather than a configuration change.
+     * Makes the backend reachable again after {@link #disconnect()}, preserving flag state.
      *
      * @throws UnsupportedOperationException if this backend has no connection to restore
      */
@@ -63,8 +43,7 @@ public interface BackendControl {
     }
 
     /**
-     * Returns a short description of what is being controlled, for startup logging and for the
-     * failure messages of unsupported operations.
+     * Returns a short description of what is being controlled, for logs and failure messages.
      *
      * @return a human-readable description of this backend control
      */
@@ -73,11 +52,7 @@ public interface BackendControl {
     }
 
     /**
-     * Returns how the backend is driven, as one of the two kinds the provider contract recognises.
-     *
-     * <p>No default deliberately: an omitted value would be an unfalsifiable claim rather than no
-     * claim. Both implementations the TCK ships answer it, so the only author who has to is the one
-     * writing a custom control — precisely the case where it cannot be inferred.
+     * Returns how the backend is driven.
      *
      * @return which of the two control contracts this run is conducted under
      */
@@ -91,10 +66,7 @@ public interface BackendControl {
      */
     default UnsupportedOperationException unsupported(String operation) {
         return new UnsupportedOperationException(description() + " does not support '" + operation
-                + "'. This is a test-configuration bug rather than a provider defect: a scenario "
-                + "needing connection control ran, so the harness declared Capability.STALE or "
-                + "Capability.UNAVAILABLE_INIT for a backend that cannot simulate an outage. "
-                + "Remove those capabilities from the harness, or supply a BackendControl that "
-                + "implements them.");
+                + "'; test-configuration bug: remove Capability.STALE and Capability.UNAVAILABLE_INIT "
+                + "from the harness, or supply a BackendControl that implements them.");
     }
 }

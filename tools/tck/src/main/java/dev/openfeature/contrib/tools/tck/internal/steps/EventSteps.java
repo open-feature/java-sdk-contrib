@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.tools.tck.steps;
+package dev.openfeature.contrib.tools.tck.internal.steps;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
@@ -15,11 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Registration of provider event handlers and awaiting the events they observe.
- *
- * <p>Step vocabulary is inherited verbatim from the flagd test harness, except that the default
- * await timeout comes from {@link ProviderTckHarness#eventTimeout()} rather than a constant, because
- * how fast a provider notices a backend change differs by orders of magnitude between transports.
+ * Registers provider event handlers and awaits events, defaulting to
+ * {@link ProviderTckHarness#eventTimeout()}.
  */
 public class EventSteps extends AbstractSteps {
 
@@ -65,10 +62,6 @@ public class EventSteps extends AbstractSteps {
     /**
      * Awaits an event of the given kind within an explicit deadline.
      *
-     * <p>Use this where the deadline is part of what the scenario asserts — for instance that a
-     * provider initialised against a dead backend reports the failure promptly rather than hanging.
-     * The explicit value always wins over {@link ProviderTckHarness#eventTimeout()}.
-     *
      * @param eventType the event kind
      * @param milliseconds the deadline
      */
@@ -85,9 +78,7 @@ public class EventSteps extends AbstractSteps {
                 .until(() ->
                         state.events.stream().anyMatch(event -> event.type().equals(eventType)));
 
-        // Drain up to and including the first match, preserving later arrivals. Without this, a
-        // READY recorded before a disconnect would satisfy a later assertion expecting a *new*
-        // READY, and the reconnect scenarios would pass without the provider ever reconnecting.
+        // drain through the first match so stale events can't satisfy later awaits
         ProviderEventRecord matched = null;
         while (!state.events.isEmpty()) {
             ProviderEventRecord head = state.events.poll();

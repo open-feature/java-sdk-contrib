@@ -10,21 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link BackendControl} backed by the standardised HTTP control API.
+ * {@link BackendControl} backed by the HTTP control API in {@code openapi/control-api.yaml}.
  *
- * <p>The normative implementation for every provider that talks to an external backend, over the
- * contract in {@code openapi/control-api.yaml}, including the documented fallback for the optional
- * {@code /reset} operation. It uses the JDK HTTP client so that adopting the TCK does not drag an
- * HTTP library onto a provider's test classpath.
- *
- * <p>Every operation manipulates the backend <em>process</em> or its flag state, never a container:
- * that no-container-restart invariant is why a provider built once at suite start stays valid for
- * every scenario.
- *
- * <p>Constructed by {@link ContainerizedProviderTckTest} once the Compose stack is up and the
- * control API host port is known. Provider authors do not build one themselves.
+ * <p>Constructed by {@link ContainerizedProviderTckTest}; never restarts containers.
  */
-public final class HttpBackendControl implements BackendControl {
+final class HttpBackendControl implements BackendControl {
 
     private static final Logger log = LoggerFactory.getLogger(HttpBackendControl.class);
 
@@ -32,25 +22,15 @@ public final class HttpBackendControl implements BackendControl {
     private final String baseUrl;
     private final String backendConfiguration;
 
-    /**
-     * Tri-state cache of whether the backend implements the optional {@code /reset} operation.
-     * {@code null} until the first {@link #reset()} call probes it.
-     */
+    // whether optional /reset is supported; null until probed
     private Boolean resetSupported;
 
-    /**
-     * Whether the backend was last known to be unreachable, so that the next
-     * {@link #prepareScenario()} knows whether {@code /reset} alone can restore the baseline.
-     */
+    // whether the backend was last left unreachable, so /reset alone won't suffice
     private boolean backendStopped;
 
     /**
-     * Creates a control client for a running backend.
-     *
-     * <p><strong>There is no post-command settle, deliberately.</strong> A control call returns when
-     * the backend has acted, because that is what the control API promises, so a racy step after a
-     * control call is a defect in the backend's control API rather than a reason to add a pause
-     * here. How long the <em>provider</em> takes to notice is what {@code eventTimeout()} bounds.
+     * Creates a control client for a running backend. No post-command settle; control calls return
+     * once the backend has acted.
      *
      * @param baseUrl the control API base URL, without a trailing slash
      * @param backendConfiguration the backend configuration name defining the canonical baseline
@@ -79,8 +59,7 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Always {@link ControlApi#HTTP}: this is the normative control API, and a run conducted
-     * through it is the portable kind of conformance claim.
+     * <p>Always {@link ControlApi#HTTP}.
      */
     @Override
     public ControlApi controlApi() {
@@ -90,11 +69,7 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Prefers {@code POST /reset} when the backend is already running: restoring the baseline
-     * without an availability blip keeps the previous scenario's teardown from leaking a spurious
-     * lifecycle event into the next one. When the previous scenario left the backend unreachable,
-     * {@code /reset} alone would not bring it back, so this falls through to
-     * {@code POST /start?config=...}.
+     * <p>Uses {@code POST /reset} if the backend is running, else {@code POST /start?config=...}.
      */
     @Override
     public void prepareScenario() {
@@ -118,8 +93,7 @@ public final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Issues {@code POST /stop}, which makes the backend unreachable without stopping its
-     * container.
+     * <p>Issues {@code POST /stop}.
      */
     @Override
     public void disconnect() {
@@ -138,11 +112,8 @@ public final class HttpBackendControl implements BackendControl {
     }
 
     /**
-     * Waits until the control API accepts commands.
-     *
-     * <p>Probes the optional {@code GET /healthz}. A {@code 404} is a conformant answer meaning
-     * "not implemented", in which case readiness has already been established by the Testcontainers
-     * listening-port wait strategy and this returns immediately.
+     * Waits until the control API accepts commands, probing optional {@code GET /healthz} (a
+     * {@code 404} counts as ready).
      *
      * @param timeout how long to keep probing
      */
@@ -172,23 +143,13 @@ public final class HttpBackendControl implements BackendControl {
         throw new IllegalStateException("control API at " + baseUrl + " did not become ready within " + timeout, last);
     }
 
-    /**
-     * Starts the backend with the configured backend configuration, seeding flag state to that
-     * configuration's baseline.
-     */
+    /** Starts the backend, seeding the baseline flag state. */
     private void start() {
         post("/start?config=" + backendConfiguration);
         backendStopped = false;
     }
 
-    /**
-     * Restores flag state to the seeded baseline without an availability blip.
-     *
-     * <p>{@code POST /reset} is optional. When the backend answers {@code 404} or {@code 501} the
-     * result is cached and every subsequent call falls back to {@code POST /start?config=...},
-     * which resets state at the cost of a process restart. Both paths are conformant; see
-     * {@code openapi/control-api.yaml}.
-     */
+    /** Restores baseline via {@code POST /reset}, falling back to {@code /start} on 404/501. */
     private void reset() {
         if (Boolean.FALSE.equals(resetSupported)) {
             start();
@@ -199,7 +160,7 @@ public final class HttpBackendControl implements BackendControl {
             if (resetSupported == null) {
                 log.info(
                         "Control API at {} does not implement POST /reset (HTTP {}); "
-                                + "falling back to POST /start?config={} for scenario isolation.",
+                                + "falling back to POST /start?config={}.",
                         baseUrl,
                         response.statusCode(),
                         backendConfiguration);
@@ -239,7 +200,7 @@ public final class HttpBackendControl implements BackendControl {
         }
     }
 
-    /** Pauses between two readiness probes. The only sleep left here, and it is a poll interval. */
+    /** Pauses between readiness probes. */
     private static void sleep(Duration duration) {
         try {
             Thread.sleep(duration.toMillis());

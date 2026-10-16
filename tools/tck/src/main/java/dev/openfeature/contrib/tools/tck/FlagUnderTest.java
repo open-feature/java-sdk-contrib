@@ -1,12 +1,8 @@
 package dev.openfeature.contrib.tools.tck;
 
 /**
- * The flag a scenario is currently exercising: its key, its declared type, and the code default
- * passed to the evaluation call.
- *
- * <p>The declared type is what makes the integer/float distinction testable. The TCK dispatches to
- * {@code getIntegerDetails} or {@code getDoubleDetails} purely on this value, so a provider that
- * silently widens an integer to a double is caught rather than accommodated.
+ * The flag a scenario is exercising: key, declared type (which selects the typed evaluation call),
+ * and code default.
  */
 public final class FlagUnderTest {
 

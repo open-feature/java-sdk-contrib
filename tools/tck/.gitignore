@@ -1,7 +1,4 @@
-# Copied from the `spec` submodule at build time (mvn generate-resources).
-# Do not edit these files directly — they are the language-agnostic definition of the
-# provider contract and live in open-feature/spec, under
-# specification/assets/provider-tck/ (Appendix F).
+# copied from the spec submodule at build time; do not edit
 src/main/resources/gherkin/
 src/main/resources/flags/
 src/main/resources/openapi/

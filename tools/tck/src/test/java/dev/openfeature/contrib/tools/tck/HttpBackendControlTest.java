@@ -26,22 +26,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Guards the request sequence {@link HttpBackendControl} issues, which no scenario can assert.
- *
- * <p>Every scenario's isolation rests on {@link HttpBackendControl#prepareScenario()} choosing the
- * right endpoint against a backend that implements only part of the control API, and on a
- * disconnect being remembered until something ends it. Both are invisible from inside the Gherkin:
- * a control that reset nothing would leave each scenario running against whatever state the
- * previous one left behind, and the suite would report those results as conformance. A control that
- * reset a backend it had just stopped would register the next scenario's provider against a backend
- * that is still down, and report the failure as a provider defect.
- *
- * <p>So the control API is stubbed with the JDK's own {@link HttpServer} — no Docker, no
- * Testcontainers, nothing off loopback — and the requests actually sent are asserted, in order. The
- * three rules being pinned are normative in {@code openapi/control-api.yaml}: {@code /reset} is
- * preferred and {@code /start} is the documented fallback; the fallback is detected once per suite
- * and cached; and {@code /reset} is not specified to start a stopped backend, so the scenario after
- * a disconnect must use {@code /start}.
+ * Asserts the request sequence {@link HttpBackendControl} sends, against a JDK {@link HttpServer}
+ * stub, per the rules in {@code openapi/control-api.yaml}.
  */
 class HttpBackendControlTest {
 
@@ -56,9 +42,7 @@ class HttpBackendControlTest {
             control.prepareScenario();
             control.prepareScenario();
 
-            // The preferred primitive, because it causes no availability blip: a /start between
-            // scenarios restarts the backend, which the provider under test may legitimately
-            // report as a lifecycle event in the scenario that follows.
+            // preferred; /start would cause an availability blip
             assertThat(stub.paths()).containsExactly("/reset", "/reset");
         }
     }
@@ -73,9 +57,7 @@ class HttpBackendControlTest {
             control.prepareScenario();
             control.prepareScenario();
 
-            // Once per suite, not once per scenario: a wasted 404 before every scenario is a slow
-            // suite, and never probing at all would mean a backend that grows /reset is never used
-            // properly. This is the path flagd-testbed actually takes — its launchpad has no /reset.
+            // probed once per suite; flagd-testbed has no /reset
             assertThat(stub.paths()).containsExactly("/reset", "/start", "/start", "/start");
         }
     }
@@ -85,7 +67,7 @@ class HttpBackendControlTest {
     @DisplayName("both documented not-implemented statuses trigger the fallback")
     void bothNotImplementedStatusesFallBack(int status) throws Exception {
         try (StubControlApi stub = StubControlApi.start().answering("/reset", status)) {
-            // control-api.yaml permits either, so neither may be treated as a failed control call.
+            // control-api.yaml permits either
             new HttpBackendControl(stub.baseUrl(), "default").prepareScenario();
 
             assertThat(stub.paths()).containsExactly("/reset", "/start");
@@ -103,8 +85,7 @@ class HttpBackendControlTest {
             control.disconnect();
             control.prepareScenario();
 
-            // /reset restores flag state and is explicitly not specified to start a stopped
-            // backend. Without this the next scenario would prepare a backend that is still down.
+            // /reset is not specified to start a stopped backend
             assertThat(stub.paths()).containsExactly("/stop", "/start");
         }
     }
@@ -121,8 +102,7 @@ class HttpBackendControlTest {
 
             control.prepareScenario();
 
-            // A scenario that ended its own outage leaves the backend up, so the blip-free
-            // primitive is available again and the next scenario should not pay for a restart.
+            // backend is up again, so /reset suffices
             assertThat(stub.paths()).containsExactly("/reset");
         }
     }
@@ -149,10 +129,7 @@ class HttpBackendControlTest {
             control.reconnect();
             control.prepareScenario();
 
-            // /restart is optional in control-api.yaml and no shipped scenario reaches it: the
-            // disconnect/reconnect scenario is an unbounded outage asserted in two steps, because
-            // a self-healing restart races the stale assertion. Asserted over the wire rather than
-            // by reflection, so reinstating a caller cannot slip past by using a different name.
+            // /restart is optional and unused; asserted over the wire
             assertThat(stub.paths()).doesNotContain("/restart");
         }
     }
@@ -173,8 +150,7 @@ class HttpBackendControlTest {
         try (StubControlApi stub = StubControlApi.start().answering("/change", 500)) {
             HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
 
-            // A control call that did nothing would leave the scenario in an unknown state and its
-            // assertions would then be measuring the previous scenario's backend.
+            // a silent no-op would leave the scenario in an unknown state
             assertThatThrownBy(control::changeFlag)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("HTTP 500")
@@ -188,8 +164,7 @@ class HttpBackendControlTest {
         String baseUrl = StubControlApi.addressOfAClosedServer();
         HttpBackendControl control = new HttpBackendControl(baseUrl, "default");
 
-        // The control API must stay reachable even while the backend is deliberately down, so this
-        // is a broken stack rather than an outage, and it has to read that way.
+        // an unreachable control API is a broken stack, not an outage
         assertThatThrownBy(control::changeFlag)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("POST " + baseUrl + "/change");
@@ -215,9 +190,6 @@ class HttpBackendControlTest {
         try (StubControlApi stub = StubControlApi.start()) {
             new HttpBackendControl(stub.baseUrl(), "default").awaitReady(PROBE_BUDGET);
 
-            // The readiness check is what replaced the old post-command settle: it probes the thing
-            // whose readiness is in question, so a slow control API is waited for and a dead one is
-            // reported, and neither costs a fixed pause.
             assertThat(stub.requests()).containsExactly("GET /healthz");
         }
     }
@@ -226,10 +198,7 @@ class HttpBackendControlTest {
     @DisplayName("awaitReady treats an unimplemented /healthz as ready")
     void awaitReadyAcceptsNotImplemented() throws Exception {
         try (StubControlApi stub = StubControlApi.start().answering("/healthz", 404)) {
-            // 404 is "not implemented", which control-api.yaml defines as ready: readiness then
-            // rests on the control port accepting a connection, already established by the Compose
-            // wait strategy. flagd-testbed's launchpad serves no /healthz, so this is the normal
-            // path rather than an edge case.
+            // 404 means not implemented, which control-api.yaml defines as ready
             new HttpBackendControl(stub.baseUrl(), "default").awaitReady(PROBE_BUDGET);
 
             assertThat(stub.paths()).containsExactly("/healthz");
@@ -242,7 +211,7 @@ class HttpBackendControlTest {
         try (StubControlApi stub = StubControlApi.start().scripting("/healthz", 503, 503, 200)) {
             new HttpBackendControl(stub.baseUrl(), "default").awaitReady(Duration.ofSeconds(10));
 
-            // 503 is the control API saying "not ready", so it is retried rather than accepted.
+            // 503 means not ready, so retry
             assertThat(stub.paths()).containsExactly("/healthz", "/healthz", "/healthz");
         }
     }
@@ -253,8 +222,7 @@ class HttpBackendControlTest {
         try (StubControlApi stub = StubControlApi.start().answering("/healthz", 503)) {
             HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
 
-            // "did not become ready" alone sends an adopter to the wrong place: a refused
-            // connection is a stack that never came up, a 503 is one that is up and not finished.
+            // distinguish refused connection from 503
             assertThatThrownBy(() -> control.awaitReady(Duration.ofMillis(300)))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("did not become ready")
@@ -274,12 +242,7 @@ class HttpBackendControlTest {
                 .hasRootCauseInstanceOf(IOException.class);
     }
 
-    /**
-     * A control API that records every request it received and answers a scripted status.
-     *
-     * <p>Bound to the loopback interface on an ephemeral port, so a test never contends for a
-     * fixed port and never leaves the machine.
-     */
+    /** A loopback control API stub that records requests and answers scripted statuses. */
     private static final class StubControlApi implements AutoCloseable {
 
         private final HttpServer server;
@@ -299,10 +262,7 @@ class HttpBackendControlTest {
             return stub;
         }
 
-        /**
-         * Binds and immediately closes a server, so the returned address is almost certainly not
-         * listening. Used for the "the stack is not up" cases.
-         */
+        /** An address that is almost certainly not listening. */
         static String addressOfAClosedServer() throws IOException {
             try (StubControlApi stub = start()) {
                 return stub.baseUrl();
@@ -315,10 +275,7 @@ class HttpBackendControlTest {
             return this;
         }
 
-        /**
-         * Answers the given statuses one per request to {@code path}, which is how "not ready, then
-         * ready" is expressed. The last one repeats once the script is exhausted.
-         */
+        /** Answers the given statuses in order for {@code path}; the last one repeats. */
         StubControlApi scripting(String path, int... sequence) {
             Deque<Integer> queue = new ArrayDeque<>();
             for (int status : sequence) {
@@ -380,7 +337,7 @@ class HttpBackendControlTest {
             if (script == null) {
                 return statuses.getOrDefault(path, 200);
             }
-            // The last entry repeats, so a script cannot run dry and turn into a 200 by accident.
+            // last entry repeats so the script never runs dry
             return script.size() > 1 ? script.poll() : script.peek();
         }
 

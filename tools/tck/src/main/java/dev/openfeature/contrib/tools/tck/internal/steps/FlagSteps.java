@@ -1,11 +1,11 @@
-package dev.openfeature.contrib.tools.tck.steps;
+package dev.openfeature.contrib.tools.tck.internal.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.tools.tck.FlagUnderTest;
 import dev.openfeature.contrib.tools.tck.ProviderEventRecord;
 import dev.openfeature.contrib.tools.tck.TckState;
-import dev.openfeature.contrib.tools.tck.TckValues;
+import dev.openfeature.contrib.tools.tck.internal.TckValues;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
@@ -18,9 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Flag evaluation steps and assertions on the resulting resolution details.
- *
- * <p>Step vocabulary is inherited verbatim from the flagd test harness.
+ * Flag evaluation steps and assertions on resolution details.
  */
 public class FlagSteps extends AbstractSteps {
 
@@ -44,15 +42,7 @@ public class FlagSteps extends AbstractSteps {
     }
 
     /**
-     * Evaluates the declared flag through the typed API matching its declared type.
-     *
-     * <p>Dispatch is on the declared type alone, with no widening in between, which is what makes
-     * the integer/float distinction observable: a provider that returns a double for an integer flag
-     * fails here rather than being quietly accommodated.
-     *
-     * <p>Exceptions are recorded rather than propagated, so that
-     * {@code no exception should have been thrown} can assert the SDK contract that typed evaluation
-     * never throws, instead of the scenario merely erroring out.
+     * Evaluates the declared flag via the matching typed API, recording any exception.
      */
     @When("the flag was evaluated with details")
     public void theFlagWasEvaluatedWithDetails() {
@@ -146,10 +136,6 @@ public class FlagSteps extends AbstractSteps {
 
     /**
      * Captures the current resolved value so a later evaluation can be asserted to differ.
-     *
-     * <p>Which value {@code POST /change} changes {@code changing-flag} to is vendor-defined, so
-     * asserting a delta rather than an absolute keeps the scenario portable and independent of how
-     * many times it has run against the same stack.
      */
     @When("the resolved value is remembered")
     public void theResolvedValueIsRemembered() {
@@ -163,17 +149,14 @@ public class FlagSteps extends AbstractSteps {
         requireEvaluation();
         assertThat(state.evaluation.getValue())
                 .withFailMessage(
-                        "Expected the value of '%s' to differ after the configuration change, "
-                                + "but it is still %s. The provider signalled the change but did not apply it.",
+                        "Expected '%s' to change after the configuration change, but it is still %s.",
                         state.flag.key(), state.rememberedValue)
                 .isNotEqualTo(state.rememberedValue);
     }
 
     /**
-     * Asserts that a resolved structure contains the given entries.
-     *
-     * <p>Table columns are {@code key}, {@code type} and {@code value}. Asserting individual entries
-     * avoids quoting a JSON document inside a Gherkin cell.
+     * Asserts that a resolved structure contains the given entries ({@code key}, {@code type},
+     * {@code value} columns).
      *
      * @param expected a table of expected entries
      */
@@ -196,10 +179,7 @@ public class FlagSteps extends AbstractSteps {
             Object expectedValue = TckValues.convert(row.get("value"), row.get("type"));
             Object actualValue = actual.asObject();
 
-            // Numbers nested inside a structure are compared by value rather than by Java type:
-            // JSON has one number type, so whether 100 comes back as an Integer or a Double is an
-            // artefact of the provider's JSON library. The integer/float distinction that *is* part
-            // of the contract applies to top-level typed evaluation and is asserted there.
+            // nested numbers compared by value; JSON has one number type
             if (expectedValue instanceof Number && actualValue instanceof Number) {
                 assertThat(((Number) actualValue).doubleValue())
                         .as("structure entry '%s'", key)
@@ -211,10 +191,7 @@ public class FlagSteps extends AbstractSteps {
     }
 
     /**
-     * Asserts that no error message accompanies the evaluation.
-     *
-     * <p>Requirement 2.3.2: a value and an error message together are two contradictory signals.
-     * Every success path asserts this alongside the empty error code.
+     * Asserts that no error message accompanies the evaluation (requirement 2.3.2).
      */
     @Then("the error message should be empty")
     public void theErrorMessageShouldBeEmpty() {
@@ -225,22 +202,13 @@ public class FlagSteps extends AbstractSteps {
     }
 
     /**
-     * Asserts that every call the scenario made on the provider returned normally.
-     *
-     * <p>Typed evaluation must absorb every error into the returned details, so an error scenario
-     * proves both halves: the right error code, and no exception escaping to the caller. The
-     * lifecycle scenarios reuse it for a repeated {@code shutdown()} and for {@code initialize()},
-     * which record into the same slot as an evaluation does.
+     * Asserts that no recorded call (evaluation, shutdown, initialize) threw.
      */
     @Then("no exception should have been thrown")
     public void noExceptionShouldHaveBeenThrown() {
         assertThat(state.thrown)
                 .withFailMessage(
-                        "%s threw %s, but the scenario expected it to return normally: typed evaluation "
-                                + "must never throw (errors belong in the resolution details), a repeated "
-                                + "shutdown must have no further effect, and initialisation against a "
-                                + "reachable backend must succeed.",
-                        state.thrownBy, state.thrown)
+                        "%s threw %s, but the scenario expected it to return normally.", state.thrownBy, state.thrown)
                 .isNull();
     }
 

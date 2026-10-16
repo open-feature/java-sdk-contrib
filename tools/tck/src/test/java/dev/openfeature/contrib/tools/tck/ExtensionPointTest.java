@@ -2,6 +2,7 @@ package dev.openfeature.contrib.tools.tck;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.openfeature.contrib.tools.tck.internal.TckSuiteListener;
 import io.cucumber.junit.platform.engine.Constants;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,22 +21,8 @@ import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 import org.junit.platform.suite.api.ConfigurationParameter;
 
 /**
- * An adopter extends the suite by convention, writing no annotations.
- *
- * <p>What that promise decomposes into, and what each test here checks:
- *
- * <ul>
- *   <li>a feature file under {@code extensions/} on the adopter's test classpath is discovered by
- *       the suite, into the same Cucumber engine as the canonical set — which is what "the same
- *       backend lifecycle phase" means, since {@code @BeforeAll} is scoped to exactly that;
- *   <li>a step class in {@code openfeature.tck.extensions} is resolved from the glue path;
- *   <li>the extension directory shipped in this artifact keeps the selector resolvable for an adopter
- *       who extends nothing.
- * </ul>
- *
- * <p>The fixture feature and steps are test-scoped, so they are not in the released JAR. They live
- * where an adopter's would live, which is the only way to check that the convention holds without
- * asserting it about a path that no build actually uses.
+ * An adopter extends the suite by convention: features under {@code extensions/} and steps in
+ * {@code openfeature.tck.extensions} are picked up with no annotations.
  */
 class ExtensionPointTest {
 
@@ -58,8 +45,7 @@ class ExtensionPointTest {
         }
 
         assertThat(resources)
-                .as("the extension scenario and the canonical scenarios are children of one Cucumber engine, "
-                        + "under one suite — so they share its @BeforeAll and its backend")
+                .as("extension and canonical scenarios share one Cucumber engine under one suite")
                 .contains(EXTENSION_FEATURE)
                 .contains(ProviderTck.FEATURES + "/errors.feature");
     }
@@ -67,10 +53,7 @@ class ExtensionPointTest {
     @Test
     @DisplayName("the extension glue package is resolved, so an adopter's steps need no registration")
     void theExtensionGluePackageIsResolved() {
-        // Executed rather than discovered, because an unresolved glue package is not a discovery
-        // failure — it produces undefined steps at execution time, which is what this rules out.
-        // Only the extension glue is on the path here: the canonical steps would start a Compose
-        // stack in their @BeforeAll, and Docker is not this module's test dependency.
+        // executed, since unresolved glue only shows at run time; canonical glue omitted to avoid Docker
         SummaryGeneratingListener summary = new SummaryGeneratingListener();
         LauncherFactory.create()
                 .execute(
@@ -94,8 +77,7 @@ class ExtensionPointTest {
     @Test
     @DisplayName("the extension directory ships in this artifact, so the selector resolves with no adopter files")
     void theExtensionDirectoryIsShipped() {
-        // A @SelectClasspathResource naming a resource on no classpath root is a hard discovery
-        // error, so an adopter who extends nothing depends on this file existing in the JAR.
+        // a selector on a missing resource is a hard discovery error
         assertThat(getClass().getClassLoader().getResource(ProviderTck.EXTENSIONS + "/README.md"))
                 .as(
                         "%s/README.md keeps the extension selector resolvable for an adopter who adds nothing",
@@ -106,12 +88,12 @@ class ExtensionPointTest {
     @Test
     @DisplayName("the glue constant composes in an annotation value")
     void theGlueConstantComposesInAnAnnotationValue() {
-        // The assertion is a formality; the compilation of VendorGlue is the actual evidence, since
-        // an annotation value has to be a compile-time constant and a method call would not compile.
+        // VendorGlue compiling is the real evidence; annotation values must be constants
         ConfigurationParameter parameter = VendorGlue.class.getAnnotation(ConfigurationParameter.class);
 
         assertThat(parameter.value())
-                .isEqualTo("dev.openfeature.contrib.tools.tck.steps," + "openfeature.tck.extensions,com.vendor.steps");
+                .isEqualTo("dev.openfeature.contrib.tools.tck.internal.steps,"
+                        + "openfeature.tck.extensions,com.vendor.steps");
     }
 
     /** An adopter who wants a third glue package writes this, and does not restate our package. */

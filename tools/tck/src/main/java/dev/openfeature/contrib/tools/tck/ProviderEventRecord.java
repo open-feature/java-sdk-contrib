@@ -7,10 +7,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * A provider event observed by a scenario's event handler, tagged with the Gherkin word that
  * registered the handler ({@code ready}, {@code error}, {@code stale}, {@code change}).
  */
-@SuppressFBWarnings(
-        value = "EI_EXPOSE_REP",
-        justification = "The SDK's event payload is held and handed on as-is; copying it would "
-                + "hide exactly the object under assertion")
+@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "SDK event payload is handed on as-is for assertion")
 public final class ProviderEventRecord {
 
     private final String type;

@@ -1,5 +1,6 @@
-package dev.openfeature.contrib.tools.tck;
+package dev.openfeature.contrib.tools.tck.internal;
 
+import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import java.lang.reflect.Modifier;
 import java.util.Optional;
 import org.junit.platform.engine.TestExecutionResult;
@@ -10,18 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Tracks which TCK suite is currently executing, so the step definitions can find its harness.
+ * Tracks the currently executing TCK suite class so step definitions can find its harness.
  *
- * <p>Cucumber's {@code @BeforeAll} is static and carries no information about which suite triggered
- * it, so a provider with more than one transport has no way to tell the glue which of its harnesses
- * to use; {@link java.util.ServiceLoader} alone is ambiguous the moment a second one is registered.
- * A concrete suite class <em>is</em> a {@link ProviderTckHarness}, though, and the JUnit Platform
- * says which one is running, so this listener records the container whose source is a concrete class
- * implementing the SPI. Adding a second mode is then a second class and nothing else.
- *
- * <p>Registered through {@code META-INF/services/org.junit.platform.launcher.TestExecutionListener}
- * inside this JAR, so it is picked up automatically by Surefire, Gradle and IDEs. It ignores every
- * container that is not a TCK suite, so it is inert in builds that do not use the TCK.
+ * <p>Registered via {@code META-INF/services}; inert for non-TCK containers.
  */
 public class TckSuiteListener implements TestExecutionListener {
 
@@ -52,7 +44,7 @@ public class TckSuiteListener implements TestExecutionListener {
      * @return the executing suite class, or empty when none is running or the listener was not
      *     registered
      */
-    static Optional<Class<? extends ProviderTckHarness>> currentSuite() {
+    public static Optional<Class<? extends ProviderTckHarness>> currentSuite() {
         return Optional.ofNullable(current);
     }
 
@@ -62,7 +54,7 @@ public class TckSuiteListener implements TestExecutionListener {
      * @param testIdentifier the identifier to inspect
      * @return the concrete suite class, or empty when the identifier is not a TCK suite
      */
-    static Optional<Class<? extends ProviderTckHarness>> harnessClassOf(TestIdentifier testIdentifier) {
+    public static Optional<Class<? extends ProviderTckHarness>> harnessClassOf(TestIdentifier testIdentifier) {
         return testIdentifier
                 .getSource()
                 .filter(ClassSource.class::isInstance)
@@ -75,8 +67,7 @@ public class TckSuiteListener implements TestExecutionListener {
 
     private static Optional<Class<?>> loadClass(ClassSource source) {
         try {
-            // ClassSource resolves the class lazily and throws when it cannot be loaded — which is
-            // routine for sources belonging to other engines, so it must not fail the run.
+            // routine for sources from other engines; must not fail the run
             return Optional.of(source.getJavaClass());
         } catch (RuntimeException e) {
             log.trace("Ignoring unloadable class source {}", source, e);

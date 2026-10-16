@@ -12,18 +12,10 @@ import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 /**
- * Base JUnit Platform Suite for providers that talk to an <strong>external backend</strong>.
+ * Base JUnit Platform Suite for providers that talk to an external backend.
  *
- * <p>Adds everything {@link ProviderTckTest} leaves out: the Docker Compose lifecycle, discovery of
- * dynamically mapped host ports, and construction of an {@link HttpBackendControl} against the
- * backend's control API, which is the normative contract here — see {@link BackendControl}.
- *
- * <p>Provider authors implement three methods, optionally a fourth, and override the defaults their
- * stack needs. The Compose stack is started <strong>once</strong>, before the first scenario, and is
- * never restarted: backend unavailability is always simulated inside the running stack through the
- * control API.
- *
- * <p>{@code tools/tck/README.md} carries a worked adoption.
+ * <p>Manages the Docker Compose lifecycle (started once, never restarted), port discovery and an
+ * {@link HttpBackendControl}. See {@code tools/tck/README.md} for an example.
  *
  * @see ProviderTckTest
  * @see HttpBackendControl
@@ -36,42 +28,25 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     private BackendEndpoint endpoint;
     private HttpBackendControl control;
 
-    // ---------------------------------------------------------------------------------------
-    // What a provider author supplies
-    // ---------------------------------------------------------------------------------------
-
     /**
-     * Returns the Docker Compose file describing the backend stack under test.
-     *
-     * <p>The path is resolved relative to the Maven module directory, so
-     * {@code new File("src/test/resources/tck/docker-compose.yaml")} is the idiomatic form.
-     *
-     * <p>The stack must not pin host ports — Docker assigns them dynamically and the TCK discovers
-     * them after startup.
+     * Returns the Docker Compose file for the backend stack, relative to the module directory. The
+     * stack must not pin host ports.
      *
      * @return the Compose file describing the backend stack
      */
     public abstract File composeFile();
 
     /**
-     * Returns the container-internal ports on {@link #backendService()} that the provider connects
-     * to, so Testcontainers can expose and map them.
-     *
-     * <p>The control API port from {@link #controlPort()} is exposed automatically and does not
-     * need to be listed here.
+     * Returns the container-internal ports on {@link #backendService()} the provider connects to.
+     * {@link #controlPort()} is exposed automatically.
      *
      * @return container-internal ports the provider connects to
      */
     public abstract List<Integer> backendPorts();
 
     /**
-     * Creates the provider under test, configured against the running backend.
-     *
-     * <p>Called after the Compose stack is up and the control API has seeded the canonical flag set.
-     * The endpoint carries the dynamically mapped host ports, which do not exist until then.
-     *
-     * <p>The TCK owns the provider lifecycle from here. Do not call {@code setProvider} or
-     * {@code initialize} yourself.
+     * Creates the provider under test, configured against the running backend. Do not call
+     * {@code setProvider} or {@code initialize}; the TCK owns the lifecycle.
      *
      * @param endpoint host and mapped ports of the running backend stack
      * @return a configured, uninitialised provider
@@ -91,16 +66,13 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Abstract here rather than defaulted: a provider with a real backend can always be pointed
-     * at a closed port, so there is no reason for one not to cover the initialisation-failure
-     * scenarios.
+     * <p>Abstract here; a provider with a real backend can always be pointed at a closed port.
      */
     @Override
     public abstract FeatureProvider createUnavailableProvider();
 
     /**
-     * Returns the Compose service name that hosts the control API and the backend the provider
-     * connects to.
+     * Returns the Compose service name hosting the control API and backend.
      *
      * @return the Compose service name, {@code backend} by default
      */
@@ -118,11 +90,8 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     }
 
     /**
-     * Returns extra services and container-internal ports to expose, for stacks that contain more
-     * than the backend service.
-     *
-     * <p>Keys are Compose service names, values are container-internal ports. Resolve the mapped
-     * ports with {@link BackendEndpoint#port(String, int)}.
+     * Returns extra Compose services and their container-internal ports to expose; resolve them
+     * with {@link BackendEndpoint#port(String, int)}.
      *
      * @return additional services and ports to expose, empty by default
      */
@@ -131,11 +100,8 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     }
 
     /**
-     * Returns the name of the <em>backend</em> configuration used to seed the canonical flag set.
-     *
-     * <p>Not to be confused with {@link ProviderTckHarness#configuration()}, which names the mode of
-     * the <em>provider</em> under test. This one is a name the backend understands, passed through
-     * to {@code POST /start?config=...}.
+     * Returns the backend configuration name passed to {@code POST /start?config=...}; distinct
+     * from {@link ProviderTckHarness#configuration()}.
      *
      * @return the backend configuration name passed to {@code POST /start}, {@code default} by
      *     default
@@ -153,17 +119,10 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
         return Duration.ofSeconds(60);
     }
 
-    // ---------------------------------------------------------------------------------------
-    // The lifecycle-agnostic contract, implemented in terms of the Compose stack
-    // ---------------------------------------------------------------------------------------
-
     /**
      * {@inheritDoc}
      *
-     * <p>Starts the Compose stack, resolves the control API's mapped port and waits for it to accept
-     * commands. That await is the only timing allowance the suite makes, and it is a readiness check
-     * bounded by {@link #startupTimeout()} rather than a guess at how long a backend takes. Nothing
-     * sleeps after a control command — see {@link HttpBackendControl}.
+     * <p>Starts the Compose stack and waits up to {@link #startupTimeout()} for the control API.
      */
     @Override
     public final void startSuite() {

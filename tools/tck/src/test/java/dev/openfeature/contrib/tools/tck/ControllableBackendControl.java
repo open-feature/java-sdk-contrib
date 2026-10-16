@@ -7,20 +7,11 @@ import java.util.Map;
 
 /**
  * In-process control for {@link ControllableProvider}, with a backend that can refuse to answer.
- *
- * <p>Everything {@link InProcessBackendControl} does, plus the one thing it cannot: hand out a
- * provider whose initialisation <em>fails</em>, which is what unlocks the {@code @lifecycle} and
- * {@code @unavailable} scenarios without Docker.
- *
- * <p>Used only by {@link ControllableProviderTckTest}. {@link InProcessBackendControl} remains the
- * one an adopter with no backend writes against.
+ * Unlocks the {@code @lifecycle} and {@code @unavailable} scenarios without Docker.
  */
 final class ControllableBackendControl implements BackendControl {
 
-    /**
-     * The flag {@link #changeFlag()} mutates, named by {@code POST /change} in the control API and
-     * by the canonical flag definition, which have to agree.
-     */
+    /** The flag {@link #changeFlag()} mutates, per the control API's {@code POST /change}. */
     private static final String CHANGING_FLAG = "changing-flag";
 
     /** The canonical flag set, never mutated after construction. */
@@ -35,29 +26,14 @@ final class ControllableBackendControl implements BackendControl {
     /** Which variant {@code changing-flag} currently resolves to. */
     private String changingVariant = changingBaseline.getDefaultVariant();
 
-    /**
-     * Creates the provider for the scenario about to run, over a reachable store.
-     *
-     * <p>The store is read at {@code initialize()} time rather than now, which is what makes the
-     * flag set something initialisation acquires.
-     *
-     * @return a configured, uninitialised provider
-     */
+    /** Creates the provider for the next scenario; the store is read at {@code initialize()} time. */
     ControllableProvider createProvider() {
         changingVariant = changingBaseline.getDefaultVariant();
         current = new ControllableProvider(this::snapshot);
         return current;
     }
 
-    /**
-     * Creates a provider whose backend will not answer, so {@code initialize()} throws.
-     *
-     * <p>Not registered as {@link #current}: the {@code @unavailable} scenarios never change a flag,
-     * and leaving the field alone means a later {@link #changeFlag()} fails loudly rather than
-     * mutating a provider that never initialised.
-     *
-     * @return a provider that cannot initialise
-     */
+    /** Creates a provider whose {@code initialize()} throws; not registered as {@link #current}. */
     ControllableProvider createUnavailableProvider() {
         return new ControllableProvider(ControllableBackendControl::unreachable);
     }
@@ -67,33 +43,18 @@ final class ControllableBackendControl implements BackendControl {
         return "in-process control of " + ControllableProvider.class.getSimpleName();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>{@link ControlApi#IN_PROCESS}: there is no backend beyond a map in this JVM.
-     */
     @Override
     public ControlApi controlApi() {
         return ControlApi.IN_PROCESS;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Drops the reference to the previous scenario's provider. The baseline map is never mutated,
-     * so the {@link #createProvider()} call that follows starts from an untouched copy of it.
-     */
+    /** Drops the previous scenario's provider; the baseline is never mutated. */
     @Override
     public void prepareScenario() {
         current = null;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Flips {@code changing-flag} between its two variants, and lets the provider emit the event
-     * from itself — see {@link ControllableProvider#changeFlag}.
-     */
+    /** Flips {@code changing-flag} between its two variants. */
     @Override
     public void changeFlag() {
         changingVariant = otherVariant(changingVariant);
@@ -110,12 +71,7 @@ final class ControllableBackendControl implements BackendControl {
         throw new GeneralError("the TCK's in-process backend is unreachable for this provider");
     }
 
-    /**
-     * Returns a variant of {@code changing-flag} other than the given one.
-     *
-     * <p>Read out of the definition rather than named here, so that renaming either variant in the
-     * spec cannot leave this switching to a name the file no longer defines.
-     */
+    /** A variant of {@code changing-flag} other than the given one, read from the definition. */
     private String otherVariant(String resolved) {
         for (String variant : changingBaseline.getVariants().keySet()) {
             if (!variant.equals(resolved)) {
@@ -148,8 +104,8 @@ final class ControllableBackendControl implements BackendControl {
     private ControllableProvider requireProvider() {
         if (current == null) {
             throw new IllegalStateException("No controllable provider exists for this scenario. In-process backend "
-                    + "control manipulates the provider itself, so the scenario must create one — with "
-                    + "'Given a stable provider' — before any step that changes flag state.");
+                    + "control manipulates the provider itself, so the scenario must create one, with "
+                    + "'Given a stable provider', before any step that changes flag state.");
         }
         return current;
     }

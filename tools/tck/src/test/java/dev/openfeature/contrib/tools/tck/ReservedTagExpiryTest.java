@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.openfeature.contrib.tools.tck.internal.CapabilityGate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -17,26 +18,8 @@ import org.junit.platform.launcher.listeners.TestExecutionSummary;
 import org.opentest4j.TestAbortedException;
 
 /**
- * A scenario carrying a {@linkplain Capability#reserved() reserved} tag fails the run.
- *
- * <p>This is the expiry check on the reserved list, and it is here because the failure it catches is
- * silent in both directions. A reserved capability cannot be declared, so the day the specification
- * adds the first scenario for one, every adopter's run reports that scenario as skipped for a
- * capability they are not permitted to claim. The report is well-formed and the suite is green, so
- * the new scenario is executed by nobody — the unclaimable-capability failure of Appendix F. Nothing
- * else in this module notices it: the scenario was collected and gated rather than dropped, and a
- * capability-gated skip is explicitly not a gap.
- *
- * <p>The first test runs {@link ReservedTagSuiteFixture}, a real suite over two real scenarios, and
- * looks at the outcome each one got. Running it rather than calling {@link CapabilityGate} directly
- * is what makes it a test of the rule as an adopter meets it: the tags are Cucumber's own parse, the
- * hook is the one the suite installs, and the failure has to survive into the JUnit results the same
- * way the skip does.
- *
- * <p>It is also written so that <em>removing</em> the check does not merely change an error message.
- * With the check gone, the tagged scenario is skipped for an undeclared capability instead — one
- * fewer failure, one more abort — which is exactly the silent outcome the check exists to prevent,
- * and both counts are asserted.
+ * A scenario carrying a {@linkplain Capability#reserved() reserved} tag fails the run rather than
+ * being silently skipped.
  */
 class ReservedTagExpiryTest {
 
@@ -55,10 +38,7 @@ class ReservedTagExpiryTest {
         assertThat(summary.getTestsFailedCount())
                 .as("the scenario tagged %s fails the run rather than being quietly skipped", Capability.CACHING.tag())
                 .isEqualTo(1);
-        assertThat(summary.getTestsAbortedCount())
-                .as("and it is a failure, not an abort — an abort is the skip this check exists to "
-                        + "prevent, and is what remains if the check is removed")
-                .isZero();
+        assertThat(summary.getTestsAbortedCount()).as("a failure, not an abort").isZero();
         assertThat(summary.getTestsSkippedCount()).isZero();
 
         TestExecutionSummary.Failure failure = summary.getFailures().get(0);
@@ -71,11 +51,7 @@ class ReservedTagExpiryTest {
                 .contains("still calls reserved");
 
         assertThat(summary.getTestsSucceededCount())
-                .as(
-                        "the untagged scenario passes, though a Gherkin comment in it names %s — "
-                                + "gherkin/events.feature carries exactly such a comment, so a check that "
-                                + "scanned the feature files as text would fail every adoption",
-                        Capability.CACHING.tag())
+                .as("the untagged scenario passes, though a Gherkin comment in it names %s", Capability.CACHING.tag())
                 .isEqualTo(1);
     }
 
@@ -85,8 +61,7 @@ class ReservedTagExpiryTest {
         assertThatThrownBy(() -> CapabilityGate.requireDeclared(
                         Arrays.asList(Capability.EVENTS.tag(), Capability.CACHING.tag()),
                         EnumSet.noneOf(Capability.class)))
-                .as("both tags are undeclared, and the expired reservation is the one worth saying — "
-                        + "gating tag by tag would abort on @events and never reach @caching")
+                .as("the expired reservation is reported before the undeclared skip")
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(Capability.CACHING.tag());
     }

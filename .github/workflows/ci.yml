@@ -7,27 +7,12 @@ on:
       - reopened
     branches:
       - main
-      # Temporary, for the duration of the provider conformance suite's review.
-      # Without it a stacked pull request gets no CI at all: this filter matches
-      # the pull request's BASE branch, so only the suite PR itself -- the one
-      # targeting main -- was ever checked, and the report and adoption PRs
-      # stacked on it were merged-in-theory and tested never. Remove once the
-      # chain has landed. See open-feature/spec#417.
+      # temporary, so stacked tck PRs get CI; remove once merged (open-feature/spec#417)
       - 'feat/provider-tck*'
 
 jobs:
-  # Fast canary for the Provider TCK: runs the full applicable conformance suite three times --
-  # against the SDK's InMemoryProvider, against MultiProvider wrapping one of them, and against
-  # the TCK's own controllable provider, which has a real initialisation and so is the only one
-  # of the three that covers the @lifecycle scenarios. No Docker, no Compose stack and no
-  # network. It finishes in seconds, so a broken step definition, a mis-wired capability gate or
-  # a regression in the shared harness is reported long before the containerised provider suites
-  # in `main` get there — and it points at the TCK rather than at whichever provider noticed
-  # first.
-  #
-  # Deliberately not a gate on `main`: the two run in parallel so a green run is not delayed.
-  # The same suite also runs inside `main` as part of the reactor build; this job exists to
-  # report it fast and in isolation.
+  # fast no-docker tck canary (in-memory, multi, controllable providers)
+  # not a gate on main; runs in parallel
   tck:
     name: Provider TCK (no Docker)
     runs-on: ubuntu-latest
@@ -35,8 +20,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          # The feature files, canonical flag set and control-API document are copied in from
-          # the open-feature/spec submodule at generate-resources; without it there is no suite.
+          # spec submodule supplies the tck assets
           submodules: recursive
 
       - name: Set up JDK 21
@@ -55,7 +39,7 @@ jobs:
             ${{ runner.os }}21-maven-
 
       - name: Verify the TCK against the in-memory provider
-        # No `e2e` profile and no Docker: the in-memory suite is not gated behind either.
+        # no e2e profile or docker needed
         run: mvn --batch-mode --activate-profiles codequality -pl tools/tck -am clean verify
 
   main:
