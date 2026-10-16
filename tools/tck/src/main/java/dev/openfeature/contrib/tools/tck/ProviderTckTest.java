@@ -9,7 +9,7 @@ import org.junit.platform.suite.api.Suite;
 /**
  * Base JUnit Platform Suite for the Provider TCK, carrying all Cucumber configuration.
  *
- * <p>Extend directly for a provider with no backend (with e.g. {@link InProcessBackendControl});
+ * <p>Extend directly for a provider with no backend (with e.g. {@link BackendControl#inProcess()});
  * otherwise extend {@link ContainerizedProviderTckTest}. Scenarios run serially.
  *
  * <p>Extra scenarios go in {@code src/test/resources/extensions/} with steps in package

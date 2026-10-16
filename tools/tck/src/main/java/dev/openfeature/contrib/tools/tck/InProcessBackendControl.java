@@ -14,7 +14,7 @@ import java.util.Map;
  * {@link Capability#UNAVAILABLE_INIT} undeclared. Wire both harness factory methods to one instance:
  *
  * <pre>{@code
- * private final InProcessBackendControl control = new InProcessBackendControl();
+ * private final InProcessControl control = BackendControl.inProcess();
  *
  * @Override
  * public BackendControl backendControl() {
@@ -27,7 +27,7 @@ import java.util.Map;
  * }
  * }</pre>
  */
-public final class InProcessBackendControl implements BackendControl {
+final class InProcessBackendControl implements InProcessControl {
 
     // flag mutated by changeFlag(); also named by POST /change
     private static final String CHANGING_FLAG = "changing-flag";
