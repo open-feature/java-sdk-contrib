@@ -20,3 +20,4 @@
 	branch = v3.10.4
 [submodule "tools/tck/spec"]
 	path = tools/tck/spec
+	url = https://github.com/open-feature/spec.git
