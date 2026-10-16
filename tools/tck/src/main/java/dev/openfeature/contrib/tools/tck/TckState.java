@@ -9,10 +9,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Scenario-scoped mutable state, injected into every step definition class by PicoContainer.
- *
- * <p>One instance per scenario. Anything that must survive across scenarios — the Compose stack,
- * the control API client, the discovered harness — lives in {@link TckRuntime} instead.
+ * Scenario-scoped mutable state, injected into step definitions by PicoContainer. Suite-wide state
+ * lives in {@link TckRuntime}.
  */
 public class TckState {
 
@@ -34,34 +32,16 @@ public class TckState {
     /** Result of the most recent evaluation. */
     public FlagEvaluationDetails<?> evaluation;
 
-    /**
-     * A previously resolved value, captured so a later evaluation can be asserted to differ.
-     *
-     * <p>Used by the configuration-change scenario, which asserts that the value changed rather
-     * than what it became — the control API does not say which value {@code POST /change} picks.
-     */
+    /** A previously resolved value, so a later evaluation can be asserted to differ. */
     public Object rememberedValue;
 
-    /**
-     * Any exception thrown out of the most recent call the scenario made on the provider, with
-     * {@link #thrownBy} naming the call.
-     *
-     * <p>Evaluation, shutdown and re-initialisation all record here rather than propagate, into one
-     * slot asserted by one step — {@code no exception should have been thrown} — so a scenario
-     * states the expectation explicitly instead of a throw merely showing up as a step failure.
-     */
+    /** Exception from the most recent provider call, recorded rather than propagated. */
     public Exception thrown;
 
-    /** The call {@link #thrown} came out of, for the failure message; {@code null} when none did. */
+    /** The call {@link #thrown} came from; {@code null} when none. */
     public String thrownBy;
 
-    /**
-     * How long the most recent direct {@code shutdown()} call took, or {@code null} before one was
-     * made in this scenario.
-     *
-     * <p>Recorded so a scenario can assert that shutdown against a backend that will never answer
-     * returns promptly instead of blocking on a graceful close.
-     */
+    /** Duration of the most recent {@code shutdown()} call, or {@code null} if none. */
     public Duration shutdownDuration;
 
     /** Events observed by handlers registered in this scenario. */

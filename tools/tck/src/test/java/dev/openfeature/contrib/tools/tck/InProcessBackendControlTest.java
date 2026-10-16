@@ -10,19 +10,7 @@ import dev.openfeature.sdk.providers.memory.InMemoryProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * Guards the two properties of {@link InProcessBackendControl} that the Gherkin cannot assert
- * about itself.
- *
- * <p>The first is that unsupported operations <strong>fail loudly</strong>. The whole
- * skipped-by-capability design collapses into false confidence if a connection operation quietly
- * does nothing, and a scenario that never runs cannot prove that it would have failed. These tests
- * call the operations directly.
- *
- * <p>The second is that scenario isolation actually isolates. {@link InMemoryProviderTckTest} would
- * still pass if {@code changeFlag()} leaked into the next scenario, because no scenario evaluates
- * {@code changing-flag} before modifying it.
- */
+/** Asserts {@link InProcessBackendControl} fails loudly on unsupported operations and isolates scenarios. */
 class InProcessBackendControlTest {
 
     @Test
@@ -30,8 +18,7 @@ class InProcessBackendControlTest {
     void connectionOperationsThrow() {
         InProcessBackendControl control = new InProcessBackendControl();
 
-        // The message has to name the fix, because whoever hits this is looking at a red scenario
-        // that reads like a provider defect and is in fact a capability declared in error.
+        // message must name the fix
         assertThatThrownBy(control::disconnect)
                 .isInstanceOf(UnsupportedOperationException.class)
                 .hasMessageContaining("does not support 'disconnect'")
@@ -69,8 +56,7 @@ class InProcessBackendControlTest {
                 .as("changeFlag must actually change what the provider resolves, not merely emit an event")
                 .isEqualTo("bar");
 
-        // The next scenario must not inherit that change. The baseline map is shared between every
-        // provider this control hands out, so a mutation that reached it would leak forwards.
+        // next scenario must not inherit the change
         control.prepareScenario();
         InMemoryProvider second = control.createProvider();
         second.initialize(new ImmutableContext());
@@ -86,8 +72,7 @@ class InProcessBackendControlTest {
         InMemoryProvider provider = control.createProvider();
         provider.initialize(new ImmutableContext());
 
-        // Absence is what the FLAG_NOT_FOUND scenario tests, so seeding it by accident would turn
-        // that scenario green for the wrong reason.
+        // FLAG_NOT_FOUND scenario relies on its absence
         assertThatThrownBy(() -> provider.getStringEvaluation("missing-flag", "fallback", new ImmutableContext()))
                 .hasMessageContaining("missing-flag");
     }
@@ -99,13 +84,12 @@ class InProcessBackendControlTest {
         provider.initialize(new ImmutableContext());
         ImmutableContext context = new ImmutableContext();
 
-        // Seeded as the integer 10, the lossless-coercion scenario would pass without coercing.
+        // must be a double, or the lossless-coercion scenario passes trivially
         assertThat(provider.getDoubleEvaluation("integral-float-flag", 0.1, context)
                         .getValue())
                 .as("integral-float-flag is a Double")
                 .isEqualTo(10.0);
-        // Which is also why the self-tests withhold NUMERIC_COERCION: the SDK's provider keeps the
-        // two numeric types strictly apart and refuses the lossless direction along with the lossy one.
+        // why the self-tests withhold NUMERIC_COERCION
         assertThatThrownBy(() -> provider.getIntegerEvaluation("integral-float-flag", 1, context))
                 .isInstanceOf(TypeMismatchError.class);
 
@@ -113,7 +97,7 @@ class InProcessBackendControlTest {
                         .getValue())
                 .isEqualTo(2147483647);
 
-        // Values, not absences: each default differs from what the flag resolves to.
+        // each default differs from the resolved value
         assertThat(provider.getBooleanEvaluation("boolean-zero-flag", true, context)
                         .getValue())
                 .isFalse();

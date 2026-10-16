@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import dev.openfeature.contrib.tools.tck.internal.CapabilityGate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -12,15 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
-/**
- * The vocabulary an adopter declares conformance in, exercised where it is defined.
- *
- * <p>Everything here is something a provider author <em>writes</em> or a reader of a run
- * <em>needs</em>: which capabilities are declarable, which gaps are defects rather than choices,
- * what the configuration under test is called, and which of the two control contracts the run was
- * conducted under. It is all usable with nothing downstream of it — no report, no emitter — which is
- * the point of it living here.
- */
+/** Tests the declaration vocabulary: capabilities, deviations, configuration names and control APIs. */
 class DeclarationApiTest {
 
     @Test
@@ -44,16 +37,13 @@ class DeclarationApiTest {
     @Test
     @DisplayName("targeting is a declarable capability, not a reserved one")
     void targetingIsDeclarable() {
-        // It was reserved while no scenario carried the tag. targeting-key-flag's three scenarios
-        // carry it now, so it gates something and the claim can be contradicted by a result --
-        // which is the whole test for whether a capability may be declared.
+        // targeting-key-flag scenarios carry the tag, so it gates something
         assertThat(Capability.fromTag("@targeting")).contains(Capability.TARGETING);
         assertThat(Capability.TARGETING.reserved()).isFalse();
         assertThat(Capability.declarable()).contains(Capability.TARGETING);
         Capability.requireDeclarable(EnumSet.of(Capability.TARGETING));
 
-        // And the "declare everything" shortcut still excludes @caching, which is now the only
-        // reserved tag. That is the accident the shortcut exists to prevent, not a general one.
+        // "declare everything" still excludes @caching, the only reserved tag
         assertThat(Capability.CACHING.reserved()).isTrue();
         assertThat(Capability.declarable()).doesNotContain(Capability.CACHING);
         assertThat(Capability.declarableExcept(Capability.TARGETING))
@@ -63,9 +53,7 @@ class DeclarationApiTest {
     @Test
     @DisplayName("variants is declarable, because 2.2.4 is a SHOULD and the field is optional")
     void variantsIsADeclarableChoice() {
-        // Requirement 2.2.4 says a provider SHOULD populate the variant, and types.md types the
-        // field optional, so a backend with no variant concept withholds the tag rather than
-        // recording a deviation against a MUST that does not exist.
+        // 2.2.4 is a SHOULD, so a backend without variants withholds the tag
         assertThat(Capability.fromTag("@variants")).contains(Capability.VARIANTS);
         assertThat(Capability.VARIANTS.reserved()).isFalse();
         assertThat(Capability.declarable()).contains(Capability.VARIANTS);
@@ -84,11 +72,7 @@ class DeclarationApiTest {
     @Test
     @DisplayName("a capability the Java SDK cannot express is refused here, not left to every adopter")
     void aCapabilityTheSdkCannotExpressIsRefusedCentrally() {
-        // @large-integers asks for 2^53 - 1 and the Java SDK's accessor is a 32-bit Integer, so no
-        // Java provider can be asked it -- ever, until the SDK changes. Three suites in this
-        // repository used to withhold it by hand, each with its own comment restating this
-        // paragraph. The implementation refuses it instead, so an adopter neither has to know it
-        // nor can get it wrong.
+        // 2^53 - 1 does not fit the SDK's 32-bit Integer accessor
         assertThat(Capability.LARGE_INTEGERS.inexpressible()).isTrue();
         assertThat(Capability.declarable())
                 .as("no Java provider may claim it, so \"everything\" does not include it")
@@ -101,7 +85,7 @@ class DeclarationApiTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("LARGE_INTEGERS")
                 .hasMessageContaining("@large-integers")
-                .as("the message says why, naming the SDK property rather than citing a rule")
+                .as("the message names the SDK limitation")
                 .hasMessageContaining("Client.getIntegerDetails")
                 .hasMessageContaining("cannot express");
     }
@@ -109,10 +93,7 @@ class DeclarationApiTest {
     @Test
     @DisplayName("the two refusals are different facts, and neither message could be mistaken for the other")
     void reservedAndInexpressibleAreToldApart() {
-        // A reader who sees a capability missing from a report has to be able to tell "no scenario
-        // anywhere carries this tag yet" from "the scenarios exist and this SDK cannot ask them".
-        // Only the second is permanent, and neither says anything about the provider under test --
-        // which is the third thing they must not be mistaken for.
+        // "no scenario carries this yet" vs "this SDK cannot ask it"; neither blames the provider
         assertThat(Capability.CACHING.reserved()).isTrue();
         assertThat(Capability.CACHING.inexpressible())
                 .as("a reservation is global and expires; it is not a language's limit")
@@ -141,9 +122,7 @@ class DeclarationApiTest {
                 .contains("This is not a reserved capability")
                 .doesNotContain("no scenario in the suite carries");
 
-        // And the same distinction survives into the skip, which is where a report's reader meets
-        // it. An undeclared capability names the provider; an inexpressible one must not, because
-        // the provider had no say.
+        // same distinction in the skip message
         TestAbortedException undeclared = catchThrowableOfType(
                 () -> CapabilityGate.requireDeclared(
                         Arrays.asList("@variants"), Capability.declarableExcept(Capability.VARIANTS)),
@@ -160,9 +139,7 @@ class DeclarationApiTest {
                 .hasMessageContaining("not the provider under test declining");
         assertThat(unaskable.getMessage()).doesNotContain("provider does not declare");
 
-        // The inexpressible reason is reached whatever the declaration says, because a declaration
-        // cannot contain it. Checking it after the declaration would make the right reason appear
-        // only by luck.
+        // inexpressible reason wins regardless of declaration
         TestAbortedException evenIfSomehowDeclared = catchThrowableOfType(
                 () -> CapabilityGate.requireDeclared(
                         Arrays.asList("@large-integers"), EnumSet.of(Capability.LARGE_INTEGERS)),
@@ -180,16 +157,12 @@ class DeclarationApiTest {
     @Test
     @DisplayName("reinitialisation is a declarable choice, and withholding it skips only its own scenario")
     void reinitialisationIsADeclarableChoice() {
-        // Requirement 2.5.2 permits reuse after shutdown rather than requiring it, so a provider
-        // that refuses it withholds the tag instead of recording a deviation. That makes it an
-        // ordinary declarable capability rather than a reserved one.
+        // 2.5.2 permits but does not require reuse after shutdown
         assertThat(Capability.fromTag("@reinitialization")).contains(Capability.REINITIALIZATION);
         assertThat(Capability.REINITIALIZATION.reserved()).isFalse();
         assertThat(Capability.declarable()).contains(Capability.REINITIALIZATION);
 
-        // The scenario carries @lifecycle too. A provider that initialises against a backend it
-        // does not reopen declares the first and withholds the second, and only the one scenario
-        // is skipped -- the rest of the lifecycle set still runs.
+        // withholding it skips only the @reinitialization scenario, not all of @lifecycle
         Set<Capability> reachesBackendButNoReuse = EnumSet.of(Capability.LIFECYCLE);
         CapabilityGate.requireDeclared(Arrays.asList("@lifecycle"), reachesBackendButNoReuse);
 
@@ -237,10 +210,7 @@ class DeclarationApiTest {
     @Test
     @DisplayName("a deviation must say what the gap is")
     void deviationsMustCarryASummary() {
-        // The summary is the only part of the entry that says what is wrong: the capability says
-        // which question was asked and the results say what happened. Serialization omits null
-        // fields, so an unchecked summary reaches a report as a deviation that asserts a defect
-        // without describing it -- which is worse than no entry, because it cannot be acted on.
+        // a deviation without a summary cannot be acted on
         assertThatThrownBy(() -> KnownDeviation.untracked(Capability.OBJECT, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("no summary");
@@ -254,11 +224,7 @@ class DeclarationApiTest {
     @Test
     @DisplayName("a deviation cannot name a capability whose scenarios were never put to the provider")
     void deviationsCannotNameAnUnaskedCapability() {
-        // A deviation asserts that the provider fails something it is required to do, so it has to
-        // be about a question that was actually asked. Two never are, and they are refused apart
-        // for the same reason the declaration refuses them apart -- this is the same claim reaching
-        // the report by a second route, and the more damaging one, because a deviation reads as an
-        // admission of fault.
+        // reserved and inexpressible capabilities are never asked, so cannot deviate
         assertThatThrownBy(() -> KnownDeviation.untracked(Capability.CACHING, "no scenario carries it"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("reserved CACHING")
@@ -274,8 +240,7 @@ class DeclarationApiTest {
                 .as("it is not a reservation, and the message must not read as one")
                 .hasMessageNotContaining("no scenario in the suite carries");
 
-        // Null still means "a gap against a mandatory, ungated scenario", and an ordinary capability
-        // is still allowed in both shapes.
+        // null means a mandatory-scenario gap; ordinary capabilities still allowed
         assertThat(KnownDeviation.untracked(null, "a mandatory gap").capability).isNull();
         assertThat(KnownDeviation.untracked(Capability.DISABLED_FLAGS, "withheld and skipped").capability)
                 .isEqualTo("@disabled-flags");
@@ -305,12 +270,10 @@ class DeclarationApiTest {
         assertThat(ControlApi.HTTP.wireValue()).isEqualTo("http");
         assertThat(ControlApi.IN_PROCESS.wireValue()).isEqualTo("in-process");
 
-        // Closed on purpose: the report schema's enum has exactly these two members, and there is
-        // no third case an unanswered value would legitimately cover.
+        // closed set, matching the report schema enum
         assertThat(ControlApi.values()).containsExactly(ControlApi.HTTP, ControlApi.IN_PROCESS);
 
-        // Required on purpose: a default here would answer a question only the author of a custom
-        // control can answer, so the compiler has to ask for it.
+        // abstract so custom controls must state it
         assertThat(BackendControl.class.getMethod("controlApi").isDefault())
                 .as("controlApi() must be abstract, so that a custom control states it")
                 .isFalse();

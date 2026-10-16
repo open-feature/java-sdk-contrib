@@ -7,31 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * {@link BackendControl} that manipulates the SDK's {@link InMemoryProvider} directly, with no
- * backend, no container and no HTTP.
+ * {@link BackendControl} that manipulates the SDK's {@link InMemoryProvider} directly. Only for
+ * providers with no backend; others use {@link ContainerizedProviderTckTest}.
  *
- * <p>For a provider with nothing to connect to — in-memory, environment-variable, file-based —
- * "the backend" is a data structure in the same JVM: seeding flags is building a map, and changing
- * one is {@link InMemoryProvider#updateFlag(String, Flag)}, which emits
- * {@code PROVIDER_CONFIGURATION_CHANGED} through the provider's own event mechanism rather than
- * through a simulated one.
- *
- * <p><strong>This is not a shortcut for providers that do have a backend.</strong> Those use
- * {@link HttpBackendControl} via {@link ContainerizedProviderTckTest}; {@link BackendControl} says
- * why.
- *
- * <h2>Connection control</h2>
- *
- * <p>{@link #disconnect()} and {@link #reconnect()} inherit the interface defaults and throw: an
- * in-memory provider has no connection to lose, and a no-op would report {@code @stale} scenarios
- * as passed. The harness instead leaves {@link Capability#STALE} and
- * {@link Capability#UNAVAILABLE_INIT} undeclared, and those scenarios are skipped.
- *
- * <h2>Ownership of the provider</h2>
- *
- * <p>This class both seeds the flags and creates the provider that serves them, because in-process
- * they are the same object: {@link #changeFlag()} has to reach the live provider instance to emit an
- * event from it. A harness wires both of its factory methods to one instance:
+ * <p>{@link #disconnect()} and {@link #reconnect()} throw, so leave {@link Capability#STALE} and
+ * {@link Capability#UNAVAILABLE_INIT} undeclared. Wire both harness factory methods to one instance:
  *
  * <pre>{@code
  * private final InProcessBackendControl control = new InProcessBackendControl();
@@ -49,50 +29,29 @@ import java.util.Map;
  */
 public final class InProcessBackendControl implements BackendControl {
 
-    /**
-     * The flag {@link #changeFlag()} mutates, as named by the control API and by the canonical flag
-     * definition.
-     *
-     * <p>The key is the one thing here not read out of the definition, because
-     * {@code POST /change} in {@code openapi/control-api.yaml} names it too and the two have to
-     * agree. Its variants are read, and {@link #changingFlag} rebuilds it from them.
-     */
+    // flag mutated by changeFlag(); also named by POST /change
     private static final String CHANGING_FLAG = "changing-flag";
 
-    /**
-     * The canonical flag set, never mutated after construction.
-     *
-     * <p>Decoded from the packaged {@code flags/canonical-flags.json} rather than restated here —
-     * see {@link CanonicalFlags}.
-     *
-     * <p>Scenario isolation depends on the map not being mutated: {@link InMemoryProvider} copies the
-     * map it is given, and {@code updateFlag} writes only to the provider's copy, so every provider
-     * handed out by {@link #createProvider()} starts from an untouched baseline.
-     */
+    // canonical flag set; never mutated, which provides scenario isolation
     private final Map<String, Flag<?>> baseline = CanonicalFlags.flagSet();
 
-    /** {@code changing-flag} as the definition ships it, the source of its variants. */
+    // changing-flag as defined, source of its variants
     private final Flag<?> changingBaseline = requireChangingFlag();
 
-    /** The provider serving the current scenario, or {@code null} between scenarios. */
+    // provider for the current scenario, null between scenarios
     private InMemoryProvider current;
 
-    /** Which variant {@code changing-flag} currently resolves to. */
+    // variant changing-flag currently resolves to
     private String changingVariant = changingBaseline.getDefaultVariant();
 
     /**
-     * Creates the provider for the scenario about to run, seeded with the canonical flag set.
-     *
-     * <p>Each call returns a fresh instance over a fresh copy of the baseline, which is what makes
-     * {@link #prepareScenario()} nothing more than dropping the previous reference.
+     * Creates a fresh provider for the next scenario, seeded with the canonical flag set.
      *
      * @return a configured, uninitialised in-memory provider
      */
     @SuppressFBWarnings(
             value = "EI_EXPOSE_REP",
-            justification = "Handing out the live provider is the contract, not a leak: in-process "
-                    + "the flag store and the provider are one object, and changeFlag() must reach "
-                    + "the same instance the TCK registered in order to emit an event from it")
+            justification = "changeFlag() must reach the same live instance the TCK registered")
     public InMemoryProvider createProvider() {
         changingVariant = changingBaseline.getDefaultVariant();
         current = new InMemoryProvider(new HashMap<>(baseline));
@@ -107,8 +66,7 @@ public final class InProcessBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Always {@link ControlApi#IN_PROCESS}: there is no backend to drive over the normative HTTP
-     * endpoints, because "the backend" is a map in this JVM.
+     * <p>Always {@link ControlApi#IN_PROCESS}.
      */
     @Override
     public ControlApi controlApi() {
@@ -118,11 +76,7 @@ public final class InProcessBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Drops the reference to the previous scenario's provider, which is the whole reset: the
-     * baseline map is never mutated, so the {@link #createProvider()} call that follows produces a
-     * provider already at the baseline. Clearing the reference also means a scenario that
-     * manipulates flags without creating a provider fails with a clear message instead of mutating
-     * one that has already been shut down.
+     * <p>Drops the previous provider; the next {@link #createProvider()} starts from the baseline.
      */
     @Override
     public void prepareScenario() {
@@ -132,11 +86,8 @@ public final class InProcessBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Flips {@code changing-flag} between its two variants through
-     * {@link InMemoryProvider#updateFlag(String, Flag)}, so the event the suite awaits is the
-     * provider's own {@code PROVIDER_CONFIGURATION_CHANGED} rather than a signal the TCK
-     * synthesised. Alternating rather than assigning a fixed variant keeps repeated calls within one
-     * scenario meaningful.
+     * <p>Flips {@code changing-flag} between variants via
+     * {@link InMemoryProvider#updateFlag(String, Flag)}, which emits the provider's own event.
      */
     @Override
     public void changeFlag() {
@@ -144,12 +95,7 @@ public final class InProcessBackendControl implements BackendControl {
         requireProvider().updateFlag(CHANGING_FLAG, changingFlag(changingVariant));
     }
 
-    /**
-     * Returns a variant of {@code changing-flag} other than the given one.
-     *
-     * <p>Read out of the definition rather than named here, so that renaming either variant in the
-     * spec cannot leave this switching between a name the file no longer defines and one it does.
-     */
+    /** Returns a variant of {@code changing-flag} other than the given one. */
     private String otherVariant(String resolved) {
         for (String variant : changingBaseline.getVariants().keySet()) {
             if (!variant.equals(resolved)) {
@@ -157,10 +103,10 @@ public final class InProcessBackendControl implements BackendControl {
             }
         }
         throw new IllegalStateException("The canonical definition of '" + CHANGING_FLAG + "' has only the variant '"
-                + resolved + "'. changeFlag() has to switch to a different one, so the flag needs at least two.");
+                + resolved + "'; changeFlag() needs at least two.");
     }
 
-    /** Rebuilds {@code changing-flag} with a different variant as the one it resolves to. */
+    /** Rebuilds {@code changing-flag} resolving to the given variant. */
     private Flag<?> changingFlag(String defaultVariant) {
         return Flag.builder()
                 .variants(changingBaseline.getVariants())
@@ -169,22 +115,20 @@ public final class InProcessBackendControl implements BackendControl {
                 .build();
     }
 
-    /** The canonical definition of {@code changing-flag}, which the suite cannot do without. */
+    /** Returns the canonical {@code changing-flag}, failing if absent. */
     private Flag<?> requireChangingFlag() {
         Flag<?> flag = baseline.get(CHANGING_FLAG);
         if (flag == null) {
             throw new IllegalStateException("The canonical flag definition " + CanonicalFlags.RESOURCE
-                    + " does not define '" + CHANGING_FLAG + "', which is the flag POST /change mutates and the "
-                    + "@configuration-change scenarios evaluate.");
+                    + " does not define '" + CHANGING_FLAG + "', required by POST /change.");
         }
         return flag;
     }
 
     private InMemoryProvider requireProvider() {
         if (current == null) {
-            throw new IllegalStateException("No in-memory provider exists for this scenario. In-process backend "
-                    + "control manipulates the provider itself, so the scenario must create one — with "
-                    + "'Given a stable provider' — before any step that changes flag state.");
+            throw new IllegalStateException("No in-memory provider exists for this scenario; use "
+                    + "'Given a stable provider' before any step that changes flag state.");
         }
         return current;
     }

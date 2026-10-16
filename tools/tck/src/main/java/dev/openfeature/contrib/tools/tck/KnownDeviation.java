@@ -3,43 +3,24 @@ package dev.openfeature.contrib.tools.tck;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * An entry that says: <strong>this provider fails to do something it is required to do.</strong>
+ * A declared gap: this provider fails a requirement (a {@code MUST}), as opposed to an optional
+ * capability it chose not to offer. Declared via {@link ProviderTckHarness#knownDeviations()}.
  *
- * <p>The requirement has to be a numbered {@code MUST}, or a rule the implementation bound itself
- * to elsewhere. Where the specification <em>permits</em> the choice, withholding the capability
- * <em>is</em> the honest report and a deviation entry would assert a defect that does not exist.
- *
- * <p>An entry is legitimate in two shapes, and <strong>the first is preferred</strong>: declare the
- * capability and let the scenario fail, or — only where the provider cannot attempt the behaviour at
- * all — withhold it and let the scenarios skip. Withdrawing a capability <em>in order to</em> turn a
- * failure into a skip is the failure mode this class exists to prevent.
+ * <p>Prefer declaring the capability and letting the scenario fail. {@link #capability} is
+ * {@code null} for mandatory scenarios and must not be reserved or inexpressible. See
  * <a href="https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md">Appendix
- * F</a> states both shapes and the rule behind them.
- *
- * <p>{@link #summary} is required; {@link #issue} is optional — see {@link #tracked} and
- * {@link #untracked}. {@link #capability} may be {@code null}, when the gap is against a mandatory,
- * ungated scenario. It may <strong>not</strong> name a {@linkplain Capability#reserved() reserved}
- * or {@linkplain Capability#inexpressible() inexpressible} capability: neither's scenarios were put
- * to this provider, so a deviation would assert a fault nobody committed.
- *
- * <p>Declared by the provider author through {@link ProviderTckHarness#knownDeviations()}, because
- * that is the only place that knows.
+ * F</a>.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class KnownDeviation {
 
-    /**
-     * The capability tag the deviation concerns, or {@code null} when it maps to none.
-     *
-     * <p>Set whether the capability was declared and its scenario failed, or withheld and its
-     * scenarios skipped: the results say which happened, this says which capability it was about.
-     */
+    /** The capability tag the deviation concerns, or {@code null} when it maps to none. */
     public final String capability;
 
     /** Where the gap is tracked, or {@code null} when it is not tracked anywhere. */
     public final String issue;
 
-    /** What the gap is, in a form someone comparing providers can use. Never {@code null}. */
+    /** What the gap is; never {@code null}. */
     public final String summary;
 
     private KnownDeviation(Capability capability, String issue, String summary) {
@@ -51,32 +32,20 @@ public final class KnownDeviation {
     }
 
     /**
-     * Refuses a deviation that does not say what the gap is.
-     *
-     * <p>The summary is the whole value of the entry to someone comparing providers: the capability
-     * says which question, the results say what happened, and this says what is wrong. Serialization
-     * omits null fields, so without this an entry reaches a report asserting a defect it does not
-     * describe. Checked on construction for the same reason {@link #requireDeviable} is.
+     * Refuses a deviation without a summary.
      *
      * @param summary the summary the adopter supplied
      * @throws IllegalArgumentException if it is null or blank
      */
     private static void requireSummary(String summary) {
         if (summary == null || summary.trim().isEmpty()) {
-            throw new IllegalArgumentException("knownDeviations() records a deviation with no summary. "
-                    + "The summary is what the entry is for — it says what the provider gets wrong, in "
-                    + "a form someone comparing providers can use. The capability and the results "
-                    + "cannot supply it.");
+            throw new IllegalArgumentException(
+                    "knownDeviations() records a deviation with no summary; describe what the provider gets wrong.");
         }
     }
 
     /**
-     * Refuses a deviation against a capability whose scenarios were never put to this provider.
-     *
-     * <p>The same rule as {@link Capability#requireDeclarable}, one step along: a deviation asserts
-     * that the provider fails something it is required to do, so it has to be about a question that
-     * was actually asked. Checked on construction rather than when it is read, so an adopter is told
-     * at the point they wrote it and whether or not anything downstream reads the declaration.
+     * Refuses a deviation against a reserved or inexpressible capability.
      *
      * @param capability the capability the deviation names, or {@code null}
      * @throws IllegalArgumentException if the capability is reserved or inexpressible
@@ -88,27 +57,20 @@ public final class KnownDeviation {
         if (capability.reserved()) {
             throw new IllegalArgumentException("knownDeviations() records a deviation against reserved "
                     + capability.name() + " (" + capability.tag() + "), which no scenario in the suite "
-                    + "carries. There is nothing to deviate from: no scenario was skipped for it and "
-                    + "none failed. Use null for a gap against a mandatory, ungated scenario.");
+                    + "carries; use null for a gap against a mandatory scenario.");
         }
         if (capability.inexpressible()) {
             throw new IllegalArgumentException("knownDeviations() records a deviation against "
                     + capability.name() + " (" + capability.tag() + "), which the Java SDK cannot "
-                    + "express: " + capability.inexpressibleBecause() + ". This is not a reserved "
-                    + "capability — the scenarios exist and are asked in languages whose API is wide "
-                    + "enough — but they were never put to your provider, so a deviation here asserts "
-                    + "a defect that could not have been observed and that nobody could fix. The "
-                    + "scenario's skip already says the SDK is the limit.");
+                    + "express: " + capability.inexpressibleBecause() + "; its scenarios are never run "
+                    + "against Java providers, so remove this deviation.");
         }
     }
 
     /**
-     * Records a deviation that is tracked somewhere. The preferred form.
+     * Records a deviation tracked in an issue; the preferred form.
      *
-     * @param capability the capability the gap is about — declared and failing, or withheld and
-     *     skipped — or {@code null} when the gap belongs to no capability. Must not be
-     *     {@linkplain Capability#reserved() reserved} or
-     *     {@linkplain Capability#inexpressible() inexpressible}
+     * @param capability the capability the gap is about, or {@code null} for none
      * @param issue a URI where the gap is tracked
      * @param summary what the gap is; required
      * @return the deviation, ready to declare
@@ -119,15 +81,9 @@ public final class KnownDeviation {
     }
 
     /**
-     * Records a deviation that is not tracked anywhere yet.
+     * Records a deviation not yet tracked anywhere; prefer {@link #tracked}.
      *
-     * <p>Worth declaring even so: naming the defect is what separates it from a capability the
-     * provider chose not to offer. Prefer {@link #tracked} as soon as there is an issue to point at.
-     *
-     * @param capability the capability the gap is about — declared and failing, or withheld and
-     *     skipped — or {@code null} when the gap belongs to no capability. Must not be
-     *     {@linkplain Capability#reserved() reserved} or
-     *     {@linkplain Capability#inexpressible() inexpressible}
+     * @param capability the capability the gap is about, or {@code null} for none
      * @param summary what the gap is; required
      * @return the deviation, ready to declare
      * @throws IllegalArgumentException if the capability is reserved or inexpressible

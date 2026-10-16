@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.tck;
 
+import dev.openfeature.contrib.tools.tck.internal.TckSuiteListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -9,17 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Suite-scoped runtime: discovers the provider's harness, drives its suite lifecycle, and exposes
- * its {@link BackendControl} to the step definitions.
+ * Suite-scoped runtime: discovers the harness, drives its suite lifecycle once, and exposes its
+ * {@link BackendControl} to step definitions.
  *
- * <p>Whatever must exist before the first scenario is created by
- * {@link ProviderTckHarness#startSuite()} and released by {@link ProviderTckHarness#stopSuite()}.
- * That lifecycle runs <strong>once</strong> and is never cycled in between; scenario isolation is
- * achieved through {@link BackendControl#prepareScenario()} instead.
- *
- * <p>State is static because Cucumber's {@code @BeforeAll} / {@code @AfterAll} hooks are static and
- * the runtime must outlive individual scenarios. Consequently only one TCK suite may run per JVM
- * fork at a time.
+ * <p>State is static (Cucumber's {@code @BeforeAll}/{@code @AfterAll} are static), so only one TCK
+ * suite may run per JVM fork at a time.
  */
 public final class TckRuntime {
 
@@ -50,8 +45,7 @@ public final class TckRuntime {
         ProviderTckHarness harness = discoverHarness();
         log.info("Provider TCK harness: {}", harness.getClass().getName());
 
-        // Before the suite lifecycle starts: an adopter should not wait for Docker to be told
-        // about a one-line mistake in capabilities().
+        // fail fast, before starting Docker
         Capability.requireDeclarable(harness.capabilities());
 
         try {
@@ -59,18 +53,12 @@ public final class TckRuntime {
             BackendControl control = harness.backendControl();
             if (control == null) {
                 throw new IllegalStateException(harness.getClass().getName()
-                        + ".backendControl() returned null. Every harness must supply the seam through "
-                        + "which the TCK manipulates the backend — HttpBackendControl for an external "
-                        + "backend, InProcessBackendControl for a provider that has none.");
+                        + ".backendControl() returned null; supply an HttpBackendControl or InProcessBackendControl.");
             }
             log.info("Backend control: {}", control.description());
             instance = new TckRuntime(harness, control);
         } catch (RuntimeException e) {
-            // startSuite() may have allocated a container stack before it failed, or before
-            // one of the checks above did. ContainerizedProviderTckTest.startSuite() brings
-            // Compose up and only then waits for the control API, so a backend that never
-            // becomes ready is the path that would otherwise leave containers running. Every
-            // stopSuite() has to tolerate a partial start for this reason, and the one here does.
+            // release anything a partial start allocated, e.g. containers
             harness.stopSuite();
             throw e;
         }
@@ -120,15 +108,8 @@ public final class TckRuntime {
     }
 
     /**
-     * Finds the harness for the suite that is currently executing.
-     *
-     * <p>Primary mechanism: the executing suite class itself, reported by {@link TckSuiteListener},
-     * so a provider with several transports writes one suite class per transport and needs no
-     * registration to keep them apart.
-     *
-     * <p>Fallback: {@link java.util.ServiceLoader}, for setups where the launcher does not
-     * auto-register listeners. That path cannot distinguish between several registered harnesses,
-     * so it accepts exactly one unless {@link #HARNESS_SELECTOR_PROPERTY} names which to use.
+     * Finds the harness for the executing suite via {@link TckSuiteListener}, falling back to
+     * {@link java.util.ServiceLoader} (disambiguated by {@link #HARNESS_SELECTOR_PROPERTY}).
      */
     private static ProviderTckHarness discoverHarness() {
         Optional<Class<? extends ProviderTckHarness>> suite = TckSuiteListener.currentSuite();
@@ -152,8 +133,7 @@ public final class TckRuntime {
         if (selector == null) {
             throw new IllegalStateException("Several ProviderTckHarness implementations are registered ("
                     + found.stream().map(h -> h.getClass().getSimpleName()).collect(Collectors.joining(", "))
-                    + ") and the executing suite could not be determined, which normally means the JUnit "
-                    + "Platform did not auto-register TckSuiteListener. Select one with -D"
+                    + ") and the executing suite is unknown; select one with -D"
                     + HARNESS_SELECTOR_PROPERTY + "=<simple class name>.");
         }
         return found.stream()
@@ -169,9 +149,7 @@ public final class TckRuntime {
             return suite.getDeclaredConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(
-                    suite.getName() + " could not be instantiated. A TCK suite class needs a public no-argument "
-                            + "constructor, because the TCK creates one to read its configuration.",
-                    e);
+                    suite.getName() + " could not be instantiated; it needs a public no-arg constructor.", e);
         }
     }
 }

@@ -28,29 +28,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Every capability this suite does not call reserved is carried by at least one canonical scenario,
- * every reserved one is carried by none, and every tag they carry is a capability this suite knows.
- *
- * <p>{@link CapabilityGate#requireNoExpiredReservation} already fails a run where a
- * <em>scenario</em> carries a reserved tag. This is the other half of the same rule: a declarable
- * capability that gates <strong>nothing</strong> is a claim no result can contradict, which tells a
- * report's reader that a capability was examined when nothing examined it.
- *
- * <p>The first test is over every capability that is not reserved, rather than over
- * {@link Capability#declarable()}, and the difference matters: an
- * {@linkplain Capability#inexpressible() inexpressible} capability is not declarable here, but its
- * scenarios existing is precisely what distinguishes it from a reservation.
- *
- * <p>The realistic cause is a build accident — the canonical assets are copied out of the
- * {@code spec} submodule, whose working tree and gitlink move by different commands, so a build in
- * between packages the previous pin's assets. See {@link CanonicalAssetDigestTest}.
- *
- * <p>A test rather than a runtime check, because this direction can only be introduced by a build of
- * <em>this</em> artifact; the reserved direction has to fail an adopter's run instead.
- *
- * <p><strong>The tags are parsed, not scanned.</strong> {@code gherkin/events.feature} names
- * {@code @caching} inside a Gherkin {@code #} comment, so a text scan would report a reserved tag
- * that no scenario carries. The third test below pins that rather than describing it.
+ * Every non-reserved capability is carried by a canonical scenario, no reserved one is, and every
+ * carried tag is a known capability. Tags are parsed, not scanned as text.
  */
 class CanonicalTagCoverageTest {
 
@@ -66,11 +45,8 @@ class CanonicalTagCoverageTest {
             }
             assertThat(CARRIED)
                     .as(
-                            "%s (%s) is not reserved, so this suite says scenarios for it exist — but no "
-                                    + "canonical scenario carries its tag. Either the packaged gherkin/ is stale "
-                                    + "(check that the spec submodule working tree matches the gitlink: git -C "
-                                    + "tools/tck/spec rev-parse HEAD) or the capability was added ahead of its "
-                                    + "scenarios, in which case mark it reserved until they arrive.",
+                            "%s (%s) is not reserved but no canonical scenario carries its tag; packaged "
+                                    + "gherkin/ may be stale, or the capability should be reserved",
                             capability.name(), capability.tag())
                     .contains(capability.tag());
         }
@@ -85,10 +61,7 @@ class CanonicalTagCoverageTest {
             }
             assertThat(CARRIED)
                     .as(
-                            "%s (%s) is still marked reserved, but a canonical scenario now carries its tag. "
-                                    + "The reservation has expired: drop the reserved flag so an adopter can "
-                                    + "declare it and be held to it. CapabilityGate fails such a scenario at "
-                                    + "run time; this says it at build time.",
+                            "%s (%s) is reserved but a canonical scenario carries its tag; drop the " + "reservation",
                             capability.name(), capability.tag())
                     .doesNotContain(capability.tag());
         }
@@ -97,19 +70,12 @@ class CanonicalTagCoverageTest {
     @Test
     @DisplayName("every tag a canonical scenario carries resolves to a capability")
     void everyCarriedTagIsInTheVocabulary() {
-        // The reverse of the first test: that one catches a capability with no scenarios, this one
-        // a scenario tag with no capability. It fires on the re-pin that adds a tag, which is the
-        // moment it is needed, since nothing else notices if the pin moves without the Capability
-        // constant. CapabilityGate.requireKnownVocabulary is the same rule at run time, over the
-        // assets an adopter actually executes rather than the ones packaged here.
+        // reverse of the first test; catches a re-pin that adds a tag without a Capability
         for (String tag : CARRIED) {
             assertThat(Capability.fromTag(tag))
                     .as(
-                            "A canonical scenario carries %s, which Capability.fromTag does not resolve. The "
-                                    + "pinned specification revision has a capability this package does not: add "
-                                    + "it to the Capability enum and say in its javadoc what declaring it claims. "
-                                    + "Until then the tag gates nothing and its scenarios are mandatory for every "
-                                    + "adopter, including the ones that cannot support it.",
+                            "a canonical scenario carries %s, which Capability.fromTag does not resolve; "
+                                    + "add it to the Capability enum",
                             tag)
                     .isPresent();
         }
@@ -118,11 +84,9 @@ class CanonicalTagCoverageTest {
     @Test
     @DisplayName("a tag named only in a Gherkin comment is prose, not a tag")
     void aTagInACommentIsNotCarried() {
-        // events.feature explains what @caching would cover, inside a Gherkin comment, so a
-        // grep-shaped implementation of the test above would report CACHING as an expired
-        // reservation forever.
+        // events.feature names @caching in a comment; a text scan would misreport it
         assertThat(rawCanonicalText())
-                .as("events.feature still names @caching in prose, which is what makes this test worth having")
+                .as("events.feature still names @caching in prose")
                 .contains("@caching");
         assertThat(CARRIED).as("but nothing carries it as a tag").doesNotContain(Capability.CACHING.tag());
     }
@@ -182,13 +146,7 @@ class CanonicalTagCoverageTest {
         }
     }
 
-    /**
-     * Reads {@code gherkin/} out of this artifact's own code source, as {@link ProviderTck} was
-     * loaded from, rather than through the classloader — the same rule the canonical set is read by,
-     * and for the same reason: a feature file placed in {@code gherkin/} on another classpath root
-     * shadows the canonical one, and a check that read the shadowed copy would be checking the
-     * replacement against itself.
-     */
+    /** Reads {@code gherkin/} from the artifact's code source, not the classloader, to avoid shadowing. */
     private static void forEachCanonicalFeature(FeatureConsumer consumer) {
         CodeSource codeSource = ProviderTck.class.getProtectionDomain().getCodeSource();
         if (codeSource == null || codeSource.getLocation() == null) {

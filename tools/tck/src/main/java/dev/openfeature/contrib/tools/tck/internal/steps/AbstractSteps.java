@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.tools.tck.steps;
+package dev.openfeature.contrib.tools.tck.internal.steps;
 
 import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
@@ -6,14 +6,7 @@ import dev.openfeature.contrib.tools.tck.TckRuntime;
 import dev.openfeature.contrib.tools.tck.TckState;
 
 /**
- * Base for the TCK step definition classes.
- *
- * <p>Holds the PicoContainer-injected scenario state and gives subclasses the only two collaborators
- * a step is allowed to reach: the provider author's harness, and the {@link BackendControl} that
- * manipulates the backend.
- *
- * <p>Deliberately no accessor for the runtime itself: steps must not know whether the backend is a
- * container reached over HTTP or a map in this JVM.
+ * Base for TCK step definitions; exposes scenario state, the harness, and {@link BackendControl}.
  */
 public abstract class AbstractSteps {
 
