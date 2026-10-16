@@ -1,5 +1,7 @@
-package dev.openfeature.contrib.tools.tck;
+package dev.openfeature.contrib.tools.tck.internal.steps;
 
+import dev.openfeature.contrib.tools.tck.BackendControl;
+import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import io.cucumber.core.backend.ObjectFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
@@ -14,9 +16,9 @@ import org.picocontainer.PicoBuilder;
  * <p>Cucumber's stock factory can only register classes it instantiates itself, so an
  * interface-typed constructor parameter can never be satisfied.
  *
- * <p>The container is per scenario, as the SPI specifies, which is what keeps TckState from
- * leaking between scenarios. The harness and the backend control are not rebuilt with it: they
- * are suite-scoped instances owned by {@link ProviderTck}, registered here by reference.
+ * <p>The container is per scenario, as the SPI specifies, which is what keeps {@code TckState}
+ * from leaking between scenarios. The harness and the backend control are not rebuilt with it:
+ * they are suite-scoped instances held by {@link TckLifecycle}, registered here by reference.
  */
 public final class TckObjectFactory implements ObjectFactory {
 
@@ -24,7 +26,6 @@ public final class TckObjectFactory implements ObjectFactory {
 
     private MutablePicoContainer pico;
 
-    /** {@inheritDoc} */
     @Override
     public boolean addClass(Class<?> glueClass) {
         if (isInstantiable(glueClass) && glue.add(glueClass)) {
@@ -62,15 +63,14 @@ public final class TckObjectFactory implements ObjectFactory {
                 && !nonStaticInner;
     }
 
-    /** {@inheritDoc} */
     @Override
     public void start() {
         pico = new PicoBuilder().withCaching().build();
         // Conditional: a launcher selecting only the extension glue never reaches @BeforeAll, so
         // there is no harness to register.
-        if (ProviderTck.isRunning()) {
-            pico.addComponent(ProviderTckHarness.class, ProviderTck.harness());
-            pico.addComponent(BackendControl.class, ProviderTck.backendControl());
+        if (TckLifecycle.isRunning()) {
+            pico.addComponent(ProviderTckHarness.class, TckLifecycle.harness());
+            pico.addComponent(BackendControl.class, TckLifecycle.backendControl());
         }
         for (Class<?> glueClass : glue) {
             pico.addComponent(glueClass);
@@ -78,7 +78,6 @@ public final class TckObjectFactory implements ObjectFactory {
         pico.start();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void stop() {
         if (pico != null) {
@@ -88,7 +87,6 @@ public final class TckObjectFactory implements ObjectFactory {
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public <T> T getInstance(Class<T> glueClass) {
         return pico.getComponent(glueClass);

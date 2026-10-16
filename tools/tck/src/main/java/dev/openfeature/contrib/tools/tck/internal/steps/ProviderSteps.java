@@ -41,13 +41,13 @@ public class ProviderSteps extends AbstractSteps {
     /** Runs the harness's suite startup once, before the first scenario. */
     @BeforeAll
     public static void beforeAll() {
-        ProviderTck.startIfNeeded();
+        TckLifecycle.startIfNeeded();
     }
 
     /** Runs the harness's suite teardown after the last scenario. */
     @AfterAll
     public static void afterAll() {
-        ProviderTck.stop();
+        TckLifecycle.stop();
     }
 
     /**
