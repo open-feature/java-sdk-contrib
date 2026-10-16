@@ -57,7 +57,7 @@ class ReservedTagExpiryTest {
     @Test
     @DisplayName("the reserved tag is reported even when another tag on the scenario is undeclared")
     void theExpiryIsReportedBeforeTheSkip() {
-        assertThatThrownBy(() -> CapabilityGate.requireDeclared(
+        assertThatThrownBy(() -> Capability.requireDeclared(
                         Arrays.asList(Capability.EVENTS.tag(), Capability.CACHING.tag()),
                         EnumSet.noneOf(Capability.class)))
                 .as("the expired reservation is reported before the undeclared skip")
@@ -68,11 +68,11 @@ class ReservedTagExpiryTest {
     @Test
     @DisplayName("a tag that gates nothing, and a declared capability, still pass the gate")
     void ordinaryTagsAreUnaffected() {
-        assertThatCode(() -> CapabilityGate.requireDeclared(
+        assertThatCode(() -> Capability.requireDeclared(
                         Arrays.asList("@some-adopter-tag", Capability.EVENTS.tag()), EnumSet.of(Capability.EVENTS)))
                 .doesNotThrowAnyException();
 
-        assertThatThrownBy(() -> CapabilityGate.requireDeclared(
+        assertThatThrownBy(() -> Capability.requireDeclared(
                         Collections.singletonList(Capability.EVENTS.tag()), EnumSet.noneOf(Capability.class)))
                 .as("an undeclared capability is still a skip, not a failure")
                 .isInstanceOf(TestAbortedException.class);

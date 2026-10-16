@@ -51,14 +51,16 @@ public class ProviderSteps extends AbstractSteps {
     }
 
     /**
-     * Skips scenarios needing an undeclared {@link Capability}; see {@link ProviderTck#gateScenario}. Tags
+     * Skips scenarios needing an undeclared {@link Capability}; see
+     * {@link Capability#requireDeclared(java.net.URI, java.util.Collection, java.util.Set)}. Tags
      * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check.
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        ProviderTck.gateScenario(scenario.getUri(), scenario.getSourceTagNames());
+        Capability.requireDeclared(
+                scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
     }
 
     /**

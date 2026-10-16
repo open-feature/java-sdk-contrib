@@ -20,10 +20,8 @@ import org.slf4j.LoggerFactory;
  */
 public final class ProviderTck {
 
-
     // Cucumber configuration, as compile-time constants so ProviderTckTest can use them in
     // annotations. Only the three an extension composes with are public.
-
 
     /** Classpath directory of the canonical feature files; reserved, use {@link #EXTENSIONS}. */
     static final String FEATURES = "gherkin";
@@ -133,18 +131,6 @@ public final class ProviderTck {
      *
      * @return the discovered harness
      */
-    /**
-     * Applies the capability gate to a scenario about to run.
-     *
-     * <p>The seam the step definitions call, which keeps {@code CapabilityGate} out of the API.
-     *
-     * @param source the scenario's feature file, or {@code null} when unknown
-     * @param tags the scenario's Gherkin tags, including the leading at-sign
-     */
-    public static void gateScenario(URI source, Collection<String> tags) {
-        CapabilityGate.requireDeclared(source, tags, harness().capabilities());
-    }
-
     static ProviderTckHarness harness() {
         return current().harness;
     }
