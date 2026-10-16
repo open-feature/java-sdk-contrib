@@ -44,9 +44,30 @@ public final class KnownDeviation {
 
     private KnownDeviation(Capability capability, String issue, String summary) {
         requireDeviable(capability);
+        requireSummary(summary);
         this.capability = capability == null ? null : capability.tag();
         this.issue = issue;
         this.summary = summary;
+    }
+
+    /**
+     * Refuses a deviation that does not say what the gap is.
+     *
+     * <p>The summary is the whole value of the entry to someone comparing providers: the capability
+     * says which question, the results say what happened, and this says what is wrong. Serialization
+     * omits null fields, so without this an entry reaches a report asserting a defect it does not
+     * describe. Checked on construction for the same reason {@link #requireDeviable} is.
+     *
+     * @param summary the summary the adopter supplied
+     * @throws IllegalArgumentException if it is null or blank
+     */
+    private static void requireSummary(String summary) {
+        if (summary == null || summary.trim().isEmpty()) {
+            throw new IllegalArgumentException("knownDeviations() records a deviation with no summary. "
+                    + "The summary is what the entry is for — it says what the provider gets wrong, in "
+                    + "a form someone comparing providers can use. The capability and the results "
+                    + "cannot supply it.");
+        }
     }
 
     /**
