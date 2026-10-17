@@ -38,16 +38,16 @@ public class ProviderSteps extends AbstractSteps {
         super(state, harness, backend);
     }
 
-    /** Runs the harness's suite startup once, before the first scenario. */
+    /** Opens the suite, and rejects an undeclarable capability set before any backend starts. */
     @BeforeAll
     public static void beforeAll() {
-        TckLifecycle.startIfNeeded();
+        TckLifecycle.beginSuite();
     }
 
-    /** Runs the harness's suite teardown after the last scenario. */
+    /** Stops every backend the suite's scenarios started, on whichever thread started it. */
     @AfterAll
     public static void afterAll() {
-        TckLifecycle.stop();
+        TckLifecycle.endSuite();
     }
 
     /**

@@ -5,17 +5,26 @@ import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.internal.TckSuiteListener;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The suite lifecycle: discovers the harness, starts it once, holds it for the scenarios.
+ * One harness and the backend it brings up, owned by whoever started it.
  *
- * <p>Static because Cucumber's suite hooks are, so one suite runs per JVM fork at a time.
+ * <p>An instance per {@link TckObjectFactory}, which Cucumber creates once per run when scenarios
+ * are sequential and once per thread when they are not -- so enabling parallel execution gives each
+ * thread a backend of its own rather than making them share one.
+ *
+ * <p>Two statics remain, and only because Cucumber's suite hooks are static: a flag saying a suite
+ * is running, so glue launched without one registers nothing, and a registry of what was started,
+ * so {@code @AfterAll} can stop the instances other threads own. Neither holds a harness.
  */
 final class TckLifecycle {
 
@@ -24,7 +33,9 @@ final class TckLifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(TckLifecycle.class);
 
-    private static TckLifecycle instance;
+    private static final Set<TckLifecycle> started = Collections.synchronizedSet(new LinkedHashSet<>());
+
+    private static volatile boolean suiteRunning;
 
     private final ProviderTckHarness harness;
     private final BackendControl backendControl;
@@ -34,17 +45,56 @@ final class TckLifecycle {
         this.backendControl = backendControl;
     }
 
-    /** Starts the suite lifecycle if it is not already running. */
-    static synchronized void startIfNeeded() {
-        if (instance != null) {
-            return;
-        }
+    /**
+     * Marks a suite as running and rejects an undeclarable capability set before anything starts.
+     *
+     * <p>The check is here rather than in {@link #start} so a misdeclared suite fails once, cleanly,
+     * instead of once per thread inside the first scenario each one runs.
+     */
+    static void beginSuite() {
         ProviderTckHarness harness = discoverHarness();
         log.info("Provider TCK harness: {}", harness.getClass().getName());
-
-        // fail fast, before starting Docker
         Capability.requireDeclarable(harness.capabilities());
+        suiteRunning = true;
+    }
 
+    /** Stops every lifecycle this suite started, on whichever thread started it. */
+    static void endSuite() {
+        suiteRunning = false;
+        List<TckLifecycle> toStop;
+        synchronized (started) {
+            toStop = new ArrayList<>(started);
+            started.clear();
+        }
+        RuntimeException failure = null;
+        for (TckLifecycle lifecycle : toStop) {
+            try {
+                lifecycle.harness.stopSuite();
+            } catch (RuntimeException e) {
+                // keep stopping the rest; a leaked container is worse than a lost stack trace
+                log.warn("Suite teardown failed for {}", lifecycle.harness.getClass().getName(), e);
+                failure = failure == null ? e : failure;
+            }
+        }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    /**
+     * Starts a lifecycle for the caller to own, or empty when no suite is running.
+     *
+     * @return a started lifecycle, or empty when there is no suite to start one for
+     */
+    static Optional<TckLifecycle> startForExecutingSuite() {
+        if (!suiteRunning) {
+            return Optional.empty();
+        }
+        return Optional.of(start(discoverHarness()));
+    }
+
+    /** Starts the given harness and registers the result for {@link #endSuite()}. */
+    static TckLifecycle start(ProviderTckHarness harness) {
         try {
             harness.startSuite();
             BackendControl control = harness.backendControl();
@@ -53,7 +103,9 @@ final class TckLifecycle {
                         + ".backendControl() returned null; supply BackendControl.overHttp(..) or BackendControl.inProcess().");
             }
             log.info("Backend control: {}", control.description());
-            instance = new TckLifecycle(harness, control);
+            TckLifecycle lifecycle = new TckLifecycle(harness, control);
+            started.add(lifecycle);
+            return lifecycle;
         } catch (RuntimeException e) {
             // release anything a partial start allocated, e.g. containers
             harness.stopSuite();
@@ -61,40 +113,25 @@ final class TckLifecycle {
         }
     }
 
-    /** Runs the harness's suite teardown and releases the runtime. */
-    static synchronized void stop() {
-        if (instance != null) {
-            ProviderTckHarness harness = instance.harness;
-            instance = null;
-            harness.stopSuite();
-        }
+    /** How many lifecycles are currently started, for tests that assert on isolation. */
+    static int startedCount() {
+        return started.size();
     }
 
-    /** Whether the suite has started; glue can be launched without one. */
-    static synchronized boolean isRunning() {
-        return instance != null;
+    /** The harness this lifecycle owns. */
+    ProviderTckHarness harness() {
+        return harness;
     }
 
-    /** The discovered harness. */
-    static ProviderTckHarness harness() {
-        return current().harness;
-    }
-
-    /** The seam through which the TCK manipulates the backend. */
-    static BackendControl backendControl() {
-        return current().backendControl;
-    }
-
-    private static synchronized TckLifecycle current() {
-        if (instance == null) {
-            throw new IllegalStateException("the TCK suite has not been started");
-        }
-        return instance;
+    /** The seam through which the TCK manipulates this lifecycle's backend. */
+    BackendControl backendControl() {
+        return backendControl;
     }
 
     /**
      * Finds the harness for the executing suite via {@link TckSuiteListener}, falling back to
-     * {@link java.util.ServiceLoader} (disambiguated by {@link #HARNESS_SELECTOR_PROPERTY}).
+     * {@link java.util.ServiceLoader} (disambiguated by {@link #HARNESS_SELECTOR_PROPERTY}). A fresh
+     * instance each call, so two lifecycles never share one.
      */
     private static ProviderTckHarness discoverHarness() {
         Optional<Class<? extends ProviderTckHarness>> suite = TckSuiteListener.currentSuite();

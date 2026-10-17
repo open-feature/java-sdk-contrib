@@ -17,14 +17,19 @@ import org.picocontainer.PicoBuilder;
  * interface-typed constructor parameter can never be satisfied.
  *
  * <p>The container is per scenario, as the SPI specifies, which is what keeps {@code TckState}
- * from leaking between scenarios. The harness and the backend control are not rebuilt with it:
- * they are suite-scoped instances held by {@link TckLifecycle}, registered here by reference.
+ * from leaking between scenarios. The lifecycle it registers is not rebuilt with it: this factory
+ * owns one, started on the first scenario it serves and kept for the rest.
+ *
+ * <p>Cucumber creates one factory per run for sequential scenarios and one per thread for parallel
+ * ones, so that ownership is what gives each thread its own backend instead of a shared one.
  */
 public final class TckObjectFactory implements ObjectFactory {
 
     private final Set<Class<?>> glue = new LinkedHashSet<>();
 
     private MutablePicoContainer pico;
+
+    private TckLifecycle lifecycle;
 
     @Override
     public boolean addClass(Class<?> glueClass) {
@@ -66,11 +71,13 @@ public final class TckObjectFactory implements ObjectFactory {
     @Override
     public void start() {
         pico = new PicoBuilder().withCaching().build();
-        // Conditional: a launcher selecting only the extension glue never reaches @BeforeAll, so
-        // there is no harness to register.
-        if (TckLifecycle.isRunning()) {
-            pico.addComponent(ProviderTckHarness.class, TckLifecycle.harness());
-            pico.addComponent(BackendControl.class, TckLifecycle.backendControl());
+        if (lifecycle == null) {
+            // empty when a launcher selects only the extension glue and never reaches @BeforeAll
+            lifecycle = TckLifecycle.startForExecutingSuite().orElse(null);
+        }
+        if (lifecycle != null) {
+            pico.addComponent(ProviderTckHarness.class, lifecycle.harness());
+            pico.addComponent(BackendControl.class, lifecycle.backendControl());
         }
         for (Class<?> glueClass : glue) {
             pico.addComponent(glueClass);
