@@ -29,10 +29,10 @@ public final class ProviderTck {
     /** The Cucumber plugins the suite registers. */
     static final String PLUGINS = "summary";
 
-    /** Parallel execution is disabled; backend state is global to the suite. */
-    static final String PARALLEL_EXECUTION_ENABLED = "false";
-
-    /** Execution mode for the scenarios of one feature, matching {@link #PARALLEL_EXECUTION_ENABLED}. */
+    /**
+     * Scenarios of one feature stay on one thread, so enabling parallel execution gives
+     * feature-level concurrency rather than scenario-level.
+     */
     static final String FEATURE_EXECUTION_MODE = "same_thread";
 
     /** Object factory that injects {@link TckState} into every step class. */

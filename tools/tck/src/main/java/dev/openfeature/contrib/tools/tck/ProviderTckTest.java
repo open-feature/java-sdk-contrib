@@ -12,11 +12,13 @@ import org.junit.platform.suite.api.Suite;
  * <p>Extend directly for a provider with no backend (with e.g. {@link BackendControl#inProcess()});
  * otherwise extend {@link ContainerizedProviderTckTest}. Scenarios run serially.
  *
- * <p>Enabling {@code cucumber.execution.parallel.enabled} does work: Cucumber hands each
- * thread its own object factory, so each gets its own harness and backend. Pin
- * {@code cucumber.execution.parallel.config.fixed.max-pool-size} as well if you do, because
- * blocking steps make the pool grow past its parallelism target and every new thread starts a
- * backend of its own.
+ * <p>Scenarios run sequentially unless you set {@code cucumber.execution.parallel.enabled};
+ * the suite does not pin it, so a system property or your own {@code junit-platform.properties}
+ * decides. Set {@code cucumber.execution.parallel.config.strategy=fixed} with a matching
+ * {@code fixed.parallelism} and {@code fixed.max-pool-size} if you do: each thread starts a
+ * backend of its own, and blocking steps otherwise grow the pool well past its parallelism
+ * target. Measured against flagd, four threads cut the suites by a third for eight stacks
+ * instead of two.
  *
  * <p>Extra scenarios go in {@code src/test/resources/extensions/} with steps in package
  * {@code openfeature.tck.extensions}.
@@ -30,9 +32,6 @@ import org.junit.platform.suite.api.Suite;
 @SelectClasspathResource(ProviderTck.FEATURES)
 @SelectClasspathResource(ProviderTck.EXTENSIONS)
 @ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = ProviderTck.PLUGINS)
-@ConfigurationParameter(
-        key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME,
-        value = ProviderTck.PARALLEL_EXECUTION_ENABLED)
 @ConfigurationParameter(
         key = Constants.EXECUTION_MODE_FEATURE_PROPERTY_NAME,
         value = ProviderTck.FEATURE_EXECUTION_MODE)

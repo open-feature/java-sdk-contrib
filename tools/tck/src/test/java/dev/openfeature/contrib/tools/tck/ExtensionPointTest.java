@@ -61,7 +61,7 @@ class ExtensionPointTest {
                                 .configurationParameter(Constants.GLUE_PROPERTY_NAME, ProviderTck.EXTENSION_GLUE)
                                 .configurationParameter(
                                         Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME,
-                                        ProviderTck.PARALLEL_EXECUTION_ENABLED)
+                                        "false")
                                 .configurationParameter(
                                         Constants.OBJECT_FACTORY_PROPERTY_NAME, ProviderTck.OBJECT_FACTORY)
                                 .build(),
