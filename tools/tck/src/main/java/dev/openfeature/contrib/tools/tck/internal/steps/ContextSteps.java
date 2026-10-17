@@ -1,5 +1,7 @@
 package dev.openfeature.contrib.tools.tck.internal.steps;
 
+import dev.openfeature.contrib.tools.tck.BackendControl;
+import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.sdk.MutableStructure;
 import io.cucumber.java.en.Given;
@@ -9,8 +11,8 @@ import io.cucumber.java.en.Given;
  */
 public class ContextSteps extends AbstractSteps {
 
-    public ContextSteps(TckState state) {
-        super(state);
+    public ContextSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
+        super(state, harness, backend);
     }
 
     /**

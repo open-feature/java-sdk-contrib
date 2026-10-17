@@ -4,6 +4,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.tck.ProviderEventRecord;
+import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.sdk.ProviderEvent;
@@ -22,8 +23,8 @@ public class EventSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(EventSteps.class);
 
-    public EventSteps(TckState state) {
-        super(state);
+    public EventSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
+        super(state, harness, backend);
     }
 
     /**

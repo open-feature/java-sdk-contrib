@@ -14,11 +14,16 @@ import org.testcontainers.containers.wait.strategy.Wait;
 /**
  * Base JUnit Platform Suite for providers that talk to an external backend.
  *
- * <p>Manages the Docker Compose lifecycle (started once, never restarted), port discovery and an
- * {@link HttpBackendControl}. See {@code tools/tck/README.md} for an example.
+ * <p>Manages the Docker Compose lifecycle (started once, never restarted), port discovery and the
+ * control over the canonical control API. See {@code tools/tck/README.md} for an example.
+ *
+ * <p>Every port declared here is container-internal. The stack must not pin host ports, so Compose
+ * maps each to an arbitrary one, and {@link BackendEndpoint} resolves that mapping -- which is why
+ * {@link #createProvider(BackendEndpoint)} is handed an endpoint instead of reading the
+ * declarations back. Dialling a declared port directly reaches nothing.
  *
  * @see ProviderTckTest
- * @see HttpBackendControl
+ * @see BackendControl#overHttp
  */
 public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
 
@@ -39,6 +44,9 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     /**
      * Returns the container-internal ports on {@link #backendService()} the provider connects to.
      * {@link #controlPort()} is exposed automatically.
+     *
+     * <p>These are not the ports the provider dials. Pass each through
+     * {@link BackendEndpoint#port(int)} to get the host port Compose mapped it to.
      *
      * @return container-internal ports the provider connects to
      */
@@ -81,7 +89,8 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     }
 
     /**
-     * Returns the container-internal port the control API listens on.
+     * Returns the container-internal port the control API listens on. Exposed and resolved like
+     * {@link #backendPorts()}; the TCK dials the mapped port itself.
      *
      * @return the control API port, {@code 8080} by default
      */

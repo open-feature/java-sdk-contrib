@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Scenario-scoped mutable state, injected into step definitions by PicoContainer. Suite-wide state
- * lives in {@link TckRuntime}.
+ * lives in {@link ProviderTck}.
  */
 public class TckState {
 

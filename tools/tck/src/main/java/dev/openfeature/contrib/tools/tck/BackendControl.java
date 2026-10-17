@@ -3,15 +3,38 @@ package dev.openfeature.contrib.tools.tck;
 /**
  * The seam between the TCK's step definitions and whatever manipulates the backend.
  *
- * <p>Use {@link HttpBackendControl} (via {@link ContainerizedProviderTckTest}) for providers with a
- * backend; {@link InProcessBackendControl} only for providers with none. The connection operations
- * default to throwing {@link UnsupportedOperationException}, a test-configuration bug rather than a
- * skip.
+ * <p>Obtained from {@link #overHttp} (usually via {@link ContainerizedProviderTckTest}) for a
+ * provider with a backend, or {@link #inProcess()} for one with none. An implementation of its
+ * own must still declare its {@link BackendType}, a closed set, so the conformance claim stays
+ * valid. The connection operations default to throwing {@link UnsupportedOperationException}, a
+ * test-configuration bug rather than a skip.
  *
  * @see Capability
  * @see ProviderTckTest
  */
 public interface BackendControl {
+
+    /**
+     * Returns a control over the canonical control API, for a backend this suite did not start.
+     *
+     * @param baseUrl root of the control API, without a trailing slash
+     * @param backendConfiguration the configuration to seed, or {@code null} for none
+     * @return a control speaking the canonical control API
+     */
+    static BackendControl overHttp(String baseUrl, String backendConfiguration) {
+        return new HttpBackendControl(baseUrl, backendConfiguration);
+    }
+
+    /**
+     * Returns a control for a provider with no backend, which also supplies the provider.
+     *
+     * <p>Appendix F's narrow allowance; a provider that has a backend must use the control API.
+     *
+     * @return an in-process control over a copy of the canonical flag set
+     */
+    static InProcessControl inProcess() {
+        return new InProcessBackendControl();
+    }
 
     /**
      * Brings the backend to the baseline state: reachable, with the canonical flag set. Called before
@@ -52,11 +75,17 @@ public interface BackendControl {
     }
 
     /**
-     * Returns how the backend is driven.
+     * Returns what kind of backend this run drives.
      *
-     * @return which of the two control contracts this run is conducted under
+     * <p>Defaults to {@link BackendType#CUSTOM}, which is the honest answer for a control the TCK
+     * does not ship. One that drives the canonical control API should return
+     * {@link BackendType#HTTP}.
+     *
+     * @return what kind of backend this run drives
      */
-    ControlApi controlApi();
+    default BackendType backendType() {
+        return BackendType.CUSTOM;
+    }
 
     /**
      * Builds the exception the connection-control defaults throw.

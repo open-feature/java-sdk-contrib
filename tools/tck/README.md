@@ -65,6 +65,9 @@ public class MyProviderTest extends ContainerizedProviderTckTest {
 }
 ```
 
+Note `endpoint.port(5000)` rather than `5000`: declared ports are container-internal, the
+stack must not pin host ports, and Compose maps each to an arbitrary one.
+
 That's the whole adoption. The TCK owns the Compose lifecycle, port discovery, control calls, provider
 registration, event awaiting and teardown, and the assets are packaged in the JAR (no submodule
 needed). If you find yourself adding test infrastructure here, please open an issue.
@@ -119,7 +122,7 @@ Overridable on `ContainerizedProviderTckTest`; names and defaults match every la
 | Option | Default | Notes |
 | --- | --- | --- |
 | `composeFile()` | required | relative to the Maven module directory |
-| `backendPorts()` | required | container ports the provider connects to; don't list the control port |
+| `backendPorts()` | required | container-internal ports the provider connects to; don't list the control port. Resolve each with `endpoint.port(..)` |
 | `backendService()` | `backend` | service hosting both the backend and control API |
 | `controlPort()` | `8080` | |
 | `additionalPorts()` | none | `Map<String, List<Integer>>` of extra service to ports, resolved via `BackendEndpoint` by service name |
@@ -247,7 +250,7 @@ src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openf
 
 - Same backend lifecycle and `BackendControl`; canonical steps are on the glue path, so an extension
   can open with `Given a stable provider`.
-- Step classes may inject `TckState` and use `TckRuntime.get()` for backend control and endpoint. Don't
+- Step classes may inject `TckState` and use `ProviderTck.get()` for backend control and endpoint. Don't
   build your own client; it would resolve against a provider the suite never registered.
 - Don't put files under `gherkin/`; a same-named file would silently shadow a canonical one.
 - Unknown tags are tolerated in `extensions/` (they gate nothing) but fail the run in `gherkin/`.
@@ -279,7 +282,7 @@ src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openf
 
 - See [Appendix F][appendix-f] for suite-wide gaps (context passthrough beyond the targeting key,
   per-flag control, caching, `@stale` without containers, hooks, flag metadata).
-- `TckRuntime` is static; suites in one JVM fork run sequentially, not concurrently.
+- `ProviderTck` is static; suites in one JVM fork run sequentially, not concurrently.
 
 ## Contributing
 

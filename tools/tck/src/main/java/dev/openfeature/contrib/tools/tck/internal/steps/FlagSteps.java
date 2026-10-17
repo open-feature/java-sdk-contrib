@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.tools.tck.FlagUnderTest;
 import dev.openfeature.contrib.tools.tck.ProviderEventRecord;
+import dev.openfeature.contrib.tools.tck.BackendControl;
+import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.contrib.tools.tck.internal.TckValues;
 import dev.openfeature.sdk.ErrorCode;
@@ -24,8 +26,8 @@ public class FlagSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(FlagSteps.class);
 
-    public FlagSteps(TckState state) {
-        super(state);
+    public FlagSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
+        super(state, harness, backend);
     }
 
     /**

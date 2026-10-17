@@ -5,11 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.tck.Capability;
-import dev.openfeature.contrib.tools.tck.ProviderTck;
+import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
-import dev.openfeature.contrib.tools.tck.TckRuntime;
+import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.TckState;
-import dev.openfeature.contrib.tools.tck.internal.CapabilityGate;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.NoOpProvider;
@@ -35,31 +34,32 @@ public class ProviderSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderSteps.class);
 
-    public ProviderSteps(TckState state) {
-        super(state);
+    public ProviderSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
+        super(state, harness, backend);
     }
 
-    /** Runs the harness's suite startup once, before the first scenario. */
+    /** Opens the suite, and rejects an undeclarable capability set before any backend starts. */
     @BeforeAll
     public static void beforeAll() {
-        TckRuntime.startIfNeeded();
+        TckLifecycle.beginSuite();
     }
 
-    /** Runs the harness's suite teardown after the last scenario. */
+    /** Stops every backend the suite's scenarios started, on whichever thread started it. */
     @AfterAll
     public static void afterAll() {
-        TckRuntime.stop();
+        TckLifecycle.endSuite();
     }
 
     /**
-     * Skips scenarios needing an undeclared {@link Capability}; see {@link CapabilityGate}. Tags
+     * Skips scenarios needing an undeclared {@link Capability}; see
+     * {@link Capability#requireDeclared(java.net.URI, java.util.Collection, java.util.Set)}. Tags
      * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check.
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        CapabilityGate.requireDeclared(
+        Capability.requireDeclared(
                 scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
     }
 

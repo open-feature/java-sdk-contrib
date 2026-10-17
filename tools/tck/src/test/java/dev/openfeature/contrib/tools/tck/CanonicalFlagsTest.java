@@ -66,7 +66,7 @@ class CanonicalFlagsTest {
     @Test
     @DisplayName("every flag resolves as its packaged state and default variant say it should")
     void everyFlagResolvesToItsPackagedDefaultVariant() throws Exception {
-        InMemoryProvider provider = new InProcessBackendControl().createProvider();
+        InMemoryProvider provider = BackendControl.inProcess().createProvider();
         provider.initialize(new ImmutableContext());
         ImmutableContext context = new ImmutableContext();
 

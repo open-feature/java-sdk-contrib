@@ -59,11 +59,11 @@ final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Always {@link ControlApi#HTTP}.
+     * <p>Always {@link BackendType#HTTP}.
      */
     @Override
-    public ControlApi controlApi() {
-        return ControlApi.HTTP;
+    public BackendType backendType() {
+        return BackendType.HTTP;
     }
 
     /**

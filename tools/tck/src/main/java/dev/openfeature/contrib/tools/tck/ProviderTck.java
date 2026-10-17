@@ -1,13 +1,15 @@
 package dev.openfeature.contrib.tools.tck;
 
 /**
- * The Cucumber configuration values {@link ProviderTckTest} uses, as compile-time constants for
- * composing, e.g. {@code ProviderTck.ALL_GLUE + ",com.vendor.steps"}.
+ * The suite's Cucumber configuration. Only the three constants an extension composes with are
+ * public; the lifecycle lives with the glue it serves.
  */
 public final class ProviderTck {
 
+    // compile-time constants, so the suite classes can use them in annotations
+
     /** Classpath directory of the canonical feature files; reserved, use {@link #EXTENSIONS}. */
-    public static final String FEATURES = "gherkin";
+    static final String FEATURES = "gherkin";
 
     /**
      * Classpath directory for adopter feature files; separate from {@link #FEATURES} so they cannot
@@ -16,7 +18,7 @@ public final class ProviderTck {
     public static final String EXTENSIONS = "extensions";
 
     /** Package holding the canonical step definitions. */
-    public static final String GLUE = "dev.openfeature.contrib.tools.tck.internal.steps";
+    static final String GLUE = "dev.openfeature.contrib.tools.tck.internal.steps";
 
     /** Package for adopter step definitions; may be absent. */
     public static final String EXTENSION_GLUE = "openfeature.tck.extensions";
@@ -25,16 +27,19 @@ public final class ProviderTck {
     public static final String ALL_GLUE = GLUE + "," + EXTENSION_GLUE;
 
     /** The Cucumber plugins the suite registers. */
-    public static final String PLUGINS = "summary";
+    static final String PLUGINS = "summary";
 
-    /** Parallel execution is disabled; backend state is global to the suite. */
-    public static final String PARALLEL_EXECUTION_ENABLED = "false";
-
-    /** Execution mode for the scenarios of one feature, matching {@link #PARALLEL_EXECUTION_ENABLED}. */
-    public static final String FEATURE_EXECUTION_MODE = "same_thread";
+    /**
+     * Scenarios of one feature stay on one thread, so enabling parallel execution gives
+     * feature-level concurrency rather than scenario-level.
+     */
+    static final String FEATURE_EXECUTION_MODE = "same_thread";
 
     /** Object factory that injects {@link TckState} into every step class. */
-    public static final String OBJECT_FACTORY = "io.cucumber.picocontainer.PicoFactory";
+    static final String OBJECT_FACTORY =
+            "dev.openfeature.contrib.tools.tck.internal.steps.TckObjectFactory";
 
-    private ProviderTck() {}
+    private ProviderTck() {
+        // constants only
+    }
 }

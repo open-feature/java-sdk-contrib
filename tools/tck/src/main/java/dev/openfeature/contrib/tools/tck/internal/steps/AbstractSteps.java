@@ -2,7 +2,7 @@ package dev.openfeature.contrib.tools.tck.internal.steps;
 
 import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
-import dev.openfeature.contrib.tools.tck.TckRuntime;
+import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.TckState;
 
 /**
@@ -13,7 +13,13 @@ public abstract class AbstractSteps {
     /** Scenario-scoped state, shared across all step classes in a scenario. */
     protected final TckState state;
 
-    protected AbstractSteps(TckState state) {
+    private final ProviderTckHarness harness;
+
+    private final BackendControl backend;
+
+    protected AbstractSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
+        this.harness = harness;
+        this.backend = backend;
         this.state = state;
     }
 
@@ -23,7 +29,7 @@ public abstract class AbstractSteps {
      * @return the discovered harness
      */
     protected ProviderTckHarness harness() {
-        return TckRuntime.get().harness();
+        return harness;
     }
 
     /**
@@ -32,6 +38,6 @@ public abstract class AbstractSteps {
      * @return the backend control for this suite
      */
     protected BackendControl backend() {
-        return TckRuntime.get().backendControl();
+        return backend;
     }
 }

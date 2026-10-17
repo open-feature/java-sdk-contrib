@@ -19,7 +19,7 @@ import org.junit.platform.suite.api.Suite;
 @ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = ProviderTck.PLUGINS)
 @ConfigurationParameter(
         key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME,
-        value = ProviderTck.PARALLEL_EXECUTION_ENABLED)
+        value = "false")
 @ConfigurationParameter(
         key = Constants.EXECUTION_MODE_FEATURE_PROPERTY_NAME,
         value = ProviderTck.FEATURE_EXECUTION_MODE)
