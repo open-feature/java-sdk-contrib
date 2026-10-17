@@ -65,6 +65,9 @@ public class MyProviderTest extends ContainerizedProviderTckTest {
 }
 ```
 
+Note `endpoint.port(5000)` rather than `5000`: declared ports are container-internal, the
+stack must not pin host ports, and Compose maps each to an arbitrary one.
+
 That's the whole adoption. The TCK owns the Compose lifecycle, port discovery, control calls, provider
 registration, event awaiting and teardown, and the assets are packaged in the JAR (no submodule
 needed). If you find yourself adding test infrastructure here, please open an issue.
@@ -119,7 +122,7 @@ Overridable on `ContainerizedProviderTckTest`; names and defaults match every la
 | Option | Default | Notes |
 | --- | --- | --- |
 | `composeFile()` | required | relative to the Maven module directory |
-| `backendPorts()` | required | container ports the provider connects to; don't list the control port |
+| `backendPorts()` | required | container-internal ports the provider connects to; don't list the control port. Resolve each with `endpoint.port(..)` |
 | `backendService()` | `backend` | service hosting both the backend and control API |
 | `controlPort()` | `8080` | |
 | `additionalPorts()` | none | `Map<String, List<Integer>>` of extra service to ports, resolved via `BackendEndpoint` by service name |

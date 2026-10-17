@@ -12,6 +12,12 @@ import org.junit.platform.suite.api.Suite;
  * <p>Extend directly for a provider with no backend (with e.g. {@link BackendControl#inProcess()});
  * otherwise extend {@link ContainerizedProviderTckTest}. Scenarios run serially.
  *
+ * <p>Enabling {@code cucumber.execution.parallel.enabled} does work: Cucumber hands each
+ * thread its own object factory, so each gets its own harness and backend. Pin
+ * {@code cucumber.execution.parallel.config.fixed.max-pool-size} as well if you do, because
+ * blocking steps make the pool grow past its parallelism target and every new thread starts a
+ * backend of its own.
+ *
  * <p>Extra scenarios go in {@code src/test/resources/extensions/} with steps in package
  * {@code openfeature.tck.extensions}.
  *
