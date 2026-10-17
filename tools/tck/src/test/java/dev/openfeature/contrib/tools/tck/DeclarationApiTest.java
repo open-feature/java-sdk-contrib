@@ -260,22 +260,30 @@ class DeclarationApiTest {
     }
 
     @Test
-    @DisplayName("a backend says what kind it is, and cannot stay silent")
-    void backendsSayHowTheyWereDriven() throws NoSuchMethodException {
+    @DisplayName("a backend says what kind it is, and an unfamiliar one is custom rather than wrong")
+    void backendsSayHowTheyWereDriven() {
         assertThat(new InProcessBackendControl().backendType())
                 .as("a provider with no backend is controlled in-process, the narrow allowance")
                 .isEqualTo(BackendType.IN_PROCESS);
 
         assertThat(BackendType.HTTP.wireValue()).isEqualTo("http");
         assertThat(BackendType.IN_PROCESS.wireValue()).isEqualTo("in-process");
+        assertThat(BackendType.CUSTOM.wireValue()).isEqualTo("custom");
 
-        // closed set, matching the report schema enum
-        assertThat(BackendType.values()).containsExactly(BackendType.HTTP, BackendType.IN_PROCESS);
+        // closed set: CUSTOM covers the third case rather than a free-form string inventing one
+        assertThat(BackendType.values())
+                .containsExactly(BackendType.HTTP, BackendType.IN_PROCESS, BackendType.CUSTOM);
 
-        // abstract so custom controls must state it
-        assertThat(BackendControl.class.getMethod("backendType").isDefault())
-                .as("backendType() must be abstract, so that a custom control states it")
-                .isFalse();
+        // a control the TCK does not ship understates rather than overstates, without being asked
+        assertThat(new BackendControl() {
+                    @Override
+                    public void prepareScenario() {}
+
+                    @Override
+                    public void changeFlag() {}
+                }.backendType())
+                .as("the default is the weaker claim, so silence cannot overstate conformance")
+                .isEqualTo(BackendType.CUSTOM);
     }
 
     /** A suite that names its configuration rather than taking the derived name. */

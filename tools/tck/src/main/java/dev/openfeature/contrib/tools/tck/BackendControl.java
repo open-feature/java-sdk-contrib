@@ -77,9 +77,15 @@ public interface BackendControl {
     /**
      * Returns what kind of backend this run drives.
      *
-     * @return a real backend over the control API, or a provider with none
+     * <p>Defaults to {@link BackendType#CUSTOM}, which is the honest answer for a control the TCK
+     * does not ship. One that drives the canonical control API should return
+     * {@link BackendType#HTTP}.
+     *
+     * @return what kind of backend this run drives
      */
-    BackendType backendType();
+    default BackendType backendType() {
+        return BackendType.CUSTOM;
+    }
 
     /**
      * Builds the exception the connection-control defaults throw.
