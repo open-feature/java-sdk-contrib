@@ -14,11 +14,11 @@ import org.testcontainers.containers.wait.strategy.Wait;
 /**
  * Base JUnit Platform Suite for providers that talk to an external backend.
  *
- * <p>Manages the Docker Compose lifecycle (started once, never restarted), port discovery and an
- * {@link HttpBackendControl}. See {@code tools/tck/README.md} for an example.
+ * <p>Manages the Docker Compose lifecycle (started once, never restarted), port discovery and the
+ * control over the canonical control API. See {@code tools/tck/README.md} for an example.
  *
  * @see ProviderTckTest
- * @see HttpBackendControl
+ * @see BackendControl#overHttp
  */
 public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
 

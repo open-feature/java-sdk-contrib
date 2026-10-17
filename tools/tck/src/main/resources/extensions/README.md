@@ -14,10 +14,15 @@ src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openf
 Steps in the `openfeature.tck.extensions` glue package are picked up automatically and share the
 suite's backend lifecycle.
 
-Step classes may take `dev.openfeature.contrib.tools.tck.TckState` as a constructor argument, and
-use `ProviderTck.harness()` and `ProviderTck.backendControl()`. The built-in step definitions live in
-`dev.openfeature.contrib.tools.tck.internal.steps`; they are internal, not API, so only depend on
-`TckState` and `ProviderTck`.
+Step classes declare what they need as constructor arguments -- any of `TckState`,
+`ProviderTckHarness` and `BackendControl`:
+
+```java
+public FractionalSteps(TckState state, ProviderTckHarness harness, BackendControl backend) { ... }
+```
+
+The built-in step definitions live in `dev.openfeature.contrib.tools.tck.internal.steps`; they are
+internal, not API.
 
 Both the step class and each step method must be `public` -- `PicoFactory` registers only public,
 non-abstract classes and `MethodScanner` uses `Class.getMethods()`. Neither complains when it

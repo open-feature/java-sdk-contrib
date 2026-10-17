@@ -3,12 +3,15 @@ package dev.openfeature.contrib.tools.tck;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Which of the two control contracts a conformance run was conducted under; mirrors the report
- * schema's {@code backend.controlApi} enum.
+ * Whether a run drove a real backend over the control API, or a provider with no backend inside
+ * this process.
  *
- * @see BackendControl#controlApi()
+ * <p>Closed on purpose: an implementation that could answer anything would produce a conformance
+ * claim no report can validate.
+ *
+ * @see BackendControl#backendType()
  */
-public enum ControlApi {
+public enum BackendType {
 
     /** The normative control API: a real backend driven over {@code openapi/control-api.yaml}. */
     HTTP("http"),
@@ -18,7 +21,7 @@ public enum ControlApi {
 
     private final String wireValue;
 
-    ControlApi(String wireValue) {
+    BackendType(String wireValue) {
         this.wireValue = wireValue;
     }
 

@@ -3,10 +3,11 @@ package dev.openfeature.contrib.tools.tck;
 /**
  * The seam between the TCK's step definitions and whatever manipulates the backend.
  *
- * <p>Use {@link HttpBackendControl} (via {@link ContainerizedProviderTckTest}) for providers with a
- * backend; {@link #inProcess()} only for providers with none. The connection operations
- * default to throwing {@link UnsupportedOperationException}, a test-configuration bug rather than a
- * skip.
+ * <p>Obtained from {@link #overHttp} (usually via {@link ContainerizedProviderTckTest}) for a
+ * provider with a backend, or {@link #inProcess()} for one with none. An implementation of its
+ * own must still declare its {@link BackendType}, a closed set, so the conformance claim stays
+ * valid. The connection operations default to throwing {@link UnsupportedOperationException}, a
+ * test-configuration bug rather than a skip.
  *
  * @see Capability
  * @see ProviderTckTest
@@ -74,11 +75,11 @@ public interface BackendControl {
     }
 
     /**
-     * Returns how the backend is driven.
+     * Returns what kind of backend this run drives.
      *
-     * @return which of the two control contracts this run is conducted under
+     * @return a real backend over the control API, or a provider with none
      */
-    ControlApi controlApi();
+    BackendType backendType();
 
     /**
      * Builds the exception the connection-control defaults throw.

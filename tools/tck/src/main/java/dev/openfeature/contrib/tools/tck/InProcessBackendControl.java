@@ -66,11 +66,11 @@ final class InProcessBackendControl implements InProcessControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Always {@link ControlApi#IN_PROCESS}.
+     * <p>Always {@link BackendType#IN_PROCESS}.
      */
     @Override
-    public ControlApi controlApi() {
-        return ControlApi.IN_PROCESS;
+    public BackendType backendType() {
+        return BackendType.IN_PROCESS;
     }
 
     /**

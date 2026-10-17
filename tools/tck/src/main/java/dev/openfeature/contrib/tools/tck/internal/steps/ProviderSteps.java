@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.tck.Capability;
+import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.TckState;
@@ -33,31 +34,33 @@ public class ProviderSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderSteps.class);
 
-    public ProviderSteps(TckState state) {
-        super(state);
+    public ProviderSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
+        super(state, harness, backend);
     }
 
     /** Runs the harness's suite startup once, before the first scenario. */
     @BeforeAll
     public static void beforeAll() {
-        ProviderTck.startIfNeeded();
+        TckLifecycle.startIfNeeded();
     }
 
     /** Runs the harness's suite teardown after the last scenario. */
     @AfterAll
     public static void afterAll() {
-        ProviderTck.stop();
+        TckLifecycle.stop();
     }
 
     /**
-     * Skips scenarios needing an undeclared {@link Capability}; see {@link ProviderTck#gateScenario}. Tags
+     * Skips scenarios needing an undeclared {@link Capability}; see
+     * {@link Capability#requireDeclared(java.net.URI, java.util.Collection, java.util.Set)}. Tags
      * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check.
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        ProviderTck.gateScenario(scenario.getUri(), scenario.getSourceTagNames());
+        Capability.requireDeclared(
+                scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
     }
 
     /**

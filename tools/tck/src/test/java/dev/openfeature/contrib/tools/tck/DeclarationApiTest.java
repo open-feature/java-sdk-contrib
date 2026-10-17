@@ -58,7 +58,7 @@ class DeclarationApiTest {
         assertThat(Capability.declarable()).contains(Capability.VARIANTS);
 
         TestAbortedException aborted = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(
+                () -> Capability.requireDeclared(
                         Arrays.asList("@variants"), Capability.declarableExcept(Capability.VARIANTS)),
                 TestAbortedException.class);
         assertThat(aborted).isNotNull();
@@ -123,11 +123,11 @@ class DeclarationApiTest {
 
         // same distinction in the skip message
         TestAbortedException undeclared = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(
+                () -> Capability.requireDeclared(
                         Arrays.asList("@variants"), Capability.declarableExcept(Capability.VARIANTS)),
                 TestAbortedException.class);
         TestAbortedException unaskable = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(Arrays.asList("@large-integers"), Capability.declarable()),
+                () -> Capability.requireDeclared(Arrays.asList("@large-integers"), Capability.declarable()),
                 TestAbortedException.class);
 
         assertThat(undeclared).hasMessageContaining("provider does not declare capability");
@@ -140,7 +140,7 @@ class DeclarationApiTest {
 
         // inexpressible reason wins regardless of declaration
         TestAbortedException evenIfSomehowDeclared = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(
+                () -> Capability.requireDeclared(
                         Arrays.asList("@large-integers"), EnumSet.of(Capability.LARGE_INTEGERS)),
                 TestAbortedException.class);
         assertThat(evenIfSomehowDeclared).hasMessageContaining("the Java SDK cannot express capability");
@@ -163,10 +163,10 @@ class DeclarationApiTest {
 
         // withholding it skips only the @reinitialization scenario, not all of @lifecycle
         Set<Capability> reachesBackendButNoReuse = EnumSet.of(Capability.LIFECYCLE);
-        CapabilityGate.requireDeclared(Arrays.asList("@lifecycle"), reachesBackendButNoReuse);
+        Capability.requireDeclared(Arrays.asList("@lifecycle"), reachesBackendButNoReuse);
 
         TestAbortedException aborted = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(
+                () -> Capability.requireDeclared(
                         Arrays.asList("@lifecycle", "@reinitialization"), reachesBackendButNoReuse),
                 TestAbortedException.class);
         assertThat(aborted).isNotNull();
@@ -182,14 +182,14 @@ class DeclarationApiTest {
         Set<Capability> declared = EnumSet.of(Capability.EVENTS);
 
         TestAbortedException aborted = catchThrowableOfType(
-                () -> CapabilityGate.requireDeclared(Arrays.asList("@object"), declared), TestAbortedException.class);
+                () -> Capability.requireDeclared(Arrays.asList("@object"), declared), TestAbortedException.class);
         assertThat(aborted)
                 .as("an undeclared capability aborts, which is what the JUnit Platform reports as skipped")
                 .isNotNull();
         assertThat(aborted).hasMessageContaining("OBJECT").hasMessageContaining("@object");
 
-        CapabilityGate.requireDeclared(Arrays.asList("@events", "@not-a-capability"), declared);
-        CapabilityGate.requireDeclared(Collections.emptyList(), declared);
+        Capability.requireDeclared(Arrays.asList("@events", "@not-a-capability"), declared);
+        Capability.requireDeclared(Collections.emptyList(), declared);
     }
 
     @Test
@@ -260,21 +260,21 @@ class DeclarationApiTest {
     }
 
     @Test
-    @DisplayName("a backend says which of the two control contracts drove it, and cannot stay silent")
+    @DisplayName("a backend says what kind it is, and cannot stay silent")
     void backendsSayHowTheyWereDriven() throws NoSuchMethodException {
-        assertThat(new InProcessBackendControl().controlApi())
+        assertThat(new InProcessBackendControl().backendType())
                 .as("a provider with no backend is controlled in-process, the narrow allowance")
-                .isEqualTo(ControlApi.IN_PROCESS);
+                .isEqualTo(BackendType.IN_PROCESS);
 
-        assertThat(ControlApi.HTTP.wireValue()).isEqualTo("http");
-        assertThat(ControlApi.IN_PROCESS.wireValue()).isEqualTo("in-process");
+        assertThat(BackendType.HTTP.wireValue()).isEqualTo("http");
+        assertThat(BackendType.IN_PROCESS.wireValue()).isEqualTo("in-process");
 
         // closed set, matching the report schema enum
-        assertThat(ControlApi.values()).containsExactly(ControlApi.HTTP, ControlApi.IN_PROCESS);
+        assertThat(BackendType.values()).containsExactly(BackendType.HTTP, BackendType.IN_PROCESS);
 
         // abstract so custom controls must state it
-        assertThat(BackendControl.class.getMethod("controlApi").isDefault())
-                .as("controlApi() must be abstract, so that a custom control states it")
+        assertThat(BackendControl.class.getMethod("backendType").isDefault())
+                .as("backendType() must be abstract, so that a custom control states it")
                 .isFalse();
     }
 
