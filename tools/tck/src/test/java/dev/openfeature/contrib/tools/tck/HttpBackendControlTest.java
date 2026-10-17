@@ -178,7 +178,7 @@ class HttpBackendControlTest {
 
             assertThat(control.baseUrl()).isEqualTo(stub.baseUrl());
             assertThat(control.description()).contains(stub.baseUrl());
-            assertThat(control.controlApi()).isEqualTo(ControlApi.HTTP);
+            assertThat(control.backendType()).isEqualTo(BackendType.HTTP);
         }
     }
 

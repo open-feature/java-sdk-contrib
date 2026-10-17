@@ -44,8 +44,8 @@ final class ControllableBackendControl implements BackendControl {
     }
 
     @Override
-    public ControlApi controlApi() {
-        return ControlApi.IN_PROCESS;
+    public BackendType backendType() {
+        return BackendType.IN_PROCESS;
     }
 
     /** Drops the previous scenario's provider; the baseline is never mutated. */

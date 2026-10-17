@@ -260,21 +260,21 @@ class DeclarationApiTest {
     }
 
     @Test
-    @DisplayName("a backend says which of the two control contracts drove it, and cannot stay silent")
+    @DisplayName("a backend says what kind it is, and cannot stay silent")
     void backendsSayHowTheyWereDriven() throws NoSuchMethodException {
-        assertThat(new InProcessBackendControl().controlApi())
+        assertThat(new InProcessBackendControl().backendType())
                 .as("a provider with no backend is controlled in-process, the narrow allowance")
-                .isEqualTo(ControlApi.IN_PROCESS);
+                .isEqualTo(BackendType.IN_PROCESS);
 
-        assertThat(ControlApi.HTTP.wireValue()).isEqualTo("http");
-        assertThat(ControlApi.IN_PROCESS.wireValue()).isEqualTo("in-process");
+        assertThat(BackendType.HTTP.wireValue()).isEqualTo("http");
+        assertThat(BackendType.IN_PROCESS.wireValue()).isEqualTo("in-process");
 
         // closed set, matching the report schema enum
-        assertThat(ControlApi.values()).containsExactly(ControlApi.HTTP, ControlApi.IN_PROCESS);
+        assertThat(BackendType.values()).containsExactly(BackendType.HTTP, BackendType.IN_PROCESS);
 
         // abstract so custom controls must state it
-        assertThat(BackendControl.class.getMethod("controlApi").isDefault())
-                .as("controlApi() must be abstract, so that a custom control states it")
+        assertThat(BackendControl.class.getMethod("backendType").isDefault())
+                .as("backendType() must be abstract, so that a custom control states it")
                 .isFalse();
     }
 
