@@ -16,7 +16,7 @@
   "tools/junit-openfeature": "0.2.2",
   "tools/flagd-http-connector": "0.0.5",
   "tools/flagd-api": "1.0.0",
-  "tools/flagd-api-testkit": "0.3.0",
+  "tools/flagd-api-testkit": "0.4.0",
   "tools/flagd-core": "3.0.0",
   ".": "1.0.0",
   "providers/optimizely": "1.0.0"
