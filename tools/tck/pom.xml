@@ -15,14 +15,7 @@
     <properties>
         <module-name>${groupId}.tck</module-name>
 
-        <!--
-            Set this to true to stop the build moving the `spec` submodule's working tree to the
-            pinned commit. There is one good reason to: a checkout where `git` cannot read the
-            repository at all — a worktree whose gitdir is an absolute path this JVM's `git` does
-            not understand, a source tarball with no `.git` — where the execution can only fail.
-            Do the checkout by hand in that case; CanonicalAssetDigestTest is what makes it safe
-            to, because it fails the build if the packaged assets are not the pinned revision's.
-        -->
+        <!-- skip moving the spec submodule to the pinned commit; digest test still guards assets -->
         <tck.spec.checkout.skip>false</tck.spec.checkout.skip>
 
         <assertj.version>3.27.7</assertj.version>
@@ -55,88 +48,46 @@
         </developer>
     </developers>
 
-    <!--
-        SOURCE OF TRUTH FOR THE SPEC ARTIFACTS
-        ======================================
-        Three of the resources under src/main/resources are NOT Java artifacts.
-        They are language-agnostic definitions of the provider contract, and
-        every language's TCK must agree on them byte for byte or "conformance"
-        means nothing:
-
-          gherkin/                   the canonical Gherkin — the test cases
-          flags/canonical-flags.json the flag set those test cases assume
-          openapi/control-api.yaml   what a backend under test must expose
-
-        They live in the OpenFeature spec repository, as Appendix F
-        (specification/assets/provider-tck/), and are copied in from the `spec`
-        git submodule at build time — see the two plugins below. The three
-        travel together by necessity: a feature file that evaluates
-        `boolean-flag` is meaningless without the flag definition, and a
-        disconnect scenario is meaningless without the control endpoint that
-        produces the disconnect.
-
-        DO NOT EDIT THE COPIES under src/main/resources. They are generated and
-        git-ignored; changes belong in open-feature/spec and arrive here by
-        bumping the submodule.
-
-        Consumers are unaffected: the copies are packaged into the release JAR,
-        @SelectClasspathResource("gherkin") keeps working, and nobody needs a
-        submodule of their own.
-    -->
+    <!-- gherkin, flags and openapi are copied from the spec submodule (appendix f); do not edit copies -->
 
     <dependencies>
-        <!--
-            Everything below is deliberately `compile` scope. This artifact is a test
-            *library*: consumers put it on their test classpath and the abstract suite,
-            the SPI and the step definitions must all resolve from it. The OpenFeature
-            SDK itself is inherited from the parent POM as a `provided` version RANGE
-            ([1.21.0,1.99999)) — the TCK never pins an SDK version, so adopting it can
-            never force a provider to upgrade.
-        -->
+        <!-- compile scope: consumed as a test library; sdk inherited as provided range -->
 
-        <!-- Cucumber step definition annotations — compile scope so consumers can
-             discover the step classes from this JAR on the glue path -->
+        <!-- step definitions discoverable on the glue path -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
             <!-- version managed by cucumber-bom in parent -->
         </dependency>
 
-        <!-- Cucumber JUnit Platform Engine — compile scope for the GLUE_PROPERTY_NAME /
-             OBJECT_FACTORY_PROPERTY_NAME constants used in ProviderTckTest -->
+        <!-- glue and object factory constants -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
         </dependency>
 
-        <!-- PicoContainer object factory — injects TckState into every step class -->
+        <!-- injects TckState into step classes -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-picocontainer</artifactId>
             <scope>compile</scope>
         </dependency>
 
-        <!-- JUnit Platform Suite — compile scope so ProviderTckTest can carry
-             @Suite/@IncludeEngines/@SelectClasspathResource/@ConfigurationParameter -->
+        <!-- suite annotations on the base classes -->
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>compile</scope>
         </dependency>
 
-        <!-- JUnit Platform Launcher — TckSuiteListener implements TestExecutionListener to
-             report which suite is executing, which is how a provider with several transports
-             gets one suite class per transport with no extra configuration -->
+        <!-- TckSuiteListener reports the executing suite -->
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
             <scope>compile</scope>
         </dependency>
 
-        <!--
-            opentest4j — TestAbortedException is how unsupported capabilities are
-            reported as SKIPPED rather than silently passing.
-        -->
+        <!-- unsupported capabilities reported as skipped -->
         <dependency>
             <groupId>org.opentest4j</groupId>
             <artifactId>opentest4j</artifactId>
@@ -144,7 +95,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- Assertions used inside step definitions -->
+        <!-- assertions in step definitions -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -152,7 +103,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- Awaitility — event/state awaiting with provider-configurable timeouts -->
+        <!-- event and state awaiting -->
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
@@ -160,21 +111,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!--
-            Testcontainers — ContainerizedProviderTckTest owns the ComposeContainer
-            lifecycle, so this artifact must compile against it. 2.x is compiled with
-            `options.release.set(8)`, so it links cleanly under this repo's
-            maven.compiler.release=11.
-
-            `provided` and `optional`, not `compile`, and deliberately: only two types
-            in src/main touch Testcontainers (ContainerizedProviderTckTest and
-            BackendEndpoint), so a backend-less adopter — in-memory, environment
-            variable, file-based — would otherwise drag Testcontainers onto its test
-            classpath for a class it never loads. A containerised adopter declares it
-            itself, which is what both adoptions in this repo already do, and which also
-            lets an adopter stay on the Testcontainers major its other suites use rather
-            than inheriting ours transitively.
-        -->
+        <!-- only needed by containerized adopters, who declare it themselves -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
@@ -183,7 +120,7 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Jackson for Object-type flag value parsing -->
+        <!-- object flag value parsing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -196,18 +133,7 @@
             <version>${slf4j.version}</version>
         </dependency>
 
-        <!--
-            Test scope only, for this module's own self-tests. InMemoryProviderTckTest,
-            MultiProviderTckTest and ControllableProviderTckTest run the full applicable suite
-            against the SDK's InMemoryProvider, against MultiProvider wrapping one, and against a
-            provider with a real initialisation (the last being the only one of the three that
-            covers the @lifecycle scenarios), all with no container and no network;
-            InProcessBackendControlTest and HttpBackendControlTest pin the behaviour the Gherkin
-            cannot assert about itself, the latter against a control API stubbed with the JDK's own
-            com.sun.net.httpserver.HttpServer so the normative HTTP request sequence is covered
-            without Docker. The SDK is inherited from the parent POM as `provided`, which puts it on
-            the test classpath already.
-        -->
+        <!-- self-tests against in-memory, multi and controllable providers -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -218,27 +144,7 @@
 
     <build>
         <plugins>
-            <!--
-                Phase 1 – move the spec submodule's WORKING TREE to the pinned commit.
-                Registered with:
-                git submodule add https://github.com/open-feature/spec.git tools/tck/spec
-
-                This runs on every build and must keep doing so. A rebase, a branch switch or a
-                `git checkout` moves the GITLINK; only `git submodule update` moves the checkout,
-                and between the two the copy below happily packages the previous pin's assets.
-                The result is internally consistent — the old feature files agree with each other,
-                and with the old flag set — so a suite runs, passes, and reports numbers that
-                describe a revision nobody asked for.
-
-                Skipped through a switch of its own rather than through exec-maven-plugin's
-                `exec.skip`. That property is generic, so "skip the spec checkout" used to be
-                reachable as a side effect of skipping something else entirely — which is how
-                every local run in this repository has skipped it without meaning to. Saying
-                -Dtck.spec.checkout.skip=true is a decision an operator has to take on purpose,
-                and it is safe to take: the digest check in CanonicalAssetDigestTest fails the
-                build if what ends up in the JAR is not the pinned revision's assets, whether or
-                not this execution ran.
-            -->
+            <!-- phase 1: move spec submodule working tree to the pinned commit -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -264,21 +170,7 @@
                 </executions>
             </plugin>
 
-            <!--
-                Phase 2 – empty the three generated resource directories before anything is
-                copied into them.
-
-                copy-resources overwrites and never deletes, and these directories are
-                gitignored, so a file that exists in the old pin and not in the new one survives
-                the re-pin and is packaged alongside assets it was never meant to travel with.
-                Going forwards that is invisible; going backwards — taking a baseline
-                measurement, bisecting a failure — it produces a set that exists in no revision
-                of the specification at all, and the run against it looks entirely plausible.
-
-                Declared ahead of maven-resources-plugin because Maven runs same-phase
-                executions in POM order. excludeDefaultDirectories keeps this from touching
-                target/; the filesets below are the only things it is allowed to remove.
-            -->
+            <!-- phase 2: clear generated asset dirs so stale files are not packaged -->
             <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>3.5.0</version>
@@ -307,11 +199,7 @@
                 </executions>
             </plugin>
 
-            <!--
-                Phase 3 – copy the three spec artifacts into src/main/resources so
-                they are packaged into the release JAR. Consumers load them from the
-                classpath and need no submodule.
-            -->
+            <!-- phase 3: copy spec assets into resources for packaging -->
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.5.0</version>
