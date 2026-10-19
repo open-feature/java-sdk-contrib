@@ -22,56 +22,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * The canonical assets in this build are the ones the pinned specification revision defines.
- *
- * <p>They are copied out of the {@code spec} submodule at {@code generate-resources}, and the
- * submodule's <em>gitlink</em> and its <em>working tree</em> are moved by different commands: a
- * rebase, a branch switch or a checkout moves the first, and only {@code git submodule update}
- * moves the second. Build in between and the copy step packages the previous pin's assets under the
- * new pin's name, with nothing about the result looking wrong — the old feature files agree with
- * each other, so the suite runs, passes, and reports numbers that describe a revision nobody asked
- * for.
- *
- * <p>{@link CanonicalTagCoverageTest} catches one symptom of that, with a better message than this
- * test could give, but only that symptom: a pin that changes the wording of a scenario, the value of
- * a canonical flag or a field of the control API moves nothing it looks at.
- *
- * <p>So this asserts the assets themselves, by digest. It is deliberately blunt — it cannot say
- * <em>what</em> differs, only that what was packaged is not what the pin names — and it backs up the
- * build step in {@code pom.xml} rather than duplicating it, so every route to stale assets ends
- * here, including the one where the checkout was skipped by hand.
- *
- * <h2>Updating the pin</h2>
- *
- * <p>Three things move together, in one commit:
- *
- * <ol>
- *   <li>the {@code spec} submodule gitlink — {@code git -C tools/tck/spec checkout <rev>};
- *   <li>{@link #PINNED_REVISION} below;
- *   <li>{@link #PINNED_DIGEST} below, which this test prints when it fails.
- * </ol>
- *
- * <p>On the report branch a fourth follows: {@code tck.spec.revision} in the POM, which is what a
- * conformance report names as the source of its scenarios. That one is checked against
- * {@link #PINNED_REVISION} where it is read back, so it cannot be forgotten.
- *
- * <h2>What the digest is over</h2>
- *
- * <p>All three asset trees, not just the Gherkin: the feature files are meaningless without the
- * flag set they evaluate and the control API that produces their outages.
- *
- * <p>Line endings are normalised out of it, because the assets are checked out through git and a
- * Windows clone with {@code core.autocrlf=true} holds bytes a Linux one does not. Nothing else is
- * normalised: trailing whitespace, ordering and encoding are all part of what is pinned.
+ * Asserts the packaged canonical assets match the pinned spec revision, by digest. To move the pin,
+ * update the {@code spec} gitlink, {@link #PINNED_REVISION} and {@link #PINNED_DIGEST} in one commit.
  */
 class CanonicalAssetDigestTest {
 
-    /**
-     * The open-feature/spec commit the packaged assets come from.
-     *
-     * <p>Must equal {@code git -C tools/tck/spec rev-parse HEAD}, and is the value the report
-     * branch publishes as the source of a run's scenarios.
-     */
+    /** The open-feature/spec commit the packaged assets come from; must match the submodule HEAD. */
     static final String PINNED_REVISION = "10b1a610ed0afe6bf0e38b441d7362f5a76cb47d";
 
     /** SHA-256 of the three asset trees at {@link #PINNED_REVISION}, as {@link #digest} computes it. */
@@ -86,33 +42,16 @@ class CanonicalAssetDigestTest {
         String actual = digest();
         assertThat(actual)
                 .as(
-                        "The canonical assets packaged in this build are not the ones open-feature/spec %s "
-                                + "defines.%n%n"
+                        "Packaged canonical assets do not match open-feature/spec %s.%n"
                                 + "  expected %s%n"
-                                + "  actual   %s%n%n"
-                                + "The usual cause is a spec submodule whose working tree has not caught up with "
-                                + "its gitlink: a rebase or a checkout moves the gitlink, and only `git submodule "
-                                + "update` moves the checkout. Run, from the repository root:%n%n"
-                                + "  git submodule update --init tools/tck/spec%n"
-                                + "  git -C tools/tck/spec rev-parse HEAD    # must print %s%n%n"
-                                + "then rebuild with `clean`, because the copies under src/main/resources are "
-                                + "generated and gitignored.%n%n"
-                                + "If you meant to move the pin, update PINNED_REVISION and PINNED_DIGEST in this "
-                                + "class in the same commit as the gitlink, taking the digest from the `actual` "
-                                + "line above.",
+                                + "  actual   %s%n"
+                                + "Run `git submodule update --init tools/tck/spec` (HEAD must be %s) and rebuild "
+                                + "with `clean`. If moving the pin, update PINNED_REVISION and PINNED_DIGEST.",
                         PINNED_REVISION, PINNED_DIGEST, actual, PINNED_REVISION)
                 .isEqualTo(PINNED_DIGEST);
     }
 
-    /**
-     * Digests the packaged assets.
-     *
-     * <p>Every regular file under {@code flags/}, {@code gherkin/} and {@code openapi/}, ordered by
-     * its path relative to the code source root with {@code /} separators. Each contributes its path
-     * and then its content, both terminated by a zero byte so that no rename can be absorbed into a
-     * neighbouring file's bytes. Carriage returns are dropped from the content; see the class
-     * comment.
-     */
+    /** SHA-256 over each asset's relative path and CR-stripped content, sorted by path, zero-separated. */
     private static String digest() {
         MessageDigest sha256;
         try {
@@ -178,13 +117,7 @@ class CanonicalAssetDigestTest {
         return exact;
     }
 
-    /**
-     * The directory this artifact's classes and resources were loaded from.
-     *
-     * <p>Read through the code source rather than the classloader: an asset placed at the same
-     * classpath path on another root shadows the packaged one, and a check that digested the
-     * shadowing copy would be comparing the replacement against itself.
-     */
+    /** The artifact's code source root; avoids the classloader so shadowing copies are ignored. */
     private static Path codeSourceRoot() {
         CodeSource codeSource = ProviderTck.class.getProtectionDomain().getCodeSource();
         if (codeSource == null || codeSource.getLocation() == null) {

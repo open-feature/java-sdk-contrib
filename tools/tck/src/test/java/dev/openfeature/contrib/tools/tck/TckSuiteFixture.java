@@ -7,17 +7,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A concrete TCK suite, used by these tests for what the JUnit Platform makes of it.
- *
- * <p>Only ever <em>discovered</em>, never executed: discovery needs the annotations on
- * {@link ProviderTckTest} and nothing else, so these tests exercise the real suite configuration —
- * the real selectors, the real glue, the real engines — without Docker.
- *
- * <p>Extends {@link ContainerizedProviderTckTest} rather than {@link ProviderTckTest} directly, so
- * that the suite under discovery is shaped like the one an adopter with a real backend writes.
- *
- * <p>Deliberately not named {@code *Test}, so Surefire does not find it and try to run it. Running it
- * would start a Compose stack that does not exist.
+ * A concrete containerised suite, only ever discovered (never run) by these tests. Not named
+ * {@code *Test} so Surefire skips it.
  */
 public class TckSuiteFixture extends ContainerizedProviderTckTest {
 
