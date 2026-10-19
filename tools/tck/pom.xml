@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.openfeature.contrib</groupId>
+        <artifactId>parent</artifactId>
+        <version>[1.0,2.0)</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>dev.openfeature.contrib.tools</groupId>
+    <artifactId>tck</artifactId>
+    <version>0.1.0</version> <!--x-release-please-version -->
+
+    <properties>
+        <module-name>${groupId}.tck</module-name>
+
+        <!-- skip moving the spec submodule to the pinned commit; digest test still guards assets -->
+        <tck.spec.checkout.skip>false</tck.spec.checkout.skip>
+
+        <assertj.version>3.27.7</assertj.version>
+        <awaitility.version>4.3.0</awaitility.version>
+        <jackson-databind.version>2.22.1</jackson-databind.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <testcontainers.version>2.0.4</testcontainers.version>
+        <opentest4j.version>1.3.0</opentest4j.version>
+    </properties>
+
+    <name>tck</name>
+    <description>
+        Language-agnostic conformance test suite (TCK) for OpenFeature providers.
+        Bundles the canonical Gherkin feature files, Cucumber step definitions and
+        abstract JUnit Platform Suite base classes that own the full test lifecycle.
+        Providers with an external backend extend ContainerizedProviderTckTest, which
+        starts the vendor-supplied Docker Compose stack, discovers dynamically mapped
+        ports and drives the standardised HTTP control API. Providers with no backend
+        extend ProviderTckTest and supply in-process backend control. Provider authors
+        implement a small factory interface either way.
+    </description>
+    <url>https://openfeature.dev</url>
+
+    <developers>
+        <developer>
+            <id>aepfli</id>
+            <name>Simon Schrottner</name>
+            <organization>OpenFeature</organization>
+            <url>https://openfeature.dev/</url>
+        </developer>
+    </developers>
+
+    <!-- gherkin, flags and openapi are copied from the spec submodule (appendix f); do not edit copies -->
+
+    <dependencies>
+        <!-- compile scope: consumed as a test library; sdk inherited as provided range -->
+
+        <!-- step definitions discoverable on the glue path -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
+        </dependency>
+
+        <!-- glue and object factory constants -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+        </dependency>
+
+        <!-- injects TckState into step classes -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- suite annotations on the base classes -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- TckSuiteListener reports the executing suite -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- unsupported capabilities reported as skipped -->
+        <dependency>
+            <groupId>org.opentest4j</groupId>
+            <artifactId>opentest4j</artifactId>
+            <version>${opentest4j.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- assertions in step definitions -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- event and state awaiting -->
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${awaitility.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- only needed by containerized adopters, who declare it themselves -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- object flag value parsing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson-databind.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- self-tests against in-memory, multi and controllable providers -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <!-- version managed by junit-bom in parent -->
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- phase 1: move spec submodule working tree to the pinned commit -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>update-spec-submodule</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${tck.spec.checkout.skip}</skip>
+                            <executable>git</executable>
+                            <arguments>
+                                <argument>submodule</argument>
+                                <argument>update</argument>
+                                <argument>--init</argument>
+                                <argument>spec</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- phase 2: clear generated asset dirs so stale files are not packaged -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>clear-generated-spec-assets</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${basedir}/src/main/resources/gherkin</directory>
+                                </fileset>
+                                <fileset>
+                                    <directory>${basedir}/src/main/resources/flags</directory>
+                                </fileset>
+                                <fileset>
+                                    <directory>${basedir}/src/main/resources/openapi</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- phase 3: copy spec assets into resources for packaging -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-provider-tck-gherkin</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/src/main/resources/gherkin/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/spec/specification/assets/provider-tck/gherkin/</directory>
+                                    <includes>
+                                        <include>**/*.feature</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-provider-tck-flags</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/src/main/resources/flags/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/spec/specification/assets/provider-tck/flags/</directory>
+                                    <includes>
+                                        <include>**/*.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-provider-tck-openapi</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/src/main/resources/openapi/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/spec/specification/assets/provider-tck/openapi/</directory>
+                                    <includes>
+                                        <include>**/*.yaml</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
