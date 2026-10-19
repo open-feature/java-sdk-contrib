@@ -78,14 +78,14 @@ scenarios assert promptness.
 
 ### A provider with no backend
 
-`InProcessBackendControl` supports the SDK's `InMemoryProvider`. Copy the shape; for your own provider,
+`BackendControl.inProcess()` supports the SDK's `InMemoryProvider`. Copy the shape; for your own provider,
 `createProvider()` returns yours and the `BackendControl` reaches its live flag store (it must reach the
 live provider instance so `changeFlag()` can emit events).
 
 ```java
 public class InMemoryProviderTckTest extends ProviderTckTest {
 
-    private final InProcessBackendControl control = new InProcessBackendControl();
+    private final InProcessControl control = BackendControl.inProcess();
 
     @Override
     public BackendControl backendControl() {
@@ -137,7 +137,8 @@ Overridable on `ContainerizedProviderTckTest`; names and defaults match every la
   mode. `configuration()` defaults to the hyphenated class name minus the JUnit suffix (`InProcessTest`
   becomes `in-process`), so set it explicitly when the class name doesn't identify the provider
   (flagd uses `flagd-rpc` and `flagd-in-process`).
-- `BackendControl.controlApi()` states the control contract (`ControlApi.HTTP` or `IN_PROCESS`).
+- `BackendControl.backendType()` states what drove the run: `BackendType.HTTP`, `IN_PROCESS`, or
+  `CUSTOM`, which is the default for a control the TCK does not ship.
 
 ## Capabilities
 
@@ -208,8 +209,14 @@ mvn -Ptck -pl providers/<your-provider> test
 Don't add `-am` to the second command; it runs the dependencies' unit suites first and mixes their
 failures into the `-Ptck` result.
 
-Scenarios run serially (enforced; control API state is global to the stack), and the stack starts
-once per suite and is never restarted.
+Scenarios run serially by default, and the stack starts once per suite and is never restarted.
+
+The suite does not pin that any more. Set `cucumber.execution.parallel.enabled=true` and each thread
+gets its own harness and its own stack, so scenarios no longer share backend state -- but set
+`cucumber.execution.parallel.config.strategy=fixed` with a matching `fixed.parallelism` and
+`fixed.max-pool-size` as well. The parallelism setting is a ForkJoinPool target, not a cap, and these
+steps block: left uncapped against flagd the pool grew to 18 threads and started 18 stacks. Capped at
+four it ran the two suites in 53s against 83s serial, for eight stacks.
 
 Put the adoption in its own `tck` test package (e.g. `.../providers/flagd/tck/`, a sibling of `e2e`),
 keep the `*Test` suffix for Surefire, and check `configuration()` when renaming. Exclude it from the
