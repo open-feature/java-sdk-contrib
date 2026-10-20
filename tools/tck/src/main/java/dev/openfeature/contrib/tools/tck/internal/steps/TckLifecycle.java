@@ -31,6 +31,8 @@ final class TckLifecycle {
 
     private static volatile boolean suiteRunning;
 
+    private static volatile RuntimeException startFailure;
+
     private final ProviderTckHarness harness;
     private final BackendControl backendControl;
 
@@ -44,12 +46,14 @@ final class TckLifecycle {
         ProviderTckHarness harness = discoverHarness();
         log.info("Provider TCK harness: {}", harness.getClass().getName());
         Capability.requireDeclarable(harness.capabilities());
+        startFailure = null;
         suiteRunning = true;
     }
 
     /** Stops every lifecycle this suite started. */
     static void endSuite() {
         suiteRunning = false;
+        startFailure = null;
         List<TckLifecycle> toStop;
         synchronized (started) {
             toStop = new ArrayList<>(started);
@@ -82,7 +86,17 @@ final class TckLifecycle {
         if (!suiteRunning) {
             return Optional.empty();
         }
-        return Optional.of(start(discoverHarness()));
+        RuntimeException failed = startFailure;
+        if (failed != null) {
+            // one Compose timeout per suite, not one per scenario
+            throw new IllegalStateException("the suite's backend already failed to start", failed);
+        }
+        try {
+            return Optional.of(start(discoverHarness()));
+        } catch (RuntimeException e) {
+            startFailure = e;
+            throw e;
+        }
     }
 
     /** Starts the given harness and registers the result for {@link #endSuite()}. */
@@ -99,8 +113,12 @@ final class TckLifecycle {
             started.add(lifecycle);
             return lifecycle;
         } catch (RuntimeException e) {
-            // release anything a partial start allocated, e.g. containers
-            harness.stopSuite();
+            // release anything a partial start allocated, e.g. containers, without losing why
+            try {
+                harness.stopSuite();
+            } catch (RuntimeException cleanup) {
+                e.addSuppressed(cleanup);
+            }
             throw e;
         }
     }
