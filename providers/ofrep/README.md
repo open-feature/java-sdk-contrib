@@ -90,7 +90,7 @@ mvn -Ptck -pl providers/ofrep -am test
 The suite is Docker-gated. The root pom excludes every provider's `tck` package from the default
 build and its `tck` profile runs only that package, so `-am` adds no other module's tests.
 
-**CI runs it** in the `Provider TCK (providers)` job, apart from the main matrix. Set
+**CI runs it** in the `Provider TCK` job, apart from the main matrix. Set
 `tck.testFailureIgnore` to `true` in this module's pom to report the failures without failing it.
 
 A clean run is **65 scenarios: 46 passing, 17 skipped, 2 failing**, the two failures being flags the
