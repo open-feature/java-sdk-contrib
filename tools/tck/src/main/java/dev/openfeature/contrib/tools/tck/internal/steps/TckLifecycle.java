@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,8 @@ final class TckLifecycle {
 
     private static volatile boolean suiteRunning;
 
+    private static final AtomicReference<RuntimeException> startFailure = new AtomicReference<>();
+
     private final ProviderTckHarness harness;
     private final BackendControl backendControl;
 
@@ -44,12 +47,14 @@ final class TckLifecycle {
         ProviderTckHarness harness = discoverHarness();
         log.info("Provider TCK harness: {}", harness.getClass().getName());
         Capability.requireDeclarable(harness.capabilities());
+        startFailure.set(null);
         suiteRunning = true;
     }
 
     /** Stops every lifecycle this suite started. */
     static void endSuite() {
         suiteRunning = false;
+        startFailure.set(null);
         List<TckLifecycle> toStop;
         synchronized (started) {
             toStop = new ArrayList<>(started);
@@ -82,7 +87,21 @@ final class TckLifecycle {
         if (!suiteRunning) {
             return Optional.empty();
         }
-        return Optional.of(start(discoverHarness()));
+        // Deliberately not synchronized: making a second thread wait for the first thread's
+        // Compose startup is the serialisation per-thread backends exist to avoid. Threads that race
+        // before a failure is cached each pay one attempt, in parallel; everyone after fails fast,
+        // and compareAndSet keeps the first failure rather than whichever landed last.
+        RuntimeException failed = startFailure.get();
+        if (failed != null) {
+            // one Compose timeout per suite, not one per scenario
+            throw new IllegalStateException("the suite's backend already failed to start", failed);
+        }
+        try {
+            return Optional.of(start(discoverHarness()));
+        } catch (RuntimeException e) {
+            startFailure.compareAndSet(null, e);
+            throw e;
+        }
     }
 
     /** Starts the given harness and registers the result for {@link #endSuite()}. */
@@ -99,8 +118,12 @@ final class TckLifecycle {
             started.add(lifecycle);
             return lifecycle;
         } catch (RuntimeException e) {
-            // release anything a partial start allocated, e.g. containers
-            harness.stopSuite();
+            // release anything a partial start allocated, e.g. containers, without losing why
+            try {
+                harness.stopSuite();
+            } catch (RuntimeException cleanup) {
+                e.addSuppressed(cleanup);
+            }
             throw e;
         }
     }

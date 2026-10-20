@@ -186,7 +186,17 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
         stack.withStartupTimeout(startupTimeout());
 
         log.info("Starting Compose stack {} (started once per suite, never restarted)", composeFile.getAbsolutePath());
-        stack.start();
+        try {
+            stack.start();
+        } catch (RuntimeException e) {
+            // stopSuite() reaches the stack through a field this method has not returned into yet
+            try {
+                stack.stop();
+            } catch (RuntimeException cleanup) {
+                e.addSuppressed(cleanup);
+            }
+            throw e;
+        }
         return stack;
     }
 }

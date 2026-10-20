@@ -62,6 +62,26 @@ class HttpBackendControlTest {
         }
     }
 
+    @Test
+    @DisplayName("a null configuration posts /start with no query, rather than config=null")
+    void aNullConfigurationOmitsTheQuery() throws Exception {
+        try (StubControlApi stub = StubControlApi.start().answering("/reset", 404)) {
+            new HttpBackendControl(stub.baseUrl(), null).prepareScenario();
+
+            assertThat(stub.requests()).containsExactly("POST /reset", "POST /start");
+        }
+    }
+
+    @Test
+    @DisplayName("a configuration name is encoded, so a space cannot break the URI")
+    void theConfigurationNameIsEncoded() throws Exception {
+        try (StubControlApi stub = StubControlApi.start().answering("/reset", 404)) {
+            new HttpBackendControl(stub.baseUrl(), "two words").prepareScenario();
+
+            assertThat(stub.requests()).containsExactly("POST /reset", "POST /start?config=two+words");
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {404, 501})
     @DisplayName("both documented not-implemented statuses trigger the fallback")

@@ -120,6 +120,34 @@ class TckLifecycleTest {
     }
 
     @Test
+    @DisplayName("a teardown failure is attached to the startup failure, not substituted for it")
+    void cleanupFailureDoesNotReplaceTheCause() {
+        class FailsBothWays implements ProviderTckHarness {
+            @Override
+            public FeatureProvider createProvider() {
+                return new NoOpProvider();
+            }
+
+            @Override
+            public BackendControl backendControl() {
+                return null;
+            }
+
+            @Override
+            public void stopSuite() {
+                throw new IllegalStateException("teardown also failed");
+            }
+        }
+
+        assertThatThrownBy(() -> TckLifecycle.start(new FailsBothWays()))
+                .as("the adopter needs the reason the suite would not start")
+                .hasMessageContaining("backendControl() returned null")
+                .satisfies(thrown -> assertThat(thrown.getSuppressed())
+                        .as("and the teardown failure is kept, not dropped")
+                        .hasSize(1));
+    }
+
+    @Test
     @DisplayName("no suite running means no lifecycle, so extension-only glue registers nothing")
     void noSuiteMeansNoLifecycle() {
         assertThat(TckLifecycle.startForExecutingSuite()).isEmpty();
