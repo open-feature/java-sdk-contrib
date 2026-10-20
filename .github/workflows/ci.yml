@@ -17,11 +17,15 @@ jobs:
   tck:
     name: Provider TCK
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           submodules: recursive
+          # maven runs pr code; keep the token out of .git/config
+          persist-credentials: false
 
       - name: Set up JDK 21
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5
@@ -40,7 +44,9 @@ jobs:
 
       - name: Run every provider's TCK adoption
         # the profile only runs providers/*/tck classes, so the whole reactor is safe here
-        run: mvn --batch-mode --activate-profiles tck clean verify
+        # !codequality: a module's own default-active codequality profile (flagd's runs vmlens
+        # *CTest suites) is not switched off by a profile in the root pom; main enforces it anyway
+        run: mvn --batch-mode --activate-profiles 'tck,!codequality' clean verify
 
   main:
     strategy:
