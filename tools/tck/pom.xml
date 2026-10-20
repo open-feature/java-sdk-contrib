@@ -22,7 +22,7 @@
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.3</jackson-databind.version>
         <slf4j.version>2.0.20</slf4j.version>
-        <testcontainers.version>2.0.4</testcontainers.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
         <opentest4j.version>1.3.0</opentest4j.version>
     </properties>
 
