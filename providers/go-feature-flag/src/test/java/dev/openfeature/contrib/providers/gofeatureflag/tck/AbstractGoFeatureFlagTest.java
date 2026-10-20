@@ -5,14 +5,11 @@ import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOpti
 import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.tools.tck.BackendEndpoint;
-import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
-import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Shared configuration for running the OpenFeature Provider TCK against the GO Feature Flag
@@ -69,22 +66,6 @@ abstract class AbstractGoFeatureFlagTest extends ContainerizedProviderTckTest {
     @Override
     public FeatureProvider createUnavailableProvider() {
         return provider(String.format("http://localhost:%d/", UNAVAILABLE_PORT));
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Everything declarable, on this first run. Which capabilities to withhold, and which failures
-     * to record as deviations, is decided per scenario from the results rather than predicted.
-     */
-    @Override
-    public Set<Capability> capabilities() {
-        return Capability.declarable();
-    }
-
-    @Override
-    public List<KnownDeviation> knownDeviations() {
-        return Collections.emptyList();
     }
 
     private FeatureProvider provider(String endpoint) {
