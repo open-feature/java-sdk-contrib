@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,7 @@ final class TckLifecycle {
 
     private static volatile boolean suiteRunning;
 
-    private static volatile RuntimeException startFailure;
+    private static final AtomicReference<RuntimeException> startFailure = new AtomicReference<>();
 
     private final ProviderTckHarness harness;
     private final BackendControl backendControl;
@@ -46,14 +47,14 @@ final class TckLifecycle {
         ProviderTckHarness harness = discoverHarness();
         log.info("Provider TCK harness: {}", harness.getClass().getName());
         Capability.requireDeclarable(harness.capabilities());
-        startFailure = null;
+        startFailure.set(null);
         suiteRunning = true;
     }
 
     /** Stops every lifecycle this suite started. */
     static void endSuite() {
         suiteRunning = false;
-        startFailure = null;
+        startFailure.set(null);
         List<TckLifecycle> toStop;
         synchronized (started) {
             toStop = new ArrayList<>(started);
@@ -86,7 +87,11 @@ final class TckLifecycle {
         if (!suiteRunning) {
             return Optional.empty();
         }
-        RuntimeException failed = startFailure;
+        // Deliberately not synchronized: making a second thread wait for the first thread's
+        // Compose startup is the serialisation per-thread backends exist to avoid. Threads that race
+        // before a failure is cached each pay one attempt, in parallel; everyone after fails fast,
+        // and compareAndSet keeps the first failure rather than whichever landed last.
+        RuntimeException failed = startFailure.get();
         if (failed != null) {
             // one Compose timeout per suite, not one per scenario
             throw new IllegalStateException("the suite's backend already failed to start", failed);
@@ -94,7 +99,7 @@ final class TckLifecycle {
         try {
             return Optional.of(start(discoverHarness()));
         } catch (RuntimeException e) {
-            startFailure = e;
+            startFailure.compareAndSet(null, e);
             throw e;
         }
     }
