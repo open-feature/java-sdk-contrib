@@ -275,7 +275,7 @@
                 <!--
                     Run the legacy flagd e2e suites (Run*Test, over the test-harness submodule).
                     The Provider TCK suites stay out: the root pom excludes them outside its `tck`
-                    profile, which ci.yml's `tck-providers` job runs on its own.
+                    profile, which ci.yml's `tck` job runs on its own.
                 -->
                 <testExclusions/>
             </properties>
