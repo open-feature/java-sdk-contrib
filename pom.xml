@@ -70,6 +70,8 @@
             --add-opens java.base/java.lang=ALL-UNNAMED
         </surefireArgLine>
         <skip.tests>false</skip.tests>
+        <!-- whether the `tck` profile fails on a failing conformance scenario; a provider overrides it -->
+        <tck.testFailureIgnore>false</tck.testFailureIgnore>
         <!-- this will throw an error if we use APIs not available in the specified version -->
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
@@ -258,6 +260,8 @@
                     <excludes>
                         <!-- tests to exclude -->
                         <exclude>${testExclusions}</exclude>
+                        <!-- provider TCK adoptions; run by the `tck` profile only -->
+                        <exclude>**/providers/*/tck/*.java</exclude>
                     </excludes>
                     <argLine>
                         @{surefireArgLine}
@@ -651,6 +655,37 @@
                                 </configuration>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!--
+            Runs every provider's Provider TCK adoption (the classes in its `tck` test package),
+            and nothing else:
+
+                mvn -Ptck test                               # every adopting provider
+                mvn -Ptck -pl providers/<provider> -am test  # one
+
+            Only providers/*/tck classes run, so the rest of the reactor contributes no tests;
+            the pattern names providers/ so the TCK module's own package is not matched.
+            A provider sets tck.testFailureIgnore to true to report its failures without failing.
+        -->
+        <profile>
+            <id>tck</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/providers/*/tck/*.java</include>
+                            </includes>
+                            <excludes combine.self="override">
+                                <exclude>**/*$*</exclude>
+                            </excludes>
+                            <testFailureIgnore>${tck.testFailureIgnore}</testFailureIgnore>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

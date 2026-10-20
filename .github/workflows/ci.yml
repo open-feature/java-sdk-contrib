@@ -11,17 +11,21 @@ on:
       - 'feat/provider-tck*'
 
 jobs:
-  # fast no-docker tck canary (in-memory, multi, controllable providers)
-  # not a gate on main; runs in parallel
+  # every provider's tck adoption (docker) via the root tck profile; tools/tck's own tests run in main
+  # apart from main, so a known conformance failure is not read as a regression there
+  # a provider sets tck.testFailureIgnore=true in its pom to keep this green
   tck:
-    name: Provider TCK (no Docker)
+    name: Provider TCK
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          # spec submodule supplies the tck assets
           submodules: recursive
+          # maven runs pr code; keep the token out of .git/config
+          persist-credentials: false
 
       - name: Set up JDK 21
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5
@@ -38,9 +42,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}21-maven-
 
-      - name: Verify the TCK against the in-memory provider
-        # no e2e profile or docker needed
-        run: mvn --batch-mode --activate-profiles codequality -pl tools/tck -am clean verify
+      - name: Run every provider's TCK adoption
+        # the profile only runs providers/*/tck classes, so the whole reactor is safe here
+        # !codequality: a module's own default-active codequality profile (flagd's runs vmlens
+        # *CTest suites) is not switched off by a profile in the root pom; main enforces it anyway
+        run: mvn --batch-mode --activate-profiles 'tck,!codequality' clean verify
 
   main:
     strategy:
