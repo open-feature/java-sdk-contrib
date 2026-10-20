@@ -28,6 +28,8 @@
     <properties>
         <!-- Match any provider-tck version locally; CI resolves it from the reactor -->
         <provider-tck.version>[0.0.1,)</provider-tck.version>
+        <!-- The tck package runs only under the root pom's `tck` profile; set true to report failures without failing. -->
+        <tck.testFailureIgnore>false</tck.testFailureIgnore>
     </properties>
 
     <dependencies>

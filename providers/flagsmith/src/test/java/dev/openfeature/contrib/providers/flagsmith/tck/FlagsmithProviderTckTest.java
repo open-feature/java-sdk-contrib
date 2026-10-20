@@ -1,5 +1,7 @@
-package dev.openfeature.contrib.providers.flagsmith;
+package dev.openfeature.contrib.providers.flagsmith.tck;
 
+import dev.openfeature.contrib.providers.flagsmith.FlagsmithProvider;
+import dev.openfeature.contrib.providers.flagsmith.FlagsmithProviderOptions;
 import dev.openfeature.contrib.tools.tck.BackendEndpoint;
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
