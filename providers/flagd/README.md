@@ -369,27 +369,21 @@ why, and every known deviation — that reasoning is the most valuable thing abo
 lives next to the declaration rather than here.
 
 ```bash
-# once, if tools/tck is not in your local repository yet
-mvn -pl tools/tck -am -DskipTests install
-
-mvn -Ptck -pl providers/flagd test                            # both resolvers
-mvn -Ptck -pl providers/flagd -Dtest=InProcessTest test       # one
+mvn -Ptck -pl providers/flagd -am test                                    # both resolvers
+mvn -Ptck -pl providers/flagd -am -Dtest=InProcessTest     -Dsurefire.failIfNoSpecifiedTests=false test                          # one
 ```
 
-Do not add `-am` to the run itself; the TCK README says why.
+The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other module's tests.
 
-**`-Pe2e` does not run these suites — it is the profile that keeps them out.** Worth stating plainly,
-because `mvn -Pe2e -pl providers/flagd test` reads as if it ran everything and instead runs the legacy
-`Run*Test` suites in silence: 788 tests, no scenario tally, and no mention of either conformance
-suite. This module excludes `**/e2e/*.java,**/tck/*.java` by default; the `e2e` profile drops only the
-first, and the `tck` profile only the second. It used to clear the property outright, which — since
-`ci.yml`'s `main` job activates `e2e` on every push, on a runner that has a Docker daemon — ran these
-suites in CI, where they are expected to fail, and turned every unrelated pull request red.
+**`-Pe2e` does not run these suites.** The root pom excludes every provider's `tck` package from
+the default build and from `-Pe2e`, and its `tck` profile runs only that package. This module
+excludes just `**/e2e/*.java`, which the `e2e` profile clears.
 
-**No CI job runs them**, so a maintainer runs them by hand before merging a change to the provider's
-resolution, event or lifecycle behaviour, and quotes the result in the pull request. A scheduled or
-path-filtered workflow was considered and declined: a suite whose red is diagnosed by whoever happens
-to read the notification is worse than one whose red is diagnosed by the person who caused it.
+**CI runs them in a job of their own**, `Provider TCK (providers)` in `ci.yml`, on every pull request. It
+is red until the failures below are fixed, which is the point: the known state stays visible, and it
+sits apart from the `main` matrix so it cannot be read as a regression there. Set
+`tck.testFailureIgnore` to `true` in this module's pom, or pass `-Dtck.testFailureIgnore=true`, to
+report the failures without failing the build.
 
 Both suites are **expected to fail**, identically: 65 scenarios each, 59 passing, 2 skipped, 4
 failing. Three of the four failures come from flags the pinned `flagd-testbed` image does not serve

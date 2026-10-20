@@ -15,12 +15,11 @@
 
     <properties>
         <!--
-            Exclusion expression for the two Docker-dependent test packages: the legacy e2e suites
-            over the test-harness submodule, and the Provider TCK adoption in tck. Two directories
-            rather than one because they answer different questions and are run by different
-            profiles; see the `e2e` and `tck` profiles below, which each drop one of the two.
+            Exclusion for the legacy e2e suites over the test-harness submodule; the `e2e` profile
+            below clears it. The Provider TCK adoption in tck needs nothing here: the root pom
+            excludes every provider's tck package and its `tck` profile selects them.
         -->
-        <testExclusions>**/e2e/*.java,**/tck/*.java</testExclusions>
+        <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.85.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
@@ -29,6 +28,11 @@
         <flagd-core.version>[3.0.0,4.0.0)</flagd-core.version>
         <!-- Match any tck version locally; CI resolves it from the reactor -->
         <tck.version>[0.1.0,)</tck.version>
+        <!--
+            Fail the root pom's `tck` profile on a failing scenario (the root default). Set true
+            to report the known failures without failing the build.
+        -->
+        <tck.testFailureIgnore>false</tck.testFailureIgnore>
     </properties>
 
     <name>flagd</name>
@@ -269,23 +273,11 @@
             <id>e2e</id>
             <properties>
                 <!--
-                    Run the legacy flagd e2e suites (Run*Test, over the test-harness submodule) by
-                    dropping their directory from the exclusions and keeping tck's, so the Provider
-                    TCK suites stay out.
-
-                    Clearing the property outright would run the conformance suites in CI, because
-                    ci.yml's `main` job activates this profile (it passes `e2e` alongside the matrix
-                    profile) and a GitHub runner does have a Docker daemon. That is not what we
-                    want: those two suites are expected to fail on flags the pinned flagd-testbed
-                    image does not serve plus one recorded provider defect, so running them in the
-                    default build would make every unrelated pull request red. They are run by hand
-                    before merge instead. See providers/flagd/README.md.
-
-                    This used to read `**/e2e/*TckTest.java`, a filename pattern, because both kinds
-                    of suite shared a directory. They no longer do, and a profile naming a directory
-                    cannot be defeated by a class someone names badly.
+                    Run the legacy flagd e2e suites (Run*Test, over the test-harness submodule).
+                    The Provider TCK suites stay out: the root pom excludes them outside its `tck`
+                    profile, which ci.yml's `tck-providers` job runs on its own.
                 -->
-                <testExclusions>**/tck/*.java</testExclusions>
+                <testExclusions/>
             </properties>
             <build>
                 <plugins>
@@ -330,54 +322,6 @@
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <!--
-                This profile runs the Provider TCK conformance suites, and nothing else:
-
-                    mvn -Ptck -pl providers/flagd test
-
-                Do not add `-am`: it pulls tools/tck and tools/flagd-core into the reactor and
-                runs their own suites first, which puts two kinds of failure back on one signal.
-                A one-off `mvn -pl tools/tck -am -DskipTests install` is what it was there for.
-
-                It is a step of its own rather than a corner of the `e2e` profile above because
-                of what a red build says. `-Pe2e` red means the provider's own end-to-end suites
-                regressed; `-Ptck` red means conformance failed — and a conformance run carries
-                failures by design, wherever AbstractResolverTest declares a knownDeviation.
-                Sharing one signal between "you broke something" and "this is the known state"
-                ends with somebody silencing the informative half. See Appendix F, "Running the
-                suite in CI".
-
-                Nothing activates this profile in CI, deliberately, for the reason the `e2e`
-                profile's comment gives: these suites are expected to fail today. They are run by
-                hand before merge. See providers/flagd/README.md.
-            -->
-            <id>tck</id>
-            <properties>
-                <!--
-                    Drop tck from the exclusions, the mirror image of what the `e2e` profile does,
-                    and keep e2e excluded. Both halves are needed: the include below alone leaves
-                    the default exclusion in force and runs nothing, and dropping the exclusion
-                    alone runs the module's unit tests alongside the conformance suites.
-                -->
-                <testExclusions>**/e2e/*.java</testExclusions>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <includes>
-                                <!-- The whole package: RpcTest and InProcessTest, plus the
-                                     abstract parent they share, which Surefire does not run. -->
-                                <include>**/tck/*.java</include>
-                            </includes>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
