@@ -23,6 +23,8 @@
         <wasm.version>0.2.4</wasm.version>
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
+        <!-- Match any tck version locally; CI resolves it from the reactor -->
+        <tck.version>[0.1.0,)</tck.version>
     </properties>
 
     <developers>
@@ -109,6 +111,18 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <version>2.0.5</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            OpenFeature Provider TCK. Brings its own Gherkin, step definitions and Compose
+            lifecycle; the classes under src/test/java/.../gofeatureflag/tck are the whole
+            adoption, run only by the root pom's `tck` profile.
+        -->
+        <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>tck</artifactId>
+            <version>${tck.version}</version>
             <scope>test</scope>
         </dependency>
 
