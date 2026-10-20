@@ -84,22 +84,14 @@ under test is simply something that speaks it: the suite reuses the unmodified `
 and its launchpad control API.
 
 ```bash
-# once, if tools/tck is not in your local repository yet
-mvn -pl tools/tck -am -DskipTests install
-
-mvn -Ptck -pl providers/ofrep test
+mvn -Ptck -pl providers/ofrep -am test
 ```
 
-Do not add `-am` to the run itself; the TCK README says why.
+The suite is Docker-gated. The root pom excludes every provider's `tck` package from the default
+build and its `tck` profile runs only that package, so `-am` adds no other module's tests.
 
-The suite is Docker-gated and excluded from the default build by
-`<testExclusions>**/tck/*.java</testExclusions>` in this module's POM, and the `tck` profile above is
-the only thing that undoes it — this module has no `e2e` profile, so the `-Pe2e` that CI activates on
-every push changes nothing here. The exclusion was missing until recently, which meant `mvn verify`
-started a Compose stack and ran the suite, red, in every job that touched `providers/ofrep`.
-
-**No CI job runs it**, so a maintainer runs it by hand before merging a change to the provider's
-resolution or error behaviour, and quotes the result in the pull request.
+**CI runs it** in the `Provider TCK (providers)` job, apart from the main matrix. Set
+`tck.testFailureIgnore` to `true` in this module's pom to report the failures without failing it.
 
 A clean run is **65 scenarios: 46 passing, 17 skipped, 2 failing**, the two failures being flags the
 pinned testbed image does not serve (open-feature/flagd-testbed#392). It is also **intermittently
