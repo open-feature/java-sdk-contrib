@@ -66,10 +66,16 @@
             <artifactId>cucumber-junit-platform-engine</artifactId>
         </dependency>
 
-        <!-- injects TckState into step classes -->
+        <!--
+            The container TckObjectFactory builds, not io.cucumber:cucumber-picocontainer. That
+            artifact also registers Cucumber's own PicoFactory through META-INF/services, which
+            would put a second ObjectFactory on every adopter's classpath and make Cucumber refuse
+            to choose between them in the adopter's own suites.
+        -->
         <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-picocontainer</artifactId>
+            <groupId>org.picocontainer</groupId>
+            <artifactId>picocontainer</artifactId>
+            <version>2.15.2</version>
             <scope>compile</scope>
         </dependency>
 
