@@ -200,14 +200,12 @@ public List<KnownDeviation> knownDeviations() {
 ## Running it
 
 ```bash
-# once, if the module is not installed locally
-mvn -pl tools/tck -am -DskipTests install
-
-mvn -Ptck -pl providers/<your-provider> test
+mvn -Ptck test                                     # every adopting provider
+mvn -Ptck -pl providers/<your-provider> -am test   # one
 ```
 
-Don't add `-am` to the second command; it runs the dependencies' unit suites first and mixes their
-failures into the `-Ptck` result.
+The `tck` profile runs only `providers/*/tck` classes, so `-am` adds no other module's tests to the
+result.
 
 Scenarios run serially by default, and the stack starts once per suite and is never restarted.
 
@@ -218,33 +216,19 @@ gets its own harness and its own stack, so scenarios no longer share backend sta
 steps block: left uncapped against flagd the pool grew to 18 threads and started 18 stacks. Capped at
 four it ran the two suites in 53s against 83s serial, for eight stacks.
 
-Put the adoption in its own `tck` test package (e.g. `.../providers/flagd/tck/`, a sibling of `e2e`),
-keep the `*Test` suffix for Surefire, and check `configuration()` when renaming. Exclude it from the
-default build and select it with a `tck` profile:
+Put the adoption in its own `tck` test package (e.g. `.../providers/flagd/tck/`, a sibling of `e2e`)
+and keep the `*Test` suffix for Surefire. The root pom does the rest: it excludes
+`**/providers/*/tck/*.java` from every other build, and its `tck` profile runs only that package. A
+provider needs no profile of its own.
+
+A failing scenario fails the `tck` build. To report failures without failing, set the property in the
+provider's pom (or pass `-Dtck.testFailureIgnore=true`):
 
 ```xml
 <properties>
-  <testExclusions>**/e2e/*.java,**/tck/*.java</testExclusions>
+  <tck.testFailureIgnore>true</tck.testFailureIgnore>
 </properties>
-
-<profile>
-  <id>tck</id>
-  <properties>
-    <testExclusions>**/e2e/*.java</testExclusions>
-  </properties>
-  <build><plugins><plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-surefire-plugin</artifactId>
-    <configuration><includes><include>**/tck/*.java</include></includes></configuration>
-  </plugin></plugins></build>
-</profile>
 ```
-
-- Both halves of the profile are needed: dropping the exclusion alone also runs unit tests; narrowing
-  includes alone runs nothing.
-- `testExclusions` is a Surefire (not compiler) exclusion, so the adoption still compiles in every build.
-- Verify the property under every profile your CI activates:
-  `mvn -Pe2e -pl providers/<your-provider> help:evaluate -Dexpression=testExclusions -DforceStdout`
 
 ## Extensions
 
