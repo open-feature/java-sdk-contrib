@@ -11,7 +11,7 @@ on:
       - 'feat/provider-tck*'
 
 jobs:
-  # provider tck: the suite's own tests, then every provider's adoption (docker) via the root tck profile
+  # every provider's tck adoption (docker) via the root tck profile; tools/tck's own tests run in main
   # apart from main, so a known conformance failure is not read as a regression there
   # a provider sets tck.testFailureIgnore=true in its pom to keep this green
   tck:
@@ -21,7 +21,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          # spec submodule supplies the tck assets
           submodules: recursive
 
       - name: Set up JDK 21
@@ -39,12 +38,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}21-maven-
 
-      - name: Verify the TCK itself against in-memory providers
-        run: mvn --batch-mode --activate-profiles codequality -pl tools/tck -am clean verify
-
       - name: Run every provider's TCK adoption
         # the profile only runs providers/*/tck classes, so the whole reactor is safe here
-        run: mvn --batch-mode --activate-profiles tck verify
+        run: mvn --batch-mode --activate-profiles tck clean verify
 
   main:
     strategy:
