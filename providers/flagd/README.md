@@ -379,7 +379,7 @@ The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other
 the default build and from `-Pe2e`, and its `tck` profile runs only that package. This module
 excludes just `**/e2e/*.java`, which the `e2e` profile clears.
 
-**CI runs them in a job of their own**, `Provider TCK (providers)` in `ci.yml`, on every pull request. It
+**CI runs them in a job of their own**, `Provider TCK` in `ci.yml`, on every pull request. It
 is red until the failures below are fixed, which is the point: the known state stays visible, and it
 sits apart from the `main` matrix so it cannot be read as a regression there. Set
 `tck.testFailureIgnore` to `true` in this module's pom, or pass `-Dtck.testFailureIgnore=true`, to
