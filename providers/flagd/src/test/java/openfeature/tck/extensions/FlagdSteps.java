@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.opentest4j.TestAbortedException;
@@ -83,12 +84,28 @@ public class FlagdSteps {
         Collection<String> tags = scenario.getSourceTagNames();
         boolean rpc = tags.contains("@rpc");
         boolean inProcess = tags.contains("@in-process");
-        if (!rpc && !inProcess) {
-            return;
+        if (rpc || inProcess) {
+            boolean matches = flagd.resolver() == Config.Resolver.RPC ? rpc : inProcess;
+            if (!matches) {
+                throw new TestAbortedException(
+                        "Skipped: scenario is not tagged for the " + flagd.resolver() + " resolver");
+            }
         }
-        boolean matches = flagd.resolver() == Config.Resolver.RPC ? rpc : inProcess;
-        if (!matches) {
-            throw new TestAbortedException("Skipped: scenario is not tagged for the " + flagd.resolver() + " resolver");
+        gateOnFractionalVersion(tags);
+    }
+
+    /**
+     * Skips a scenario whose {@code @fractional-vN} tags name only other bucketing versions than
+     * {@link FlagdTckHarness#fractionalVersion()}. A scenario with no version tag runs regardless.
+     */
+    private void gateOnFractionalVersion(Collection<String> tags) {
+        List<String> versions = tags.stream()
+                .filter(tag -> tag.matches("@fractional-v\\d+"))
+                .collect(Collectors.toList());
+        String wanted = "@fractional-" + flagd.fractionalVersion();
+        if (!versions.isEmpty() && !versions.contains(wanted)) {
+            throw new TestAbortedException("Skipped: scenario expects fractional " + versions
+                    + ", the backend implements " + wanted + " (override with -Dflagd.tck.fractional)");
         }
     }
 
