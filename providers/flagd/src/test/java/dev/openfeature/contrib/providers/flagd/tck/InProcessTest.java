@@ -16,7 +16,7 @@ public class InProcessTest extends AbstractResolverTest {
     }
 
     @Override
-    protected Config.Resolver resolver() {
+    public Config.Resolver resolver() {
         return Config.Resolver.IN_PROCESS;
     }
 
