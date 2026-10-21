@@ -1,4 +1,4 @@
-@ext-metadata @in-process @metadata
+@ext-metadata @in-process @file @metadata
 Feature: flag and flag set metadata
 
   # Ported from flagd-testbed gherkin/metadata.feature. The testbed's "a stable flagd provider"
