@@ -11,6 +11,8 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
  * Shared configuration for running the OpenFeature Provider TCK against the flagd provider.
@@ -20,7 +22,7 @@ import java.util.Set;
  * the ruleset off the disk. All three share a backend stack; the two gRPC modes differ only in
  * resolver and port, and {@link FileTest} says what the third needs instead.
  */
-abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
+abstract class AbstractResolverTest extends ContainerizedProviderTckTest implements FlagdTckHarness {
 
     /** A port nothing listens on; an outage on the Compose stack belongs to the control API. */
     private static final int UNAVAILABLE_PORT = 9999;
@@ -36,8 +38,12 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /** gRPC deadline for a dead port; these scenarios assert that the failure is reported promptly. */
     private static final int UNAVAILABLE_DEADLINE_MS = 1000;
 
+    /** Per-scenario option changes recorded by the extension steps; see {@link FlagdTckHarness}. */
+    private final List<Consumer<FlagdOptions.FlagdOptionsBuilder>> customizations = new CopyOnWriteArrayList<>();
+
     /** The resolver under test. */
-    protected abstract Config.Resolver resolver();
+    @Override
+    public abstract Config.Resolver resolver();
 
     /**
      * The container-internal port this mode waits on before the first scenario.
@@ -71,13 +77,13 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
     @Override
     public FeatureProvider createProvider(BackendEndpoint endpoint) {
-        return new FlagdProvider(flagSource(baseOptions().deadline(CONNECTED_DEADLINE_MS), endpoint)
+        return new FlagdProvider(customized(flagSource(baseOptions().deadline(CONNECTED_DEADLINE_MS), endpoint))
                 .build());
     }
 
     @Override
     public FeatureProvider createUnavailableProvider() {
-        return new FlagdProvider(missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS))
+        return new FlagdProvider(customized(missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS)))
                 .build());
     }
 
@@ -103,6 +109,26 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
         return options.host("localhost").port(UNAVAILABLE_PORT);
     }
 
+    @Override
+    public void customize(Consumer<FlagdOptions.FlagdOptionsBuilder> customization) {
+        customizations.add(customization);
+    }
+
+    @Override
+    public void resetCustomizations() {
+        customizations.clear();
+    }
+
+    @Override
+    public BackendEndpoint backendEndpoint() {
+        return endpoint();
+    }
+
+    @Override
+    public String launchpadUrl() {
+        return "http://" + endpoint().host() + ":" + endpoint().port(controlPort());
+    }
+
     /**
      * {@inheritDoc}
      *
@@ -118,6 +144,11 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     @Override
     public Set<Capability> capabilities() {
         return Capability.declarableExcept(Capability.REINITIALIZATION);
+    }
+
+    private FlagdOptions.FlagdOptionsBuilder customized(FlagdOptions.FlagdOptionsBuilder builder) {
+        customizations.forEach(customization -> customization.accept(builder));
+        return builder;
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {

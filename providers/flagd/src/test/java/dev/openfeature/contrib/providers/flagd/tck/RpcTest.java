@@ -18,7 +18,7 @@ public class RpcTest extends AbstractResolverTest {
     }
 
     @Override
-    protected Config.Resolver resolver() {
+    public Config.Resolver resolver() {
         return Config.Resolver.RPC;
     }
 
