@@ -10,7 +10,7 @@ Feature: Disabled Sync Metadata
   # the provider is back within the event timeout once flagd returns after the 6s outage.
 
   Scenario: Use enriched context
-    Given the flagd backend serves the "sync-payload" configuration
+    Given the backend serves the "sync-payload" configuration
     And a stable provider
     And a String-flag with key "flagd-context-aware" and a default value "not"
     When the flag was evaluated with details
@@ -21,7 +21,7 @@ Feature: Disabled Sync Metadata
     Given an option "retryGracePeriod" of type "Integer" with value "5"
     And an option "retryBackoffMs" of type "Integer" with value "500"
     And an option "retryBackoffMaxMs" of type "Integer" with value "500"
-    And the flagd backend serves the "sync-payload" configuration
+    And the backend serves the "sync-payload" configuration
     And a stable provider
     And a String-flag with key "flagd-context-aware" and a default value "not"
     And a stale event handler
@@ -35,7 +35,7 @@ Feature: Disabled Sync Metadata
     When a ready event was fired
 
   Scenario: Resolve value independent of context
-    Given the flagd backend serves the "sync-payload" configuration
+    Given the backend serves the "sync-payload" configuration
     And a stable provider
     And a Boolean-flag with key "boolean-flag" and a default value "false"
     When the flag was evaluated with details
