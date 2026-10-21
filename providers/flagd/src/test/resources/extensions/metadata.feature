@@ -20,7 +20,7 @@ Feature: flag and flag set metadata
   @metadata-provider
   Scenario: Returns flag set metadata
     Given an option "selector" of type "String" with value "rawflags/selector-flag-combined-metadata.json"
-    And the flagd backend serves the "metadata" configuration
+    And the backend serves the "metadata" configuration
     And a stable provider
     And a Boolean-flag with key "only-set-metadata-flag" and a default value "true"
     When the flag was evaluated with details
@@ -38,7 +38,7 @@ Feature: flag and flag set metadata
   @metadata-provider
   Scenario: Flag metadata overwrites flag set metadata
     Given an option "selector" of type "String" with value "rawflags/selector-flag-combined-metadata.json"
-    And the flagd backend serves the "metadata" configuration
+    And the backend serves the "metadata" configuration
     And a stable provider
     And a Boolean-flag with key "combined-metadata-flag" and a default value "true"
     When the flag was evaluated with details

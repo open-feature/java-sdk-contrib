@@ -1,26 +1,16 @@
 package openfeature.tck.extensions;
 
-import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import dev.openfeature.contrib.providers.flagd.tck.FlagdTckHarness;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
-import dev.openfeature.contrib.tools.tck.TckState;
-import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.Value;
-import io.cucumber.datatable.DataTable;
 import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,8 +18,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Shared steps for the flagd extension scenarios: provider options and the launchpad endpoints the
- * canonical {@code BackendControl} does not cover.
+ * Shared steps for the flagd extension scenarios: the provider options the testbed's features set.
+ *
+ * <p>Everything else these features once needed from here is the TCK's now -- serving a named
+ * configuration, a timed outage, a context table and the negative event assertion were about
+ * nothing flagd-specific, and two of them were the control API's own operations behind a
+ * flagd-shaped step.
  *
  * <p>The features port flagd-testbed scenarios the TCK does not ask. They keep the testbed's
  * wording wherever it does not collide with a TCK step. It collides on the provider: the TCK's
@@ -37,8 +31,6 @@ import java.util.stream.Collectors;
  * options with {@code an option ...} and then uses the TCK's {@code Given a stable provider}.
  */
 public class FlagdSteps {
-
-    private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     /** Option names the testbed spells differently from {@link FlagdOptions.FlagdOptionsBuilder}. */
     private static final Map<String, String> OPTION_NAMES;
@@ -52,28 +44,20 @@ public class FlagdSteps {
         OPTION_NAMES = Collections.unmodifiableMap(names);
     }
 
-    private final TckState state;
     private final FlagdTckHarness flagd;
 
-    /** The launchpad configuration this scenario switched to, if any. */
-    private String servedConfiguration;
-
-    public FlagdSteps(TckState state, ProviderTckHarness harness) {
-        this.state = state;
+    public FlagdSteps(ProviderTckHarness harness) {
         this.flagd = (FlagdTckHarness) harness;
     }
 
     /**
-     * Leaves nothing behind for a canonical scenario that follows: no customization, and flagd back
-     * on the {@code default} configuration. The TCK's own preparation may only reset flag state,
-     * which would keep a scenario's {@code ssl} or {@code metadata} configuration running.
+     * Leaves no customization behind for a scenario that follows. Getting flagd off a scenario's own
+     * configuration is the TCK's business now: {@code BackendControl} records the one a scenario
+     * served and takes the next scenario back to this suite's.
      */
     @After
     public void restoreDefaults() {
         flagd.resetCustomizations();
-        if (servedConfiguration != null && !"default".equals(servedConfiguration)) {
-            launchpad("/start?config=default");
-        }
     }
 
     /**
@@ -98,72 +82,6 @@ public class FlagdSteps {
                 throw new IllegalStateException("Cannot set option '" + name + "' to " + converted, e);
             }
         });
-    }
-
-    /**
-     * Restarts flagd on one of the launchpad's flag configurations ({@code default},
-     * {@code metadata}, {@code ssl}, {@code sync-payload}).
-     *
-     * <p>Comes before {@code Given a stable provider}, so the provider connects to it. The TCK's
-     * {@code the connection is restored} returns to {@code default}.
-     *
-     * @param configuration the launchpad configuration name
-     */
-    @Given("the flagd backend serves the {string} configuration")
-    public void theBackendServes(String configuration) {
-        launchpad("/start?config=" + configuration);
-        servedConfiguration = configuration;
-    }
-
-    /**
-     * Stops flagd and starts it again after the given delay, without waiting for it.
-     *
-     * @param seconds how long flagd stays down
-     */
-    @When("the connection is lost for {int}s")
-    public void theConnectionIsLostFor(int seconds) {
-        launchpad("/restart?seconds=" + seconds);
-    }
-
-    /**
-     * Adds typed entries to the evaluation context.
-     *
-     * @param table rows with {@code key}, {@code type} and {@code value} columns
-     */
-    @Given("a context with the following keys:")
-    public void aContextWithTheFollowingKeys(DataTable table) throws IOException {
-        Map<String, Value> entries = new HashMap<>(state.context.asMap());
-        for (Map<String, String> row : table.asMaps(String.class, String.class)) {
-            entries.put(row.get("key"), Value.objectToValue(convert(row.get("value"), row.get("type"))));
-        }
-        state.context = new MutableContext(state.context.getTargetingKey(), entries);
-    }
-
-    /**
-     * Asserts that no event of the given kind was recorded during the scenario.
-     *
-     * @param eventType the event kind
-     */
-    @Then("the {} event handler should not have been executed")
-    public void theEventHandlerShouldNotHaveBeenExecuted(String eventType) {
-        assertThat(state.events.stream().anyMatch(event -> event.type().equals(eventType)))
-                .as("no %s event should have fired", eventType)
-                .isFalse();
-    }
-
-    private void launchpad(String path) {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(flagd.launchpadUrl() + path))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-        try {
-            HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-            assertThat(response.statusCode()).as("launchpad POST %s", path).isEqualTo(200);
-        } catch (IOException e) {
-            throw new IllegalStateException("launchpad POST " + path + " failed", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("interrupted during launchpad POST " + path, e);
-        }
     }
 
     /** The testbed's value conversion, for the types the extension features use. */
