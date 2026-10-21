@@ -231,7 +231,7 @@ public enum Capability {
         for (String tag : tags) {
             Optional<Capability> found = fromTag(tag);
             if (!found.isPresent()) {
-                // adopter tag; gates nothing
+                // adopter tag; gated by AdopterTags
                 continue;
             }
             Capability capability = found.get();
@@ -272,7 +272,7 @@ public enum Capability {
     }
 
     // canonical if the parent directory is FEATURES; null is not canonical
-    private static boolean isCanonical(URI source) {
+    static boolean isCanonical(URI source) {
         if (source == null) {
             return false;
         }

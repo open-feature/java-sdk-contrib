@@ -4,6 +4,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import dev.openfeature.contrib.tools.tck.AdopterTags;
 import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ProviderTck;
@@ -53,7 +54,8 @@ public class ProviderSteps extends AbstractSteps {
     /**
      * Skips scenarios needing an undeclared {@link Capability}; see
      * {@link Capability#requireDeclared(java.net.URI, java.util.Collection, java.util.Set)}. Tags
-     * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check.
+     * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check, and only their
+     * scenarios are selected by {@code @TckIncludeTags} and {@code @TckExcludeTags}; see {@link AdopterTags}.
      *
      * @param scenario the scenario about to run
      */
@@ -61,6 +63,8 @@ public class ProviderSteps extends AbstractSteps {
     public void gateOnCapabilities(Scenario scenario) {
         Capability.requireDeclared(
                 scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
+        AdopterTags.requireSelected(
+                scenario.getUri(), scenario.getSourceTagNames(), harness().getClass());
     }
 
     /**

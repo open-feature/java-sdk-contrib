@@ -246,10 +246,36 @@ src/test/java/openfeature/tck/extensions/FractionalSteps.java   // package openf
   registered.
 - Step classes and step methods must be `public`; otherwise Cucumber reports scenarios as undefined.
 - Don't put files under `gherkin/`; a same-named file would silently shadow a canonical one.
-- Unknown tags are tolerated in `extensions/` (they gate nothing) but fail the run in `gherkin/`.
+- Unknown tags are tolerated in `extensions/` (select by them with the annotations below) but fail
+  the run in `gherkin/`.
 - `ProviderTck` exposes `EXTENSIONS`, `EXTENSION_GLUE` and `ALL_GLUE` for custom
   `@ConfigurationParameter`s; always use `ALL_GLUE` or canonical steps go undefined.
 - Portable scenarios belong in the TCK, not in an extension.
+
+### Selecting extension scenarios by tag
+
+When one extension set serves several configurations, annotate each harness with the tags it runs
+and the tags it doesn't:
+
+```java
+@TckIncludeTags("@rpc")
+@TckExcludeTags({"@fractional-v1", "@fractional-v2"})
+public class RpcTest extends AbstractResolverTest { ... }
+
+@TckIncludeTags("@in-process")
+@TckExcludeTags("@fractional-v1")
+public class InProcessTest extends AbstractResolverTest { ... }
+```
+
+- With `@TckIncludeTags`, an extension scenario runs only if it carries one of those tags; tag it
+  `@rpc @in-process` to run it in both.
+- `@TckExcludeTags` skips an extension scenario carrying any of its tags, even an included one.
+- A skipped scenario is reported with the tag that skipped it. Declarations on a harness and its
+  superclasses add up.
+- Canonical scenarios are exempt. Capability tags are refused, at suite start and per scenario;
+  narrow `capabilities()` instead.
+- `-Dcucumber.filter.tags` still works alongside them; a filtered scenario is absent from the report
+  rather than skipped.
 
 ## Java notes
 
