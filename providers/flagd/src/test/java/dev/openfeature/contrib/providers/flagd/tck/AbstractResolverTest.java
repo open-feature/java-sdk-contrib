@@ -8,8 +8,10 @@ import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -96,6 +98,12 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
     @Override
     public String backendService() {
         return "flagd";
+    }
+
+    /** The envoy sidecar's two listeners, which the extension scenarios connect through. */
+    @Override
+    public Map<String, List<Integer>> additionalPorts() {
+        return Collections.singletonMap(ENVOY_SERVICE, Arrays.asList(ENVOY_ROUTING_PORT, ENVOY_FORBIDDEN_PORT));
     }
 
     @Override
