@@ -19,6 +19,15 @@ import java.util.function.Consumer;
  */
 public interface FlagdTckHarness {
 
+    /** The envoy sidecar's Compose service, exposed through {@link #backendEndpoint()}. */
+    String ENVOY_SERVICE = "envoy";
+
+    /** envoy's listener that routes {@code rpc.service} and {@code sync.service} to flagd. */
+    int ENVOY_ROUTING_PORT = 9211;
+
+    /** envoy's listener that answers every call with HTTP 403, gRPC {@code PERMISSION_DENIED}. */
+    int ENVOY_FORBIDDEN_PORT = 9212;
+
     /** The resolver this suite runs, for gating {@code @rpc} and {@code @in-process} scenarios. */
     Config.Resolver resolver();
 
