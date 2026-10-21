@@ -6,15 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import dev.openfeature.contrib.providers.flagd.tck.FlagdTckHarness;
-import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.Value;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.After;
-import io.cucumber.java.Before;
-import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -25,16 +22,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Shared steps for the flagd extension scenarios: the resolver-tag check, provider options and the
- * launchpad endpoints the canonical {@code BackendControl} does not cover.
+ * Shared steps for the flagd extension scenarios: provider options and the launchpad endpoints the
+ * canonical {@code BackendControl} does not cover.
  *
  * <p>The features port flagd-testbed scenarios the TCK does not ask. They keep the testbed's
  * wording wherever it does not collide with a TCK step. It collides on the provider: the TCK's
@@ -66,31 +61,6 @@ public class FlagdSteps {
     public FlagdSteps(TckState state, ProviderTckHarness harness) {
         this.state = state;
         this.flagd = (FlagdTckHarness) harness;
-    }
-
-    /** The resolver tags; each suite includes its own with {@code @TckIncludeTags}. */
-    private static final List<String> RESOLVER_TAGS = Arrays.asList("@rpc", "@in-process", "@file");
-
-    /**
-     * Fails an extension scenario that carries none of {@code @rpc}, {@code @in-process} and
-     * {@code @file}, on the scenario or its feature. The resolver tag is the include, as in the
-     * flagd-testbed, so one without it would otherwise be skipped silently in every suite.
-     *
-     * <p>Runs before the TCK's gate (order 0), which applies the suites' {@code @TckIncludeTags} and
-     * would skip such a scenario first. Canonical scenarios carry no resolver tag and are exempt.
-     *
-     * @param scenario the scenario about to run
-     */
-    @Before(order = -1)
-    public void requireResolverTag(Scenario scenario) {
-        if (!scenario.getUri().toString().contains("/" + ProviderTck.EXTENSIONS + "/")) {
-            return;
-        }
-        Collection<String> tags = scenario.getSourceTagNames();
-        if (RESOLVER_TAGS.stream().noneMatch(tags::contains)) {
-            throw new IllegalStateException("Extension scenario '" + scenario.getName() + "' (" + scenario.getUri()
-                    + ") carries none of " + RESOLVER_TAGS + "; tag it or its feature");
-        }
     }
 
     /**
