@@ -83,10 +83,10 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
      * {@inheritDoc}
      *
      * <p>The flagd-testbed's own stack, from the {@code test-harness} submodule the legacy e2e suites
-     * also run, so the image tag follows the submodule pin rather than a second copy of it. A
-     * hand-maintained compose file beside it was the alternative, and it drifted: it still named
-     * v3.10.3 while the submodule had moved on, which is exactly the comparison this suite cannot
-     * afford to get wrong.
+     * also run, so the image tag follows the submodule. It adds an envoy sidecar, which the
+     * {@code @targetURI} and {@code @forbidden} extension scenarios connect through; no canonical
+     * scenario reaches it. Its {@code FLAGS_DIR} bind mount is pointed into {@code target} by the
+     * {@code tck} profile in this module's pom.
      */
     @Override
     public File composeFile() {

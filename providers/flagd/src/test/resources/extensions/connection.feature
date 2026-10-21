@@ -13,8 +13,8 @@ Feature: flagd provider disconnect and reconnect
   # here is a set of steps rather than a value. Reconnect timing is the testbed's "stable flagd
   # provider", as in events.feature.
   #
-  # @targetURI and @forbidden connect through the envoy sidecar that
-  # tools/flagd-testbed/docker-compose.flagd.yaml adds to the shared stack.
+  # @targetURI and @forbidden connect through the envoy sidecar in the testbed's
+  # test-harness/docker-compose.yaml.
 
   @rpc @in-process @file @customCert
   Scenario: Connection with a custom certificate
