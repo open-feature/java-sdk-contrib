@@ -84,14 +84,21 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
     /**
      * {@inheritDoc}
      *
-     * <p>Outside this module on purpose: the OFREP adoption runs against the same stack, so there is
-     * one image tag for both rather than two that can drift. This file includes that shared one and
-     * adds only an envoy sidecar, which the {@code @targetURI} and {@code @forbidden} extension
-     * scenarios connect through; no canonical scenario reaches it.
+     * <p>The flagd-testbed's own stack, from the {@code test-harness} submodule the legacy e2e suites
+     * also run, so the image tag follows the submodule. It adds an envoy sidecar, which the
+     * {@code @targetURI} and {@code @forbidden} extension scenarios connect through; no canonical
+     * scenario reaches it. Its {@code FLAGS_DIR} bind mount is pointed into {@code target} by the
+     * {@code tck} profile in this module's pom.
      */
     @Override
     public File composeFile() {
-        return new File("../../tools/flagd-testbed/docker-compose.flagd.yaml");
+        return new File("test-harness/docker-compose.yaml");
+    }
+
+    /** The testbed's compose file names the flagd service {@code flagd}. */
+    @Override
+    public String backendService() {
+        return "flagd";
     }
 
     /** The envoy sidecar's two listeners; see {@link #composeFile()}. */
