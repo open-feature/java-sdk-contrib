@@ -58,6 +58,8 @@ public final class AdopterTags {
      */
     public static void requireSelected(URI source, Collection<String> tags, Class<?> harness) {
         requireValid(harness);
+        // before any skip, so an exclude cannot mask a reserved tag on the scenario
+        Capability.requireValidVocabulary(source, tags);
         if (Capability.isCanonical(source)) {
             return;
         }

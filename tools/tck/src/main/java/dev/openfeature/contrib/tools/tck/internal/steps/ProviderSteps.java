@@ -61,10 +61,12 @@ public class ProviderSteps extends AbstractSteps {
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
-        Capability.requireDeclared(
-                scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
+        // Selection first: a scenario this suite deselected is not a capability the provider
+        // withheld, and gating capabilities first would report it as one.
         AdopterTags.requireSelected(
                 scenario.getUri(), scenario.getSourceTagNames(), harness().getClass());
+        Capability.requireDeclared(
+                scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
     }
 
     /**

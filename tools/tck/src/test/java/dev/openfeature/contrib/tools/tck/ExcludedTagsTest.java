@@ -103,6 +103,16 @@ class ExcludedTagsTest {
     }
 
     @Test
+    @DisplayName("deselecting a scenario cannot mask a reserved tag it carries")
+    void theVocabularyIsCheckedBeforeAnySkip() {
+        assertThatThrownBy(() -> AdopterTags.requireSelected(
+                        EXTENSION, Arrays.asList("@fractional-v1", "@caching"), RpcMode.class))
+                .as("the excluded tag would have skipped it; the reserved one still fails the run")
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("CACHING");
+    }
+
+    @Test
     @DisplayName("a capability tag cannot be included or excluded, at suite start or in the scenario gate")
     void aCapabilityTagIsRefused() {
         for (Class<?> harness : Arrays.asList(ExcludesEvents.class, IncludesEvents.class)) {
