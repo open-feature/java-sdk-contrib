@@ -60,6 +60,9 @@ public class FlagdSteps {
     private final TckState state;
     private final FlagdTckHarness flagd;
 
+    /** The launchpad configuration this scenario switched to, if any. */
+    private String servedConfiguration;
+
     public FlagdSteps(TckState state, ProviderTckHarness harness) {
         this.state = state;
         this.flagd = (FlagdTckHarness) harness;
@@ -89,10 +92,17 @@ public class FlagdSteps {
         }
     }
 
-    /** Leaves no customization behind for a canonical scenario that follows. */
+    /**
+     * Leaves nothing behind for a canonical scenario that follows: no customization, and flagd back
+     * on the {@code default} configuration. The TCK's own preparation may only reset flag state,
+     * which would keep a scenario's {@code ssl} or {@code metadata} configuration running.
+     */
     @After
-    public void resetCustomizations() {
+    public void restoreDefaults() {
         flagd.resetCustomizations();
+        if (servedConfiguration != null && !"default".equals(servedConfiguration)) {
+            launchpad("/start?config=default");
+        }
     }
 
     /**
@@ -131,6 +141,7 @@ public class FlagdSteps {
     @Given("the flagd backend serves the {string} configuration")
     public void theBackendServes(String configuration) {
         launchpad("/start?config=" + configuration);
+        servedConfiguration = configuration;
     }
 
     /**
