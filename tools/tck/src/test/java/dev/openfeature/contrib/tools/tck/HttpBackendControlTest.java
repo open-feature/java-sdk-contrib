@@ -111,6 +111,52 @@ class HttpBackendControlTest {
     }
 
     @Test
+    @DisplayName("serving a named configuration starts the backend on that name")
+    void servingAConfigurationStartsItByName() throws Exception {
+        try (StubControlApi stub = StubControlApi.start()) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario();
+            stub.forget();
+
+            control.serveConfiguration("metadata");
+
+            assertThat(stub.requests()).containsExactly("POST /start?config=metadata");
+        }
+    }
+
+    @Test
+    @DisplayName("the scenario after a served configuration is taken back to the suite's own")
+    void aServedConfigurationDoesNotLeakIntoTheNextScenario() throws Exception {
+        try (StubControlApi stub = StubControlApi.start()) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario(); // settles on /reset, which this stub implements
+            control.serveConfiguration("metadata");
+            stub.forget();
+
+            control.prepareScenario();
+
+            // /reset would have left the metadata configuration serving the next scenario
+            assertThat(stub.requests()).containsExactly("POST /start?config=default");
+        }
+    }
+
+    @Test
+    @DisplayName("a timed outage restarts for that many seconds and leaves the backend expected up")
+    void aTimedOutageRestarts() throws Exception {
+        try (StubControlApi stub = StubControlApi.start()) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario();
+            stub.forget();
+
+            control.disconnectFor(Duration.ofSeconds(8));
+            control.prepareScenario();
+
+            // the backend comes back by itself, so the next scenario needs no /start
+            assertThat(stub.requests()).containsExactly("POST /restart?seconds=8", "POST /reset");
+        }
+    }
+
+    @Test
     @DisplayName("reconnecting clears the disconnect, so the next scenario resets again")
     void reconnectClearsTheDisconnect() throws Exception {
         try (StubControlApi stub = StubControlApi.start()) {

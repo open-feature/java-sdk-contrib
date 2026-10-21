@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.tools.tck.internal.steps;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.openfeature.contrib.tools.tck.BackendControl;
@@ -22,6 +23,9 @@ import org.slf4j.LoggerFactory;
 public class EventSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(EventSteps.class);
+
+    // Awaitility wants a deadline past the poll delay; this only covers the assertion itself.
+    private static final long SETTLE_SLACK_MS = 250;
 
     public EventSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
         super(state, harness, backend);
@@ -69,6 +73,47 @@ public class EventSteps extends AbstractSteps {
     @Then("the {} event handler should have been executed within {int}ms")
     public void theEventHandlerShouldHaveBeenExecutedWithin(String eventType, int milliseconds) {
         awaitEvent(eventType, milliseconds);
+    }
+
+    /**
+     * Asserts that no event of the given kind arrives, within
+     * {@link ProviderTckHarness#eventTimeout()}.
+     *
+     * @param eventType the event kind
+     */
+    @Then("the {} event handler should not have been executed")
+    public void theEventHandlerShouldNotHaveBeenExecuted(String eventType) {
+        awaitNoEvent(eventType, harness().eventTimeout().toMillis());
+    }
+
+    /**
+     * Asserts that no event of the given kind arrives within an explicit window.
+     *
+     * @param eventType the event kind
+     * @param milliseconds how long to watch for it
+     */
+    @Then("the {} event handler should not have been executed within {int}ms")
+    public void theEventHandlerShouldNotHaveBeenExecutedWithin(String eventType, int milliseconds) {
+        awaitNoEvent(eventType, milliseconds);
+    }
+
+    /**
+     * Watches for the whole window before answering, because at any single instant absence and
+     * lateness are the same observation: asserting immediately states "no such event <em>yet</em>",
+     * which a provider one scheduler slice slower satisfies while the scenario means it never fires.
+     * The positive form awaits, so the negative form has to watch at least as long to be its
+     * opposite.
+     */
+    private void awaitNoEvent(String eventType, long milliseconds) {
+        log.info("Watching for no {} event ({}ms)", eventType, milliseconds);
+        await().alias("no provider event " + eventType)
+                .pollDelay(milliseconds, MILLISECONDS)
+                .atMost(milliseconds + SETTLE_SLACK_MS, MILLISECONDS)
+                .untilAsserted(() -> assertThat(state.events.stream()
+                                .filter(event -> event.type().equals(eventType))
+                                .findFirst())
+                        .as("no %s event should have fired within %dms", eventType, milliseconds)
+                        .isEmpty());
     }
 
     private void awaitEvent(String eventType, long milliseconds) {

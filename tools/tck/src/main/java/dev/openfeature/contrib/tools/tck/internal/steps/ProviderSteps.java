@@ -208,6 +208,34 @@ public class ProviderSteps extends AbstractSteps {
         backend().reconnect();
     }
 
+    /**
+     * Takes the backend down for a fixed outage and lets it come back by itself.
+     *
+     * <p>What the step guarantees is {@link BackendControl#disconnectFor}'s contract: the outage has
+     * begun, and nothing more. A scenario that needs the backend back says so -- {@code a ready event
+     * was fired}, or {@code the client should be in READY state} -- rather than relying on this step
+     * to have waited.
+     *
+     * @param seconds how long the backend stays unreachable
+     */
+    @When("the connection is lost for {int}s")
+    public void theConnectionIsLostFor(int seconds) {
+        backend().disconnectFor(Duration.ofSeconds(seconds));
+    }
+
+    /**
+     * Serves one of the backend's own named flag configurations, before the provider connects.
+     *
+     * <p>Extension scenarios only, and the name is the backend's own; see
+     * {@link BackendControl#serveConfiguration}.
+     *
+     * @param configuration the configuration name
+     */
+    @Given("the backend serves the {string} configuration")
+    public void theBackendServesTheConfiguration(String configuration) {
+        backend().serveConfiguration(configuration);
+    }
+
     /** Mutates flag configuration so a conforming provider observes a configuration change. */
     @When("the flag was modified")
     public void theFlagWasModified() {

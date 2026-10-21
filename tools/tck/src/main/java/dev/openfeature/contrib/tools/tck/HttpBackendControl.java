@@ -30,6 +30,9 @@ final class HttpBackendControl implements BackendControl {
     // whether the backend was last left unreachable, so /reset alone won't suffice
     private boolean backendStopped;
 
+    // a configuration one scenario asked for, which the next scenario has to be taken off again
+    private String scenarioConfiguration;
+
     /**
      * Creates a control client for a running backend. No post-command settle; control calls return
      * once the backend has acted.
@@ -71,11 +74,14 @@ final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Uses {@code POST /reset} if the backend is running, else {@code POST /start?config=...}.
+     * <p>Uses {@code POST /reset} if the backend is running on this suite's own configuration, else
+     * {@code POST /start?config=...}: {@code /reset} restores flag state, not which configuration is
+     * being served, so a scenario that served another one has to be taken off it explicitly.
      */
     @Override
     public void prepareScenario() {
-        if (backendStopped) {
+        if (backendStopped || scenarioConfiguration != null) {
+            scenarioConfiguration = null;
             start();
         } else {
             reset();
@@ -111,6 +117,32 @@ final class HttpBackendControl implements BackendControl {
     @Override
     public void reconnect() {
         start();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Issues {@code POST /restart?seconds=...}, and does not wait: whether the control API
+     * answers at the start or the end of the outage is its own choice.
+     */
+    @Override
+    public void disconnectFor(Duration outage) {
+        post("/restart?seconds=" + outage.getSeconds());
+        // the backend brings itself back, so the next scenario may reset rather than start
+        backendStopped = false;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Issues {@code POST /start?config=...} with the name given, which also seeds that
+     * configuration's flag state.
+     */
+    @Override
+    public void serveConfiguration(String configuration) {
+        post("/start?config=" + URLEncoder.encode(configuration, StandardCharsets.UTF_8));
+        scenarioConfiguration = configuration;
+        backendStopped = false;
     }
 
     /**
