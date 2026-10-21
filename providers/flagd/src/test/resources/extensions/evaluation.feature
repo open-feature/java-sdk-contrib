@@ -1,4 +1,4 @@
-@ext-evaluation @rpc @in-process
+@ext-evaluation @rpc @in-process @file
 Feature: flagd evaluations
 
   # Ported from flagd-testbed gherkin/evaluation.feature. Asks what the TCK's evaluation.feature
