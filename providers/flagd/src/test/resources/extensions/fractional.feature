@@ -2,9 +2,12 @@
 Feature: Fractional targeting
 
   # Ported from the flagd-testbed's gherkin/targeting.feature: every @fractional scenario, plus the
-  # fractional @operator-errors ones. The @fractional-v1 and @fractional-v2 bucketing variants are
-  # left out, as the legacy e2e suites exclude them. The TCK's own @targeting scenarios do not cover
-  # the fractional operator.
+  # fractional @operator-errors ones. The TCK's own @targeting scenarios do not cover the
+  # fractional operator.
+  #
+  # @fractional-vN tags select the bucketing version (FlagdSteps skips the other versions; v3 by
+  # default, -Dflagd.tck.fractional=v2 to override). Untagged scenarios must hold for every version.
+  # The @fractional-v1 blocks are left out: no backend here implements v1 bucketing.
   #
   # Where the testbed's context values are Objects or integers outside 32 bits, the TCK's context
   # step cannot convert them, so those outlines use the table step with the testbed's conversion.
@@ -19,6 +22,15 @@ Feature: Fractional targeting
     And a context containing a nested property with outer key "user" and inner key "name", with value "<name>"
     When the flag was evaluated with details
     Then the resolved details value should be "<value>"
+
+    @fractional-v2
+    Examples: v2
+      | name  | value    |
+      | jack  | hearts   |
+      | queen | spades   |
+      | ten   | clubs    |
+      | nine  | diamonds |
+      | 3     | clubs    |
 
     @fractional-v3
     Examples: v3
@@ -36,11 +48,24 @@ Feature: Fractional targeting
     When the flag was evaluated with details
     Then the resolved details value should be "<value>"
 
+    @fractional-v2
+    Examples: v2
+      | targeting key    | value |
+      | jon@company.com  | heads |
+      | jane@company.com | tails |
+
     @fractional-v3
     Examples: v3
       | targeting key    | value |
       | jon@company.com  | tails |
       | jane@company.com | tails |
+
+  @fractional @fractional-v2 @fractional-single-entry
+  Scenario: Fractional operator with single entry always resolves to the only variant
+    Given a String-flag with key "fractional-single-entry-flag" and a default value "fallback"
+    And a context containing a targeting key with value "some-targeting-key"
+    When the flag was evaluated with details
+    Then the resolved details value should be "single"
 
   @fractional
   Scenario Outline: Fractional operator with shared seed
@@ -48,6 +73,14 @@ Feature: Fractional targeting
     And a context containing a nested property with outer key "user" and inner key "name", with value "<name>"
     When the flag was evaluated with details
     Then the resolved details value should be "<value>"
+
+    @fractional-v2
+    Examples: v2
+      | name  | value    |
+      | seven | hearts   |
+      | eight | diamonds |
+      | nine  | clubs    |
+      | two   | spades   |
 
     @fractional-v3
     Examples: v3
@@ -64,6 +97,14 @@ Feature: Fractional targeting
     When the flag was evaluated with details
     Then the resolved details value should be "<value>"
 
+    @fractional-v2
+    Examples: v2
+      | name  | value           |
+      | seven | ace-of-hearts   |
+      | eight | ace-of-diamonds |
+      | nine  | ace-of-clubs    |
+      | two   | ace-of-spades   |
+
     @fractional-v3
     Examples: v3
       | name  | value           |
@@ -71,6 +112,28 @@ Feature: Fractional targeting
       | eight | ace-of-hearts   |
       | nine  | ace-of-diamonds |
       | two   | ace-of-diamonds |
+
+  # Hash edge-case vectors — keys chosen by brute-force search so their
+  # MurmurHash3-x86-32 (seed=0) falls at the six critical boundary values.
+  # All keys are exact 6-char MurmurHash3-x86-32 (seed=0) preimages found by exhaustive search.
+  # ejOoVL → hash=0          EXACT → bv(100)=0  → lower
+  # bY9fO- → hash=1          EXACT → bv(100)=0  → lower
+  # SI7p-  → hash=2147483647 EXACT i32::MAX     → bv(100)=49 → lower
+  # 6LvT0  → hash=2147483648 EXACT i32::MIN u32 → bv(100)=50 → upper
+  # ceQdGm → hash=4294967295 EXACT u32::MAX     → bv(100)=99 → upper
+  @fractional @fractional-v2
+  Scenario Outline: Fractional operator hash edge cases
+    Given a String-flag with key "fractional-hash-edge-flag" and a default value "fallback"
+    And a context containing a targeting key with value "<key>"
+    When the flag was evaluated with details
+    Then the resolved details value should be "<value>"
+    Examples:
+      | key    | value |
+      | ejOoVL | lower |
+      | bY9fO- | lower |
+      | SI7p-  | lower |
+      | 6LvT0  | upper |
+      | ceQdGm | upper |
 
   # Nested JSON Logic expressions as bucket variant names.
   # Requires providers to support the @fractional-nested feature.
