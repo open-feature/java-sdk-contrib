@@ -1,0 +1,125 @@
+# The shared flagd-testbed stack plus an envoy sidecar, for the flagd provider's TCK adoption only.
+#
+# The backend is not redefined here: it is included from docker-compose.yaml, so the flagd and OFREP
+# adoptions still run the same image tag. Only providers/flagd names this file, because only its
+# extension scenarios (src/test/resources/extensions/connection.feature) need envoy: @targetURI
+# connects through envoy's routing listener and @forbidden through a listener that answers every
+# call with HTTP 403. The listeners mirror providers/flagd/test-harness/docker-compose.yaml, with
+# the upstream renamed from "flagd" to the shared stack's "backend".
+#
+# As in docker-compose.yaml, no host bindings: the TCK maps each port dynamically.
+include:
+  - docker-compose.yaml
+
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.39-latest@sha256:57e14a549d7bd43c8d3f6d03e8cfa653e037d4b38e133acd9b54f38c524401b4
+    ports:
+      - 9211   # routes by authority: sync.service -> backend:8015, rpc.service -> backend:8013
+      - 9212   # answers every call with HTTP 403 (gRPC PERMISSION_DENIED)
+    depends_on:
+      - backend
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cat > /tmp/envoy.yaml << 'EOF'
+        static_resources:
+          listeners:
+            - name: routing
+              address:
+                socket_address:
+                  address: 0.0.0.0
+                  port_value: 9211
+              filter_chains:
+                - filters:
+                    - name: envoy.filters.network.http_connection_manager
+                      typed_config:
+                        "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                        stat_prefix: ingress_http
+                        http_filters:
+                          - name: envoy.filters.http.router
+                            typed_config:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                        route_config:
+                          name: local_route
+                          virtual_hosts:
+                            - name: sync-service
+                              domains: ["flagd-sync.service", "sync.flagd.local", "sync.service"]
+                              routes:
+                                - match: { prefix: "/", grpc: {} }
+                                  route: { cluster: sync-service }
+                            - name: rpc-service
+                              domains: ["flagd-rpc.service", "rpc.flagd.local", "rpc.service"]
+                              routes:
+                                - match: { prefix: "/", grpc: {} }
+                                  route: { cluster: rpc-service }
+                            - name: default-service
+                              domains: ["*"]
+                              routes:
+                                - match: { prefix: "/", grpc: {} }
+                                  route: { cluster: rpc-service }
+            - name: permission-denied
+              address:
+                socket_address:
+                  address: 0.0.0.0
+                  port_value: 9212
+              filter_chains:
+                - filters:
+                    - name: envoy.filters.network.http_connection_manager
+                      typed_config:
+                        "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                        stat_prefix: permission_denied
+                        http_filters:
+                          - name: envoy.filters.http.router
+                            typed_config:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                        route_config:
+                          name: permission_denied_route
+                          virtual_hosts:
+                            - name: permission-denied
+                              domains: ["*"]
+                              routes:
+                                - match: { prefix: "/", grpc: {} }
+                                  direct_response:
+                                    status: 403
+                                    body: { inline_string: "PERMISSION_DENIED" }
+          clusters:
+            - name: sync-service
+              type: LOGICAL_DNS
+              dns_lookup_family: V4_ONLY
+              connect_timeout: 0.25s
+              http2_protocol_options: {}
+              health_checks:
+                - timeout: 1s
+                  interval: 1s
+                  unhealthy_threshold: 1
+                  healthy_threshold: 1
+                  tcp_health_check: {}
+              load_assignment:
+                cluster_name: sync-service
+                endpoints:
+                  - lb_endpoints:
+                      - endpoint:
+                          address:
+                            socket_address: { address: backend, port_value: 8015 }
+            - name: rpc-service
+              type: LOGICAL_DNS
+              dns_lookup_family: V4_ONLY
+              connect_timeout: 0.25s
+              http2_protocol_options: {}
+              health_checks:
+                - timeout: 1s
+                  interval: 1s
+                  unhealthy_threshold: 1
+                  healthy_threshold: 1
+                  tcp_health_check: {}
+              load_assignment:
+                cluster_name: rpc-service
+                endpoints:
+                  - lb_endpoints:
+                      - endpoint:
+                          address:
+                            socket_address: { address: backend, port_value: 8013 }
+        EOF
+        exec envoy -c /tmp/envoy.yaml --log-level warn
