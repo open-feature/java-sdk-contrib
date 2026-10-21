@@ -3,7 +3,6 @@ package openfeature.tck.extensions;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import dev.openfeature.contrib.providers.flagd.tck.FlagdTckHarness;
@@ -28,15 +27,13 @@ import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.opentest4j.TestAbortedException;
 
 /**
- * Shared steps for the flagd extension scenarios: resolver gating, provider options and the
+ * Shared steps for the flagd extension scenarios: the resolver-tag check, provider options and the
  * launchpad endpoints the canonical {@code BackendControl} does not cover.
  *
  * <p>The features port flagd-testbed scenarios the TCK does not ask. They keep the testbed's
@@ -71,60 +68,28 @@ public class FlagdSteps {
         this.flagd = (FlagdTckHarness) harness;
     }
 
-    /** The tag that includes a scenario in each resolver's suite. */
-    private static final Map<Config.Resolver, String> RESOLVER_TAGS;
-
-    static {
-        Map<Config.Resolver, String> tags = new EnumMap<>(Config.Resolver.class);
-        tags.put(Config.Resolver.RPC, "@rpc");
-        tags.put(Config.Resolver.IN_PROCESS, "@in-process");
-        tags.put(Config.Resolver.FILE, "@file");
-        RESOLVER_TAGS = Collections.unmodifiableMap(tags);
-    }
+    /** The resolver tags; each suite includes its own with {@code @TckIncludeTags}. */
+    private static final List<String> RESOLVER_TAGS = Arrays.asList("@rpc", "@in-process", "@file");
 
     /**
-     * Runs an extension scenario only in the suites whose resolver tag it carries, and starts every
-     * scenario with the adoption's own options.
+     * Fails an extension scenario that carries none of {@code @rpc}, {@code @in-process} and
+     * {@code @file}, on the scenario or its feature. The resolver tag is the include, as in the
+     * flagd-testbed, so one without it would otherwise be skipped silently in every suite.
      *
-     * <p>Every extension scenario must carry at least one of {@code @rpc}, {@code @in-process} and
-     * {@code @file}, on the scenario or its feature. One with none of them fails rather than running
-     * everywhere: the resolver tag is the include, as in the flagd-testbed. Canonical scenarios carry
-     * no resolver tag and run in every suite.
-     *
-     * <p>Runs after the TCK's capability gate (order 0) and before it prepares the backend (order
-     * 10).
+     * <p>Runs before the TCK's gate (order 0), which applies the suites' {@code @TckIncludeTags} and
+     * would skip such a scenario first. Canonical scenarios carry no resolver tag and are exempt.
      *
      * @param scenario the scenario about to run
      */
-    @Before(order = 1)
-    public void gateOnResolver(Scenario scenario) {
-        flagd.resetCustomizations();
+    @Before(order = -1)
+    public void requireResolverTag(Scenario scenario) {
         if (!scenario.getUri().toString().contains("/" + ProviderTck.EXTENSIONS + "/")) {
             return;
         }
         Collection<String> tags = scenario.getSourceTagNames();
-        if (RESOLVER_TAGS.values().stream().noneMatch(tags::contains)) {
+        if (RESOLVER_TAGS.stream().noneMatch(tags::contains)) {
             throw new IllegalStateException("Extension scenario '" + scenario.getName() + "' (" + scenario.getUri()
-                    + ") carries none of " + RESOLVER_TAGS.values() + "; tag it or its feature");
-        }
-        String wanted = RESOLVER_TAGS.get(flagd.resolver());
-        if (!tags.contains(wanted)) {
-            throw new TestAbortedException("Skipped: scenario is not tagged " + wanted);
-        }
-        gateOnFractionalVersion(tags);
-    }
-
-    /**
-     * Skips a scenario whose {@code @fractional-vN} tags name only other bucketing versions than
-     * {@link FlagdTckHarness#fractionalVersion()}. A scenario with no version tag runs regardless.
-     */
-    private void gateOnFractionalVersion(Collection<String> tags) {
-        List<String> versions =
-                tags.stream().filter(tag -> tag.matches("@fractional-v\\d+")).collect(Collectors.toList());
-        String wanted = "@fractional-" + flagd.fractionalVersion();
-        if (!versions.isEmpty() && !versions.contains(wanted)) {
-            throw new TestAbortedException("Skipped: scenario expects fractional " + versions
-                    + ", the backend implements " + wanted + " (override with -Dflagd.tck.fractional)");
+                    + ") carries none of " + RESOLVER_TAGS + "; tag it or its feature");
         }
     }
 
