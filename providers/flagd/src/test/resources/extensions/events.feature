@@ -1,4 +1,4 @@
-@ext-connection @events
+@ext-connection @rpc @in-process @file @events
 Feature: flagd provider state changes
 
   # Ported from flagd-testbed gherkin/events.feature. Not ported: "Flag change event", which the
