@@ -99,9 +99,8 @@ public class FlagdSteps {
      * {@link FlagdTckHarness#fractionalVersion()}. A scenario with no version tag runs regardless.
      */
     private void gateOnFractionalVersion(Collection<String> tags) {
-        List<String> versions = tags.stream()
-                .filter(tag -> tag.matches("@fractional-v\\d+"))
-                .collect(Collectors.toList());
+        List<String> versions =
+                tags.stream().filter(tag -> tag.matches("@fractional-v\\d+")).collect(Collectors.toList());
         String wanted = "@fractional-" + flagd.fractionalVersion();
         if (!versions.isEmpty() && !versions.contains(wanted)) {
             throw new TestAbortedException("Skipped: scenario expects fractional " + versions
