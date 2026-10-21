@@ -1,8 +1,12 @@
 package dev.openfeature.contrib.providers.flagd.tck;
 
 import dev.openfeature.contrib.providers.flagd.Config;
+import dev.openfeature.contrib.tools.tck.TckExcludeTags;
+import dev.openfeature.contrib.tools.tck.TckIncludeTags;
 
 /** Runs the OpenFeature Provider TCK against the flagd provider in in-process mode. */
+@TckIncludeTags("@in-process")
+@TckExcludeTags("@fractional-v2")
 public class InProcessTest extends AbstractResolverTest {
 
     /**

@@ -76,7 +76,6 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
     private final List<Consumer<FlagdOptions.FlagdOptionsBuilder>> customizations = new CopyOnWriteArrayList<>();
 
     /** The resolver under test. */
-    @Override
     public abstract Config.Resolver resolver();
 
     /** The container-internal port that resolver connects to. */
