@@ -1,6 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.tck;
 
-import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.tools.tck.BackendEndpoint;
 import java.util.function.Consumer;
@@ -28,27 +27,11 @@ public interface FlagdTckHarness {
     /** envoy's listener that answers every call with HTTP 403, gRPC {@code PERMISSION_DENIED}. */
     int ENVOY_FORBIDDEN_PORT = 9212;
 
-    /** The resolver this suite runs, for gating {@code @rpc} and {@code @in-process} scenarios. */
-    Config.Resolver resolver();
-
-    /**
-     * The fractional bucketing version the backend implements, as the testbed tags it
-     * ({@code v1}, {@code v2}, {@code v3}). A scenario tagged {@code @fractional-vN} for another
-     * version is skipped.
-     *
-     * <p>{@code v3} by default: the Java in-process evaluator and the flagd shipped with
-     * flagd-testbed v3.10.4 both implement it. Override with {@code -Dflagd.tck.fractional=v2} to
-     * run the v2 expectations, against an older image for instance.
-     */
-    default String fractionalVersion() {
-        return System.getProperty("flagd.tck.fractional", "v3");
-    }
-
     /**
      * Records a change to the options of the next provider this scenario creates.
      *
      * <p>Applied after the adoption's defaults, in the order recorded, so a scenario can override
-     * any of them. Cleared before every scenario.
+     * any of them. Cleared after every scenario.
      *
      * @param customization a change to the options builder
      */
