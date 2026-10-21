@@ -18,7 +18,7 @@ Feature: flagd provider disconnect and reconnect
 
   @rpc @in-process @file @customCert
   Scenario: Connection with a custom certificate
-    Given the flagd backend serves the "ssl" configuration
+    Given the backend serves the "ssl" configuration
     And an option "tls" of type "Boolean" with value "true"
     And an option "certPath" of type "String" with value "test-harness/ssl/custom-root-cert.crt"
     And a stable provider
@@ -40,7 +40,7 @@ Feature: flagd provider disconnect and reconnect
 
   @rpc @in-process @file @reconnect @customCert
   Scenario: Provider reconnection with a custom certificate
-    Given the flagd backend serves the "ssl" configuration
+    Given the backend serves the "ssl" configuration
     And an option "tls" of type "Boolean" with value "true"
     And an option "certPath" of type "String" with value "test-harness/ssl/custom-root-cert.crt"
     And an option "retryGracePeriod" of type "Integer" with value "5"
