@@ -1,4 +1,4 @@
-@ext-fractional @rpc @in-process
+@ext-fractional @rpc @in-process @file
 Feature: Fractional targeting
 
   # Ported from the flagd-testbed's gherkin/targeting.feature: every @fractional scenario, plus the

@@ -7,6 +7,7 @@ import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
 import dev.openfeature.contrib.providers.flagd.tck.FlagdTckHarness;
+import dev.openfeature.contrib.tools.tck.ProviderTck;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.sdk.MutableContext;
@@ -27,6 +28,7 @@ import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,27 +71,45 @@ public class FlagdSteps {
         this.flagd = (FlagdTckHarness) harness;
     }
 
+    /** The tag that includes a scenario in each resolver's suite. */
+    private static final Map<Config.Resolver, String> RESOLVER_TAGS;
+
+    static {
+        Map<Config.Resolver, String> tags = new EnumMap<>(Config.Resolver.class);
+        tags.put(Config.Resolver.RPC, "@rpc");
+        tags.put(Config.Resolver.IN_PROCESS, "@in-process");
+        tags.put(Config.Resolver.FILE, "@file");
+        RESOLVER_TAGS = Collections.unmodifiableMap(tags);
+    }
+
     /**
-     * Skips a scenario tagged for the other resolver, and starts every scenario with the adoption's
-     * own options.
+     * Runs an extension scenario only in the suites whose resolver tag it carries, and starts every
+     * scenario with the adoption's own options.
+     *
+     * <p>Every extension scenario must carry at least one of {@code @rpc}, {@code @in-process} and
+     * {@code @file}, on the scenario or its feature. One with none of them fails rather than running
+     * everywhere: the resolver tag is the include, as in the flagd-testbed. Canonical scenarios carry
+     * no resolver tag and run in every suite.
      *
      * <p>Runs after the TCK's capability gate (order 0) and before it prepares the backend (order
-     * 10). A scenario tagged with neither {@code @rpc} nor {@code @in-process} runs in both.
+     * 10).
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 1)
     public void gateOnResolver(Scenario scenario) {
         flagd.resetCustomizations();
+        if (!scenario.getUri().toString().contains("/" + ProviderTck.EXTENSIONS + "/")) {
+            return;
+        }
         Collection<String> tags = scenario.getSourceTagNames();
-        boolean rpc = tags.contains("@rpc");
-        boolean inProcess = tags.contains("@in-process");
-        if (rpc || inProcess) {
-            boolean matches = flagd.resolver() == Config.Resolver.RPC ? rpc : inProcess;
-            if (!matches) {
-                throw new TestAbortedException(
-                        "Skipped: scenario is not tagged for the " + flagd.resolver() + " resolver");
-            }
+        if (RESOLVER_TAGS.values().stream().noneMatch(tags::contains)) {
+            throw new IllegalStateException("Extension scenario '" + scenario.getName() + "' (" + scenario.getUri()
+                    + ") carries none of " + RESOLVER_TAGS.values() + "; tag it or its feature");
+        }
+        String wanted = RESOLVER_TAGS.get(flagd.resolver());
+        if (!tags.contains(wanted)) {
+            throw new TestAbortedException("Skipped: scenario is not tagged " + wanted);
         }
         gateOnFractionalVersion(tags);
     }
