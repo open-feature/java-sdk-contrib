@@ -11,6 +11,8 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
  * Shared configuration for running the OpenFeature Provider TCK against the flagd provider.
@@ -22,7 +24,7 @@ import java.util.Set;
  * <p>An occasional extra failure of a shape that moves between runs is the flagd-testbed readiness
  * window of open-feature/flagd-testbed#394, not a regression; repeat the run.
  */
-abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
+abstract class AbstractResolverTest extends ContainerizedProviderTckTest implements FlagdTckHarness {
 
     /** A port nothing listens on; an outage on the Compose stack belongs to the control API. */
     private static final int UNAVAILABLE_PORT = 9999;
@@ -39,8 +41,12 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /** gRPC deadline for a dead port; these scenarios assert that the failure is reported promptly. */
     private static final int UNAVAILABLE_DEADLINE_MS = 1000;
 
+    /** Per-scenario option changes recorded by the extension steps; see {@link FlagdTckHarness}. */
+    private final List<Consumer<FlagdOptions.FlagdOptionsBuilder>> customizations = new CopyOnWriteArrayList<>();
+
     /** The resolver under test. */
-    protected abstract Config.Resolver resolver();
+    @Override
+    public abstract Config.Resolver resolver();
 
     /** The container-internal port that resolver connects to. */
     protected abstract int backendPort();
@@ -69,20 +75,40 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
     @Override
     public FeatureProvider createProvider(BackendEndpoint endpoint) {
-        return new FlagdProvider(baseOptions()
-                .deadline(CONNECTED_DEADLINE_MS)
-                .host(endpoint.host())
-                .port(endpoint.port(backendPort()))
+        return new FlagdProvider(customized(baseOptions()
+                        .deadline(CONNECTED_DEADLINE_MS)
+                        .host(endpoint.host())
+                        .port(endpoint.port(backendPort())))
                 .build());
     }
 
     @Override
     public FeatureProvider createUnavailableProvider() {
-        return new FlagdProvider(baseOptions()
-                .deadline(UNAVAILABLE_DEADLINE_MS)
-                .host("localhost")
-                .port(UNAVAILABLE_PORT)
+        return new FlagdProvider(customized(baseOptions()
+                        .deadline(UNAVAILABLE_DEADLINE_MS)
+                        .host("localhost")
+                        .port(UNAVAILABLE_PORT))
                 .build());
+    }
+
+    @Override
+    public void customize(Consumer<FlagdOptions.FlagdOptionsBuilder> customization) {
+        customizations.add(customization);
+    }
+
+    @Override
+    public void resetCustomizations() {
+        customizations.clear();
+    }
+
+    @Override
+    public BackendEndpoint backendEndpoint() {
+        return endpoint();
+    }
+
+    @Override
+    public String launchpadUrl() {
+        return "http://" + endpoint().host() + ":" + endpoint().port(controlPort());
     }
 
     /**
@@ -100,6 +126,11 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     @Override
     public Set<Capability> capabilities() {
         return Capability.declarableExcept(Capability.REINITIALIZATION);
+    }
+
+    private FlagdOptions.FlagdOptionsBuilder customized(FlagdOptions.FlagdOptionsBuilder builder) {
+        customizations.forEach(customization -> customization.accept(builder));
+        return builder;
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {
