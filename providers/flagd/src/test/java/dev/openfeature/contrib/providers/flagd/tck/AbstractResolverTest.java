@@ -9,8 +9,10 @@ import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
 import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -83,12 +85,20 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
     /**
      * {@inheritDoc}
      *
-     * <p>Outside this module on purpose: the OFREP adoption runs against the same stack and names the
-     * same file, so there is one image tag for both rather than two that can drift.
+     * <p>Outside this module on purpose: the OFREP adoption runs against the same stack, so there is
+     * one image tag for both rather than two that can drift. This file includes that shared one and
+     * adds only an envoy sidecar, which the {@code @targetURI} and {@code @forbidden} extension
+     * scenarios connect through; no canonical scenario reaches it.
      */
     @Override
     public File composeFile() {
-        return new File("../../tools/flagd-testbed/docker-compose.yaml");
+        return new File("../../tools/flagd-testbed/docker-compose.flagd.yaml");
+    }
+
+    /** The envoy sidecar's two listeners; see {@link #composeFile()}. */
+    @Override
+    public Map<String, List<Integer>> additionalPorts() {
+        return Collections.singletonMap(ENVOY_SERVICE, Arrays.asList(ENVOY_ROUTING_PORT, ENVOY_FORBIDDEN_PORT));
     }
 
     @Override
