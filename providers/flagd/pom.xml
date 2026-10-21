@@ -232,24 +232,6 @@
 
     <profiles>
         <profile>
-            <!-- the Provider TCK suites run against test-harness/docker-compose.yaml; the submodule is checked out with the repository -->
-            <id>tck</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <environmentVariables>
-                                <!-- the testbed bind-mounts it at /flags; unset, it defaults to the submodule checkout -->
-                                <FLAGS_DIR>${project.build.directory}/tck-flags</FLAGS_DIR>
-                            </environmentVariables>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>codequality</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
