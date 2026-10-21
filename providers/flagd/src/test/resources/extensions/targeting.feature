@@ -1,4 +1,4 @@
-@ext-targeting @rpc @in-process
+@ext-targeting @rpc @in-process @file
 Feature: Targeting rules
 
   # Ported from flagd-testbed's gherkin/targeting.feature: the json-evaluation scenarios the Provider

@@ -16,7 +16,7 @@ Feature: flagd provider disconnect and reconnect
   # @targetURI and @forbidden connect through the envoy sidecar that
   # tools/flagd-testbed/docker-compose.flagd.yaml adds to the shared stack.
 
-  @customCert
+  @rpc @in-process @file @customCert
   Scenario: Connection with a custom certificate
     Given the flagd backend serves the "ssl" configuration
     And an option "tls" of type "Boolean" with value "true"
@@ -26,7 +26,7 @@ Feature: flagd provider disconnect and reconnect
     When the flag was evaluated with details
     Then the resolved details value should be "true"
 
-  @reconnect
+  @rpc @in-process @file @reconnect
   Scenario: Provider reconnection
     Given an option "retryGracePeriod" of type "Integer" with value "5"
     And an option "retryBackoffMaxMs" of type "Integer" with value "500"
@@ -38,7 +38,7 @@ Feature: flagd provider disconnect and reconnect
     Then the error event handler should have been executed
     Then the ready event handler should have been executed
 
-  @reconnect @customCert
+  @rpc @in-process @file @reconnect @customCert
   Scenario: Provider reconnection with a custom certificate
     Given the flagd backend serves the "ssl" configuration
     And an option "tls" of type "Boolean" with value "true"
@@ -53,7 +53,7 @@ Feature: flagd provider disconnect and reconnect
     Then the error event handler should have been executed
     Then the ready event handler should have been executed
 
-  @unavailable
+  @rpc @in-process @file @unavailable
   Scenario: Provider unavailable
     Given an option "deadlineMs" of type "Integer" with value "1000"
     And a unavailable provider
@@ -62,7 +62,7 @@ Feature: flagd provider disconnect and reconnect
 
   # A forbidden response from flagd results in a fatal client state. "a unavailable provider" is the
   # TCK's flavour that does not wait for readiness; the step before it points that provider at envoy.
-  @forbidden
+  @rpc @in-process @forbidden
   Scenario: Provider forbidden
     Given an option "fatalStatusCodes" of type "StringList" with value "PERMISSION_DENIED"
     And the provider connects to envoy's forbidden listener
