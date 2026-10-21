@@ -28,6 +28,8 @@ class ExcludedTagsTest {
 
     private static final URI EXTENSION = URI.create("classpath:extensions/x.feature");
 
+    private static final String UNTAGGED = "An extension scenario with no tags at all";
+
     @Test
     @DisplayName("an extension scenario runs with an included tag and no excluded one; canonical scenarios always run")
     void scenariosAreSelected() {
@@ -39,10 +41,27 @@ class ExcludedTagsTest {
                         "An extension scenario carrying the included tag",
                         "An extension scenario tagged for both modes");
         assertThat(results.aborted)
-                .as("the other-mode, excluded and to-be-filtered scenarios are skipped, saying why")
-                .hasSize(3)
+                .as("the other-mode, untagged, excluded and to-be-filtered scenarios are skipped, saying why")
+                .hasSize(4)
                 .anySatisfy(reason -> assertThat(reason).contains(ExcludedTagsSuiteFixture.INCLUDED))
                 .anySatisfy(reason -> assertThat(reason).contains(ExcludedTagsSuiteFixture.EXCLUDED));
+        assertThat(results.failed).isEmpty();
+    }
+
+    @Test
+    @DisplayName("an untagged extension scenario is skipped under an include, so include filters rather than hints")
+    void anUntaggedExtensionScenarioIsNotSpared() {
+        Results results = run(null);
+
+        assertThat(results.passed)
+                .as(
+                        "%s is an include, so an extension scenario carrying no tag at all does not run",
+                        ExcludedTagsSuiteFixture.INCLUDED)
+                .doesNotContain(UNTAGGED);
+        assertThat(results.aborted)
+                .as("it is skipped for lacking the included tag, like the other-mode scenarios")
+                .filteredOn(reason -> reason.contains(ExcludedTagsSuiteFixture.INCLUDED))
+                .hasSize(3);
         assertThat(results.failed).isEmpty();
     }
 
@@ -54,7 +73,7 @@ class ExcludedTagsTest {
         assertThat(results.passed).hasSize(3);
         assertThat(results.aborted)
                 .as("the filtered scenario is gone, not skipped")
-                .hasSize(2);
+                .hasSize(3);
         assertThat(results.failed).isEmpty();
     }
 

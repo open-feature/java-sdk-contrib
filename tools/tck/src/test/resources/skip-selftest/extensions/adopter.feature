@@ -22,3 +22,6 @@ Feature: An adopter selects its own extension scenarios by tag
   @mode-b @filtered
   Scenario: An extension scenario a tag filter removes first
     Given a stable provider
+
+  Scenario: An extension scenario with no tags at all
+    Given a stable provider
