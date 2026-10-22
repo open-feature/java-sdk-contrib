@@ -125,6 +125,53 @@ class FlagMetadataStepsTest {
     }
 
     @Test
+    @DisplayName("a number is compared by value, whichever numeric type the provider stored it in")
+    void aNumberIsComparedByValueNotByBox() {
+        // ImmutableMetadata's getters are exact: getDouble answers null for an addFloat value, and
+        // getInteger null for a long, so reading through them failed a provider that was right.
+        TckState state = stateWith(ImmutableMetadata.builder()
+                .addFloat("float", 0.1f)
+                .addLong("integer", 2L)
+                .build());
+
+        assertThatCode(() -> stepsFor(state)
+                        .theResolvedMetadataShouldContain(table("float | Float | 0.1", "integer | Integer | 2")))
+                .as("0.1f widens to 0.10000000149011612, and 2L is not an Integer")
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("a number that differs still fails, tolerance notwithstanding")
+    void aNumberThatDiffersStillFails() {
+        TckState state =
+                stateWith(ImmutableMetadata.builder().addFloat("float", 0.1f).build());
+
+        assertThatThrownBy(() -> stepsFor(state).theResolvedMetadataShouldContain(table("float | Float | 0.2")))
+                .hasMessageContaining("metadata 'float' (Float)");
+    }
+
+    @Test
+    @DisplayName("a row whose value is null does not pass against a key the provider omitted")
+    void anAbsentKeyIsNotANullValue() {
+        TckState state = stateWith(
+                ImmutableMetadata.builder().addString("present", "yes").build());
+
+        assertThatThrownBy(() -> stepsFor(state).theResolvedMetadataShouldContain(table("missing | String | null")))
+                .as("the conversion yields null and so does the lookup, which used to agree")
+                .hasMessageContaining("flag metadata");
+    }
+
+    @Test
+    @DisplayName("a numeric row against a value that is not a number says so")
+    void aNumericRowAgainstAStringSaysSo() {
+        TckState state =
+                stateWith(ImmutableMetadata.builder().addString("count", "2").build());
+
+        assertThatThrownBy(() -> stepsFor(state).theResolvedMetadataShouldContain(table("count | Integer | 2")))
+                .hasMessageContaining("declares numeric");
+    }
+
+    @Test
     @DisplayName("a metadata type flag metadata cannot carry is refused, not silently compared")
     void anUnknownTypeIsRefused() {
         TckState state =
