@@ -157,6 +157,38 @@ class HttpBackendControlTest {
     }
 
     @Test
+    @DisplayName("a restoration that fails is retried by the next scenario, not downgraded to /reset")
+    void aFailedRestorationIsRetried() throws Exception {
+        // the scenario's own /start succeeds; the restoration after it fails once
+        try (StubControlApi stub = StubControlApi.start().scripting("/start", 200, 500, 200)) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario(); // settles on /reset
+            control.serveConfiguration("metadata");
+            stub.forget();
+
+            // the scenario whose preparation failed reports it
+            assertThatThrownBy(control::prepareScenario).isInstanceOf(IllegalStateException.class);
+            control.prepareScenario();
+
+            // /reset here would have left the metadata configuration serving
+            assertThat(stub.requests())
+                    .containsExactly("POST /start?config=default", "POST /start?config=default");
+        }
+    }
+
+    @Test
+    @DisplayName("a restart request may take the outage it asked for, plus the ordinary budget")
+    void theRestartRequestOutlivesTheOutage() {
+        // a blocking control API answers /restart?seconds=60 after 60 seconds, which is specified
+        assertThat(HttpBackendControl.restartTimeout(Duration.ofSeconds(60)))
+                .isEqualTo(Duration.ofSeconds(90));
+        assertThat(HttpBackendControl.restartTimeout(Duration.ZERO)).isEqualTo(Duration.ofSeconds(30));
+        assertThat(HttpBackendControl.restartTimeout(Duration.ofSeconds(-5)))
+                .as("a nonsense outage still gets a sane budget")
+                .isEqualTo(Duration.ofSeconds(30));
+    }
+
+    @Test
     @DisplayName("reconnecting clears the disconnect, so the next scenario resets again")
     void reconnectClearsTheDisconnect() throws Exception {
         try (StubControlApi stub = StubControlApi.start()) {

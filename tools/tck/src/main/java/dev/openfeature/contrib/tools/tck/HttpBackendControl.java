@@ -20,6 +20,8 @@ final class HttpBackendControl implements BackendControl {
 
     private static final Logger log = LoggerFactory.getLogger(HttpBackendControl.class);
 
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+
     private final HttpClient http;
     private final String baseUrl;
     private final String backendConfiguration;
@@ -81,8 +83,10 @@ final class HttpBackendControl implements BackendControl {
     @Override
     public void prepareScenario() {
         if (backendStopped || scenarioConfiguration != null) {
-            scenarioConfiguration = null;
             start();
+            // cleared only once the restart succeeded: a /start that failed leaves the scenario's
+            // configuration serving, and /reset would not take the next scenario off it
+            scenarioConfiguration = null;
         } else {
             reset();
         }
@@ -127,7 +131,7 @@ final class HttpBackendControl implements BackendControl {
      */
     @Override
     public void disconnectFor(Duration outage) {
-        post("/restart?seconds=" + outage.getSeconds());
+        post("/restart?seconds=" + outage.getSeconds(), restartTimeout(outage));
         // the backend brings itself back, so the next scenario may reset rather than start
         backendStopped = false;
     }
@@ -211,13 +215,36 @@ final class HttpBackendControl implements BackendControl {
     }
 
     private void post(String path) {
-        expectSuccess(path, send(path));
+        post(path, REQUEST_TIMEOUT);
+    }
+
+    private void post(String path, Duration timeout) {
+        expectSuccess(path, send(path, timeout));
+    }
+
+    /**
+     * How long to wait for {@code POST /restart} to answer.
+     *
+     * <p>The control API may answer when the backend goes down or only once it is back, and a
+     * blocking implementation of a 60-second outage answers after 60 seconds. Waiting only
+     * {@link #REQUEST_TIMEOUT} would fail the request -- and the scenario -- for a control API
+     * behaving exactly as specified, so the budget is the outage plus the ordinary one.
+     *
+     * @param outage the outage that was asked for
+     * @return how long the restart request may take
+     */
+    static Duration restartTimeout(Duration outage) {
+        return outage.isNegative() ? REQUEST_TIMEOUT : REQUEST_TIMEOUT.plus(outage);
     }
 
     private HttpResponse<Void> send(String path) {
+        return send(path, REQUEST_TIMEOUT);
+    }
+
+    private HttpResponse<Void> send(String path, Duration timeout) {
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + path))
                 .POST(HttpRequest.BodyPublishers.noBody())
-                .timeout(Duration.ofSeconds(30))
+                .timeout(timeout)
                 .build();
         try {
             return http.send(request, HttpResponse.BodyHandlers.discarding());
