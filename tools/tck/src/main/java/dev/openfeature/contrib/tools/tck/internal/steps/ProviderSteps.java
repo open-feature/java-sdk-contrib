@@ -95,6 +95,13 @@ public class ProviderSteps extends AbstractSteps {
      */
     @Given("a {} provider")
     public void createProvider(String flavour) {
+        createProvider(flavour, null);
+    }
+
+    private void createProvider(String flavour, String configuration) {
+        if (configuration != null) {
+            backend().serveConfiguration(configuration);
+        }
         ProviderTckHarness harness = harness();
         FeatureProvider provider;
         boolean waitForReady;
@@ -129,6 +136,26 @@ public class ProviderSteps extends AbstractSteps {
                 flavour,
                 provider.getMetadata().getName(),
                 domain);
+    }
+
+    /**
+     * Creates the provider under test against one of the backend's own named flag configurations.
+     *
+     * <p>One step rather than two, because the order was the whole difficulty: the backend has to be
+     * serving that configuration before the provider connects to it, and a scenario that said so in
+     * a separate {@code Given} could put it after {@code a stable provider} and watch the provider
+     * connect to the wrong flags. Here it cannot.
+     *
+     * <p>The name is the backend's own -- see {@link BackendControl#serveConfiguration} -- so this is
+     * for extension scenarios. A canonical scenario names no configuration: the baseline every
+     * control serves is what it is written against.
+     *
+     * @param flavour either {@code stable} or {@code unavailable}
+     * @param configuration the configuration the backend should serve, as its control defines it
+     */
+    @Given("a {} provider with {string} configuration")
+    public void createProviderWithConfiguration(String flavour, String configuration) {
+        createProvider(flavour, configuration);
     }
 
     /**
@@ -206,34 +233,6 @@ public class ProviderSteps extends AbstractSteps {
     @When("the connection is restored")
     public void theConnectionIsRestored() {
         backend().reconnect();
-    }
-
-    /**
-     * Takes the backend down for a fixed outage and lets it come back by itself.
-     *
-     * <p>What the step guarantees is {@link BackendControl#disconnectFor}'s contract: the outage has
-     * begun, and nothing more. A scenario that needs the backend back says so -- {@code a ready event
-     * was fired}, or {@code the client should be in READY state} -- rather than relying on this step
-     * to have waited.
-     *
-     * @param seconds how long the backend stays unreachable
-     */
-    @When("the connection is lost for {int}s")
-    public void theConnectionIsLostFor(int seconds) {
-        backend().disconnectFor(Duration.ofSeconds(seconds));
-    }
-
-    /**
-     * Serves one of the backend's own named flag configurations, before the provider connects.
-     *
-     * <p>Extension scenarios only, and the name is the backend's own; see
-     * {@link BackendControl#serveConfiguration}.
-     *
-     * @param configuration the configuration name
-     */
-    @Given("the backend serves the {string} configuration")
-    public void theBackendServesTheConfiguration(String configuration) {
-        backend().serveConfiguration(configuration);
     }
 
     /** Mutates flag configuration so a conforming provider observes a configuration change. */

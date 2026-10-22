@@ -141,22 +141,6 @@ class HttpBackendControlTest {
     }
 
     @Test
-    @DisplayName("a timed outage restarts for that many seconds")
-    void aTimedOutageRestarts() throws Exception {
-        try (StubControlApi stub = StubControlApi.start()) {
-            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
-            control.prepareScenario();
-            stub.forget();
-
-            control.disconnectFor(Duration.ofSeconds(8));
-
-            // the outage is asked for in seconds; what the next scenario then does is the test below,
-            // which uses an outage short enough to wait out
-            assertThat(stub.requests()).containsExactly("POST /restart?seconds=8");
-        }
-    }
-
-    @Test
     @DisplayName("a restoration that fails is retried by the next scenario, not downgraded to /reset")
     void aFailedRestorationIsRetried() throws Exception {
         // the scenario's own /start succeeds; the restoration after it fails once
@@ -172,28 +156,6 @@ class HttpBackendControlTest {
 
             // /reset here would have left the metadata configuration serving
             assertThat(stub.requests()).containsExactly("POST /start?config=default", "POST /start?config=default");
-        }
-    }
-
-    @Test
-    @DisplayName("the scenario after a timed outage starts the backend instead of waiting for it")
-    void theNextScenarioStartsRatherThanWaiting() throws Exception {
-        try (StubControlApi stub = StubControlApi.start()) {
-            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
-            control.prepareScenario(); // settles on /reset, which this stub implements
-            stub.forget();
-
-            // this stub answers at once, which is the half of /restart the specification permits and
-            // tells the TCK not to rely on: the backend may still be down when the scenario ends
-            control.disconnectFor(Duration.ofSeconds(5));
-            long started = System.nanoTime();
-            control.prepareScenario();
-
-            // /start works whether the outage is over or not, and /reset is not specified to start
-            assertThat(stub.requests()).containsExactly("POST /restart?seconds=5", "POST /start?config=default");
-            assertThat(Duration.ofNanos(System.nanoTime() - started))
-                    .as("no timer: the outage's length is the backend's business, not this client's")
-                    .isLessThan(Duration.ofSeconds(1));
         }
     }
 

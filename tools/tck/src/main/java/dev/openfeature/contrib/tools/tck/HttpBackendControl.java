@@ -20,9 +20,7 @@ final class HttpBackendControl implements BackendControl {
 
     private static final Logger log = LoggerFactory.getLogger(HttpBackendControl.class);
 
-    private static final int REQUEST_TIMEOUT_SECONDS = 30;
-
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
 
     private final HttpClient http;
     private final String baseUrl;
@@ -86,9 +84,10 @@ final class HttpBackendControl implements BackendControl {
     @Override
     public void prepareScenario() {
         if (backendStopped || scenarioConfiguration != null) {
-            start();
-            // cleared only once the restart succeeded: a /start that failed leaves the scenario's
-            // configuration serving, and /reset would not take the next scenario off it
+            // this suite's configuration, not the last scenario's: that is what preparing means
+            start(backendConfiguration);
+            // cleared only once the start succeeded, so a failure is retried next scenario rather
+            // than downgraded to /reset, which does not change which configuration is served
             scenarioConfiguration = null;
         } else {
             reset();
@@ -119,35 +118,15 @@ final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Issues {@code POST /start?config=...}, which also restores the baseline flag state.
+     * <p>Issues {@code POST /start?config=...} on the configuration in effect -- the one a scenario
+     * served, if it served one -- because losing the connection is not how a scenario changes what
+     * the backend serves. It also restores that configuration's baseline flag state, which is why a
+     * scenario asserting a value across an outage asserts it from the provider's cache rather than
+     * from a mutation it made.
      */
     @Override
     public void reconnect() {
         start();
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Issues {@code POST /restart?seconds=...} and waits for the answer like any other call,
-     * which is the point of the endpoint: a blocking implementation spends the outage inside the
-     * response, and every language's HTTP client already knows how to wait for that. A timer here
-     * would have to be written once per binding instead.
-     *
-     * <p>An outage is therefore expected to be seconds, comfortably inside the {@value #REQUEST_TIMEOUT_SECONDS}-second
-     * request timeout every call shares; one approaching it would fail the request rather than the
-     * scenario's assertion.
-     */
-    @Override
-    public void disconnectFor(Duration outage) {
-        post("/restart?seconds=" + outage.getSeconds());
-        // Treated as still down, which costs the next scenario a /start instead of a /reset and
-        // nothing else. The alternative is a timer: the response may arrive as soon as the outage
-        // begins, and the specification is explicit that the TCK does not rely on it being delayed
-        // -- a scenario awaits the provider's own events instead, and sleeping here to find out
-        // whether the backend is back would put that timing in the control client, where this
-        // endpoint exists precisely to avoid it.
-        backendStopped = true;
     }
 
     /**
@@ -195,12 +174,16 @@ final class HttpBackendControl implements BackendControl {
         throw new IllegalStateException("control API at " + baseUrl + " did not become ready within " + timeout, last);
     }
 
-    /** Starts the backend, seeding the baseline flag state. */
+    /** Starts the backend on the configuration in effect: the scenario's, else this suite's. */
     private void start() {
+        start(scenarioConfiguration == null ? backendConfiguration : scenarioConfiguration);
+    }
+
+    private void start(String configuration) {
         post(
-                backendConfiguration == null
+                configuration == null
                         ? "/start"
-                        : "/start?config=" + URLEncoder.encode(backendConfiguration, StandardCharsets.UTF_8));
+                        : "/start?config=" + URLEncoder.encode(configuration, StandardCharsets.UTF_8));
         backendStopped = false;
     }
 
