@@ -57,5 +57,4 @@ public class ConnectionSteps {
         int port = endpoint.port(FlagdTckHarness.ENVOY_SERVICE, FlagdTckHarness.ENVOY_FORBIDDEN_PORT);
         flagd.customize(builder -> builder.host(host).port(port));
     }
-
 }

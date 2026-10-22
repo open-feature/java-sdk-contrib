@@ -98,7 +98,7 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
         return "flagd";
     }
 
-    /** The envoy sidecar's two listeners, which the extension scenarios connect through. */
+    /** The envoy sidecar's two listeners; see {@link #composeFile()}. */
     @Override
     public Map<String, List<Integer>> additionalPorts() {
         return Collections.singletonMap(ENVOY_SERVICE, Arrays.asList(ENVOY_ROUTING_PORT, ENVOY_FORBIDDEN_PORT));
