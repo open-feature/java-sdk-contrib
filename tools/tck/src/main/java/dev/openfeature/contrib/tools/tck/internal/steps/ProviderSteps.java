@@ -74,7 +74,15 @@ public class ProviderSteps extends AbstractSteps {
      */
     @Before(order = 10)
     public void prepareBackend() {
-        backend().prepareScenario();
+        try {
+            backend().prepareScenario();
+        } catch (RuntimeException e) {
+            // Said here because this is where the breakage is visible: a backend that cannot be
+            // brought to the baseline must not be handed to the next scenario, and the object
+            // factory only learns that a scenario ended, never why.
+            StackPool.markLeaseBroken();
+            throw e;
+        }
     }
 
     /**

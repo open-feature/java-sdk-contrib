@@ -76,7 +76,7 @@
             How many JVMs the `tck` profile runs conformance suites in. One is the historical
             behaviour: every suite in one JVM, one after another, each starting and stopping its own
             backend. Raising it runs suites concurrently, so a provider with two resolver suites
-            spends the longer of the two rather than their sum -- at the cost of that many backends
+            spends the longer of the two rather than their sum, at the cost of that many backends
             standing at once. Measured per configuration in tools/tck/docs/stack-pool-spike.md.
         -->
         <tck.forkCount>1</tck.forkCount>
