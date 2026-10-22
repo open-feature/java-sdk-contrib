@@ -8,6 +8,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,9 @@ final class HttpBackendControl implements BackendControl {
 
     // a configuration one scenario asked for, which the next scenario has to be taken off again
     private String scenarioConfiguration;
+
+    // when a timed outage is due to be over, for a control API that answered at its start
+    private Instant outageUntil;
 
     /**
      * Creates a control client for a running backend. No post-command settle; control calls return
@@ -82,6 +86,7 @@ final class HttpBackendControl implements BackendControl {
      */
     @Override
     public void prepareScenario() {
+        awaitOutageEnd();
         if (backendStopped || scenarioConfiguration != null) {
             start();
             // cleared only once the restart succeeded: a /start that failed leaves the scenario's
@@ -131,9 +136,31 @@ final class HttpBackendControl implements BackendControl {
      */
     @Override
     public void disconnectFor(Duration outage) {
+        Instant due = Instant.now().plus(outage);
         post("/restart?seconds=" + outage.getSeconds(), restartTimeout(outage));
+        // The response says nothing about recovery: an implementation that answered at the start of
+        // the outage leaves the backend down, and the next scenario's /reset would reach nothing. A
+        // blocking one has already spent this time, and the wait below finds nothing left.
+        outageUntil = due;
         // the backend brings itself back, so the next scenario may reset rather than start
         backendStopped = false;
+    }
+
+    /**
+     * Waits out whatever is left of a timed outage, so the next scenario prepares a backend that is
+     * up. Costs nothing when the control API answered only once recovery had happened.
+     */
+    private void awaitOutageEnd() {
+        if (outageUntil == null) {
+            return;
+        }
+        Duration remaining = Duration.between(Instant.now(), outageUntil);
+        outageUntil = null;
+        if (remaining.isNegative() || remaining.isZero()) {
+            return;
+        }
+        log.info("waiting {}ms for the backend's timed outage to end", remaining.toMillis());
+        sleep(remaining);
     }
 
     /**

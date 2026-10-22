@@ -141,7 +141,7 @@ class HttpBackendControlTest {
     }
 
     @Test
-    @DisplayName("a timed outage restarts for that many seconds and leaves the backend expected up")
+    @DisplayName("a timed outage restarts for that many seconds")
     void aTimedOutageRestarts() throws Exception {
         try (StubControlApi stub = StubControlApi.start()) {
             HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
@@ -149,10 +149,10 @@ class HttpBackendControlTest {
             stub.forget();
 
             control.disconnectFor(Duration.ofSeconds(8));
-            control.prepareScenario();
 
-            // the backend comes back by itself, so the next scenario needs no /start
-            assertThat(stub.requests()).containsExactly("POST /restart?seconds=8", "POST /reset");
+            // the outage is asked for in seconds; what the next scenario then does is the test below,
+            // which uses an outage short enough to wait out
+            assertThat(stub.requests()).containsExactly("POST /restart?seconds=8");
         }
     }
 
@@ -173,6 +173,26 @@ class HttpBackendControlTest {
             // /reset here would have left the metadata configuration serving
             assertThat(stub.requests())
                     .containsExactly("POST /start?config=default", "POST /start?config=default");
+        }
+    }
+
+    @Test
+    @DisplayName("the scenario after a timed outage waits for the outage to end before preparing")
+    void theNextScenarioWaitsOutTheOutage() throws Exception {
+        try (StubControlApi stub = StubControlApi.start()) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario();
+            stub.forget();
+
+            // this stub answers at once, which is the non-blocking half of what /restart permits
+            control.disconnectFor(Duration.ofSeconds(1));
+            long started = System.nanoTime();
+            control.prepareScenario();
+
+            assertThat(Duration.ofNanos(System.nanoTime() - started))
+                    .as("/reset against a backend still inside its outage reaches nothing")
+                    .isGreaterThanOrEqualTo(Duration.ofMillis(900));
+            assertThat(stub.requests()).containsExactly("POST /restart?seconds=1", "POST /reset");
         }
     }
 

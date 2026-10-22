@@ -59,16 +59,17 @@ public class ContextSteps extends AbstractSteps {
      * @param table rows with {@code key}, {@code type} and {@code value} columns
      */
     @Given("a context with the following keys:")
-    public void aContextWithTheFollowingKeys(DataTable table) {
+    public void contextWithTheFollowingKeys(DataTable table) {
         // Rebuilt rather than added to: MutableContext has typed add() overloads but none taking a
-        // Value, and the conversion above produces exactly that for an Object or a StringList.
+        // Value, and the conversion above produces exactly that for an Object or a StringList. The
+        // map carries the targeting key, so a row may set it and the old one survives when none does.
         Map<String, Value> entries = new HashMap<>(state.context.asMap());
         for (Map<String, String> row : table.asMaps(String.class, String.class)) {
             entries.put(
                     row.get("key"),
                     Value.objectToValue(TckValues.convertContextEntry(row.get("value"), row.get("type"))));
         }
-        state.context = new MutableContext(state.context.getTargetingKey(), entries);
+        state.context = new MutableContext(entries);
     }
 
     /**

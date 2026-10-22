@@ -124,14 +124,17 @@ public class EventSteps extends AbstractSteps {
                 .until(() ->
                         state.events.stream().anyMatch(event -> event.type().equals(eventType)));
 
-        // drain through the first match so stale events can't satisfy later awaits
-        ProviderEventRecord matched = null;
-        while (!state.events.isEmpty()) {
-            ProviderEventRecord head = state.events.poll();
-            if (head != null && head.type().equals(eventType)) {
-                matched = head;
-                break;
-            }
+        // Takes the matched record and nothing else. Draining through the match also discarded
+        // records of other kinds, which a later assertion is entitled to see: an error event that
+        // arrived before an awaited change event would be gone, and "the error event handler should
+        // not have been executed" would then pass because the evidence had been thrown away.
+        ProviderEventRecord matched = state.events.stream()
+                .filter(event -> event.type().equals(eventType))
+                .findFirst()
+                .orElse(null);
+        if (matched != null) {
+            // removing only this record keeps a stale one of the same kind from a later await
+            state.events.remove(matched);
         }
         state.lastEvent = Optional.ofNullable(matched);
     }

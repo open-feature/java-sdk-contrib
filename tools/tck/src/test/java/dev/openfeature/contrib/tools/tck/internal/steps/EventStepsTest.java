@@ -105,6 +105,21 @@ class EventStepsTest {
     }
 
     @Test
+    @DisplayName("awaiting one kind of event does not throw away another kind's record")
+    void aPositiveAwaitDoesNotEraseTheEvidence() {
+        TckState state = new TckState();
+        EventSteps steps = stepsWith(state, Duration.ofMillis(200));
+        state.events.add(new ProviderEventRecord(ERROR, null));
+        state.events.add(new ProviderEventRecord("change", null));
+
+        steps.theEventHandlerShouldHaveBeenExecuted("change");
+
+        assertThatThrownBy(() -> steps.theEventHandlerShouldNotHaveBeenExecutedWithin(ERROR, 200))
+                .as("the error arrived first; awaiting the change must not make it unobservable")
+                .hasMessageContaining("no error event should have fired");
+    }
+
+    @Test
     @DisplayName("another kind of event does not fail it")
     void anotherKindOfEventIsIgnored() {
         TckState state = new TckState();
