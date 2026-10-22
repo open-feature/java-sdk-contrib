@@ -42,8 +42,7 @@ class TckValuesTest {
     @DisplayName("every other type converts the same either way")
     void theRestIsUnchanged() {
         for (String[] pair : new String[][] {{"true", "Boolean"}, {"x", "String"}, {"1.5", "Float"}}) {
-            assertThat(TckValues.convertContextEntry(pair[0], pair[1]))
-                    .isEqualTo(TckValues.convert(pair[0], pair[1]));
+            assertThat(TckValues.convertContextEntry(pair[0], pair[1])).isEqualTo(TckValues.convert(pair[0], pair[1]));
         }
         assertThat(TckValues.convertContextEntry("null", "Integer")).isNull();
     }
