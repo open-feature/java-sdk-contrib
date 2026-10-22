@@ -2,12 +2,15 @@ package dev.openfeature.contrib.providers.flagsmith;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.models.Flags;
+import com.github.benmanes.caffeine.cache.Policy;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidCacheOptionsException;
 import dev.openfeature.contrib.providers.flagsmith.exceptions.InvalidOptionsException;
 import dev.openfeature.sdk.EvaluationContext;
@@ -224,6 +227,52 @@ public class FlagsmithProviderTest {
         assertThrows(InvalidCacheOptionsException.class, () -> new FlagsmithProvider(options));
     }
 
+    @Test
+    void shouldExpireCacheAfterWriteWhenExpireCacheAfterWriteSet() {
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                .apiKey("API_KEY")
+                .envFlagsCacheKey("CACHE_KEY")
+                .expireCacheAfterWrite(10)
+                .expireCacheAfterWriteTimeUnit(TimeUnit.MINUTES)
+                .build();
+
+        Policy<String, Flags> policy = cachePolicy(options);
+
+        assertEquals(10, policy.expireAfterWrite().get().getExpiresAfter(TimeUnit.MINUTES));
+        assertFalse(policy.expireAfterAccess().isPresent());
+    }
+
+    @Test
+    void shouldExpireCacheAfterAccessWhenExpireCacheAfterAccessSet() {
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                .apiKey("API_KEY")
+                .envFlagsCacheKey("CACHE_KEY")
+                .expireCacheAfterAccess(20)
+                .expireCacheAfterAccessTimeUnit(TimeUnit.MINUTES)
+                .build();
+
+        Policy<String, Flags> policy = cachePolicy(options);
+
+        assertEquals(20, policy.expireAfterAccess().get().getExpiresAfter(TimeUnit.MINUTES));
+    }
+
+    @Test
+    void shouldApplyBothCacheExpiriesWhenBothSet() {
+        FlagsmithProviderOptions options = FlagsmithProviderOptions.builder()
+                .apiKey("API_KEY")
+                .envFlagsCacheKey("CACHE_KEY")
+                .expireCacheAfterWrite(10)
+                .expireCacheAfterWriteTimeUnit(TimeUnit.MINUTES)
+                .expireCacheAfterAccess(20)
+                .expireCacheAfterAccessTimeUnit(TimeUnit.MINUTES)
+                .build();
+
+        Policy<String, Flags> policy = cachePolicy(options);
+
+        assertEquals(10, policy.expireAfterWrite().get().getExpiresAfter(TimeUnit.MINUTES));
+        assertEquals(20, policy.expireAfterAccess().get().getExpiresAfter(TimeUnit.MINUTES));
+    }
+
     @SneakyThrows
     @ParameterizedTest
     @MethodSource("provideKeysForFlagResolution")
@@ -368,6 +417,13 @@ public class FlagsmithProviderTest {
         assertThrows(
                 GeneralError.class,
                 () -> booleanFlagsmithProvider.getBooleanEvaluation("true_key", false, new MutableContext()));
+    }
+
+    private Policy<String, Flags> cachePolicy(FlagsmithProviderOptions options) {
+        return FlagsmithClientConfigurer.initializeProvider(options)
+                .getCache()
+                .getCache()
+                .policy();
     }
 
     private String readMockResponse(String filename) throws IOException {
