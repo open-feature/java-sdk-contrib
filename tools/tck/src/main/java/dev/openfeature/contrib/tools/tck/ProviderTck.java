@@ -29,8 +29,16 @@ public final class ProviderTck {
     /** The Cucumber plugins the suite registers. */
     static final String PLUGINS = "summary";
 
-    /** Parallel execution off; control API state is global to the backend. */
-    static final String PARALLEL = "false";
+    /**
+     * Parallel execution is left unset rather than pinned, so it can be turned on from the command
+     * line.
+     *
+     * <p>Pinned here it could not be: a @ConfigurationParameter is part of the discovery request,
+     * which outranks both -D and junit-platform.properties, so an adopter measuring a suite could
+     * not override it. Cucumber's own default is sequential, which is what a conformance run wants
+     * unless someone asks otherwise.
+     */
+    static final String PARALLEL_DOC = "cucumber.execution.parallel.enabled";
 
     /** Scenarios of one feature stay on one thread. */
     static final String FEATURE_EXECUTION_MODE = "same_thread";
