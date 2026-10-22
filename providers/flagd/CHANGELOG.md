@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.15.0...dev.openfeature.contrib.providers.flagd-v0.15.1) (2026-10-22)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** make FlagdThreadFactory final for SpotBugs 4.10 ([#1899](https://github.com/open-feature/java-sdk-contrib/issues/1899)) ([a91a790](https://github.com/open-feature/java-sdk-contrib/commit/a91a79075f056fac2c1387607ba7935e8314631d))
+
 ## [0.15.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.2...dev.openfeature.contrib.providers.flagd-v0.15.0) (2026-10-15)
 
 
