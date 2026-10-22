@@ -4,6 +4,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import dev.openfeature.contrib.tools.tck.AdopterTags;
 import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ProviderTck;
@@ -53,12 +54,17 @@ public class ProviderSteps extends AbstractSteps {
     /**
      * Skips scenarios needing an undeclared {@link Capability}; see
      * {@link Capability#requireDeclared(java.net.URI, java.util.Collection, java.util.Set)}. Tags
-     * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check.
+     * under {@link ProviderTck#EXTENSIONS} are exempt from the vocabulary check, and only their
+     * scenarios are selected by {@code @TckIncludeTags} and {@code @TckExcludeTags}; see {@link AdopterTags}.
      *
      * @param scenario the scenario about to run
      */
     @Before(order = 0)
     public void gateOnCapabilities(Scenario scenario) {
+        // Selection first: a scenario this suite deselected is not a capability the provider
+        // withheld, and gating capabilities first would report it as one.
+        AdopterTags.requireSelected(
+                scenario.getUri(), scenario.getSourceTagNames(), harness().getClass());
         Capability.requireDeclared(
                 scenario.getUri(), scenario.getSourceTagNames(), harness().capabilities());
     }
@@ -89,6 +95,13 @@ public class ProviderSteps extends AbstractSteps {
      */
     @Given("a {} provider")
     public void createProvider(String flavour) {
+        createProvider(flavour, null);
+    }
+
+    private void createProvider(String flavour, String configuration) {
+        if (configuration != null) {
+            backend().serveConfiguration(configuration);
+        }
         ProviderTckHarness harness = harness();
         FeatureProvider provider;
         boolean waitForReady;
@@ -123,6 +136,26 @@ public class ProviderSteps extends AbstractSteps {
                 flavour,
                 provider.getMetadata().getName(),
                 domain);
+    }
+
+    /**
+     * Creates the provider under test against one of the backend's own named flag configurations.
+     *
+     * <p>One step rather than two, because the order was the whole difficulty: the backend has to be
+     * serving that configuration before the provider connects to it, and a scenario that said so in
+     * a separate {@code Given} could put it after {@code a stable provider} and watch the provider
+     * connect to the wrong flags. Here it cannot.
+     *
+     * <p>The name is the backend's own -- see {@link BackendControl#serveConfiguration} -- so this is
+     * for extension scenarios. A canonical scenario names no configuration: the baseline every
+     * control serves is what it is written against.
+     *
+     * @param flavour either {@code stable} or {@code unavailable}
+     * @param configuration the configuration the backend should serve, as its control defines it
+     */
+    @Given("a {} provider with {string} configuration")
+    public void createProviderWithConfiguration(String flavour, String configuration) {
+        createProvider(flavour, configuration);
     }
 
     /**

@@ -1,6 +1,7 @@
 package dev.openfeature.contrib.tools.tck.internal.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withinPercentage;
 
 import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.FlagUnderTest;
@@ -9,6 +10,7 @@ import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.contrib.tools.tck.internal.TckValues;
 import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import io.cucumber.datatable.DataTable;
@@ -25,6 +27,9 @@ import org.slf4j.LoggerFactory;
 public class FlagSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(FlagSteps.class);
+
+    // float carries about seven significant digits, so this covers its widening and nothing else
+    private static final double FLOAT_TOLERANCE_PERCENT = 0.001;
 
     public FlagSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
         super(state, harness, backend);
@@ -220,6 +225,89 @@ public class FlagSteps extends AbstractSteps {
         ProviderEventRecord event = state.lastEvent.orElseThrow(
                 () -> new AssertionError("No event has been matched yet; await an event before asserting its payload"));
         assertThat(event.details().getFlagsChanged()).contains(state.flag.key());
+    }
+
+    /**
+     * Asserts typed flag-metadata entries on the last evaluation; an entry the table does not list
+     * is not checked.
+     *
+     * <p>The wording and the columns are the specification's own, from
+     * {@code assets/gherkin/metadata.feature}: flag metadata is spec behaviour, not a vendor's, so
+     * the question belongs here rather than in each adoption's glue.
+     *
+     * @param table rows with {@code key}, {@code metadata_type} and {@code value} columns
+     */
+    @Then("the resolved metadata should contain")
+    public void theResolvedMetadataShouldContain(DataTable table) {
+        Map<String, Object> metadata = requireMetadata().asUnmodifiableMap();
+        for (Map<String, String> row : table.asMaps(String.class, String.class)) {
+            String key = row.get("key");
+            String type = row.get("metadata_type");
+            // Asserted before the value, because a row whose value is "null" would otherwise pass
+            // against a provider that omitted the entry: the conversion yields null, and so does a
+            // lookup of a key nobody set.
+            assertThat(metadata).as("flag metadata").containsKey(key);
+            assertMetadataValue(key, type, row.get("value"), metadata);
+        }
+    }
+
+    /**
+     * Compares one metadata entry by its declared type rather than by the Java type it arrived in.
+     *
+     * <p>{@link ImmutableMetadata}'s getters are exact: {@code getDouble} answers null for a value
+     * stored through {@code addFloat}, and {@code getInteger} null for one stored as a long. Reading
+     * through them would fail a provider whose value is right and whose box is not, and a scenario
+     * asks about the value.
+     *
+     * <p>{@code Float} is compared with a tolerance for the same reason -- a 32-bit float widened to
+     * a double is not the double the feature file's decimal parses to: {@code 0.1f} widens to
+     * 0.10000000149011612 while the table says 0.1.
+     *
+     * @param key the metadata key the row names
+     * @param type the declared metadata type
+     * @param value the expected value, as the feature file writes it
+     * @param metadata every entry the provider sent, for the failure message
+     */
+    private void assertMetadataValue(String key, String type, String value, Map<String, Object> metadata) {
+        Object actual = metadata.get(key);
+        String where = String.format("metadata '%s' (%s) in %s", key, type, metadata);
+        switch (type) {
+            case "String":
+            case "Boolean":
+                assertThat(actual).as(where).isEqualTo(TckValues.convert(value, type));
+                break;
+            case "Integer":
+                // parsed as a long, because metadata is not read back through getIntegerDetails and
+                // a provider may carry a number wider than 32 bits
+                assertThat(numberOf(actual, where).longValue()).as(where).isEqualTo(Long.parseLong(value));
+                break;
+            case "Float":
+                assertThat(numberOf(actual, where).doubleValue())
+                        .as(where)
+                        .isCloseTo(Double.parseDouble(value), withinPercentage(FLOAT_TOLERANCE_PERCENT));
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown metadata type '" + type + "'. Flag metadata is String, Boolean, Integer or Float.");
+        }
+    }
+
+    private static Number numberOf(Object actual, String where) {
+        assertThat(actual).as("%s, which this row declares numeric", where).isInstanceOf(Number.class);
+        return (Number) actual;
+    }
+
+    /** Asserts that the last evaluation carries no flag metadata. */
+    @Then("the resolved metadata is empty")
+    public void theResolvedMetadataIsEmpty() {
+        assertThat(requireMetadata().asUnmodifiableMap()).as("flag metadata").isEmpty();
+    }
+
+    private ImmutableMetadata requireMetadata() {
+        requireEvaluation();
+        ImmutableMetadata metadata = state.evaluation.getFlagMetadata();
+        assertThat(metadata).as("flag metadata").isNotNull();
+        return metadata;
     }
 
     private void requireEvaluation() {

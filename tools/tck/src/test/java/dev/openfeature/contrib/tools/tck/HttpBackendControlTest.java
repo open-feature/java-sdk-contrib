@@ -111,6 +111,55 @@ class HttpBackendControlTest {
     }
 
     @Test
+    @DisplayName("serving a named configuration starts the backend on that name")
+    void servingAConfigurationStartsItByName() throws Exception {
+        try (StubControlApi stub = StubControlApi.start()) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario();
+            stub.forget();
+
+            control.serveConfiguration("metadata");
+
+            assertThat(stub.requests()).containsExactly("POST /start?config=metadata");
+        }
+    }
+
+    @Test
+    @DisplayName("the scenario after a served configuration is taken back to the suite's own")
+    void aServedConfigurationDoesNotLeakIntoTheNextScenario() throws Exception {
+        try (StubControlApi stub = StubControlApi.start()) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario(); // settles on /reset, which this stub implements
+            control.serveConfiguration("metadata");
+            stub.forget();
+
+            control.prepareScenario();
+
+            // /reset would have left the metadata configuration serving the next scenario
+            assertThat(stub.requests()).containsExactly("POST /start?config=default");
+        }
+    }
+
+    @Test
+    @DisplayName("a restoration that fails is retried by the next scenario, not downgraded to /reset")
+    void aFailedRestorationIsRetried() throws Exception {
+        // the scenario's own /start succeeds; the restoration after it fails once
+        try (StubControlApi stub = StubControlApi.start().scripting("/start", 200, 500, 200)) {
+            HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
+            control.prepareScenario(); // settles on /reset
+            control.serveConfiguration("metadata");
+            stub.forget();
+
+            // the scenario whose preparation failed reports it
+            assertThatThrownBy(control::prepareScenario).isInstanceOf(IllegalStateException.class);
+            control.prepareScenario();
+
+            // /reset here would have left the metadata configuration serving
+            assertThat(stub.requests()).containsExactly("POST /start?config=default", "POST /start?config=default");
+        }
+    }
+
+    @Test
     @DisplayName("reconnecting clears the disconnect, so the next scenario resets again")
     void reconnectClearsTheDisconnect() throws Exception {
         try (StubControlApi stub = StubControlApi.start()) {
