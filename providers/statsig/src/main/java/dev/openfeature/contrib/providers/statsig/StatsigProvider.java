@@ -1,11 +1,10 @@
 package dev.openfeature.contrib.providers.statsig;
 
-import com.statsig.sdk.APIFeatureGate;
-import com.statsig.sdk.DynamicConfig;
-import com.statsig.sdk.EvaluationReason;
-import com.statsig.sdk.Layer;
-import com.statsig.sdk.Statsig;
-import com.statsig.sdk.StatsigUser;
+import com.statsig.DynamicConfig;
+import com.statsig.FeatureGate;
+import com.statsig.Layer;
+import com.statsig.Statsig;
+import com.statsig.StatsigUser;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
@@ -13,15 +12,11 @@ import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 /** Provider implementation for Statsig. */
 @Slf4j
@@ -32,6 +27,9 @@ public class StatsigProvider extends EventProvider {
 
     private static final String FEATURE_CONFIG_KEY = "feature_config";
     private final StatsigProviderConfig statsigProviderConfig;
+
+    @Getter
+    private Statsig statsig;
 
     /**
      * Constructor.
@@ -50,8 +48,8 @@ public class StatsigProvider extends EventProvider {
      */
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
-        Future<Void> initFuture =
-                Statsig.initializeAsync(statsigProviderConfig.getSdkKey(), statsigProviderConfig.getOptions());
+        statsig = new Statsig(statsigProviderConfig.getSdkKey(), statsigProviderConfig.getOptions());
+        CompletableFuture<Void> initFuture = statsig.initialize();
         initFuture.get();
 
         statsigProviderConfig.postInit();
@@ -65,22 +63,15 @@ public class StatsigProvider extends EventProvider {
 
     @SneakyThrows
     @Override
-    @SuppressFBWarnings(
-            value = {"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"},
-            justification = "reason can be null")
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
         StatsigUser user = ContextTransformer.transform(ctx);
         Boolean evaluatedValue = defaultValue;
         Value featureConfigValue = ctx.getValue(FEATURE_CONFIG_KEY);
         String reason = null;
         if (featureConfigValue == null) {
-            APIFeatureGate featureGate = Statsig.getFeatureGate(user, key);
-            reason = featureGate.getReason().getReason();
-
-            // in case of evaluation failure, remain with default value.
-            if (!assumeFailure(featureGate)) {
-                evaluatedValue = featureGate.getValue();
-            }
+            FeatureGate featureGate = statsig.getFeatureGate(user, key);
+            reason = featureGate.getEvaluationDetails().getReason();
+            evaluatedValue = featureGate.getValue();
         } else {
             FeatureConfig featureConfig = parseFeatureConfig(ctx);
             switch (featureConfig.getType()) {
@@ -101,18 +92,6 @@ public class StatsigProvider extends EventProvider {
                 .value(evaluatedValue)
                 .reason(reason)
                 .build();
-    }
-
-    /*
-    https://github.com/statsig-io/java-server-sdk/issues/22#issuecomment-2002346349
-    failure is assumed by reason, since success status is not returned.
-    */
-    private boolean assumeFailure(APIFeatureGate featureGate) {
-        EvaluationReason reason = featureGate.getReason();
-        return EvaluationReason.DEFAULT.equals(reason)
-                || EvaluationReason.UNINITIALIZED.equals(reason)
-                || EvaluationReason.UNRECOGNIZED.equals(reason)
-                || EvaluationReason.UNSUPPORTED.equals(reason);
     }
 
     @Override
@@ -198,12 +177,12 @@ public class StatsigProvider extends EventProvider {
 
     @SneakyThrows
     protected DynamicConfig fetchDynamicConfig(StatsigUser user, FeatureConfig featureConfig) {
-        return Statsig.getConfigAsync(user, featureConfig.getName()).get();
+        return statsig.getDynamicConfig(user, featureConfig.getName());
     }
 
     @SneakyThrows
     protected Layer fetchLayer(StatsigUser user, FeatureConfig featureConfig) {
-        return Statsig.getLayerAsync(user, featureConfig.getName()).get();
+        return statsig.getLayer(user, featureConfig.getName());
     }
 
     private Value toValue(DynamicConfig dynamicConfig) {
@@ -211,13 +190,6 @@ public class StatsigProvider extends EventProvider {
         mutableContext.add("name", dynamicConfig.getName());
         mutableContext.add("value", Structure.mapToStructure(dynamicConfig.getValue()));
         mutableContext.add("ruleID", dynamicConfig.getRuleID());
-        mutableContext.add("groupName", dynamicConfig.getGroupName());
-        List<Value> secondaryExposures = new ArrayList<>();
-        dynamicConfig.getSecondaryExposures().forEach(secondaryExposure -> {
-            Value value = Value.objectToValue(secondaryExposure);
-            secondaryExposures.add(value);
-        });
-        mutableContext.add("secondaryExposures", secondaryExposures);
         return new Value(mutableContext);
     }
 
@@ -227,17 +199,11 @@ public class StatsigProvider extends EventProvider {
         mutableContext.add("value", Structure.mapToStructure(layer.getValue()));
         mutableContext.add("ruleID", layer.getRuleID());
         mutableContext.add("groupName", layer.getGroupName());
-        List<Value> secondaryExposures = new ArrayList<>();
-        layer.getSecondaryExposures().forEach(secondaryExposure -> {
-            Value value = Value.objectToValue(secondaryExposure);
-            secondaryExposures.add(value);
-        });
-        mutableContext.add("secondaryExposures", secondaryExposures);
-        mutableContext.add("allocatedExperiment", layer.getAllocatedExperiment());
+        mutableContext.add("allocatedExperiment", layer.getAllocatedExperimentName());
         return new Value(mutableContext);
     }
 
-    @NotNull private static FeatureConfig parseFeatureConfig(EvaluationContext ctx) {
+    private static FeatureConfig parseFeatureConfig(EvaluationContext ctx) {
         Value featureConfigValue = ctx.getValue(FEATURE_CONFIG_KEY);
         if (featureConfigValue == null) {
             throw new IllegalArgumentException("feature config not found at evaluation context.");
@@ -262,8 +228,12 @@ public class StatsigProvider extends EventProvider {
     @SneakyThrows
     @Override
     public void shutdown() {
-        log.info("shutdown");
-        Statsig.shutdown();
+        log.info("shutdown begin");
+        if (statsig != null) {
+            CompletableFuture<Void> shutdownFuture = statsig.shutdown();
+            shutdownFuture.get();
+        }
+        log.info("shutdown end");
     }
 
     /** Feature config, as required for evaluation. */
