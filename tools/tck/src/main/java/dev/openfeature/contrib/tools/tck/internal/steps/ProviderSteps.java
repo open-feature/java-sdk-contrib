@@ -91,7 +91,12 @@ public class ProviderSteps extends AbstractSteps {
     @After
     public void tearDown() {
         if (state.domain != null) {
-            OpenFeatureAPI.getInstance().setProvider(state.domain, new NoOpProvider());
+            // Awaited, not fired and forgotten: the provider under test is still holding whatever it
+            // opened against the backend, and the backend is handed to the next scenario as soon as
+            // this hook returns. Swapping without waiting leaves a provider shutting down against a
+            // backend another scenario is already preparing, which costs nothing while every
+            // scenario shares one backend and breaks an event assertion as soon as they do not.
+            OpenFeatureAPI.getInstance().setProviderAndWait(state.domain, new NoOpProvider());
         }
     }
 
