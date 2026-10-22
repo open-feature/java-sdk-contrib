@@ -11,18 +11,18 @@ import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.sdk.FeatureProvider;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifies what {@code should not have been executed} asserts.
+ * What the event assertions read, and what they leave behind.
  *
- * <p>The point of these is the window. A negative assertion taken at one instant cannot tell an
- * event that never fires from one that fires a moment later, and the scenarios that use it mean the
- * first -- so the step has to watch, and a late event has to fail it.
+ * <p>Both halves matter to a chain like stale, then error, then ready: each assertion has to see the
+ * records an earlier one did not claim, or an ordering question is answered from an emptied queue.
  */
 class EventStepsTest {
+
+    private static final String READY = "ready";
 
     private static final String ERROR = "error";
 
@@ -30,12 +30,6 @@ class EventStepsTest {
     private static final class StubHarness implements ProviderTckHarness {
 
         private final InProcessControl control = BackendControl.inProcess();
-
-        private final Duration eventTimeout;
-
-        private StubHarness(Duration eventTimeout) {
-            this.eventTimeout = eventTimeout;
-        }
 
         @Override
         public FeatureProvider createProvider() {
@@ -49,99 +43,84 @@ class EventStepsTest {
 
         @Override
         public Duration eventTimeout() {
-            return eventTimeout;
+            return Duration.ofMillis(300);
         }
     }
 
-    private static EventSteps stepsWith(TckState state, Duration eventTimeout) {
-        StubHarness harness = new StubHarness(eventTimeout);
+    private static EventSteps stepsWith(TckState state) {
+        StubHarness harness = new StubHarness();
         return new EventSteps(state, harness, harness.backendControl());
     }
 
     @Test
-    @DisplayName("an event that never fires passes, and the window is actually waited out")
-    void anAbsenceIsWatchedForTheWholeWindow() {
-        TckState state = new TckState();
-        EventSteps steps = stepsWith(state, Duration.ofMillis(300));
-
-        long started = System.nanoTime();
-        assertThatCode(() -> steps.theEventHandlerShouldNotHaveBeenExecutedWithin(ERROR, 300))
-                .doesNotThrowAnyException();
-
-        assertThat(Duration.ofNanos(System.nanoTime() - started))
-                .as("asserting before the window elapses would only say 'not yet'")
-                .isGreaterThanOrEqualTo(Duration.ofMillis(300));
-    }
-
-    @Test
-    @DisplayName("an event that fires late inside the window fails the assertion")
-    void aLateEventIsNotMistakenForAbsence() {
-        TckState state = new TckState();
-        EventSteps steps = stepsWith(state, Duration.ofMillis(600));
-        CompletableFuture.runAsync(() -> {
-            try {
-                Thread.sleep(150);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-            state.events.add(new ProviderEventRecord(ERROR, null));
-        });
-
-        assertThatThrownBy(() -> steps.theEventHandlerShouldNotHaveBeenExecutedWithin(ERROR, 600))
-                .as("the instant form passed here, which is the bug this step was given a window for")
-                .hasMessageContaining("no error event should have fired");
-    }
-
-    @Test
-    @DisplayName("an event already recorded fails, naming the kind and the window")
-    void anEventAlreadyRecordedFails() {
+    @DisplayName("an event of the forbidden kind recorded first fails the ordering")
+    void anEarlierForbiddenEventFailsTheOrdering() {
         TckState state = new TckState();
         state.events.add(new ProviderEventRecord(ERROR, null));
-        EventSteps steps = stepsWith(state, Duration.ofMillis(200));
+        state.events.add(new ProviderEventRecord(READY, null));
+        EventSteps steps = stepsWith(state);
 
-        assertThatThrownBy(() -> steps.theEventHandlerShouldNotHaveBeenExecutedWithin(ERROR, 200))
-                .hasMessageContaining("no error event should have fired within 200ms");
+        assertThatThrownBy(() -> steps.theEventHandlerShouldHaveBeenExecutedWithNoneBefore(READY, ERROR))
+                .as("the error was recorded before the ready, which is what the scenario forbids")
+                .hasMessageContaining("events recorded before the ready event");
+    }
+
+    @Test
+    @DisplayName("the same records in the other order pass, and the ready is consumed")
+    void theOrderingPassesWhenTheForbiddenEventComesAfter() {
+        TckState state = new TckState();
+        state.events.add(new ProviderEventRecord(READY, null));
+        state.events.add(new ProviderEventRecord(ERROR, null));
+        EventSteps steps = stepsWith(state);
+
+        assertThatCode(() -> steps.theEventHandlerShouldHaveBeenExecutedWithNoneBefore(READY, ERROR))
+                .doesNotThrowAnyException();
+
+        assertThat(state.lastEvent).get().extracting(ProviderEventRecord::type).isEqualTo(READY);
+        assertThat(state.events)
+                .as("the ready was claimed; the error is still there for whatever asks next")
+                .extracting(ProviderEventRecord::type)
+                .containsExactly(ERROR);
+    }
+
+    @Test
+    @DisplayName("an ordering question with nothing recorded at all times out rather than passing")
+    void nothingRecordedIsNotAPass() {
+        TckState state = new TckState();
+        EventSteps steps = stepsWith(state);
+
+        assertThatThrownBy(() -> steps.theEventHandlerShouldHaveBeenExecutedWithNoneBefore(READY, ERROR))
+                .as("it awaits the event it is about; absence is a failure, not a silent pass")
+                .hasMessageContaining("provider event ready");
     }
 
     @Test
     @DisplayName("awaiting one kind of event does not throw away another kind's record")
     void aPositiveAwaitDoesNotEraseTheEvidence() {
         TckState state = new TckState();
-        EventSteps steps = stepsWith(state, Duration.ofMillis(200));
         state.events.add(new ProviderEventRecord(ERROR, null));
         state.events.add(new ProviderEventRecord("change", null));
+        EventSteps steps = stepsWith(state);
 
         steps.theEventHandlerShouldHaveBeenExecuted("change");
 
-        assertThatThrownBy(() -> steps.theEventHandlerShouldNotHaveBeenExecutedWithin(ERROR, 200))
-                .as("the error arrived first; awaiting the change must not make it unobservable")
-                .hasMessageContaining("no error event should have fired");
+        assertThat(state.events)
+                .as("the error arrived first; claiming the change must not make it unobservable")
+                .extracting(ProviderEventRecord::type)
+                .containsExactly(ERROR);
     }
 
     @Test
-    @DisplayName("another kind of event does not fail it")
-    void anotherKindOfEventIsIgnored() {
+    @DisplayName("a second await of the same kind waits for a newer record")
+    void anAwaitClaimsItsOwnRecord() {
         TckState state = new TckState();
-        state.events.add(new ProviderEventRecord("ready", null));
-        EventSteps steps = stepsWith(state, Duration.ofMillis(200));
+        state.events.add(new ProviderEventRecord(READY, null));
+        EventSteps steps = stepsWith(state);
 
-        assertThatCode(() -> steps.theEventHandlerShouldNotHaveBeenExecutedWithin(ERROR, 200))
-                .doesNotThrowAnyException();
-    }
+        steps.theEventHandlerShouldHaveBeenExecuted(READY);
 
-    @Test
-    @DisplayName("the step without a window watches for the harness's event timeout")
-    void theDefaultWindowIsTheHarnessEventTimeout() {
-        TckState state = new TckState();
-        EventSteps steps = stepsWith(state, Duration.ofMillis(400));
-
-        long started = System.nanoTime();
-        assertThatCode(() -> steps.theEventHandlerShouldNotHaveBeenExecuted(ERROR))
-                .doesNotThrowAnyException();
-
-        assertThat(Duration.ofNanos(System.nanoTime() - started))
-                .as("the pair has to be symmetrical: the positive form awaits this same timeout")
-                .isGreaterThanOrEqualTo(Duration.ofMillis(400));
+        assertThatThrownBy(() -> steps.theEventHandlerShouldHaveBeenExecutedWithin(READY, 150))
+                .as("the one record was claimed, so a chain cannot satisfy two awaits with it")
+                .hasMessageContaining("provider event ready");
     }
 }

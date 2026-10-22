@@ -12,6 +12,8 @@ import dev.openfeature.sdk.ProviderEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +25,6 @@ import org.slf4j.LoggerFactory;
 public class EventSteps extends AbstractSteps {
 
     private static final Logger log = LoggerFactory.getLogger(EventSteps.class);
-
-    // Awaitility wants a deadline past the poll delay; this only covers the assertion itself.
-    private static final long SETTLE_SLACK_MS = 250;
 
     public EventSteps(TckState state, ProviderTckHarness harness, BackendControl backend) {
         super(state, harness, backend);
@@ -76,58 +75,58 @@ public class EventSteps extends AbstractSteps {
     }
 
     /**
-     * Asserts that no event of the given kind arrives, within
-     * {@link ProviderTckHarness#eventTimeout()}.
+     * Awaits an event of one kind and asserts that no event of another kind was recorded before it.
      *
-     * @param eventType the event kind
-     */
-    @Then("the {} event handler should not have been executed")
-    public void theEventHandlerShouldNotHaveBeenExecuted(String eventType) {
-        awaitNoEvent(eventType, harness().eventTimeout().toMillis());
-    }
-
-    /**
-     * Asserts that no event of the given kind arrives within an explicit window.
+     * <p>This is how a scenario says "and no error": as an <em>order</em>, not as a window. "No
+     * error event fired" can only be answered for some stretch of time, and at any instant an event
+     * that never fires and one that fires a moment later are the same observation -- so a step
+     * asking it that way either slows every run down or passes because nothing has arrived yet.
+     * "No error before the provider came back ready" is a question about what was recorded, and the
+     * recording answers it with no clock involved.
      *
-     * @param eventType the event kind
-     * @param milliseconds how long to watch for it
+     * @param eventType the event kind to await
+     * @param forbiddenType the event kind that must not have been recorded before it
      */
-    @Then("the {} event handler should not have been executed within {int}ms")
-    public void theEventHandlerShouldNotHaveBeenExecutedWithin(String eventType, int milliseconds) {
-        awaitNoEvent(eventType, milliseconds);
-    }
+    @Then("the {} event handler should have been executed with no {} event before it")
+    public void theEventHandlerShouldHaveBeenExecutedWithNoneBefore(String eventType, String forbiddenType) {
+        log.info("Awaiting {} event with no {} event before it", eventType, forbiddenType);
+        awaitRecorded(eventType, harness().eventTimeout().toMillis());
 
-    /**
-     * Watches for the whole window before answering, because at any single instant absence and
-     * lateness are the same observation: asserting immediately states "no such event <em>yet</em>",
-     * which a provider one scheduler slice slower satisfies while the scenario means it never fires.
-     * The positive form awaits, so the negative form has to watch at least as long to be its
-     * opposite.
-     */
-    private void awaitNoEvent(String eventType, long milliseconds) {
-        log.info("Watching for no {} event ({}ms)", eventType, milliseconds);
-        await().alias("no provider event " + eventType)
-                .pollDelay(milliseconds, MILLISECONDS)
-                .atMost(milliseconds + SETTLE_SLACK_MS, MILLISECONDS)
-                .untilAsserted(() -> assertThat(state.events.stream()
-                                .filter(event -> event.type().equals(eventType))
-                                .findFirst())
-                        .as("no %s event should have fired within %dms", eventType, milliseconds)
-                        .isEmpty());
+        List<String> before = new ArrayList<>();
+        for (ProviderEventRecord record : state.events) {
+            if (record.type().equals(eventType)) {
+                break;
+            }
+            before.add(record.type());
+        }
+        assertThat(before)
+                .as("events recorded before the %s event", eventType)
+                .doesNotContain(forbiddenType);
+        takeEvent(eventType);
     }
 
     private void awaitEvent(String eventType, long milliseconds) {
         log.info("Awaiting {} event (timeout {}ms)", eventType, milliseconds);
+        awaitRecorded(eventType, milliseconds);
+        takeEvent(eventType);
+    }
+
+    private void awaitRecorded(String eventType, long milliseconds) {
         await().alias("provider event " + eventType)
                 .atMost(milliseconds, MILLISECONDS)
                 .pollInterval(10, MILLISECONDS)
                 .until(() ->
                         state.events.stream().anyMatch(event -> event.type().equals(eventType)));
+    }
 
-        // Takes the matched record and nothing else. Draining through the match also discarded
-        // records of other kinds, which a later assertion is entitled to see: an error event that
-        // arrived before an awaited change event would be gone, and "the error event handler should
-        // not have been executed" would then pass because the evidence had been thrown away.
+    /**
+     * Takes the matched record and nothing else.
+     *
+     * <p>Draining through the match would also discard records of other kinds, which a later
+     * assertion is entitled to see: an error event recorded before an awaited ready event would be
+     * gone, and the order assertion above would find nothing left to object to.
+     */
+    private void takeEvent(String eventType) {
         ProviderEventRecord matched = state.events.stream()
                 .filter(event -> event.type().equals(eventType))
                 .findFirst()
