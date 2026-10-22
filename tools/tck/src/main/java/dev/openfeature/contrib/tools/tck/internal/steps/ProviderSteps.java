@@ -77,9 +77,7 @@ public class ProviderSteps extends AbstractSteps {
         try {
             backend().prepareScenario();
         } catch (RuntimeException e) {
-            // Said here because this is where the breakage is visible: a backend that cannot be
-            // brought to the baseline must not be handed to the next scenario, and the object
-            // factory only learns that a scenario ended, never why.
+            // the object factory only learns that a scenario ended, never why
             StackPool.markLeaseBroken();
             throw e;
         }
@@ -91,11 +89,7 @@ public class ProviderSteps extends AbstractSteps {
     @After
     public void tearDown() {
         if (state.domain != null) {
-            // Awaited, not fired and forgotten: the provider under test is still holding whatever it
-            // opened against the backend, and the backend is handed to the next scenario as soon as
-            // this hook returns. Swapping without waiting leaves a provider shutting down against a
-            // backend another scenario is already preparing, which costs nothing while every
-            // scenario shares one backend and breaks an event assertion as soon as they do not.
+            // awaited: the backend goes to the next scenario as soon as this returns
             OpenFeatureAPI.getInstance().setProviderAndWait(state.domain, new NoOpProvider());
         }
     }
