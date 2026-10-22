@@ -2,9 +2,8 @@
 Feature: flag and flag set metadata
 
   # Ported from flagd-testbed gherkin/metadata.feature. The testbed's "a stable flagd provider"
-  # becomes the TCK's "a stable provider", and its "a metadata flagd provider" the "metadata"
-  # launchpad configuration followed by "a stable provider". @file is dropped: this suite has no
-  # file resolver.
+  # becomes the TCK's "a stable provider", and its "a metadata flagd provider" becomes "a stable
+  # provider with "metadata" configuration". @file is dropped: this suite has no file resolver.
 
   Scenario: Returns metadata
     Given a stable provider
@@ -20,8 +19,7 @@ Feature: flag and flag set metadata
   @metadata-provider
   Scenario: Returns flag set metadata
     Given an option "selector" of type "String" with value "rawflags/selector-flag-combined-metadata.json"
-    And the backend serves the "metadata" configuration
-    And a stable provider
+    And a stable provider with "metadata" configuration
     And a Boolean-flag with key "only-set-metadata-flag" and a default value "true"
     When the flag was evaluated with details
     Then the resolved metadata should contain
@@ -38,8 +36,7 @@ Feature: flag and flag set metadata
   @metadata-provider
   Scenario: Flag metadata overwrites flag set metadata
     Given an option "selector" of type "String" with value "rawflags/selector-flag-combined-metadata.json"
-    And the backend serves the "metadata" configuration
-    And a stable provider
+    And a stable provider with "metadata" configuration
     And a Boolean-flag with key "combined-metadata-flag" and a default value "true"
     When the flag was evaluated with details
     Then the resolved metadata should contain

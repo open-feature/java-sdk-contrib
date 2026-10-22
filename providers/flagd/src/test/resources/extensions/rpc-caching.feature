@@ -57,11 +57,12 @@ Feature: Flag evaluation with caching
     Then the reason should be "STATIC"
     When the flag was evaluated with details
     Then the reason should be "CACHED"
-    When the connection is lost for 6s
+    When the connection is lost
     And a stale event was fired
     And the flag was evaluated with details
     Then the reason should be "CACHED"
     When a error event was fired
+    And the connection is restored
     And a ready event was fired
     And the flag was evaluated with details
     Then the reason should be "STATIC"
