@@ -8,7 +8,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +20,9 @@ final class HttpBackendControl implements BackendControl {
 
     private static final Logger log = LoggerFactory.getLogger(HttpBackendControl.class);
 
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+    private static final int REQUEST_TIMEOUT_SECONDS = 30;
+
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS);
 
     private final HttpClient http;
     private final String baseUrl;
@@ -36,8 +37,6 @@ final class HttpBackendControl implements BackendControl {
     // a configuration one scenario asked for, which the next scenario has to be taken off again
     private String scenarioConfiguration;
 
-    // when a timed outage is due to be over, for a control API that answered at its start
-    private Instant outageUntil;
 
     /**
      * Creates a control client for a running backend. No post-command settle; control calls return
@@ -86,7 +85,6 @@ final class HttpBackendControl implements BackendControl {
      */
     @Override
     public void prepareScenario() {
-        awaitOutageEnd();
         if (backendStopped || scenarioConfiguration != null) {
             start();
             // cleared only once the restart succeeded: a /start that failed leaves the scenario's
@@ -131,36 +129,25 @@ final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Issues {@code POST /restart?seconds=...}, and does not wait: whether the control API
-     * answers at the start or the end of the outage is its own choice.
+     * <p>Issues {@code POST /restart?seconds=...} and waits for the answer like any other call,
+     * which is the point of the endpoint: a blocking implementation spends the outage inside the
+     * response, and every language's HTTP client already knows how to wait for that. A timer here
+     * would have to be written once per binding instead.
+     *
+     * <p>An outage is therefore expected to be seconds, comfortably inside the {@value #REQUEST_TIMEOUT_SECONDS}-second
+     * request timeout every call shares; one approaching it would fail the request rather than the
+     * scenario's assertion.
      */
     @Override
     public void disconnectFor(Duration outage) {
-        Instant due = Instant.now().plus(outage);
-        post("/restart?seconds=" + outage.getSeconds(), restartTimeout(outage));
-        // The response says nothing about recovery: an implementation that answered at the start of
-        // the outage leaves the backend down, and the next scenario's /reset would reach nothing. A
-        // blocking one has already spent this time, and the wait below finds nothing left.
-        outageUntil = due;
-        // the backend brings itself back, so the next scenario may reset rather than start
-        backendStopped = false;
-    }
-
-    /**
-     * Waits out whatever is left of a timed outage, so the next scenario prepares a backend that is
-     * up. Costs nothing when the control API answered only once recovery had happened.
-     */
-    private void awaitOutageEnd() {
-        if (outageUntil == null) {
-            return;
-        }
-        Duration remaining = Duration.between(Instant.now(), outageUntil);
-        outageUntil = null;
-        if (remaining.isNegative() || remaining.isZero()) {
-            return;
-        }
-        log.info("waiting {}ms for the backend's timed outage to end", remaining.toMillis());
-        sleep(remaining);
+        post("/restart?seconds=" + outage.getSeconds());
+        // Treated as still down, which costs the next scenario a /start instead of a /reset and
+        // nothing else. The alternative is a timer: the response may arrive as soon as the outage
+        // begins, and the specification is explicit that the TCK does not rely on it being delayed
+        // -- a scenario awaits the provider's own events instead, and sleeping here to find out
+        // whether the backend is back would put that timing in the control client, where this
+        // endpoint exists precisely to avoid it.
+        backendStopped = true;
     }
 
     /**
@@ -242,36 +229,13 @@ final class HttpBackendControl implements BackendControl {
     }
 
     private void post(String path) {
-        post(path, REQUEST_TIMEOUT);
-    }
-
-    private void post(String path, Duration timeout) {
-        expectSuccess(path, send(path, timeout));
-    }
-
-    /**
-     * How long to wait for {@code POST /restart} to answer.
-     *
-     * <p>The control API may answer when the backend goes down or only once it is back, and a
-     * blocking implementation of a 60-second outage answers after 60 seconds. Waiting only
-     * {@link #REQUEST_TIMEOUT} would fail the request -- and the scenario -- for a control API
-     * behaving exactly as specified, so the budget is the outage plus the ordinary one.
-     *
-     * @param outage the outage that was asked for
-     * @return how long the restart request may take
-     */
-    static Duration restartTimeout(Duration outage) {
-        return outage.isNegative() ? REQUEST_TIMEOUT : REQUEST_TIMEOUT.plus(outage);
+        expectSuccess(path, send(path));
     }
 
     private HttpResponse<Void> send(String path) {
-        return send(path, REQUEST_TIMEOUT);
-    }
-
-    private HttpResponse<Void> send(String path, Duration timeout) {
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + path))
                 .POST(HttpRequest.BodyPublishers.noBody())
-                .timeout(timeout)
+                .timeout(REQUEST_TIMEOUT)
                 .build();
         try {
             return http.send(request, HttpResponse.BodyHandlers.discarding());

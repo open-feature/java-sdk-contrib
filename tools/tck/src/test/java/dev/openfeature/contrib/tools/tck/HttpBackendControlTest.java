@@ -176,34 +176,25 @@ class HttpBackendControlTest {
     }
 
     @Test
-    @DisplayName("the scenario after a timed outage waits for the outage to end before preparing")
-    void theNextScenarioWaitsOutTheOutage() throws Exception {
+    @DisplayName("the scenario after a timed outage starts the backend instead of waiting for it")
+    void theNextScenarioStartsRatherThanWaiting() throws Exception {
         try (StubControlApi stub = StubControlApi.start()) {
             HttpBackendControl control = new HttpBackendControl(stub.baseUrl(), "default");
-            control.prepareScenario();
+            control.prepareScenario(); // settles on /reset, which this stub implements
             stub.forget();
 
-            // this stub answers at once, which is the non-blocking half of what /restart permits
-            control.disconnectFor(Duration.ofSeconds(1));
+            // this stub answers at once, which is the half of /restart the specification permits and
+            // tells the TCK not to rely on: the backend may still be down when the scenario ends
+            control.disconnectFor(Duration.ofSeconds(5));
             long started = System.nanoTime();
             control.prepareScenario();
 
+            // /start works whether the outage is over or not, and /reset is not specified to start
+            assertThat(stub.requests()).containsExactly("POST /restart?seconds=5", "POST /start?config=default");
             assertThat(Duration.ofNanos(System.nanoTime() - started))
-                    .as("/reset against a backend still inside its outage reaches nothing")
-                    .isGreaterThanOrEqualTo(Duration.ofMillis(900));
-            assertThat(stub.requests()).containsExactly("POST /restart?seconds=1", "POST /reset");
+                    .as("no timer: the outage's length is the backend's business, not this client's")
+                    .isLessThan(Duration.ofSeconds(1));
         }
-    }
-
-    @Test
-    @DisplayName("a restart request may take the outage it asked for, plus the ordinary budget")
-    void theRestartRequestOutlivesTheOutage() {
-        // a blocking control API answers /restart?seconds=60 after 60 seconds, which is specified
-        assertThat(HttpBackendControl.restartTimeout(Duration.ofSeconds(60))).isEqualTo(Duration.ofSeconds(90));
-        assertThat(HttpBackendControl.restartTimeout(Duration.ZERO)).isEqualTo(Duration.ofSeconds(30));
-        assertThat(HttpBackendControl.restartTimeout(Duration.ofSeconds(-5)))
-                .as("a nonsense outage still gets a sane budget")
-                .isEqualTo(Duration.ofSeconds(30));
     }
 
     @Test
