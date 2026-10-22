@@ -99,9 +99,7 @@ public class EventSteps extends AbstractSteps {
             }
             before.add(record.type());
         }
-        assertThat(before)
-                .as("events recorded before the %s event", eventType)
-                .doesNotContain(forbiddenType);
+        assertThat(before).as("events recorded before the %s event", eventType).doesNotContain(forbiddenType);
         takeEvent(eventType);
     }
 

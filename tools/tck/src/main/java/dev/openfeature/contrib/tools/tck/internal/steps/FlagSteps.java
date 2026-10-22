@@ -9,6 +9,7 @@ import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import dev.openfeature.contrib.tools.tck.TckState;
 import dev.openfeature.contrib.tools.tck.internal.TckValues;
 import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import io.cucumber.datatable.DataTable;
@@ -220,6 +221,62 @@ public class FlagSteps extends AbstractSteps {
         ProviderEventRecord event = state.lastEvent.orElseThrow(
                 () -> new AssertionError("No event has been matched yet; await an event before asserting its payload"));
         assertThat(event.details().getFlagsChanged()).contains(state.flag.key());
+    }
+
+    /**
+     * Asserts typed flag-metadata entries on the last evaluation; an entry the table does not list
+     * is not checked.
+     *
+     * <p>The wording and the columns are the specification's own, from
+     * {@code assets/gherkin/metadata.feature}: flag metadata is spec behaviour, not a vendor's, so
+     * the question belongs here rather than in each adoption's glue.
+     *
+     * @param table rows with {@code key}, {@code metadata_type} and {@code value} columns
+     */
+    @Then("the resolved metadata should contain")
+    public void theResolvedMetadataShouldContain(DataTable table) {
+        ImmutableMetadata metadata = requireMetadata();
+        for (Map<String, String> row : table.asMaps(String.class, String.class)) {
+            String key = row.get("key");
+            String type = row.get("metadata_type");
+            Object expected = TckValues.convert(row.get("value"), type);
+            Object actual;
+            switch (type) {
+                case "String":
+                    actual = metadata.getString(key);
+                    break;
+                case "Boolean":
+                    actual = metadata.getBoolean(key);
+                    break;
+                case "Integer":
+                    actual = metadata.getInteger(key);
+                    break;
+                case "Float":
+                    actual = metadata.getDouble(key);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown metadata type '" + type
+                            + "'. Flag metadata is String, Boolean, Integer or Float.");
+            }
+            assertThat(actual)
+                    .as("metadata '%s' (%s) in %s", key, type, metadata.asUnmodifiableMap())
+                    .isEqualTo(expected);
+        }
+    }
+
+    /** Asserts that the last evaluation carries no flag metadata. */
+    @Then("the resolved metadata is empty")
+    public void theResolvedMetadataIsEmpty() {
+        assertThat(requireMetadata().asUnmodifiableMap())
+                .as("flag metadata")
+                .isEmpty();
+    }
+
+    private ImmutableMetadata requireMetadata() {
+        requireEvaluation();
+        ImmutableMetadata metadata = state.evaluation.getFlagMetadata();
+        assertThat(metadata).as("flag metadata").isNotNull();
+        return metadata;
     }
 
     private void requireEvaluation() {

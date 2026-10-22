@@ -35,7 +35,6 @@ final class HttpBackendControl implements BackendControl {
     // a configuration one scenario asked for, which the next scenario has to be taken off again
     private String scenarioConfiguration;
 
-
     /**
      * Creates a control client for a running backend. No post-command settle; control calls return
      * once the backend has acted.
