@@ -64,8 +64,7 @@ public final class TckObjectFactory implements ObjectFactory {
     public void start() {
         pico = new PicoBuilder().withCaching().build();
         if (StackPool.enabled()) {
-            // one backend per scenario, taken from the warmed pool and returned in stop(); the
-            // pool's size, not this thread's existence, decides how many stand at once
+            // the pool's size, not this thread's existence, decides how many stand at once
             leased = StackPool.acquire();
             lifecycle = leased;
         } else if (lifecycle == null) {

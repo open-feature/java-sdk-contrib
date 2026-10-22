@@ -42,15 +42,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     "fractional-v2",
     "deprecated"
 })
-// Parallel scenario execution, declared here rather than in a module-wide
-// junit-platform.properties: every one of these settings is about *this* suite -- its ContainerPool,
-// its @env-var and @grace tags -- and a file in test resources applies to every suite in the module,
-// including the Provider TCK ones, which then had to pin parallelism off to defend themselves.
+// Declared here rather than in a module-wide junit-platform.properties, which also reached the
+// Provider TCK suites and left them unable to turn parallelism back on.
 @ConfigurationParameter(key = PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, value = "true")
 @ConfigurationParameter(key = PARALLEL_CONFIG_STRATEGY_PROPERTY_NAME, value = "dynamic")
 @ConfigurationParameter(key = PARALLEL_CONFIG_DYNAMIC_FACTOR_PROPERTY_NAME, value = "1")
-// @grace scenarios restart a container and wait for reconnection; two concurrent restarts can push
-// that past the event timeout.
+// Concurrent container restarts can outlast the reconnection timeout.
 @ConfigurationParameter(key = "cucumber.execution.exclusive-resources.grace.read-write", value = "CONTAINER_RESTART")
 @Testcontainers
 public class RunFileTest {
