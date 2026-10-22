@@ -267,9 +267,7 @@ public class FlagSteps extends AbstractSteps {
     /** Asserts that the last evaluation carries no flag metadata. */
     @Then("the resolved metadata is empty")
     public void theResolvedMetadataIsEmpty() {
-        assertThat(requireMetadata().asUnmodifiableMap())
-                .as("flag metadata")
-                .isEmpty();
+        assertThat(requireMetadata().asUnmodifiableMap()).as("flag metadata").isEmpty();
     }
 
     private ImmutableMetadata requireMetadata() {

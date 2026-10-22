@@ -92,7 +92,8 @@ class FlagMetadataStepsTest {
     @Test
     @DisplayName("a value that differs fails, naming the key and what the provider sent")
     void aWrongValueFails() {
-        TckState state = stateWith(ImmutableMetadata.builder().addInteger("integer", 2).build());
+        TckState state =
+                stateWith(ImmutableMetadata.builder().addInteger("integer", 2).build());
 
         assertThatThrownBy(() -> stepsFor(state).theResolvedMetadataShouldContain(table("integer | Integer | 3")))
                 .hasMessageContaining("metadata 'integer' (Integer)");
@@ -113,10 +114,12 @@ class FlagMetadataStepsTest {
     @Test
     @DisplayName("empty metadata satisfies the empty assertion, and anything else does not")
     void theEmptyAssertion() {
-        assertThatCode(() -> stepsFor(stateWith(ImmutableMetadata.builder().build())).theResolvedMetadataIsEmpty())
+        assertThatCode(() ->
+                        stepsFor(stateWith(ImmutableMetadata.builder().build())).theResolvedMetadataIsEmpty())
                 .doesNotThrowAnyException();
 
-        TckState withEntry = stateWith(ImmutableMetadata.builder().addString("a", "b").build());
+        TckState withEntry =
+                stateWith(ImmutableMetadata.builder().addString("a", "b").build());
         assertThatThrownBy(() -> stepsFor(withEntry).theResolvedMetadataIsEmpty())
                 .hasMessageContaining("flag metadata");
     }
@@ -124,7 +127,8 @@ class FlagMetadataStepsTest {
     @Test
     @DisplayName("a metadata type flag metadata cannot carry is refused, not silently compared")
     void anUnknownTypeIsRefused() {
-        TckState state = stateWith(ImmutableMetadata.builder().addString("a", "b").build());
+        TckState state =
+                stateWith(ImmutableMetadata.builder().addString("a", "b").build());
 
         assertThatThrownBy(() -> stepsFor(state).theResolvedMetadataShouldContain(table("a | Object | {}")))
                 .isInstanceOf(IllegalArgumentException.class)
