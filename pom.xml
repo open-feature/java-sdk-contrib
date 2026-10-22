@@ -72,6 +72,14 @@
         <skip.tests>false</skip.tests>
         <!-- whether the `tck` profile fails on a failing conformance scenario; a provider overrides it -->
         <tck.testFailureIgnore>false</tck.testFailureIgnore>
+        <!--
+            How many JVMs the `tck` profile runs conformance suites in. One is the historical
+            behaviour: every suite in one JVM, one after another, each starting and stopping its own
+            backend. Raising it runs suites concurrently, so a provider with two resolver suites
+            spends the longer of the two rather than their sum -- at the cost of that many backends
+            standing at once. Measured per configuration in tools/tck/docs/stack-pool-spike.md.
+        -->
+        <tck.forkCount>1</tck.forkCount>
         <!-- this will throw an error if we use APIs not available in the specified version -->
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
@@ -685,6 +693,8 @@
                                 <exclude>**/*$*</exclude>
                             </excludes>
                             <testFailureIgnore>${tck.testFailureIgnore}</testFailureIgnore>
+                            <!-- 1 keeps every suite in one JVM, as before; see tck.forkCount -->
+                            <forkCount>${tck.forkCount}</forkCount>
                         </configuration>
                     </plugin>
                 </plugins>
