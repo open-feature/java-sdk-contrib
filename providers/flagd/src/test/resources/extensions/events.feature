@@ -5,9 +5,10 @@ Feature: flagd provider state changes
   # canonical events.feature asks in "A configuration change is signalled and applied", together
   # with the changed evaluation it leaves out.
   #
-  # The canonical @stale scenario stops flagd and starts it again on request. These chains instead
-  # take flagd down for a fixed time with the launchpad's /restart, so they ask what the retry grace
-  # period decides: an outage shorter than it ends stale -> ready, a longer one escalates to error.
+  # These chains ask what the retry grace period decides, and they ask it by sequence rather than by
+  # clock: stale -> ready when the connection returns inside the grace period, stale -> error -> ready
+  # when the error assertion has first waited the grace period out. The testbed timed the outage
+  # instead (the launchpad's /restart), which made the same question depend on a 1s or 8s wall clock.
   #
   # Each "should have been executed" drains the recorded events through the one it matched, so the
   # next assertion waits for a newer event and a chain asserts its order.
@@ -25,8 +26,9 @@ Feature: flagd provider state changes
     Given a ready event handler
     And a error event handler
     Then the ready event handler should have been executed
-    When the connection is lost for 8s
+    When the connection is lost
     Then the error event handler should have been executed
+    When the connection is restored
     Then the ready event handler should have been executed
 
   @grace
@@ -35,9 +37,10 @@ Feature: flagd provider state changes
     And a error event handler
     And a stale event handler
     Then the ready event handler should have been executed
-    When the connection is lost for 8s
+    When the connection is lost
     Then the stale event handler should have been executed
     Then the error event handler should have been executed
+    When the connection is restored
     Then the ready event handler should have been executed
 
   @grace
@@ -46,7 +49,8 @@ Feature: flagd provider state changes
     And a error event handler
     And a stale event handler
     Then the ready event handler should have been executed
-    When the connection is lost for 1s
+    When the connection is lost
     Then the stale event handler should have been executed
+    When the connection is restored
     Then the ready event handler should have been executed with no error event before it
     And the error event handler should not have been executed

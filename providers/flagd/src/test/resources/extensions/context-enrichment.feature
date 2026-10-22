@@ -7,9 +7,9 @@ Feature: Context Enrichment
   #
   # The @grace scenarios restore the testbed provider's retry timing (grace period 5s, backoff
   # 500ms capped at 500ms) over the adoption's (grace 2s, backoff capped at the 5000ms default), so
-  # the provider is back within the event timeout once flagd returns after the 6s outage. The RPC
-  # one also restores the testbed's 1000ms deadline: at the adoption's 15000ms an evaluation issued
-  # while flagd is down could wait out the outage and succeed, which is not what it asks.
+  # the provider is back within the event timeout once the connection is restored. The RPC one also
+  # restores the testbed's 1000ms deadline: at the adoption's 15000ms an evaluation issued while
+  # flagd is down could outlast the outage and succeed, which is not what it asks.
   #
   # The testbed's @caching is renamed @flagd-caching: the TCK reserves @caching and refuses a
   # scenario that carries it.
@@ -32,11 +32,12 @@ Feature: Context Enrichment
     And a ready event handler
     When the flag was evaluated with details
     Then the resolved details value should be "INTERNAL"
-    When the connection is lost for 6s
+    When the connection is lost
     And a stale event was fired
     When the flag was evaluated with details
     Then the resolved details value should be "INTERNAL"
-    When a ready event was fired
+    When the connection is restored
+    And a ready event was fired
 
   @grace @rpc
   Scenario: Use enriched context on connection error for RPC
@@ -50,11 +51,12 @@ Feature: Context Enrichment
     And a ready event handler
     When the flag was evaluated with details
     Then the resolved details value should be "INTERNAL"
-    When the connection is lost for 6s
+    When the connection is lost
     And a stale event was fired
     When the flag was evaluated with details
     Then the resolved details value should be "not"
-    When a ready event was fired
+    When the connection is restored
+    And a ready event was fired
 
   @rpc @flagd-caching
   Scenario: Use enriched context on RPC connection will not cache the value
