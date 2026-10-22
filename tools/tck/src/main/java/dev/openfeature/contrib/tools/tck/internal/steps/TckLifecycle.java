@@ -51,12 +51,17 @@ final class TckLifecycle {
         AdopterTags.requireValid(harness.getClass());
         startFailure.set(null);
         suiteRunning = true;
+        // after the declarations are validated, so a suite that cannot run does not spend four
+        // Compose startups finding that out
+        StackPool.warm(() -> start(discoverHarness()));
     }
 
-    /** Stops every lifecycle this suite started. */
+    /** Stops every lifecycle this suite started, pooled or per-thread. */
     static void endSuite() {
         suiteRunning = false;
         startFailure.set(null);
+        // the pooled backends are in `started` too, so dropping the leases is all this needs
+        StackPool.drain();
         List<TckLifecycle> toStop;
         synchronized (started) {
             toStop = new ArrayList<>(started);
