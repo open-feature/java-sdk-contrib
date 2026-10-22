@@ -358,3 +358,35 @@ FlagdOptions options = FlagdOptions.builder()
       .resolverType(Config.Resolver.IN_PROCESS)
       .build();
 ```
+
+## Provider conformance (TCK)
+
+This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md), once per resolver:
+`RpcTest` and `InProcessTest`, both over the shared `AbstractResolverTest` in
+`src/test/java/.../flagd/tck/`. **Read that class before changing either.** It records, against
+measured behaviour rather than assumption, which capabilities are declared, which are withheld and
+why, and every known deviation — that reasoning is the most valuable thing about this adoption and it
+lives next to the declaration rather than here.
+
+```bash
+mvn -Ptck -pl providers/flagd -am test                                    # both resolvers
+mvn -Ptck -pl providers/flagd -am -Dtest=InProcessTest     -Dsurefire.failIfNoSpecifiedTests=false test                          # one
+```
+
+The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other module's tests.
+
+**`-Pe2e` does not run these suites.** The root pom excludes every provider's `tck` package from
+the default build and from `-Pe2e`, and its `tck` profile runs only that package. This module
+excludes just `**/e2e/*.java`, which the `e2e` profile clears.
+
+**CI runs them in a job of their own**, `Provider TCK` in `ci.yml`, on every pull request. It
+is red until the failures below are fixed, which is the point: the known state stays visible, and it
+sits apart from the `main` matrix so it cannot be read as a regression there. Set
+`tck.testFailureIgnore` to `true` in this module's pom, or pass `-Dtck.testFailureIgnore=true`, to
+report the failures without failing the build.
+
+Both suites are **expected to fail**, identically: 65 scenarios each, 59 passing, 2 skipped, 4
+failing. Three of the four failures come from flags the pinned `flagd-testbed` image does not serve
+(open-feature/flagd-testbed#392) and one is the real numeric-coercion defect, declared and left
+visible rather than skipped (open-feature/flagd#1996). `AbstractResolverTest` enumerates them by name.
+Anything else is a regression.
