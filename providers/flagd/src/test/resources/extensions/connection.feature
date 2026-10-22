@@ -18,10 +18,9 @@ Feature: flagd provider disconnect and reconnect
 
   @rpc @in-process @file @customCert
   Scenario: Connection with a custom certificate
-    Given the backend serves the "ssl" configuration
-    And an option "tls" of type "Boolean" with value "true"
+    Given an option "tls" of type "Boolean" with value "true"
     And an option "certPath" of type "String" with value "test-harness/ssl/custom-root-cert.crt"
-    And a stable provider
+    And a stable provider with "ssl" configuration
     And a Boolean-flag with key "boolean-flag" and a default value "false"
     When the flag was evaluated with details
     Then the resolved details value should be "true"
@@ -34,23 +33,24 @@ Feature: flagd provider disconnect and reconnect
     And a ready event handler
     And a error event handler
     When a ready event was fired
-    When the connection is lost for 8s
+    When the connection is lost
     Then the error event handler should have been executed
+    When the connection is restored
     Then the ready event handler should have been executed
 
   @rpc @in-process @file @reconnect @customCert
   Scenario: Provider reconnection with a custom certificate
-    Given the backend serves the "ssl" configuration
-    And an option "tls" of type "Boolean" with value "true"
+    Given an option "tls" of type "Boolean" with value "true"
     And an option "certPath" of type "String" with value "test-harness/ssl/custom-root-cert.crt"
     And an option "retryGracePeriod" of type "Integer" with value "5"
     And an option "retryBackoffMaxMs" of type "Integer" with value "500"
-    And a stable provider
+    And a stable provider with "ssl" configuration
     And a ready event handler
     And a error event handler
     When a ready event was fired
-    When the connection is lost for 8s
+    When the connection is lost
     Then the error event handler should have been executed
+    When the connection is restored
     Then the ready event handler should have been executed
 
   @rpc @in-process @file @unavailable
@@ -96,8 +96,9 @@ Feature: flagd provider disconnect and reconnect
     And a ready event handler
     And a error event handler
     When a ready event was fired
-    When the connection is lost for 8s
+    When the connection is lost
     Then the error event handler should have been executed
+    When the connection is restored
     Then the ready event handler should have been executed
 
   @targetURI @in-process @reconnect @grace
@@ -110,7 +111,8 @@ Feature: flagd provider disconnect and reconnect
     And a stale event handler
     And a error event handler
     When a ready event was fired
-    When the connection is lost for 8s
+    When the connection is lost
     Then the stale event handler should have been executed
     Then the error event handler should have been executed
+    When the connection is restored
     Then the ready event handler should have been executed
