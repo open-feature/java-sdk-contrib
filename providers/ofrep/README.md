@@ -72,3 +72,31 @@ Given below are the supported configurations:
 | proxySelector      | ProxySelector  | ProxySelector.getDefault() | The proxy selector used by HTTP Client.
 | executor      | Executor  | Thread Pool of size 5 | The executor used by HTTP Client.
 
+
+## Provider conformance (TCK)
+
+This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md) as a single suite,
+`OfrepTest`, in `src/test/java/.../ofrep/tck/`. **Read that class before changing it.** It records
+which capabilities are declared, which are withheld and why — several are withheld because OFREP puts
+the decision on the server rather than in the provider, which is a fact about the protocol and not a
+defect — and every known deviation. Because OFREP is a protocol rather than a vendor, the backend
+under test is simply something that speaks it: the suite reuses the unmodified `flagd-testbed` image
+and its launchpad control API.
+
+```bash
+mvn -Ptck -pl providers/ofrep -am test
+```
+
+The suite is Docker-gated. The root pom excludes every provider's `tck` package from the default
+build and its `tck` profile runs only that package, so `-am` adds no other module's tests.
+
+**CI runs it** in the `Provider TCK` job, apart from the main matrix. Set
+`tck.testFailureIgnore` to `true` in this module's pom to report the failures without failing it.
+
+A clean run is **65 scenarios: 46 passing, 17 skipped, 2 failing**, the two failures being flags the
+pinned testbed image does not serve (open-feature/flagd-testbed#392). It is also **intermittently
+flaky** — about half the runs carry one or two extra failures where an evaluation comes back as the
+code default or as `FLAG_NOT_FOUND`, on a scenario that moves from run to run. That is the testbed
+readiness window of open-feature/flagd-testbed#394, not a provider defect and not something to cover
+with a sleep; `OfrepTest`'s javadoc has the detail. Repeat the run before treating an extra failure as
+a regression — anything that reproduces is one.
