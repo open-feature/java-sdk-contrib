@@ -27,6 +27,7 @@ import org.junit.platform.suite.api.Suite;
 @ConfigurationParameter(
         key = Constants.EXECUTION_MODE_FEATURE_PROPERTY_NAME,
         value = ProviderTck.FEATURE_EXECUTION_MODE)
+@ConfigurationParameter(key = Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, value = ProviderTck.PARALLEL)
 @ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = ProviderTck.ALL_GLUE)
 @ConfigurationParameter(key = Constants.OBJECT_FACTORY_PROPERTY_NAME, value = ProviderTck.OBJECT_FACTORY)
 public abstract class ProviderTckTest implements ProviderTckHarness {}
