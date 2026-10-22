@@ -9,9 +9,13 @@ import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
 import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
  * Shared configuration for running the OpenFeature Provider TCK against the flagd provider.
@@ -30,7 +34,7 @@ import java.util.Set;
  * is the flagd-testbed readiness window of open-feature/flagd-testbed#394, and it is deliberately
  * not papered over with a sleep here; repeat a run before treating an extra failure as a regression.
  */
-abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
+abstract class AbstractResolverTest extends ContainerizedProviderTckTest implements FlagdTckHarness {
 
     /**
      * A port nothing listens on, for the initialisation-failure scenarios.
@@ -68,8 +72,11 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      */
     private static final int UNAVAILABLE_DEADLINE_MS = 1000;
 
+    /** Per-scenario option changes recorded by the extension steps; see {@link FlagdTckHarness}. */
+    private final List<Consumer<FlagdOptions.FlagdOptionsBuilder>> customizations = new CopyOnWriteArrayList<>();
+
     /** The resolver under test. */
-    protected abstract Config.Resolver resolver();
+    public abstract Config.Resolver resolver();
 
     /** The container-internal port that resolver connects to. */
     protected abstract int backendPort();
@@ -77,12 +84,26 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Outside this module on purpose: the OFREP adoption runs against the same stack and names the
-     * same file, so there is one image tag for both rather than two that can drift.
+     * <p>The flagd-testbed's own stack, from the {@code test-harness} submodule the legacy e2e suites
+     * also run, so the image tag follows the submodule. It adds an envoy sidecar, which the
+     * {@code @targetURI} and {@code @forbidden} extension scenarios connect through; no canonical
+     * scenario reaches it.
      */
     @Override
     public File composeFile() {
-        return new File("../../tools/flagd-testbed/docker-compose.yaml");
+        return new File("test-harness/docker-compose.yaml");
+    }
+
+    /** The testbed's compose file names the flagd service {@code flagd}. */
+    @Override
+    public String backendService() {
+        return "flagd";
+    }
+
+    /** The envoy sidecar's two listeners; see {@link #composeFile()}. */
+    @Override
+    public Map<String, List<Integer>> additionalPorts() {
+        return Collections.singletonMap(ENVOY_SERVICE, Arrays.asList(ENVOY_ROUTING_PORT, ENVOY_FORBIDDEN_PORT));
     }
 
     @Override
@@ -92,20 +113,40 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
     @Override
     public FeatureProvider createProvider(BackendEndpoint endpoint) {
-        return new FlagdProvider(baseOptions()
-                .deadline(CONNECTED_DEADLINE_MS)
-                .host(endpoint.host())
-                .port(endpoint.port(backendPort()))
+        return new FlagdProvider(customized(baseOptions()
+                        .deadline(CONNECTED_DEADLINE_MS)
+                        .host(endpoint.host())
+                        .port(endpoint.port(backendPort())))
                 .build());
     }
 
     @Override
     public FeatureProvider createUnavailableProvider() {
-        return new FlagdProvider(baseOptions()
-                .deadline(UNAVAILABLE_DEADLINE_MS)
-                .host("localhost")
-                .port(UNAVAILABLE_PORT)
+        return new FlagdProvider(customized(baseOptions()
+                        .deadline(UNAVAILABLE_DEADLINE_MS)
+                        .host("localhost")
+                        .port(UNAVAILABLE_PORT))
                 .build());
+    }
+
+    @Override
+    public void customize(Consumer<FlagdOptions.FlagdOptionsBuilder> customization) {
+        customizations.add(customization);
+    }
+
+    @Override
+    public void resetCustomizations() {
+        customizations.clear();
+    }
+
+    @Override
+    public BackendEndpoint backendEndpoint() {
+        return endpoint();
+    }
+
+    @Override
+    public String launchpadUrl() {
+        return "http://" + endpoint().host() + ":" + endpoint().port(controlPort());
     }
 
     /**
@@ -180,6 +221,11 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
                         + "third scenario also fails, but for an unrelated reason that is not "
                         + "flagd's: integral-float-flag is absent from the pinned flagd-testbed "
                         + "image, open-feature/flagd-testbed#392."));
+    }
+
+    private FlagdOptions.FlagdOptionsBuilder customized(FlagdOptions.FlagdOptionsBuilder builder) {
+        customizations.forEach(customization -> customization.accept(builder));
+        return builder;
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {
