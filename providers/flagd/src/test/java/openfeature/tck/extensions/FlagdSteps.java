@@ -1,6 +1,5 @@
 package openfeature.tck.extensions;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;
