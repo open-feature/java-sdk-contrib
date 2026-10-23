@@ -313,6 +313,11 @@ public class SyncStreamQueueSource implements QueueSource {
         String message = throwable.getMessage();
         if (fatalStatusCodes.contains(status.getCode().name())) {
             shutdown();
+        } else if (Status.Code.DEADLINE_EXCEEDED.equals(status.getCode()) && observer.receivedData) {
+            // the stream deadline is an application-layer keepalive: a healthy stream reaching it is expected,
+            // so reconnect immediately without signaling an error (flagd re-sends the full state on reconnect)
+            log.debug("Sync stream deadline reached, reconnecting");
+            return;
         } else {
             log.debug("Stream error: {}, will restart", message, throwable);
             enqueue(QueuePayload.ERROR);
@@ -334,6 +339,7 @@ public class SyncStreamQueueSource implements QueueSource {
 
         private Struct metadata;
         private Throwable throwable;
+        private volatile boolean receivedData;
 
         public SyncStreamObserver(BlockingQueue<QueuePayload> outgoingQueue) {
             this.outgoingQueue = outgoingQueue;
@@ -343,6 +349,7 @@ public class SyncStreamQueueSource implements QueueSource {
         public void onNext(SyncFlagsResponse syncFlagsResponse) {
             final String data = syncFlagsResponse.getFlagConfiguration();
             log.debug("Got stream response: {}", data);
+            receivedData = true;
 
             Struct syncContext = syncFlagsResponse.hasSyncContext() ? syncFlagsResponse.getSyncContext() : metadata;
 
