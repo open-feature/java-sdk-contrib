@@ -20,8 +20,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class MetricsHookTest {
     private final HookContext<String> commonHookContext = HookContext.<String>builder()
@@ -264,5 +271,50 @@ class MetricsHookTest {
         assertThat(attributes.get(AttributeKey.longKey("integer"))).isEqualTo(1);
         assertThat(attributes.get(AttributeKey.booleanKey("boolean"))).isEqualTo(true);
         assertThat(attributes.get(AttributeKey.stringKey("scope"))).isEqualTo("value");
+    }
+
+    @ParameterizedTest
+    @MethodSource("nullAttributeOptions")
+    public void otel_should_not_log_warnings_when_attributes_are_null(MetricHookOptions options) {
+        final List<String> badLogs = new ArrayList<>();
+        final Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getLevel().intValue() >= Level.WARNING.intValue()) {
+                    badLogs.add(record.getMessage());
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
+        final Logger rootLogger = Logger.getLogger("");
+        rootLogger.addHandler(handler);
+
+        try {
+            final MetricsHook metricHook = new MetricsHook(telemetryExtension.getOpenTelemetry(), options);
+
+            metricHook.error(commonHookContext, new RuntimeException(), null);
+            metricHook.after(
+                    commonHookContext,
+                    FlagEvaluationDetails.<String>builder()
+                            .value("variant_value")
+                            .build(),
+                    null);
+        } finally {
+            rootLogger.removeHandler(handler);
+        }
+
+        assertThat(badLogs).isEmpty();
+    }
+
+    private static Stream<MetricHookOptions> nullAttributeOptions() {
+        return Stream.of(
+                MetricHookOptions.builder().build(),
+                MetricHookOptions.builder().extraAttributes(null).build(),
+                MetricHookOptions.builder().attributeSetter(m -> null).build());
     }
 }
