@@ -19,6 +19,7 @@ import io.opentelemetry.api.metrics.Meter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +78,7 @@ public class MetricsHook implements Hook {
 
         dimensionDescriptions = Collections.unmodifiableList(options.getSetDimensions());
         extractor = options.getAttributeSetter();
-        extraDimensions = options.getExtraAttributes();
+        extraDimensions = Objects.requireNonNullElse(options.getExtraAttributes(), Attributes.empty());
     }
 
     @Override
@@ -116,7 +117,10 @@ public class MetricsHook implements Hook {
         }
 
         if (extractor != null) {
-            attributesBuilder.putAll(extractor.apply(details.getFlagMetadata()));
+            final Attributes attributes = extractor.apply(details.getFlagMetadata());
+            if (attributes != null) {
+                attributesBuilder.putAll(attributes);
+            }
         }
 
         evaluationSuccessCounter.add(+1, attributesBuilder.build());
