@@ -379,14 +379,18 @@ The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other
 the default build and from `-Pe2e`, and its `tck` profile runs only that package. This module
 excludes just `**/e2e/*.java`, which the `e2e` profile clears.
 
-**CI runs them in a job of their own**, `Provider TCK` in `ci.yml`, on every pull request. It
-is red until the failures below are fixed, which is the point: the known state stays visible, and it
-sits apart from the `main` matrix so it cannot be read as a regression there. Set
+**CI runs them in a job of their own**, `Provider TCK` in `ci.yml`, on every pull request. It sits
+apart from the `main` matrix so the one remaining failure cannot be read as a regression there. Set
 `tck.testFailureIgnore` to `true` in this module's pom, or pass `-Dtck.testFailureIgnore=true`, to
-report the failures without failing the build.
+report failures without failing the build.
 
-Both suites are **expected to fail**, identically: 65 scenarios each, 59 passing, 2 skipped, 4
-failing. Three of the four failures come from flags the pinned `flagd-testbed` image does not serve
-(open-feature/flagd-testbed#392) and one is the real numeric-coercion defect, declared and left
-visible rather than skipped (open-feature/flagd#1996). `AbstractResolverTest` enumerates them by name.
-Anything else is a regression.
+On `flagd-testbed` v3.11.0, 65 scenarios and 2 skipped in each mode: **RPC passes all 63**, and
+in-process passes 62 and fails one, "A float flag is not silently narrowed to an integer". That one
+is declared and left visible rather than skipped, and `InProcessTest.knownDeviations()` says why:
+`FlagdCore` truncates a `Double` to an `int` without checking that it loses nothing, so in-process
+discards the fraction where flagd has reported `TYPE_MISMATCH` since v0.18.1. Anything else is a
+regression.
+
+The two skips are the withheld `@reinitialization` and `@large-integers`, which the Java SDK cannot
+ask for. The three scenarios that used to fail on flags the testbed did not serve
+(open-feature/flagd-testbed#392) pass from v3.11.0 on.

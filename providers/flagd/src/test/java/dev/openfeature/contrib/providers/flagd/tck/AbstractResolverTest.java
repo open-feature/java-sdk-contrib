@@ -6,7 +6,6 @@ import dev.openfeature.contrib.providers.flagd.FlagdProvider;
 import dev.openfeature.contrib.tools.tck.BackendEndpoint;
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
-import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Collections;
@@ -20,11 +19,10 @@ import java.util.Set;
  * remotely over gRPC, while in-process syncs the ruleset and evaluates locally. They share a backend
  * stack and differ only in resolver and port, so the modes are two small subclasses.
  *
- * <p>Three scenarios fail in both modes on flags the pinned testbed image does not serve
- * (open-feature/flagd-testbed#392): the untagged 32-bit precision scenario, the {@code @variants}
- * row asking for {@code large-integer-flag}'s {@code max-int32}, and the {@code @numeric-coercion}
- * scenario "An integral float requested as an integer is coerced without loss". None is a
- * {@link KnownDeviation} — the provider was never given the flag to get wrong.
+ * <p>RPC passes the whole suite. In-process fails one scenario, and only one: see
+ * {@link InProcessTest#knownDeviations()}. Three scenarios used to fail in both modes on flags the
+ * testbed did not serve; flagd-testbed v3.11.0 ships them (open-feature/flagd-testbed#392) and they
+ * pass.
  *
  * <p>A run occasionally carries one failure beyond those, of a shape that moves between runs. That
  * is the flagd-testbed readiness window of open-feature/flagd-testbed#394, and it is deliberately
@@ -122,17 +120,14 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      *
      * <p>Everything declarable except {@link Capability#REINITIALIZATION}, each declaration on
      * evidence from a run or from the provider's source rather than inherited from the "everything
-     * except" default. Measured on the pinned image, both modes: 65 scenarios, 59 passing, 2 skipped
-     * — the withheld {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot ask
-     * — and 4 failing, the one real defect plus the three testbed gaps above. That covers
-     * {@link Capability#STANDARD_REASONS}, {@link Capability#TARGETING} and
-     * {@link Capability#DISABLED_FLAGS}, whose scenarios all pass, and
-     * {@link Capability#VARIANTS}, where seven of the eight {@code @variants} rows pass and the
-     * eighth is a testbed gap.
+     * except" default. Measured on v3.11.0: 65 scenarios and 2 skipped in both modes — the withheld
+     * {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot ask — with 63
+     * passing on RPC and 62 on in-process, whose one failure is
+     * {@link InProcessTest#knownDeviations()}.
      *
-     * <p>{@link Capability#NUMERIC_COERCION} is declared even though one of its scenarios fails.
-     * flagd <em>does</em> attempt the coercion — "An integer requested as a float is widened without
-     * loss" passes — and gets the lossy direction wrong. See {@link #knownDeviations()}.
+     * <p>{@link Capability#NUMERIC_COERCION} is declared on both, and is where the two modes now
+     * differ: RPC evaluates in flagd, which enforces the lossy half since v0.18.1, while in-process
+     * evaluates here and does not.
      *
      * <p>{@link Capability#STRING_TYPING} and {@link Capability#FULLY_TYPED_VALUES} are both declared,
      * and all four of their scenarios pass in both modes. flagd's flag definitions carry a JSON type
@@ -162,33 +157,6 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     @Override
     public Set<Capability> capabilities() {
         return Capability.declarableExcept(Capability.REINITIALIZATION);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>One entry, for the declared-and-failing {@link Capability#NUMERIC_COERCION}. Tracked against
-     * flagd's numeric coercion ADR, which is where the rule it deviates from is settled. The summary
-     * names which half is broken, because "flagd coerces numbers" on its own reads as a description
-     * of intended behaviour, and says that the tag's third failure is the absent
-     * {@code integral-float-flag} rather than flagd's. Delete the entry once the lossy case reports
-     * {@code TYPE_MISMATCH}; the capability needs no change then.
-     */
-    @Override
-    public List<KnownDeviation> knownDeviations() {
-        return Collections.singletonList(KnownDeviation.tracked(
-                Capability.NUMERIC_COERCION,
-                "https://github.com/open-feature/flagd/issues/1996",
-                "The lossy half of the coercion rule is not enforced: evaluating float-flag (0.5) "
-                        + "through the integer API returns 0 with no error code, rather than "
-                        + "TYPE_MISMATCH with the code default, so the fractional part is discarded "
-                        + "silently. flagd does widen an integer to a float correctly, which is why "
-                        + "the capability is declared and the scenario left to fail rather than the "
-                        + "capability withheld. Both resolvers behave identically, which places it "
-                        + "in the shared provider layer rather than in either transport. The tag's "
-                        + "third scenario also fails, but for an unrelated reason that is not "
-                        + "flagd's: integral-float-flag is absent from the pinned flagd-testbed "
-                        + "image, open-feature/flagd-testbed#392."));
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {
