@@ -99,10 +99,11 @@ class FlagdCoreTest {
 
     @Test
     void resolveIntegerValue_doubleBeyondIntRange_reportsTypeMismatch() {
-        // intValue() would have clamped this to Integer.MAX_VALUE
+        // intValue() would have clamped this to Integer.MAX_VALUE. 1e18 is an integer, so the
+        // message has to say which problem it is rather than calling it a fraction.
         assertThatThrownBy(() -> flagdCore.resolveIntegerValue("hugeDoubleFlag", -1, new ImmutableContext()))
                 .isInstanceOf(TypeMismatchError.class)
-                .hasMessageContaining("not an integer");
+                .hasMessageContaining("outside the range of a 32-bit integer");
     }
 
     @Test

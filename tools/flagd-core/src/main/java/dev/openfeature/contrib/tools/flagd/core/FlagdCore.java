@@ -289,19 +289,24 @@ public class FlagdCore implements Evaluator {
      * @param value the resolved number
      * @param key the flag it came from, named in the message
      * @return the value as an int
-     * @throws TypeMismatchError if narrowing would lose information
+     * @throws TypeMismatchError if the value is not an integer, or is one an int cannot hold
      */
     private static int narrowedToInt(double value, String key) {
-        boolean exact = Double.isFinite(value)
-                && value == Math.floor(value)
-                && value >= Integer.MIN_VALUE
-                && value <= Integer.MAX_VALUE;
-        if (!exact) {
-            String message = String.format("flagKey: %s resolved to %s, which is not an integer", key, value);
-            log.debug(message);
-            throw new TypeMismatchError(message);
+        // Math.floor leaves an infinity alone and NaN is equal to nothing, so the first test takes
+        // NaN and every fraction, and the second takes the infinities along with the merely too big.
+        if (value != Math.floor(value)) {
+            throw mismatch(key, value, "is not an integer");
+        }
+        if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+            throw mismatch(key, value, "is outside the range of a 32-bit integer");
         }
         return (int) value;
+    }
+
+    private static TypeMismatchError mismatch(String key, double value, String why) {
+        String message = String.format("flagKey: %s resolved to %s, which %s", key, value, why);
+        log.debug(message);
+        return new TypeMismatchError(message);
     }
 
     private static ImmutableMetadata getFlagMetadata(Map<String, Object> currentFlagSetMetadata, FeatureFlag flag) {
