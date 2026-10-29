@@ -2,12 +2,14 @@ package dev.openfeature.contrib.tools.flagd.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.openfeature.contrib.tools.flagd.api.FlagStoreException;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -68,6 +70,39 @@ class FlagdCoreTest {
 
         assertThat(result.getValue()).isEqualTo(3.14);
         assertThat(result.getVariant()).isEqualTo("pi");
+    }
+
+    @Test
+    void resolveDoubleValue_integerFlag_widensWithoutLoss() {
+        ProviderEvaluation<Double> result = flagdCore.resolveDoubleValue("intFlag", -1.0, new ImmutableContext());
+
+        assertThat(result.getValue()).isEqualTo(1.0);
+        assertThat(result.getVariant()).isEqualTo("one");
+    }
+
+    @Test
+    void resolveIntegerValue_integralDouble_narrowsWithoutLoss() {
+        ProviderEvaluation<Integer> result =
+                flagdCore.resolveIntegerValue("integralDoubleFlag", -1, new ImmutableContext());
+
+        assertThat(result.getValue()).isEqualTo(10);
+        assertThat(result.getVariant()).isEqualTo("ten");
+    }
+
+    @Test
+    void resolveIntegerValue_fractionalDouble_reportsTypeMismatch() {
+        // 3.14 as 3 would be indistinguishable from a flag that really is 3
+        assertThatThrownBy(() -> flagdCore.resolveIntegerValue("doubleFlag", -1, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class)
+                .hasMessageContaining("not an integer");
+    }
+
+    @Test
+    void resolveIntegerValue_doubleBeyondIntRange_reportsTypeMismatch() {
+        // intValue() would have clamped this to Integer.MAX_VALUE
+        assertThatThrownBy(() -> flagdCore.resolveIntegerValue("hugeDoubleFlag", -1, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class)
+                .hasMessageContaining("not an integer");
     }
 
     @Test
