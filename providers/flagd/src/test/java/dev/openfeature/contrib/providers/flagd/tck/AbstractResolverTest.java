@@ -77,12 +77,21 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Outside this module on purpose: the OFREP adoption runs against the same stack and names the
-     * same file, so there is one image tag for both rather than two that can drift.
+     * <p>The flagd-testbed's own stack, from the {@code test-harness} submodule the legacy e2e suites
+     * also run, so the image tag follows the submodule pin rather than a second copy of it. A
+     * hand-maintained compose file beside it was the alternative, and it drifted: it still named
+     * v3.10.3 while the submodule had moved on, which is exactly the comparison this suite cannot
+     * afford to get wrong.
      */
     @Override
     public File composeFile() {
-        return new File("../../tools/flagd-testbed/docker-compose.yaml");
+        return new File("test-harness/docker-compose.yaml");
+    }
+
+    /** The testbed's compose file names the flagd service {@code flagd}. */
+    @Override
+    public String backendService() {
+        return "flagd";
     }
 
     @Override
