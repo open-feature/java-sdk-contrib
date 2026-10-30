@@ -15,6 +15,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class FlagdCoreTest {
 
@@ -70,6 +72,36 @@ class FlagdCoreTest {
 
         assertThat(result.getValue()).isEqualTo(3.14);
         assertThat(result.getVariant()).isEqualTo("pi");
+    }
+
+    private static final String LONG_FLAGS = "{\"flags\":{"
+            + "\"long\":{\"state\":\"ENABLED\",\"variants\":{\"v\":9000000000},\"defaultVariant\":\"v\"},"
+            + "\"max-safe\":{\"state\":\"ENABLED\",\"variants\":{\"v\":9007199254740991},\"defaultVariant\":\"v\"},"
+            + "\"over-safe\":{\"state\":\"ENABLED\",\"variants\":{\"v\":9007199254740992},\"defaultVariant\":\"v\"}"
+            + "}}";
+
+    @ParameterizedTest
+    @CsvSource({"long,9000000000", "max-safe,9007199254740991"})
+    void resolveDoubleValue_longFlag_widensWithoutLoss(String key, double expected) throws FlagStoreException {
+        flagdCore.setFlags(LONG_FLAGS);
+        ProviderEvaluation<Double> result = flagdCore.resolveDoubleValue(key, -1.0, new ImmutableContext());
+
+        assertThat(result.getErrorCode()).isNull();
+        assertThat(result.getValue()).isEqualTo(expected);
+    }
+
+    @Test
+    void resolveDoubleValue_outsideSafeRange_reportsTypeMismatch() throws FlagStoreException {
+        flagdCore.setFlags(LONG_FLAGS);
+        assertThatThrownBy(() -> flagdCore.resolveDoubleValue("over-safe", -1.0, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class);
+    }
+
+    @Test
+    void resolveIntegerValue_longFlag_reportsTypeMismatch() throws FlagStoreException {
+        flagdCore.setFlags(LONG_FLAGS);
+        assertThatThrownBy(() -> flagdCore.resolveIntegerValue("long", -1, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class);
     }
 
     @Test
