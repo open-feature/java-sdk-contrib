@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v3.0.0...dev.openfeature.contrib.tools.flagdcore-v4.0.0) (2026-10-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **flagd-core:** stop narrowing a number to an integer when that loses something ([#1957](https://github.com/open-feature/java-sdk-contrib/issues/1957))
+
+### 🐛 Bug Fixes
+
+* **flagd-core:** stop narrowing a number to an integer when that loses something ([#1957](https://github.com/open-feature/java-sdk-contrib/issues/1957)) ([5f144ad](https://github.com/open-feature/java-sdk-contrib/commit/5f144ad47c76e8023c79425c4e7e563b9e475f78))
+
 ## [3.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.4...dev.openfeature.contrib.tools.flagdcore-v3.0.0) (2026-10-15)
 
 
