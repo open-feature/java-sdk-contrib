@@ -258,11 +258,10 @@ public class FlagdCore implements Evaluator {
             throw new GeneralError(message);
         }
         if (value instanceof Integer && type == Double.class) {
-            // if this is an integer and we are trying to resolve a double, convert
+            // an integer always widens to a double without losing anything
             value = ((Integer) value).doubleValue();
         } else if (value instanceof Double && type == Integer.class) {
-            // if this is a double and we are trying to resolve an integer, convert
-            value = ((Double) value).intValue();
+            value = narrowedToInt((Double) value, key);
         }
         if (!type.isAssignableFrom(value.getClass())) {
             String message = "returning default variant for flagKey: %s, type not valid";
@@ -276,6 +275,38 @@ public class FlagdCore implements Evaluator {
                 .reason(reason)
                 .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
                 .build();
+    }
+
+    /**
+     * Returns a flag's number as an int, or reports a type mismatch when it cannot be one.
+     *
+     * <p>Narrowing is offered because a ruleset may carry 10 as 10.0 and a caller asking for an
+     * integer should still get 10. It is refused when something would be lost -- a fraction, or a
+     * magnitude an int cannot hold -- because a caller handed 0 for a flag worth 0.5 cannot tell
+     * that from a flag worth 0. flagd enforces the same rule from v0.18.1, so the in-process and
+     * RPC resolvers answer alike.
+     *
+     * @param value the resolved number
+     * @param key the flag it came from, named in the message
+     * @return the value as an int
+     * @throws TypeMismatchError if the value is not an integer, or is one an int cannot hold
+     */
+    private static int narrowedToInt(double value, String key) {
+        // Math.floor leaves an infinity alone and NaN is equal to nothing, so the first test takes
+        // NaN and every fraction, and the second takes the infinities along with the merely too big.
+        if (value != Math.floor(value)) {
+            throw mismatch(key, value, "is not an integer");
+        }
+        if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+            throw mismatch(key, value, "is outside the range of a 32-bit integer");
+        }
+        return (int) value;
+    }
+
+    private static TypeMismatchError mismatch(String key, double value, String why) {
+        String message = String.format("flagKey: %s resolved to %s, which %s", key, value, why);
+        log.debug(message);
+        return new TypeMismatchError(message);
     }
 
     private static ImmutableMetadata getFlagMetadata(Map<String, Object> currentFlagSetMetadata, FeatureFlag flag) {
