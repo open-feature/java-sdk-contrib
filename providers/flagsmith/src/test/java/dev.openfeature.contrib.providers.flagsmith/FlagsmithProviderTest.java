@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.flagsmith;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -22,15 +23,16 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.QueueDispatcher;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +49,7 @@ public class FlagsmithProviderTest {
     public static MockWebServer mockFlagsmithErrorServer;
     public static FlagsmithProvider flagsmithProvider;
 
-    final QueueDispatcher dispatcher = new QueueDispatcher() {
+    final Dispatcher dispatcher = new Dispatcher() {
         @SneakyThrows
         @Override
         public MockResponse dispatch(RecordedRequest request) {
@@ -70,7 +72,7 @@ public class FlagsmithProviderTest {
         }
     };
 
-    final QueueDispatcher errorDispatcher = new QueueDispatcher() {
+    final Dispatcher errorDispatcher = new Dispatcher() {
         @SneakyThrows
         @Override
         public MockResponse dispatch(RecordedRequest request) {
@@ -210,6 +212,49 @@ public class FlagsmithProviderTest {
                 .localEvaluation(true)
                 .build();
         assertEquals(Integer.valueOf(60), options.getEnvironmentRefreshIntervalSeconds());
+    }
+
+    @Test
+    void shouldMatchIdentitySegmentDuringLocalEvaluation() {
+        mockFlagsmithServer.setDispatcher(new Dispatcher() {
+            @SneakyThrows
+            @Override
+            public MockResponse dispatch(RecordedRequest request) {
+                if (request.getPath().startsWith("/environment-document/")) {
+                    return new MockResponse()
+                            .setBody(readMockResponse("identity-segment-environment-document.json"))
+                            .addHeader("Content-Type", "application/json");
+                }
+                return new MockResponse().setResponseCode(404);
+            }
+        });
+
+        FlagsmithProvider localProvider = new FlagsmithProvider(FlagsmithProviderOptions.builder()
+                .apiKey("ser.API_KEY")
+                .baseUri(String.format("http://localhost:%s", mockFlagsmithServer.getPort()))
+                .localEvaluation(true)
+                .build());
+        try {
+            MutableContext matchingContext = new MutableContext();
+            matchingContext.setTargetingKey("matching-identity");
+
+            await().atMost(Duration.ofSeconds(5))
+                    .untilAsserted(() -> assertEquals(
+                            "matched",
+                            localProvider
+                                    .getStringEvaluation("identity_feature", "fallback", matchingContext)
+                                    .getValue()));
+
+            MutableContext otherContext = new MutableContext();
+            otherContext.setTargetingKey("other-identity");
+            assertEquals(
+                    "default",
+                    localProvider
+                            .getStringEvaluation("identity_feature", "fallback", otherContext)
+                            .getValue());
+        } finally {
+            localProvider.shutdown();
+        }
     }
 
     @ParameterizedTest
