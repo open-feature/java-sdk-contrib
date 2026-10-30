@@ -128,7 +128,7 @@
             <!-- compile-time only; not needed by consumers at runtime -->
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs</artifactId>
-            <version>4.9.8</version>
+            <version>4.10.5</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -540,7 +540,7 @@
                             <dependency>
                                 <groupId>com.github.spotbugs</groupId>
                                 <artifactId>spotbugs</artifactId>
-                                <version>4.9.8</version>
+                                <version>4.10.5</version>
                             </dependency>
                         </dependencies>
                         <executions>
