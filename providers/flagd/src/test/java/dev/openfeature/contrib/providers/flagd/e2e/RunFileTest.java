@@ -37,7 +37,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     "contextEnrichment",
     "fractional-v1",
     "fractional-v2",
-    "deprecated"
+    "deprecated",
+    // reads 2^53-1 via 32-bit getInteger; Long scenarios: open-feature/flagd-testbed#379
+    "large-integers"
 })
 @Testcontainers
 public class RunFileTest {
