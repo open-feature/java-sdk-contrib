@@ -76,3 +76,20 @@ Options can be defined using the FlagsmithProviderOptions builder. Below are all
 | httpInterceptor      | Interceptor  |  | Add a custom HTTP interceptor in the form of an okhttp3.Interceptor object.
 | retries      | int  | 3 | Add a custom com.flagsmith.config.Retry object to configure the backoff / retry configuration.
 | usingBooleanConfigValue      | boolean  | false | Determines whether to resolve a feature value as a boolean or use the isFeatureEnabled as the flag itself. These values will be false and true respectively.
+
+## Provider conformance (TCK)
+
+This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md) as a single suite,
+`FlagsmithProviderTckTest`, in `src/test/java/.../flagsmith/tck/`. That class records which
+capabilities are declared, which are withheld and why, and every known deviation. The backend is the
+[Flagsmith TCK testbed](https://github.com/aepfli/flagsmith-tck-testbed).
+
+```bash
+mvn -Ptck -pl providers/flagsmith -am test
+```
+
+The suite is Docker-gated. The root pom excludes every provider's `tck` package from the default
+build and its `tck` profile runs only that package, so `-am` adds no other module's tests.
+
+**CI runs it** in the `Provider TCK` job, apart from the main matrix. Set
+`tck.testFailureIgnore` to `true` in this module's pom to report the failures without failing it.
