@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.hooks.otel;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -15,11 +16,21 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -216,5 +227,55 @@ class TracesHookTest {
 
         // verify span built with given attributes
         verify(span).addEvent("feature_flag", attributesBuilder.build());
+    }
+
+    @ParameterizedTest
+    @MethodSource("nullAttributeOptions")
+    @DisplayName("otel should not log warnings when attributes are null")
+    void otel_should_not_log_warnings_when_attributes_are_null(TracesHook hook) {
+        final List<String> badLogs = new ArrayList<>();
+        final Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getLevel().intValue() >= Level.WARNING.intValue()) {
+                    badLogs.add(record.getMessage());
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
+        final Logger rootLogger = Logger.getLogger("");
+        rootLogger.addHandler(handler);
+
+        try {
+            mockedSpan.when(Span::current).thenReturn(span);
+
+            hook.error(hookContext, new RuntimeException(), null);
+            hook.after(
+                    hookContext,
+                    FlagEvaluationDetails.<String>builder()
+                            .value("variant_value")
+                            .build(),
+                    null);
+        } finally {
+            rootLogger.removeHandler(handler);
+        }
+
+        assertThat(badLogs).isEmpty();
+    }
+
+    private static Stream<Arguments> nullAttributeOptions() {
+        return Stream.of(
+                Arguments.of(new TracesHook()),
+                Arguments.of(new TracesHook(TracesHookOptions.builder().build())),
+                Arguments.of(new TracesHook(
+                        TracesHookOptions.builder().extraAttributes(null).build())),
+                Arguments.of(new TracesHook(TracesHookOptions.builder()
+                        .dimensionExtractor(m -> null)
+                        .build())));
     }
 }
