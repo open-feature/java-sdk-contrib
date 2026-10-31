@@ -23,6 +23,9 @@ public final class TckObjectFactory implements ObjectFactory {
 
     private TckLifecycle lifecycle;
 
+    /** The pooled backend this scenario holds, or null when backends are per-thread. */
+    private TckLifecycle leased;
+
     @Override
     public boolean addClass(Class<?> glueClass) {
         if (isInstantiable(glueClass) && glue.add(glueClass)) {
@@ -60,7 +63,11 @@ public final class TckObjectFactory implements ObjectFactory {
     @Override
     public void start() {
         pico = new PicoBuilder().withCaching().build();
-        if (lifecycle == null) {
+        if (StackPool.enabled()) {
+            // the pool's size, not this thread's existence, decides how many stand at once
+            leased = StackPool.acquire();
+            lifecycle = leased;
+        } else if (lifecycle == null) {
             // empty when a launcher selects only the extension glue and never reaches @BeforeAll
             lifecycle = TckLifecycle.startForExecutingSuite().orElse(null);
         }
@@ -76,6 +83,12 @@ public final class TckObjectFactory implements ObjectFactory {
 
     @Override
     public void stop() {
+        if (leased != null) {
+            // after the scenario's own hooks, so a backend is only returned once nothing is using it
+            StackPool.release(leased);
+            leased = null;
+            lifecycle = null;
+        }
         if (pico != null) {
             pico.stop();
             pico.dispose();

@@ -74,7 +74,13 @@ public class ProviderSteps extends AbstractSteps {
      */
     @Before(order = 10)
     public void prepareBackend() {
-        backend().prepareScenario();
+        try {
+            backend().prepareScenario();
+        } catch (RuntimeException e) {
+            // the object factory only learns that a scenario ended, never why
+            StackPool.markLeaseBroken();
+            throw e;
+        }
     }
 
     /**
@@ -83,7 +89,8 @@ public class ProviderSteps extends AbstractSteps {
     @After
     public void tearDown() {
         if (state.domain != null) {
-            OpenFeatureAPI.getInstance().setProvider(state.domain, new NoOpProvider());
+            // awaited: the backend goes to the next scenario as soon as this returns
+            OpenFeatureAPI.getInstance().setProviderAndWait(state.domain, new NoOpProvider());
         }
     }
 
