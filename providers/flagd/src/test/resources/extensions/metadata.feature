@@ -3,7 +3,9 @@ Feature: flag and flag set metadata
 
   # Ported from flagd-testbed gherkin/metadata.feature. The testbed's "a stable flagd provider"
   # becomes the TCK's "a stable provider", and its "a metadata flagd provider" becomes "a stable
-  # provider with "metadata" configuration". @file is dropped: this suite has no file resolver.
+  # provider with "metadata" configuration". @file is kept, as on the other ported features; the
+  # two scenarios a file resolver cannot serve name a selector flag file and carry
+  # @metadata-provider.
 
   Scenario: Returns metadata
     Given a stable provider
