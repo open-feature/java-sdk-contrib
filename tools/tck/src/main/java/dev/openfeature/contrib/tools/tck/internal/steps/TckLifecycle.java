@@ -51,8 +51,7 @@ final class TckLifecycle {
         AdopterTags.requireValid(harness.getClass());
         startFailure.set(null);
         suiteRunning = true;
-        // after the declarations are validated, so a suite that cannot run does not spend four
-        // Compose startups finding that out
+        // after the declarations are validated: a suite that cannot run should start no stacks
         StackPool.warm(() -> start(discoverHarness()));
     }
 

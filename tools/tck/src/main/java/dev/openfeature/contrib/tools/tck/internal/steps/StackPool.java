@@ -17,10 +17,9 @@ import org.slf4j.LoggerFactory;
  * Backends warmed once and leased to one scenario at a time.
  *
  * <p>Off by default: with no size set, every {@link TckObjectFactory} starts one backend and keeps
- * it for as long as its thread lives. The size caps how many backends stand at once, which a thread
- * count cannot do -- {@code cucumber.execution.parallel.config.fixed.parallelism} is a target, and a
- * suite whose steps block has been seen growing to eighteen threads. Surplus threads queue on
- * {@link #acquire()}.
+ * it for as long as its thread lives. The size caps how many stand at once, which a thread count
+ * cannot do: {@code cucumber.execution.parallel.config.fixed.parallelism} is a target, not a limit.
+ * Surplus threads queue on {@link #acquire()}.
  */
 final class StackPool {
 
@@ -42,11 +41,7 @@ final class StackPool {
         // warmed and drained by TckLifecycle, leased by TckObjectFactory
     }
 
-    /**
-     * Whether scenarios lease backends from this pool.
-     *
-     * @return true once a suite has warmed a pool of at least one backend
-     */
+    /** Whether scenarios lease backends from this pool. */
     static boolean enabled() {
         return size > 0;
     }
@@ -88,8 +83,7 @@ final class StackPool {
                 }
             }
             if (failure != null) {
-                // the ones that came up are stopped by endSuite(); failing here beats letting
-                // scenarios queue for backends that will never arrive
+                // failing beats letting scenarios queue for backends that will never arrive
                 throw new IllegalStateException(
                         "only " + warmed.size() + " of " + requested + " backends started", failure);
             }
@@ -100,11 +94,7 @@ final class StackPool {
         }
     }
 
-    /**
-     * Takes a backend for one scenario, waiting while every one of them is in use.
-     *
-     * @return the leased backend
-     */
+    /** Takes a backend for one scenario, waiting while every one of them is in use. */
     static TckLifecycle acquire() {
         leaseBroken.set(false);
         try {
@@ -121,12 +111,7 @@ final class StackPool {
         }
     }
 
-    /**
-     * Returns a leased backend, dropping it if the scenario reported it broken rather than spreading
-     * one failure across every scenario that would draw it next.
-     *
-     * @param lifecycle the backend to return
-     */
+    /** Returns a leased backend, dropping it if the scenario reported it broken. */
     static void release(TckLifecycle lifecycle) {
         if (Boolean.TRUE.equals(leaseBroken.get())) {
             leaseBroken.set(false);

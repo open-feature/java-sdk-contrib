@@ -33,8 +33,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @IncludeTags("in-process")
 // large-integers reads 2^53-1 via 32-bit getInteger; Long scenarios: open-feature/flagd-testbed#379
 @ExcludeTags({"unixsocket", "fractional-v1", "fractional-v2", "deprecated", "large-integers"})
-// Declared here rather than in a module-wide junit-platform.properties, which also reached the
-// Provider TCK suites and left them unable to turn parallelism back on.
 @ConfigurationParameter(key = PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, value = "true")
 @ConfigurationParameter(key = PARALLEL_CONFIG_STRATEGY_PROPERTY_NAME, value = "dynamic")
 @ConfigurationParameter(key = PARALLEL_CONFIG_DYNAMIC_FACTOR_PROPERTY_NAME, value = "1")
