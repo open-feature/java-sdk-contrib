@@ -358,3 +358,36 @@ FlagdOptions options = FlagdOptions.builder()
       .resolverType(Config.Resolver.IN_PROCESS)
       .build();
 ```
+
+## Provider conformance (TCK)
+
+This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md), once per resolver:
+`RpcTest` and `InProcessTest`, both over the shared `AbstractResolverTest` in
+`src/test/java/.../flagd/tck/`. **Read that class before changing either.** It records, against
+measured behaviour rather than assumption, which capabilities are declared, which are withheld and
+why, and every known deviation — that reasoning is the most valuable thing about this adoption and it
+lives next to the declaration rather than here.
+
+```bash
+mvn -Ptck -pl providers/flagd -am test                                    # both resolvers
+mvn -Ptck -pl providers/flagd -am -Dtest=InProcessTest     -Dsurefire.failIfNoSpecifiedTests=false test                          # one
+```
+
+The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other module's tests.
+
+**`-Pe2e` does not run these suites.** The root pom excludes every provider's `tck` package from
+the default build and from `-Pe2e`, and its `tck` profile runs only that package. This module
+excludes just `**/e2e/*.java`, which the `e2e` profile clears.
+
+**CI runs them in a job of their own**, `Provider TCK` in `ci.yml`, on every pull request. It sits
+apart from the `main` matrix so a conformance failure cannot be read as a regression there. Set
+`tck.testFailureIgnore` to `true` in this module's pom, or pass `-Dtck.testFailureIgnore=true`, to
+report failures without failing the build.
+
+On `flagd-testbed` v3.11.0, 65 scenarios and 2 skipped in each mode, and **all 63 pass in both**.
+Any failure is a regression.
+
+The two skips are the withheld `@reinitialization` and `@large-integers`, which the Java SDK cannot
+ask for. The three scenarios that used to fail on flags the testbed did not serve
+(open-feature/flagd-testbed#392) pass from v3.11.0 on, and the one that used to fail in-process
+passes since `FlagdCore` stopped narrowing a `Double` with `intValue()` (#1957).

@@ -37,7 +37,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     "contextEnrichment",
     "fractional-v1",
     "fractional-v2",
-    "deprecated"
+    "deprecated",
+    // asks for 2^53 - 1; Client.getIntegerDetails is 32-bit and cannot carry it
+    "large-integers"
 })
 @Testcontainers
 public class RunFileTest {
