@@ -28,7 +28,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "dev.openfeature.contrib.providers.flagd.e2e.steps")
 @ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
 @IncludeTags("in-process")
-@ExcludeTags({"unixsocket", "fractional-v1", "fractional-v2", "deprecated"})
+// large-integers asks for 2^53 - 1; Client.getIntegerDetails is 32-bit and cannot carry it.
+@ExcludeTags({"unixsocket", "fractional-v1", "fractional-v2", "deprecated", "large-integers"})
 @Testcontainers
 public class RunInProcessTest {
 
