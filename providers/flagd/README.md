@@ -362,14 +362,14 @@ FlagdOptions options = FlagdOptions.builder()
 ## Provider conformance (TCK)
 
 This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md), once per resolver:
-`RpcTest` and `InProcessTest`, both over the shared `AbstractResolverTest` in
-`src/test/java/.../flagd/tck/`. **Read that class before changing either.** It records, against
+`RpcTest`, `InProcessTest` and `FileTest`, all three over the shared `AbstractResolverTest` in
+`src/test/java/.../flagd/tck/`. **Read that class before changing any of them.** It records, against
 measured behaviour rather than assumption, which capabilities are declared, which are withheld and
 why, and every known deviation — that reasoning is the most valuable thing about this adoption and it
 lives next to the declaration rather than here.
 
 ```bash
-mvn -Ptck -pl providers/flagd -am test                                    # both resolvers
+mvn -Ptck -pl providers/flagd -am test                                    # every resolver
 mvn -Ptck -pl providers/flagd -am -Dtest=InProcessTest     -Dsurefire.failIfNoSpecifiedTests=false test                          # one
 ```
 
@@ -384,8 +384,14 @@ apart from the `main` matrix so a conformance failure cannot be read as a regres
 `tck.testFailureIgnore` to `true` in this module's pom, or pass `-Dtck.testFailureIgnore=true`, to
 report failures without failing the build.
 
-On `flagd-testbed` v3.11.0, 65 scenarios and 2 skipped in each mode, and **all 63 pass in both**.
+On `flagd-testbed` v3.11.0, 65 scenarios and 2 skipped in each gRPC mode, and **all 63 pass in both**.
 Any failure is a regression.
+
+The file resolver reads its ruleset off the disk, so `FileTest` has the testbed write it to a
+bind-mounted directory (`composeEnvironment()` sets `FLAGS_DIR`) and points the provider at
+`allFlags.json` there. It withholds `@stale` on top of `@reinitialization`: the only outage the
+control API can stage is stopping flagd's listeners, which a file already on disk does not notice.
+`@configuration-change` holds, through polling rather than a stream.
 
 The two skips are the withheld `@reinitialization` and `@large-integers`, which the Java SDK cannot
 ask for. The three scenarios that used to fail on flags the testbed did not serve
