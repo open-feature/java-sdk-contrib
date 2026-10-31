@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,9 @@ final class StackPool {
     private static final ThreadLocal<Boolean> leaseBroken = ThreadLocal.withInitial(() -> false);
 
     private static volatile int size;
+
+    /** Backends still fit to lease; drops lower it, so waiting scenarios can fail at zero. */
+    private static final AtomicInteger live = new AtomicInteger();
 
     private StackPool() {
         // warmed and drained by TckLifecycle, leased by TckObjectFactory
@@ -89,6 +93,7 @@ final class StackPool {
             }
             idle.addAll(warmed);
             size = requested;
+            live.set(requested);
         } finally {
             starters.shutdownNow();
         }
@@ -97,14 +102,22 @@ final class StackPool {
     /** Takes a backend for one scenario, waiting while every one of them is in use. */
     static TckLifecycle acquire() {
         leaseBroken.set(false);
+        long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(ACQUIRE_TIMEOUT_MINUTES);
         try {
-            TckLifecycle leased = idle.poll(ACQUIRE_TIMEOUT_MINUTES, TimeUnit.MINUTES);
-            if (leased == null) {
-                throw new IllegalStateException("no backend became free within " + ACQUIRE_TIMEOUT_MINUTES
-                        + " minutes, with " + size + " in the pool (" + SIZE_PROPERTY
-                        + "); a lease was not returned");
+            while (System.nanoTime() < deadline) {
+                if (live.get() <= 0) {
+                    throw new IllegalStateException("every backend was dropped after its preparation failed ("
+                            + SIZE_PROPERTY + "=" + size + "); there is nothing left to lease");
+                }
+                // in steps, so a scenario does not wait out the whole deadline for a pool that emptied
+                TckLifecycle leased = idle.poll(1, TimeUnit.SECONDS);
+                if (leased != null) {
+                    return leased;
+                }
             }
-            return leased;
+            throw new IllegalStateException("no backend became free within " + ACQUIRE_TIMEOUT_MINUTES
+                    + " minutes, with " + live.get() + " of " + size + " in the pool (" + SIZE_PROPERTY
+                    + "); a lease was not returned");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("interrupted while waiting for a backend", e);
@@ -115,7 +128,10 @@ final class StackPool {
     static void release(TckLifecycle lifecycle) {
         if (Boolean.TRUE.equals(leaseBroken.get())) {
             leaseBroken.set(false);
-            log.warn("Dropping a backend whose preparation failed; {} of {} left in the pool", idle.size(), size);
+            log.warn(
+                    "Dropping a backend whose preparation failed; {} of {} left in the pool",
+                    live.decrementAndGet(),
+                    size);
             return;
         }
         idle.add(lifecycle);
@@ -132,6 +148,7 @@ final class StackPool {
     static void drain() {
         idle.clear();
         size = 0;
+        live.set(0);
     }
 
     private static int requestedSize() {
