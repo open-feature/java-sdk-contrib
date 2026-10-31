@@ -83,16 +83,19 @@ public final class TckObjectFactory implements ObjectFactory {
 
     @Override
     public void stop() {
-        if (leased != null) {
-            // after the scenario's own hooks, so a backend is only returned once nothing is using it
-            StackPool.release(leased);
-            leased = null;
-            lifecycle = null;
-        }
-        if (pico != null) {
-            pico.stop();
-            pico.dispose();
-            pico = null;
+        try {
+            if (pico != null) {
+                pico.stop();
+                pico.dispose();
+                pico = null;
+            }
+        } finally {
+            if (leased != null) {
+                // after the container is disposed, so nothing can still be using the backend
+                StackPool.release(leased);
+                leased = null;
+                lifecycle = null;
+            }
         }
     }
 
