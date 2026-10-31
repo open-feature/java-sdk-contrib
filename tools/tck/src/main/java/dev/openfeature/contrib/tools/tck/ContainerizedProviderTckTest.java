@@ -102,6 +102,19 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
     }
 
     /**
+     * Returns environment variables to pass to Compose, for a stack whose file reads them.
+     *
+     * <p>For a backend whose state has to be visible to the test JVM and not only inside the
+     * stack -- a flag file on a bind mount, a dump directory -- where the host path is the test's to
+     * choose and the stack's to be told.
+     *
+     * @return environment for the Compose invocation, empty by default
+     */
+    public Map<String, String> composeEnvironment() {
+        return Collections.emptyMap();
+    }
+
+    /**
      * Returns the backend configuration name passed to {@code POST /start?config=...}; distinct
      * from {@link ProviderTckHarness#configuration()}.
      *
@@ -174,6 +187,9 @@ public abstract class ContainerizedProviderTckTest extends ProviderTckTest {
         }
         ComposeContainer stack = new ComposeContainer(composeFile);
 
+        for (Map.Entry<String, String> variable : composeEnvironment().entrySet()) {
+            stack.withEnv(variable.getKey(), variable.getValue());
+        }
         stack.withExposedService(backendService(), controlPort(), Wait.forListeningPort());
         for (Integer port : backendPorts()) {
             stack.withExposedService(backendService(), port, Wait.forListeningPort());
