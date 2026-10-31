@@ -39,6 +39,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ConfigurationParameter(key = PARALLEL_CONFIG_DYNAMIC_FACTOR_PROPERTY_NAME, value = "1")
 // Concurrent container restarts can outlast the reconnection timeout.
 @ConfigurationParameter(key = "cucumber.execution.exclusive-resources.grace.read-write", value = "CONTAINER_RESTART")
+// @env-var scenarios mutate process-wide variables that every config scenario reads.
+@ConfigurationParameter(
+        key = "cucumber.execution.exclusive-resources.env-var.read-write",
+        value = "org.junit.platform.engine.support.hierarchical.ExclusiveResource.GLOBAL_KEY")
 @Testcontainers
 public class RunRpcTest {
 
