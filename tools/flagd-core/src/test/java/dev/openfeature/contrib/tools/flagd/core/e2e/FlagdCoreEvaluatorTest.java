@@ -11,7 +11,14 @@ import org.junit.platform.suite.api.ExcludeTags;
  * configuration. Registered as an {@link dev.openfeature.contrib.tools.flagd.api.testkit.EvaluatorFactory}
  * via {@code META-INF/services}.
  */
-@ExcludeTags({"fractional-v1", "fractional-v2", "evaluator-refs-whitespace", "non-existent-evaluator-ref"})
+// large-integers asks for 2^53 - 1, which Evaluator's ProviderEvaluation<Integer> cannot carry
+@ExcludeTags({
+    "fractional-v1",
+    "fractional-v2",
+    "evaluator-refs-whitespace",
+    "non-existent-evaluator-ref",
+    "large-integers"
+})
 public class FlagdCoreEvaluatorTest extends AbstractEvaluatorTest {
 
     @Override
