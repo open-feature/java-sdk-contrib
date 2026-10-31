@@ -19,12 +19,13 @@ import java.util.function.Consumer;
 /**
  * Shared configuration for running the OpenFeature Provider TCK against the flagd provider.
  *
- * <p>flagd resolves flags in two quite different ways, and both are worth conforming: RPC evaluates
- * remotely over gRPC, while in-process syncs the ruleset and evaluates locally. They share a backend
- * stack and differ only in resolver and port, so the modes are two small subclasses.
+ * <p>flagd resolves flags in three quite different ways, and all three are worth conforming: RPC
+ * evaluates remotely over gRPC, in-process syncs the ruleset and evaluates locally, and file reads
+ * the ruleset off the disk. All three share a backend stack. The two gRPC modes differ only in
+ * resolver and port; {@link FileTest} documents what the third one needs instead.
  *
- * <p>Both modes pass the whole suite. Three scenarios used to fail in both on flags the testbed did
- * not serve; flagd-testbed v3.11.0 ships them (open-feature/flagd-testbed#392) and they pass. One
+ * <p>Both gRPC modes pass the whole suite. Three scenarios used to fail in both on flags the testbed
+ * did not serve; flagd-testbed v3.11.0 ships them (open-feature/flagd-testbed#392) and they pass. One
  * more used to fail in-process only, where the evaluation happens here rather than in flagd;
  * open-feature/java-sdk-contrib#1957 fixed it.
  *
@@ -76,7 +77,12 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
     /** The resolver under test. */
     public abstract Config.Resolver resolver();
 
-    /** The container-internal port that resolver connects to. */
+    /**
+     * The container-internal port this mode waits on before the first scenario.
+     *
+     * <p>The two gRPC resolvers dial it. {@link FileTest} does not, and names flagd's sync listener
+     * only because a flagd that is listening is a flagd that has written its flag file.
+     */
     protected abstract int backendPort();
 
     /**
@@ -111,20 +117,36 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
 
     @Override
     public FeatureProvider createProvider(BackendEndpoint endpoint) {
-        return new FlagdProvider(customized(baseOptions()
-                        .deadline(CONNECTED_DEADLINE_MS)
-                        .host(endpoint.host())
-                        .port(endpoint.port(backendPort())))
+        return new FlagdProvider(customized(flagSource(baseOptions().deadline(CONNECTED_DEADLINE_MS), endpoint))
                 .build());
     }
 
     @Override
     public FeatureProvider createUnavailableProvider() {
-        return new FlagdProvider(customized(baseOptions()
-                        .deadline(UNAVAILABLE_DEADLINE_MS)
-                        .host("localhost")
-                        .port(UNAVAILABLE_PORT))
+        return new FlagdProvider(customized(missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS)))
                 .build());
+    }
+
+    /**
+     * Points the options at the running stack; a resolver that reads no socket overrides this.
+     *
+     * @param options the options being built, with the connected deadline already set
+     * @param endpoint host and mapped ports of the running stack
+     * @return the same builder, told where to find the flags
+     */
+    protected FlagdOptions.FlagdOptionsBuilder flagSource(
+            FlagdOptions.FlagdOptionsBuilder options, BackendEndpoint endpoint) {
+        return options.host(endpoint.host()).port(endpoint.port(backendPort()));
+    }
+
+    /**
+     * Points the options at a flag source that is not there, for the {@code @unavailable} scenarios.
+     *
+     * @param options the options being built, with the short deadline already set
+     * @return the same builder, told to look somewhere nothing answers
+     */
+    protected FlagdOptions.FlagdOptionsBuilder missingFlagSource(FlagdOptions.FlagdOptionsBuilder options) {
+        return options.host("localhost").port(UNAVAILABLE_PORT);
     }
 
     @Override
@@ -152,9 +174,9 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest impleme
      *
      * <p>Everything declarable except {@link Capability#REINITIALIZATION}, each declaration on
      * evidence from a run or from the provider's source rather than inherited from the "everything
-     * except" default. Measured on v3.11.0: 65 scenarios and 2 skipped in both modes — the withheld
-     * {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot ask — with all 63
-     * passing in both.
+     * except" default. Measured on v3.11.0: 65 scenarios and 2 skipped in both gRPC modes — the
+     * withheld {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot ask —
+     * with all 63 passing in both. {@link FileTest} narrows this further, for the reasons it gives.
      *
      * <p>{@link Capability#NUMERIC_COERCION} is declared on both. RPC evaluates in flagd, which
      * enforces the lossy half since v0.18.1; in-process evaluates here, and has enforced it since
