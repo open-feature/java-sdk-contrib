@@ -201,6 +201,70 @@ Feature: Fractional targeting
     When the flag was evaluated with details
     Then the resolved details value should be "ones"
 
+  # fractional composes like any other operator
+  @fractional @fractional-nested @fractional-v3
+  Scenario Outline: Fractional with null bucket as whole rule
+    Given a String-flag with key "fractional-null-bucket-flag" and a default value "code-default"
+    And a context containing a targeting key with value "<targetingKey>"
+    When the flag was evaluated with details
+    Then the resolved details value should be "<value>"
+    And the reason should be "<reason>"
+    And the error-code should be ""
+    Examples:
+      | targetingKey | value    | reason          |
+      | user2        | fallback | DEFAULT         |
+      | user1        | a        | TARGETING_MATCH |
+
+  @fractional @fractional-nested @fractional-v3
+  Scenario Outline: Fractional with null bucket as if condition
+    Given a String-flag with key "fractional-null-bucket-condition-flag" and a default value "code-default"
+    And a context containing a targeting key with value "<targetingKey>"
+    When the flag was evaluated with details
+    Then the resolved details value should be "<value>"
+    And the reason should be "TARGETING_MATCH"
+    Examples:
+      | targetingKey | value |
+      | user1        | else  |
+      | user2        | then  |
+
+  @fractional @fractional-nested @fractional-v3
+  Scenario Outline: Fractional with boolean buckets as whole rule
+    Given a String-flag with key "fractional-bool-bucket-flag" and a default value "code-default"
+    And a context containing a targeting key with value "<targetingKey>"
+    When the flag was evaluated with details
+    Then the resolved details value should be "<value>"
+    And the variant should be "<variant>"
+    And the reason should be "TARGETING_MATCH"
+    Examples:
+      | targetingKey | value | variant |
+      | user1        | on    | true    |
+      | user2        | off   | false   |
+
+  @fractional @fractional-nested @fractional-v3
+  Scenario Outline: Fractional result consumed by another operator
+    Given a String-flag with key "fractional-cat-flag" and a default value "code-default"
+    And a context containing a targeting key with value "<targetingKey>"
+    When the flag was evaluated with details
+    Then the resolved details value should be "<value>"
+    And the reason should be "TARGETING_MATCH"
+    Examples:
+      | targetingKey | value |
+      | user2        | big   |
+      | user1        | dig   |
+
+  @fractional @fractional-nested @fractional-v3
+  Scenario Outline: Fractional as bucketing input of another fractional
+    Given a String-flag with key "fractional-of-fractional-flag" and a default value "code-default"
+    And a context containing a targeting key with value "<targetingKey>"
+    When the flag was evaluated with details
+    Then the resolved details value should be "<value>"
+    And the reason should be "TARGETING_MATCH"
+    Examples:
+      | targetingKey | value |
+      | user2        | red   |
+      | user3        | red   |
+      | user1        | blue  |
+
   @operator-errors
   Scenario: fractional operator with missing bucket key falls back to default variant
     Given a String-flag with key "fractional-null-bucket-key-flag" and a default value "wrong"
