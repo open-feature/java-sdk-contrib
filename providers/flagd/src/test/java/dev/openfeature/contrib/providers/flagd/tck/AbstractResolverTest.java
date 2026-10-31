@@ -81,8 +81,8 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
     @Override
     public FeatureProvider createUnavailableProvider() {
-        return new FlagdProvider(
-                missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS)).build());
+        return new FlagdProvider(missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS))
+                .build());
     }
 
     /**
