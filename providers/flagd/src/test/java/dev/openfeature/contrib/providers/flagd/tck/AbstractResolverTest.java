@@ -19,10 +19,10 @@ import java.util.Set;
  * remotely over gRPC, while in-process syncs the ruleset and evaluates locally. They share a backend
  * stack and differ only in resolver and port, so the modes are two small subclasses.
  *
- * <p>RPC passes the whole suite. In-process fails one scenario, and only one: see
- * {@link InProcessTest#knownDeviations()}. Three scenarios used to fail in both modes on flags the
- * testbed did not serve; flagd-testbed v3.11.0 ships them (open-feature/flagd-testbed#392) and they
- * pass.
+ * <p>Both modes pass the whole suite. Three scenarios used to fail in both on flags the testbed did
+ * not serve; flagd-testbed v3.11.0 ships them (open-feature/flagd-testbed#392) and they pass. One
+ * more used to fail in-process only, where the evaluation happens here rather than in flagd;
+ * open-feature/java-sdk-contrib#1957 fixed it.
  *
  * <p>A run occasionally carries one failure beyond those, of a shape that moves between runs. That
  * is the flagd-testbed readiness window of open-feature/flagd-testbed#394, and it is deliberately
@@ -121,13 +121,13 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      * <p>Everything declarable except {@link Capability#REINITIALIZATION}, each declaration on
      * evidence from a run or from the provider's source rather than inherited from the "everything
      * except" default. Measured on v3.11.0: 65 scenarios and 2 skipped in both modes — the withheld
-     * {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot ask — with 63
-     * passing on RPC and 62 on in-process, whose one failure is
-     * {@link InProcessTest#knownDeviations()}.
+     * {@code @reinitialization}, and {@code @large-integers}, which the SDK cannot ask — with all 63
+     * passing in both.
      *
-     * <p>{@link Capability#NUMERIC_COERCION} is declared on both, and is where the two modes now
-     * differ: RPC evaluates in flagd, which enforces the lossy half since v0.18.1, while in-process
-     * evaluates here and does not.
+     * <p>{@link Capability#NUMERIC_COERCION} is declared on both. RPC evaluates in flagd, which
+     * enforces the lossy half since v0.18.1; in-process evaluates here, and has enforced it since
+     * {@code FlagdCore} stopped narrowing a {@code Double} with {@code intValue()}
+     * (open-feature/java-sdk-contrib#1957).
      *
      * <p>{@link Capability#STRING_TYPING} and {@link Capability#FULLY_TYPED_VALUES} are both declared,
      * and all four of their scenarios pass in both modes. flagd's flag definitions carry a JSON type
