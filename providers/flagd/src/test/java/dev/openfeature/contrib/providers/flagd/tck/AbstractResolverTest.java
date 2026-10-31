@@ -15,9 +15,10 @@ import java.util.Set;
 /**
  * Shared configuration for running the OpenFeature Provider TCK against the flagd provider.
  *
- * <p>flagd resolves flags in two quite different ways, and both are worth conforming: RPC evaluates
- * remotely over gRPC, while in-process syncs the ruleset and evaluates locally. They share a backend
- * stack and differ only in resolver and port, so the modes are two small subclasses.
+ * <p>flagd resolves flags in three quite different ways, and all three are worth conforming: RPC
+ * evaluates remotely over gRPC, in-process syncs the ruleset and evaluates locally, and file reads
+ * the ruleset off the disk. All three share a backend stack; the two gRPC modes differ only in
+ * resolver and port, and {@link FileTest} says what the third needs instead.
  *
  * <p>An occasional extra failure of a shape that moves between runs is the flagd-testbed readiness
  * window of open-feature/flagd-testbed#394, not a regression; repeat the run.
@@ -42,7 +43,12 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /** The resolver under test. */
     protected abstract Config.Resolver resolver();
 
-    /** The container-internal port that resolver connects to. */
+    /**
+     * The container-internal port this mode waits on before the first scenario.
+     *
+     * <p>The two gRPC resolvers dial it. {@link FileTest} does not, and names flagd's sync listener
+     * only because a flagd that is listening is a flagd that has written its flag file.
+     */
     protected abstract int backendPort();
 
     /**
@@ -69,20 +75,36 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
     @Override
     public FeatureProvider createProvider(BackendEndpoint endpoint) {
-        return new FlagdProvider(baseOptions()
-                .deadline(CONNECTED_DEADLINE_MS)
-                .host(endpoint.host())
-                .port(endpoint.port(backendPort()))
+        return new FlagdProvider(flagSource(baseOptions().deadline(CONNECTED_DEADLINE_MS), endpoint)
                 .build());
     }
 
     @Override
     public FeatureProvider createUnavailableProvider() {
-        return new FlagdProvider(baseOptions()
-                .deadline(UNAVAILABLE_DEADLINE_MS)
-                .host("localhost")
-                .port(UNAVAILABLE_PORT)
-                .build());
+        return new FlagdProvider(
+                missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS)).build());
+    }
+
+    /**
+     * Points the options at the running stack; a resolver that reads no socket overrides this.
+     *
+     * @param options the options being built, with the connected deadline already set
+     * @param endpoint host and mapped ports of the running stack
+     * @return the same builder, told where to find the flags
+     */
+    protected FlagdOptions.FlagdOptionsBuilder flagSource(
+            FlagdOptions.FlagdOptionsBuilder options, BackendEndpoint endpoint) {
+        return options.host(endpoint.host()).port(endpoint.port(backendPort()));
+    }
+
+    /**
+     * Points the options at a flag source that is not there, for the {@code @unavailable} scenarios.
+     *
+     * @param options the options being built, with the short deadline already set
+     * @return the same builder, told to look somewhere nothing answers
+     */
+    protected FlagdOptions.FlagdOptionsBuilder missingFlagSource(FlagdOptions.FlagdOptionsBuilder options) {
+        return options.host("localhost").port(UNAVAILABLE_PORT);
     }
 
     /**
@@ -92,7 +114,7 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      * provider rather than a defect in it: {@code shutdown()} never clears {@code isInitialized}, so a
      * later {@code initialize()} returns at its first check without rebuilding the resolver, the
      * {@code shutdownNow()}'d channel or the terminated executors. A shut-down flagd provider is
-     * terminally shut down.
+     * terminally shut down. {@link FileTest} narrows this further, for the reason it gives.
      *
      * <p>{@link Capability#declarableExcept} and not {@code EnumSet.complementOf}, whose complement
      * would include reserved tags the suite refuses at startup.
