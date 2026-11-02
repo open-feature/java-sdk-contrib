@@ -98,6 +98,18 @@ class FlagdCoreTest {
     }
 
     @Test
+    void setFlags_flagWithoutVariants_loadsOtherFlags() throws FlagStoreException {
+        flagdCore.setFlags("{\"flags\":{"
+                + "\"no-variants\":{\"state\":\"ENABLED\",\"defaultVariant\":\"v\"},"
+                + "\"ok\":{\"state\":\"ENABLED\",\"variants\":{\"v\":1},\"defaultVariant\":\"v\"}"
+                + "}}");
+        assertThat(flagdCore
+                        .resolveIntegerValue("ok", -1, new ImmutableContext())
+                        .getValue())
+                .isEqualTo(1);
+    }
+
+    @Test
     void resolveIntegerValue_longFlag_reportsTypeMismatch() throws FlagStoreException {
         flagdCore.setFlags(LONG_FLAGS);
         assertThatThrownBy(() -> flagdCore.resolveIntegerValue("long", -1, new ImmutableContext()))

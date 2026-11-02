@@ -317,8 +317,12 @@ public class FlagdCore implements Evaluator {
 
     private static void warnUnsafeNumericVariants(Map<String, FeatureFlag> parsed) {
         for (Map.Entry<String, FeatureFlag> flag : parsed.entrySet()) {
-            for (Map.Entry<String, Object> variant :
-                    flag.getValue().getVariants().entrySet()) {
+            Map<String, Object> variants = flag.getValue().getVariants();
+            // invalid configs may omit variants
+            if (variants == null) {
+                continue;
+            }
+            for (Map.Entry<String, Object> variant : variants.entrySet()) {
                 if (variant.getValue() instanceof Number && !isSafeRange((Number) variant.getValue())) {
                     log.warn(
                             "variant '{}' of flag '{}' is outside [-(2^53-1), 2^53-1] and will not resolve",
