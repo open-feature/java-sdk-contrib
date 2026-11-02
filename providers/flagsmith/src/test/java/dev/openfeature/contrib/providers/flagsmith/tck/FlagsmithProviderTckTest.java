@@ -77,8 +77,16 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      * {@code Integer}, so 2^53-1 cannot be asked for at all. Go declares it; the difference is real
      * rather than an oversight.
      *
-     * <p>{@code STANDARD_REASONS} and {@code NUMERIC_COERCION} are declared and both fail: this
-     * provider attempts each and gets it wrong, so the failures belong in the results.
+     * <p>{@code STANDARD_REASONS} is withheld: {@code resolveFlagsmithEvaluation} sets
+     * {@code Reason.DISABLED} for a disabled flag and leaves the reason null on every successful
+     * resolution, so STATIC, TARGETING_MATCH and DEFAULT are never reported. The Go Flagsmith provider
+     * reports all three against the same backend.
+     *
+     * <p>{@code NUMERIC_COERCION} is withheld: Flagsmith stores floats as strings and this provider
+     * does not parse them, so neither 10.0 to 10 nor 10 to 10.0 is performed.
+     *
+     * <p>{@code OBJECT} is withheld: Flagsmith has no structured type and stores the JSON document as
+     * text, which this provider does not parse into a structure.
      *
      * <p>{@code STRING_TYPING} is declared and {@code FULLY_TYPED_VALUES} withheld, which is the split
      * this backend motivated. {@code feature_state_value} is natively boolean, integer or string, so
@@ -95,32 +103,16 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      */
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(
-                Capability.OBJECT,
-                Capability.TARGETING,
-                Capability.DISABLED_FLAGS,
-                Capability.STANDARD_REASONS,
-                Capability.NUMERIC_COERCION,
-                Capability.STRING_TYPING);
+        return EnumSet.of(Capability.TARGETING, Capability.DISABLED_FLAGS, Capability.STRING_TYPING);
     }
 
     @Override
     public List<KnownDeviation> knownDeviations() {
-        return Arrays.asList(
-                KnownDeviation.untracked(
-                        Capability.STANDARD_REASONS,
-                        "This provider reports exactly one reason. resolveFlagsmithEvaluation returns "
-                                + "Reason.DISABLED for a disabled flag and leaves the reason null on every "
-                                + "successful resolution, so STATIC and TARGETING_MATCH are never reported. The "
-                                + "resolved values are correct throughout -- only the reason is missing. The Go "
-                                + "Flagsmith provider reports all three against the identical backend, which makes "
-                                + "this a gap rather than a considered choice."),
-                KnownDeviation.untracked(
-                        Capability.NUMERIC_COERCION,
-                        "Flagsmith stores floats as strings, and this provider does not parse them back. "
-                                + "Both lossless coercion scenarios return the caller's default instead of the "
-                                + "value, as does the untagged \"A float flag resolves as a float\". A Float "
-                                + "accessor that parsed the stored string would fix all three; Go has one, "
-                                + "Python and Java do not."));
+        return Arrays.asList(KnownDeviation.untracked(
+                null,
+                "A Float request on a float flag returns the caller's default. Flagsmith stores floats "
+                        + "as strings and this provider does not parse them back, so the untagged \"Resolve "
+                        + "values\" float row and \"A float flag resolves as a float\" both fail. The Go "
+                        + "Flagsmith provider parses the stored string and passes both."));
     }
 }
