@@ -47,12 +47,18 @@ public class OfrepTest extends ContainerizedProviderTckTest {
     /**
      * {@inheritDoc}
      *
-     * <p>Outside this module on purpose: the flagd adoption runs against the same stack and names the
-     * same file, so there is one image tag for both rather than two that can drift.
+     * <p>The flagd-testbed's own stack, from the flagd module's {@code test-harness} submodule, so this
+     * suite and the flagd adoption follow one image pin rather than two that can drift.
      */
     @Override
     public File composeFile() {
-        return new File("../../tools/flagd-testbed/docker-compose.yaml");
+        return new File("../flagd/test-harness/docker-compose.yaml");
+    }
+
+    /** The testbed's compose file names the flagd service {@code flagd}. */
+    @Override
+    public String backendService() {
+        return "flagd";
     }
 
     @Override
