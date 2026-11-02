@@ -317,11 +317,11 @@ public class FlagdCore implements Evaluator {
 
     private static void warnUnsafeNumericVariants(Map<String, FeatureFlag> parsed) {
         for (Map.Entry<String, FeatureFlag> flag : parsed.entrySet()) {
-            Map<String, Object> variants = flag.getValue().getVariants();
-            // invalid configs may omit variants
-            if (variants == null) {
+            // invalid configs may have null flags or omit variants
+            if (flag.getValue() == null || flag.getValue().getVariants() == null) {
                 continue;
             }
+            Map<String, Object> variants = flag.getValue().getVariants();
             for (Map.Entry<String, Object> variant : variants.entrySet()) {
                 if (variant.getValue() instanceof Number && !isSafeRange((Number) variant.getValue())) {
                     log.warn(
