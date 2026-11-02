@@ -21,10 +21,7 @@
         <!-- Match any tck version locally; CI resolves it from the reactor -->
         <tck.version>[0.1.0,)</tck.version>
         <testcontainers.version>2.0.4</testcontainers.version>
-        <!--
-            The tck package runs only under the root pom's `tck` profile, which also excludes it
-            from every other build. Set true to report conformance failures without failing.
-        -->
+        <!-- set true to report conformance failures without failing the tck build -->
         <tck.testFailureIgnore>false</tck.testFailureIgnore>
     </properties>
 
@@ -93,12 +90,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!--
-            OpenFeature Provider TCK. Brings its own Gherkin, step definitions, Compose lifecycle
-            and JUnit Platform suite configuration; the one class under src/test/java/.../ofrep/tck
-            is the whole adoption. Version range so a local reactor build matches whatever is
-            checked out.
-        -->
+        <!-- OpenFeature Provider TCK -->
         <dependency>
             <groupId>dev.openfeature.contrib.tools</groupId>
             <artifactId>tck</artifactId>
@@ -106,13 +98,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!--
-            Testcontainers, declared here rather than inherited. The TCK compiles against it for
-            ContainerizedProviderTckTest's Compose lifecycle but declares it provided/optional, so
-            that the majority of adopters - which have no backend and never load that class - do not
-            resolve it. A containerised adopter such as this one therefore brings its own, which also
-            means it chooses its own major.
-        -->
+        <!-- the TCK declares Testcontainers optional, so a containerised adopter brings its own -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
