@@ -8,14 +8,9 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Glue for {@code report-selftest/report.feature}, the fixture the conformance report tests run.
- *
- * <p>It stands in for a provider, and for nothing else: there is no Compose stack, no control API
- * and no provider here, because none of that is what the report tests are about. What it does share
- * with the real suite is the part that matters — the capability gate is
- * {@link Capability#requireDeclared}, the same call the real
- * {@code ProviderSteps.gateOnCapabilities} makes from the same kind of {@code @Before(order = 0)}
- * hook. A fixture that aborted by some other route would prove only that some abort becomes a skip.
+ * Glue for {@code report-selftest/report.feature}. It stands in for a provider with no backend, but
+ * gates on {@link Capability#requireDeclared} exactly as {@code ProviderSteps.gateOnCapabilities}
+ * does, so an abort here becomes a skip by the same route.
  */
 public class ReportSelfTestSteps {
 
@@ -46,23 +41,15 @@ public class ReportSelfTestSteps {
         // A passing scenario needs a step that passes and nothing more.
     }
 
-    /**
-     * A step that does nothing, unsuccessfully.
-     *
-     * <p>An {@link AssertionError} rather than a checked failure, because that is what a failing
-     * assertion in a step definition throws, and the point is what the results stream makes of it.
-     */
+    /** A step that fails with an {@link AssertionError}, as a failing assertion in a step definition does. */
     @Given("a step that fails")
     public void aStepThatFails() {
         throw new AssertionError("this fixture scenario is expected to fail");
     }
 
     /**
-     * A passing step that takes its arguments from an Examples row.
-     *
-     * <p>The parameters are unused. They exist so the outline's rows differ in their compiled step
-     * text as well as in their table row, which is how a consumer that reads only the steps can
-     * still tell the rows apart.
+     * A passing step taking its arguments from an Examples row. The parameters are unused; they make
+     * the outline's rows differ in compiled step text as well as in table row.
      *
      * @param key the flag key from the row
      * @param requested the requested type from the row

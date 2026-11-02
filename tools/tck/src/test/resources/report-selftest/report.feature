@@ -1,15 +1,8 @@
-# Fixture for ConformanceReportPluginTest, and not part of the conformance suite: it lives under a
-# separate classpath root so that nothing selecting "gherkin" can pick it up.
-#
-# It is shaped like the real suite rather than minimal, because the properties the report has to
-# preserve are properties of that shape: a capability tag on the feature, one on a scenario, one on
-# a single Examples block, and an outline whose rows all share a name. Running real Cucumber over
-# this is the only way to check what a capability-gated abort actually becomes in the results.
-#
-# It also carries both kinds of skip, because they are the two a reader has to be able to tell
-# apart: a capability this provider did not declare, and a capability no provider in this language
-# can be asked. Both end as SKIPPED, and only the reason carried on the hook result distinguishes
-# them.
+# Fixture for ConformanceReportPluginTest, not part of the conformance suite: it lives under a
+# separate classpath root so nothing selecting "gherkin" picks it up. Shaped like the real suite
+# (capability tags on the feature, a scenario and one Examples block; an outline whose rows share a
+# name), and it carries both kinds of skip: an undeclared capability, and one no provider in this
+# language can be asked.
 
 @events
 Feature: Report self-test

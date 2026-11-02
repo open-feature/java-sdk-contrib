@@ -30,35 +30,15 @@ import org.slf4j.LoggerFactory;
 /**
  * Writes a machine-readable conformance report for the suite that just ran.
  *
- * <p>Registered automatically by {@link ProviderTckTest}, so an adopter changes nothing to
- * get one. It is opt-in per <em>run</em>: set {@value #REPORT_DIR_ENV} (or the
- * {@value #REPORT_DIR_PROPERTY} system property) and each suite writes two files,
- * {@code <dir>/<configuration>.json} and {@code <dir>/<configuration>.ndjson}. Emitting a report is
- * a property of the run rather than of the code — CI asks for one, a developer running the suite
- * locally does not — and unset means no report, which is not an error. Several suites in one JVM each
- * write their own pair of files, so flagd's two resolvers do not collide.
+ * <p>Registered automatically by {@link ProviderTckTest}. Opt-in per run: set {@value #REPORT_DIR_ENV}
+ * (or the {@value #REPORT_DIR_PROPERTY} system property) and each suite writes
+ * {@code <dir>/<configuration>.json}, the envelope, and {@code <dir>/<configuration>.ndjson}, a
+ * <a href="https://github.com/cucumber/messages">Cucumber Messages</a> stream produced by Cucumber's
+ * own {@link MessageFormatter}. Unset means no report, which is not an error.
  *
- * <p><strong>The results are not a format this project defines.</strong> The {@code .ndjson} file is
- * a <a href="https://github.com/cucumber/messages">Cucumber Messages</a> stream, produced by
- * Cucumber's own {@link MessageFormatter} — the same class the built-in {@code message:<path>} plugin
- * instantiates, so the bytes are what {@code --plugin message:...} would have written. It already
- * carries everything a per-scenario report would have had to invent: the outcome of every scenario,
- * its tags including any on an individual {@code Examples} block, an exact Scenario Outline row
- * identity through pickle AST node ids, and the {@code source} of every feature that executed.
- *
- * <p>The {@code .json} file is the envelope, and it exists because a Messages stream cannot say what
- * it was a test <em>of</em>. No standard format identifies the provider, the SDK it was driven
- * through, the TCK build, or — most importantly — the capability set the provider declared. That
- * declaration is an input to reading the results rather than a summary of them: the stream says a
- * scenario was skipped, and only the declaration says whether that is because the provider declines
- * the capability it needed.
- *
- * <p><strong>Why the stream is buffered rather than streamed to the file.</strong> The file name is
- * derived from the provider configuration, which is not known when Cucumber wires plugins up — the
- * suite reports it once its runtime has started, which is after the first messages have already been
- * emitted. Buffering keeps one file per suite correctly named, and has the side benefit that
- * {@code results.digest} is computed over exactly the bytes that were written. The stream for this
- * suite is well under a megabyte.
+ * <p>The stream is buffered rather than written as it arrives, because the file name derives from the
+ * provider configuration, which is only known once the suite's runtime has started. That also makes
+ * {@code results.digest} exactly the bytes written.
  *
  * @see <a href="https://github.com/open-feature/spec/issues/424">open-feature/spec#424</a>
  */
@@ -69,15 +49,11 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
 
     /**
      * System property naming the directory reports are written to, taking precedence over the
-     * environment variable.
-     *
-     * <p>Accepted in addition to {@value #REPORT_DIR_ENV} because {@code -D} is how a Maven or
-     * Gradle invocation is usually parameterised. The environment variable is the portable spelling
-     * and is what every other language's TCK reads, so a cross-language CI job can set one thing.
+     * environment variable, which is the spelling every other language's TCK reads.
      */
     public static final String REPORT_DIR_PROPERTY = "tck.report.dir";
 
-    /** Extension of the envelope, which is what a consumer reads first. */
+    /** Extension of the envelope. */
     static final String ENVELOPE_EXTENSION = ".json";
 
     /** Extension of the Cucumber Messages stream the envelope points at. */
@@ -104,18 +80,15 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
     public void setEventPublisher(EventPublisher publisher) {
         String dir = reportDir.get();
         if (dir == null) {
-            // Nothing asked for a report, so nothing is collected either. Registering the message
-            // formatter regardless would buffer a stream for every local test run.
+            // Without this, the formatter would buffer a stream for every local test run.
             return;
         }
 
         ByteArrayOutputStream results = new ByteArrayOutputStream();
         new MessageFormatter(results).setEventPublisher(publisher);
 
-        // Registered *after* the formatter, and deliberately so. Cucumber invokes the handlers for
-        // one event type in registration order, and the formatter closes its writer when it sees
-        // the run-finished message; going second is what guarantees the buffer is complete and
-        // flushed before the digest is taken over it.
+        // Must be registered after the formatter: handlers run in registration order, and the
+        // formatter flushes the buffer on the run-finished message.
         publisher.registerHandlerFor(Envelope.class, envelope -> {
             if (envelope.getTestRunFinished().isPresent()) {
                 write(dir, results.toByteArray());
@@ -162,16 +135,9 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
     }
 
     /**
-     * Lists the declared capabilities as Gherkin tags, in the order the vocabulary declares them.
-     *
-     * <p>Ordered by the enum rather than by the set so that two runs of the same configuration
-     * produce byte-identical declarations, which is what makes the envelopes diffable.
-     *
-     * <p>{@linkplain Capability#reserved() Reserved} capabilities are skipped. A declaration that
-     * names one is already rejected where it enters the run, in {@link TckRunMetadata}, so this is
-     * not the thing that tells the adopter; it is what makes "no reserved tag in the emitted
-     * declaration" a property of the code that writes the document rather than a consequence of a
-     * check somewhere upstream of it.
+     * Lists the declared capabilities as Gherkin tags in enum order, so envelopes of the same
+     * configuration are byte-identical. {@linkplain Capability#reserved() Reserved} capabilities are
+     * skipped.
      */
     private static List<String> declaredTags(Set<Capability> declared) {
         List<String> tags = new ArrayList<>(declared.size());
@@ -183,24 +149,13 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         return Collections.unmodifiableList(tags);
     }
 
-    /**
-     * Assembles the {@code backend} block, which is always emitted.
-     *
-     * <p>The schema requires it at the top level, and {@code backendType} within it, so there is no
-     * conditional emission here: a control that does not say how it drove the backend is
-     * {@code custom}.
-     */
+    /** Assembles the {@code backend} block, which the schema requires. */
     private static ConformanceReport.Backend backendOf(TckRunMetadata run) {
         return new ConformanceReport.Backend(run.backendDescription().orElse(null), run.backendType());
     }
 
     /**
-     * Reads the Messages release out of the stream's own {@code meta} message.
-     *
-     * <p>Taken from the stream rather than from a constant or the {@code io.cucumber:messages}
-     * artifact version, because the envelope and the stream disagreeing about which release produced
-     * them would be worse than either being absent. {@code meta} is the first envelope cucumber
-     * writes, so only the first line is parsed.
+     * Reads the Messages release out of the stream's {@code meta} message, which is the first line.
      *
      * @param results the buffered results stream
      * @return the protocol version, or {@code null} when the stream carries none
@@ -216,8 +171,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
             JsonNode version = new ObjectMapper().readTree(first).path("meta").path("protocolVersion");
             return version.isTextual() ? version.asText() : null;
         } catch (JsonProcessingException e) {
-            // A stream whose first line will not parse is a bug worth surfacing, but not here:
-            // omitting an optional field is better than failing a run that otherwise succeeded.
+            // Optional field: omit it rather than fail a run that otherwise succeeded.
             log.warn("tck: could not read the Messages protocol version from the stream", e);
             return null;
         }
@@ -230,9 +184,7 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
     private void write(String dir, byte[] results) {
         Optional<TckRunMetadata> observed = metadata.get();
         if (!observed.isPresent()) {
-            // Nothing observed the suite, which means it never got as far as starting the runtime.
-            // The run has failed for some other reason by now; adding a report with an invented
-            // provider name on top of that would only mislead.
+            // The suite never started its runtime, so the run has already failed for another reason.
             log.error(
                     "{} is set but no TCK suite ran, so there is nothing to report on. "
                             + "This normally means the suite failed before its backend stack started.",
@@ -265,9 +217,8 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
             throw new IllegalStateException("tck [" + configuration + "]: could not encode the conformance report", e);
         }
 
-        // A failure to write is raised rather than logged and swallowed. CI that asked for a report
-        // and silently did not get one is how a publishing pipeline serves a stale result forever.
-        // The results go first: an envelope naming a stream that is not there is worse than neither.
+        // Raised, not logged: CI that asked for a report must not silently go without one. Results go
+        // first, so an envelope never names a stream that is not there.
         try {
             Files.createDirectories(directory);
             Files.write(resultsPath, results);
@@ -286,7 +237,6 @@ public final class ConformanceReportPlugin implements ConcurrentEventListener {
         try {
             sha256 = MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
-            // SHA-256 is required of every Java platform, so this cannot happen on a working JVM.
             throw new IllegalStateException("SHA-256 is not available", e);
         }
         byte[] digest = sha256.digest(results);

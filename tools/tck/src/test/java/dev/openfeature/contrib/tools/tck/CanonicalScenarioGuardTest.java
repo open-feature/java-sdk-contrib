@@ -19,17 +19,10 @@ import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 import org.junit.platform.launcher.listeners.TestExecutionSummary;
 
 /**
- * A run that quietly asks fewer questions must not be able to report success.
- *
- * <p>Two levels here, deliberately. The comparison itself is checked directly, because a failure
- * message is the whole product of a guard and it has to name the scenario that went missing. The
- * wiring is checked by running the guard through the JUnit Platform under a real filter
- * configuration, because "the guard sees what the Cucumber engine beside it sees" is a claim about
- * the platform rather than about this code.
- *
- * <p>No scenario is executed anywhere in this file. The guard works from the discovered plan and the
- * run's configuration, which is what lets it be checked — and, in a real build, fail — without a
- * backend.
+ * A run that quietly asks fewer questions must not be able to report success. The comparison is
+ * checked directly, since its failure message must name the missing scenario; the wiring is checked by
+ * running the guard through the JUnit Platform under a real filter configuration. No scenario
+ * executes, so no backend is needed.
  */
 class CanonicalScenarioGuardTest {
 
@@ -50,10 +43,7 @@ class CanonicalScenarioGuardTest {
                 .as("every canonical scenario comes from a packaged feature file")
                 .allSatisfy(ref -> assertThat(ref.toString()).startsWith(ProviderTck.FEATURES + "/"));
 
-        // The eight rows of the type-mismatch matrix share one name, so a set that counted scenarios
-        // by name would see one of them. Each Examples row is its own line and its own entry.
-        // Eleven until specification revision d47a66eb moved the three "requested as a String" rows
-        // onto @string-typing, where a backend that stores every value as a string can withhold them.
+        // The rows of the type-mismatch matrix share one name, so each Examples row must be its own entry.
         assertThat(canonical)
                 .filteredOn(ref -> ref.toString().contains("Requesting the wrong type returns the code default"))
                 .hasSize(8);
@@ -77,8 +67,7 @@ class CanonicalScenarioGuardTest {
         Set<CanonicalScenarios.Ref> observed =
                 CanonicalScenarioGuard.discovered().get(TckSuiteFixture.class.getName());
 
-        // The fixture suite does select an extension feature — ExtensionPointTest checks that it does
-        // — and none of it reaches the guard.
+        // The fixture suite selects an extension feature, and none of it reaches the guard.
         assertThat(observed)
                 .as("the guard is defined over %s/ alone", ProviderTck.FEATURES)
                 .isEqualTo(CanonicalScenarios.shipped())
@@ -95,9 +84,8 @@ class CanonicalScenarioGuardTest {
                 CanonicalScenarioGuard.discovered(),
                 Collections.singletonMap(Constants.FILTER_TAGS_PROPERTY_NAME, "not @events"));
 
-        // Cucumber applies a tag filter by skipping scenarios during execution, so the plan still
-        // contains them and only the configured expression shows what will be left out. The guard
-        // therefore rejects the filter itself rather than trying to predict what it matches.
+        // Cucumber applies a tag filter by skipping at execution, so the plan still contains the
+        // filtered scenarios and the guard rejects the filter itself.
         assertThat(problems)
                 .isNotNull()
                 .contains(Constants.FILTER_TAGS_PROPERTY_NAME)
@@ -138,8 +126,7 @@ class CanonicalScenarioGuardTest {
         try {
             TestExecutionSummary summary = runGuard(Constants.FILTER_TAGS_PROPERTY_NAME, "@events");
 
-            // Aborted rather than skipped: the test ran and declined to conclude, which is what an
-            // assumption produces and what Surefire and the JUnit reports show as skipped.
+            // Aborted rather than skipped: that is what an assumption produces, and reports show it as skipped.
             assertThat(summary.getTestsAbortedCount())
                     .as("a skip says the canonical set was not verified; a pass would claim it was")
                     .isEqualTo(1);
@@ -171,9 +158,7 @@ class CanonicalScenarioGuardTest {
     @Test
     @DisplayName("a canonical file replaced by another of the same name fails the run")
     void aShadowedCanonicalFileFails() {
-        // What the separate extension directory exists to prevent, expressed as what the guard sees
-        // if it happens anyway: the replacement compiles to different scenarios, so entries of the
-        // canonical set go missing.
+        // The replacement compiles to different scenarios, so entries of the canonical set go missing.
         Set<CanonicalScenarios.Ref> shadowed = new LinkedHashSet<>(CanonicalScenarios.shipped());
         Iterator<CanonicalScenarios.Ref> entries = shadowed.iterator();
         CanonicalScenarios.Ref removed = entries.next();
@@ -202,9 +187,7 @@ class CanonicalScenarioGuardTest {
     @Test
     @DisplayName("the partial-run escape hatch carries no PROVIDER_ prefix either")
     void thePartialKnobIsSpelledWithoutThePrefix() {
-        // Literals on purpose: every TCK knob an adopter or a CI job sets is spelled TCK_*, and one
-        // of them keeping the old PROVIDER_TCK_* prefix is the half-rename that makes the set
-        // unguessable.
+        // Literals on purpose: a knob keeping the old PROVIDER_TCK_ prefix is a half-rename.
         assertThat(CanonicalScenarioGuard.PARTIAL_ENV).isEqualTo("TCK_PARTIAL");
         assertThat(CanonicalScenarioGuard.PARTIAL_PROPERTY).isEqualTo("tck.partial");
     }

@@ -26,58 +26,24 @@ import org.junit.platform.launcher.TestPlan;
 /**
  * Fails a suite that is set up to run less than the whole canonical scenario set.
  *
- * <p>Everything else in this module makes the canonical set easy to extend safely. Nothing makes it
- * hard to shrink, and shrinking it is the failure that matters: a run that asks fifty-four of the
- * fifty-six questions and reports success is indistinguishable, in every artifact it produces, from
- * one that asked all fifty-six. The known ways to get there are a feature file dropped into
- * {@code gherkin/}, a {@code cucumber.filter.tags} or {@code cucumber.filter.name} expression, and
- * selectors or glue overridden in a consuming module's {@code junit-platform.properties}.
+ * <p>A run that asks fewer questions than the canonical set and reports success is indistinguishable
+ * from a full one. Shrinking happens through a feature file dropped into {@code gherkin/}, a {@code
+ * cucumber.filter.tags} or {@code cucumber.filter.name} expression, or selectors or glue overridden
+ * in {@code junit-platform.properties}.
  *
- * <p>Selected by {@link ProviderTckTest} as an ordinary JUnit Jupiter test, so a reduced set
- * fails the build the way any other failing test does. A {@link
- * org.junit.platform.launcher.TestExecutionListener} cannot do that job: the JUnit Platform catches
- * and logs whatever a listener throws, which is exactly the silent pass being guarded against.
+ * <p>Run by {@link ProviderTckTest} as an ordinary Jupiter test, because the JUnit Platform swallows
+ * whatever a {@link org.junit.platform.launcher.TestExecutionListener} throws. It checks the setup
+ * rather than counting afterwards, from two kinds of evidence available before any scenario runs:
+ * the discovered test plan (captured by {@link TckSuiteListener}), and the effective filter
+ * configuration. Cucumber applies the tag filter as a skip at execution, so a filtered scenario is
+ * still in the plan and the configured expression has to be read directly.
  *
- * <p>Two kinds of evidence, both available before a single scenario has run:
- *
- * <ul>
- *   <li><strong>the discovered test plan</strong>, captured by {@link TckSuiteListener}. Which
- *       scenarios a suite selected is settled at discovery, so a canonical file that was shadowed,
- *       replaced or added to is visible there.
- *   <li><strong>the effective filter configuration</strong>, read through this test's own
- *       {@link ExtensionContext}. Cucumber applies {@code cucumber.filter.tags} as a skip at
- *       execution rather than as a discovery filter — a filtered scenario is in the plan and never
- *       runs — so the plan cannot show it and the configured expression has to be read directly. The
- *       Jupiter engine inside the suite resolves configuration from the same sources the Cucumber
- *       engine does, whether the value came from a system property, a
- *       {@code junit-platform.properties} or an annotation on the suite.
- * </ul>
- *
- * <p>Checking the setup rather than counting afterwards is not a compromise made for convenience. A
- * count is only complete once the last scenario has finished, and the only hook that runs there is a
- * listener, which cannot fail anything. Both kinds of evidence are settled before the first scenario
- * runs, so the check itself takes no measurable time and needs no Compose stack — though where its
- * result appears in a run depends on the order the JUnit Platform happens to execute the two engines
- * in, which is not specified.
- *
- * <p>Extension scenarios are ignored entirely. The check is defined over {@code gherkin/}, so an
- * adopter's {@code extensions/} scenarios can neither stand in for a canonical scenario nor look
- * like a spurious one.
- *
- * <p>Separable from the rest of the extension work by design: it guards a bypass rather than enabling
- * anything, and dropping it leaves the extension point unaffected.
+ * <p>Extension scenarios are ignored: the check is defined over {@code gherkin/} only.
  */
 @ExtendWith(CanonicalScenarioGuard.CaptureConfiguration.class)
 public final class CanonicalScenarioGuard {
 
-    /**
-     * System property that downgrades this check to a skip.
-     *
-     * <p>An escape hatch is necessary rather than a weakness. Running one scenario with
-     * {@code -Dcucumber.filter.tags=@events} is routine while debugging a provider, and a check that
-     * made that impossible would be switched off permanently instead of temporarily. It produces a
-     * skip rather than a pass, so the run says out loud that its canonical set was not verified.
-     */
+    /** System property that downgrades this check to a skip, so a deliberately partial run says so. */
     public static final String PARTIAL_PROPERTY = "tck.partial";
 
     /** Environment variable equivalent of {@link #PARTIAL_PROPERTY}. */
@@ -89,20 +55,17 @@ public final class CanonicalScenarioGuard {
     };
 
     /**
-     * What each TCK suite in a discovered plan selected under {@code gherkin/}.
-     *
-     * <p>Keyed by suite class name and accumulated rather than replaced. A suite discovers its
-     * children through a launcher of its own, so this is called more than once per build with plans
-     * of differing scope, and a plan containing no TCK suite says nothing about the ones already
-     * recorded.
+     * What each TCK suite selected under {@code gherkin/}, keyed by suite class name. Accumulated,
+     * because a suite discovers its children through a launcher of its own and so this is called more
+     * than once per build.
      */
     private static final Map<String, Set<CanonicalScenarios.Ref>> DISCOVERED = new ConcurrentHashMap<>();
 
     private static final String CANONICAL_PREFIX = ProviderTck.FEATURES + "/";
 
     /**
-     * Records what the suites in a discovered plan will run. Public only for the suite listener in
-     * the internal package.
+     * Records what the suites in a discovered plan will run. Public only for the listener in the
+     * internal package.
      *
      * @param plan the plan about to be executed
      */
@@ -112,13 +75,13 @@ public final class CanonicalScenarioGuard {
         }
     }
 
-    /** Forgets what has been observed, so a test can drive the guard over a plan of its own. */
+    /** Clears the recorded plans, so a test can drive the guard over its own. */
     static void forget() {
         DISCOVERED.clear();
     }
 
     /**
-     * Returns what each suite in the observed plans selected under {@code gherkin/}.
+     * Returns the canonical scenarios each observed suite selected.
      *
      * @return canonical scenarios by suite class name
      */
@@ -217,7 +180,6 @@ public final class CanonicalScenarioGuard {
         return configured;
     }
 
-    /** Returns whether the run has declared itself partial. */
     private static boolean partialRunAllowed() {
         return isTrue(System.getProperty(PARTIAL_PROPERTY)) || isTrue(System.getenv(PARTIAL_ENV));
     }
@@ -249,12 +211,8 @@ public final class CanonicalScenarioGuard {
     }
 
     /**
-     * Returns the canonical scenario a test identifier stands for, if it is one.
-     *
-     * <p>A Cucumber scenario discovered from a classpath resource carries a
-     * {@link ClasspathResourceSource} naming the feature resource and the scenario's line — for a
-     * Scenario Outline, the line of the {@code Examples} row it was compiled from, which is what makes
-     * each row count separately.
+     * Returns the canonical scenario a test identifier stands for, if it is one. For a Scenario
+     * Outline the position is the {@code Examples} row's line, so each row counts separately.
      */
     private static Optional<CanonicalScenarios.Ref> canonicalRefOf(TestIdentifier identifier) {
         Optional<TestSource> source = identifier.getSource();
@@ -271,12 +229,9 @@ public final class CanonicalScenarioGuard {
     }
 
     /**
-     * Hands the guard the configuration of the engine it is running in.
-     *
-     * <p>Jupiter resolves configuration parameters for an extension, not for a test method, so the
-     * context is captured here rather than injected. Inside a suite it carries the suite's own
-     * {@code @ConfigurationParameter} values as well as the system properties and
-     * {@code junit-platform.properties} the Cucumber engine beside it reads.
+     * Captures the extension context, because Jupiter resolves configuration parameters for an
+     * extension and not for a test method. Inside a suite it sees the suite's own
+     * {@code @ConfigurationParameter} values.
      */
     static final class CaptureConfiguration implements BeforeEachCallback {
 

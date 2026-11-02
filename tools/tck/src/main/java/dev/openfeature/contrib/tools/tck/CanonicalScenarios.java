@@ -34,23 +34,17 @@ import java.util.stream.Stream;
 /**
  * The canonical scenario set, as this artifact ships it.
  *
- * <p>Read from <em>this artifact's own code source</em> — the JAR or {@code target/classes} that
- * {@link ProviderTck} was loaded from — rather than through the classloader. That is the point of the
- * class: a feature file placed in {@code gherkin/} on another classpath root shadows the canonical
- * one of the same name, and a check that read the shadowed copy back through
- * {@code getResource("gherkin/errors.feature")} would be checking the replacement against itself.
- * The code source is the only view of {@code gherkin/} that an adopter's classpath cannot alter.
+ * <p>Read from this artifact's own code source rather than through the classloader: a feature file on
+ * another classpath root shadows the canonical one of the same name, and reading the shadowed copy
+ * back would check the replacement against itself.
  *
- * <p>A scenario is identified by its resource name and its line, which is what a Cucumber
- * {@code ClasspathResourceSource} in the JUnit test plan carries. For a Scenario Outline that line is
- * the {@code Examples} row, so each row counts individually — which is necessary, because eleven rows
- * of the type-mismatch matrix share one name.
+ * <p>A scenario is identified by its resource name and line, as a Cucumber
+ * {@code ClasspathResourceSource} in the test plan carries them. For a Scenario Outline the line is
+ * the {@code Examples} row, so each row counts individually.
  *
- * <p>What this does <strong>not</strong> establish is that the canonical files contain what they
- * should. A replacement file that happened to place its scenarios on the same lines would satisfy the
- * comparison. Content is covered elsewhere and better: the results stream carries the {@code source}
- * of every feature that executed, and the report's {@code tck.specRevision} says which revision it
- * should match.
+ * <p>This does not establish that the canonical files contain what they should; the results stream
+ * carries the source of every feature that executed, and {@code tck.specRevision} says what it should
+ * match.
  */
 final class CanonicalScenarios {
 
@@ -79,12 +73,11 @@ final class CanonicalScenarios {
         return cached;
     }
 
-    /** Reads and compiles the canonical feature files out of the code source this class came from. */
+    /** Reads and compiles the canonical feature files out of this class's code source. */
     @SuppressFBWarnings(
             value = "PATH_TRAVERSAL_IN",
-            justification = "The path is this class's own code source, reported by the JVM. Nothing outside the "
-                    + "running artifact can influence it, and reading it from anywhere else would defeat the point "
-                    + "of the class")
+            justification = "The path is this class's own code source, reported by the JVM; nothing outside the "
+                    + "running artifact can influence it")
     private static Set<Ref> read() {
         CodeSource codeSource = ProviderTck.class.getProtectionDomain().getCodeSource();
         URL location = codeSource == null ? null : codeSource.getLocation();
@@ -164,12 +157,8 @@ final class CanonicalScenarios {
     }
 
     /**
-     * Compiles one feature file to the scenarios Cucumber would run from it.
-     *
-     * <p>The Gherkin document is walked rather than the pickles it produces, because a pickle carries
-     * no line number — and the line is what the JUnit test plan identifies a scenario by. The walk is
-     * the same rule Gherkin's own compiler applies: a Scenario Outline yields one scenario per
-     * {@code Examples} body row, anything else yields one at its own line.
+     * Compiles one feature file to the scenarios Cucumber would run from it. Walks the Gherkin
+     * document rather than its pickles, which carry no line number.
      */
     private static void collect(String resource, byte[] content, Set<Ref> refs) {
         GherkinParser parser = GherkinParser.builder()
@@ -211,12 +200,7 @@ final class CanonicalScenarios {
         }
     }
 
-    /**
-     * One scenario, identified the way the JUnit test plan identifies it.
-     *
-     * <p>The name is carried for the failure message only; two scenarios are the same scenario when
-     * they are at the same line of the same classpath resource.
-     */
+    /** One scenario. The name is for failure messages only; identity is resource and line. */
     static final class Ref implements Comparable<Ref> {
 
         private final String resource;

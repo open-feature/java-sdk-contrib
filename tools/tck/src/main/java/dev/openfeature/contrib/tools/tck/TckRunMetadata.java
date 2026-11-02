@@ -9,21 +9,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * What a conformance report needs to know about the run, gathered as the run proceeds.
+ * What a conformance report needs to know about the run, gathered as the run proceeds. The harness
+ * supplies the declaration and backend when the suite starts, a scenario supplies the provider's own
+ * name, and the report is written at {@code TestRunFinished}, after {@code @AfterAll} has torn the
+ * backend down; so the lifecycle records one of these and it outlives the suite.
  *
- * <p>It exists because the two facts a report needs most are known at different times and are gone
- * by the time it is written. The declared capabilities and the backend description come from the
- * harness when the suite starts; the provider's own metadata name is only observable once a scenario
- * has built a provider. Meanwhile Cucumber emits {@code TestRunFinished} — where the file is written
- * — <em>after</em> {@code @AfterAll} has already torn the suite's backend down.
- *
- * <p>So the suite lifecycle records one of these when a suite starts and it outlives the suite, and
- * the report plugin reads it at the end. Public only for that lifecycle, which lives in the internal
- * steps package: its two static entry points are not for adopters.
- *
- * <p>It is also the one place every path to a report passes through, which makes it where the
- * declaration is checked: a {@linkplain Capability#reserved() reserved} capability is rejected here
- * rather than being carried into a document that would then claim it.
+ * <p>Public only for the lifecycle in the internal steps package. Every path to a report passes
+ * through the constructor, which rejects {@linkplain Capability#reserved() reserved} capabilities.
  */
 public final class TckRunMetadata {
 
@@ -87,9 +79,6 @@ public final class TckRunMetadata {
     /**
      * Records what the provider under test calls itself, against the suite that is running.
      *
-     * <p>A conformance report identifies the provider by its own metadata name rather than by the
-     * suite's, and only a scenario that has built one can say what that is.
-     *
      * @param name the provider's metadata name
      */
     public static void observeProviderName(String name) {
@@ -100,8 +89,7 @@ public final class TckRunMetadata {
     }
 
     /**
-     * Replaces the recorded run. Also the seam the report tests use to describe a run without a
-     * backend.
+     * Replaces the recorded run; also the seam the report tests use.
      *
      * @param metadata what the run is, or {@code null} to forget the last one
      */
@@ -139,11 +127,8 @@ public final class TckRunMetadata {
     }
 
     /**
-     * Returns the provider's own metadata name, falling back to the configuration name.
-     *
-     * <p>The fallback covers a run in which no scenario ever built a provider — every scenario
-     * skipped, or the stack never came up. Reporting the suite name there is more useful than the
-     * empty string the schema would reject.
+     * Returns the provider's own metadata name, falling back to the configuration name when no
+     * scenario ever built a provider.
      *
      * @return the name to report as the provider's identity
      */

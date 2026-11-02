@@ -5,34 +5,19 @@ import java.util.List;
 
 /**
  * The envelope of one conformance run: what was tested, what the provider claims, and where the
- * results are.
+ * results are. Per-scenario outcomes are deliberately not here; they live in the Cucumber Messages
+ * stream that {@link Results} references.
  *
- * <p>This document deliberately carries <strong>no</strong> per-scenario outcomes. The results
- * themselves are a standard format — a Cucumber Messages stream, referenced by {@link Results} —
- * because per-scenario outcomes, tags, Scenario Outline row identity and the executed feature source
- * are all already specified there. Defining them a second time here would create a format to
- * maintain and version and two places for the same fact to disagree.
- *
- * <p>The field names and nesting are fixed by the report schema in the OpenFeature specification
- * repository. This class is a transcription of that schema rather than a shape that would be
- * convenient in Java, because the point of the format is that every language's TCK emits the same
- * document.
- *
- * <p>Fields left {@code null} are omitted from the JSON. The schema sets
- * {@code additionalProperties: false} throughout, so an unexpected field is a validation failure
- * rather than something a consumer ignores.
+ * <p>Field names and nesting transcribe the report schema in the OpenFeature specification
+ * repository, so every language's TCK emits the same document. Fields left {@code null} are omitted,
+ * because the schema sets {@code additionalProperties: false}.
  *
  * @see <a href="https://github.com/open-feature/spec/issues/424">open-feature/spec#424</a>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class ConformanceReport {
 
-    /**
-     * The major version of the report schema this document conforms to.
-     *
-     * <p>An integer as a string, so a consumer can reject a report it does not understand rather
-     * than guessing at it.
-     */
+    /** The major version of the report schema this document conforms to, as an integer string. */
     public static final String SCHEMA_VERSION = "1";
 
     /** The schema version this document claims. */
@@ -47,13 +32,7 @@ public final class ConformanceReport {
     /** What asked the questions, and which questions. */
     public final Tck tck;
 
-    /**
-     * What the provider was pointed at.
-     *
-     * <p>Always present: {@code backend} is in the schema's top-level {@code required} array,
-     * including for a provider with no backend — that is what {@code backendType}'s
-     * {@code in-process} member is for.
-     */
+    /** What the provider was pointed at. Always present, as the schema requires. */
     public final Backend backend;
 
     /** The capability set this provider claims. */
@@ -87,25 +66,13 @@ public final class ConformanceReport {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Provider {
 
-        /**
-         * What the provider calls itself, through its own metadata.
-         *
-         * <p>Not the name of the suite. A suite name is chosen to read well in a failure message —
-         * {@code flagd-rpc} — which makes it the {@link #configuration}, not the identity.
-         */
+        /** What the provider calls itself through its own metadata, not the suite name. */
         public final String name;
 
         /** The language the provider is written in, always {@code java} here. */
         public final String language;
 
-        /**
-         * Which configuration of the provider was tested.
-         *
-         * <p>A provider with more than one materially different mode produces one report per mode,
-         * and they are not interchangeable: flagd's RPC and in-process resolvers differ in whether
-         * they emit {@code PROVIDER_STALE}, so a report keyed on the provider name alone would have
-         * to pick one and misrepresent the other.
-         */
+        /** Which configuration was tested; a provider with materially different modes gets a report per mode. */
         public final String configuration;
 
         Provider(String name, String language, String configuration) {
@@ -142,12 +109,8 @@ public final class ConformanceReport {
         public final String version;
 
         /**
-         * The open-feature/spec commit the executed artifacts came from.
-         *
-         * <p>The executed Gherkin no longer has to be taken on trust: the results stream carries the
-         * {@code source} of every feature it ran, so a consumer can diff what executed against what
-         * this revision contains. The revision still identifies the two artifacts the stream does
-         * <em>not</em> carry — the canonical flag set and the control API definition.
+         * The open-feature/spec commit the executed artifacts came from. It identifies what the stream
+         * does not carry: the canonical flag set and the control API definition.
          */
         public final String specRevision;
 
@@ -166,13 +129,8 @@ public final class ConformanceReport {
         public final String description;
 
         /**
-         * How the backend was driven: {@code http}, {@code in-process} or {@code custom}.
-         *
-         * <p>{@code in-process} is the narrow allowance made for providers with no backend; a report
-         * claiming it for a provider that has one should be treated with suspicion. {@code custom}
-         * is a control the TCK does not ship, which the suite cannot vouch for.
-         *
-         * <p>Always written, and never inferred: it is what the control states through
+         * How the backend was driven: {@code http}, {@code in-process} or {@code custom}. Always
+         * written, never inferred: it is what the control states through
          * {@link BackendControl#backendType()}.
          */
         public final BackendType backendType;
@@ -188,14 +146,8 @@ public final class ConformanceReport {
     public static final class Declaration {
 
         /**
-         * Capabilities the provider declares, including the leading at-sign.
-         *
-         * <p>An <strong>input</strong> to reading the results rather than a summary of them, which is
-         * why it cannot be derived from the results payload and has to be stated here. A skipped
-         * scenario in the stream says the question was not put to this provider; only the declaration
-         * says whether that is because the provider declines the capability. Given the declaration
-         * and a scenario's tags — both of which the stream carries — the reason for a skip follows
-         * without being transported per scenario.
+         * Capabilities the provider declares, including the leading at-sign. It cannot be derived from
+         * the results: a skipped scenario does not say whether the provider declined the capability.
          */
         public final List<String> declared;
 
@@ -215,29 +167,13 @@ public final class ConformanceReport {
         public final String format;
 
         /**
-         * The Cucumber Messages release the stream was produced against.
-         *
-         * <p>Messages is versioned and the TCK implementations pin different releases -- this one
-         * takes whatever cucumber-jvm bundles -- so a consumer holding two reports cannot assume one
-         * schema validates both.
-         *
-         * <p>Guessing is worse than not validating. A later schema accepts messages this producer
-         * could not have emitted, and an earlier one rejects messages that are perfectly valid, so a
-         * check against the wrong version reports a result that has nothing to do with the stream.
-         *
-         * <p>Read back out of the stream's own {@code meta.protocolVersion} rather than from a
-         * constant or the artifact version, so the envelope and the stream cannot disagree about
-         * which release produced it.
+         * The Cucumber Messages release the stream was produced against, read back from the stream's
+         * own {@code meta.protocolVersion}. TCK implementations pin different releases, and validating
+         * against the wrong schema gives a meaningless result.
          */
         public final String formatVersion;
 
-        /**
-         * Where to fetch the results: a path relative to this document.
-         *
-         * <p>Referenced rather than inlined because a Messages stream carries the feature sources and
-         * so is far larger than this envelope, and because a consumer deciding whether it cares about
-         * a report should not have to fetch the whole run to find out.
-         */
+        /** Where to fetch the results: a path relative to this document. Not inlined, as the stream is far larger. */
         public final String location;
 
         /** Digest over the results payload as {@code sha256:<hex>}. */

@@ -35,15 +35,9 @@ final class ReportNames {
     }
 
     /**
-     * Turns a configuration name into the base name both of a run's files share.
-     *
-     * <p>A run writes an envelope and a results stream, and they are matched by name — the envelope's
-     * {@code results.location} is this base name plus the stream's extension — so one derivation
-     * produces both.
-     *
-     * <p>Configuration names are chosen to read well in a failure message rather than to be
-     * path-safe, so anything that is not obviously safe becomes a hyphen. Without this a
-     * configuration named {@code flagd/rpc} would silently write outside the directory it was given.
+     * Turns a configuration name into the base name the envelope and the results stream share.
+     * Anything not obviously path-safe becomes a hyphen, so a configuration named {@code flagd/rpc}
+     * cannot write outside the report directory.
      *
      * @param configuration the configuration name
      * @return a file name stem, with no extension

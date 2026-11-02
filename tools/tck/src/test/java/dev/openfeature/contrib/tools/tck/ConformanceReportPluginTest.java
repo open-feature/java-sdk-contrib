@@ -37,27 +37,16 @@ import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
 
 /**
- * The conformance report exists to make one rule checkable, so these tests check it.
- *
- * <p>Appendix F requires that a scenario skipped for an undeclared capability is reported as skipped
- * with the reason and never as passed. The Go TCK shipped an emitter that broke the rule silently —
- * its runner did not deliver the capability-skip signal to the after-hook, so every skipped scenario
- * was recorded twice, once correctly and once as passed.
- *
- * <p>Since the results are now a Cucumber Messages stream rather than a format this project defines,
- * the rule is a property of what Cucumber emits, and only a real Cucumber run can demonstrate it.
- * These tests therefore execute a fixture suite through the JUnit Platform — same engine, same gate,
- * same plugin — and read the stream back as a consumer would: outcome per scenario derived from the
- * most severe step result, exactly as the {@code cucumber-query} helpers do it.
- *
- * <p>What is <em>not</em> asserted here is the serialisation of the stream. That is Cucumber's own
- * {@code MessageFormatter}, and re-checking it would only be checking Cucumber.
+ * Checks the rule the conformance report exists for: a scenario skipped for an undeclared capability
+ * is reported as skipped with the reason, never as passed. That is a property of what Cucumber emits,
+ * so a fixture suite runs through the JUnit Platform with the real plugin and the stream is read back
+ * as a consumer would. Serialisation of the stream is Cucumber's own and is not asserted.
  */
 class ConformanceReportPluginTest {
 
     /**
-     * The fixture's {@code @stale} tag is deliberately absent, so two scenarios must be skipped — and
-     * a third that no declaration could have covered, because {@code @large-integers} is
+     * {@code @stale} is deliberately undeclared, so two scenarios are skipped, plus a third that no
+     * declaration could cover because {@code @large-integers} is
      * {@linkplain Capability#inexpressible() inexpressible} in Java.
      */
     private static final Set<Capability> DECLARED = EnumSet.of(Capability.OBJECT, Capability.EVENTS);
@@ -69,12 +58,8 @@ class ConformanceReportPluginTest {
     private static final String OUTLINE = "Requesting the wrong type returns the code default";
 
     /**
-     * Severity order of {@code TestStepResultStatus}, least to most severe.
-     *
-     * <p>A {@code testCaseFinished} message carries no status: a scenario's outcome is the most
-     * severe result among its steps, hooks included. That is not incidental — it is the mechanism
-     * that makes a gated skip truthful, because the aborted {@code @Before} hook contributes a
-     * {@code SKIPPED} result that outranks every {@code PASSED} step it prevented from running.
+     * Severity order of {@code TestStepResultStatus}, least to most severe. A scenario's outcome is
+     * its most severe step result, hooks included, which is what makes a gated skip truthful.
      */
     private static final List<String> SEVERITY =
             Arrays.asList("UNKNOWN", "PASSED", "SKIPPED", "PENDING", "UNDEFINED", "AMBIGUOUS", "FAILED");
@@ -105,9 +90,7 @@ class ConformanceReportPluginTest {
     @Test
     @DisplayName("every scenario appears exactly once, whatever happened to it")
     void everyScenarioAppearsExactlyOnce() {
-        // Eight pickles: five plain scenarios and three outline rows. A report that quietly omitted
-        // the ones it did not run would satisfy every other rule here and still mislead, because a
-        // reader would have no way to know how many questions went unasked.
+        // Eight pickles: five plain scenarios and three outline rows, none of them omitted.
         assertThat(results.pickles).hasSize(8);
 
         assertThat(results.pickleOfTestCase.values())
@@ -159,17 +142,12 @@ class ConformanceReportPluginTest {
     @Test
     @DisplayName("the gate's own reason survives into the stream, and the two kinds of skip stay apart")
     void theGateReasonSurvives() {
-        // The declaration in the envelope is enough to work out *why* most scenarios were skipped,
-        // but the reason the gate gave is carried too, on the hook result that produced the skip.
+        // The reason the gate gave is carried on the hook result that produced the skip.
         List<String> messages = results.messagesOfSkippedSteps();
         assertThat(messages).hasSize(3);
 
-        // And for one of them the declaration is NOT enough, which is why this reason has to travel.
-        // @large-integers is absent from every Java declaration and absent for a reason that says
-        // nothing about the provider: the SDK's integer accessor is 32 bits. A reader who inferred
-        // "the provider declined" from the absence would be reading a decision into something no
-        // Java provider was ever offered. So the message names the SDK, and says it is not the
-        // provider declining, in words that could not be confused with the other two.
+        // @large-integers is absent from every Java declaration because the SDK's integer accessor
+        // is 32 bits, not because the provider declined, so the message must name the SDK.
         List<String> unaskable = new ArrayList<>();
         messages.forEach(message -> {
             if (message.contains("LARGE_INTEGERS")) {
@@ -200,9 +178,7 @@ class ConformanceReportPluginTest {
                 .as("the feature tag reaches every row")
                 .allSatisfy(row -> assertThat(results.tagsOf(row)).contains("@events"));
 
-        // Gherkin allows a tag on an individual Examples block, so two rows of one outline can
-        // differ in whether the gate stops them. Both rows must appear, and only the tagged one
-        // may be skipped: a skip that took its siblings with it would be invisible in the totals.
+        // Gherkin allows a tag on a single Examples block, so only the tagged row may be skipped.
         List<String> outcomes = new ArrayList<>();
         List<Boolean> stale = new ArrayList<>();
         for (JsonNode row : rows) {
@@ -223,10 +199,8 @@ class ConformanceReportPluginTest {
                 .extracting(row -> row.get("name").asText())
                 .containsOnly(OUTLINE);
 
-        // A pickle's astNodeIds are [scenario, table row] for an outline-derived scenario. The
-        // second is the row's identity, and it resolves in the gherkinDocument to the cells the row
-        // was compiled from. This is the mechanism the TCK used to reverse-engineer from a pickle's
-        // reported line number; the stream states it outright.
+        // A pickle's astNodeIds are [scenario, table row] for an outline row; the second resolves in
+        // the gherkinDocument to the cells the row was compiled from.
         List<String> rowIds = new ArrayList<>();
         List<List<String>> cells = new ArrayList<>();
         for (JsonNode row : rows) {
@@ -250,9 +224,7 @@ class ConformanceReportPluginTest {
     void theStreamCarriesTheExecutedSource() throws IOException {
         assertThat(results.sources).containsOnlyKeys(FEATURE_URI);
 
-        // Line endings are normalised on both sides: this repo is checked out with whatever the
-        // platform does, and the point of the assertion is that the text is the file's, not that
-        // Cucumber preserves CRLF.
+        // Line endings are normalised: the text must be the file's, whatever the checkout did to CRLF.
         byte[] onDisk = Files.readAllBytes(Paths.get("src/test/resources/report-selftest/report.feature"));
         assertThat(results.sources.get(FEATURE_URI).replace("\r\n", "\n"))
                 .as("what ran, verbatim, rather than a claim about which revision it came from")
@@ -285,13 +257,11 @@ class ConformanceReportPluginTest {
         assertThat(envelope.get("tck").get("specRevision").asText())
                 .as("and it is the revision the packaged assets actually came from; see the test below")
                 .isEqualTo(CanonicalAssetDigestTest.PINNED_REVISION);
-        // backend is in the schema's top-level required array and backendType in backend's, so both
-        // are asserted as present rather than as present-if-set.
+        // Both are required by the schema, so asserted as present rather than present-if-set.
         assertThat(envelope.has("backend")).isTrue();
         assertThat(envelope.get("backend").get("backendType").asText()).isEqualTo("http");
 
-        // The schema sets additionalProperties: false throughout, so anything the results payload
-        // now owns is a validation failure rather than harmless duplication.
+        // The schema sets additionalProperties: false, so anything the results payload owns would fail.
         List<String> fields = new ArrayList<>();
         envelope.fieldNames().forEachRemaining(fields::add);
         assertThat(fields).doesNotContain("scenarios", "capabilities");
@@ -303,8 +273,7 @@ class ConformanceReportPluginTest {
     void theDeclarationListsWhatIsClaimed() {
         JsonNode declared = envelope.get("declaration").get("declared");
 
-        // The declaration is an input to reading the results, not a summary of them: the stream says
-        // a scenario was skipped, and only this says whether the provider declines what it needed.
+        // Not derivable from the results: a skip does not say whether the provider declined the capability.
         assertThat(declared)
                 .extracting(JsonNode::asText)
                 .containsExactly(Capability.EVENTS.tag(), Capability.OBJECT.tag());
@@ -313,10 +282,8 @@ class ConformanceReportPluginTest {
     @Test
     @DisplayName("a reserved capability cannot reach the declaration, even when everything is claimed")
     void aReservedCapabilityCannotReachTheDeclaration() {
-        // The provider that claims the most is the case that used to break the rule: "everything"
-        // spelt EnumSet.allOf, or "everything except X" spelt EnumSet.complementOf, collected the
-        // reserved tags along the way and published a claim about capabilities no scenario
-        // examines. So this asks the maximal declaration for its report.
+        // EnumSet.allOf and complementOf used to collect the reserved tags and publish a claim no
+        // scenario examines, so this asks the maximal declaration for its report.
         JsonNode declared = MAPPER.valueToTree(report(Capability.declarable()))
                 .get("declaration")
                 .get("declared");
@@ -336,56 +303,24 @@ class ConformanceReportPluginTest {
                         Capability.STALE.tag(),
                         Capability.CONFIGURATION_CHANGE.tag(),
                         Capability.OBJECT.tag(),
-                        // @variants gates the one outline that asserts a variant. 2.2.4 is a SHOULD
-                        // and types.md types the field optional, so a backend with no variant
-                        // concept withholds it and those rows are skipped with that reason.
                         Capability.VARIANTS.tag(),
-                        // @disabled-flags gates the four-row outline that asks what a flag disabled
-                        // in the management system resolves to. Gated because the answer follows
-                        // from where the substitution happens rather than from provider quality: a
-                        // provider that evaluates locally can return the caller's default, one whose
-                        // backend decides never sent it. The maximal claim includes it.
                         Capability.DISABLED_FLAGS.tag(),
                         Capability.UNAVAILABLE_INIT.tag(),
                         Capability.NUMERIC_COERCION.tag(),
-                        // @string-typing gates the two outline rows that ask a boolean and an
-                        // integer flag through the String accessor. Gated because every value has a
-                        // string representation, so a backend that stores flag values as strings has
-                        // no mismatch to report and withholds it without being non-conformant.
                         Capability.STRING_TYPING.tag(),
-                        // @fully-typed-values asks the same of a float and a structure, and is a
-                        // separate claim because a store can record booleans and integers natively
-                        // while keeping those two as text. Both scenarios carry @string-typing as
-                        // well, so the maximal claim has to include both tags to reach them.
                         Capability.FULLY_TYPED_VALUES.tag(),
-                        // @large-integers is absent, and for a different reason from @caching's.
-                        // Scenarios do carry it -- Go and JavaScript run them -- but the Java SDK's
-                        // integer accessor is 32 bits, so no Java provider can be asked for 2^53 - 1
-                        // and none may claim it. The maximal claim is the maximal claim a provider
-                        // written against THIS SDK can make, which is what a report has to carry.
-                        // @targeting was reserved until targeting-key-flag's three scenarios
-                        // arrived. It gates something now, so the maximal claim includes it.
+                        // @large-integers is absent: the Java SDK's integer accessor is 32 bits, so no Java
+                        // provider may claim it.
                         Capability.TARGETING.tag(),
-                        // @standard-reasons gates reason.feature in its entirety. It is a claim
-                        // rather than an exemption -- 2.2.5 lets a provider report "some other
-                        // string", so a provider that does not declare it is not thereby deficient
-                        // -- but it is an ordinary declarable capability all the same, and the
-                        // maximal claim includes it.
                         Capability.STANDARD_REASONS.tag());
     }
 
     @Test
     @DisplayName("the revision a report publishes is the one the packaged assets came from")
     void theReportedRevisionIsTheRevisionTheAssetsCameFrom() {
-        // A report's whole claim to be readable later is that it says which questions were asked.
-        // The revision it names is a POM property, maintained by hand beside a submodule gitlink
-        // that moves by a different command -- so until now "keep them in step" was a comment in
-        // the POM, and a re-pin that updated one and not the other would have published a revision
-        // that did not produce the scenarios in the same file.
-        //
-        // CanonicalAssetDigestTest has already established that the packaged assets are
-        // PINNED_REVISION's, by digest. This is the last link: what the build filtered into the JAR
-        // and TckBuildInfo reads back is that same revision.
+        // The revision a report publishes is a POM property kept by hand beside the submodule gitlink.
+        // This ties what the build filtered into the JAR to PINNED_REVISION, which
+        // CanonicalAssetDigestTest has already tied to the packaged assets.
         assertThat(TckBuildInfo.specRevision())
                 .as("tck.spec.revision in tools/tck/pom.xml must equal "
                         + "CanonicalAssetDigestTest.PINNED_REVISION -- a re-pin moves the submodule "
@@ -399,9 +334,7 @@ class ConformanceReportPluginTest {
     @Test
     @DisplayName("naming a reserved capability fails the run rather than being dropped quietly")
     void namingAReservedCapabilityFailsTheRun() {
-        // Chosen over a warning: the declaration is the one part of the report no result can check,
-        // and a report is read long after the log it would have been warned in has gone. Nothing is
-        // lost by refusing, because no scenario carries the tag.
+        // Refused rather than warned: the declaration is the one part of the report no result can check.
         Set<Capability> overclaimed = EnumSet.of(Capability.OBJECT, Capability.CACHING);
 
         assertThatThrownBy(() -> metadata(overclaimed))
@@ -417,7 +350,6 @@ class ConformanceReportPluginTest {
                 .doesNotContain(Capability.STALE, Capability.CACHING)
                 .contains(Capability.OBJECT, Capability.NUMERIC_COERCION, Capability.TARGETING);
 
-        // The counterpart it replaces, and why it had to be replaced.
         assertThat(EnumSet.complementOf(EnumSet.of(Capability.STALE)))
                 .as("complementOf is the complement of the enum, not of the declarable vocabulary")
                 .contains(Capability.CACHING);
@@ -462,10 +394,8 @@ class ConformanceReportPluginTest {
     @Test
     @DisplayName("the report-directory knob is spelled the way the other three languages spell it")
     void theReportDirectoryKnobIsSpelledPortably() {
-        // Asserted as literals rather than through the constants, because the point is the name a
-        // cross-language CI job sets, not that the code is self-consistent. Go, Python and
-        // JavaScript read TCK_REPORT_DIR; one job exporting one variable has to drive all four, so
-        // a rename here is a breaking change to something no compiler checks.
+        // Literals on purpose: a cross-language CI job exports one variable to drive all four TCKs,
+        // so a rename is a breaking change no compiler checks.
         assertThat(ConformanceReportPlugin.REPORT_DIR_ENV).isEqualTo("TCK_REPORT_DIR");
         assertThat(ConformanceReportPlugin.REPORT_DIR_PROPERTY).isEqualTo("tck.report.dir");
     }
@@ -484,13 +414,7 @@ class ConformanceReportPluginTest {
     /** A suite whose name the default configuration derivation has to cope with. */
     private static final class MyProviderRpcTckTest {}
 
-    /**
-     * Runs the fixture feature through the real Cucumber engine, with the real plugin registered.
-     *
-     * <p>Driven through the JUnit Platform rather than through Cucumber's CLI because that is how the
-     * TCK itself runs: {@link ProviderTckTest} is a JUnit Platform Suite, and the plugin's
-     * position in the event stream is a property of that engine.
-     */
+    /** Runs the fixture feature through the real Cucumber engine with the real plugin registered. */
     private static void runSuite(Path dir, Set<Capability> declared) {
         ReportSelfTestSteps.declare(declared);
         TckRunMetadata.record(metadata(declared));
@@ -532,11 +456,8 @@ class ConformanceReportPluginTest {
                 declared,
                 "a test double",
                 BackendType.HTTP,
-                // Withheld-and-skipped, which is the shape a fixture may legitimately depict: this
-                // provider cannot attempt the behaviour, because it never subscribes to the thing
-                // that would tell it. A narrowing-coercion deviation used to stand here, and that
-                // is the shape the guidance discourages -- a provider that attempts a behaviour and
-                // gets it wrong declares the capability and lets the scenario fail.
+                // Withheld-and-skipped: the shape a fixture may depict, as opposed to a deviation, which is
+                // for a provider that attempts a behaviour and gets it wrong.
                 Collections.singletonList(KnownDeviation.untracked(
                         Capability.CONFIGURATION_CHANGE,
                         "the fixture provider swallows its child's change events and can never " + "report one")));
@@ -588,11 +509,8 @@ class ConformanceReportPluginTest {
     }
 
     /**
-     * A Cucumber Messages stream, read the way a consumer reads one.
-     *
-     * <p>Deliberately built from the raw ndjson with nothing but Jackson. Using Cucumber's own query
-     * helpers would make these tests agree with Cucumber by construction; the point is to show that
-     * the facts the report needs are recoverable from the bytes on disk.
+     * A Cucumber Messages stream read from the raw ndjson with Jackson alone, so the tests do not
+     * agree with Cucumber's query helpers by construction.
      */
     private static final class Results {
 
