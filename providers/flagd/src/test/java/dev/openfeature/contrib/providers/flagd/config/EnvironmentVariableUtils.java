@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e.steps;
+package dev.openfeature.contrib.providers.flagd.config;
 
 /*
  * Copy of JUnit Pioneer's EnvironmentVariable Utils

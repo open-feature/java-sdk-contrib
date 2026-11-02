@@ -1,12 +1,8 @@
-package dev.openfeature.contrib.providers.flagd.e2e.steps.config;
+package dev.openfeature.contrib.providers.flagd.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.Config;
-import dev.openfeature.contrib.providers.flagd.e2e.State;
-import dev.openfeature.contrib.providers.flagd.e2e.steps.AbstractSteps;
-import dev.openfeature.contrib.providers.flagd.e2e.steps.EnvironmentVariableUtils;
-import dev.openfeature.contrib.providers.flagd.e2e.steps.Utils;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -19,7 +15,9 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ConfigSteps extends AbstractSteps {
+public class ConfigSteps {
+    private final ConfigState state;
+
     /**
      * Not all properties are correctly implemented, hence that we need to ignore them till this is
      * fixed
@@ -30,8 +28,8 @@ public class ConfigSteps extends AbstractSteps {
         }
     };
 
-    public ConfigSteps(State state) {
-        super(state);
+    public ConfigSteps(ConfigState state) {
+        this.state = state;
     }
 
     @When("a config was initialized")

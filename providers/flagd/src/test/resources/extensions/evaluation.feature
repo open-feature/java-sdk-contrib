@@ -5,8 +5,10 @@ Feature: flagd evaluations
   # and reason.feature do not: the reason flagd reports for a zero value, a float zero value,
   # zero values served by a targeting rule, and flags with no default variant.
   #
-  # Not ported: "Resolve values" (the TCK's evaluation.feature asks it) and the @deprecated
-  # @no-default outline, which @no-default-variant replaces.
+  # Not ported: "Resolve values" (the TCK's evaluation.feature asks it), the @deprecated
+  # @no-default outline, which @no-default-variant replaces, and the two @precision scenarios,
+  # "Resolves numeric values without loss of precision" and "Resolves an integer beyond 32 bits
+  # without loss of precision", which the TCK's own precision scenarios ask.
 
   Background:
     Given an option "cache" of type "CacheType" with value "disabled"

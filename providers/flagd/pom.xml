@@ -14,12 +14,6 @@
     <version>0.15.0</version> <!--x-release-please-version -->
 
     <properties>
-        <!--
-            Exclusion for the legacy e2e suites over the test-harness submodule; the `e2e` profile
-            below clears it. The Provider TCK adoption in tck needs nothing here: the root pom
-            excludes every provider's tck package and its `tck` profile selects them.
-        -->
-        <testExclusions>**/e2e/*.java</testExclusions>
         <io.grpc.version>1.85.0</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
@@ -269,16 +263,12 @@
             </build>
         </profile>
         <profile>
-            <!-- this profile handles running the flagd e2e tests -->
+            <!--
+                Initialises the test-harness submodule: ConfigCucumberTest reads its config.feature
+                and the Provider TCK suites under tck/ its compose file. The flagd-testbed
+                scenarios themselves run as TCK extensions, through the root pom's `tck` profile.
+            -->
             <id>e2e</id>
-            <properties>
-                <!--
-                    Run the legacy flagd e2e suites (Run*Test, over the test-harness submodule).
-                    The Provider TCK suites stay out: the root pom excludes them outside its `tck`
-                    profile, which ci.yml's `tck` job runs on its own.
-                -->
-                <testExclusions/>
-            </properties>
             <build>
                 <plugins>
                     <!-- pull the gherkin tests as a git submodule  -->
