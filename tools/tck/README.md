@@ -126,6 +126,7 @@ Overridable on `ContainerizedProviderTckTest`; names and defaults match every la
 | `backendService()` | `backend` | service hosting both the backend and control API |
 | `controlPort()` | `8080` | |
 | `additionalPorts()` | none | `Map<String, List<Integer>>` of extra service to ports, resolved via `BackendEndpoint` by service name |
+| `composeEnvironment()` | none | environment for the Compose invocation, for a stack that takes a host path -- a bind-mounted directory the test JVM also reads |
 | `backendConfiguration()` | `default` | name passed to the control API's `POST /start` |
 | `startupTimeout()` | 60s | stack and control API becoming reachable |
 | `eventTimeout()` | 12s | waiting for a provider event; exceed your worst-case detection latency |
