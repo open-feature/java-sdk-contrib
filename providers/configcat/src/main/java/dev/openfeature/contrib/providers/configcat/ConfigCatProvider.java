@@ -3,14 +3,17 @@ package dev.openfeature.contrib.providers.configcat;
 import com.configcat.ConfigCatClient;
 import com.configcat.EvaluationDetails;
 import com.configcat.User;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -127,10 +130,23 @@ public class ConfigCatProvider extends EventProvider {
             evaluationDetails = configCatClient.getValueDetails(classOfT, key, user, defaultValue);
             evaluatedValue = evaluationDetails.getValue();
         }
+        if (evaluationDetails.getError() != null) {
+            return ProviderEvaluation.<T>builder()
+                    .value(evaluatedValue)
+                    .reason(Reason.ERROR.toString())
+                    .errorCode(isMissingKey(key) ? ErrorCode.FLAG_NOT_FOUND : ErrorCode.GENERAL)
+                    .errorMessage(evaluationDetails.getError())
+                    .build();
+        }
         return ProviderEvaluation.<T>builder()
                 .value(evaluatedValue)
                 .variant(evaluationDetails.getVariationId())
                 .build();
+    }
+
+    private boolean isMissingKey(String key) {
+        Collection<String> keys = configCatClient.getAllKeys();
+        return !keys.isEmpty() && !keys.contains(key);
     }
 
     @SneakyThrows
