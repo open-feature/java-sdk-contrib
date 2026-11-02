@@ -68,7 +68,9 @@ public class FlagdSteps {
      */
     @Given("an option {string} of type {string} with value {string}")
     public void anOption(String option, String type, String value) throws IOException {
-        Object converted = convert(value, type);
+        // The features give certPath relative to the testbed root, which this module checks out as
+        // the test-harness submodule.
+        Object converted = "certPath".equals(option) ? "test-harness/" + value : convert(value, type);
         String name = OPTION_NAMES.getOrDefault(option, option);
         Method setter = Arrays.stream(FlagdOptions.FlagdOptionsBuilder.class.getMethods())
                 .filter(method -> method.getName().equals(name) && method.getParameterCount() == 1)
