@@ -375,8 +375,8 @@ mvn -Ptck -pl providers/flagd -am -Dtest=InProcessTest     -Dsurefire.failIfNoSp
 
 The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other module's tests.
 
-**These suites also carry the rest of flagd-testbed's scenarios**, ported into
-`src/test/resources/extensions/` and run through the TCK's extension hook, so they replace the
+**These suites also carry the rest of flagd-testbed's scenarios**: its `tck-extensions/`, read
+from the `test-harness` submodule and run through the TCK's extension hook, so they replace the
 former `e2e` suites. `ConfigCucumberTest` still reads `config.feature` from the `test-harness`
 submodule; it needs no backend and runs in the default build. The root pom excludes every
 provider's `tck` package from the default build and from `-Pe2e`.

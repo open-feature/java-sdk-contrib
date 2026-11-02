@@ -5,8 +5,8 @@ import dev.openfeature.contrib.tools.tck.BackendEndpoint;
 import java.util.function.Consumer;
 
 /**
- * What the flagd extension scenarios under {@code src/test/resources/extensions} need from the
- * adoption beyond the TCK's own harness.
+ * What the flagd extension scenarios, flagd-testbed's {@code tck-extensions/} on the classpath,
+ * need from the adoption beyond the TCK's own harness.
  *
  * <p>The TCK builds every provider through {@code createProvider()} with no arguments, which suits
  * the canonical scenarios: they ask the same question of every provider. The extensions port the

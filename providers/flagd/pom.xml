@@ -176,6 +176,20 @@
             </extension>
         </extensions>
 
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <!-- flagd-testbed's TCK extensions, on the classpath where the TCK looks for them. -->
+            <testResource>
+                <directory>test-harness/tck-extensions</directory>
+                <targetPath>extensions</targetPath>
+                <includes>
+                    <include>*.feature</include>
+                </includes>
+            </testResource>
+        </testResources>
+
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
