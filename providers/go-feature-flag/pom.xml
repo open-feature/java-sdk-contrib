@@ -20,7 +20,7 @@
         <!-- override module name defined in parent ("-" is not allowed) -->
         <module-name>${groupId}.gofeatureflag</module-name>
 
-        <wasm.version>0.2.4</wasm.version>
+        <wasm.version>3.0.0</wasm.version>
         <!-- exclusion expression for e2e tests -->
         <testExclusions>**/e2e/*.java</testExclusions>
     </properties>
