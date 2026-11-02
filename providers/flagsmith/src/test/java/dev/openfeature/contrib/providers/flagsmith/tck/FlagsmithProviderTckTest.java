@@ -5,7 +5,6 @@ import dev.openfeature.contrib.providers.flagsmith.FlagsmithProviderOptions;
 import dev.openfeature.contrib.tools.tck.BackendEndpoint;
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
-import dev.openfeature.contrib.tools.tck.KnownDeviation;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
 import java.util.Arrays;
@@ -82,8 +81,8 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
      * resolution, so STATIC, TARGETING_MATCH and DEFAULT are never reported. The Go Flagsmith provider
      * reports all three against the same backend.
      *
-     * <p>{@code NUMERIC_COERCION} is withheld: Flagsmith stores floats as strings and this provider
-     * does not parse them, so neither 10.0 to 10 nor 10 to 10.0 is performed.
+     * <p>{@code NUMERIC_COERCION} is withheld: this provider does not coerce between Integer and Float
+     * requests.
      *
      * <p>{@code OBJECT} is withheld: Flagsmith has no structured type and stores the JSON document as
      * text, which this provider does not parse into a structure.
@@ -104,15 +103,5 @@ public class FlagsmithProviderTckTest extends ContainerizedProviderTckTest {
     @Override
     public Set<Capability> capabilities() {
         return EnumSet.of(Capability.TARGETING, Capability.DISABLED_FLAGS, Capability.STRING_TYPING);
-    }
-
-    @Override
-    public List<KnownDeviation> knownDeviations() {
-        return Arrays.asList(KnownDeviation.untracked(
-                null,
-                "A Float request on a float flag returns the caller's default. Flagsmith stores floats "
-                        + "as strings and this provider does not parse them back, so the untagged \"Resolve "
-                        + "values\" float row and \"A float flag resolves as a float\" both fail. The Go "
-                        + "Flagsmith provider parses the stored string and passes both."));
     }
 }
