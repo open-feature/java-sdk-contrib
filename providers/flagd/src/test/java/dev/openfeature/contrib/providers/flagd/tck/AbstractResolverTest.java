@@ -19,9 +19,6 @@ import java.util.Set;
  * evaluates remotely over gRPC, in-process syncs the ruleset and evaluates locally, and file reads
  * the ruleset off the disk. All three share a backend stack; the two gRPC modes differ only in
  * resolver and port, and {@link FileTest} says what the third needs instead.
- *
- * <p>An occasional extra failure of a shape that moves between runs is the flagd-testbed readiness
- * window of open-feature/flagd-testbed#394, not a regression; repeat the run.
  */
 abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
@@ -32,8 +29,7 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      * gRPC deadline for a provider that is expected to connect.
      *
      * <p>flagd <em>doubles</em> it, and in-process must sync the entire ruleset before it reports
-     * ready; 5000 was not enough for that. Raising it past 15000 does not help what remains, which is
-     * stack-side readiness (open-feature/flagd-testbed#394).
+     * ready; 5000 was not enough for that.
      */
     private static final int CONNECTED_DEADLINE_MS = 15000;
 
