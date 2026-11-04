@@ -146,4 +146,43 @@ class FlagStoreTest {
         thread.join(1000);
         assertFalse(thread.isAlive());
     }
+
+    @Test
+    void initAgainStopsThePreviousStreamer() throws Exception {
+        final BlockingQueue<Thread> takers = new LinkedBlockingQueue<>();
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<QueuePayload>() {
+            @Override
+            public QueuePayload take() throws InterruptedException {
+                takers.add(Thread.currentThread());
+                return super.take();
+            }
+        };
+        final QueueSource connector = new QueueSource() {
+            @Override
+            public void init() {}
+
+            @Override
+            public BlockingQueue<QueuePayload> getStreamQueue() {
+                return payload;
+            }
+
+            @Override
+            public void shutdown() {}
+        };
+        FlagStore store = new FlagStore(connector, new FlagdCore(true));
+        store.init();
+        final Thread first = takers.poll(1, TimeUnit.SECONDS);
+        assertNotNull(first);
+
+        store.init();
+        final Thread second = takers.poll(1, TimeUnit.SECONDS);
+        assertNotNull(second);
+
+        first.join(1000);
+        assertFalse(first.isAlive());
+
+        store.shutdown();
+        second.join(1000);
+        assertFalse(second.isAlive());
+    }
 }

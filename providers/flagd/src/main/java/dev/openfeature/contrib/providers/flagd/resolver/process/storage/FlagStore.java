@@ -55,7 +55,11 @@ public class FlagStore implements Storage {
                 },
                 STREAMER_THREAD_NAME);
         streamer.setDaemon(true);
-        this.streamer.set(streamer);
+        // a retried init must not leave the previous streamer blocked on the queue
+        final Thread previous = this.streamer.getAndSet(streamer);
+        if (previous != null) {
+            previous.interrupt();
+        }
         streamer.start();
     }
 
