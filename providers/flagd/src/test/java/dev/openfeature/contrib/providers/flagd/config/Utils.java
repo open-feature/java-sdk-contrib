@@ -1,4 +1,4 @@
-package dev.openfeature.contrib.providers.flagd.e2e.steps;
+package dev.openfeature.contrib.providers.flagd.config;
 
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.resolver.rpc.cache.CacheType;

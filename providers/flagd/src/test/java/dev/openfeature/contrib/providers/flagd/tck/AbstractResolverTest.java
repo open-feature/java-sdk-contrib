@@ -8,9 +8,13 @@ import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ContainerizedProviderTckTest;
 import dev.openfeature.sdk.FeatureProvider;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
  * Shared configuration for running the OpenFeature Provider TCK against the flagd provider.
@@ -20,7 +24,7 @@ import java.util.Set;
  * the ruleset off the disk. All three share a backend stack; the two gRPC modes differ only in
  * resolver and port, and {@link FileTest} says what the third needs instead.
  */
-abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
+abstract class AbstractResolverTest extends ContainerizedProviderTckTest implements FlagdTckHarness {
 
     /** A port nothing listens on; an outage on the Compose stack belongs to the control API. */
     private static final int UNAVAILABLE_PORT = 9999;
@@ -36,8 +40,11 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     /** gRPC deadline for a dead port; these scenarios assert that the failure is reported promptly. */
     private static final int UNAVAILABLE_DEADLINE_MS = 1000;
 
+    /** Per-scenario option changes recorded by the extension steps; see {@link FlagdTckHarness}. */
+    private final List<Consumer<FlagdOptions.FlagdOptionsBuilder>> customizations = new CopyOnWriteArrayList<>();
+
     /** The resolver under test. */
-    protected abstract Config.Resolver resolver();
+    public abstract Config.Resolver resolver();
 
     /**
      * The container-internal port this mode waits on before the first scenario.
@@ -51,7 +58,9 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
      * {@inheritDoc}
      *
      * <p>The flagd-testbed's own stack, from the {@code test-harness} submodule the legacy e2e suites
-     * also run, so the image tag follows the submodule pin instead of a second copy that can drift.
+     * also run, so the image tag follows the submodule. It adds an envoy sidecar, which the
+     * {@code @targetURI} and {@code @forbidden} extension scenarios connect through; no canonical
+     * scenario reaches it.
      */
     @Override
     public File composeFile() {
@@ -64,6 +73,12 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
         return "flagd";
     }
 
+    /** The envoy sidecar's two listeners; see {@link #composeFile()}. */
+    @Override
+    public Map<String, List<Integer>> additionalPorts() {
+        return Collections.singletonMap(ENVOY_SERVICE, Arrays.asList(ENVOY_ROUTING_PORT, ENVOY_FORBIDDEN_PORT));
+    }
+
     @Override
     public List<Integer> backendPorts() {
         return Collections.singletonList(backendPort());
@@ -71,13 +86,13 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
 
     @Override
     public FeatureProvider createProvider(BackendEndpoint endpoint) {
-        return new FlagdProvider(flagSource(baseOptions().deadline(CONNECTED_DEADLINE_MS), endpoint)
+        return new FlagdProvider(customized(flagSource(baseOptions().deadline(CONNECTED_DEADLINE_MS), endpoint))
                 .build());
     }
 
     @Override
     public FeatureProvider createUnavailableProvider() {
-        return new FlagdProvider(missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS))
+        return new FlagdProvider(customized(missingFlagSource(baseOptions().deadline(UNAVAILABLE_DEADLINE_MS)))
                 .build());
     }
 
@@ -103,6 +118,26 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
         return options.host("localhost").port(UNAVAILABLE_PORT);
     }
 
+    @Override
+    public void customize(Consumer<FlagdOptions.FlagdOptionsBuilder> customization) {
+        customizations.add(customization);
+    }
+
+    @Override
+    public void resetCustomizations() {
+        customizations.clear();
+    }
+
+    @Override
+    public BackendEndpoint backendEndpoint() {
+        return endpoint();
+    }
+
+    @Override
+    public String launchpadUrl() {
+        return "http://" + endpoint().host() + ":" + endpoint().port(controlPort());
+    }
+
     /**
      * {@inheritDoc}
      *
@@ -118,6 +153,11 @@ abstract class AbstractResolverTest extends ContainerizedProviderTckTest {
     @Override
     public Set<Capability> capabilities() {
         return Capability.declarableExcept(Capability.REINITIALIZATION);
+    }
+
+    private FlagdOptions.FlagdOptionsBuilder customized(FlagdOptions.FlagdOptionsBuilder builder) {
+        customizations.forEach(customization -> customization.accept(builder));
+        return builder;
     }
 
     private FlagdOptions.FlagdOptionsBuilder baseOptions() {

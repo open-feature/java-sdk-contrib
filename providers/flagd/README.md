@@ -375,9 +375,11 @@ mvn -Ptck -pl providers/flagd -am -Dtest=InProcessTest     -Dsurefire.failIfNoSp
 
 The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other module's tests.
 
-**`-Pe2e` does not run these suites.** The root pom excludes every provider's `tck` package from
-the default build and from `-Pe2e`, and its `tck` profile runs only that package. This module
-excludes just `**/e2e/*.java`, which the `e2e` profile clears.
+**These suites also carry the rest of flagd-testbed's scenarios**: its `tck-extensions/`, read
+from the `test-harness` submodule and run through the TCK's extension hook, so they replace the
+former `e2e` suites. `ConfigCucumberTest` still reads `config.feature` from the `test-harness`
+submodule; it needs no backend and runs in the default build. The root pom excludes every
+provider's `tck` package from the default build and from `-Pe2e`.
 
 **CI runs them in a job of their own**, `Provider TCK` in `ci.yml`, on every pull request. It sits
 apart from the `main` matrix so a conformance failure cannot be read as a regression there. Set

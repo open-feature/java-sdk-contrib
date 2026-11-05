@@ -4,6 +4,8 @@ import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.tools.tck.BackendEndpoint;
 import dev.openfeature.contrib.tools.tck.Capability;
+import dev.openfeature.contrib.tools.tck.TckExcludeTags;
+import dev.openfeature.contrib.tools.tck.TckIncludeTags;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -21,7 +23,14 @@ import org.apache.commons.io.FileUtils;
  * file where this JVM can see it. The testbed's Compose file mounts {@code $FLAGS_DIR} at
  * {@code /flags}, where its launchpad writes {@code allFlags.json}, so naming a host directory
  * through {@link #composeEnvironment()} is all it takes.
+ *
+ * <p>Three extension exclusions: {@code @ext-connection}, whose every scenario turns on a gRPC
+ * connection this resolver does not have; {@code @metadata-provider}, which names a
+ * {@code selector-} flag file the launchpad leaves out of the combined {@code allFlags.json}; and
+ * {@code @fractional-v2}, as in the other two suites.
  */
+@TckIncludeTags("@file")
+@TckExcludeTags({"@ext-connection", "@metadata-provider", "@fractional-v2"})
 public class FileTest extends AbstractResolverTest {
 
     /**
