@@ -317,6 +317,50 @@ class SyncStreamQueueSourceTest {
     }
 
     @Test
+    void deadlineExceededAfterDataReconnectsWithoutErrorOrBackoff() throws Exception {
+        // the stream deadline is a routine recycle: no ERROR payload and no backoff before reconnecting
+        int maxBackoffMs = 10000;
+        queueSource = new SyncStreamQueueSource(
+                FlagdOptions.builder().retryBackoffMaxMs(maxBackoffMs).build(), mockConnector, stub, blockingStub);
+        latch = new CountDownLatch(1);
+        queueSource.init();
+        latch.await();
+
+        observer.onNext(SyncFlagsResponse.newBuilder().build());
+        BlockingQueue<QueuePayload> streamQueue = queueSource.getStreamQueue();
+        QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
+        assertNotNull(payload);
+        assertEquals(QueuePayloadType.DATA, payload.getType());
+
+        // fire deadline exceeded and reset latch
+        latch = new CountDownLatch(1);
+        observer.onError(new StatusRuntimeException(io.grpc.Status.DEADLINE_EXCEEDED));
+
+        // should have restarted the stream (2 calls) well before the backoff elapses
+        assertTrue(latch.await(maxBackoffMs / 2, TimeUnit.MILLISECONDS));
+        verify(stub, times(2)).syncFlags(any(), any());
+        // should NOT enqueue error payload
+        assertTrue(streamQueue.isEmpty());
+    }
+
+    @Test
+    void deadlineExceededWithoutDataEnqueuesErrorPayload() throws Exception {
+        // a stream that never delivered data is not healthy, the deadline is reported as an error
+        queueSource = new SyncStreamQueueSource(FlagdOptions.builder().build(), mockConnector, stub, blockingStub);
+        latch = new CountDownLatch(1);
+        queueSource.init();
+        latch.await();
+
+        observer.onError(new StatusRuntimeException(io.grpc.Status.DEADLINE_EXCEEDED));
+
+        // should enqueue error payload
+        BlockingQueue<QueuePayload> streamQueue = queueSource.getStreamQueue();
+        QueuePayload payload = streamQueue.poll(1000, TimeUnit.MILLISECONDS);
+        assertNotNull(payload);
+        assertEquals(QueuePayloadType.ERROR, payload.getType());
+    }
+
+    @Test
     void shutdownCancelsStreamBeforeAwaitingTermination() throws Exception {
         // shutdown must close the channel (cancelling the stream) before awaiting
         int deadline = 5000;
