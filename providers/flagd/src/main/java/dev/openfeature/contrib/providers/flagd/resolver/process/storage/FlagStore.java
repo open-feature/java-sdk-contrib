@@ -72,12 +72,14 @@ public class FlagStore implements Storage {
             return;
         }
 
-        connector.shutdown();
-
-        // the streamer blocks on the connector queue, which not every connector feeds on shutdown
-        final Thread current = streamer.getAndSet(null);
-        if (current != null && current != Thread.currentThread()) {
-            current.interrupt();
+        try {
+            connector.shutdown();
+        } finally {
+            // the streamer blocks on the connector queue, which not every connector feeds on shutdown
+            final Thread current = streamer.getAndSet(null);
+            if (current != null && current != Thread.currentThread()) {
+                current.interrupt();
+            }
         }
     }
 

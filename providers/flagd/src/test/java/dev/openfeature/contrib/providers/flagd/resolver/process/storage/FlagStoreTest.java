@@ -3,6 +3,7 @@ package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -142,6 +143,45 @@ class FlagStoreTest {
         assertEquals(FlagStore.STREAMER_THREAD_NAME, thread.getName());
 
         store.shutdown();
+
+        thread.join(1000);
+        assertFalse(thread.isAlive());
+    }
+
+    @Test
+    void shutdownStopsStreamerWhenConnectorShutdownThrows() throws Exception {
+        final AtomicReference<Thread> streamer = new AtomicReference<>();
+        final CountDownLatch waiting = new CountDownLatch(1);
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<QueuePayload>() {
+            @Override
+            public QueuePayload take() throws InterruptedException {
+                streamer.set(Thread.currentThread());
+                waiting.countDown();
+                return super.take();
+            }
+        };
+        final QueueSource connector = new QueueSource() {
+            @Override
+            public void init() {}
+
+            @Override
+            public BlockingQueue<QueuePayload> getStreamQueue() {
+                return payload;
+            }
+
+            @Override
+            public void shutdown() {
+                throw new IllegalStateException("connector shutdown failed");
+            }
+        };
+        FlagStore store = new FlagStore(connector, new FlagdCore(true));
+        store.init();
+
+        assertTrue(waiting.await(1, TimeUnit.SECONDS));
+        final Thread thread = streamer.get();
+        assertNotNull(thread);
+
+        assertThrows(IllegalStateException.class, store::shutdown);
 
         thread.join(1000);
         assertFalse(thread.isAlive());
