@@ -56,7 +56,7 @@ public class FlagsmithClientConfigurer {
         }
 
         if (options.getExpireCacheAfterWrite() > -1 && options.getExpireCacheAfterWriteTimeUnit() != null) {
-            flagsmithCacheConfig.expireAfterAccess(
+            flagsmithCacheConfig.expireAfterWrite(
                     options.getExpireCacheAfterWrite(), options.getExpireCacheAfterWriteTimeUnit());
         }
 
