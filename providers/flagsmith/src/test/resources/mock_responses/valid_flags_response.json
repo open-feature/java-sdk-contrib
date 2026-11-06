@@ -47,6 +47,24 @@
   {
     "enabled": true,
     "feature": {
+      "id": 1460,
+      "type": "STANDARD",
+      "name": "float_string_key"
+    },
+    "feature_state_value": "0.5"
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1461,
+      "type": "STANDARD",
+      "name": "float_invalid_key"
+    },
+    "feature_state_value": "abc"
+  },
+  {
+    "enabled": true,
+    "feature": {
       "id": 1452,
       "type": "STANDARD",
       "name": "object_key"

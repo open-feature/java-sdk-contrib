@@ -370,6 +370,23 @@ public class FlagsmithProviderTest {
                 () -> booleanFlagsmithProvider.getBooleanEvaluation("true_key", false, new MutableContext()));
     }
 
+    @Test
+    void shouldResolveFloatStoredAsString() {
+        // Flagsmith has no float type, so a float flag is stored as its string form
+        ProviderEvaluation<Double> evaluation =
+                flagsmithProvider.getDoubleEvaluation("float_string_key", 0.1, new MutableContext());
+
+        assertEquals(0.5, evaluation.getValue());
+        assertNull(evaluation.getErrorCode());
+    }
+
+    @Test
+    void shouldReportTypeMismatchForNonNumericStringRequestedAsFloat() {
+        assertThrows(
+                dev.openfeature.sdk.exceptions.TypeMismatchError.class,
+                () -> flagsmithProvider.getDoubleEvaluation("float_invalid_key", 0.1, new MutableContext()));
+    }
+
     private String readMockResponse(String filename) throws IOException {
         String file = getClass()
                 .getClassLoader()
