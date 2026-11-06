@@ -14,6 +14,7 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -38,7 +39,7 @@ public class TracesHook implements Hook {
     public TracesHook(TracesHookOptions options) {
         setSpanErrorStatus = options.isSetSpanErrorStatus();
         extractor = options.getDimensionExtractor();
-        extraAttributes = options.getExtraAttributes();
+        extraAttributes = Objects.requireNonNullElse(options.getExtraAttributes(), Attributes.empty());
     }
 
     /**
@@ -68,7 +69,10 @@ public class TracesHook implements Hook {
         attributesBuilder.putAll(extraAttributes);
 
         if (extractor != null) {
-            attributesBuilder.putAll(extractor.apply(details.getFlagMetadata()));
+            Attributes attributes = extractor.apply(details.getFlagMetadata());
+            if (attributes != null) {
+                attributesBuilder.putAll(attributes);
+            }
         }
 
         currentSpan.addEvent(EVENT_NAME, attributesBuilder.build());
