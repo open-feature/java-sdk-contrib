@@ -19,9 +19,9 @@ import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.internal.TriConsumer;
+import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompiler;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.tools.ToolProvider;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -200,20 +200,21 @@ public class InProcessResolver implements Resolver {
     static boolean resolveCompileTargeting(CompileTargetingMode mode) {
         switch (mode) {
             case ENABLED:
-                log.info("Targeting rule compilation enabled; requires the jdk.compiler module at runtime.");
+                log.info("Targeting rule compilation enabled; requires Java 24+ or the jdk.compiler module.");
                 return true;
             case DISABLED:
                 log.info("Targeting rule compilation is disabled.");
                 return false;
             case AUTO:
             default:
-                boolean compilerAvailable = ToolProvider.getSystemJavaCompiler() != null;
+                boolean compilerAvailable = JsonLogicCompiler.selectProvider(JsonLogicCompiler.discoverProviders())
+                        .isPresent();
                 if (compilerAvailable) {
-                    log.info("jdk.compiler detected; targeting rule compilation enabled automatically."
+                    log.info("JsonLogic compiler detected; targeting rule compilation enabled automatically."
                             + " Set FLAGD_COMPILE_TARGETING=disabled to disable.");
                 } else {
-                    log.info("jdk.compiler not detected; targeting rule compilation disabled."
-                            + " Set FLAGD_COMPILE_TARGETING=enabled to force (requires a JDK at runtime).");
+                    log.info("No JsonLogic compiler detected; targeting rule compilation disabled."
+                            + " Requires Java 24+ or the jdk.compiler module at runtime.");
                 }
                 return compilerAvailable;
         }
