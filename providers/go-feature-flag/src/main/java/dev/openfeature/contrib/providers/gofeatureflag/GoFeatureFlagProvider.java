@@ -11,7 +11,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHook;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.DataCollectorHookOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.hook.EnrichEvaluationContextHook;
-import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.EvaluationContextUtil;
@@ -20,6 +19,7 @@ import dev.openfeature.sdk.EventProvider;
 import dev.openfeature.sdk.Hook;
 import dev.openfeature.sdk.Metadata;
 import dev.openfeature.sdk.ProviderEvaluation;
+import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderEventDetails;
 import dev.openfeature.sdk.Tracking;
 import dev.openfeature.sdk.TrackingEventDetails;
@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -41,7 +42,7 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     /** Options to configure the provider. */
     private final GoFeatureFlagProviderOptions options;
     /** Service to evaluate the flags. */
-    private final EvaluationService evalService;
+    private final IEvaluator evaluator;
     /** List of the hooks used by the provider. */
     private final List<Hook> hooks = new ArrayList<>();
     /** API layer to contact GO Feature Flag. */
@@ -50,8 +51,6 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     private final EventsPublisher<IEvent> eventsPublisher;
     /** exporter metadata contains the metadata that we want to send to the exporter. */
     private final Map<String, Object> exporterMetadata;
-    /** DataCollectorHook is the hook to send usage of the flags. */
-    private DataCollectorHook dataCollectorHook;
 
     /**
      * Constructor of the provider.
@@ -66,24 +65,16 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
         options.validate();
         this.options = options;
         this.api = GoFeatureFlagApi.builder().options(options).build();
-        this.evalService = new EvaluationService(getEvaluator(this.api));
+        this.evaluator = getEvaluator();
 
-        long flushIntervalMs =
-                (options.getFlushIntervalMs() == null) ? Const.DEFAULT_FLUSH_INTERVAL_MS : options.getFlushIntervalMs();
-        int maxPendingEvents = (options.getMaxPendingEvents() == null)
-                ? Const.DEFAULT_MAX_PENDING_EVENTS
-                : options.getMaxPendingEvents();
         Consumer<List<IEvent>> publisher = this::publishEvents;
-        this.eventsPublisher = new EventsPublisher<>(publisher, flushIntervalMs, maxPendingEvents);
+        this.eventsPublisher =
+                new EventsPublisher<>(publisher, options.getFlushIntervalMs(), options.getMaxPendingEvents());
 
-        if (options.getExporterMetadata() == null) {
-            this.exporterMetadata = new HashMap<>();
-        } else {
-            val exp = new HashMap<>(options.getExporterMetadata());
-            exp.put("provider", "java");
-            exp.put("openfeature", true);
-            this.exporterMetadata = exp;
-        }
+        val exp = new HashMap<>(options.getExporterMetadata());
+        exp.put(Const.METADATA_PROVIDER, "java");
+        exp.put(Const.METADATA_OPENFEATURE, true);
+        this.exporterMetadata = exp;
     }
 
     @Override
@@ -99,48 +90,54 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(
             String key, Boolean defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Boolean.class);
+        return this.evaluator.getBooleanEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(
             String key, String defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, String.class);
+        return this.evaluator.getStringEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(
             String key, Integer defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Integer.class);
+        return this.evaluator.getIntegerEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(
             String key, Double defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Double.class);
+        return this.evaluator.getDoubleEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(
             String key, Value defaultValue, EvaluationContext evaluationContext) {
-        return this.evalService.getEvaluation(key, defaultValue, evaluationContext, Value.class);
+        return this.evaluator.getObjectEvaluation(key, defaultValue, evaluationContext);
     }
 
     @Override
     public void initialize(EvaluationContext evaluationContext) throws Exception {
+        this.initialize(evaluationContext, "");
+    }
+
+    @Override
+    public void initialize(EvaluationContext evaluationContext, String domain) throws Exception {
         super.initialize(evaluationContext);
-        this.evalService.init();
-        this.hooks.add(new EnrichEvaluationContextHook(this.options.getExporterMetadata()));
+        // re-initialization must reset the publisher: its shutdown flag and its scheduler are both
+        // one-shot, so without this a provider that is shut down and initialized again never flushes.
+        this.eventsPublisher.start();
+        this.evaluator.initialize(evaluationContext, domain);
+        this.hooks.clear();
+        this.hooks.add(new EnrichEvaluationContextHook(this.exporterMetadata));
         // In case of remote evaluation, we don't need to send the data to the collector
         // because the relay-proxy will collect events directly server side.
         if (!this.options.isDisableDataCollection() && this.options.getEvaluationType() != EvaluationType.REMOTE) {
-            this.dataCollectorHook = new DataCollectorHook(DataCollectorHookOptions.builder()
+            this.hooks.add(new DataCollectorHook(DataCollectorHookOptions.builder()
                     .eventsPublisher(this.eventsPublisher)
-                    .collectUnCachedEvaluation(true)
-                    .evalService(this.evalService)
-                    .build());
-
-            this.hooks.add(this.dataCollectorHook);
+                    .evaluator(this.evaluator)
+                    .build()));
         }
         log.info("finishing initializing provider");
     }
@@ -148,10 +145,8 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
     @Override
     public void shutdown() {
         super.shutdown();
-        this.evalService.destroy();
-        if (this.dataCollectorHook != null) {
-            this.dataCollectorHook.shutdown();
-        }
+        this.evaluator.shutdown();
+        this.eventsPublisher.shutdown();
     }
 
     @Override
@@ -171,10 +166,14 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
 
     @Override
     public void track(final String eventName, final EvaluationContext context, final TrackingEventDetails details) {
+        if (this.options.isDisableDataCollection()) {
+            return;
+        }
+
         val trackingEvent = TrackingEvent.builder()
                 .evaluationContext((context != null) ? context.asObjectMap() : Collections.emptyMap())
-                .userKey(context != null ? context.getTargetingKey() : "undefined-targetingKey")
-                .contextKind(EvaluationContextUtil.isAnonymousUser(context) ? "anonymousUser" : "user")
+                .userKey(EvaluationContextUtil.userKey(context))
+                .contextKind(EvaluationContextUtil.contextKind(context))
                 .kind("tracking")
                 .key(eventName)
                 .trackingEventDetails(details != null ? details.asObjectMap() : Collections.emptyMap())
@@ -185,17 +184,16 @@ public final class GoFeatureFlagProvider extends EventProvider implements Tracki
 
     /**
      * Get the evaluator based on the evaluation type.
-     * It will initialize the evaluator based on the evaluation type.
      *
      * @return the evaluator
      */
-    private IEvaluator getEvaluator(GoFeatureFlagApi api) {
+    private IEvaluator getEvaluator() {
         // Select the evaluator based on the evaluation type
+        BiConsumer<ProviderEvent, ProviderEventDetails> emitter = this::emit;
         if (options.getEvaluationType() == null || options.getEvaluationType() == EvaluationType.IN_PROCESS) {
-            Consumer<ProviderEventDetails> emitProviderConfigurationChanged = this::emitProviderConfigurationChanged;
-            return new InProcessEvaluator(api, this.options, emitProviderConfigurationChanged);
+            return new InProcessEvaluator(this.api, this.options, emitter);
         }
-        return new RemoteEvaluator(api);
+        return new RemoteEvaluator(this.options, emitter);
     }
 
     /**

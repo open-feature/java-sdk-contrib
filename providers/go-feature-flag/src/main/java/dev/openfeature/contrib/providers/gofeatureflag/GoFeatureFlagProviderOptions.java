@@ -4,20 +4,31 @@ import dev.openfeature.contrib.providers.gofeatureflag.bean.EvaluationType;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidExporterMetadata;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
+import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.http.HttpRequest;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.val;
 
 /**
  * GoFeatureFlagProviderOptions contains the options to initialise the provider.
+ *
+ * <p>Every optional field is unset by default, and its getter resolves the documented default value,
+ * so the provider and the evaluators can read the options without repeating the fallbacks.</p>
  */
 @Builder
 @Getter
 public class GoFeatureFlagProviderOptions {
+    /** Default timeout in millisecond when calling the GO Feature Flag relay proxy API. */
+    private static final int DEFAULT_TIMEOUT_MS = 10000;
+
     /**
      * evaluationType is the type of evaluation you want to use.
      * - If you want to have a local evaluation, you should use IN_PROCESS.
@@ -31,20 +42,17 @@ public class GoFeatureFlagProviderOptions {
      */
     private String endpoint;
     /**
+     * (optional) dataCollectorBaseUrl is the base URL used to publish the evaluation data, when the
+     * data collector is not served by the relay proxy itself. It replaces the whole base of the
+     * collector route, scheme, host, port and path prefix included, and applies to that route only:
+     * the flag configuration and the evaluations keep using endpoint. Default: endpoint
+     */
+    private String dataCollectorBaseUrl;
+    /**
      * (optional) timeout in millisecond we are waiting when calling the go-feature-flag relay proxy
      * API. Default: 10000 ms
      */
     private int timeout;
-    /**
-     * (optional) maxIdleConnections is the maximum number of connexions in the connexion pool.
-     * Default: 1000
-     */
-    private int maxIdleConnections;
-    /**
-     * (optional) keepAliveDuration is the time in millisecond we keep the connexion open. Default:
-     * 7200000 (2 hours)
-     */
-    private Long keepAliveDuration;
     /**
      * (optional) If the relay proxy is configured to authenticate the requests, you should provide an
      * API Key to the provider. Please ask the administrator of the relay proxy to provide an API Key.
@@ -53,25 +61,33 @@ public class GoFeatureFlagProviderOptions {
      */
     private String apiKey;
     /**
-     * (optional) interval time we publish statistics collection data to the proxy. The parameter is
-     * used only if the cache is enabled, otherwise the collection of the data is done directly when
-     * calling the evaluation API. default: 1000 ms
+     * (optional) customHeaders are extra HTTP headers added to every request the provider makes, to the
+     * relay proxy and to dataCollectorBaseUrl, for deployments behind a gateway that needs its own
+     * authentication. A configured apiKey always wins over a custom X-API-Key. Content-Type and
+     * If-None-Match are set by the provider, and they are refused here, as are the headers the Java HTTP
+     * client restricts (Host, Connection, Content-Length, Expect, Upgrade). Default: none
+     */
+    private Map<String, String> customHeaders;
+    /**
+     * (optional) interval time in millisecond we publish the collected evaluation and tracking events
+     * to the data collector. default: 60000 ms (1 minute)
      */
     private Long flushIntervalMs;
     /**
      * (optional) max pending events aggregated before publishing for collection data to the proxy.
-     * When an event is added while an events collection is full, the event is omitted. default: 10000
+     * Once that many events are pending they are published without waiting for flushIntervalMs. If
+     * they cannot be published, at most twice that many are kept and the oldest are dropped. default: 10000
      */
     private Integer maxPendingEvents;
     /**
-     * (optional) disableDataCollection set to true if you don't want to collect the usage of flags
-     * retrieved in the cache. default: false
+     * (optional) disableDataCollection set to true if you don't want to send the evaluation and
+     * tracking events to the data collector. default: false
      */
     private boolean disableDataCollection;
 
     /**
      * (optional) exporterMetadata is the metadata we send to the GO Feature Flag relay proxy when we report the
-     * evaluation data usage.
+     * evaluation data usage. default: empty
      */
     private Map<String, Object> exporterMetadata;
 
@@ -85,9 +101,9 @@ public class GoFeatureFlagProviderOptions {
     private List<String> evaluationFlagList;
 
     /**
-     * (optional) interval time we poll the proxy to check if the configuration has changed. If the
-     * cache is enabled, we will poll the relay-proxy every X milliseconds to check if the
-     * configuration has changed. default: 120000
+     * (optional) interval time in millisecond we poll the relay proxy to check if the flag
+     * configuration has changed, for in process evaluation. Each poll is randomly shortened or
+     * lengthened by up to 10%. default: 120000
      */
     private Long flagChangePollingIntervalMs;
 
@@ -100,33 +116,175 @@ public class GoFeatureFlagProviderOptions {
     private Integer wasmEvaluatorPoolSize;
 
     /**
+     * Get the type of evaluation to use.
+     *
+     * @return the configured evaluation type, IN_PROCESS if none was set
+     */
+    public EvaluationType getEvaluationType() {
+        return evaluationType == null ? EvaluationType.IN_PROCESS : evaluationType;
+    }
+
+    /**
+     * Get the base URL used to publish the evaluation data.
+     *
+     * @return the configured data collector base URL, the endpoint if none was set
+     */
+    public String getDataCollectorBaseUrl() {
+        return dataCollectorBaseUrl == null || dataCollectorBaseUrl.isEmpty() ? endpoint : dataCollectorBaseUrl;
+    }
+
+    /**
+     * Get the timeout in millisecond when calling the GO Feature Flag relay proxy API.
+     *
+     * @return the configured timeout, 10000 ms if none was set
+     */
+    public int getTimeout() {
+        return timeout == 0 ? DEFAULT_TIMEOUT_MS : timeout;
+    }
+
+    /**
+     * Get the extra HTTP headers added to every request to the relay proxy.
+     *
+     * @return the configured headers, an empty map if none was set
+     */
+    public Map<String, String> getCustomHeaders() {
+        return customHeaders == null ? Collections.emptyMap() : customHeaders;
+    }
+
+    /**
+     * Get the interval time we publish the collected events to the data collector.
+     *
+     * @return the configured interval, 60000 ms if none was set
+     */
+    public Long getFlushIntervalMs() {
+        return Objects.requireNonNullElse(flushIntervalMs, Const.DEFAULT_FLUSH_INTERVAL_MS);
+    }
+
+    /**
+     * Get the maximum number of events aggregated before publishing them to the proxy.
+     *
+     * @return the configured maximum, 10000 if none was set
+     */
+    public Integer getMaxPendingEvents() {
+        return Objects.requireNonNullElse(maxPendingEvents, Const.DEFAULT_MAX_PENDING_EVENTS);
+    }
+
+    /**
+     * Get the metadata sent to the relay proxy when reporting the evaluation data usage.
+     *
+     * @return the configured metadata, an empty map if none was set
+     */
+    public Map<String, Object> getExporterMetadata() {
+        return exporterMetadata == null ? Collections.emptyMap() : exporterMetadata;
+    }
+
+    /**
+     * Get the list of flags to load for in process evaluation.
+     *
+     * @return the configured list, an empty list if none was set, meaning all the flags are loaded
+     */
+    public List<String> getEvaluationFlagList() {
+        return evaluationFlagList == null ? Collections.emptyList() : evaluationFlagList;
+    }
+
+    /**
+     * Get the interval time we poll the proxy to check if the configuration has changed.
+     *
+     * @return the configured interval, 120000 ms if none was set
+     */
+    public Long getFlagChangePollingIntervalMs() {
+        return Objects.requireNonNullElse(
+                flagChangePollingIntervalMs, Const.DEFAULT_POLLING_CONFIG_FLAG_CHANGE_INTERVAL_MS);
+    }
+
+    /**
+     * Get the number of WASM instances kept in the evaluation pool.
+     *
+     * @return the configured pool size, the number of available CPU cores if none was set
+     */
+    public Integer getWasmEvaluatorPoolSize() {
+        return Objects.requireNonNullElse(wasmEvaluatorPoolSize, Const.DEFAULT_WASM_EVALUATOR_POOL_SIZE);
+    }
+
+    /**
      * Validate the options provided to the provider.
+     *
+     * <p>Validation reads the fields directly and not the getters, to check what the caller has
+     * really set and not the resolved default values.</p>
      *
      * @throws InvalidOptions - if options are invalid
      */
     public void validate() throws InvalidOptions {
-        if (getEndpoint() == null || getEndpoint().isEmpty()) {
+        if (endpoint == null || endpoint.isEmpty()) {
             throw new InvalidEndpoint("endpoint is a mandatory field when initializing the provider");
         }
 
         try {
-            new URL(getEndpoint());
+            new URL(endpoint);
         } catch (MalformedURLException e) {
-            throw new InvalidEndpoint("malformed endpoint: " + getEndpoint());
+            throw new InvalidEndpoint("malformed endpoint: " + endpoint);
         }
 
-        if (getWasmEvaluatorPoolSize() != null && getWasmEvaluatorPoolSize() < 1) {
+        if (dataCollectorBaseUrl != null && !dataCollectorBaseUrl.isEmpty()) {
+            try {
+                new URL(dataCollectorBaseUrl);
+            } catch (MalformedURLException e) {
+                throw new InvalidEndpoint("malformed dataCollectorBaseUrl: " + dataCollectorBaseUrl);
+            }
+        }
+
+        validateCustomHeaders(customHeaders);
+
+        if (wasmEvaluatorPoolSize != null && wasmEvaluatorPoolSize < 1) {
             throw new InvalidOptions("wasmEvaluatorPoolSize must be at least 1");
         }
 
-        if (getExporterMetadata() != null) {
+        if (exporterMetadata != null) {
             val acceptableExporterMetadataTypes = List.of("String", "Boolean", "Integer", "Double");
-            for (Map.Entry<String, Object> entry : getExporterMetadata().entrySet()) {
+            for (Map.Entry<String, Object> entry : exporterMetadata.entrySet()) {
                 if (!acceptableExporterMetadataTypes.contains(
                         entry.getValue().getClass().getSimpleName())) {
                     throw new InvalidExporterMetadata(
                             "exporterMetadata can only contain String, Boolean, Integer or Double");
                 }
+            }
+        }
+    }
+
+    /**
+     * validateCustomHeaders rejects, at construction, a custom header the provider would otherwise
+     * send wrongly or fail on at every request. The messages name the header but never carry its
+     * value, which is typically a gateway credential.
+     */
+    private static void validateCustomHeaders(final Map<String, String> headers) throws InvalidOptions {
+        if (headers == null || headers.isEmpty()) {
+            return;
+        }
+
+        val probe = HttpRequest.newBuilder();
+        val headersSet = new HashSet<String>();
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            val name = header.getKey();
+            if (name == null) {
+                throw new InvalidOptions("customHeaders cannot contain a null header name");
+            }
+            if (Const.HTTP_HEADER_CONTENT_TYPE.equalsIgnoreCase(name)
+                    || Const.HTTP_HEADER_IF_NONE_MATCH.equalsIgnoreCase(name)) {
+                throw new InvalidOptions("custom header " + name + " is set by the provider itself");
+            }
+            try {
+                probe.header(name, "value");
+            } catch (IllegalArgumentException e) {
+                throw new InvalidOptions("invalid custom header name, " + e.getMessage());
+            }
+
+            if (header.getValue() == null) {
+                throw new InvalidOptions("null value for header: " + name);
+            }
+
+            val setSuccess = headersSet.add(name.toLowerCase());
+            if (!setSuccess) {
+                throw new InvalidOptions("more than one header configured with the name, " + name);
             }
         }
     }

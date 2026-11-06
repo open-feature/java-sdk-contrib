@@ -6,6 +6,8 @@
         </Console>
     </Appenders>
     <Loggers>
+        <Logger name="com.github.dockerjava" level="info"/>
+        <Logger name="org.testcontainers" level="info"/>
         <Root level="trace">
             <AppenderRef ref="consoleLogger"/>
         </Root>

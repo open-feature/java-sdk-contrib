@@ -1,19 +1,20 @@
 package dev.openfeature.contrib.providers.gofeatureflag.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.TestUtils;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FeatureEvent;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.Flag;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.Rule;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.TrackingEvent;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.AuthenticationFailure;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToRetrieveConfiguration;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToSendEventsException;
@@ -22,7 +23,6 @@ import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
 import dev.openfeature.contrib.providers.gofeatureflag.util.GoffApiMock;
 import dev.openfeature.sdk.MutableTrackingEventDetails;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.InvalidContextError;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,11 +30,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.HttpUrl;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +53,11 @@ public class GoFeatureFlagApiTest {
     private MockWebServer server;
     private GoffApiMock goffAPIMock;
     private HttpUrl baseUrl;
+
+    private static final String TEST_FLAG_JSON =
+            "{\"variations\": {\"off\": false, \"on\": true}, \"defaultRule\": {\"variation\": \"off\"}}";
+    private static final String TEST2_FLAG_JSON =
+            "{\"variations\": {\"off\": false, \"on\": true}, \"defaultRule\": {\"variation\": \"on\"}}";
 
     @BeforeEach
     void beforeEach(TestInfo testInfo) throws IOException {
@@ -99,191 +110,6 @@ public class GoFeatureFlagApiTest {
     }
 
     @Nested
-    class EvaluateFlag {
-        @SneakyThrows
-        @DisplayName("request should call the ofrep endpoint")
-        @Test
-        public void requestShouldCallTheOfrepEndpoint() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
-
-            val want = "/ofrep/v1/evaluate/flags/flag-key";
-            assertEquals(want, server.takeRequest().getPath());
-        }
-
-        @SneakyThrows
-        @DisplayName("request should have an api key")
-        @Test
-        public void requestShouldHaveAnAPIKey() {
-            val apiKey = "my-api-key";
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .apiKey(apiKey)
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
-
-            val want = Const.BEARER_TOKEN + apiKey;
-            assertEquals(want, server.takeRequest().getHeader("Authorization"));
-        }
-
-        @SneakyThrows
-        @DisplayName("request should not set an api key if empty")
-        @Test
-        public void requestShouldNotSetAnAPIKeyIfEmpty() {
-            val apiKey = "";
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .apiKey(apiKey)
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
-            assertNull(server.takeRequest().getHeader("Authorization"));
-        }
-
-        @SneakyThrows
-        @DisplayName("request should have the evaluation context in the body")
-        @Test
-        public void requestShouldHaveTheEvaluationContextInTheBody() {
-            val apiKey = "my-api-key";
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .apiKey(apiKey)
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
-
-            val wantStr = "{\"context\":{"
-                    + "  \"targetingKey\": \"d45e303a-38c2-11ed-a261-0242ac120002\","
-                    + "  \"email\": \"john.doe@gofeatureflag.org\","
-                    + "  \"firstname\": \"john\","
-                    + "  \"lastname\": \"doe\","
-                    + "  \"anonymous\": false,"
-                    + "  \"professional\": true,"
-                    + "  \"rate\": 3.14,"
-                    + "  \"age\": 30,"
-                    + "  \"company_info\": {\"name\": \"my_company\", \"size\": 120},"
-                    + "  \"labels\": [\"pro\", \"beta\"]"
-                    + "}}";
-            val gotStr = goffAPIMock.getLastRequestBody();
-            ObjectMapper objectMapper = new ObjectMapper();
-            Object want = objectMapper.readTree(wantStr);
-            Object got = objectMapper.readTree(gotStr);
-            assertEquals(want, got, "The JSON strings are not equal");
-        }
-
-        @SneakyThrows
-        @DisplayName("request should have the default headers")
-        @Test
-        public void requestShouldHaveDefaultHeaders() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
-
-            val got = server.takeRequest().getHeaders();
-            assertEquals("application/json; charset=utf-8", got.get(Const.HTTP_HEADER_CONTENT_TYPE));
-        }
-
-        @SneakyThrows
-        @DisplayName("should error if timeout is reached")
-        @Test
-        public void shouldErrorIfTimeoutIsReached() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .timeout(200)
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(GeneralError.class, () -> api.evaluateFlag("timeout", TestUtils.defaultEvaluationContext));
-        }
-
-        @SneakyThrows
-        @DisplayName("should error if response is a 401")
-        @Test
-        public void shouldErrorIfResponseIsA401() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(GeneralError.class, () -> api.evaluateFlag("401", TestUtils.defaultEvaluationContext));
-        }
-
-        @SneakyThrows
-        @DisplayName("should error if response is a 403")
-        @Test
-        public void shouldErrorIfResponseIsA403() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(GeneralError.class, () -> api.evaluateFlag("403", TestUtils.defaultEvaluationContext));
-        }
-
-        @SneakyThrows
-        @DisplayName("should error if response has invalid JSON")
-        @Test
-        public void shouldErrorIfResponseHasInvalidJson() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(
-                    GeneralError.class, () -> api.evaluateFlag("invalid-json", TestUtils.defaultEvaluationContext));
-        }
-
-        @SneakyThrows
-        @DisplayName("should error if response is a 400")
-        @Test
-        public void shouldErrorIfResponseIsA400() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(InvalidContextError.class, () -> api.evaluateFlag("400", TestUtils.defaultEvaluationContext));
-        }
-
-        @SneakyThrows
-        @DisplayName("should error if response is a 500")
-        @Test
-        public void shouldErrorIfResponseIsA500() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            assertThrows(GeneralError.class, () -> api.evaluateFlag("500", TestUtils.defaultEvaluationContext));
-        }
-
-        @SneakyThrows
-        @DisplayName("should have a valid evaluate response")
-        @Test
-        public void shouldHaveAValidEvaluateResponse() {
-            val options = GoFeatureFlagProviderOptions.builder()
-                    .endpoint(baseUrl.toString())
-                    .build();
-            val api = GoFeatureFlagApi.builder().options(options).build();
-            val got = api.evaluateFlag("flag-key", TestUtils.defaultEvaluationContext);
-
-            val want = new GoFeatureFlagResponse();
-            want.setVariationType("off");
-            want.setValue(false);
-            want.setReason("STATIC");
-            want.setCacheable(true);
-            val metadata = new HashMap<String, Object>();
-            metadata.put("description", "A flag that is always off");
-            want.setMetadata(metadata);
-            want.setErrorCode(null);
-            want.setErrorDetails(null);
-            want.setFailed(false);
-
-            assertEquals(want, got);
-        }
-    }
-
-    @Nested
     class SendEventToDataCollector {
         @SneakyThrows
         @DisplayName("request should have an api key")
@@ -300,8 +126,9 @@ public class GoFeatureFlagApiTest {
             Map<String, Object> exporterMetadata = new HashMap<>();
             api.sendEventToDataCollector(events, exporterMetadata);
 
-            val want = Const.BEARER_TOKEN + apiKey;
-            assertEquals(want, server.takeRequest().getHeader("Authorization"));
+            val request = server.takeRequest();
+            assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
+            assertNull(request.getHeader("Authorization"));
         }
 
         @SneakyThrows
@@ -321,6 +148,130 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("request should keep the path prefix of the endpoint")
+        @Test
+        public void requestShouldKeepThePathPrefixOfTheEndpoint() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(server.url("/gofeatureflagproxy/").toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+            val want = "/gofeatureflagproxy/v1/data/collector";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("request should go to dataCollectorBaseUrl when it is set")
+        @Test
+        public void requestShouldGoToDataCollectorBaseUrlWhenItIsSet() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseUrl(
+                                collectorServer.url("/collector-prefix/").toString())
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+                api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+                val request = collectorServer.takeRequest(5, TimeUnit.SECONDS);
+                assertNotNull(request, "the data collector base URL was not called");
+                // the whole base is replaced: host, port and path prefix
+                assertEquals("/collector-prefix/v1/data/collector", request.getPath());
+                assertEquals(0, server.getRequestCount(), "the endpoint should not have been called");
+            }
+        }
+
+        @SneakyThrows
+        @DisplayName("the other routes should keep using the endpoint when dataCollectorBaseUrl is set")
+        @Test
+        public void theOtherRoutesShouldKeepUsingTheEndpointWhenDataCollectorBaseUrlIsSet() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+
+                api.retrieveFlagConfiguration(null, Collections.emptyList());
+                assertEquals("/v1/flag/configuration", server.takeRequest().getPath());
+                assertEquals(0, collectorServer.getRequestCount());
+            }
+        }
+
+        @SneakyThrows
+        @DisplayName("dataCollectorBaseUrl should carry the configured timeout")
+        @Test
+        public void dataCollectorBaseUrlShouldCarryTheConfiguredTimeout() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new Dispatcher() {
+                    @Override
+                    public @NonNull MockResponse dispatch(@NonNull RecordedRequest request) {
+                        return new MockResponse().setResponseCode(200).setHeadersDelay(5, TimeUnit.SECONDS);
+                    }
+                });
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
+                        .timeout(200)
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+
+                assertThrows(
+                        ImpossibleToSendEventsException.class,
+                        () -> api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>()));
+            }
+        }
+
+        @SneakyThrows
+        @DisplayName("dataCollectorBaseUrl should carry the api key and the timeout")
+        @Test
+        public void dataCollectorBaseUrlShouldCarryTheApiKeyAndTheTimeout() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val apiKey = "my-api-key";
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
+                        .apiKey(apiKey)
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+                api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+                val request = collectorServer.takeRequest(5, TimeUnit.SECONDS);
+                assertNotNull(request, "the data collector base URL was not called");
+                assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
+            }
+        }
+
+        @SneakyThrows
+        @DisplayName("dataCollectorBaseUrl should carry the custom headers")
+        @Test
+        public void dataCollectorBaseUrlShouldCarryTheCustomHeaders() {
+            try (val collectorServer = new MockWebServer()) {
+                collectorServer.setDispatcher(new GoffApiMock(GoffApiMock.MockMode.DEFAULT).dispatcher);
+                collectorServer.start();
+                val options = GoFeatureFlagProviderOptions.builder()
+                        .endpoint(baseUrl.toString())
+                        .dataCollectorBaseUrl(collectorServer.url("").toString())
+                        .customHeaders(Map.of("X-Gateway-Token", "gateway-token"))
+                        .build();
+                val api = GoFeatureFlagApi.builder().options(options).build();
+                api.sendEventToDataCollector(new ArrayList<>(), new HashMap<>());
+
+                val request = collectorServer.takeRequest(5, TimeUnit.SECONDS);
+                assertNotNull(request, "the data collector base URL was not called");
+                assertEquals("gateway-token", request.getHeader("X-Gateway-Token"));
+            }
+        }
+
+        @SneakyThrows
         @DisplayName("request should not set an api key if empty")
         @Test
         public void requestShouldNotSetAnAPIKeyIfEmpty() {
@@ -333,7 +284,7 @@ public class GoFeatureFlagApiTest {
             List<IEvent> events = new ArrayList<>();
             Map<String, Object> exporterMetadata = new HashMap<>();
             api.sendEventToDataCollector(events, exporterMetadata);
-            assertNull(server.takeRequest().getHeader("Authorization"));
+            assertNull(server.takeRequest().getHeader(Const.HTTP_HEADER_API_KEY));
         }
 
         @SneakyThrows
@@ -366,6 +317,7 @@ public class GoFeatureFlagApiTest {
                     .creationDate(1617970547L)
                     .contextKind("anonymousUser")
                     .kind("feature")
+                    .source("INPROCESS")
                     .userKey("ABCD")
                     .variation("enabled")
                     .value(true)
@@ -480,8 +432,39 @@ public class GoFeatureFlagApiTest {
             val api = GoFeatureFlagApi.builder().options(options).build();
             api.retrieveFlagConfiguration(null, Collections.emptyList());
 
-            val want = Const.BEARER_TOKEN + apiKey;
-            assertEquals(want, server.takeRequest().getHeader("Authorization"));
+            val request = server.takeRequest();
+            assertEquals(apiKey, request.getHeader(Const.HTTP_HEADER_API_KEY));
+            assertNull(request.getHeader("Authorization"));
+        }
+
+        @SneakyThrows
+        @DisplayName("request should carry the custom headers")
+        @Test
+        public void requestShouldCarryTheCustomHeaders() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .customHeaders(Map.of("X-Gateway-Token", "gateway-token"))
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            assertEquals("gateway-token", server.takeRequest().getHeader("X-Gateway-Token"));
+        }
+
+        @SneakyThrows
+        @DisplayName("a configured api key should win over a custom header of the same name")
+        @Test
+        public void aConfiguredApiKeyShouldWinOverACustomHeaderOfTheSameName() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .apiKey("my-api-key")
+                    .customHeaders(Map.of("x-api-key", "custom-key"))
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            val request = server.takeRequest();
+            assertEquals(List.of("my-api-key"), request.getHeaders().values(Const.HTTP_HEADER_API_KEY));
         }
 
         @SneakyThrows
@@ -499,6 +482,169 @@ public class GoFeatureFlagApiTest {
         }
 
         @SneakyThrows
+        @DisplayName("request should keep the path prefix of the endpoint")
+        @Test
+        public void requestShouldKeepThePathPrefixOfTheEndpoint() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(server.url("/gofeatureflagproxy/").toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            val want = "/gofeatureflagproxy/v1/flag/configuration";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("request should keep the path prefix of an endpoint without a trailing slash")
+        @Test
+        public void requestShouldKeepThePathPrefixOfAnEndpointWithoutTrailingSlash() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(server.url("/gofeatureflagproxy").toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+            api.retrieveFlagConfiguration(null, Collections.emptyList());
+
+            val want = "/gofeatureflagproxy/v1/flag/configuration";
+            assertEquals(want, server.takeRequest().getPath());
+        }
+
+        @SneakyThrows
+        @DisplayName("a flag should be kept opaque, including fields this provider has no model for")
+        @Test
+        public void aFlagShouldBeKeptOpaque() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            val got = api.retrieveFlagConfiguration("unknown-flag-field", Collections.emptyList());
+            assertTrue(got.isPresent());
+            val flag = got.get().getFlags().get("TEST");
+
+            // a field the engine may have gained after this provider was written
+            assertEquals(
+                    Const.DESERIALIZE_OBJECT_MAPPER.readTree("{\"nested\": [1, 2, 3]}"),
+                    flag.get("aFieldFromANewerEngine"));
+            // and a field the deleted typed model never declared
+            assertEquals("teamId", flag.get("bucketingKey").asText());
+        }
+
+        @SneakyThrows
+        @DisplayName("an unknown field beside the flags should be tolerated")
+        @Test
+        public void anUnknownFieldBesideTheFlagsShouldBeTolerated() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            val got = api.retrieveFlagConfiguration("unknown-response-field", Collections.emptyList());
+
+            // a top level field the provider has no property for must not fail the refresh
+            assertTrue(got.isPresent());
+            assertEquals(
+                    Const.DESERIALIZE_OBJECT_MAPPER.readTree("{\"deep\": {\"deeper\": 1}}"),
+                    got.get().getFlags().get("TEST").get("aFieldFromANewerEngine"));
+            assertEquals(1, got.get().getEvaluationContextEnrichment().get("anUnknownEnrichmentKey"));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 200 carrying no flag map should be a failed refresh")
+        @Test
+        public void a200CarryingNoFlagMapShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("no-flags", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 200 with a null flag map should be a failed refresh")
+        @Test
+        public void a200WithANullFlagMapShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("null-flags", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 200 with trailing tokens should be a failed refresh")
+        @Test
+        public void a200WithTrailingTokensShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("trailing-tokens", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 200 whose body is the json literal null should be a failed refresh")
+        @Test
+        public void a200WithANullBodyShouldBeAFailedRefresh() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertThrows(
+                    ImpossibleToRetrieveConfiguration.class,
+                    () -> api.retrieveFlagConfiguration("null-body", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a null evaluationContextEnrichment should be accepted as no enrichment")
+        @Test
+        public void aNullEvaluationContextEnrichmentShouldBeAccepted() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            val got = api.retrieveFlagConfiguration("null-enrichment", Collections.emptyList());
+            assertTrue(got.isPresent());
+            assertNull(got.get().getEvaluationContextEnrichment());
+            assertEquals(1, got.get().getFlags().size());
+        }
+
+        @SneakyThrows
+        @DisplayName("a 304 should not return a configuration")
+        @Test
+        public void a304ShouldNotReturnAConfiguration() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertEquals(Optional.empty(), api.retrieveFlagConfiguration("304-with-etag", Collections.emptyList()));
+        }
+
+        @SneakyThrows
+        @DisplayName("a 304 without an etag should not return a configuration either")
+        @Test
+        public void a304WithoutAnEtagShouldNotReturnAConfiguration() {
+            val options = GoFeatureFlagProviderOptions.builder()
+                    .endpoint(baseUrl.toString())
+                    .build();
+            val api = GoFeatureFlagApi.builder().options(options).build();
+
+            assertEquals(Optional.empty(), api.retrieveFlagConfiguration("304-without-etag", Collections.emptyList()));
+        }
+
+        @SneakyThrows
         @DisplayName("request should not set an api key if empty")
         @Test
         public void requestShouldNotSetAnAPIKeyIfEmpty() {
@@ -509,7 +655,7 @@ public class GoFeatureFlagApiTest {
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
             api.retrieveFlagConfiguration(null, Collections.emptyList());
-            assertNull(server.takeRequest().getHeader("Authorization"));
+            assertNull(server.takeRequest().getHeader(Const.HTTP_HEADER_API_KEY));
         }
 
         @SneakyThrows
@@ -563,9 +709,9 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
+            // fatal, not retryable: the SDK moves the provider to FATAL on a PROVIDER_FATAL error
             assertThrows(
-                    ImpossibleToRetrieveConfiguration.class,
-                    () -> api.retrieveFlagConfiguration("401", Collections.emptyList()));
+                    AuthenticationFailure.class, () -> api.retrieveFlagConfiguration("401", Collections.emptyList()));
         }
 
         @SneakyThrows
@@ -576,9 +722,9 @@ public class GoFeatureFlagApiTest {
                     .endpoint(baseUrl.toString())
                     .build();
             val api = GoFeatureFlagApi.builder().options(options).build();
+            // fatal, not retryable: the SDK moves the provider to FATAL on a PROVIDER_FATAL error
             assertThrows(
-                    ImpossibleToRetrieveConfiguration.class,
-                    () -> api.retrieveFlagConfiguration("403", Collections.emptyList()));
+                    AuthenticationFailure.class, () -> api.retrieveFlagConfiguration("403", Collections.emptyList()));
         }
 
         @SneakyThrows
@@ -635,26 +781,11 @@ public class GoFeatureFlagApiTest {
             val evaluationContextEnrichment = new HashMap<String, Object>();
             evaluationContextEnrichment.put("env", "production");
 
-            val flags = new HashMap<String, Flag>();
-            val variations = new HashMap<String, Object>();
-            variations.put("on", true);
-            variations.put("off", false);
-            val rule = new Rule();
-            rule.setVariation("off");
-
-            val rule2 = new Rule();
-            rule2.setVariation("on");
-
-            val flag1 = new Flag();
-            flag1.setVariations(variations);
-            flag1.setDefaultRule(rule);
-
-            val flag2 = new Flag();
-            flag2.setVariations(variations);
-            flag2.setDefaultRule(rule2);
-
-            flags.put("TEST", flag1);
-            flags.put("TEST2", flag2);
+            // flags are compared as raw JSON: the provider must not reconstruct them from a typed
+            // model, so there is no model here to compare against either.
+            val flags = new HashMap<String, JsonNode>();
+            flags.put("TEST", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST_FLAG_JSON));
+            flags.put("TEST2", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST2_FLAG_JSON));
             val want = FlagConfigResponse.builder()
                     .flags(flags)
                     .etag("\"valid-flag-config.json\"")
@@ -662,7 +793,7 @@ public class GoFeatureFlagApiTest {
                             .parse("Wed, 21 Oct 2015 07:28:00 GMT"))
                     .evaluationContextEnrichment(evaluationContextEnrichment)
                     .build();
-            assertEquals(want, got);
+            assertEquals(Optional.of(want), got);
         }
 
         @SneakyThrows
@@ -680,33 +811,18 @@ public class GoFeatureFlagApiTest {
             val evaluationContextEnrichment = new HashMap<String, Object>();
             evaluationContextEnrichment.put("env", "production");
 
-            val flags = new HashMap<String, Flag>();
-            val variations = new HashMap<String, Object>();
-            variations.put("on", true);
-            variations.put("off", false);
-            val rule = new Rule();
-            rule.setVariation("off");
-
-            val rule2 = new Rule();
-            rule2.setVariation("on");
-
-            val flag1 = new Flag();
-            flag1.setVariations(variations);
-            flag1.setDefaultRule(rule);
-
-            val flag2 = new Flag();
-            flag2.setVariations(variations);
-            flag2.setDefaultRule(rule2);
-
-            flags.put("TEST", flag1);
-            flags.put("TEST2", flag2);
+            // flags are compared as raw JSON: the provider must not reconstruct them from a typed
+            // model, so there is no model here to compare against either.
+            val flags = new HashMap<String, JsonNode>();
+            flags.put("TEST", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST_FLAG_JSON));
+            flags.put("TEST2", Const.DESERIALIZE_OBJECT_MAPPER.readTree(TEST2_FLAG_JSON));
             val want = FlagConfigResponse.builder()
                     .flags(flags)
                     .etag("\"valid-flag-config.json\"")
                     .lastUpdated(null)
                     .evaluationContextEnrichment(evaluationContextEnrichment)
                     .build();
-            assertEquals(want, got);
+            assertEquals(Optional.of(want), got);
         }
     }
 }

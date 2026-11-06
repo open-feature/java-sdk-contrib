@@ -32,6 +32,20 @@
       },
       "defaultVariant": "pi"
     },
+    "integralDoubleFlag": {
+      "state": "ENABLED",
+      "variants": {
+        "ten": 10.0
+      },
+      "defaultVariant": "ten"
+    },
+    "hugeDoubleFlag": {
+      "state": "ENABLED",
+      "variants": {
+        "huge": 1e18
+      },
+      "defaultVariant": "huge"
+    },
     "disabledFlag": {
       "state": "DISABLED",
       "variants": {

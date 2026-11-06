@@ -4,6 +4,7 @@ import static dev.openfeature.contrib.providers.flagd.Config.CACHED_REASON;
 import static dev.openfeature.contrib.providers.flagd.Config.STATIC_REASON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -180,6 +181,52 @@ class FlagdProviderTest {
                         .asString());
         assertEquals(OBJECT_VARIANT, objectDetails.getVariant());
         assertEquals(DEFAULT.toString(), objectDetails.getReason());
+    }
+
+    @Test
+    void integer_outside_int32_returns_type_mismatch() {
+        ResolveIntResponse intResponse = ResolveIntResponse.newBuilder()
+                .setValue(2147483648L)
+                .setVariant(INT_VARIANT)
+                .setReason(STATIC_REASON)
+                .build();
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.resolveInt(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
+                .thenReturn(intResponse);
+
+        OpenFeatureAPI.getInstance()
+                .setProviderAndWait(
+                        FlagdTestUtils.createProvider(mock(ChannelConnector.class), serviceBlockingStubMock));
+
+        FlagEvaluationDetails<Integer> intDetails = api.getClient().getIntegerDetails(FLAG_KEY_INTEGER, 7);
+        assertEquals(7, intDetails.getValue());
+        assertEquals(ErrorCode.TYPE_MISMATCH, intDetails.getErrorCode());
+    }
+
+    @Test
+    void long_resolves_via_sdk_default() {
+        ResolveFloatResponse floatResponse = ResolveFloatResponse.newBuilder()
+                .setValue(9007199254740991d)
+                .setVariant(INT_VARIANT)
+                .setReason(STATIC_REASON)
+                .build();
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.resolveFloat(argThat(x -> FLAG_KEY_INTEGER.equals(x.getFlagKey()))))
+                .thenReturn(floatResponse);
+
+        OpenFeatureAPI.getInstance()
+                .setProviderAndWait(
+                        FlagdTestUtils.createProvider(mock(ChannelConnector.class), serviceBlockingStubMock));
+
+        FlagEvaluationDetails<Long> longDetails = api.getClient().getLongDetails(FLAG_KEY_INTEGER, 7L);
+        assertEquals(9007199254740991L, longDetails.getValue());
+        assertNull(longDetails.getErrorCode());
     }
 
     @Test

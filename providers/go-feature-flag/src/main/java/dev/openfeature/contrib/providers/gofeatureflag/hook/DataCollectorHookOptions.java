@@ -1,8 +1,8 @@
 package dev.openfeature.contrib.providers.gofeatureflag.hook;
 
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
+import dev.openfeature.contrib.providers.gofeatureflag.evaluator.IEvaluator;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
-import dev.openfeature.contrib.providers.gofeatureflag.service.EvaluationService;
 import dev.openfeature.contrib.providers.gofeatureflag.service.EventsPublisher;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,19 +15,14 @@ import lombok.Getter;
 @Getter
 public class DataCollectorHookOptions {
     /**
-     * collectUnCachedEvent (optional) set to true if you want to send all events not only the cached
-     * evaluations.
-     */
-    private Boolean collectUnCachedEvaluation;
-    /**
      * eventsPublisher is the system collecting all the information to send to GO Feature Flag.
      */
     private EventsPublisher<IEvent> eventsPublisher;
 
     /**
-     * evalService is the service to evaluate the flags.
+     * evaluator is used to know whether the usage of a flag should be collected.
      */
-    private EvaluationService evalService;
+    private IEvaluator evaluator;
 
     /**
      * Validate the options provided to the data collector hook.
@@ -37,6 +32,9 @@ public class DataCollectorHookOptions {
     public void validate() throws InvalidOptions {
         if (getEventsPublisher() == null) {
             throw new InvalidOptions("No events publisher provided");
+        }
+        if (getEvaluator() == null) {
+            throw new InvalidOptions("No evaluator provided");
         }
     }
 }

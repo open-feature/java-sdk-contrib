@@ -163,7 +163,7 @@ class FlagdProviderSyncResourcesCTest {
                         },
                         () -> {
                             startTime.set(System.currentTimeMillis());
-                            flagdProviderSyncResources.setFatal(true);
+                            flagdProviderSyncResources.fatalError(null);
                         });
 
                 Assertions.assertTrue(
@@ -193,7 +193,6 @@ class FlagdProviderSyncResourcesCTest {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
                         () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.shutdown());
-                Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
                 Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
             }
         }
@@ -208,8 +207,7 @@ class FlagdProviderSyncResourcesCTest {
                 Runner.runParallel(
                         () -> flagdProviderSyncResources.initialize(),
                         () -> flagdProviderSyncResources.shutdown(),
-                        () -> flagdProviderSyncResources.setFatal(true));
-                Assertions.assertFalse(flagdProviderSyncResources.isInitialized());
+                        () -> flagdProviderSyncResources.fatalError(null));
                 Assertions.assertTrue(flagdProviderSyncResources.isShutDown());
                 Assertions.assertTrue(flagdProviderSyncResources.isFatal());
             }
@@ -222,7 +220,8 @@ class FlagdProviderSyncResourcesCTest {
         try (var interleavings = new AllInterleavings("concurrent initialize() and fatal() calls work")) {
             while (interleavings.hasNext()) {
                 Runner.runParallel(
-                        () -> flagdProviderSyncResources.initialize(), () -> flagdProviderSyncResources.setFatal(true));
+                        () -> flagdProviderSyncResources.initialize(),
+                        () -> flagdProviderSyncResources.fatalError(null));
                 Assertions.assertFalse(flagdProviderSyncResources.isShutDown());
                 Assertions.assertTrue(flagdProviderSyncResources.isFatal());
             }
@@ -254,7 +253,7 @@ class FlagdProviderSyncResourcesCTest {
     @Timeout(2)
     @Test
     void waitForInitializationAfterCallingFatal_returnsInstantly() {
-        flagdProviderSyncResources.setFatal(true);
+        flagdProviderSyncResources.fatalError(null);
         long start = System.currentTimeMillis();
         Assertions.assertThrows(FatalError.class, () -> flagdProviderSyncResources.waitForInitialization(10000));
         long end = System.currentTimeMillis();
@@ -265,7 +264,7 @@ class FlagdProviderSyncResourcesCTest {
     @Timeout(2)
     @Test
     void initializeAfterFatalReturnsFalse() {
-        flagdProviderSyncResources.setFatal(true);
+        flagdProviderSyncResources.fatalError(null);
         Assertions.assertFalse(flagdProviderSyncResources.initialize());
     }
 

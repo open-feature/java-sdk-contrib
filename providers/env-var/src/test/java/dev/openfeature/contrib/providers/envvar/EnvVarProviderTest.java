@@ -17,8 +17,9 @@ class EnvVarProviderTest {
 
     @Test
     void shouldThrowOnGetObjectEvaluation() {
-        assertThrows(ValueNotConvertableError.class, () -> new EnvVarProvider()
-                .getObjectEvaluation("any-key", new Value(), new ImmutableContext()));
+        assertThrows(
+                ValueNotConvertableError.class,
+                () -> new EnvVarProvider().getObjectEvaluation("any-key", new Value(), new ImmutableContext()));
     }
 
     @TestFactory

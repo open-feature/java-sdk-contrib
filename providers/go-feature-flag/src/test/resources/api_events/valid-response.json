@@ -9,6 +9,7 @@
       "creationDate": 1617970547,
       "key": "xxx",
       "kind": "feature",
+      "source": "INPROCESS",
       "userKey": "ABCD",
       "value": true,
       "variation": "enabled",

@@ -145,9 +145,10 @@ public final class RpcResolver implements Resolver {
             return;
         }
         this.retryScheduler.shutdownNow();
+        // shut the channel down before awaiting
+        this.connector.shutdown();
         ShutdownUtils.awaitTerminationQuietly(
                 () -> retryScheduler.awaitTermination(options.getDeadline(), TimeUnit.MILLISECONDS));
-        this.connector.shutdown();
     }
 
     @Override
@@ -186,8 +187,13 @@ public final class RpcResolver implements Resolver {
      */
     public ProviderEvaluation<Integer> integerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         ResolveIntRequest request = ResolveIntRequest.newBuilder().buildPartial();
-        return resolve(key, defaultValue, ctx, request, getBlockingStub()::resolveInt, (Object value) -> ((Long) value)
-                .intValue());
+        return resolve(key, defaultValue, ctx, request, getBlockingStub()::resolveInt, (Object value) -> {
+            long asLong = (Long) value;
+            if (asLong < Integer.MIN_VALUE || asLong > Integer.MAX_VALUE) {
+                throw new TypeMismatchError("integer value out of 32-bit range for flag: " + key);
+            }
+            return (int) asLong;
+        });
     }
 
     /**

@@ -1,0 +1,13 @@
+server:
+  mode: http
+  port: 1031
+pollingInterval: 1000
+startWithRetrieverError: false
+retriever:
+  kind: file
+  path: ./openfeature/provider_tests/flags.yaml
+exporter:
+  kind: log
+enableSwagger: true
+evaluationContextEnrichment:
+  environment: integration-test

@@ -7,7 +7,7 @@ This module implements the [`Evaluator`](../flagd-api) interface from the `flagd
 
 ## Usage
 
-flagd-core wraps a simple flagd feature flag storage and flag evaluation logic.
+flagd-core wraps simple flagd feature flag storage and evaluation logic.
 
 To use this implementation, instantiate a `FlagdCore` and provide valid flagd flag configurations.
 
@@ -16,7 +16,7 @@ FlagdCore core = new FlagdCore();
 core.setFlags(FLAG_CONFIGURATION_STRING);
 ```
 
-Once initialization is complete, use matching flag resolving call:
+Once initialization is complete, use the matching flag resolution call:
 
 ```java
 ProviderEvaluation<Boolean> result = core.resolveBooleanValue("myBoolFlag", evaluationContext);
@@ -28,7 +28,7 @@ ProviderEvaluation<Boolean> result = core.resolveBooleanValue("myBoolFlag", eval
 <dependency>
     <groupId>dev.openfeature.contrib.tools</groupId>
     <artifactId>flagd-core</artifactId>
-    <version>2.0.1</version> <!--x-release-please-version -->
+    <version>3.0.0</version> <!--x-release-please-version -->
 </dependency>
 ```
 

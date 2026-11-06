@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.15.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.2...dev.openfeature.contrib.providers.flagd-v0.15.0) (2026-10-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831))
+
+### ✨ New Features
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831)) ([a6cc606](https://github.com/open-feature/java-sdk-contrib/commit/a6cc606b03a1a23986117f62f80157a2c7c935c9))
+
+## [0.14.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.1...dev.openfeature.contrib.providers.flagd-v0.14.2) (2026-09-14)
+
+
+### 🐛 Bug Fixes
+
+* shutdown blocks for unary deadline time ([#1848](https://github.com/open-feature/java-sdk-contrib/issues/1848)) ([4a433dc](https://github.com/open-feature/java-sdk-contrib/commit/4a433dce21f82e2f2d21f9f25b9326df59070942))
+* update Config defaults to boolean types and enhance environment variable handling ([#1851](https://github.com/open-feature/java-sdk-contrib/issues/1851)) ([eaf611d](https://github.com/open-feature/java-sdk-contrib/commit/eaf611d399e73a2487e2ecad3c494db0cb323300))
+
 ## [0.14.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.flagd-v0.14.0...dev.openfeature.contrib.providers.flagd-v0.14.1) (2026-08-20)
 
 

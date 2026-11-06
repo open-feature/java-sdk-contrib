@@ -1,0 +1,4 @@
+# copied from the spec submodule at build time; do not edit
+src/main/resources/gherkin/
+src/main/resources/flags/
+src/main/resources/openapi/

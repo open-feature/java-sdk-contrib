@@ -14,6 +14,9 @@ public class EvaluationContextUtil {
      */
     private static final String anonymousFieldName = "anonymous";
 
+    private static final String ANONYMOUS_USER_CONTEXT_KIND = "anonymousUser";
+    private static final String USER_CONTEXT_KIND = "user";
+
     /**
      * isAnonymousUser is checking if the user in the evaluationContext is anonymous.
      *
@@ -25,6 +28,31 @@ public class EvaluationContextUtil {
             return true;
         }
         Value value = ctx.getValue(anonymousFieldName);
-        return value != null && value.asBoolean();
+        return value != null && value.isBoolean() && Boolean.TRUE.equals(value.asBoolean());
+    }
+
+    /**
+     * contextKind is the bucket an event is counted under.
+     *
+     * @param ctx - EvaluationContext from open-feature
+     * @return the bucket this evaluation belongs to
+     */
+    public static String contextKind(final EvaluationContext ctx) {
+        return isAnonymousUser(ctx) ? ANONYMOUS_USER_CONTEXT_KIND : USER_CONTEXT_KIND;
+    }
+
+    /**
+     * userKey is the key an event is attributed to.
+     *
+     * @param ctx - EvaluationContext from open-feature
+     * @return the targeting key, or a placeholder when there is none
+     */
+    public static String userKey(final EvaluationContext ctx) {
+        if (ctx == null
+                || ctx.getTargetingKey() == null
+                || ctx.getTargetingKey().isEmpty()) {
+            return Const.UNDEFINED_TARGETING_KEY;
+        }
+        return ctx.getTargetingKey();
     }
 }

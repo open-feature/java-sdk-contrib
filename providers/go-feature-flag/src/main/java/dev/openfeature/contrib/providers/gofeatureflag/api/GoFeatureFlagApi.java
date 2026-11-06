@@ -1,28 +1,23 @@
 package dev.openfeature.contrib.providers.gofeatureflag.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dev.openfeature.contrib.providers.gofeatureflag.GoFeatureFlagProviderOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.api.bean.ExporterRequest;
 import dev.openfeature.contrib.providers.gofeatureflag.api.bean.FlagConfigApiRequest;
 import dev.openfeature.contrib.providers.gofeatureflag.api.bean.FlagConfigApiResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.api.bean.OfrepRequest;
-import dev.openfeature.contrib.providers.gofeatureflag.api.bean.OfrepResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.FlagConfigResponse;
-import dev.openfeature.contrib.providers.gofeatureflag.bean.GoFeatureFlagResponse;
 import dev.openfeature.contrib.providers.gofeatureflag.bean.IEvent;
+import dev.openfeature.contrib.providers.gofeatureflag.exception.AuthenticationFailure;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.FlagConfigurationEndpointNotFound;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToRetrieveConfiguration;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.ImpossibleToSendEventsException;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidEndpoint;
 import dev.openfeature.contrib.providers.gofeatureflag.exception.InvalidOptions;
 import dev.openfeature.contrib.providers.gofeatureflag.util.Const;
-import dev.openfeature.sdk.EvaluationContext;
-import dev.openfeature.sdk.exceptions.FlagNotFoundError;
 import dev.openfeature.sdk.exceptions.GeneralError;
-import dev.openfeature.sdk.exceptions.InvalidContextError;
-import dev.openfeature.sdk.exceptions.OpenFeatureError;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -37,6 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -55,8 +51,14 @@ public final class GoFeatureFlagApi {
     /** endpoint is the endpoint of the GO Feature Flag relay proxy. */
     private final URI endpoint;
 
+    /** dataCollectorBaseUrl is the base of the data collector route, the endpoint unless overridden. */
+    private final URI dataCollectorBaseUrl;
+
     /** timeout is the timeout in milliseconds for the HTTP requests. */
     private final int timeout;
+
+    /** customHeaders are the extra headers added to every request, before the provider's own. */
+    private final Map<String, String> customHeaders;
 
     /**
      * GoFeatureFlagController is the constructor of the controller to contact the GO Feature Flag
@@ -72,9 +74,11 @@ public final class GoFeatureFlagApi {
         }
         options.validate();
         this.apiKey = options.getApiKey();
+        this.customHeaders = Map.copyOf(options.getCustomHeaders());
 
         try {
-            this.endpoint = new URI(options.getEndpoint());
+            this.endpoint = asBaseUri(options.getEndpoint());
+            this.dataCollectorBaseUrl = asBaseUri(options.getDataCollectorBaseUrl());
         } catch (URISyntaxException e) {
             throw new InvalidEndpoint(e);
         }
@@ -91,109 +95,38 @@ public final class GoFeatureFlagApi {
     }
 
     /**
-     * evaluateFlag is calling the GO Feature Flag relay proxy to evaluate the feature flag.
-     *
-     * @param key               - name of the flag
-     * @param evaluationContext - context of the evaluation
-     * @return EvaluationResponse with the evaluation of the flag
-     * @throws OpenFeatureError - if an error occurred while evaluating the flag
-     */
-    public GoFeatureFlagResponse evaluateFlag(final String key, final EvaluationContext evaluationContext)
-            throws OpenFeatureError {
-        return this.evaluateFlag(key, evaluationContext, 0);
-    }
-
-    /**
-     * evaluateFlag is calling the GO Feature Flag relay proxy to evaluate the feature flag.\
-     * It will retry once if the relay proxy is unavailable.
-     *
-     * @param key               - name of the flag
-     * @param evaluationContext - context of the evaluation
-     * @param retryCount        - number of retries already done
-     * @return EvaluationResponse with the evaluation of the flag
-     * @throws OpenFeatureError - if an error occurred while evaluating the flag
-     */
-    private GoFeatureFlagResponse evaluateFlag(
-            final String key, final EvaluationContext evaluationContext, final int retryCount) throws OpenFeatureError {
-        try {
-            URI url = this.endpoint.resolve("/ofrep/v1/evaluate/flags/" + key);
-
-            val requestBody = OfrepRequest.builder()
-                    .context(evaluationContext.asObjectMap())
-                    .build();
-
-            HttpRequest request = prepareHttpRequest(url, requestBody);
-
-            HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            String body = response.body();
-
-            switch (response.statusCode()) {
-                case HttpURLConnection.HTTP_OK:
-                    val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, OfrepResponse.class);
-                    return goffResp.toGoFeatureFlagResponse();
-                case HttpURLConnection.HTTP_UNAUTHORIZED:
-                case HttpURLConnection.HTTP_FORBIDDEN:
-                    throw new GeneralError("authentication/authorization error");
-                case HttpURLConnection.HTTP_BAD_REQUEST:
-                    throw new InvalidContextError("Invalid context: " + body);
-                case HttpURLConnection.HTTP_UNAVAILABLE:
-                    // If the relay proxy is unavailable, we can retry once.
-                    if (retryCount < 1) {
-                        log.warn("GO Feature Flag relay proxy is unavailable, retrying evaluation for flag: {}", key);
-                        return this.evaluateFlag(key, evaluationContext, retryCount + 1);
-                    }
-                    throw new GeneralError("Service Unavailable: " + body);
-                case HttpURLConnection.HTTP_NOT_FOUND:
-                    throw new FlagNotFoundError("Flag " + key + " not found");
-                default:
-                    throw new GeneralError("Unknown error while retrieving flag " + body);
-            }
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            throw new GeneralError("unknown error while retrieving flag " + key, e);
-        }
-    }
-
-    /**
      * retrieveFlagConfiguration is calling the GO Feature Flag relay proxy to retrieve the flags'
      * configuration.
      *
-     * @param etag - etag of the request
-     * @return FlagConfigResponse with the flag configuration
+     * <p>A {@code 304 Not Modified} response is reported as an empty Optional rather than as an
+     * empty configuration object, so that the not-modified branch is structurally incapable of
+     * carrying a configuration and cannot be mistaken for one downstream.</p>
+     *
+     * @param etag  - etag of the request
+     * @param flags - flags to retrieve, empty for all of them
+     * @return the flag configuration, or empty if the configuration has not been modified
      */
-    public FlagConfigResponse retrieveFlagConfiguration(final String etag, final List<String> flags) {
+    public Optional<FlagConfigResponse> retrieveFlagConfiguration(final String etag, final List<String> flags) {
         try {
             val request = new FlagConfigApiRequest(flags == null ? Collections.emptyList() : flags);
-            final URI url = this.endpoint.resolve("/v1/flag/configuration");
+            final URI url = route(this.endpoint, Const.PATH_FLAG_CONFIGURATION);
 
-            HttpRequest.Builder reqBuilder =
-                    HttpRequest.newBuilder().uri(url).header(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON);
+            final HttpRequest httpRequest = etag != null && !etag.isEmpty()
+                    ? prepareHttpRequest(url, request, Const.HTTP_HEADER_IF_NONE_MATCH, etag)
+                    : prepareHttpRequest(url, request);
 
-            if (this.apiKey != null && !this.apiKey.isEmpty()) {
-                reqBuilder.header(Const.HTTP_HEADER_AUTHORIZATION, Const.BEARER_TOKEN + this.apiKey);
-            }
-
-            if (etag != null && !etag.isEmpty()) {
-                reqBuilder.header(Const.HTTP_HEADER_IF_NONE_MATCH, etag);
-            }
-
-            reqBuilder.POST(
-                    HttpRequest.BodyPublishers.ofByteArray(Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(request)));
-
-            HttpResponse<String> response =
-                    this.httpClient.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = this.httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             String body = response.body();
             switch (response.statusCode()) {
                 case HttpURLConnection.HTTP_OK:
+                    return Optional.of(handleFlagConfigurationSuccess(response, body));
                 case HttpURLConnection.HTTP_NOT_MODIFIED:
-                    return handleFlagConfigurationSuccess(response, body);
+                    return Optional.empty();
                 case HttpURLConnection.HTTP_NOT_FOUND:
                     throw new FlagConfigurationEndpointNotFound();
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
                 case HttpURLConnection.HTTP_FORBIDDEN:
-                    throw new ImpossibleToRetrieveConfiguration(
+                    throw new AuthenticationFailure(
                             "retrieve flag configuration error: authentication/authorization error");
                 case HttpURLConnection.HTTP_BAD_REQUEST:
                     throw new ImpossibleToRetrieveConfiguration(
@@ -221,7 +154,7 @@ public final class GoFeatureFlagApi {
     public void sendEventToDataCollector(final List<IEvent> eventsList, final Map<String, Object> exporterMetadata) {
         try {
             ExporterRequest requestBody = new ExporterRequest(eventsList, exporterMetadata);
-            URI url = this.endpoint.resolve("/v1/data/collector");
+            URI url = route(this.dataCollectorBaseUrl, Const.PATH_DATA_COLLECTOR);
 
             HttpRequest request = prepareHttpRequest(url, requestBody);
 
@@ -250,28 +183,39 @@ public final class GoFeatureFlagApi {
     }
 
     /**
-     * handleFlagConfigurationSuccess is handling the success response of the flag configuration
-     * request.
+     * handleFlagConfigurationSuccess is handling the 200 response of the flag configuration request.
+     * It is never reached for a 304, which carries no configuration.
      *
      * @param response - response of the request
      * @param body     - body of the request
      * @return FlagConfigResponse with the flag configuration
-     * @throws JsonProcessingException - if an error occurred while processing the json
+     * @throws JsonProcessingException           - if an error occurred while processing the json
+     * @throws ImpossibleToRetrieveConfiguration - if the response carries no flag map
      */
     private FlagConfigResponse handleFlagConfigurationSuccess(final HttpResponse<String> response, final String body)
             throws JsonProcessingException {
-        var result = FlagConfigResponse.builder()
-                .etag(response.headers().firstValue(Const.HTTP_HEADER_ETAG).orElse(null))
-                .lastUpdated(extractLastUpdatedFromHeaders(response))
-                .build();
+        // without FAIL_ON_TRAILING_TOKENS, a body cut or garbled after a complete JSON value would
+        // be read as that value, and {"flags":{}}} would wipe every flag and advance the ETag.
+        final FlagConfigApiResponse goffResp = Const.DESERIALIZE_OBJECT_MAPPER
+                .readerFor(FlagConfigApiResponse.class)
+                .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                .readValue(body);
 
-        if (response.statusCode() == HttpURLConnection.HTTP_OK) {
-            val goffResp = Const.DESERIALIZE_OBJECT_MAPPER.readValue(body, FlagConfigApiResponse.class);
-            result.setFlags(goffResp.getFlags());
-            result.setEvaluationContextEnrichment(goffResp.getEvaluationContextEnrichment());
+        // A 200 that decodes to no flag map is a failed refresh, not an empty configuration:
+        // accepting it would wipe every flag and advance the ETag, making the empty state permanent.
+        // A null evaluationContextEnrichment is NOT the same case - the relay proxy builds that field
+        // from a Go map and a nil map marshals to null - so it is accepted as "no enrichment".
+        if (goffResp == null || goffResp.getFlags() == null) {
+            throw new ImpossibleToRetrieveConfiguration(
+                    "retrieve flag configuration error: the response contains no flag map");
         }
 
-        return result;
+        return FlagConfigResponse.builder()
+                .etag(response.headers().firstValue(Const.HTTP_HEADER_ETAG).orElse(null))
+                .lastUpdated(extractLastUpdatedFromHeaders(response))
+                .flags(goffResp.getFlags())
+                .evaluationContextEnrichment(goffResp.getEvaluationContextEnrichment())
+                .build();
     }
 
     /**
@@ -295,6 +239,31 @@ public final class GoFeatureFlagApi {
     }
 
     /**
+     * route builds the URL of an API route from an arbitrary base, so that the data collector can be
+     * addressed somewhere other than the relay proxy.
+     *
+     * @param base - base URL of the route, already normalised by {@link #asBaseUri(String)}
+     * @param path - route path, relative to the base and without a leading slash
+     * @return the URL to call
+     */
+    private static URI route(final URI base, final String path) {
+        return base.resolve(path.startsWith("/") ? path.substring(1) : path);
+    }
+
+    /**
+     * asBaseUri normalises a configured URL into a base other paths can be resolved against. The
+     * trailing slash makes it directory-like, so resolving a relative path appends to any prefix it
+     * carries instead of replacing it.
+     *
+     * @param url - the configured URL
+     * @return the URL as a base
+     * @throws URISyntaxException - if the URL is not a valid URI
+     */
+    private static URI asBaseUri(final String url) throws URISyntaxException {
+        return new URI(url.endsWith("/") ? url : url + "/");
+    }
+
+    /**
      * prepareHttpRequest is preparing the request to be sent to the GO Feature Flag relay proxy.
      *
      * @param url         - url of the request
@@ -302,18 +271,22 @@ public final class GoFeatureFlagApi {
      * @return HttpRequest ready to be sent
      * @throws JsonProcessingException - if an error occurred while processing the json
      */
-    private <T> HttpRequest prepareHttpRequest(final URI url, final T requestBody) throws JsonProcessingException {
+    private <T> HttpRequest prepareHttpRequest(final URI url, final T requestBody, final String... requestHeaders)
+            throws JsonProcessingException {
         HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                 .uri(url)
                 .timeout(Duration.ofMillis(timeout))
-                .header(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(
                         Const.SERIALIZE_OBJECT_MAPPER.writeValueAsBytes(requestBody)));
 
-        if (this.apiKey != null && !this.apiKey.isEmpty()) {
-            reqBuilder.header(Const.HTTP_HEADER_AUTHORIZATION, Const.BEARER_TOKEN + this.apiKey);
+        this.customHeaders.forEach(reqBuilder::header);
+        reqBuilder.setHeader(Const.HTTP_HEADER_CONTENT_TYPE, Const.APPLICATION_JSON);
+        for (int i = 0; i + 1 < requestHeaders.length; i += 2) {
+            reqBuilder.setHeader(requestHeaders[i], requestHeaders[i + 1]);
         }
-
+        if (this.apiKey != null && !this.apiKey.isEmpty()) {
+            reqBuilder.setHeader(Const.HTTP_HEADER_API_KEY, this.apiKey);
+        }
         return reqBuilder.build();
     }
 }
