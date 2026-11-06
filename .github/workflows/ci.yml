@@ -48,12 +48,67 @@ jobs:
         # *CTest suites) is not switched off by a profile in the root pom; main enforces it anyway
         run: mvn --batch-mode --activate-profiles 'tck,!codequality' clean verify
 
+  # flagd e2e on a JRE (no javac) with targeting compilation forced on;
+  # 11 covers the interpreter fallback, 25 covers the JEP 484 (Class-File API) compiler
+  flagd-jre:
+    strategy:
+      matrix:
+        build:
+          - java: 11
+            args: --activate-profiles e2e,java11
+          - java: 25
+            args: --activate-profiles e2e
+
+    name: flagd on JRE ${{ matrix.build.java }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      # installed first so the JDK below stays the default JAVA_HOME for maven
+      - name: Set up JRE ${{ matrix.build.java }}
+        id: jre
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          java-version: ${{ matrix.build.java }}
+          java-package: jre
+          distribution: 'temurin'
+
+      - name: Set up JDK ${{ matrix.build.java }}
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          java-version: ${{ matrix.build.java }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Verify JRE has no javac
+        run: |
+          if "${{ steps.jre.outputs.path }}/bin/java" --list-modules | grep -q '^jdk.compiler@'; then
+            echo "JRE contains jdk.compiler; this job would not cover the no-javac case" && exit 1
+          fi
+
+      - name: Run flagd e2e on JRE
+        env:
+          FLAGD_COMPILE_TARGETING: enabled
+          JRE_HOME: ${{ steps.jre.outputs.path }}
+        # only the e2e suites; the env var would break unit tests asserting the default mode
+        run: >-
+          mvn --batch-mode -pl tools/flagd-core,providers/flagd -am ${{ matrix.build.args }}
+          -Djvm="$JRE_HOME/bin/java" -Dtest='Run*Test' -Dsurefire.failIfNoSpecifiedTests=false
+          clean verify
+
   main:
     strategy:
         matrix:
           os: [ubuntu-latest]
           build:
-              - java: 21
+              # latest LTS; also exercises the JEP 484 (Class-File API) JsonLogic compiler
+              - java: 25
                 # deploy profile is included to catch javadoc/SBOM/source-jar issues at PR time
                 # note this is the publish PROFILE, not PHASE
                 profile: codequality,deploy

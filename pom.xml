@@ -69,11 +69,12 @@
             --add-opens java.base/java.util=ALL-UNNAMED
             --add-opens java.base/java.lang=ALL-UNNAMED
         </surefireArgLine>
-        <skip.tests>false</skip.tests>
         <!-- whether the `tck` profile fails on a failing conformance scenario; a provider overrides it -->
         <tck.testFailureIgnore>false</tck.testFailureIgnore>
         <!-- this will throw an error if we use APIs not available in the specified version -->
         <maven.compiler.release>11</maven.compiler.release>
+        <!-- lombok; JDK 23+ disables annotation processing by default -->
+        <maven.compiler.proc>full</maven.compiler.proc>
     </properties>
 
     <dependencyManagement>
@@ -333,9 +334,6 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <properties>
-                <maven.compiler.proc>full</maven.compiler.proc>
-            </properties>
             <build>
                 <plugins>
 
@@ -466,9 +464,6 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <properties>
-                <maven.compiler.proc>full</maven.compiler.proc>
-            </properties>
             <build>
                 <plugins>
                     <!-- CODE QUALITY TOOLS -->
@@ -614,7 +609,6 @@
             <!--<modules><module></module></modules>-->
             <properties>
                 <toolchain.jdk.version>[11,)</toolchain.jdk.version>
-                <skip.tests>true</skip.tests>
             </properties>
 
             <build>
@@ -628,31 +622,6 @@
                                 <goals>
                                     <goal>select-jdk-toolchain</goal>
                                 </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>3.6.0</version>
-                        <configuration>
-                            <skipTests>${skip.tests}</skipTests>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.16.0</version>
-                        <executions>
-                            <execution>
-                                <id>default-testCompile</id>
-                                <phase>test-compile</phase>
-                                <goals>
-                                    <goal>testCompile</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>true</skip>
-                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

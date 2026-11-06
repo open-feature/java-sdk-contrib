@@ -1,6 +1,5 @@
 package dev.openfeature.contrib.providers.flagd.e2e.steps;
 
-import static io.restassured.RestAssured.when;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.openfeature.contrib.providers.flagd.Config;
@@ -21,6 +20,12 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.testcontainers.containers.ComposeContainer;
@@ -29,6 +34,7 @@ import org.testcontainers.containers.ComposeContainer;
 public class ProviderSteps extends AbstractSteps {
 
     public static final int UNAVAILABLE_PORT = 9999;
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     public ProviderSteps(State state) {
         super(state);
@@ -48,9 +54,7 @@ public class ProviderSteps extends AbstractSteps {
     public void tearDown() {
         if (state.containerEntry != null) {
             if (state.client != null) {
-                when().post("http://" + ContainerUtil.getLaunchpadUrl(state.containerEntry.container) + "/stop")
-                        .then()
-                        .statusCode(200);
+                launchpad(state.containerEntry.container, "/stop");
             }
             ContainerPool.release(state.containerEntry);
             state.containerEntry = null;
@@ -154,9 +158,7 @@ public class ProviderSteps extends AbstractSteps {
             state.builder.port(UNAVAILABLE_PORT);
         }
 
-        when().post("http://" + ContainerUtil.getLaunchpadUrl(container) + "/start?config={config}", flagdConfig)
-                .then()
-                .statusCode(200);
+        launchpad(container, "/start?config=" + flagdConfig);
 
         Thread.sleep(50);
 
@@ -177,30 +179,37 @@ public class ProviderSteps extends AbstractSteps {
 
     @When("the connection is lost")
     public void the_connection_is_lost() {
-        when().post("http://" + ContainerUtil.getLaunchpadUrl(state.containerEntry.container) + "/stop")
-                .then()
-                .statusCode(200);
+        launchpad(state.containerEntry.container, "/stop");
     }
 
     @When("the connection is lost for {int}s")
     public void the_connection_is_lost_for(int seconds) {
-        when().post(
-                        "http://" + ContainerUtil.getLaunchpadUrl(state.containerEntry.container)
-                                + "/restart?seconds={seconds}",
-                        seconds)
-                .then()
-                .statusCode(200);
+        launchpad(state.containerEntry.container, "/restart?seconds=" + seconds);
     }
 
     @When("the flag was modified")
     public void the_flag_was_modded() {
-        when().post("http://" + ContainerUtil.getLaunchpadUrl(state.containerEntry.container) + "/change")
-                .then()
-                .statusCode(200);
+        launchpad(state.containerEntry.container, "/change");
     }
 
     @Then("the client should be in {} state")
     public void the_client_should_be_in_fatal_state(String clientState) {
         assertThat(state.client.getProviderState()).isEqualTo(ProviderState.valueOf(clientState.toUpperCase()));
+    }
+
+    private static void launchpad(ComposeContainer container, String path) {
+        HttpRequest request = HttpRequest.newBuilder(
+                        URI.create("http://" + ContainerUtil.getLaunchpadUrl(container) + path))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        try {
+            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).as("launchpad %s", path).isEqualTo(200);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 }
