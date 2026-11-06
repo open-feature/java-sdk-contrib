@@ -72,3 +72,15 @@ Given below are the supported configurations:
 | proxySelector      | ProxySelector  | ProxySelector.getDefault() | The proxy selector used by HTTP Client.
 | executor      | Executor  | Thread Pool of size 5 | The executor used by HTTP Client.
 
+
+## Provider conformance (TCK)
+
+`OfrepTest` in `src/test/java/.../ofrep/tck/` runs the [OpenFeature Provider TCK](../../tools/tck/README.md)
+against flagd's OFREP endpoint, using the flagd-testbed image and its control API. It needs Docker:
+
+```bash
+mvn -Ptck -pl providers/ofrep -am test
+```
+
+CI runs it in the `Provider TCK` job. Set `tck.testFailureIgnore` to `true` in this module's pom to
+report failures without failing the build.
