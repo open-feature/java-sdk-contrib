@@ -120,3 +120,13 @@ jobs:
           JVM_ARG: ${{ matrix.build.package == 'jre' && format('-Djvm={0}/bin/java', steps.jre.outputs.path) || '' }}
           PROFILES: ${{ matrix.build.e2eOnly && format('e2e,e2e-only,{0},!codequality,!deploy', matrix.build.profile) || format('e2e,{0}', matrix.build.profile) }}
         run: mvn -T 2C --batch-mode --activate-profiles "$PROFILES" $JVM_ARG clean verify
+
+  # single required check for branch protection, so matrix changes don't require settings changes
+  build:
+    name: Build
+    if: always()
+    needs: [main]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check matrix result
+        run: test "${{ needs.main.result }}" = success
