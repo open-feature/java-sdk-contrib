@@ -231,6 +231,56 @@ provider's pom (or pass `-Dtck.testFailureIgnore=true`):
 </properties>
 ```
 
+## The canonical set cannot be reduced
+
+`CanonicalScenarioGuard` is a JUnit test the suite selects. It fails the build when the run is set up
+to execute less than the canonical set: a feature file added to or shadowing one in `gherkin/`,
+`cucumber.filter.tags` or `cucumber.filter.name`, or selectors or glue overridden in
+`junit-platform.properties`. It checks the plan and the filter configuration before the first
+scenario, so it needs no backend. Extension scenarios are ignored.
+
+Narrow a run with `capabilities()`, whose skips are reported with a reason. To filter anyway while
+debugging, set `-Dtck.partial=true` (or `TCK_PARTIAL`); the guard then reports itself as skipped
+rather than passed.
+
+## Conformance reports
+
+Set `TCK_REPORT_DIR` (or `-Dtck.report.dir=...`) and each suite writes an envelope conforming to the
+[report schema][report-schema] and its results as a [Cucumber Messages][messages] stream. Unset means
+no report. Several suites in one JVM each write their own pair.
+
+```console
+$ TCK_REPORT_DIR=./reports mvn -Ptck -pl providers/flagd test
+$ ls reports/
+flagd-in-process.json  flagd-in-process.ndjson  flagd-rpc.json  flagd-rpc.ndjson
+```
+
+The `.ndjson` is written by Cucumber's own `MessageFormatter`, the class behind the built-in
+`message:` plugin; a plugin of its own exists only so the path can follow the run. A scenario's
+outcome is the most severe result among its steps, hooks included, which is what makes a
+capability-gated skip read as `SKIPPED`. A scenario is identified by `pickle.astNodeIds`, whose
+second entry names the `Examples` row of an outline.
+
+The envelope carries what the stream cannot:
+
+- **`provider`**: the provider's own metadata name, and the suite name as its `configuration`
+  (`ProviderTckHarness.configuration()` overrides the derived one).
+- **`sdk`**: the SDK version on the classpath at runtime.
+- **`tck`**: the implementation and `specRevision`, the open-feature/spec commit the packaged assets
+  came from, baked in from this module's POM.
+- **`backend`**: the control's description and `backendType`, which the control states through
+  `BackendControl.backendType()`: `http`, `in-process`, or `custom` for one that states nothing.
+  Always present, never inferred.
+- **`declaration`**: the declared capabilities. A skip for a capability this SDK cannot express
+  carries a reason worded unlike an undeclared one, so the two are distinguishable in the results.
+
+`knownDeviations` says whether a withheld capability is a limitation or a bug; `results.digest`
+covers the `.ndjson`. Every scenario appears exactly once, which `ConformanceReportPluginTest`
+asserts over a real Cucumber run.
+
+[report-schema]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/report/conformance-report.schema.json
+[messages]: https://github.com/cucumber/messages
+
 ## Extensions
 
 Provider-specific scenarios (e.g. flagd's `fractional`) run inside the same suite:

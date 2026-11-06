@@ -26,8 +26,8 @@ public final class ProviderTck {
     /** The glue path: canonical steps plus the extension package. */
     public static final String ALL_GLUE = GLUE + "," + EXTENSION_GLUE;
 
-    /** The Cucumber plugins the suite registers. */
-    static final String PLUGINS = "summary";
+    /** The Cucumber plugins the suite registers: the summary and the conformance report. */
+    static final String PLUGINS = "summary,dev.openfeature.contrib.tools.tck.ConformanceReportPlugin";
 
     /** Parallel execution off; control API state is global to the backend. */
     static final String PARALLEL = "false";

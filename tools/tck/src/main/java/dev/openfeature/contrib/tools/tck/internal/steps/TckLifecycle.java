@@ -4,6 +4,7 @@ import dev.openfeature.contrib.tools.tck.AdopterTags;
 import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
+import dev.openfeature.contrib.tools.tck.TckRunMetadata;
 import dev.openfeature.contrib.tools.tck.internal.TckSuiteListener;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -116,6 +117,7 @@ final class TckLifecycle {
                         + ".backendControl() returned null; supply overHttp(..) or inProcess().");
             }
             log.info("Backend control: {}", control.description());
+            TckRunMetadata.begin(harness, control);
             TckLifecycle lifecycle = new TckLifecycle(harness, control);
             started.add(lifecycle);
             return lifecycle;
