@@ -48,30 +48,42 @@ jobs:
         # *CTest suites) is not switched off by a profile in the root pom; main enforces it anyway
         run: mvn --batch-mode --activate-profiles 'tck,!codequality' clean verify
 
-  # flagd e2e on a JRE (no javac) with targeting compilation forced on;
-  # 11 covers the interpreter fallback, 25 covers the JEP 484 (Class-File API) compiler
-  flagd-jre:
+  main:
     strategy:
-      matrix:
-        build:
-          - java: 11
-            args: --activate-profiles e2e,java11
-          - java: 25
-            args: --activate-profiles e2e
+        matrix:
+          os: [ubuntu-latest]
+          build:
+              # latest LTS; the only leg running unit tests and code quality checks
+              # deploy profile is included to catch javadoc/SBOM/source-jar issues at PR time
+              # note this is the publish PROFILE, not PHASE
+              - java: 25
+                package: jdk
+                profile: codequality,deploy
+              # e2e only, on the oldest supported and on JREs (no javac), as in many production images
+              - java: 11
+                package: jdk
+                profile: java11
+                e2eOnly: true
+              - java: 25
+                package: jre
+                profile: ''
+                e2eOnly: true
+              - java: 11
+                package: jre
+                profile: java11
+                e2eOnly: true
 
-    name: flagd on JRE ${{ matrix.build.java }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    name: ${{ matrix.build.package == 'jre' && 'JRE' || 'JDK' }} ${{ matrix.build.java }}${{ matrix.build.e2eOnly && ' (e2e)' || '' }}
+    runs-on: ${{ matrix.os}}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           submodules: recursive
-          persist-credentials: false
 
       # installed first so the JDK below stays the default JAVA_HOME for maven
       - name: Set up JRE ${{ matrix.build.java }}
+        if: matrix.build.package == 'jre'
         id: jre
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
@@ -79,49 +91,12 @@ jobs:
           java-package: jre
           distribution: 'temurin'
 
-      - name: Set up JDK ${{ matrix.build.java }}
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
-        with:
-          java-version: ${{ matrix.build.java }}
-          distribution: 'temurin'
-          cache: maven
-
       - name: Verify JRE has no javac
+        if: matrix.build.package == 'jre'
         run: |
           if "${{ steps.jre.outputs.path }}/bin/java" --list-modules | grep -q '^jdk.compiler@'; then
-            echo "JRE contains jdk.compiler; this job would not cover the no-javac case" && exit 1
+            echo "JRE contains jdk.compiler; tests would not cover the no-javac case" && exit 1
           fi
-
-      - name: Run flagd e2e on JRE
-        env:
-          FLAGD_COMPILE_TARGETING: enabled
-          JRE_HOME: ${{ steps.jre.outputs.path }}
-        # only the e2e suites; the env var would break unit tests asserting the default mode
-        run: >-
-          mvn --batch-mode -pl tools/flagd-core,providers/flagd -am ${{ matrix.build.args }}
-          -Djvm="$JRE_HOME/bin/java" -Dtest='Run*Test' -Dsurefire.failIfNoSpecifiedTests=false
-          clean verify
-
-  main:
-    strategy:
-        matrix:
-          os: [ubuntu-latest]
-          build:
-              # latest LTS; also exercises the JEP 484 (Class-File API) JsonLogic compiler
-              - java: 25
-                # deploy profile is included to catch javadoc/SBOM/source-jar issues at PR time
-                # note this is the publish PROFILE, not PHASE
-                profile: codequality,deploy
-              - java: 11
-                profile: java11
-
-    name: with Java ${{ matrix.build.java }}
-    runs-on: ${{ matrix.os}}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          submodules: recursive
 
       - name: Set up JDK ${{ matrix.build.java }}
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
@@ -140,4 +115,8 @@ jobs:
 
       - name: Maven Verify
         # Run Maven build with e2e and specific profile, using parallel threads (if some provider decides to use a different toolchain version, this might break)
-        run: mvn -T 2C --batch-mode --activate-profiles e2e,${{ matrix.build.profile }} clean verify
+        # jre legs build with the JDK but fork tests onto the JRE
+        env:
+          JVM_ARG: ${{ matrix.build.package == 'jre' && format('-Djvm={0}/bin/java', steps.jre.outputs.path) || '' }}
+          PROFILES: ${{ matrix.build.e2eOnly && format('e2e,e2e-only,{0},!codequality,!deploy', matrix.build.profile) || format('e2e,{0}', matrix.build.profile) }}
+        run: mvn -T 2C --batch-mode --activate-profiles "$PROFILES" $JVM_ARG clean verify

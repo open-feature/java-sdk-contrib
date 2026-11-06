@@ -628,6 +628,14 @@
                 </plugins>
             </build>
         </profile>
+        <!-- runs only tests in e2e packages, e.g. `mvn -Pe2e,e2e-only verify` -->
+        <profile>
+            <id>e2e-only</id>
+            <properties>
+                <test>**/e2e/**</test>
+                <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+            </properties>
+        </profile>
         <!--
             Runs every provider's Provider TCK adoption (the classes in its `tck` test package),
             and nothing else:
