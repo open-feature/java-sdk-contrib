@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "reason": "MATCH_EVALUATION_REASON",
+  "segmentKeys": [
+    "targetingsg"
+  ],
+  "requestDurationMillis": 1,
+  "requestId": "string",
+  "timestamp": "2022-12-03T10:15:30+01:00"
+}

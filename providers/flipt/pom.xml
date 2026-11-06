@@ -18,6 +18,10 @@
 
     <properties>
         <javadoc.failOnWarnings>false</javadoc.failOnWarnings>
+        <tck.version>[0.1.0,)</tck.version>
+        <tck.testFailureIgnore>false</tck.testFailureIgnore>
+        <flipt.tck.spec.version>v0.1.0</flipt.tck.spec.version>
+        <flipt.tck.spec.url>https://github.com/flipt-io/openfeature-tck/archive/refs/tags/${flipt.tck.spec.version}.zip</flipt.tck.spec.url>
     </properties>
 
     <developers>
@@ -33,7 +37,14 @@
         <dependency>
             <groupId>io.flipt</groupId>
             <artifactId>flipt-java</artifactId>
-            <version>1.1.2</version>
+            <version>1.4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-jvm</artifactId>
+            <version>5.2.1</version>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -49,23 +60,23 @@
         </dependency>
 
         <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>tck</artifactId>
+            <version>${tck.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>2.0.5</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.wiremock</groupId>
             <artifactId>wiremock</artifactId>
             <version>3.13.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.22.3</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.22</version>
             <scope>test</scope>
         </dependency>
 
@@ -76,4 +87,64 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- The Flipt vendor scenarios come from the shared testbed repository, not from
+                 this one. The suite selects the classpath directory `extensions`, so the
+                 downloaded feature files land in the test classpath under that name and run
+                 beside the canonical scenarios. A missing file fails the build, because a
+                 silent gap here would leave a green run with fewer scenarios. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>download-openfeature-tck</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="download.dir"
+                                          value="${project.build.directory}/openfeature-tck"/>
+                                <property name="features.dir"
+                                          value="${project.build.testOutputDirectory}/extensions"/>
+
+                                <delete dir="${download.dir}" quiet="true"/>
+                                <delete dir="${features.dir}" quiet="true"/>
+
+                                <mkdir dir="${download.dir}"/>
+                                <mkdir dir="${features.dir}"/>
+
+                                <get src="${flipt.tck.spec.url}"
+                                     dest="${download.dir}/source.zip"
+                                     usetimestamp="false"/>
+
+                                <unzip src="${download.dir}/source.zip"
+                                       dest="${download.dir}/extracted"/>
+
+                                <copy todir="${features.dir}">
+                                    <fileset dir="${download.dir}/extracted">
+                                        <include name="**/*.feature"/>
+                                    </fileset>
+                                    <mapper type="flatten"/>
+                                </copy>
+
+                                <fail message="The Flipt vendor scenarios are missing from ${features.dir}. The archive at ${flipt.tck.spec.url} must contain extensions/flipt-reason.feature.">
+                                    <condition>
+                                        <not>
+                                            <available file="${features.dir}/flipt-reason.feature"/>
+                                        </not>
+                                    </condition>
+                                </fail>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
