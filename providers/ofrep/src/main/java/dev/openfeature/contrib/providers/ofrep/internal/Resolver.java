@@ -72,7 +72,7 @@ public class Resolver {
                             defaultValue, immutableMetadata, "authentication/authorization error for flag: " + key);
                 case HttpURLConnection.HTTP_BAD_REQUEST:
                 case HttpURLConnection.HTTP_NOT_ACCEPTABLE:
-                    return handleInvalidContext(key, defaultValue, immutableMetadata);
+                    return handleEvaluationFailure(key, defaultValue, responseBody, immutableMetadata);
                 case HttpURLConnection.HTTP_NOT_FOUND:
                     return handleFlagNotFound(key, defaultValue, immutableMetadata);
                 case 429:
@@ -207,11 +207,34 @@ public class Resolver {
                 .build();
     }
 
-    private <T> ProviderEvaluation<T> handleInvalidContext(String key, T defaultValue, ImmutableMetadata metadata) {
+    /**
+     * Handles an OFREP evaluation failure (HTTP 400). The body carries the error code (PARSE_ERROR,
+     * TARGETING_KEY_MISSING, INVALID_CONTEXT or GENERAL) and optional details; INVALID_CONTEXT is used
+     * when the server sends no usable code.
+     */
+    private <T> ProviderEvaluation<T> handleEvaluationFailure(
+            String key, T defaultValue, OfrepResponse response, ImmutableMetadata metadata) {
+        ErrorCode errorCode = ErrorCode.INVALID_CONTEXT;
+        String responseErrorCode = response.getErrorCode();
+        if (responseErrorCode != null) {
+            try {
+                errorCode = ErrorCode.valueOf(responseErrorCode);
+            } catch (IllegalArgumentException e) {
+                log.debug("Unknown error code {} for flag: {}", responseErrorCode, key);
+            }
+        }
+
+        String errorMessage = response.getErrorDetails();
+        if (errorMessage == null || errorMessage.isEmpty()) {
+            errorMessage = errorCode == ErrorCode.INVALID_CONTEXT
+                    ? "invalid context for flag: " + key
+                    : errorCode + " for flag: " + key;
+        }
+
         return ProviderEvaluation.<T>builder()
                 .value(defaultValue)
-                .errorMessage("invalid context for flag: " + key)
-                .errorCode(ErrorCode.INVALID_CONTEXT)
+                .errorMessage(errorMessage)
+                .errorCode(errorCode)
                 .flagMetadata(metadata)
                 .build();
     }
