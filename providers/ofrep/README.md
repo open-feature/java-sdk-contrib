@@ -72,3 +72,20 @@ Given below are the supported configurations:
 | proxySelector      | ProxySelector  | ProxySelector.getDefault() | The proxy selector used by HTTP Client.
 | executor      | Executor  | Thread Pool of size 5 | The executor used by HTTP Client.
 
+### Environment variables
+
+The provider reads the standard OFREP environment variables and uses them as defaults. Values set on `OfrepProviderOptions` take precedence.
+
+| Variable | Option | Example |
+| -------- | ------ | ------- |
+| `OFREP_ENDPOINT` | baseUrl | `http://localhost:2321` |
+| `OFREP_HEADERS` | headers | `Authorization=Bearer%20123,X-Custom=value` |
+| `OFREP_TIMEOUT_MS` | requestTimeout | `5000` |
+
+`OFREP_HEADERS` is a comma-separated list of `Key=Value` pairs. The whole value is percent-decoded first, so use `%20` for a space; commas always separate entries, even when encoded as `%2C`. Malformed entries and an invalid `OFREP_TIMEOUT_MS` are logged as warnings and skipped.
+
+```java
+// OFREP_ENDPOINT=http://flags.example.com:2321
+OfrepProvider ofrepProvider = OfrepProvider.constructProvider(OfrepProviderOptions.builder().build());
+```
+
