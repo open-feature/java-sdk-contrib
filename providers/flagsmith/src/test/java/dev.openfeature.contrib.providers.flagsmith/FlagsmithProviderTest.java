@@ -85,6 +85,8 @@ public class FlagsmithProviderTest {
                 Arguments.of("string_key", "getStringEvaluation", String.class, "string_value"),
                 Arguments.of("int_key", "getIntegerEvaluation", Integer.class, "1"),
                 Arguments.of("double_key", "getDoubleEvaluation", Double.class, "3.141"),
+                Arguments.of("double_string_key", "getDoubleEvaluation", Double.class, "42.42"),
+                Arguments.of("int_string_key", "getIntegerEvaluation", Integer.class, "7"),
                 Arguments.of("object_key", "getObjectEvaluation", Value.class, "{\"name\":\"json\"}"));
     }
 
