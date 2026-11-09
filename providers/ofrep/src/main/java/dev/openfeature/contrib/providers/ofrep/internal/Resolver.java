@@ -169,7 +169,7 @@ public class Resolver {
     private <T> ProviderEvaluation<T> handleResolved(
             String key, T defaultValue, Class<T> type, OfrepResponse response, ImmutableMetadata metadata) {
 
-        Object responseValue = coerceNumber(type, response.getValue());
+        Object responseValue = convertNumberIfLossless(type, response.getValue());
 
         if (responseValue == null) {
             return ProviderEvaluation.<T>builder()
@@ -204,7 +204,7 @@ public class Resolver {
      * to an integer. JSON doesn't keep the distinction, so a server can send {@code 10} for a float flag
      * or {@code 10.0} for an integer one. Anything else is returned unchanged and fails the type check.
      */
-    static Object coerceNumber(Class<?> type, Object value) {
+    static Object convertNumberIfLossless(Class<?> type, Object value) {
         if (!(value instanceof Number) || type.isInstance(value)) {
             return value;
         }
@@ -212,7 +212,7 @@ public class Resolver {
         if (type == Double.class && (value instanceof Integer || value instanceof Long)) {
             long longValue = number.longValue();
             double doubleValue = (double) longValue;
-            if ((long) doubleValue == longValue) {
+            if (longValue != Long.MAX_VALUE && (long) doubleValue == longValue) {
                 return doubleValue;
             }
         } else if (type == Integer.class) {
