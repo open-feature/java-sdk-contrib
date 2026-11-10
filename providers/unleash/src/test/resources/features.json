@@ -105,6 +105,22 @@
           "stickiness": "default"
         }
       ]
+    },
+    {
+      "name": "no-payload-flag",
+      "type": "experiment",
+      "enabled": true,
+      "stale": false,
+      "strategies": [{ "name": "default", "parameters": {} }],
+      "variants": [
+        {
+          "name": "blue",
+          "weight": 1000,
+          "overrides": [],
+          "weightType": "variable",
+          "stickiness": "default"
+        }
+      ]
     }
   ]
 }
