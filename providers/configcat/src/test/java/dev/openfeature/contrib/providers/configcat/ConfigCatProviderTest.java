@@ -155,6 +155,15 @@ class ConfigCatProviderTest {
     }
 
     @Test
+    void wrongTypeReportsTypeMismatch() {
+        ProviderEvaluation<Integer> evaluation =
+                configCatProvider.getIntegerEvaluation(FLAG_NAME, 7, new ImmutableContext());
+        assertEquals(7, evaluation.getValue());
+        assertEquals(ErrorCode.TYPE_MISMATCH, evaluation.getErrorCode());
+        assertEquals(Reason.ERROR.toString(), evaluation.getReason());
+    }
+
+    @Test
     void existingFlagReportsNoError() {
         FlagEvaluationDetails<Boolean> details = client.getBooleanDetails(FLAG_NAME, false);
         assertEquals(true, details.getValue());

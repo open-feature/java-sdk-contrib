@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.configcat;
 
 import com.configcat.ConfigCatClient;
 import com.configcat.EvaluationDetails;
+import com.configcat.EvaluationErrorCode;
 import com.configcat.User;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
@@ -13,7 +14,6 @@ import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.exceptions.GeneralError;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -130,11 +130,11 @@ public class ConfigCatProvider extends EventProvider {
             evaluationDetails = configCatClient.getValueDetails(classOfT, key, user, defaultValue);
             evaluatedValue = evaluationDetails.getValue();
         }
-        if (evaluationDetails.getError() != null) {
+        if (evaluationDetails.getErrorCode() != EvaluationErrorCode.NONE) {
             return ProviderEvaluation.<T>builder()
-                    .value(evaluatedValue)
+                    .value(defaultValue)
                     .reason(Reason.ERROR.toString())
-                    .errorCode(isMissingKey(key) ? ErrorCode.FLAG_NOT_FOUND : ErrorCode.GENERAL)
+                    .errorCode(toErrorCode(evaluationDetails.getErrorCode()))
                     .errorMessage(evaluationDetails.getError())
                     .build();
         }
@@ -144,9 +144,17 @@ public class ConfigCatProvider extends EventProvider {
                 .build();
     }
 
-    private boolean isMissingKey(String key) {
-        Collection<String> keys = configCatClient.getAllKeys();
-        return !keys.isEmpty() && !keys.contains(key);
+    private static ErrorCode toErrorCode(EvaluationErrorCode errorCode) {
+        switch (errorCode) {
+            case SETTING_KEY_MISSING:
+                return ErrorCode.FLAG_NOT_FOUND;
+            case SETTING_VALUE_TYPE_MISMATCH:
+                return ErrorCode.TYPE_MISMATCH;
+            case INVALID_CONFIG_MODEL:
+                return ErrorCode.PARSE_ERROR;
+            default:
+                return ErrorCode.GENERAL;
+        }
     }
 
     @SneakyThrows
