@@ -1,6 +1,6 @@
 package dev.openfeature.contrib.providers.statsig;
 
-import com.statsig.sdk.StatsigOptions;
+import com.statsig.StatsigOptions;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -10,7 +10,7 @@ import lombok.Getter;
 public class StatsigProviderConfig {
 
     @Builder.Default
-    private StatsigOptions options = new StatsigOptions();
+    private StatsigOptions options = new StatsigOptions.Builder().build();
 
     // Only holding temporary for initialization
     private String sdkKey;
