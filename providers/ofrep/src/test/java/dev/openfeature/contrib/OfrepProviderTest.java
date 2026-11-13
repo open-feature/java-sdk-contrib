@@ -271,6 +271,45 @@ public class OfrepProviderTest {
     }
 
     @Test
+    void testIntegerValueResolvedAsDouble() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"key\":\"" + FLAG_KEY + "\",\"value\":10,\"reason\":\"STATIC\",\"metadata\":{}}")
+                .setResponseCode(200));
+
+        ProviderEvaluation<Double> evaluation =
+                ofrepProvider.getDoubleEvaluation(FLAG_KEY, DEFAULT_DOUBLE_VALUE, new ImmutableContext());
+
+        assertEquals(10.0, evaluation.getValue());
+        assertNull(evaluation.getErrorCode());
+    }
+
+    @Test
+    void testIntegralDoubleValueResolvedAsInteger() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"key\":\"" + FLAG_KEY + "\",\"value\":10.0,\"reason\":\"STATIC\",\"metadata\":{}}")
+                .setResponseCode(200));
+
+        ProviderEvaluation<Integer> evaluation =
+                ofrepProvider.getIntegerEvaluation(FLAG_KEY, DEFAULT_INT_VALUE, new ImmutableContext());
+
+        assertEquals(10, evaluation.getValue());
+        assertNull(evaluation.getErrorCode());
+    }
+
+    @Test
+    void testFractionalDoubleValueIsNotNarrowedToInteger() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"key\":\"" + FLAG_KEY + "\",\"value\":0.5,\"reason\":\"STATIC\",\"metadata\":{}}")
+                .setResponseCode(200));
+
+        ProviderEvaluation<Integer> evaluation =
+                ofrepProvider.getIntegerEvaluation(FLAG_KEY, DEFAULT_INT_VALUE, new ImmutableContext());
+
+        assertEquals(DEFAULT_INT_VALUE, evaluation.getValue());
+        assertEquals(ErrorCode.TYPE_MISMATCH, evaluation.getErrorCode());
+    }
+
+    @Test
     void testSuccessfulObjectResponse() throws JsonProcessingException {
         OfrepResponse successfulObjectResponse = new OfrepResponse();
         successfulObjectResponse.setKey(FLAG_KEY);

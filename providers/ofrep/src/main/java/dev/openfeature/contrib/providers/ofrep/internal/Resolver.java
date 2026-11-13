@@ -169,7 +169,7 @@ public class Resolver {
     private <T> ProviderEvaluation<T> handleResolved(
             String key, T defaultValue, Class<T> type, OfrepResponse response, ImmutableMetadata metadata) {
 
-        Object responseValue = response.getValue();
+        Object responseValue = convertNumberIfLossless(type, response.getValue());
 
         if (responseValue == null) {
             return ProviderEvaluation.<T>builder()
@@ -196,6 +196,41 @@ public class Resolver {
                 .variant(response.getVariant())
                 .flagMetadata(metadata)
                 .build();
+    }
+
+    /**
+     * Converts a JSON number to the requested numeric type when no information is lost: an integer is
+     * widened to a double, and an integral double (e.g. {@code 10.0}) within the int range is narrowed
+     * to an integer. JSON doesn't keep the distinction, so a server can send {@code 10} for a float flag
+     * or {@code 10.0} for an integer one. Anything else is returned unchanged and fails the type check.
+     */
+    static Object convertNumberIfLossless(Class<?> type, Object value) {
+        if (!(value instanceof Number) || type.isInstance(value)) {
+            return value;
+        }
+        Number number = (Number) value;
+        if (type == Double.class && (value instanceof Integer || value instanceof Long)) {
+            long longValue = number.longValue();
+            double doubleValue = (double) longValue;
+            if (longValue != Long.MAX_VALUE && (long) doubleValue == longValue) {
+                return doubleValue;
+            }
+        } else if (type == Integer.class) {
+            if (value instanceof Long) {
+                long longValue = number.longValue();
+                if (longValue >= Integer.MIN_VALUE && longValue <= Integer.MAX_VALUE) {
+                    return (int) longValue;
+                }
+            } else if (value instanceof Double || value instanceof Float) {
+                double doubleValue = number.doubleValue();
+                if (doubleValue == Math.rint(doubleValue)
+                        && doubleValue >= Integer.MIN_VALUE
+                        && doubleValue <= Integer.MAX_VALUE) {
+                    return (int) doubleValue;
+                }
+            }
+        }
+        return value;
     }
 
     private <T> ProviderEvaluation<T> handleFlagNotFound(String key, T defaultValue, ImmutableMetadata metadata) {
