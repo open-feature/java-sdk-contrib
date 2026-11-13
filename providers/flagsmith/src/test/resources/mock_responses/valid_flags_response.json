@@ -127,5 +127,23 @@
       "name": "list_key"
     },
     "feature_state_value": ["string_1", "string_2"]
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1461,
+      "type": "STANDARD",
+      "name": "double_string_key"
+    },
+    "feature_state_value": "42.42"
+  },
+  {
+    "enabled": true,
+    "feature": {
+      "id": 1462,
+      "type": "STANDARD",
+      "name": "int_string_key"
+    },
+    "feature_state_value": "7"
   }
 ]
