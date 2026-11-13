@@ -47,6 +47,20 @@ jobs:
         # !codequality: a module's own default-active codequality profile (flagd's runs vmlens
         # *CTest suites) is not switched off by a profile in the root pom; main enforces it anyway
         run: mvn --batch-mode --activate-profiles 'tck,!codequality' clean verify
+        env:
+          TCK_REPORT_DIR: ${{ github.workspace }}/tck-reports
+
+      - name: Summarise the conformance reports
+        if: ${{ !cancelled() }}
+        run: bash .github/scripts/tck-report-summary.sh tck-reports >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the conformance reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: conformance-reports
+          path: tck-reports/
+          if-no-files-found: ignore
 
   main:
     strategy:
