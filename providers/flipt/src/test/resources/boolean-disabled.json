@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "reason": "FLAG_DISABLED_EVALUATION_REASON",
+  "segmentKeys": [],
+  "requestDurationMillis": 1,
+  "requestId": "string",
+  "timestamp": "2022-12-03T10:15:30+01:00"
+}
