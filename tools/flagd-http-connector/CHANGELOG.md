@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.5...dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.6) (2026-11-13)
+
+
+### ✨ New Features
+
+* json-logic++ (precompilation), improve e2e ([#1968](https://github.com/open-feature/java-sdk-contrib/issues/1968)) ([ad4ad04](https://github.com/open-feature/java-sdk-contrib/commit/ad4ad04f7ba23eb7e34fca8dcc21237ce30e1ba2))
+
 ## [0.0.5](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.4...dev.openfeature.contrib.tools.flagdhttpconnector-v0.0.5) (2026-06-15)
 
 
