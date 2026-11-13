@@ -340,6 +340,47 @@ public class OfrepProviderTest {
     }
 
     @Test
+    void testEvaluationFailureUsesTheErrorCodeAndDetailsFromTheResponse() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"key\":\"" + FLAG_KEY + "\",\"errorCode\":\"TARGETING_KEY_MISSING\","
+                        + "\"errorDetails\":\"targeting key is required\"}")
+                .setResponseCode(400));
+
+        ProviderEvaluation<String> evaluation =
+                ofrepProvider.getStringEvaluation(FLAG_KEY, DEFAULT_STRING_VALUE, new ImmutableContext());
+
+        assertEquals(DEFAULT_STRING_VALUE, evaluation.getValue());
+        assertEquals(ErrorCode.TARGETING_KEY_MISSING, evaluation.getErrorCode());
+        assertEquals("targeting key is required", evaluation.getErrorMessage());
+    }
+
+    @Test
+    void testEvaluationFailureWithParseErrorAndNoDetails() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"key\":\"" + FLAG_KEY + "\",\"errorCode\":\"PARSE_ERROR\"}")
+                .setResponseCode(400));
+
+        ProviderEvaluation<String> evaluation =
+                ofrepProvider.getStringEvaluation(FLAG_KEY, DEFAULT_STRING_VALUE, new ImmutableContext());
+
+        assertEquals(ErrorCode.PARSE_ERROR, evaluation.getErrorCode());
+        assertEquals("PARSE_ERROR for flag: " + FLAG_KEY, evaluation.getErrorMessage());
+    }
+
+    @Test
+    void testEvaluationFailureWithUnknownErrorCodeFallsBackToInvalidContext() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"key\":\"" + FLAG_KEY + "\",\"errorCode\":\"SOMETHING_NEW\"}")
+                .setResponseCode(400));
+
+        ProviderEvaluation<String> evaluation =
+                ofrepProvider.getStringEvaluation(FLAG_KEY, DEFAULT_STRING_VALUE, new ImmutableContext());
+
+        assertEquals(ErrorCode.INVALID_CONTEXT, evaluation.getErrorCode());
+        assertEquals(ERROR_DETAIL_INVALID_CONTEXT, evaluation.getErrorMessage());
+    }
+
+    @Test
     void testInvalidContext() throws JsonProcessingException {
         OfrepResponse invalidContextResponse = new OfrepResponse();
         invalidContextResponse.setKey(FLAG_KEY);
