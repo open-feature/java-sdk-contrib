@@ -9,13 +9,13 @@ For Maven
 <dependency>
   <groupId>dev.openfeature.contrib.providers</groupId>
   <artifactId>ofrep</artifactId>
-  <version>0.0.2</version>
+  <version>0.0.3</version>
 </dependency>
 ```
 
 For Gradle
 ```groovy
-implementation 'dev.openfeature.contrib.providers:ofrep:0.0.2'
+implementation 'dev.openfeature.contrib.providers:ofrep:0.0.3'
 ```
 <!-- x-release-please-end-version -->
 
