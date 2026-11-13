@@ -13,6 +13,7 @@ import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
 import io.getunleash.util.UnleashConfig;
+import io.getunleash.variant.Payload;
 import io.getunleash.variant.Variant;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.AccessLevel;
@@ -156,8 +157,9 @@ public class UnleashProvider extends EventProvider {
             variantName = evaluatedVariant.getName();
             value = evaluatedVariant
                     .getPayload()
-                    .map(p -> new Value(p.getValue()))
-                    .orElse(null);
+                    .map(Payload::getValue)
+                    .map(Value::new)
+                    .orElse(defaultValue);
         }
         ImmutableMetadata.ImmutableMetadataBuilder flagMetadataBuilder =
                 ImmutableMetadata.builder().addBoolean("enabled", evaluatedVariant.isEnabled());
