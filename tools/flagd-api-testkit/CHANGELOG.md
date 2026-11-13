@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapitestkit-v0.3.0...dev.openfeature.contrib.tools.flagdapitestkit-v0.4.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831))
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.2 [security] ([#1873](https://github.com/open-feature/java-sdk-contrib/issues/1873)) ([6be185a](https://github.com/open-feature/java-sdk-contrib/commit/6be185a5611a322292578f52c76dd2a677291d94))
+* **security:** update vulnerability-updates to v2.22.3 [security] ([#1882](https://github.com/open-feature/java-sdk-contrib/issues/1882)) ([c8f021d](https://github.com/open-feature/java-sdk-contrib/commit/c8f021dd40760790d0ddd93f4f2dc58dc4b3f449))
+
+
+### ✨ New Features
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831)) ([a6cc606](https://github.com/open-feature/java-sdk-contrib/commit/a6cc606b03a1a23986117f62f80157a2c7c935c9))
+* lossless numeric coercion and safe range ([#1959](https://github.com/open-feature/java-sdk-contrib/issues/1959)) ([d69a23f](https://github.com/open-feature/java-sdk-contrib/commit/d69a23fc9578a4ec03348f299753b61f3914794d))
+
 ## [0.3.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdapitestkit-v0.2.1...dev.openfeature.contrib.tools.flagdapitestkit-v0.3.0) (2026-09-14)
 
 
