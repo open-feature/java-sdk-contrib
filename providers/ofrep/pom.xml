@@ -17,6 +17,14 @@
     <description>OFREP Provider</description>
     <url>https://openfeature.dev</url>
 
+    <properties>
+        <!-- Match any tck version locally; CI resolves it from the reactor -->
+        <tck.version>[0.1.0,)</tck.version>
+        <testcontainers.version>2.0.4</testcontainers.version>
+        <!-- set true to report conformance failures without failing the tck build -->
+        <tck.testFailureIgnore>false</tck.testFailureIgnore>
+    </properties>
+
     <developers>
 		<developer>
 			<id>Rahul-Baradol</id>
@@ -81,5 +89,22 @@
             <version>4.12.0</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- OpenFeature Provider TCK -->
+        <dependency>
+            <groupId>dev.openfeature.contrib.tools</groupId>
+            <artifactId>tck</artifactId>
+            <version>${tck.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- the TCK declares Testcontainers optional, so a containerised adopter brings its own -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
 </project>
