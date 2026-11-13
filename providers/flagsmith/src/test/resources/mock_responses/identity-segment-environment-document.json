@@ -1,0 +1,44 @@
+{
+  "id": 18141,
+  "api_key": "ser.API_KEY",
+  "name": "Test environment",
+  "feature_states": [
+    {
+      "django_id": 188032,
+      "feature": {"id": 35352, "name": "identity_feature", "type": "STANDARD"},
+      "enabled": true,
+      "feature_state_value": "default",
+      "multivariate_feature_state_values": []
+    }
+  ],
+  "identity_overrides": [],
+  "project": {
+    "id": 7720,
+    "name": "Test project",
+    "segments": [
+      {
+        "id": 123,
+        "name": "identity-segment",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {"operator": "EQUAL", "property_": "$.identity.identifier", "value": "matching-identity"}
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "django_id": 188033,
+            "feature": {"id": 35352, "name": "identity_feature", "type": "STANDARD"},
+            "enabled": true,
+            "feature_state_value": "matched",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {"priority": 1}
+          }
+        ]
+      }
+    ]
+  }
+}
