@@ -74,8 +74,8 @@ class FlagdCoreResolveTest {
 
         assertResult(result, "on", "TARGETING_MATCH");
         assertThat(result.getFlagMetadata().asUnmodifiableMap())
-                .containsExactlyInAnyOrderEntriesOf(
-                        Map.of("scope", "set", "owner", "flag", "details", "rule", "pilot", true, "share", 0.5));
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
+                        "scope", "set", "owner", "flag", "details", "rule", "pilot", true, "share", 0.5, "count", 3));
     }
 
     @ParameterizedTest

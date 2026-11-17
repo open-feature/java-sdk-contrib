@@ -12,7 +12,7 @@
       "variants": { "on": "on", "off": "off" },
       "defaultVariant": "off",
       "metadata": { "owner": "flag", "details": "flag" },
-      "targeting": { "resolve": ["on", null, [["details", "rule"], ["pilot", true], ["share", 0.5]]] }
+      "targeting": { "resolve": ["on", null, [["details", "rule"], ["pilot", true], ["share", 0.5], ["count", 3]]] }
     },
     "nested-if": {
       "state": "ENABLED",

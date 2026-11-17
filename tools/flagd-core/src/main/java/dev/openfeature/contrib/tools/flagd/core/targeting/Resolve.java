@@ -59,18 +59,30 @@ class Resolve implements PreEvaluatedArgumentsExpression {
                 log.debug("resolve metadata pair must be a [string, value] array");
                 return false;
             }
-            Object value = entry.get(1);
-            if (value instanceof Number) {
-                value = ((Number) value).doubleValue();
-            }
-            // NaN and Infinity (e.g. a computed 1/0) can't be encoded as JSON
-            final boolean finite = !(value instanceof Double) || Double.isFinite((Double) value);
-            if (!finite || !(value instanceof String || value instanceof Boolean || value instanceof Double)) {
+            final Object value = entry.get(1);
+            final Object metadataValue = value instanceof Number ? metadataNumber((Number) value) : value;
+            if (!(metadataValue instanceof String
+                    || metadataValue instanceof Boolean
+                    || metadataValue instanceof Number)) {
                 log.debug("resolve metadata value must be a string, finite number, or boolean");
                 return false;
             }
-            metadata.put((String) entry.get(0), value);
+            metadata.put((String) entry.get(0), metadataValue);
         }
         return true;
+    }
+
+    /**
+     * JsonLogic yields doubles, so whole numbers become ints like they are in flag metadata.
+     * NaN and Infinity (e.g. a computed 1/0) can't be encoded as JSON, so they return null.
+     */
+    private static Object metadataNumber(Number value) {
+        final double number = value.doubleValue();
+        if (!Double.isFinite(number)) {
+            return null;
+        }
+        final boolean wholeInt =
+                number == Math.rint(number) && number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE;
+        return wholeInt ? (Object) (int) number : number;
     }
 }
