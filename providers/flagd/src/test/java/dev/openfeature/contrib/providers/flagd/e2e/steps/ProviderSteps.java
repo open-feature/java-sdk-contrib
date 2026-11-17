@@ -116,7 +116,8 @@ public class ProviderSteps extends AbstractSteps {
                 flagdConfig = "ssl";
                 break;
             case "metadata":
-                flagdConfig = "metadata";
+            case "resolve":
+                flagdConfig = providerType;
                 if (State.resolverType == Config.Resolver.FILE) {
                     FlagdOptions build = state.builder.build();
                     String selector = build.getSelector();

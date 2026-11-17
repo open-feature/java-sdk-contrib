@@ -29,7 +29,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
 @IncludeTags({"rpc"})
 // large-integers reads 2^53-1 via 32-bit getInteger; Long scenarios: open-feature/flagd-testbed#379
-@ExcludeTags({"unixsocket", "fractional-v1", "fractional-v2", "deprecated", "large-integers"})
+// flagd in the test harness image does not support resolve yet
+@ExcludeTags({"unixsocket", "fractional-v1", "fractional-v2", "deprecated", "large-integers", "resolve"})
 @Testcontainers
 public class RunRpcTest {
 
