@@ -17,6 +17,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class FlagdCoreResolveTest {
 
+    // valid arguments for the "computed" flag
+    private static final Map<String, Value> COMPUTED_CTX = Map.of(
+            "variant", new Value("on"),
+            "reason", new Value("SPLIT"),
+            "key", new Value("share"),
+            "hits", new Value(1),
+            "total", new Value(4));
+
     private static FlagdCore core(boolean compile) throws Exception {
         FlagdCore core = new FlagdCore(false, compile);
         core.setFlags(TestUtils.getFlagsFromResource("flags/resolve-flags.json"));
@@ -40,6 +48,11 @@ class FlagdCoreResolveTest {
         assertResult(eval(compile, "whole-rule", Map.of()), "on", "TARGETING_MATCH");
         assertResult(eval(compile, "single-clause-if", Map.of()), "on", "ALLOWLIST");
         assertResult(eval(compile, "ref", Map.of()), "on", "ALLOWLIST");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void reasonIsFreeForm(boolean compile) throws Exception {
         assertResult(eval(compile, "fallback-reason", Map.of()), "on", "FALLBACK");
     }
 
@@ -81,14 +94,7 @@ class FlagdCoreResolveTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void argumentsCanBeComputed(boolean compile) throws Exception {
-        ProviderEvaluation<String> result = eval(
-                compile,
-                "computed",
-                Map.of(
-                        "variant", new Value("on"),
-                        "reason", new Value("SPLIT"),
-                        "hits", new Value(1),
-                        "total", new Value(4)));
+        ProviderEvaluation<String> result = eval(compile, "computed", COMPUTED_CTX);
 
         assertResult(result, "on", "SPLIT");
         assertThat(result.getFlagMetadata().getDouble("share")).isEqualTo(0.25);
@@ -103,14 +109,13 @@ class FlagdCoreResolveTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void malformedComputedArgumentsFallBackToTheDefaultVariant(boolean compile) throws Exception {
-        Map<String, Value> valid = Map.of(
-                "variant", new Value("on"), "reason", new Value("SPLIT"), "hits", new Value(1), "total", new Value(4));
         for (Map<String, Value> override : List.of(
                 Map.of("variant", new Value()), // null variant
                 Map.of("reason", new Value(1)), // non-string reason
+                Map.of("key", new Value(1)), // non-string metadata key
                 Map.of("total", new Value(0)), // 1/0 is not finite
                 Map.of("hits", new Value(0), "total", new Value(0)))) { // 0/0 is NaN
-            Map<String, Value> ctx = new HashMap<>(valid);
+            Map<String, Value> ctx = new HashMap<>(COMPUTED_CTX);
             ctx.putAll(override);
             assertResult(eval(compile, "computed", ctx), "off", "DEFAULT");
         }

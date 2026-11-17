@@ -52,7 +52,7 @@
         "resolve": [
           { "var": "variant" },
           { "var": "reason" },
-          [[{ "cat": ["sh", "are"] }, { "/": [{ "var": "hits" }, { "var": "total" }] }]]
+          [[{ "var": "key" }, { "/": [{ "var": "hits" }, { "var": "total" }] }]]
         ]
       }
     },
