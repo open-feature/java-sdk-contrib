@@ -13,6 +13,15 @@
     },
     {
       "$ref": "#/definitions/anyRule"
+    },
+    {
+      "$ref": "#/definitions/resolveRule"
+    },
+    {
+      "$ref": "#/definitions/terminalIfRule"
+    },
+    {
+      "$ref": "#/definitions/terminalFractionalRule"
     }
   ],
   "definitions": {
@@ -173,7 +182,11 @@
         "if": {
           "title": "If Operator",
           "description": "The if statement takes 1 or more arguments: a condition (\"if\"), what to do if its true (\"then\", optional, defaults to returning true), and what to do if its false (\"else\", optional, defaults to returning false). Note that the else condition can be used as an else-if statement by adding additional arguments.",
-          "$ref": "#/definitions/variadicOp"
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/args"
+          }
         },
         "==": {
           "title": "Lose Equality Operation",
@@ -461,7 +474,7 @@
       "maxItems": 2,
       "items": [
         {
-          "description": "If this bucket is randomly selected, this JSONLogic will be evaluated, and the result will be used as the variant key to return from the variants map.",
+          "description": "The variant for this bucket. Every bucket's variant is evaluated; the result from the selected bucket is used as the variant key to return from the variants map.",
           "$ref": "#/definitions/args"
         },
         {
@@ -532,6 +545,213 @@
           "title": "Reference",
           "description": "A reference to another entity, used for $evaluators (shared rules).",
           "type": "string"
+        }
+      }
+    },
+    "terminalResultArg": {
+      "$comment": "an argument whose value may be returned as a terminal targeting result; accepts resolve and nested terminal if/fractional. Used only in terminalIfRule and terminalFractionalWeightArg, which are reachable only from the root or from other terminal positions.",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/args"
+        },
+        {
+          "$ref": "#/definitions/resolveRule"
+        },
+        {
+          "$ref": "#/definitions/terminalIfRule"
+        },
+        {
+          "$ref": "#/definitions/terminalFractionalRule"
+        }
+      ]
+    },
+    "terminalIfRule": {
+      "$comment": "if whose then/else branches are terminal result positions; resolve is accepted there. The anyRule version of if uses plain args, so resolve is rejected when if is consumed (e.g. inside ==).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "if": {
+          "title": "If Operator (terminal)",
+          "description": "Terminal if: then/else branches accept resolve and other terminal operations in addition to plain args.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/terminalResultArg"
+          }
+        }
+      }
+    },
+    "terminalFractionalWeightArg": {
+      "description": "Terminal distribution bucket; the variant position accepts resolve and other terminal operations.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": [
+        {
+          "description": "The variant for this bucket. Every bucket's variant is evaluated; the result from the selected bucket is used as the variant key to return from the variants map.",
+          "$ref": "#/definitions/terminalResultArg"
+        },
+        {
+          "description": "Weighted distribution for this variant key. Must be a non-negative integer. Can be a JSONLogic expression that evaluates to a number (e.g. for time-based progressive rollouts); computed negative weights are clamped to 0 at evaluation time. The total weight sum across all variants must not exceed 2,147,483,647.",
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "$ref": "#/definitions/anyRule"
+            }
+          ]
+        }
+      ]
+    },
+    "terminalFractionalOp": {
+      "type": "array",
+      "minItems": 1,
+      "$comment": "there seems to be a bug here, where ajv gives a warning (not an error) because maxItems doesn't equal the number of entries in items, though this is valid in this case",
+      "items": [
+        {
+          "description": "Bucketing value used in pseudorandom assignment; should be a string that is unique and stable for each subject of flag evaluation. Defaults to a concatenation of the flagKey and targetingKey.",
+          "$ref": "#/definitions/anyRule"
+        },
+        {
+          "$ref": "#/definitions/terminalFractionalWeightArg"
+        },
+        {
+          "$ref": "#/definitions/terminalFractionalWeightArg"
+        }
+      ],
+      "additionalItems": {
+        "$ref": "#/definitions/terminalFractionalWeightArg"
+      }
+    },
+    "terminalFractionalShorthandOp": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/terminalFractionalWeightArg"
+      }
+    },
+    "terminalFractionalRule": {
+      "$comment": "fractional whose bucket variants are terminal result positions; resolve is accepted there. The anyRule version of fractional uses plain args for variants, so resolve is rejected when fractional is consumed (e.g. inside ==).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fractional": {
+          "title": "Fractional Operation (terminal)",
+          "description": "Terminal fractional distribution; bucket variants accept resolve and other terminal operations in addition to plain args.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/terminalFractionalOp"
+            },
+            {
+              "$ref": "#/definitions/terminalFractionalShorthandOp"
+            }
+          ]
+        }
+      }
+    },
+    "resolveRule": {
+      "$comment": "deliberately not part of anyRule, so resolve is rejected anywhere its result would be consumed (e.g. inside == or cat). resolve as an if condition or via $ref cannot be enforced by the schema.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resolve"
+      ],
+      "properties": {
+        "resolve": {
+          "title": "Resolve Operation",
+          "description": "Terminates targeting with a variant, and optionally a custom reason and metadata for the branch that fired. Only valid as the whole targeting rule, as a result of an \"if\", or as a \"fractional\" bucket variant.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": [
+            {
+              "description": "The variant key to resolve; equivalent to returning the plain string. Be sure that the variant is present as a key in the variants!",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "description": "Booleans are converted to strings (\"true\"/\"false\"), and used as keys to retrieve the associated value from the \"variants\" object.",
+                  "type": "boolean"
+                },
+                {
+                  "description": "Computed variants are coerced like plain targeting results; booleans become \"true\"/\"false\", and the behavior of numbers is not defined.",
+                  "$ref": "#/definitions/anyRule"
+                }
+              ]
+            },
+            {
+              "description": "Optional free-form reason, overriding the \"TARGETING_MATCH\" reason for this branch. A null reason keeps \"TARGETING_MATCH\".",
+              "oneOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/anyRule"
+                }
+              ]
+            },
+            {
+              "description": "Optional metadata as [key, value] pairs, merged over flag-set and flag metadata (rule values win). \"details\" is a well-known key, explaining why this branch fired. \"flagSetId\" and \"version\" are reserved for flag-set metadata and can't be overridden. The list itself, each pair, and each key may also be a JSONLogic expression; computed keys are not checked for reserved names.",
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/anyRule"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/definitions/anyRule"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": [
+                          {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "not": {
+                                  "enum": [
+                                    "flagSetId",
+                                    "version"
+                                  ]
+                                }
+                              },
+                              {
+                                "$ref": "#/definitions/anyRule"
+                              }
+                            ]
+                          },
+                          {
+                            "oneOf": [
+                              {
+                                "type": [
+                                  "string",
+                                  "number",
+                                  "boolean"
+                                ]
+                              },
+                              {
+                                "$ref": "#/definitions/anyRule"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         }
       }
     },
