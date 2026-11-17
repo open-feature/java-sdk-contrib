@@ -74,6 +74,18 @@
       "defaultVariant": "off",
       "targeting": { "resolve": ["nope"] }
     },
+    "fractional-buckets": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "fractional": [
+          "fixed-bucketing-value",
+          [{ "resolve": ["on", "SPLIT", [["details", "treatment"]]] }, { "if": [{ "var": "treatment" }, 1, 0] }],
+          [{ "resolve": ["off", "SPLIT", [["details", "holdback"]]] }, { "if": [{ "var": "treatment" }, 0, 1] }]
+        ]
+      }
+    },
     "forged": {
       "state": "ENABLED",
       "variants": { "on": "on", "off": "off" },

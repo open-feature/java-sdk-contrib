@@ -208,14 +208,19 @@ class Fractional implements PreEvaluatedArgumentsExpression {
                 throw new JsonLogicException("Fraction property needs at least one element", jsonPath);
             }
 
-            // variant must be a primitive (string, number, boolean) or null;
+            // variant must be a primitive (string, number, boolean), null, or a resolve result;
             // nested JSONLogic expressions are pre-evaluated to these types
             Object first = array.get(0);
-            if (first instanceof String || first instanceof Number || first instanceof Boolean || first == null) {
+            if (first instanceof String
+                    || first instanceof Number
+                    || first instanceof Boolean
+                    || first instanceof ResolveResult
+                    || first == null) {
                 variant = first;
             } else {
                 throw new JsonLogicException(
-                        "First element of the fraction property must resolve to a string, number, boolean, or null",
+                        "First element of the fraction property must resolve to a string, number, boolean, null, "
+                                + "or resolve",
                         jsonPath);
             }
 

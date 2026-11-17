@@ -58,6 +58,17 @@ class FlagdCoreResolveTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    void eachFractionalBucketTagsTheEvaluation(boolean compile) throws Exception {
+        for (boolean treatment : new boolean[] {true, false}) {
+            ProviderEvaluation<String> result =
+                    eval(compile, "fractional-buckets", Map.of("treatment", new Value(treatment)));
+            assertResult(result, treatment ? "on" : "off", "SPLIT");
+            assertThat(result.getFlagMetadata().getString("details")).isEqualTo(treatment ? "treatment" : "holdback");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
     void ruleMetadataOverwritesFlagAndFlagSetMetadata(boolean compile) throws Exception {
         ProviderEvaluation<String> result = eval(compile, "metadata-precedence", Map.of());
 
