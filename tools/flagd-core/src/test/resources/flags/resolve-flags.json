@@ -1,0 +1,87 @@
+{
+  "metadata": { "scope": "set", "owner": "set" },
+  "flags": {
+    "whole-rule": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on"] }
+    },
+    "metadata-precedence": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "metadata": { "owner": "flag", "details": "flag" },
+      "targeting": { "resolve": ["on", null, [["details", "rule"], ["pilot", true], ["share", 0.5]]] }
+    },
+    "nested-if": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "if": [
+          { "==": [{ "var": "customerId" }, "a"] },
+          { "resolve": ["on", "ALLOWLIST", [["details", "a"]]] },
+          {
+            "if": [
+              { "==": [{ "var": "customerId" }, "b"] },
+              { "resolve": ["on", "SPLIT", [["details", "b"]]] },
+              { "resolve": ["off", "FALLTHROUGH", [["details", "rest"]]] }
+            ]
+          }
+        ]
+      }
+    },
+    "single-clause-if": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "if": [{ "resolve": ["on", "ALLOWLIST"] }] }
+    },
+    "ref": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "$ref": "allowlist" }
+    },
+    "computed": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "resolve": [
+          { "var": "variant" },
+          { "var": "reason" },
+          [[{ "cat": ["sh", "are"] }, { "/": [{ "var": "hits" }, { "var": "total" }] }]]
+        ]
+      }
+    },
+    "boolean-variant": {
+      "state": "ENABLED",
+      "variants": { "true": "on", "false": "off" },
+      "defaultVariant": "false",
+      "targeting": { "resolve": [true] }
+    },
+    "fallback-reason": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on", "FALLBACK"] }
+    },
+    "missing-variant": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["nope"] }
+    },
+    "forged": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "var": "forged" }
+    }
+  },
+  "$evaluators": {
+    "allowlist": { "resolve": ["on", "ALLOWLIST"] }
+  }
+}

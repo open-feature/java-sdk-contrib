@@ -39,6 +39,7 @@ public class Operator {
         jsonLogicHandler.addOperation(new SemVer());
         jsonLogicHandler.addOperation(new StringComp(StringComp.Type.STARTS_WITH));
         jsonLogicHandler.addOperation(new StringComp(StringComp.Type.ENDS_WITH));
+        jsonLogicHandler.addOperation(new Resolve());
     }
 
     /**
