@@ -2,6 +2,7 @@ package dev.openfeature.contrib.providers.flagd.e2e;
 
 import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 import static io.cucumber.junit.platform.engine.Constants.OBJECT_FACTORY_PROPERTY_NAME;
+import static io.cucumber.junit.platform.engine.Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME;
 import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 import dev.openfeature.contrib.providers.flagd.Config;
@@ -30,6 +31,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @IncludeTags({"rpc"})
 // large-integers reads 2^53-1 via 32-bit getInteger; Long scenarios: open-feature/flagd-testbed#379
 @ExcludeTags({"unixsocket", "fractional-v1", "fractional-v2", "deprecated", "large-integers"})
+// Only the switch: the strategy and factor stay at Cucumber's defaults, so
+// -Dcucumber.execution.parallel.config.* can still tune them.
+@ConfigurationParameter(key = PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME, value = "true")
+// Concurrent container restarts can outlast the reconnection timeout.
+@ConfigurationParameter(key = "cucumber.execution.exclusive-resources.grace.read-write", value = "CONTAINER_RESTART")
+// @env-var scenarios mutate process-wide variables that every config scenario reads.
+@ConfigurationParameter(
+        key = "cucumber.execution.exclusive-resources.env-var.read-write",
+        value = "org.junit.platform.engine.support.hierarchical.ExclusiveResource.GLOBAL_KEY")
 @Testcontainers
 public class RunRpcTest {
 
