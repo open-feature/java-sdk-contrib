@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.providers.jsonlogic;
 
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.FeatureProvider;
 import dev.openfeature.sdk.Metadata;
@@ -37,23 +38,23 @@ public class JsonlogicProvider implements FeatureProvider {
 
     @Override
     public ProviderEvaluation<Boolean> getBooleanEvaluation(String key, Boolean defaultValue, EvaluationContext ctx) {
-        return evalRuleForKey(key, defaultValue, ctx);
+        return evalRuleForKey(key, defaultValue, ctx, Boolean.class, Boolean.class::cast);
     }
 
     @Override
     public ProviderEvaluation<String> getStringEvaluation(String key, String defaultValue, EvaluationContext ctx) {
-        return evalRuleForKey(key, defaultValue, ctx);
+        return evalRuleForKey(key, defaultValue, ctx, String.class, String.class::cast);
     }
 
     @Override
     public ProviderEvaluation<Integer> getIntegerEvaluation(String key, Integer defaultValue, EvaluationContext ctx) {
         // jsonlogic only returns doubles, not integers.
-        return evalRuleForKey(key, defaultValue, ctx, (o) -> ((Double) o).intValue());
+        return evalRuleForKey(key, defaultValue, ctx, Number.class, (o) -> ((Number) o).intValue());
     }
 
     @Override
     public ProviderEvaluation<Double> getDoubleEvaluation(String key, Double defaultValue, EvaluationContext ctx) {
-        return evalRuleForKey(key, defaultValue, ctx);
+        return evalRuleForKey(key, defaultValue, ctx, Number.class, (o) -> ((Number) o).doubleValue());
     }
 
     @Override
@@ -62,27 +63,37 @@ public class JsonlogicProvider implements FeatureProvider {
         throw new UnsupportedOperationException("Haven't gotten there yet.");
     }
 
-    private <T> ProviderEvaluation<T> evalRuleForKey(String key, T defaultValue, EvaluationContext ctx) {
-        return evalRuleForKey(key, defaultValue, ctx, (o) -> (T) o);
-    }
-
     private <T> ProviderEvaluation<T> evalRuleForKey(
-            String key, T defaultValue, EvaluationContext ctx, Function<Object, T> resultToType) {
+            String key, T defaultValue, EvaluationContext ctx, Class<?> resultType, Function<Object, T> resultToType) {
         String rule = fetcher.getRuleForKey(key);
         if (rule == null) {
-            return ProviderEvaluation.<T>builder()
-                    .value(defaultValue)
-                    .reason(Reason.ERROR.toString())
-                    .errorMessage("Unable to find rules for the given key")
-                    .build();
+            return error(defaultValue, ErrorCode.FLAG_NOT_FOUND, "Unable to find rules for the given key");
         }
 
+        Object result;
         try {
-            return ProviderEvaluation.<T>builder()
-                    .value(resultToType.apply(this.logic.apply(rule, ctx.asObjectMap())))
-                    .build();
+            result = this.logic.apply(rule, ctx.asObjectMap());
         } catch (JsonLogicException e) {
             throw new ParseError(e);
         }
+
+        if (!resultType.isInstance(result)) {
+            String actual = result == null ? "null" : result.getClass().getSimpleName();
+            return error(
+                    defaultValue,
+                    ErrorCode.TYPE_MISMATCH,
+                    "Rule for key " + key + " returned " + actual + ", expected " + resultType.getSimpleName());
+        }
+
+        return ProviderEvaluation.<T>builder().value(resultToType.apply(result)).build();
+    }
+
+    private static <T> ProviderEvaluation<T> error(T defaultValue, ErrorCode errorCode, String errorMessage) {
+        return ProviderEvaluation.<T>builder()
+                .value(defaultValue)
+                .reason(Reason.ERROR.toString())
+                .errorCode(errorCode)
+                .errorMessage(errorMessage)
+                .build();
     }
 }
