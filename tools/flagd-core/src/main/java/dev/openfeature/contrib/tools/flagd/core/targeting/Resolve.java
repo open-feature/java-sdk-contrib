@@ -4,6 +4,7 @@ import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsE
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -13,6 +14,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class Resolve implements PreEvaluatedArgumentsExpression {
+
+    // flag set metadata keys a rule can't override; the schema only catches literal keys
+    private static final Set<String> RESERVED_KEYS = Set.of("flagSetId", "version");
 
     @Override
     public String key() {
@@ -67,7 +71,10 @@ class Resolve implements PreEvaluatedArgumentsExpression {
                 log.debug("resolve metadata value must be a string, finite number, or boolean");
                 return false;
             }
-            metadata.put((String) entry.get(0), metadataValue);
+            final String key = (String) entry.get(0);
+            if (!RESERVED_KEYS.contains(key)) {
+                metadata.put(key, metadataValue);
+            }
         }
         return true;
     }

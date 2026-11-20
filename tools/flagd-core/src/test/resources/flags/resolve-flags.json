@@ -1,5 +1,5 @@
 {
-  "metadata": { "scope": "set", "owner": "set" },
+  "metadata": { "scope": "set", "owner": "set", "flagSetId": "set-id", "version": "set-version" },
   "flags": {
     "whole-rule": {
       "state": "ENABLED",
@@ -13,6 +13,14 @@
       "defaultVariant": "off",
       "metadata": { "owner": "flag", "details": "flag" },
       "targeting": { "resolve": ["on", null, [["details", "rule"], ["pilot", true], ["share", 0.5], ["count", 3]]] }
+    },
+    "reserved-keys": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "resolve": ["on", null, [["flagSetId", "rule"], [{ "var": "key" }, "rule"], ["details", "rule"]]]
+      }
     },
     "nested-if": {
       "state": "ENABLED",

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class FlagdCoreResolveTest {
@@ -88,7 +89,25 @@ class FlagdCoreResolveTest {
         assertResult(result, "on", "TARGETING_MATCH");
         assertThat(result.getFlagMetadata().asUnmodifiableMap())
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        "scope", "set", "owner", "flag", "details", "rule", "pilot", true, "share", 0.5, "count", 3));
+                        "scope", "set",
+                        "owner", "flag",
+                        "flagSetId", "set-id",
+                        "version", "set-version",
+                        "details", "rule",
+                        "pilot", true,
+                        "share", 0.5,
+                        "count", 3));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false,flagSetId", "false,version", "true,flagSetId", "true,version"})
+    void ruleMetadataCannotOverrideReservedKeys(boolean compile, String computedKey) throws Exception {
+        ProviderEvaluation<String> result = eval(compile, "reserved-keys", Map.of("key", new Value(computedKey)));
+
+        assertResult(result, "on", "TARGETING_MATCH");
+        assertThat(result.getFlagMetadata().getString("flagSetId")).isEqualTo("set-id");
+        assertThat(result.getFlagMetadata().getString("version")).isEqualTo("set-version");
+        assertThat(result.getFlagMetadata().getString("details")).isEqualTo("rule");
     }
 
     @ParameterizedTest
