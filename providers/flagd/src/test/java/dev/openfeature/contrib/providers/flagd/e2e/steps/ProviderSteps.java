@@ -117,8 +117,8 @@ public class ProviderSteps extends AbstractSteps {
                 break;
             case "metadata":
             case "resolve":
-                flagdConfig = providerType;
                 if (State.resolverType == Config.Resolver.FILE) {
+                    // file mode reads the harness flag file directly, so it doesn't need a flagd config
                     FlagdOptions build = state.builder.build();
                     String selector = build.getSelector();
                     String replace = selector.replace("rawflags/", "");
@@ -126,6 +126,7 @@ public class ProviderSteps extends AbstractSteps {
                             .port(UNAVAILABLE_PORT)
                             .offlineFlagSourcePath(new File("test-harness/flags/" + replace).getAbsolutePath());
                 } else {
+                    flagdConfig = providerType;
                     state.builder.port(ContainerUtil.getPort(container, State.resolverType));
                 }
                 break;
