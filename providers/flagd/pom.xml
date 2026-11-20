@@ -20,7 +20,7 @@
             excludes every provider's tck package and its `tck` profile selects them.
         -->
         <testExclusions>**/e2e/*.java</testExclusions>
-        <io.grpc.version>1.85.0</io.grpc.version>
+        <io.grpc.version>1.85.1</io.grpc.version>
         <!-- caution - updating this will break compatibility with older protobuf-java versions -->
         <protobuf-java.min.version>3.25.6</protobuf-java.min.version>
         <com.vmlens.version>1.2.28</com.vmlens.version>
