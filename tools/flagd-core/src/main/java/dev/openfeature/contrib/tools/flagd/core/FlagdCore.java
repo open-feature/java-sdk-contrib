@@ -8,6 +8,7 @@ import dev.openfeature.contrib.tools.flagd.core.model.FeatureFlag;
 import dev.openfeature.contrib.tools.flagd.core.model.FlagParser;
 import dev.openfeature.contrib.tools.flagd.core.model.FlagParsingResult;
 import dev.openfeature.contrib.tools.flagd.core.targeting.Operator;
+import dev.openfeature.contrib.tools.flagd.core.targeting.ResolveResult;
 import dev.openfeature.contrib.tools.flagd.core.targeting.TargetingRuleException;
 import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.EvaluationContext;
@@ -23,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -208,7 +210,7 @@ public class FlagdCore implements Evaluator {
             return ProviderEvaluation.<T>builder()
                     .errorMessage("flag: " + key + " not found")
                     .errorCode(ErrorCode.FLAG_NOT_FOUND)
-                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, null))
+                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, null, null))
                     .build();
         }
 
@@ -217,12 +219,13 @@ public class FlagdCore implements Evaluator {
             return ProviderEvaluation.<T>builder()
                     .value(defaultValue)
                     .reason(Reason.DISABLED.toString())
-                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
+                    .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag, null))
                     .build();
         }
 
         final String resolvedVariant;
         final String reason;
+        Map<String, Object> ruleMetadata = null;
 
         if (EMPTY_TARGETING_STRING.equals(flag.getTargeting())) {
             resolvedVariant = flag.getDefaultVariant();
@@ -233,6 +236,11 @@ public class FlagdCore implements Evaluator {
                 if (jsonResolved == null) {
                     resolvedVariant = flag.getDefaultVariant();
                     reason = Reason.DEFAULT.toString();
+                } else if (jsonResolved instanceof ResolveResult) {
+                    final ResolveResult resolved = (ResolveResult) jsonResolved;
+                    resolvedVariant = resolved.getVariant();
+                    reason = resolved.getReason() != null ? resolved.getReason() : Reason.TARGETING_MATCH.toString();
+                    ruleMetadata = resolved.getMetadata();
                 } else {
                     resolvedVariant = jsonResolved.toString(); // convert to string to support shorthand
                     reason = Reason.TARGETING_MATCH.toString();
@@ -251,7 +259,7 @@ public class FlagdCore implements Evaluator {
                 return ProviderEvaluation.<T>builder()
                         .value(defaultValue)
                         .reason(Reason.DEFAULT.toString())
-                        .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
+                        .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag, null))
                         .build();
             }
 
@@ -278,7 +286,7 @@ public class FlagdCore implements Evaluator {
                 .value((T) value)
                 .variant(resolvedVariant)
                 .reason(reason)
-                .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
+                .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag, ruleMetadata))
                 .build();
     }
 
@@ -339,21 +347,14 @@ public class FlagdCore implements Evaluator {
         return new TypeMismatchError(message);
     }
 
-    private static ImmutableMetadata getFlagMetadata(Map<String, Object> currentFlagSetMetadata, FeatureFlag flag) {
+    // later sources overwrite earlier ones: flag set, then flag, then the resolve rule
+    private static ImmutableMetadata getFlagMetadata(
+            Map<String, Object> currentFlagSetMetadata, FeatureFlag flag, Map<String, Object> ruleMetadata) {
         ImmutableMetadata.ImmutableMetadataBuilder metadataBuilder = ImmutableMetadata.builder();
-
-        if (currentFlagSetMetadata != null) {
-            for (Map.Entry<String, Object> entry : currentFlagSetMetadata.entrySet()) {
-                addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
-            }
-        }
-
-        if (flag != null && flag.getMetadata() != null) {
-            for (Map.Entry<String, Object> entry : flag.getMetadata().entrySet()) {
-                addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue());
-            }
-        }
-
+        Stream.of(currentFlagSetMetadata, flag != null ? flag.getMetadata() : null, ruleMetadata)
+                .filter(Objects::nonNull)
+                .flatMap(metadata -> metadata.entrySet().stream())
+                .forEach(entry -> addEntryToMetadataBuilder(metadataBuilder, entry.getKey(), entry.getValue()));
         return metadataBuilder.build();
     }
 
