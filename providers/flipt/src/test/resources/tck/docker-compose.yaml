@@ -1,0 +1,19 @@
+# The Flipt provider-TCK backend: Flipt plus a control server that starts,
+# stops and reseeds the bundled /flipt process.
+# https://github.com/flipt-io/openfeature-tck
+#
+# The service is named "backend" because that is ContainerizedProviderTckTest's default.
+#
+# The image is PINNED, not :latest. Both the Java and Go adoptions pull this image, and a mutable
+# tag lets a push to the testbed change both pull requests' results with no diff anywhere to
+# explain it.
+#
+# Ports are never pinned. The TCK reads the dynamically mapped host ports after the stack is up,
+# and POST /stop deliberately never restarts the container precisely so those mappings survive an
+# outage scenario.
+services:
+  backend:
+    image: ${FLIPT_TESTBED_IMAGE:-ghcr.io/flipt-io/openfeature-tck:0.1.0}
+    ports:
+      - 8080 # control API
+      - 8888 # Flipt evaluation API
