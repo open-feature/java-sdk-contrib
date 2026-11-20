@@ -9,10 +9,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.MutableContext;
@@ -55,6 +57,7 @@ class UnleashProviderTest {
     public static final String JSON_VARIANT_FLAG_NAME = "json-flag";
     public static final String JSON_VARIANT_FLAG_VALUE = "{ a: 1 }";
     public static final String CSV_VARIANT_FLAG_NAME = "csv-flag";
+    public static final String NO_PAYLOAD_FLAG_NAME = "no-payload-flag";
     public static final String CSV_VARIANT_FLAG_VALUE = "a,b,c";
     private static UnleashProvider unleashProvider;
     private static Client client;
@@ -168,6 +171,35 @@ class UnleashProviderTest {
 
         // non-number flag value
         assertEquals(1.1, client.getDoubleValue(VARIANT_FLAG_NAME, 1.1));
+    }
+
+    @Test
+    void variantWithoutPayloadReturnsDefault() {
+        ProviderEvaluation<String> stringEvaluation =
+                unleashProvider.getStringEvaluation(NO_PAYLOAD_FLAG_NAME, "fallback", new ImmutableContext());
+        assertEquals("fallback", stringEvaluation.getValue());
+        assertEquals("blue", stringEvaluation.getVariant());
+
+        assertEquals(
+                7,
+                unleashProvider
+                        .getIntegerEvaluation(NO_PAYLOAD_FLAG_NAME, 7, new ImmutableContext())
+                        .getValue());
+        assertEquals(
+                0.5,
+                unleashProvider
+                        .getDoubleEvaluation(NO_PAYLOAD_FLAG_NAME, 0.5, new ImmutableContext())
+                        .getValue());
+        assertEquals(
+                new Value("fallback"),
+                unleashProvider
+                        .getObjectEvaluation(NO_PAYLOAD_FLAG_NAME, new Value("fallback"), new ImmutableContext())
+                        .getValue());
+
+        FlagEvaluationDetails<String> details = client.getStringDetails(NO_PAYLOAD_FLAG_NAME, "fallback");
+        assertEquals("fallback", details.getValue());
+        assertEquals("blue", details.getVariant());
+        assertNull(details.getErrorCode());
     }
 
     @Test
