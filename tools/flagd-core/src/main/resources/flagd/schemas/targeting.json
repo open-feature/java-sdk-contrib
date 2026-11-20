@@ -32,7 +32,7 @@
           "type": "null"
         },
         {
-          "description": "When returned from rules, booleans are converted to strings (\"true\"/\"false\"), and used to as keys to retrieve the associated value from the \"variants\" object. Be sure that the returned string is present as a key in the variants!",
+          "description": "When returned from rules, booleans are coerced to strings (\"true\"/\"false\"), and used as keys to retrieve the associated value from the \"variants\" object. Be sure that the returned string is present as a key in the variants!",
           "type": "boolean"
         },
         {
@@ -72,7 +72,7 @@
             },
             {
               "type": "array",
-              "$comment": "this is to support the form of var with a default... there seems to be a bug here, where ajv gives a warning (not an error) because maxItems doesn't equal the number of entries in items, though this is valid in this case",
+              "$comment": "this is to support the form of var with a default. ajv strict mode (strictTuples) warns about tuple-form items unless minItems and maxItems both equal the tuple length (or additionalItems is false); the length is intentionally variable here, so the warning is expected and harmless.",
               "minItems": 1,
               "items": [
                 {
@@ -180,13 +180,10 @@
       "additionalProperties": false,
       "properties": {
         "if": {
+          "$comment": "no resolve here; this if may be consumed. see terminalIfRule for the version used in terminal positions.",
           "title": "If Operator",
           "description": "The if statement takes 1 or more arguments: a condition (\"if\"), what to do if its true (\"then\", optional, defaults to returning true), and what to do if its false (\"else\", optional, defaults to returning false). Note that the else condition can be used as an else-if statement by adding additional arguments.",
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/definitions/args"
-          }
+          "$ref": "#/definitions/variadicOp"
         },
         "==": {
           "title": "Lose Equality Operation",
@@ -468,6 +465,7 @@
       }
     },
     "fractionalWeightArg": {
+      "$comment": "no resolve in the variant here; this fractional may be consumed. see terminalFractionalWeightArg. ajv strict mode (strictTuples) warns about tuple-form items unless minItems and maxItems both equal the tuple length (or additionalItems is false); the length is intentionally variable here, so the warning is expected and harmless.",
       "description": "Distribution for all possible variants, with their associated weighting.",
       "type": "array",
       "minItems": 1,
@@ -494,7 +492,7 @@
     "fractionalOp": {
       "type": "array",
       "minItems": 1,
-      "$comment": "there seems to be a bug here, where ajv gives a warning (not an error) because maxItems doesn't equal the number of entries in items, though this is valid in this case",
+      "$comment": "ajv strict mode (strictTuples) warns about tuple-form items unless minItems and maxItems both equal the tuple length (or additionalItems is false); the length is intentionally variable here, so the warning is expected and harmless.",
       "items": [
         {
           "description": "Bucketing value used in pseudorandom assignment; should be a string that is unique and stable for each subject of flag evaluation. Defaults to a concatenation of the flagKey and targetingKey.",
@@ -549,8 +547,8 @@
       }
     },
     "terminalResultArg": {
-      "$comment": "an argument whose value may be returned as a terminal targeting result; accepts resolve and nested terminal if/fractional. Used only in terminalIfRule and terminalFractionalWeightArg, which are reachable only from the root or from other terminal positions.",
-      "oneOf": [
+      "$comment": "a terminal position is one whose value becomes the final targeting result. if/fractional are terminal when they're: 1) the root, 2) in a then/else branch of a terminal if, or 3) in a bucket variant of a terminal fractional. this definition is what makes that recursive. anyOf, not oneOf: a plain if/fractional matches both args and the terminal rule, and oneOf would reject it when it's mixed with resolve.",
+      "anyOf": [
         {
           "$ref": "#/definitions/args"
         },
@@ -566,23 +564,41 @@
       ]
     },
     "terminalIfRule": {
-      "$comment": "if whose then/else branches are terminal result positions; resolve is accepted there. The anyRule version of if uses plain args, so resolve is rejected when if is consumed (e.g. inside ==).",
+      "$comment": "if whose then/else branches are terminal, so resolve is accepted there; the anyRule if uses plain args, so resolve is rejected when the if is consumed (e.g. inside ==). the first condition (index 0) uses plain args, unless it's the only argument, which JSON Logic returns as the result. else-if conditions (index 2, 4, ...) can't be told apart from branches, so they aren't enforced.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "if": {
-          "title": "If Operator (terminal)",
-          "description": "Terminal if: then/else branches accept resolve and other terminal operations in addition to plain args.",
+          "title": "If Operator",
+          "description": "The if statement takes 1 or more arguments: a condition (\"if\"), what to do if its true (\"then\", optional, defaults to returning true), and what to do if its false (\"else\", optional, defaults to returning false). Note that the else condition can be used as an else-if statement by adding additional arguments. The \"then\" and \"else\" results may also be a \"resolve\". The first condition can't be a \"resolve\", unless it's the only argument (which is returned as the result).",
           "type": "array",
           "minItems": 1,
-          "items": {
-            "$ref": "#/definitions/terminalResultArg"
-          }
+          "anyOf": [
+            {
+              "maxItems": 1,
+              "items": {
+                "$ref": "#/definitions/terminalResultArg"
+              }
+            },
+            {
+              "$comment": "ajv strict mode (strictTuples) warns about tuple-form items unless minItems and maxItems both equal the tuple length (or additionalItems is false); the length is intentionally variable here, so the warning is expected and harmless.",
+              "minItems": 2,
+              "items": [
+                {
+                  "$ref": "#/definitions/args"
+                }
+              ],
+              "additionalItems": {
+                "$ref": "#/definitions/terminalResultArg"
+              }
+            }
+          ]
         }
       }
     },
     "terminalFractionalWeightArg": {
-      "description": "Terminal distribution bucket; the variant position accepts resolve and other terminal operations.",
+      "$comment": "ajv strict mode (strictTuples) warns about tuple-form items unless minItems and maxItems both equal the tuple length (or additionalItems is false); the length is intentionally variable here, so the warning is expected and harmless.",
+      "description": "Distribution for all possible variants, with their associated weighting. The variant may also be a \"resolve\".",
       "type": "array",
       "minItems": 1,
       "maxItems": 2,
@@ -608,7 +624,7 @@
     "terminalFractionalOp": {
       "type": "array",
       "minItems": 1,
-      "$comment": "there seems to be a bug here, where ajv gives a warning (not an error) because maxItems doesn't equal the number of entries in items, though this is valid in this case",
+      "$comment": "ajv strict mode (strictTuples) warns about tuple-form items unless minItems and maxItems both equal the tuple length (or additionalItems is false); the length is intentionally variable here, so the warning is expected and harmless.",
       "items": [
         {
           "description": "Bucketing value used in pseudorandom assignment; should be a string that is unique and stable for each subject of flag evaluation. Defaults to a concatenation of the flagKey and targetingKey.",
@@ -633,13 +649,13 @@
       }
     },
     "terminalFractionalRule": {
-      "$comment": "fractional whose bucket variants are terminal result positions; resolve is accepted there. The anyRule version of fractional uses plain args for variants, so resolve is rejected when fractional is consumed (e.g. inside ==).",
+      "$comment": "fractional whose bucket variants are terminal, so resolve is accepted there; the bucketing value and weights are consumed, so they stay anyRule. the anyRule fractional uses plain args for variants, so resolve is rejected when the fractional is consumed (e.g. inside ==).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "fractional": {
-          "title": "Fractional Operation (terminal)",
-          "description": "Terminal fractional distribution; bucket variants accept resolve and other terminal operations in addition to plain args.",
+          "title": "Fractional Operation",
+          "description": "Deterministic, pseudorandom fractional distribution. Bucket variants may also be a \"resolve\".",
           "oneOf": [
             {
               "$ref": "#/definitions/terminalFractionalOp"
@@ -652,7 +668,7 @@
       }
     },
     "resolveRule": {
-      "$comment": "deliberately not part of anyRule, so resolve is rejected anywhere its result would be consumed (e.g. inside == or cat). resolve as an if condition or via $ref cannot be enforced by the schema.",
+      "$comment": "deliberately not part of anyRule, so resolve is rejected anywhere its result would be consumed (e.g. inside == or cat). the schema is the only place position is checked; implementations don't re-check, so cases the schema can't enforce (else-if conditions, $ref) are undefined behavior.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -660,6 +676,7 @@
       ],
       "properties": {
         "resolve": {
+          "$comment": "ajv strict mode (strictTuples) warns about tuple-form items unless minItems and maxItems both equal the tuple length (or additionalItems is false); the length is intentionally variable here, so the warning is expected and harmless.",
           "title": "Resolve Operation",
           "description": "Terminates targeting with a variant, and optionally a custom reason and metadata for the branch that fired. Only valid as the whole targeting rule, as a result of an \"if\", or as a \"fractional\" bucket variant.",
           "type": "array",
@@ -667,13 +684,14 @@
           "maxItems": 3,
           "items": [
             {
+              "$comment": "literal numbers are rejected, but the schema can't check the type of a computed variant, so implementations coerce whatever it returns (numbers included, undefined behavior), like plain targeting results.",
               "description": "The variant key to resolve; equivalent to returning the plain string. Be sure that the variant is present as a key in the variants!",
               "oneOf": [
                 {
                   "type": "string"
                 },
                 {
-                  "description": "Booleans are converted to strings (\"true\"/\"false\"), and used as keys to retrieve the associated value from the \"variants\" object.",
+                  "description": "Booleans are coerced to strings (\"true\"/\"false\"), and used as keys to retrieve the associated value from the \"variants\" object.",
                   "type": "boolean"
                 },
                 {
@@ -697,7 +715,7 @@
               ]
             },
             {
-              "description": "Optional metadata as [key, value] pairs, merged over flag-set and flag metadata (rule values win). \"details\" is a well-known key, explaining why this branch fired. \"flagSetId\" and \"version\" are reserved for flag-set metadata and can't be overridden. The list itself, each pair, and each key may also be a JSONLogic expression; computed keys are not checked for reserved names.",
+              "description": "Optional metadata as [key, value] pairs, merged over flag set and flag metadata (rule values win). \"details\" is a well-known key, explaining why this branch fired. The list and each pair may also be a JSONLogic expression.",
               "oneOf": [
                 {
                   "$ref": "#/definitions/anyRule"
@@ -715,6 +733,8 @@
                         "maxItems": 2,
                         "items": [
                           {
+                            "$comment": "reserved names are only checked for literal keys; a computed key can't be checked here.",
+                            "description": "Metadata key; may also be a JSONLogic expression. \"flagSetId\" and \"version\" are reserved for flag set metadata and can't be overridden; computed keys are not checked for reserved names.",
                             "oneOf": [
                               {
                                 "type": "string",
