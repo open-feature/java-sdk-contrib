@@ -20,6 +20,15 @@
     <description>API contracts for flagd in-process evaluation</description>
     <url>https://openfeature.dev</url>
 
+    <!-- Declared here as well as in the parent: the 1.0.0 POM on Maven Central predates the
+         flattened POMs (#1806) and has no <licenses>, so license scanners report it as "Unknown". -->
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
     <developers>
         <developer>
             <id>toddbaert</id>
