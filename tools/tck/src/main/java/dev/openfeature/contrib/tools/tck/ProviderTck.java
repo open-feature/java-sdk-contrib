@@ -29,9 +29,6 @@ public final class ProviderTck {
     /** The Cucumber plugins the suite registers. */
     static final String PLUGINS = "summary";
 
-    /** Parallel execution off; control API state is global to the backend. */
-    static final String PARALLEL = "false";
-
     /** Scenarios of one feature stay on one thread. */
     static final String FEATURE_EXECUTION_MODE = "same_thread";
 
