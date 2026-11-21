@@ -2,15 +2,20 @@ package dev.openfeature.contrib.providers.configcat;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.configcat.OverrideBehaviour;
 import com.configcat.OverrideDataSourceBuilder;
 import com.configcat.User;
 import dev.openfeature.sdk.Client;
+import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.FlagEvaluationDetails;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.MutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
+import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderEventDetails;
+import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import java.util.HashMap;
 import lombok.SneakyThrows;
@@ -133,6 +138,36 @@ class ConfigCatProviderTest {
 
         // non-number flag value
         assertEquals(1.1, client.getDoubleValue(VARIANT_FLAG_NAME, 1.1));
+    }
+
+    @Test
+    void missingFlagReportsFlagNotFound() {
+        ProviderEvaluation<Boolean> evaluation =
+                configCatProvider.getBooleanEvaluation("non-existing", false, new ImmutableContext());
+        assertEquals(false, evaluation.getValue());
+        assertEquals(ErrorCode.FLAG_NOT_FOUND, evaluation.getErrorCode());
+        assertEquals(Reason.ERROR.toString(), evaluation.getReason());
+
+        FlagEvaluationDetails<String> details = client.getStringDetails("non-existing", "fallback_str");
+        assertEquals("fallback_str", details.getValue());
+        assertEquals(ErrorCode.FLAG_NOT_FOUND, details.getErrorCode());
+        assertEquals(Reason.ERROR.toString(), details.getReason());
+    }
+
+    @Test
+    void wrongTypeReportsTypeMismatch() {
+        ProviderEvaluation<Integer> evaluation =
+                configCatProvider.getIntegerEvaluation(FLAG_NAME, 7, new ImmutableContext());
+        assertEquals(7, evaluation.getValue());
+        assertEquals(ErrorCode.TYPE_MISMATCH, evaluation.getErrorCode());
+        assertEquals(Reason.ERROR.toString(), evaluation.getReason());
+    }
+
+    @Test
+    void existingFlagReportsNoError() {
+        FlagEvaluationDetails<Boolean> details = client.getBooleanDetails(FLAG_NAME, false);
+        assertEquals(true, details.getValue());
+        assertNull(details.getErrorCode());
     }
 
     @Test
