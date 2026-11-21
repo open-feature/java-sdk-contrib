@@ -1,0 +1,16 @@
+# The GO Feature Flag provider-TCK backend: the relay proxy with a launchpad implementing the
+# control API. https://github.com/aepfli/goff-tck-testbed
+#
+# The service is named "backend" because that is ContainerizedProviderTckTest's default.
+#
+# The image is PINNED, not :latest, so a push to the testbed cannot change this adoption's results
+# with no diff here to explain it.
+#
+# Ports are never pinned. The TCK reads the dynamically mapped host ports after the stack is up,
+# and POST /stop never restarts the container precisely so those mappings survive an outage.
+services:
+  backend:
+    image: ${GOFF_TESTBED_IMAGE:-ghcr.io/aepfli/goff-tck-testbed:0.1.0}
+    ports:
+      - 1031 # relay proxy -- what the provider under test talks to
+      - 8080 # launchpad -- control API
