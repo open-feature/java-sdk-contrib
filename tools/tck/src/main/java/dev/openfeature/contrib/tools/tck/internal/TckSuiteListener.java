@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.tck.internal;
 
+import dev.openfeature.contrib.tools.tck.CanonicalScenarioGuard;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
 import java.lang.reflect.Modifier;
 import java.util.Optional;
@@ -7,6 +8,7 @@ import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.support.descriptor.ClassSource;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
+import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +22,12 @@ public class TckSuiteListener implements TestExecutionListener {
     private static final Logger log = LoggerFactory.getLogger(TckSuiteListener.class);
 
     private static volatile Class<? extends ProviderTckHarness> current;
+
+    /** Hands the plan to {@link CanonicalScenarioGuard} before any of it executes. */
+    @Override
+    public void testPlanExecutionStarted(TestPlan testPlan) {
+        CanonicalScenarioGuard.observe(testPlan);
+    }
 
     @Override
     public void executionStarted(TestIdentifier testIdentifier) {
@@ -48,8 +56,13 @@ public class TckSuiteListener implements TestExecutionListener {
         return Optional.ofNullable(current);
     }
 
-    /** The TCK suite class an identifier stands for, if it is one. */
-    private static Optional<Class<? extends ProviderTckHarness>> harnessClassOf(TestIdentifier testIdentifier) {
+    /**
+     * The TCK suite class an identifier stands for, if it is one.
+     *
+     * @param testIdentifier a node of the test plan
+     * @return the harness class, or empty when the node is not a TCK suite
+     */
+    public static Optional<Class<? extends ProviderTckHarness>> harnessClassOf(TestIdentifier testIdentifier) {
         return testIdentifier
                 .getSource()
                 .filter(ClassSource.class::isInstance)

@@ -18,6 +18,12 @@
         <!-- skip moving the spec submodule to the pinned commit; digest test still guards assets -->
         <tck.spec.checkout.skip>false</tck.spec.checkout.skip>
 
+        <!--
+            The open-feature/spec commit the packaged assets came from, recorded in every
+            conformance report. Must equal `git -C spec rev-parse HEAD`; ConformanceReportPluginTest
+            fails the build when it does not.
+        -->
+        <tck.spec.revision>10b1a610ed0afe6bf0e38b441d7362f5a76cb47d</tck.spec.revision>
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <jackson-databind.version>2.22.3</jackson-databind.version>
@@ -64,6 +70,39 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
+        </dependency>
+
+        <!--
+            Cucumber core and the message types, already transitive through
+            cucumber-junit-platform-engine: ConformanceReportPlugin compiles against them and writes
+            the results stream with Cucumber's own MessageFormatter.
+        -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-core</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>messages</artifactId>
+            <!-- version managed by cucumber-bom in parent -->
+        </dependency>
+
+        <!-- Gherkin: CanonicalScenarios parses the canonical set with the runner's own parser -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>gherkin</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!--
+            JUnit Jupiter API: CanonicalScenarioGuard is a test the suite selects, because a
+            TestExecutionListener's exception is logged rather than failing the run.
+        -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <!--
@@ -149,6 +188,18 @@
     </dependencies>
 
     <build>
+        <!-- only the generated build-info properties are filtered; the shared assets are copied verbatim -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources-filtered</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
         <plugins>
             <!-- phase 1: move spec submodule working tree to the pinned commit -->
             <plugin>
