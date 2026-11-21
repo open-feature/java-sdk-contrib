@@ -186,6 +186,14 @@ public class FlagsmithProvider implements FeatureProvider {
                 || expectedType == String.class
                 || expectedType == Integer.class
                 || expectedType == Double.class;
+        // Flagsmith has no float type: a float is stored as its string form.
+        if (expectedType == Double.class && value instanceof String) {
+            try {
+                return (T) Double.valueOf((String) value);
+            } catch (NumberFormatException e) {
+                throw new TypeMismatchError("Flag value " + value + " is not a valid float.");
+            }
+        }
         T flagValue = isPrimitive ? (T) value : (T) objectToValue(value);
 
         if (flagValue.getClass() != expectedType) {
