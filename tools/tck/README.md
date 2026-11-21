@@ -17,7 +17,7 @@ tested, rules for declaring capabilities, known deviations, CI guidance). Tracki
 <dependency>
   <groupId>dev.openfeature.contrib.tools</groupId>
   <artifactId>tck</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <scope>test</scope>
 </dependency>
 ```
