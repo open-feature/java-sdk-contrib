@@ -103,7 +103,7 @@ sequenceDiagram
 <dependency>
   <groupId>dev.openfeature.contrib.tools</groupId>
   <artifactId>flagd-http-connector</artifactId>
-  <version>0.0.5</version>
+  <version>0.0.6</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->
