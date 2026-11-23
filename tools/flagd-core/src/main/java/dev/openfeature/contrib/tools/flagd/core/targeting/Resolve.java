@@ -1,6 +1,9 @@
 package dev.openfeature.contrib.tools.flagd.core.targeting;
 
-import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicArray;
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
  * targeting schema; malformed computed arguments return null, so the flag falls back to its default variant.
  */
 @Slf4j
-class Resolve implements PreEvaluatedArgumentsExpression {
+class Resolve implements JsonLogicExpression {
 
     // flag set metadata keys a rule can't override; the schema only catches literal keys
     private static final Set<String> RESERVED_KEYS = Set.of("flagSetId", "version");
@@ -23,8 +26,14 @@ class Resolve implements PreEvaluatedArgumentsExpression {
         return "resolve";
     }
 
+    // PreEvaluatedArgumentsExpression would unwrap a single array-valued argument into the argument list
     @Override
-    public Object evaluate(List arguments, Object data, String jsonPath) {
+    public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data, String jsonPath)
+            throws JsonLogicEvaluationException {
+        return resolve(evaluator.evaluate(arguments, data, jsonPath));
+    }
+
+    private static Object resolve(List<Object> arguments) {
         if (arguments.isEmpty() || arguments.size() > 3) {
             log.debug("resolve takes 1 to 3 arguments");
             return null;

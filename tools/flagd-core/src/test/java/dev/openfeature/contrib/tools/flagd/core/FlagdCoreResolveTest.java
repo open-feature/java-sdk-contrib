@@ -142,6 +142,14 @@ class FlagdCoreResolveTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    void arrayValuedSoleArgumentIsNotSpreadIntoArguments(boolean compile) throws Exception {
+        Map<String, Value> ctx = Map.of("candidate", new Value(List.of(new Value("on"), new Value("CUSTOM"))));
+
+        assertResult(eval(compile, "sole-computed-argument", ctx), "off", "DEFAULT");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
     void missingVariantFailsLikeAPlainString(boolean compile) {
         assertThatThrownBy(() -> eval(compile, "missing-variant", Map.of())).isInstanceOf(GeneralError.class);
     }

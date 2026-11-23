@@ -64,6 +64,12 @@
         ]
       }
     },
+    "sole-computed-argument": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [{ "var": "candidate" }] }
+    },
     "boolean-variant": {
       "state": "ENABLED",
       "variants": { "true": "on", "false": "off" },
