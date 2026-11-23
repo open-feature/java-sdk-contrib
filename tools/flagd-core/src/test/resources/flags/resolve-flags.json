@@ -100,6 +100,35 @@
         ]
       }
     },
+    "fractional-shorthand": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "fractional": [
+          [{ "resolve": ["on", "SPLIT", [["details", "only"]]] }, 1],
+          [{ "resolve": ["off", "SPLIT"] }, 0]
+        ]
+      }
+    },
+    "fractional-shorthand-single": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "fractional": [[{ "resolve": ["on", "SPLIT", [["details", "only"]]] }, 1]] }
+    },
+    "computed-metadata-list": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on", null, { "if": [{ "var": "pick" }, [["details", "a"]], [["details", "b"]]] }] }
+    },
+    "computed-metadata-pair": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on", null, [{ "if": [{ "var": "pick" }, ["details", "a"], ["details", "b"]] }]] }
+    },
     "forged": {
       "state": "ENABLED",
       "variants": { "on": "on", "off": "off" },

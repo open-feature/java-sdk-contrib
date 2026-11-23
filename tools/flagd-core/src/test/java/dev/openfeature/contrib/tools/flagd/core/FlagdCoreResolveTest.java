@@ -101,6 +101,35 @@ class FlagdCoreResolveTest {
     }
 
     @ParameterizedTest
+    @CsvSource({
+        "false,fractional-shorthand",
+        "false,fractional-shorthand-single",
+        "true,fractional-shorthand",
+        "true,fractional-shorthand-single"
+    })
+    void shorthandFractionalBucketTagsTheEvaluation(boolean compile, String flag) throws Exception {
+        ProviderEvaluation<String> result = eval(compile, flag, Map.of("targetingKey", new Value("user")));
+
+        assertResult(result, "on", "SPLIT");
+        assertThat(result.getFlagMetadata().getString("details")).isEqualTo("only");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "false,computed-metadata-list",
+        "false,computed-metadata-pair",
+        "true,computed-metadata-list",
+        "true,computed-metadata-pair"
+    })
+    void wholeMetadataListAndPairCanBeComputed(boolean compile, String flag) throws Exception {
+        for (boolean pick : new boolean[] {true, false}) {
+            ProviderEvaluation<String> result = eval(compile, flag, Map.of("pick", new Value(pick)));
+            assertResult(result, "on", "TARGETING_MATCH");
+            assertThat(result.getFlagMetadata().getString("details")).isEqualTo(pick ? "a" : "b");
+        }
+    }
+
+    @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void ruleMetadataOverwritesFlagAndFlagSetMetadata(boolean compile) throws Exception {
         ProviderEvaluation<String> result = eval(compile, "metadata-precedence", Map.of());
