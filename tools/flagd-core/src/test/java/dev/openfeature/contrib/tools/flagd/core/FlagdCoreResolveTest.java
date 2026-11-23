@@ -130,6 +130,17 @@ class FlagdCoreResolveTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"false,ERROR", "false,DISABLED", "false,DEFAULT", "true,ERROR", "true,DISABLED", "true,DEFAULT"})
+    void computedReservedReasonIsIgnored(boolean compile, String reason) throws Exception {
+        Map<String, Value> ctx = new HashMap<>(COMPUTED_CTX);
+        ctx.put("reason", new Value(reason));
+        ProviderEvaluation<String> result = eval(compile, "computed", ctx);
+
+        assertResult(result, "on", "TARGETING_MATCH");
+        assertThat(result.getFlagMetadata().getDouble("share")).isEqualTo(0.25);
+    }
+
+    @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void argumentsCanBeComputed(boolean compile) throws Exception {
         ProviderEvaluation<String> result = eval(compile, "computed", COMPUTED_CTX);

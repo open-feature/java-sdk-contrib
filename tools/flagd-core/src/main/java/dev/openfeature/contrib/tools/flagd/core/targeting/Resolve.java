@@ -21,6 +21,9 @@ class Resolve implements JsonLogicExpression {
     // flag set metadata keys a rule can't override; the schema only catches literal keys
     private static final Set<String> RESERVED_KEYS = Set.of("flagSetId", "version");
 
+    // reasons a rule can't return; ignored so the match keeps TARGETING_MATCH
+    private static final Set<String> RESERVED_REASONS = Set.of("ERROR", "DISABLED", "DEFAULT");
+
     @Override
     public String key() {
         return "resolve";
@@ -46,10 +49,14 @@ class Resolve implements JsonLogicExpression {
             return null;
         }
 
-        final Object reason = arguments.size() > 1 ? arguments.get(1) : null;
+        Object reason = arguments.size() > 1 ? arguments.get(1) : null;
         if (reason != null && !(reason instanceof String)) {
             log.debug("resolve reason must be a string or null");
             return null;
+        }
+        if (reason != null && RESERVED_REASONS.contains(reason)) {
+            log.debug("resolve reason {} is reserved and ignored", reason);
+            reason = null;
         }
 
         final Map<String, Object> metadata = new HashMap<>();
