@@ -1,0 +1,11 @@
+{
+  "metadata": { "flagSetId": "set-id", "version": "set-version" },
+  "flags": {
+    "reserved-literal": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on", null, [["flagSetId", "rule"], ["version", "rule"], ["details", "rule"]]] }
+    }
+  }
+}

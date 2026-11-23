@@ -27,7 +27,7 @@ class FlagdCoreResolveTest {
             "total", new Value(4));
 
     private static FlagdCore core(boolean compile) throws Exception {
-        FlagdCore core = new FlagdCore(false, compile);
+        FlagdCore core = new FlagdCore(true, compile);
         core.setFlags(TestUtils.getFlagsFromResource("flags/resolve-flags.json"));
         return core;
     }
@@ -55,6 +55,25 @@ class FlagdCoreResolveTest {
     @ValueSource(booleans = {false, true})
     void reasonIsFreeForm(boolean compile) throws Exception {
         assertResult(eval(compile, "fallback-reason", Map.of()), "on", "FALLBACK");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void literalRuleMetadataCannotOverrideReservedKeys(boolean compile) throws Exception {
+        String flags = TestUtils.getFlagsFromResource("flags/resolve-reserved-literal-flags.json");
+        assertThatThrownBy(() -> new FlagdCore(true, compile).setFlags(flags))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        // loaded anyway, the runtime check still skips the reserved keys
+        FlagdCore core = new FlagdCore(false, compile);
+        core.setFlags(flags);
+        ProviderEvaluation<String> result =
+                core.resolveStringValue("reserved-literal", "fallback", new ImmutableContext());
+
+        assertResult(result, "on", "TARGETING_MATCH");
+        assertThat(result.getFlagMetadata().getString("flagSetId")).isEqualTo("set-id");
+        assertThat(result.getFlagMetadata().getString("version")).isEqualTo("set-version");
+        assertThat(result.getFlagMetadata().getString("details")).isEqualTo("rule");
     }
 
     @ParameterizedTest
@@ -101,7 +120,7 @@ class FlagdCoreResolveTest {
 
     @ParameterizedTest
     @CsvSource({"false,flagSetId", "false,version", "true,flagSetId", "true,version"})
-    void ruleMetadataCannotOverrideReservedKeys(boolean compile, String computedKey) throws Exception {
+    void computedRuleMetadataCannotOverrideReservedKeys(boolean compile, String computedKey) throws Exception {
         ProviderEvaluation<String> result = eval(compile, "reserved-keys", Map.of("key", new Value(computedKey)));
 
         assertResult(result, "on", "TARGETING_MATCH");
