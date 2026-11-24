@@ -54,7 +54,7 @@ class FlagdCoreResolveTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void reasonIsFreeForm(boolean compile) throws Exception {
-        assertResult(eval(compile, "fallback-reason", Map.of()), "on", "FALLBACK");
+        assertResult(eval(compile, "custom-reason", Map.of()), "on", "CUSTOM");
     }
 
     @ParameterizedTest
@@ -159,14 +159,18 @@ class FlagdCoreResolveTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"false,ERROR", "false,DISABLED", "false,DEFAULT", "true,ERROR", "true,DISABLED", "true,DEFAULT"})
-    void computedReservedReasonIsIgnored(boolean compile, String reason) throws Exception {
-        Map<String, Value> ctx = new HashMap<>(COMPUTED_CTX);
-        ctx.put("reason", new Value(reason));
-        ProviderEvaluation<String> result = eval(compile, "computed", ctx);
+    @ValueSource(booleans = {false, true})
+    void computedReservedReasonIsIgnored(boolean compile) throws Exception {
+        for (String reason :
+                List.of("ERROR", "DISABLED", "DEFAULT", "FALLBACK", "STATIC", "UNKNOWN", "CACHED", "STALE")) {
+            Map<String, Value> ctx = new HashMap<>(COMPUTED_CTX);
+            ctx.put("reason", new Value(reason));
+            ProviderEvaluation<String> result = eval(compile, "computed", ctx);
 
-        assertResult(result, "on", "TARGETING_MATCH");
-        assertThat(result.getFlagMetadata().getDouble("share")).isEqualTo(0.25);
+            assertThat(result.getReason()).as(reason).isEqualTo("TARGETING_MATCH");
+            assertThat(result.getVariant()).as(reason).isEqualTo("on");
+            assertThat(result.getFlagMetadata().getDouble("share")).as(reason).isEqualTo(0.25);
+        }
     }
 
     @ParameterizedTest

@@ -76,11 +76,11 @@
       "defaultVariant": "false",
       "targeting": { "resolve": [true] }
     },
-    "fallback-reason": {
+    "custom-reason": {
       "state": "ENABLED",
       "variants": { "on": "on", "off": "off" },
       "defaultVariant": "off",
-      "targeting": { "resolve": ["on", "FALLBACK"] }
+      "targeting": { "resolve": ["on", "CUSTOM"] }
     },
     "missing-variant": {
       "state": "ENABLED",
