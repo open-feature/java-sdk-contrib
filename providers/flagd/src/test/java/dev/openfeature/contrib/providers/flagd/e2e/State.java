@@ -33,4 +33,6 @@ public class State {
     public FlagdOptions.FlagdOptionsBuilder builder = FlagdOptions.builder();
     public static Config.Resolver resolverType;
     public boolean hasError;
+    // file-mode flag source for a stable provider; null uses the container's allFlags.json
+    public String fileFlagSource;
 }

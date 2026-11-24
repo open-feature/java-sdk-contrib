@@ -15,6 +15,7 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderState;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterAll;
+import io.cucumber.java.Before;
 import io.cucumber.java.BeforeAll;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -48,6 +49,12 @@ public class ProviderSteps extends AbstractSteps {
     @AfterAll
     public static void afterAll() {
         ContainerPool.shutdown();
+    }
+
+    // the released harness image has no resolve flags yet, so file mode reads them from the pinned harness
+    @Before("@resolve")
+    public void useHarnessResolveFlags() {
+        state.fileFlagSource = new File("test-harness/flags/custom-ops.json").getAbsolutePath();
     }
 
     @After
@@ -139,11 +146,14 @@ public class ProviderSteps extends AbstractSteps {
                 if (State.resolverType == Config.Resolver.FILE) {
                     state.builder
                             .port(UNAVAILABLE_PORT)
-                            .offlineFlagSourcePath(state.containerEntry
-                                    .tempDir
-                                    .resolve("allFlags.json")
-                                    .toAbsolutePath()
-                                    .toString());
+                            .offlineFlagSourcePath(
+                                    state.fileFlagSource != null
+                                            ? state.fileFlagSource
+                                            : state.containerEntry
+                                                    .tempDir
+                                                    .resolve("allFlags.json")
+                                                    .toAbsolutePath()
+                                                    .toString());
                 } else {
                     state.builder.port(ContainerUtil.getPort(container, State.resolverType));
                 }
