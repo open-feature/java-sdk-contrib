@@ -10,6 +10,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import dev.openfeature.contrib.tools.flagd.core.cbor.CborEncoder;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,6 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.converter.ArgumentConversionException;
 import org.junit.jupiter.params.converter.ConvertWith;
 import org.junit.jupiter.params.converter.TypedArgumentConverter;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class FractionalTest {
@@ -99,7 +102,7 @@ class FractionalTest {
                 List.of("one", 50), List.of("two", 50));
 
         // bucketing key is null, so fractional falls back to flagKey + targetingKey
-        // but targetingKey is null, so it should return null
+        // but targetingKey is null, so it should throw GeneralError
         assertNull(fractional.evaluate(rule, data, "path"));
     }
 
@@ -149,5 +152,27 @@ class FractionalTest {
         List<Object> rule = List.of(List.of("one", 0), List.of("two", 0));
 
         assertNull(fractional.evaluate(rule, data, "path"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("int64BoundaryDoubles")
+    void normalizesWholeDoublesAcrossInt64Boundaries(
+            @SuppressWarnings("unused") String label, double value, String expectedHex) {
+        byte[] bytes = CborEncoder.encode(Fractional.normalizeNumbers(JsonNodeFactory.instance.numberNode(value)));
+        StringBuilder hex = new StringBuilder();
+        for (byte b : bytes) {
+            hex.append(String.format("%02x", b & 0xff));
+        }
+        assertEquals(expectedHex, hex.toString());
+    }
+
+    static Stream<Arguments> int64BoundaryDoubles() {
+        return Stream.of(
+                arguments("-2^63", -0x1p63, "3b7fffffffffffffff"),
+                arguments("largest double < 2^63", 0x1p63 - 1024, "1b7ffffffffffffc00"),
+                arguments("2^63", 0x1p63, "1b8000000000000000"),
+                arguments("1e19", 1e19, "1b8ac7230489e80000"),
+                arguments("largest double < 2^64", 0x1p64 - 2048, "1bfffffffffffff800"),
+                arguments("2^64 stays float", 0x1p64, "fa5f800000"));
     }
 }

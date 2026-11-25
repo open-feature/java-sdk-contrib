@@ -2,17 +2,21 @@ package dev.openfeature.contrib.tools.flagd.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.openfeature.contrib.tools.flagd.api.FlagStoreException;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
+import dev.openfeature.sdk.exceptions.TypeMismatchError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class FlagdCoreTest {
 
@@ -68,6 +72,93 @@ class FlagdCoreTest {
 
         assertThat(result.getValue()).isEqualTo(3.14);
         assertThat(result.getVariant()).isEqualTo("pi");
+    }
+
+    private static final String LONG_FLAGS = "{\"flags\":{"
+            + "\"long\":{\"state\":\"ENABLED\",\"variants\":{\"v\":9000000000},\"defaultVariant\":\"v\"},"
+            + "\"max-safe\":{\"state\":\"ENABLED\",\"variants\":{\"v\":9007199254740991},\"defaultVariant\":\"v\"},"
+            + "\"over-safe\":{\"state\":\"ENABLED\",\"variants\":{\"v\":9007199254740992},\"defaultVariant\":\"v\"}"
+            + "}}";
+
+    @ParameterizedTest
+    @CsvSource({"long,9000000000", "max-safe,9007199254740991"})
+    void resolveDoubleValue_longFlag_widensWithoutLoss(String key, double expected) throws FlagStoreException {
+        flagdCore.setFlags(LONG_FLAGS);
+        ProviderEvaluation<Double> result = flagdCore.resolveDoubleValue(key, -1.0, new ImmutableContext());
+
+        assertThat(result.getErrorCode()).isNull();
+        assertThat(result.getValue()).isEqualTo(expected);
+    }
+
+    @Test
+    void resolveDoubleValue_outsideSafeRange_reportsTypeMismatch() throws FlagStoreException {
+        flagdCore.setFlags(LONG_FLAGS);
+        assertThatThrownBy(() -> flagdCore.resolveDoubleValue("over-safe", -1.0, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class);
+    }
+
+    @Test
+    void setFlags_nullFlag_loadsOtherFlags() throws FlagStoreException {
+        flagdCore.setFlags("{\"flags\":{\"bad\":null,"
+                + "\"ok\":{\"state\":\"ENABLED\",\"variants\":{\"v\":1},\"defaultVariant\":\"v\"}"
+                + "}}");
+        assertThat(flagdCore
+                        .resolveIntegerValue("ok", -1, new ImmutableContext())
+                        .getValue())
+                .isEqualTo(1);
+    }
+
+    @Test
+    void setFlags_flagWithoutVariants_loadsOtherFlags() throws FlagStoreException {
+        flagdCore.setFlags("{\"flags\":{"
+                + "\"no-variants\":{\"state\":\"ENABLED\",\"defaultVariant\":\"v\"},"
+                + "\"ok\":{\"state\":\"ENABLED\",\"variants\":{\"v\":1},\"defaultVariant\":\"v\"}"
+                + "}}");
+        assertThat(flagdCore
+                        .resolveIntegerValue("ok", -1, new ImmutableContext())
+                        .getValue())
+                .isEqualTo(1);
+    }
+
+    @Test
+    void resolveIntegerValue_longFlag_reportsTypeMismatch() throws FlagStoreException {
+        flagdCore.setFlags(LONG_FLAGS);
+        assertThatThrownBy(() -> flagdCore.resolveIntegerValue("long", -1, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class);
+    }
+
+    @Test
+    void resolveDoubleValue_integerFlag_widensWithoutLoss() {
+        ProviderEvaluation<Double> result = flagdCore.resolveDoubleValue("intFlag", -1.0, new ImmutableContext());
+
+        assertThat(result.getValue()).isEqualTo(1.0);
+        assertThat(result.getVariant()).isEqualTo("one");
+    }
+
+    @Test
+    void resolveIntegerValue_integralDouble_narrowsWithoutLoss() {
+        ProviderEvaluation<Integer> result =
+                flagdCore.resolveIntegerValue("integralDoubleFlag", -1, new ImmutableContext());
+
+        assertThat(result.getValue()).isEqualTo(10);
+        assertThat(result.getVariant()).isEqualTo("ten");
+    }
+
+    @Test
+    void resolveIntegerValue_fractionalDouble_reportsTypeMismatch() {
+        // 3.14 as 3 would be indistinguishable from a flag that really is 3
+        assertThatThrownBy(() -> flagdCore.resolveIntegerValue("doubleFlag", -1, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class)
+                .hasMessageContaining("not an integer");
+    }
+
+    @Test
+    void resolveIntegerValue_doubleBeyondIntRange_reportsTypeMismatch() {
+        // intValue() would have clamped this to Integer.MAX_VALUE. 1e18 is an integer, so the
+        // message has to say which problem it is rather than calling it a fraction.
+        assertThatThrownBy(() -> flagdCore.resolveIntegerValue("hugeDoubleFlag", -1, new ImmutableContext()))
+                .isInstanceOf(TypeMismatchError.class)
+                .hasMessageContaining("outside the range of a 32-bit integer");
     }
 
     @Test

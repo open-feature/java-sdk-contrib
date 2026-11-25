@@ -1,5 +1,38 @@
 # Changelog
 
+## [3.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.4...dev.openfeature.contrib.tools.flagdcore-v3.0.0) (2026-10-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831))
+
+### ✨ New Features
+
+* bucket on any context type; (fractional re-assignment) ([#1831](https://github.com/open-feature/java-sdk-contrib/issues/1831)) ([a6cc606](https://github.com/open-feature/java-sdk-contrib/commit/a6cc606b03a1a23986117f62f80157a2c7c935c9))
+
+## [2.0.4](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.3...dev.openfeature.contrib.tools.flagdcore-v2.0.4) (2026-10-15)
+
+
+### 🐛 Bug Fixes
+
+* README, and update publish plugin ([16bd172](https://github.com/open-feature/java-sdk-contrib/commit/16bd172336eca43a1ba8b63b219bc5a3ece75742))
+
+## [2.0.3](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.2...dev.openfeature.contrib.tools.flagdcore-v2.0.3) (2026-10-15)
+
+
+### 🐛 Bug Fixes
+
+* remove SBOM from maven bundle, README typo ([5eecf75](https://github.com/open-feature/java-sdk-contrib/commit/5eecf75229cf5cce2e54954cbc20049ec6132512))
+
+## [2.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.1...dev.openfeature.contrib.tools.flagdcore-v2.0.2) (2026-10-15)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update dependency com.fasterxml.jackson.core:jackson-databind to v2.22.2 [security] ([#1873](https://github.com/open-feature/java-sdk-contrib/issues/1873)) ([6be185a](https://github.com/open-feature/java-sdk-contrib/commit/6be185a5611a322292578f52c76dd2a677291d94))
+* **security:** update vulnerability-updates to v2.22.3 [security] ([#1882](https://github.com/open-feature/java-sdk-contrib/issues/1882)) ([c8f021d](https://github.com/open-feature/java-sdk-contrib/commit/c8f021dd40760790d0ddd93f4f2dc58dc4b3f449))
+
 ## [2.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.tools.flagdcore-v2.0.0...dev.openfeature.contrib.tools.flagdcore-v2.0.1) (2026-08-20)
 
 

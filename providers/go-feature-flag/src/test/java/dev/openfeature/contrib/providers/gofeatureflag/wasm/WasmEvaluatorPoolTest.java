@@ -181,15 +181,15 @@ class WasmEvaluatorPoolTest {
 
     /**
      * An input the bundled binary traps on. The guards of 10.1 turn over-large inputs into a
-     * PARSE_ERROR, but a query that is malformed rather than over-large still faults the guest, which
-     * is why GOFF-WASM-013 asks for trap handling whichever binary ships.
+     * PARSE_ERROR, but a JSONLogic "all" without arguments is not over-large and still panics the
+     * guest, which is why GOFF-WASM-013 asks for trap handling whichever binary ships.
      */
     @SneakyThrows
     private static WasmInput trappingInput() {
         return WasmInput.builder()
                 .flagKey("TEST")
                 .flag(Const.DESERIALIZE_OBJECT_MAPPER.readTree("{\"variations\":{\"on\":true},"
-                        + "\"targeting\":[{\"query\":\"((((\",\"variation\":\"on\"}],"
+                        + "\"targeting\":[{\"query\":\"{\\\"all\\\":[]}\",\"variation\":\"on\"}],"
                         + "\"defaultRule\":{\"variation\":\"on\"}}"))
                 .evalContext(Const.DESERIALIZE_OBJECT_MAPPER.readValue("{\"targetingKey\":\"k\"}", java.util.Map.class))
                 .flagContext(FlagContext.builder().defaultSdkValue(false).build())

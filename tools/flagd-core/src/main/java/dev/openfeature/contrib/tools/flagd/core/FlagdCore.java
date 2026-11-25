@@ -96,6 +96,7 @@ public class FlagdCore implements Evaluator {
     public void setFlags(String flagConfigurationJson) throws FlagStoreException {
         try {
             FlagParsingResult parsingResult = FlagParser.parseString(flagConfigurationJson, throwIfInvalid);
+            warnUnsafeNumericVariants(parsingResult.getFlags());
             writeLock.lock();
             try {
                 flags.clear();
@@ -121,6 +122,7 @@ public class FlagdCore implements Evaluator {
     public List<String> setFlagsAndGetChangedKeys(String flagConfigurationJson) throws FlagStoreException {
         try {
             FlagParsingResult parsingResult = FlagParser.parseString(flagConfigurationJson, throwIfInvalid);
+            warnUnsafeNumericVariants(parsingResult.getFlags());
             List<String> changedKeys;
             writeLock.lock();
             try {
@@ -257,12 +259,14 @@ public class FlagdCore implements Evaluator {
             log.debug(message);
             throw new GeneralError(message);
         }
-        if (value instanceof Integer && type == Double.class) {
-            // if this is an integer and we are trying to resolve a double, convert
-            value = ((Integer) value).doubleValue();
+        if ((value instanceof Integer || value instanceof Long) && type == Double.class) {
+            // whole numbers within the safe range widen to a double without loss
+            value = ((Number) value).doubleValue();
         } else if (value instanceof Double && type == Integer.class) {
-            // if this is a double and we are trying to resolve an integer, convert
-            value = ((Double) value).intValue();
+            value = narrowedToInt((Double) value, key);
+        }
+        if (value instanceof Number && !isSafeRange((Number) value)) {
+            throw mismatch(key, ((Number) value).doubleValue(), "is outside [-(2^53-1), 2^53-1]");
         }
         if (!type.isAssignableFrom(value.getClass())) {
             String message = "returning default variant for flagKey: %s, type not valid";
@@ -276,6 +280,63 @@ public class FlagdCore implements Evaluator {
                 .reason(reason)
                 .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag))
                 .build();
+    }
+
+    /**
+     * Returns a flag's number as an int, or reports a type mismatch when it cannot be one.
+     *
+     * <p>Narrowing is offered because a ruleset may carry 10 as 10.0 and a caller asking for an
+     * integer should still get 10. It is refused when something would be lost -- a fraction, or a
+     * magnitude an int cannot hold -- because a caller handed 0 for a flag worth 0.5 cannot tell
+     * that from a flag worth 0. flagd enforces the same rule from v0.18.1, so the in-process and
+     * RPC resolvers answer alike.
+     *
+     * @param value the resolved number
+     * @param key the flag it came from, named in the message
+     * @return the value as an int
+     * @throws TypeMismatchError if the value is not an integer, or is one an int cannot hold
+     */
+    private static int narrowedToInt(double value, String key) {
+        // Math.floor leaves an infinity alone and NaN is equal to nothing, so the first test takes
+        // NaN and every fraction, and the second takes the infinities along with the merely too big.
+        if (value != Math.floor(value)) {
+            throw mismatch(key, value, "is not an integer");
+        }
+        if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+            throw mismatch(key, value, "is outside the range of a 32-bit integer");
+        }
+        return (int) value;
+    }
+
+    // 2^53-1, largest integer exactly representable as a double
+    static final long MAX_SAFE_INTEGER = 9007199254740991L;
+
+    private static boolean isSafeRange(Number n) {
+        return Math.abs(n.doubleValue()) <= MAX_SAFE_INTEGER;
+    }
+
+    private static void warnUnsafeNumericVariants(Map<String, FeatureFlag> parsed) {
+        for (Map.Entry<String, FeatureFlag> flag : parsed.entrySet()) {
+            // invalid configs may have null flags or omit variants
+            if (flag.getValue() == null || flag.getValue().getVariants() == null) {
+                continue;
+            }
+            Map<String, Object> variants = flag.getValue().getVariants();
+            for (Map.Entry<String, Object> variant : variants.entrySet()) {
+                if (variant.getValue() instanceof Number && !isSafeRange((Number) variant.getValue())) {
+                    log.warn(
+                            "variant '{}' of flag '{}' is outside [-(2^53-1), 2^53-1] and will not resolve",
+                            variant.getKey(),
+                            flag.getKey());
+                }
+            }
+        }
+    }
+
+    private static TypeMismatchError mismatch(String key, double value, String why) {
+        String message = String.format("flagKey: %s resolved to %s, which %s", key, value, why);
+        log.debug(message);
+        return new TypeMismatchError(message);
     }
 
     private static ImmutableMetadata getFlagMetadata(Map<String, Object> currentFlagSetMetadata, FeatureFlag flag) {

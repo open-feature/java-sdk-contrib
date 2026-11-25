@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.2.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v2.1.0...dev.openfeature.contrib.providers.go-feature-flag-v2.2.0) (2026-11-17)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Bump WASM module to 0.3.1 ([#1981](https://github.com/open-feature/java-sdk-contrib/issues/1981)) ([6efb72c](https://github.com/open-feature/java-sdk-contrib/commit/6efb72c740afdf0f84ee7067a5850cec9f00dbb6))
+
+## [2.1.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v2.0.2...dev.openfeature.contrib.providers.go-feature-flag-v2.1.0) (2026-11-03)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Bump WASM module to 0.3.0 ([#1962](https://github.com/open-feature/java-sdk-contrib/issues/1962)) ([8b605c2](https://github.com/open-feature/java-sdk-contrib/commit/8b605c27e686fd04b49b9c2557306d6275f794ab))
+
+## [2.0.2](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v2.0.1...dev.openfeature.contrib.providers.go-feature-flag-v2.0.2) (2026-10-15)
+
+
+### 🐛 Bug Fixes
+
+* remove SBOM from maven bundle, README typo ([5eecf75](https://github.com/open-feature/java-sdk-contrib/commit/5eecf75229cf5cce2e54954cbc20049ec6132512))
+
+## [2.0.1](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v2.0.0...dev.openfeature.contrib.providers.go-feature-flag-v2.0.1) (2026-10-07)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update vulnerability-updates to v2.22.3 [security] ([#1882](https://github.com/open-feature/java-sdk-contrib/issues/1882)) ([c8f021d](https://github.com/open-feature/java-sdk-contrib/commit/c8f021dd40760790d0ddd93f4f2dc58dc4b3f449))
+
 ## [2.0.0](https://github.com/open-feature/java-sdk-contrib/compare/dev.openfeature.contrib.providers.go-feature-flag-v1.2.1...dev.openfeature.contrib.providers.go-feature-flag-v2.0.0) (2026-09-29)
 
 

@@ -7,37 +7,106 @@ on:
       - reopened
     branches:
       - main
+      # temporary, so stacked tck PRs get CI; remove once merged (open-feature/spec#417)
+      - 'feat/provider-tck*'
 
 jobs:
-  main:
-    strategy:
-        matrix:
-          os: [ubuntu-latest]
-          build:
-              - java: 21
-                # deploy profile is included to catch javadoc/SBOM/source-jar issues at PR time
-                # note this is the publish PROFILE, not PHASE
-                profile: codequality,deploy
-              - java: 11
-                profile: java11
-
-    name: with Java ${{ matrix.build.java }}
-    runs-on: ${{ matrix.os}}
+  # every provider's tck adoption (docker) via the root tck profile; tools/tck's own tests run in main
+  # apart from main, so a known conformance failure is not read as a regression there
+  # a provider sets tck.testFailureIgnore=true in its pom to keep this green
+  tck:
+    name: Provider TCK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           submodules: recursive
+          # maven runs pr code; keep the token out of .git/config
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache local Maven repository
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}21-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}21-maven-
+
+      - name: Run every provider's TCK adoption
+        # the profile only runs providers/*/tck classes, so the whole reactor is safe here
+        # !codequality: a module's own default-active codequality profile (flagd's runs vmlens
+        # *CTest suites) is not switched off by a profile in the root pom; main enforces it anyway
+        run: mvn --batch-mode --activate-profiles 'tck,!codequality' clean verify
+
+  main:
+    strategy:
+        matrix:
+          os: [ubuntu-latest]
+          build:
+              # latest LTS; the only leg running unit tests and code quality checks
+              # deploy profile is included to catch javadoc/SBOM/source-jar issues at PR time
+              # note this is the publish PROFILE, not PHASE
+              - java: 25
+                package: jdk
+                profile: codequality,deploy
+              # e2e only, on the oldest supported and on JREs (no javac), as in many production images
+              - java: 11
+                package: jdk
+                profile: java11
+                e2eOnly: true
+              - java: 25
+                package: jre
+                profile: ''
+                e2eOnly: true
+              - java: 11
+                package: jre
+                profile: java11
+                e2eOnly: true
+
+    name: ${{ matrix.build.package == 'jre' && 'JRE' || 'JDK' }} ${{ matrix.build.java }}${{ matrix.build.e2eOnly && ' (e2e)' || '' }}
+    runs-on: ${{ matrix.os}}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          submodules: recursive
+
+      # installed first so the JDK below stays the default JAVA_HOME for maven
+      - name: Set up JRE ${{ matrix.build.java }}
+        if: matrix.build.package == 'jre'
+        id: jre
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          java-version: ${{ matrix.build.java }}
+          java-package: jre
+          distribution: 'temurin'
+
+      - name: Verify JRE has no javac
+        if: matrix.build.package == 'jre'
+        run: |
+          if "${{ steps.jre.outputs.path }}/bin/java" --list-modules | grep -q '^jdk.compiler@'; then
+            echo "JRE contains jdk.compiler; tests would not cover the no-javac case" && exit 1
+          fi
 
       - name: Set up JDK ${{ matrix.build.java }}
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           java-version: ${{ matrix.build.java }}
           distribution: 'temurin'
           cache: maven
 
       - name: Cache local Maven repository
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}${{ matrix.build.java }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -46,4 +115,18 @@ jobs:
 
       - name: Maven Verify
         # Run Maven build with e2e and specific profile, using parallel threads (if some provider decides to use a different toolchain version, this might break)
-        run: mvn -T 2C --batch-mode --activate-profiles e2e,${{ matrix.build.profile }} clean verify
+        # jre legs build with the JDK but fork tests onto the JRE
+        env:
+          JVM_ARG: ${{ matrix.build.package == 'jre' && format('-Djvm={0}/bin/java', steps.jre.outputs.path) || '' }}
+          PROFILES: ${{ matrix.build.e2eOnly && format('e2e,e2e-only,{0},!codequality,!deploy', matrix.build.profile) || format('e2e,{0}', matrix.build.profile) }}
+        run: mvn -T 2C --batch-mode --activate-profiles "$PROFILES" $JVM_ARG clean verify
+
+  # single required check for branch protection, so matrix changes don't require settings changes
+  build:
+    name: Build
+    if: always()
+    needs: [main]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check matrix result
+        run: test "${{ needs.main.result }}" = success

@@ -28,6 +28,7 @@
     </licenses>
 
     <modules>
+        <module>tools/tck</module>
         <module>tools/flagd-api-testkit</module>
         <module>tools/flagd-api</module>
         <module>tools/flagd-core</module>
@@ -68,9 +69,12 @@
             --add-opens java.base/java.util=ALL-UNNAMED
             --add-opens java.base/java.lang=ALL-UNNAMED
         </surefireArgLine>
-        <skip.tests>false</skip.tests>
+        <!-- whether the `tck` profile fails on a failing conformance scenario; a provider overrides it -->
+        <tck.testFailureIgnore>false</tck.testFailureIgnore>
         <!-- this will throw an error if we use APIs not available in the specified version -->
         <maven.compiler.release>11</maven.compiler.release>
+        <!-- lombok; JDK 23+ disables annotation processing by default -->
+        <maven.compiler.proc>full</maven.compiler.proc>
     </properties>
 
     <dependencyManagement>
@@ -78,7 +82,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.14.3</version>
+                <version>5.14.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -92,7 +96,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-bom</artifactId>
-                <version>5.23.0</version>
+                <version>5.24.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -221,7 +225,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-toolchains-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -232,14 +236,14 @@
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
+                <version>3.16.0</version>
             </plugin>
 
             <!-- automatically derive a module name from the groupId and artifactId -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.5.1</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -252,11 +256,13 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.5</version>
+                <version>3.6.1</version>
                 <configuration>
                     <excludes>
                         <!-- tests to exclude -->
                         <exclude>${testExclusions}</exclude>
+                        <!-- provider TCK adoptions; run by the `tck` profile only -->
+                        <exclude>**/providers/*/tck/*.java</exclude>
                     </excludes>
                     <argLine>
                         @{surefireArgLine}
@@ -268,7 +274,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
-                <version>1.7.0</version>
+                <version>1.8.0</version>
                 <configuration>
                     <flattenMode>ossrh</flattenMode>
                     <pomElements>
@@ -328,9 +334,6 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <properties>
-                <maven.compiler.proc>full</maven.compiler.proc>
-            </properties>
             <build>
                 <plugins>
 
@@ -397,7 +400,7 @@
                     <plugin>
                         <groupId>org.cyclonedx</groupId>
                         <artifactId>cyclonedx-maven-plugin</artifactId>
-                        <version>2.9.1</version>
+                        <version>2.9.3</version>
                         <configuration>
                             <projectType>library</projectType>
                             <schemaVersion>1.3</schemaVersion>
@@ -409,6 +412,8 @@
                             <includeTestScope>false</includeTestScope>
                             <includeLicenseText>false</includeLicenseText>
                             <outputFormat>all</outputFormat>
+                            <!-- central rejects bundles with attached sboms -->
+                            <skipAttach>true</skipAttach>
                         </configuration>
                         <executions>
                             <execution>
@@ -442,7 +447,7 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.10.0</version>
+                        <version>0.12.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
@@ -459,9 +464,6 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <properties>
-                <maven.compiler.proc>full</maven.compiler.proc>
-            </properties>
             <build>
                 <plugins>
                     <!-- CODE QUALITY TOOLS -->
@@ -517,7 +519,7 @@
                     <plugin>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-maven-plugin</artifactId>
-                        <version>4.9.8.3</version>
+                        <version>4.10.5.0</version>
                         <configuration>
                             <excludeFilterFile>spotbugs-exclusions.xml</excludeFilterFile>
                             <plugins>
@@ -551,7 +553,7 @@
                     <plugin>
                         <groupId>com.diffplug.spotless</groupId>
                         <artifactId>spotless-maven-plugin</artifactId>
-                        <version>3.4.0</version>
+                        <version>3.10.4</version>
                         <configuration>
                             <!-- optional: limit format enforcement to just the files changed by this feature branch -->
                             <!--                <ratchetFrom>origin/main</ratchetFrom>-->
@@ -607,7 +609,6 @@
             <!--<modules><module></module></modules>-->
             <properties>
                 <toolchain.jdk.version>[11,)</toolchain.jdk.version>
-                <skip.tests>true</skip.tests>
             </properties>
 
             <build>
@@ -615,7 +616,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-toolchains-plugin</artifactId>
-                        <version>3.2.0</version>
+                        <version>3.3.0</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -624,30 +625,44 @@
                             </execution>
                         </executions>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- runs only tests in e2e packages, e.g. `mvn -Pe2e,e2e-only verify` -->
+        <profile>
+            <id>e2e-only</id>
+            <properties>
+                <test>**/e2e/**</test>
+                <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+            </properties>
+        </profile>
+        <!--
+            Runs every provider's Provider TCK adoption (the classes in its `tck` test package),
+            and nothing else:
+
+                mvn -Ptck test                               # every adopting provider
+                mvn -Ptck -pl providers/<provider> -am test  # one
+
+            Only providers/*/tck classes run, so the rest of the reactor contributes no tests;
+            the pattern names providers/ so the TCK module's own package is not matched.
+            A provider sets tck.testFailureIgnore to true to report its failures without failing.
+        -->
+        <profile>
+            <id>tck</id>
+            <build>
+                <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>3.5.5</version>
                         <configuration>
-                            <skipTests>${skip.tests}</skipTests>
+                            <includes>
+                                <include>**/providers/*/tck/*.java</include>
+                            </includes>
+                            <excludes combine.self="override">
+                                <exclude>**/*$*</exclude>
+                            </excludes>
+                            <testFailureIgnore>${tck.testFailureIgnore}</testFailureIgnore>
                         </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.15.0</version>
-                        <executions>
-                            <execution>
-                                <id>default-testCompile</id>
-                                <phase>test-compile</phase>
-                                <goals>
-                                    <goal>testCompile</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>true</skip>
-                                </configuration>
-                            </execution>
-                        </executions>
                     </plugin>
                 </plugins>
             </build>

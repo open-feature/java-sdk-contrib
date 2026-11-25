@@ -165,9 +165,9 @@ public class GoffApiMock {
                 .addHeader(Const.HTTP_HEADER_ETAG, "\"unknown-response-field\"");
     }
 
-    /** a flag whose targeting query cannot be parsed, which makes the engine trap. */
+    /** a flag whose targeting query indexes out of range in the engine, which makes it trap. */
     private static final String BROKEN_QUERY_FLAG = "{\"variations\": {\"on\": true},"
-            + " \"targeting\": [{\"query\": \"((((\", \"variation\": \"on\"}],"
+            + " \"targeting\": [{\"query\": \"{\\\"all\\\":[]}\", \"variation\": \"on\"}],"
             + " \"defaultRule\": {\"variation\": \"on\"}}";
 
     /**

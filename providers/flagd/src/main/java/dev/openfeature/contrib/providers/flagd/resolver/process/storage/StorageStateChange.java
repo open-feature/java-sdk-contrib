@@ -26,8 +26,10 @@ public class StorageStateChange {
      */
     public StorageStateChange(StorageState storageState, List<String> changedFlagsKeys, Structure syncMetadata) {
         this.storageState = storageState;
-        this.changedFlagsKeys = Collections.unmodifiableList(changedFlagsKeys);
-        this.syncMetadata = new ImmutableStructure(syncMetadata.asMap());
+        this.changedFlagsKeys =
+                changedFlagsKeys != null ? Collections.unmodifiableList(changedFlagsKeys) : Collections.emptyList();
+        this.syncMetadata =
+                syncMetadata != null ? new ImmutableStructure(syncMetadata.asMap()) : new ImmutableStructure();
     }
 
     /**
@@ -37,9 +39,7 @@ public class StorageStateChange {
      * @param changedFlagsKeys flags changed
      */
     public StorageStateChange(StorageState storageState, List<String> changedFlagsKeys) {
-        this.storageState = storageState;
-        this.changedFlagsKeys = Collections.unmodifiableList(changedFlagsKeys);
-        this.syncMetadata = new ImmutableStructure();
+        this(storageState, changedFlagsKeys, null);
     }
 
     /**

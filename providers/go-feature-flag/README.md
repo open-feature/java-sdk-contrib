@@ -3,7 +3,7 @@
 
 
 > [!WARNING]
-> This version of the provider requires to use GO Feature Flag relay-proxy `v1.45.0` or above.  
+> This version of the provider requires GO Feature Flag relay-proxy `v1.45.0` or above.  
 > If you have an older version of the relay-proxy, please use the version `0.4.3` of the provider.
 
 This is the official OpenFeature Java provider for accessing your feature flags with GO Feature Flag.
@@ -28,7 +28,7 @@ For documentation related to flags management in GO Feature Flag, refer to the [
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>go-feature-flag</artifactId>
-    <version>2.0.0</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 <!-- x-release-please-end-version -->

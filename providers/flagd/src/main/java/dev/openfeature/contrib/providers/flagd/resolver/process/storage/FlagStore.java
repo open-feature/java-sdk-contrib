@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 
 /** Feature flag storage. */
@@ -21,7 +22,10 @@ import lombok.extern.slf4j.Slf4j;
         value = {"EI_EXPOSE_REP"},
         justification = "Feature flag comes as a Json configuration, hence they must be exposed")
 public class FlagStore implements Storage {
+    static final String STREAMER_THREAD_NAME = "FlagStore.streamer";
+
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicReference<Thread> streamer = new AtomicReference<>();
     private final BlockingQueue<StorageStateChange> stateBlockingQueue = new LinkedBlockingQueue<>(4);
 
     private final QueueSource connector;
@@ -36,15 +40,26 @@ public class FlagStore implements Storage {
     @Override
     public void init() throws Exception {
         connector.init();
-        Thread streamer = new Thread(() -> {
-            try {
-                streamerListener(connector);
-            } catch (InterruptedException e) {
-                log.warn("connection listener failed", e);
-                Thread.currentThread().interrupt();
-            }
-        });
+        final Thread streamer = new Thread(
+                () -> {
+                    try {
+                        streamerListener(connector);
+                    } catch (InterruptedException e) {
+                        if (shutdown.get()) {
+                            log.debug("Store stream listener interrupted, most likely shutdown was invoked", e);
+                        } else {
+                            log.warn("connection listener failed", e);
+                        }
+                        Thread.currentThread().interrupt();
+                    }
+                },
+                STREAMER_THREAD_NAME);
         streamer.setDaemon(true);
+        // a retried init must not leave the previous streamer blocked on the queue
+        final Thread previous = this.streamer.getAndSet(streamer);
+        if (previous != null) {
+            previous.interrupt();
+        }
         streamer.start();
     }
 
@@ -57,7 +72,15 @@ public class FlagStore implements Storage {
             return;
         }
 
-        connector.shutdown();
+        try {
+            connector.shutdown();
+        } finally {
+            // the streamer blocks on the connector queue, which not every connector feeds on shutdown
+            final Thread current = streamer.getAndSet(null);
+            if (current != null && current != Thread.currentThread()) {
+                current.interrupt();
+            }
+        }
     }
 
     /** Retrieve blocking queue to check storage status. */
