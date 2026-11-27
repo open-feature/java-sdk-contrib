@@ -1,6 +1,8 @@
 {
   "flagKey": "object-flag",
-  "match": true,
+  "match": false,
+  "reason": "DEFAULT_EVALUATION_REASON",
+  "segmentKeys": [],
   "variantKey": "object-variant",
   "variantAttachment": "{\"key1\":\"value1\",\"key2\":42,\"key3\":true}"
 }
