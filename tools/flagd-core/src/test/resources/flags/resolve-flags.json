@@ -129,6 +129,41 @@
       "defaultVariant": "off",
       "targeting": { "resolve": ["on", null, [{ "if": [{ "var": "pick" }, ["details", "a"], ["details", "b"]] }]] }
     },
+    "null-variant": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [null] }
+    },
+    "null-variant-reason": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [null, "CUSTOM", [["details", "rule"]]] }
+    },
+    "null-variant-no-default": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "targeting": { "resolve": [null] }
+    },
+    "null-variant-no-default-reason": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "targeting": { "resolve": [null, "CUSTOM", [["details", "rule"]]] }
+    },
+    "disabled-with-overrides": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "targeting": {
+        "if": [{ "in": [{ "var": "targetingKey" }, ["alice"]] }, "on", { "resolve": [null, "DISABLED"] }]
+      }
+    },
+    "infinite-variant": {
+      "state": "ENABLED",
+      "variants": { "Infinity": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [{ "/": [1, 0] }] }
+    },
     "forged": {
       "state": "ENABLED",
       "variants": { "on": "on", "off": "off" },

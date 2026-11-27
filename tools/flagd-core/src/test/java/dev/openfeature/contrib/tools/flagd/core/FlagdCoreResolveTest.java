@@ -160,17 +160,65 @@ class FlagdCoreResolveTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void computedReservedReasonIsIgnored(boolean compile) throws Exception {
+    void standardReasonsPassThrough(boolean compile) throws Exception {
         for (String reason :
                 List.of("ERROR", "DISABLED", "DEFAULT", "FALLBACK", "STATIC", "UNKNOWN", "CACHED", "STALE")) {
             Map<String, Value> ctx = new HashMap<>(COMPUTED_CTX);
             ctx.put("reason", new Value(reason));
             ProviderEvaluation<String> result = eval(compile, "computed", ctx);
 
-            assertThat(result.getReason()).as(reason).isEqualTo("TARGETING_MATCH");
-            assertThat(result.getVariant()).as(reason).isEqualTo("on");
+            assertResult(result, "on", reason);
+            assertThat(result.getErrorCode()).as(reason).isNull();
             assertThat(result.getFlagMetadata().getDouble("share")).as(reason).isEqualTo(0.25);
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void nullVariantUsesTheDefaultVariant(boolean compile) throws Exception {
+        assertResult(eval(compile, "null-variant", Map.of()), "off", "DEFAULT");
+
+        ProviderEvaluation<String> result = eval(compile, "null-variant-reason", Map.of());
+        assertResult(result, "off", "CUSTOM");
+        assertThat(result.getFlagMetadata().getString("details")).isEqualTo("rule");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void nullVariantWithoutDefaultVariantHasNoValue(boolean compile) throws Exception {
+        ProviderEvaluation<String> result = eval(compile, "null-variant-no-default", Map.of());
+        assertThat(result.getValue()).isEqualTo("fallback");
+        assertThat(result.getVariant()).isNull();
+        assertThat(result.getReason()).isEqualTo("DEFAULT");
+
+        result = eval(compile, "null-variant-no-default-reason", Map.of());
+        assertThat(result.getValue()).isEqualTo("fallback");
+        assertThat(result.getVariant()).isNull();
+        assertThat(result.getReason()).isEqualTo("CUSTOM");
+        assertThat(result.getErrorCode()).isNull();
+        assertThat(result.getFlagMetadata().getString("details")).isEqualTo("rule");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void disabledWithOverrides(boolean compile) throws Exception {
+        assertResult(
+                eval(compile, "disabled-with-overrides", Map.of("targetingKey", new Value("alice"))),
+                "on",
+                "TARGETING_MATCH");
+
+        ProviderEvaluation<String> result =
+                eval(compile, "disabled-with-overrides", Map.of("targetingKey", new Value("bob")));
+        assertThat(result.getValue()).isEqualTo("fallback");
+        assertThat(result.getVariant()).isNull();
+        assertThat(result.getReason()).isEqualTo("DISABLED");
+        assertThat(result.getErrorCode()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void nonFiniteNumberVariantIsMalformed(boolean compile) throws Exception {
+        assertResult(eval(compile, "infinite-variant", Map.of()), "off", "DEFAULT");
     }
 
     @ParameterizedTest
@@ -192,7 +240,7 @@ class FlagdCoreResolveTest {
     @ValueSource(booleans = {false, true})
     void malformedComputedArgumentsFallBackToTheDefaultVariant(boolean compile) throws Exception {
         for (Map<String, Value> override : List.of(
-                Map.of("variant", new Value()), // null variant
+                Map.of("variant", new Value(List.of())), // non-scalar variant
                 Map.of("reason", new Value(1)), // non-string reason
                 Map.of("key", new Value(1)), // non-string metadata key
                 Map.of("total", new Value(0)), // 1/0 is not finite

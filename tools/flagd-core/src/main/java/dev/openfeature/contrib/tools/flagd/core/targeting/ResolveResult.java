@@ -10,8 +10,9 @@ import lombok.Getter;
  */
 @Getter
 public final class ResolveResult {
+    /** {@code null} falls back like a plain null targeting result. */
     private final String variant;
-    /** Overrides the evaluation reason; {@code null} keeps {@code TARGETING_MATCH}. */
+    /** Overrides the evaluation reason; {@code null} keeps the reason of the equivalent plain result. */
     private final String reason;
     /** Rule metadata, merged over flag-set and flag metadata. */
     private final Map<String, Object> metadata;

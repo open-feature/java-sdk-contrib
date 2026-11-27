@@ -229,21 +229,26 @@ public class FlagdCore implements Evaluator {
 
         if (EMPTY_TARGETING_STRING.equals(flag.getTargeting())) {
             resolvedVariant = flag.getDefaultVariant();
-            reason = Reason.STATIC.toString();
+            reason = StringUtils.isEmpty(resolvedVariant) ? Reason.DEFAULT.toString() : Reason.STATIC.toString();
         } else {
             try {
-                final Object jsonResolved = operator.apply(key, flag.getTargeting(), ctx);
+                Object jsonResolved = operator.apply(key, flag.getTargeting(), ctx);
+                String ruleReason = null;
+                if (jsonResolved instanceof ResolveResult) {
+                    final ResolveResult resolved = (ResolveResult) jsonResolved;
+                    jsonResolved = resolved.getVariant();
+                    ruleReason = resolved.getReason();
+                    ruleMetadata = resolved.getMetadata();
+                }
                 if (jsonResolved == null) {
                     resolvedVariant = flag.getDefaultVariant();
-                    reason = Reason.DEFAULT.toString();
-                } else if (jsonResolved instanceof ResolveResult) {
-                    final ResolveResult resolved = (ResolveResult) jsonResolved;
-                    resolvedVariant = resolved.getVariant();
-                    reason = resolved.getReason() != null ? resolved.getReason() : Reason.TARGETING_MATCH.toString();
-                    ruleMetadata = resolved.getMetadata();
                 } else {
                     resolvedVariant = jsonResolved.toString(); // convert to string to support shorthand
-                    reason = Reason.TARGETING_MATCH.toString();
+                }
+                if (ruleReason != null) {
+                    reason = ruleReason;
+                } else {
+                    reason = jsonResolved == null ? Reason.DEFAULT.toString() : Reason.TARGETING_MATCH.toString();
                 }
             } catch (TargetingRuleException e) {
                 String message = String.format("error evaluating targeting rule for flag %s", key);
@@ -255,11 +260,12 @@ public class FlagdCore implements Evaluator {
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
+            // no variant means no value (code default), whatever the reason
             if (StringUtils.isEmpty(resolvedVariant) && StringUtils.isEmpty(flag.getDefaultVariant())) {
                 return ProviderEvaluation.<T>builder()
                         .value(defaultValue)
-                        .reason(Reason.DEFAULT.toString())
-                        .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag, null))
+                        .reason(reason)
+                        .flagMetadata(getFlagMetadata(currentFlagSetMetadata, flag, ruleMetadata))
                         .build();
             }
 

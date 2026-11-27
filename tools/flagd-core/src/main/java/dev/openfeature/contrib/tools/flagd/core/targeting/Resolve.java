@@ -12,18 +12,15 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Terminal {@code resolve} operation: {@code ["variant", "reason"?, [["key", value], ...]?]}.
- * Selects a variant and optionally overrides the reason and adds rule metadata. Placement is enforced by the
+ * Selects a variant (null falls back like a plain null result) and optionally overrides the reason and adds rule
+ * metadata. Placement is enforced by the
  * targeting schema; malformed computed arguments return null, so the flag falls back to its default variant.
  */
 @Slf4j
 class Resolve implements JsonLogicExpression {
 
     // flag set metadata keys a rule can't override; the schema only catches literal keys
-    private static final Set<String> RESERVED_KEYS = Set.of("flagSetId", "version");
-
-    // reasons a rule can't return (all but TARGETING_MATCH and SPLIT); ignored so the match keeps TARGETING_MATCH
-    private static final Set<String> RESERVED_REASONS =
-            Set.of("ERROR", "DISABLED", "DEFAULT", "FALLBACK", "STATIC", "UNKNOWN", "CACHED", "STALE");
+    private static final Set<String> RESERVED_METADATA_KEYS = Set.of("flagSetId", "version");
 
     @Override
     public String key() {
@@ -45,19 +42,19 @@ class Resolve implements JsonLogicExpression {
 
         // coerce like a plain targeting result
         final Object variant = arguments.get(0);
-        if (!(variant instanceof String || variant instanceof Boolean || variant instanceof Number)) {
-            log.debug("resolve variant must be a string, boolean, or number");
+        final boolean validVariant = variant == null
+                || variant instanceof String
+                || variant instanceof Boolean
+                || (variant instanceof Number && Double.isFinite(((Number) variant).doubleValue()));
+        if (!validVariant) {
+            log.debug("resolve variant must be a string, boolean, finite number, or null");
             return null;
         }
 
-        Object reason = arguments.size() > 1 ? arguments.get(1) : null;
+        final Object reason = arguments.size() > 1 ? arguments.get(1) : null;
         if (reason != null && !(reason instanceof String)) {
             log.debug("resolve reason must be a string or null");
             return null;
-        }
-        if (reason != null && RESERVED_REASONS.contains(reason)) {
-            log.debug("resolve reason {} is reserved and ignored", reason);
-            reason = null;
         }
 
         final Map<String, Object> metadata = new HashMap<>();
@@ -66,7 +63,7 @@ class Resolve implements JsonLogicExpression {
             return null;
         }
 
-        return new ResolveResult(variant.toString(), (String) reason, metadata);
+        return new ResolveResult(variant != null ? variant.toString() : null, (String) reason, metadata);
     }
 
     private static boolean addMetadata(Object pairs, Map<String, Object> metadata) {
@@ -89,7 +86,7 @@ class Resolve implements JsonLogicExpression {
                 return false;
             }
             final String key = (String) entry.get(0);
-            if (!RESERVED_KEYS.contains(key)) {
+            if (!RESERVED_METADATA_KEYS.contains(key)) {
                 metadata.put(key, metadataValue);
             }
         }

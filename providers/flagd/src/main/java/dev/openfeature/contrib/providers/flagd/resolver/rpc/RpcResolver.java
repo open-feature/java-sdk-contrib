@@ -258,7 +258,8 @@ public final class RpcResolver implements Resolver {
         final String variant = getField(response, Config.VARIANT_FIELD);
 
         final ProviderEvaluation.ProviderEvaluationBuilder<ValT, ?, ?> resultBuilder;
-        if (variant.isEmpty() && ("DEFAULT".equals(reason) || "DISABLED".equals(reason))) {
+        // no variant means no value (code default), whatever the reason
+        if (variant.isEmpty()) {
             resultBuilder = ProviderEvaluation.<ValT>builder().value(defaultValue);
         } else {
             resultBuilder = ProviderEvaluation.<ValT>builder().value(value).variant(variant);
