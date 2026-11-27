@@ -260,7 +260,7 @@ public class FlagdCore implements Evaluator {
         // check variant existence
         Object value = flag.getVariants().get(resolvedVariant);
         if (value == null) {
-            // no variant means no value (code default), whatever the reason
+            // no variant means no value (code default); reasons only affect telemetry and side effects such as caching
             if (StringUtils.isEmpty(resolvedVariant) && StringUtils.isEmpty(flag.getDefaultVariant())) {
                 return ProviderEvaluation.<T>builder()
                         .value(defaultValue)

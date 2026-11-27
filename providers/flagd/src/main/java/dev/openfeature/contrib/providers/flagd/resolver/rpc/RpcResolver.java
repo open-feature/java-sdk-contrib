@@ -258,7 +258,7 @@ public final class RpcResolver implements Resolver {
         final String variant = getField(response, Config.VARIANT_FIELD);
 
         final ProviderEvaluation.ProviderEvaluationBuilder<ValT, ?, ?> resultBuilder;
-        // no variant means no value (code default), whatever the reason
+        // no variant means no value (code default); reasons only affect telemetry and side effects such as caching
         if (variant.isEmpty()) {
             resultBuilder = ProviderEvaluation.<ValT>builder().value(defaultValue);
         } else {
