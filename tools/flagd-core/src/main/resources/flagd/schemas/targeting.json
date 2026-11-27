@@ -695,13 +695,17 @@
                   "type": "boolean"
                 },
                 {
+                  "description": "A null variant falls back like a plain null result, to the \"defaultVariant\", or to the code default if there is none.",
+                  "type": "null"
+                },
+                {
                   "description": "Computed variants are coerced like plain targeting results; booleans become \"true\"/\"false\", and the behavior of numbers is not defined.",
                   "$ref": "#/definitions/anyRule"
                 }
               ]
             },
             {
-              "description": "Optional free-form reason, overriding the \"TARGETING_MATCH\" reason for this branch. A null reason keeps \"TARGETING_MATCH\".",
+              "description": "Optional free-form reason, replacing the reason the equivalent plain result would report. A null reason keeps it. Standard reasons are allowed, but never change the outcome.",
               "oneOf": [
                 {
                   "type": [
