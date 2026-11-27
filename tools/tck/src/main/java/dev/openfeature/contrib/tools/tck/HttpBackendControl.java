@@ -20,6 +20,8 @@ final class HttpBackendControl implements BackendControl {
 
     private static final Logger log = LoggerFactory.getLogger(HttpBackendControl.class);
 
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+
     private final HttpClient http;
     private final String baseUrl;
     private final String backendConfiguration;
@@ -29,6 +31,9 @@ final class HttpBackendControl implements BackendControl {
 
     // whether the backend was last left unreachable, so /reset alone won't suffice
     private boolean backendStopped;
+
+    // a configuration one scenario asked for, which the next scenario has to be taken off again
+    private String scenarioConfiguration;
 
     /**
      * Creates a control client for a running backend. No post-command settle; control calls return
@@ -71,12 +76,18 @@ final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Uses {@code POST /reset} if the backend is running, else {@code POST /start?config=...}.
+     * <p>Uses {@code POST /reset} if the backend is running on this suite's own configuration, else
+     * {@code POST /start?config=...}: {@code /reset} restores flag state, not which configuration is
+     * being served, so a scenario that served another one has to be taken off it explicitly.
      */
     @Override
     public void prepareScenario() {
-        if (backendStopped) {
-            start();
+        if (backendStopped || scenarioConfiguration != null) {
+            // this suite's configuration, not the last scenario's: that is what preparing means
+            start(backendConfiguration);
+            // cleared only once the start succeeded, so a failure is retried next scenario rather
+            // than downgraded to /reset, which does not change which configuration is served
+            scenarioConfiguration = null;
         } else {
             reset();
         }
@@ -106,11 +117,28 @@ final class HttpBackendControl implements BackendControl {
     /**
      * {@inheritDoc}
      *
-     * <p>Issues {@code POST /start?config=...}, which also restores the baseline flag state.
+     * <p>Issues {@code POST /start?config=...} on the configuration in effect -- the one a scenario
+     * served, if it served one -- because losing the connection is not how a scenario changes what
+     * the backend serves. It also restores that configuration's baseline flag state, which is why a
+     * scenario asserting a value across an outage asserts it from the provider's cache rather than
+     * from a mutation it made.
      */
     @Override
     public void reconnect() {
         start();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Issues {@code POST /start?config=...} with the name given, which also seeds that
+     * configuration's flag state.
+     */
+    @Override
+    public void serveConfiguration(String configuration) {
+        post("/start?config=" + URLEncoder.encode(configuration, StandardCharsets.UTF_8));
+        scenarioConfiguration = configuration;
+        backendStopped = false;
     }
 
     /**
@@ -145,12 +173,16 @@ final class HttpBackendControl implements BackendControl {
         throw new IllegalStateException("control API at " + baseUrl + " did not become ready within " + timeout, last);
     }
 
-    /** Starts the backend, seeding the baseline flag state. */
+    /** Starts the backend on the configuration in effect: the scenario's, else this suite's. */
     private void start() {
+        start(scenarioConfiguration == null ? backendConfiguration : scenarioConfiguration);
+    }
+
+    private void start(String configuration) {
         post(
-                backendConfiguration == null
+                configuration == null
                         ? "/start"
-                        : "/start?config=" + URLEncoder.encode(backendConfiguration, StandardCharsets.UTF_8));
+                        : "/start?config=" + URLEncoder.encode(configuration, StandardCharsets.UTF_8));
         backendStopped = false;
     }
 
@@ -185,7 +217,7 @@ final class HttpBackendControl implements BackendControl {
     private HttpResponse<Void> send(String path) {
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + path))
                 .POST(HttpRequest.BodyPublishers.noBody())
-                .timeout(Duration.ofSeconds(30))
+                .timeout(REQUEST_TIMEOUT)
                 .build();
         try {
             return http.send(request, HttpResponse.BodyHandlers.discarding());

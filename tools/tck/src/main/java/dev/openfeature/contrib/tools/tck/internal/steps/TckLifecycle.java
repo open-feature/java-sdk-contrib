@@ -1,5 +1,6 @@
 package dev.openfeature.contrib.tools.tck.internal.steps;
 
+import dev.openfeature.contrib.tools.tck.AdopterTags;
 import dev.openfeature.contrib.tools.tck.BackendControl;
 import dev.openfeature.contrib.tools.tck.Capability;
 import dev.openfeature.contrib.tools.tck.ProviderTckHarness;
@@ -47,6 +48,7 @@ final class TckLifecycle {
         ProviderTckHarness harness = discoverHarness();
         log.info("Provider TCK harness: {}", harness.getClass().getName());
         Capability.requireDeclarable(harness.capabilities());
+        AdopterTags.requireValid(harness.getClass());
         startFailure.set(null);
         suiteRunning = true;
     }

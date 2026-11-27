@@ -1,16 +1,24 @@
 package dev.openfeature.contrib.providers.flagd.resolver.process.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayload;
 import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueuePayloadType;
+import dev.openfeature.contrib.providers.flagd.resolver.process.storage.connector.QueueSource;
 import dev.openfeature.contrib.tools.flagd.core.FlagdCore;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class FlagStoreTest {
@@ -99,5 +107,122 @@ class FlagStoreTest {
         assertEquals(
                 new HashSet<>(Arrays.asList("flag2")),
                 new HashSet<>(storageStateDTOS.take().getChangedFlagsKeys()));
+    }
+
+    @Test
+    void shutdownStopsStreamerWhenConnectorEmitsNothing() throws Exception {
+        final AtomicReference<Thread> streamer = new AtomicReference<>();
+        final CountDownLatch waiting = new CountDownLatch(1);
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<QueuePayload>() {
+            @Override
+            public QueuePayload take() throws InterruptedException {
+                streamer.set(Thread.currentThread());
+                waiting.countDown();
+                return super.take();
+            }
+        };
+        // like the gRPC sync connector, this one does not enqueue anything on shutdown
+        final QueueSource connector = new QueueSource() {
+            @Override
+            public void init() {}
+
+            @Override
+            public BlockingQueue<QueuePayload> getStreamQueue() {
+                return payload;
+            }
+
+            @Override
+            public void shutdown() {}
+        };
+        FlagStore store = new FlagStore(connector, new FlagdCore(true));
+        store.init();
+
+        assertTrue(waiting.await(1, TimeUnit.SECONDS));
+        final Thread thread = streamer.get();
+        assertNotNull(thread);
+        assertEquals(FlagStore.STREAMER_THREAD_NAME, thread.getName());
+
+        store.shutdown();
+
+        thread.join(1000);
+        assertFalse(thread.isAlive());
+    }
+
+    @Test
+    void shutdownStopsStreamerWhenConnectorShutdownThrows() throws Exception {
+        final AtomicReference<Thread> streamer = new AtomicReference<>();
+        final CountDownLatch waiting = new CountDownLatch(1);
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<QueuePayload>() {
+            @Override
+            public QueuePayload take() throws InterruptedException {
+                streamer.set(Thread.currentThread());
+                waiting.countDown();
+                return super.take();
+            }
+        };
+        final QueueSource connector = new QueueSource() {
+            @Override
+            public void init() {}
+
+            @Override
+            public BlockingQueue<QueuePayload> getStreamQueue() {
+                return payload;
+            }
+
+            @Override
+            public void shutdown() {
+                throw new IllegalStateException("connector shutdown failed");
+            }
+        };
+        FlagStore store = new FlagStore(connector, new FlagdCore(true));
+        store.init();
+
+        assertTrue(waiting.await(1, TimeUnit.SECONDS));
+        final Thread thread = streamer.get();
+        assertNotNull(thread);
+
+        assertThrows(IllegalStateException.class, store::shutdown);
+
+        thread.join(1000);
+        assertFalse(thread.isAlive());
+    }
+
+    @Test
+    void initAgainStopsThePreviousStreamer() throws Exception {
+        final BlockingQueue<Thread> takers = new LinkedBlockingQueue<>();
+        final BlockingQueue<QueuePayload> payload = new LinkedBlockingQueue<QueuePayload>() {
+            @Override
+            public QueuePayload take() throws InterruptedException {
+                takers.add(Thread.currentThread());
+                return super.take();
+            }
+        };
+        final QueueSource connector = new QueueSource() {
+            @Override
+            public void init() {}
+
+            @Override
+            public BlockingQueue<QueuePayload> getStreamQueue() {
+                return payload;
+            }
+
+            @Override
+            public void shutdown() {}
+        };
+        FlagStore store = new FlagStore(connector, new FlagdCore(true));
+        store.init();
+        final Thread first = takers.poll(1, TimeUnit.SECONDS);
+        assertNotNull(first);
+
+        store.init();
+        final Thread second = takers.poll(1, TimeUnit.SECONDS);
+        assertNotNull(second);
+
+        first.join(1000);
+        assertFalse(first.isAlive());
+
+        store.shutdown();
+        second.join(1000);
+        assertFalse(second.isAlive());
     }
 }

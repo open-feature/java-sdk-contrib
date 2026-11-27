@@ -226,12 +226,11 @@ public enum Capability {
      * @throws TestAbortedException if a tag gates an inexpressible or an undeclared capability
      */
     public static void requireDeclared(URI source, Collection<String> tags, Set<Capability> declared) {
-        requireNoExpiredReservation(tags);
-        requireKnownVocabulary(source, tags);
+        requireValidVocabulary(source, tags);
         for (String tag : tags) {
             Optional<Capability> found = fromTag(tag);
             if (!found.isPresent()) {
-                // adopter tag; gates nothing
+                // adopter tag; gated by AdopterTags
                 continue;
             }
             Capability capability = found.get();
@@ -245,6 +244,23 @@ public enum Capability {
                         + " (tag " + tag + "). Declared capabilities: " + declared);
             }
         }
+    }
+
+    /**
+     * Fails on a tag the vocabulary refuses, before anything decides to skip the scenario.
+     *
+     * <p>Run ahead of {@link AdopterTags#requireSelected} as well, so deselecting a scenario cannot
+     * mask a reserved tag on it: a reservation that has expired is a maintenance signal about the
+     * suite, not a property of the run, and an adopter excluding some other tag on the same scenario
+     * should not silence it.
+     *
+     * @param source the scenario's feature file, as Cucumber reports it, or {@code null} if unknown
+     * @param tags the scenario's Gherkin tags, including the leading at-sign
+     * @throws IllegalStateException if a tag is reserved, or unknown on a canonical scenario
+     */
+    static void requireValidVocabulary(URI source, Collection<String> tags) {
+        requireNoExpiredReservation(tags);
+        requireKnownVocabulary(source, tags);
     }
 
     /**
@@ -272,7 +288,7 @@ public enum Capability {
     }
 
     // canonical if the parent directory is FEATURES; null is not canonical
-    private static boolean isCanonical(URI source) {
+    static boolean isCanonical(URI source) {
         if (source == null) {
             return false;
         }

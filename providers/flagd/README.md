@@ -180,7 +180,7 @@ Given below are the supported configurations:
 > The `selector` option automatically uses the `flagd-selector` header (the preferred approach per [flagd issue #1814](https://github.com/open-feature/flagd/issues/1814)) while maintaining backward compatibility with older flagd versions. See [Selector filtering](#selector-filtering-in-process-mode-only) for details.
 
 > [!TIP]
-> The `compileTargeting` option (experimental) controls pre-compilation of JsonLogic targeting rules into Java bytecode for improved evaluation performance. This requires the `jdk.compiler` module at runtime, which is typically not available in JRE-only images (distroless, Alpine, UBI Micro, etc.). In `auto` mode (the default), the provider calls `javax.tools.ToolProvider.getSystemJavaCompiler()` at initialization; if it returns non-null, compilation is enabled, otherwise the interpreter is used. Set to `enabled` to force compilation (a warning is logged if the compiler is unavailable), or `disabled` to always use the interpreter. Note that compilation adds latency to the first evaluation of each rule (source generation, in-memory javac, and class loading); subsequent evaluations of the same rule are faster.
+> The `compileTargeting` option (experimental) controls pre-compilation of JsonLogic targeting rules into Java bytecode for improved evaluation performance. On Java 24+, bytecode is generated with the built-in Class-File API (JEP 484), which works on JRE-only images and compiles roughly 100x faster than javac. On older JVMs, compilation falls back to javac and requires the `jdk.compiler` module at runtime, which is typically not available in JRE-only images (distroless, Alpine, UBI Micro, etc.). In `auto` mode (the default), the provider enables compilation if either compiler is available, otherwise the interpreter is used. Set to `enabled` to force compilation (a warning is logged if no compiler is available), or `disabled` to always use the interpreter. Note that compilation adds latency to the first evaluation of each rule; subsequent evaluations of the same rule are faster.
 
 ### Unix socket support
 
@@ -358,3 +358,42 @@ FlagdOptions options = FlagdOptions.builder()
       .resolverType(Config.Resolver.IN_PROCESS)
       .build();
 ```
+
+## Provider conformance (TCK)
+
+This provider adopts the [OpenFeature Provider TCK](../../tools/tck/README.md), once per resolver:
+`RpcTest`, `InProcessTest` and `FileTest`, all three over the shared `AbstractResolverTest` in
+`src/test/java/.../flagd/tck/`. **Read that class before changing any of them.** It records, against
+measured behaviour rather than assumption, which capabilities are declared, which are withheld and
+why, and every known deviation — that reasoning is the most valuable thing about this adoption and it
+lives next to the declaration rather than here.
+
+```bash
+mvn -Ptck -pl providers/flagd -am test                                    # every resolver
+mvn -Ptck -pl providers/flagd -am -Dtest=InProcessTest     -Dsurefire.failIfNoSpecifiedTests=false test                          # one
+```
+
+The root pom's `tck` profile runs only the `tck` package, so `-am` adds no other module's tests.
+
+**`-Pe2e` does not run these suites.** The root pom excludes every provider's `tck` package from
+the default build and from `-Pe2e`, and its `tck` profile runs only that package. This module
+excludes just `**/e2e/*.java`, which the `e2e` profile clears.
+
+**CI runs them in a job of their own**, `Provider TCK` in `ci.yml`, on every pull request. It sits
+apart from the `main` matrix so a conformance failure cannot be read as a regression there. Set
+`tck.testFailureIgnore` to `true` in this module's pom, or pass `-Dtck.testFailureIgnore=true`, to
+report failures without failing the build.
+
+On `flagd-testbed` v3.11.0, 65 scenarios and 2 skipped in each gRPC mode, and **all 63 pass in both**.
+Any failure is a regression.
+
+The file resolver reads its ruleset off the disk, so `FileTest` has the testbed write it to a
+bind-mounted directory (`composeEnvironment()` sets `FLAGS_DIR`) and points the provider at
+`allFlags.json` there. It withholds `@stale` on top of `@reinitialization`: the only outage the
+control API can stage is stopping flagd's listeners, which a file already on disk does not notice.
+`@configuration-change` holds, through polling rather than a stream.
+
+The two skips are the withheld `@reinitialization` and `@large-integers`, which the Java SDK cannot
+ask for. The three scenarios that used to fail on flags the testbed did not serve
+(open-feature/flagd-testbed#392) pass from v3.11.0 on, and the one that used to fail in-process
+passes since `FlagdCore` stopped narrowing a `Double` with `intValue()` (#1957).
