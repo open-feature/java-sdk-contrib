@@ -1,0 +1,177 @@
+{
+  "metadata": { "scope": "set", "owner": "set", "flagSetId": "set-id", "version": "set-version" },
+  "flags": {
+    "whole-rule": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on"] }
+    },
+    "metadata-precedence": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "metadata": { "owner": "flag", "details": "flag" },
+      "targeting": { "resolve": ["on", null, [["details", "rule"], ["pilot", true], ["share", 0.5], ["count", 3]]] }
+    },
+    "reserved-keys": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "resolve": ["on", null, [[{ "var": "key" }, "rule"], ["details", "rule"]]]
+      }
+    },
+    "nested-if": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "if": [
+          { "==": [{ "var": "customerId" }, "a"] },
+          { "resolve": ["on", "ALLOWLIST", [["details", "a"]]] },
+          {
+            "if": [
+              { "==": [{ "var": "customerId" }, "b"] },
+              { "resolve": ["on", "SPLIT", [["details", "b"]]] },
+              { "resolve": ["off", "FALLTHROUGH", [["details", "rest"]]] }
+            ]
+          }
+        ]
+      }
+    },
+    "single-clause-if": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "if": [{ "resolve": ["on", "ALLOWLIST"] }] }
+    },
+    "ref": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "if": [true, { "$ref": "allowlist" }, "off"] }
+    },
+    "computed": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "resolve": [
+          { "var": "variant" },
+          { "var": "reason" },
+          [[{ "var": "key" }, { "/": [{ "var": "hits" }, { "var": "total" }] }]]
+        ]
+      }
+    },
+    "sole-computed-argument": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [{ "var": "candidate" }] }
+    },
+    "boolean-variant": {
+      "state": "ENABLED",
+      "variants": { "true": "on", "false": "off" },
+      "defaultVariant": "false",
+      "targeting": { "resolve": [true] }
+    },
+    "custom-reason": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on", "CUSTOM"] }
+    },
+    "missing-variant": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["nope"] }
+    },
+    "fractional-buckets": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "fractional": [
+          { "cat": ["fixed-bucketing-value"] },
+          [{ "resolve": ["on", "SPLIT", [["details", "treatment"]]] }, { "if": [{ "var": "treatment" }, 1, 0] }],
+          [{ "resolve": ["off", "SPLIT", [["details", "holdback"]]] }, { "if": [{ "var": "treatment" }, 0, 1] }]
+        ]
+      }
+    },
+    "fractional-shorthand": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": {
+        "fractional": [
+          [{ "resolve": ["on", "SPLIT", [["details", "only"]]] }, 1],
+          [{ "resolve": ["off", "SPLIT"] }, 0]
+        ]
+      }
+    },
+    "fractional-shorthand-single": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "fractional": [[{ "resolve": ["on", "SPLIT", [["details", "only"]]] }, 1]] }
+    },
+    "computed-metadata-list": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on", null, { "if": [{ "var": "pick" }, [["details", "a"]], [["details", "b"]]] }] }
+    },
+    "computed-metadata-pair": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": ["on", null, [{ "if": [{ "var": "pick" }, ["details", "a"], ["details", "b"]] }]] }
+    },
+    "null-variant": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [null] }
+    },
+    "null-variant-reason": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [null, "CUSTOM", [["details", "rule"]]] }
+    },
+    "null-variant-no-default": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "targeting": { "resolve": [null] }
+    },
+    "null-variant-no-default-reason": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "targeting": { "resolve": [null, "CUSTOM", [["details", "rule"]]] }
+    },
+    "disabled-with-overrides": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "targeting": {
+        "if": [{ "in": [{ "var": "targetingKey" }, ["alice"]] }, "on", { "resolve": [null, "DISABLED"] }]
+      }
+    },
+    "infinite-variant": {
+      "state": "ENABLED",
+      "variants": { "Infinity": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "resolve": [{ "/": [1, 0] }] }
+    },
+    "forged": {
+      "state": "ENABLED",
+      "variants": { "on": "on", "off": "off" },
+      "defaultVariant": "off",
+      "targeting": { "var": "forged" }
+    }
+  },
+  "$evaluators": {
+    "allowlist": { "resolve": ["on", "ALLOWLIST"] }
+  }
+}

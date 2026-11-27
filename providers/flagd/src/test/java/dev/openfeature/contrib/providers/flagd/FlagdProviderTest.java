@@ -60,6 +60,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedConstruction;
 
 class FlagdProviderTest {
@@ -454,6 +456,7 @@ class FlagdProviderTest {
         when(serviceBlockingStubMock.resolveBoolean(any()))
                 .thenReturn(ResolveBooleanResponse.newBuilder()
                         .setValue(expectedVariant)
+                        .setVariant(BOOL_VARIANT)
                         .build());
 
         ChannelConnector grpc = mock(ChannelConnector.class);
@@ -487,6 +490,57 @@ class FlagdProviderTest {
                 api.getClient().getBooleanDetails(FLAG_KEY, false, new MutableContext());
         assertEquals(Reason.UNKNOWN.toString(), booleanDetails.getReason()); // reason should be converted to
         // UNKNOWN
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DEFAULT", "DISABLED", "CUSTOM", "TARGETING_MATCH"})
+    void no_variant_uses_default_value_for_any_reason(String reason) {
+        ResolveBooleanResponse noVariantResponse = ResolveBooleanResponse.newBuilder()
+                .setValue(true)
+                .setReason(reason)
+                .build();
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class)))
+                .thenReturn(noVariantResponse);
+
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
+
+        FlagEvaluationDetails<Boolean> booleanDetails =
+                api.getClient().getBooleanDetails(FLAG_KEY, false, new MutableContext());
+        assertEquals(false, booleanDetails.getValue());
+        assertNull(booleanDetails.getVariant());
+        assertEquals(reason, booleanDetails.getReason());
+        assertNull(booleanDetails.getErrorCode());
+    }
+
+    // a reason does not change the outcome, so a variant's value is used
+    @Test
+    void variant_with_disabled_reason_uses_value() {
+        ResolveBooleanResponse response = ResolveBooleanResponse.newBuilder()
+                .setValue(true)
+                .setVariant(BOOL_VARIANT)
+                .setReason("DISABLED")
+                .build();
+
+        ServiceBlockingStub serviceBlockingStubMock = mock(ServiceBlockingStub.class);
+        when(serviceBlockingStubMock.withDeadlineAfter(anyLong(), any(TimeUnit.class)))
+                .thenReturn(serviceBlockingStubMock);
+        when(serviceBlockingStubMock.resolveBoolean(any(ResolveBooleanRequest.class)))
+                .thenReturn(response);
+
+        ChannelConnector grpc = mock(ChannelConnector.class);
+        OpenFeatureAPI.getInstance().setProviderAndWait(FlagdTestUtils.createProvider(grpc, serviceBlockingStubMock));
+
+        FlagEvaluationDetails<Boolean> booleanDetails =
+                api.getClient().getBooleanDetails(FLAG_KEY, false, new MutableContext());
+        assertEquals(true, booleanDetails.getValue());
+        assertEquals(BOOL_VARIANT, booleanDetails.getVariant());
+        assertEquals("DISABLED", booleanDetails.getReason());
+        assertNull(booleanDetails.getErrorCode());
     }
 
     private void doResolversCacheResponses(String reason, Boolean eventStreamAlive, Boolean shouldCache) {
